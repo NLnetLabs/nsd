@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "xfrd-disk.h"
 #include "xfrd.h"
 #include "buffer.h"
@@ -458,4 +461,80 @@ xfrd_write_state(struct xfrd_state* xfrd)
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: written %d zones to state file",
 		(int)xfrd->zones->count));
 	fclose(out);
+}
+
+/* return tempdirname */
+static void
+tempdirname(char* buf, size_t sz, struct nsd* nsd)
+{
+	const char* dir = "/tmp";
+	/* if(nsd->options->tempdir)  TODO
+	 * 	dir = nsd->options->tempdir; */
+	snprintf(buf, sz, "%s/nsd-xfr-%d", dir, (int)nsd->xfrd_pid);
+}
+
+void xfrd_make_tempdir(struct nsd* nsd)
+{
+	char tnm[1024];
+	tempdirname(tnm, sizeof(tnm), nsd);
+	/* create parent directories if needed (0750 permissions) */
+	if(!create_dirs(tnm)) {
+		log_msg(LOG_ERR, "parentdirs of %s failed", tnm);
+	}
+	/* restrictive permissions here, because this may be in /tmp */
+	if(mkdir(tnm, 0700)==-1) {
+		if(errno != EEXIST) {
+			log_msg(LOG_ERR, "mkdir %s failed: %s",
+				tnm, strerror(errno));
+		}
+	}
+}
+
+void xfrd_del_tempdir(struct nsd* nsd)
+{
+	char tnm[1024];
+	tempdirname(tnm, sizeof(tnm), nsd);
+	/* ignore parent directories, they are likely /var/tmp, /tmp or
+	 * /var/cache/nsd and do not have to be deleted */
+	if(rmdir(tnm)==-1) {
+		log_msg(LOG_ERR, "rmdir %s failed: %s", tnm, strerror(errno));
+	}
+}
+
+/* return name of xfrfile in tempdir */
+static void
+tempxfrname(char* buf, size_t sz, struct nsd* nsd, uint64_t number)
+{
+	char tnm[1024];
+	tempdirname(tnm, sizeof(tnm), nsd);
+	snprintf(buf, sz, "%s/xfr.%llu", tnm, (unsigned long long)number);
+}
+
+FILE* xfrd_open_xfrfile(struct nsd* nsd, uint64_t number, char* mode)
+{
+	char fname[1024];
+	FILE* xfr;
+	tempxfrname(fname, sizeof(fname), nsd, number);
+	xfr = fopen(fname, mode);
+	if(!xfr && errno == ENOENT) {
+		/* directory may not exist */
+		xfrd_make_tempdir(nsd);
+		xfr = fopen(fname, mode);
+	}
+	if(!xfr) {
+		log_msg(LOG_ERR, "open %s for %s failed: %s", fname, mode,
+			strerror(errno));
+		return NULL;
+	}
+	return xfr;
+}
+
+void xfrd_unlink_xfrfile(struct nsd* nsd, uint64_t number)
+{
+	char fname[1024];
+	tempxfrname(fname, sizeof(fname), nsd, number);
+	if(unlink(fname) == -1) {
+		log_msg(LOG_ERR, "could not unlink %s: %s", fname,
+			strerror(errno));
+	}
 }

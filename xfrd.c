@@ -106,6 +106,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 	xfrd->udp_waiting_last = NULL;
 	xfrd->udp_use_num = 0;
 	xfrd->got_time = 0;
+	xfrd->xfrfilenumber = 0;
 	xfrd->activated_first = NULL;
 	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
 	xfrd->last_task = region_alloc(xfrd->region, sizeof(*xfrd->last_task));
@@ -1394,6 +1395,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	size_t rr_count;
 	size_t qdcount = QDCOUNT(packet);
 	size_t ancount = ANCOUNT(packet), ancount_todo;
+	size_t nscount = NSCOUNT(packet);
 	int done = 0;
 	region_type* tempregion = NULL;
 
@@ -1452,6 +1454,16 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		}
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: too short xfr packet: no "
 					       			   "answer"));
+		/* if IXFR is unknown, fallback to AXFR (if allowed) */
+		if (nscount == 1) {
+			if(!packet_skip_dname(packet) || !xfrd_parse_soa_info(packet, soa)) {
+				DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s, from %s: "
+					"no SOA begins authority section",
+					zone->apex_str, zone->master->ip_address_spec));
+				return xfrd_packet_bad;
+			}
+			return xfrd_packet_notimpl;
+		}
 		return xfrd_packet_bad;
 	}
 	ancount_todo = ancount;
@@ -1617,27 +1629,19 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 			/* rollback */
 			if(zone->msg_seq_nr > 0) {
 				/* do not process xfr - if only one part simply ignore it. */
-				/* rollback previous parts of commit */
-				buffer_clear(packet);
-				buffer_printf(packet, "rollback serial %u at "
-						      "time %s from %s",
-					(unsigned)zone->msg_new_serial,
-					xfrd_pretty_time(xfrd_time()),
-					zone->master->ip_address_spec);
-
-				buffer_flip(packet);
-				diff_write_commit(zone->apex_str,
-					zone->msg_old_serial,
-					zone->msg_new_serial,
-					zone->query_id, zone->msg_seq_nr, 0,
-					(char*)buffer_begin(packet),
-					zone->zone_options->pattern->pname,
-					xfrd->nsd->options);
-				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s "
-							       "xfr reverted "
-							       "\"%s\"",
-					zone->apex_str,
-					(char*)buffer_begin(packet)));
+				/* delete file with previous parts of commit */
+				xfrd_unlink_xfrfile(xfrd->nsd, zone->xfrfilenumber);
+				VERBOSITY(1, (LOG_INFO, "xfrd: zone %s "
+					"reverted transfer %u from %s",
+					zone->apex_str, zone->msg_rr_count?
+					(int)zone->msg_new_serial:0,
+					zone->master->ip_address_spec));
+			} else {
+				VERBOSITY(1, (LOG_INFO, "xfrd: zone %s "
+					"bad transfer %u from %s",
+					zone->apex_str, zone->msg_rr_count?
+					(int)zone->msg_new_serial:0,
+					zone->master->ip_address_spec));
 			}
 			if (res == xfrd_packet_notimpl)
 				return res;
@@ -1647,9 +1651,15 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	}
 
 	/* dump reply on disk to diff file */
-	diff_write_packet(zone->apex_str, zone->msg_new_serial, zone->query_id,
-		zone->msg_seq_nr, buffer_begin(packet), buffer_limit(packet),
-		xfrd->nsd->options);
+	/* if first part, get new filenumber.  Numbers can wrap around, 64bit
+	 * is enough so we do not collide with older-transfers-in-progress */
+	if(zone->msg_seq_nr == 0)
+		zone->xfrfilenumber = xfrd->xfrfilenumber++;
+	diff_write_packet(dname_to_string(zone->apex,0),
+		zone->zone_options->pattern->pname,
+		zone->msg_old_serial, zone->msg_new_serial, zone->msg_seq_nr,
+		buffer_begin(packet), buffer_limit(packet), xfrd->nsd,
+		zone->xfrfilenumber);
 	VERBOSITY(1, (LOG_INFO,
 		"xfrd: zone %s written received XFR from %s with serial %u to "
 		"disk", zone->apex_str, zone->master->ip_address_spec,
@@ -1671,11 +1681,21 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	}
 	buffer_flip(packet);
 	diff_write_commit(zone->apex_str, zone->msg_old_serial,
-		zone->msg_new_serial, zone->query_id, zone->msg_seq_nr, 1,
-		(char*)buffer_begin(packet),
-		zone->zone_options->pattern->pname, xfrd->nsd->options);
+		zone->msg_new_serial, zone->msg_seq_nr, 1,
+		(char*)buffer_begin(packet), xfrd->nsd, zone->xfrfilenumber);
 	VERBOSITY(1, (LOG_INFO, "xfrd: zone %s committed \"%s\"",
 		zone->apex_str, (char*)buffer_begin(packet)));
+	/* reset msg seq nr, so if that is nonnull we know xfr file exists */
+	zone->msg_seq_nr = 0;
+	/* now put apply_xfr task on the tasklist */
+	if(!task_new_apply_xfr(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task, zone->apex, zone->msg_old_serial,
+		zone->msg_new_serial, zone->xfrfilenumber)) {
+		/* delete the file and pretend transfer was bad to continue */
+		xfrd_unlink_xfrfile(xfrd->nsd, zone->xfrfilenumber);
+		xfrd_set_reload_timeout();
+		return xfrd_packet_bad;
+	}
 	/* update the disk serial no. */
 	zone->soa_disk_acquired = xfrd_time();
 	zone->soa_disk = soa;

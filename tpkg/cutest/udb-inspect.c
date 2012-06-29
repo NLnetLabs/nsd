@@ -320,9 +320,10 @@ inspect_chunk(void* base, void* cv, struct inspect_totals* t)
 		printf("\n");
 	} else if(cp->type == udb_chunk_type_task) {
 		struct task_list_d* d = (struct task_list_d*)UDB_REL(base, data);
-		printf("	task type=%d next=%llu yesno=%d serial=%u zone=%s\n",
+		printf("	task type=%d next=%llu yesno=%d oldserial=%u newserial=%u zone=%s\n",
 			(int)d->task_type, ULL d->next.data, (int)d->yesno,
-			(unsigned)d->serial, d->size > sizeof(*d)?
+			(unsigned)d->oldserial, (unsigned)d->newserial,
+			d->size > sizeof(*d)?
 			dname_to_string(d->zname, NULL):"\"\"");
 	}
    } /* end verbosity 2 */

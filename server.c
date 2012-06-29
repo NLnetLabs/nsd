@@ -38,6 +38,7 @@
 #include "netio.h"
 #include "xfrd.h"
 #include "xfrd-tcp.h"
+#include "xfrd-disk.h"
 #include "difffile.h"
 #include "nsec3.h"
 #include "ipc.h"
@@ -534,12 +535,6 @@ server_prepare(struct nsd *nsd)
 	 * for all zones */
 	namedb_check_zonefiles(nsd->db, nsd->options, NULL, NULL);
 
-	/* Read diff file */
-	if(!diff_read_file(nsd->db, nsd->options, NULL, NULL, NULL)) {
-		log_msg(LOG_ERR, "The diff file contains errors. Will continue "
-						 "without it");
-	}
-
 	compression_table_capacity = 0;
 	initialize_dname_compression_tables(nsd);
 
@@ -644,7 +639,6 @@ server_prepare_xfrd(struct nsd* nsd)
 	assert(udb_base_get_userdata(nsd->task[0])->data == 0);
 	assert(udb_base_get_userdata(nsd->task[1])->data == 0);
 	/* create xfrd listener structure */
-	nsd->xfrd_pid = -1;
 	nsd->xfrd_listener = region_alloc(nsd->region,
 		sizeof(netio_handler_type));
 	nsd->xfrd_listener->user_data = (struct ipc_handler_conn_data*)
@@ -678,12 +672,10 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		/* create new file, overwrite the old one */
 		nsd->task[1-nsd->mytask] = task_file_create(tmpfile);
 		free(tmpfile);
+		/* get rid of or rename old directory in /tmp TODO */
 	}
-	/* old xfrd may have crashed, snip off garbage off the diff file */
-	diff_snip_garbage(nsd->db, nsd->options);
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == -1) {
 		log_msg(LOG_ERR, "startxfrd failed on socketpair: %s", strerror(errno));
-		nsd->xfrd_pid = -1;
 		return;
 	}
 	pid = fork();
@@ -698,6 +690,7 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		/* use other task than I am using, since if xfrd died and is
 		 * restarted, the reload is using nsd->mytask */
 		nsd->mytask = 1 - nsd->mytask;
+		nsd->xfrd_pid = getpid();
 		xfrd_init(sockets[1], nsd, del_db, reload_active);
 		/* ENOTREACH */
 		break;
@@ -705,6 +698,7 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		/* PARENT: close second socket, use first one */
 		close(sockets[1]);
 		nsd->xfrd_listener->fd = sockets[0];
+		nsd->xfrd_pid = pid;
 		break;
 	}
 	/* PARENT only */
@@ -928,11 +922,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	udb_ptr_init(&last_task, nsd->task[nsd->mytask]);
 	reload_process_tasks(nsd, &last_task);
 
-	if(!diff_read_file(nsd->db, nsd->options, NULL, 
-		nsd->task[nsd->mytask], &last_task)) {
-		log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
-		exit(1);
-	}
 #ifndef NDEBUG
 	if(nsd_debug_level >= 1)
 		region_log_stats(nsd->db->region);
@@ -1341,6 +1330,7 @@ server_main(struct nsd *nsd)
 		close(nsd->xfrd_listener->fd);
 		(void)kill(nsd->xfrd_pid, SIGTERM);
 	}
+	xfrd_del_tempdir(nsd);
 
 #if 0 /* OS collects memory pages */
 	region_destroy(server_region);

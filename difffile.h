@@ -16,52 +16,27 @@
 struct nsd;
 struct nsdst;
 
-#define DIFF_PART_IXFR ('I'<<24 | 'X'<<16 | 'F'<<8 | 'R')
-#define DIFF_PART_SURE ('S'<<24 | 'U'<<16 | 'R'<<8 | 'E')
-
-/*
- * Used to pass commit logs
- */
-struct diff_log {
-	char* zone_name;
-	char* error;
-	char* comment;
-	struct diff_log* next;
-};
+#define DIFF_PART_XXFR ('X'<<24 | 'X'<<16 | 'F'<<8 | 'R')
+#define DIFF_PART_XFRF ('X'<<24 | 'F'<<16 | 'R'<<8 | 'F')
 
 /* write an xfr packet data to the diff file, type=IXFR.
-   The diff file is created if necessary. */
-void diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
-	uint32_t seq_nr, uint8_t* data, size_t len, nsd_options_t* opt);
+   The diff file is created if necessary, with initial header(notcommitted). */
+void diff_write_packet(const char* zone, const char* pat, uint32_t old_serial,
+	uint32_t new_serial, uint32_t seq_nr, uint8_t* data, size_t len,
+	struct nsd* nsd, uint64_t filenumber);
 
 /*
- * Write a commit packet to the diff file, type=SURE.
- * The zone data (preceding ixfr packets) are committed.
- * See NSD-DIFFFILE for meaning of the arguments.
+ * Overwrite header of diff file with committed vale and other data.
+ * append log string.
  */
 void diff_write_commit(const char* zone, uint32_t old_serial,
-	uint32_t new_serial, uint16_t id, uint32_t num_parts,
-	uint8_t commit, const char* log_msg, const char* patname,
-	nsd_options_t* opt);
-
-/* read the diff file and apply to the database in memory.
-   It will attempt to skip bad data.
-   If you pass a non-null value log, log comments are alloced in namedb.region
-   then, *log must be 0 on start of call (entries are prepended).
-   returns 0 on an unrecoverable error. */
-int diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
-	udb_base* taskudb, udb_ptr* last_task);
-
-/* check the diff file for garbage at the end (bad type, partial write)
- * and snip it off.
- */
-void diff_snip_garbage(namedb_type* db, nsd_options_t* opt);
+	uint32_t new_serial, uint32_t num_parts, uint8_t commit,
+	const char* log_msg, struct nsd* nsd, uint64_t filenumber);
 
 /*
  * These functions read parts of the diff file.
  */
 int diff_read_32(FILE *in, uint32_t* result);
-int diff_read_16(FILE *in, uint16_t* result);
 int diff_read_8(FILE *in, uint8_t* result);
 int diff_read_str(FILE* in, char* buf, size_t len);
 
@@ -90,8 +65,6 @@ struct task_list_d {
 		task_apply_xfr,
 		/** soa info for zone */
 		task_soa_info,
-		/** done with apply xfr */
-		task_done_apply_xfr,
 		/** check mtime of zonefiles and read them, done on SIGHUP */
 		task_check_zonefiles,
 		/** write zonefiles (if changed) */
@@ -117,9 +90,8 @@ struct task_list_d {
 
 	/** soainfo: zonename dname, soaRR wireform */
 	/** expire: zonename, boolyesno */
-	/** apply_xfr: zonename, filename-serial */
-	/** done_apply_xfr: zonename, filename-serial */
-	uint32_t serial;
+	/** apply_xfr: zonename, serials, yesno is filenamecounter */
+	uint32_t oldserial, newserial;
 	/** general variable.  for some used to see if zname is present. */
 	uint64_t yesno;
 	struct dname zname[0];
@@ -147,6 +119,8 @@ void task_new_add_key(udb_base* udb, udb_ptr* last, key_options_t* key);
 void task_new_del_key(udb_base* udb, udb_ptr* last, const char* name);
 void task_new_add_pattern(udb_base* udb, udb_ptr* last, pattern_options_t* p);
 void task_new_del_pattern(udb_base* udb, udb_ptr* last, const char* name);
+int task_new_apply_xfr(udb_base* udb, udb_ptr* last, const dname_type* zone,
+	uint32_t old_serial, uint32_t new_serial, uint64_t filenumber);
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	udb_ptr* task);
 void task_process_expire(namedb_type* db, struct task_list_d* task);

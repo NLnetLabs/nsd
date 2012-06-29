@@ -294,7 +294,6 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		SERV_GET_STR(chroot, o);
 		SERV_GET_STR(username, o);
 		SERV_GET_STR(zonesdir, o);
-		SERV_GET_STR(difffile, o);
 		SERV_GET_STR(xfrdfile, o);
 		SERV_GET_STR(zonelistfile, o);
 		SERV_GET_STR(port, o);
@@ -381,7 +380,6 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("chroot:", opt->chroot);
 	print_string_var("username:", opt->username);
 	print_string_var("zonesdir:", opt->zonesdir);
-	print_string_var("difffile:", opt->difffile);
 	print_string_var("xfrdfile:", opt->xfrdfile);
 	print_string_var("zonelistfile:", opt->zonelistfile);
 	printf("\txfrd_reload_timeout: %d\n", opt->xfrd_reload_timeout);
@@ -492,11 +490,6 @@ additional_checks(nsd_options_t* opt, const char* filename)
 		if (strncmp(opt->chroot, opt->database, l) != 0) {
 			fprintf(stderr, "%s: databasefile %s is not relative to chroot %s.\n",
 				filename, opt->database, opt->chroot);
-			errors ++;
-                }
-		if (strncmp(opt->chroot, opt->difffile, l) != 0) {
-			fprintf(stderr, "%s: difffile %s is not relative to chroot %s.\n",
-				filename, opt->difffile, opt->chroot);
 			errors ++;
                 }
 		if (strncmp(opt->chroot, opt->xfrdfile, l) != 0) {

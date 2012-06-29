@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include "difffile.h"
+#include "xfrd-disk.h"
 #include "util.h"
 #include "packet.h"
 #include "rdata.h"
@@ -26,13 +27,6 @@ static int
 write_32(FILE *out, uint32_t val)
 {
 	val = htonl(val);
-	return write_data(out, &val, sizeof(val));
-}
-
-static int
-write_16(FILE *out, uint16_t val)
-{
-	val = htons(val);
 	return write_data(out, &val, sizeof(val));
 }
 
@@ -52,90 +46,105 @@ write_str(FILE *out, const char* str)
 }
 
 void
-diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
-	uint32_t seq_nr, uint8_t* data, size_t len, nsd_options_t* opt)
+diff_write_packet(const char* zone, const char* pat, uint32_t old_serial,
+	uint32_t new_serial, uint32_t seq_nr, uint8_t* data, size_t len,
+	struct nsd* nsd, uint64_t filenumber)
 {
-	const char* filename = opt->difffile;
 	struct timeval tv;
-	FILE *df;
-	uint32_t file_len = sizeof(uint32_t) + strlen(zone) +
-		sizeof(new_serial) + sizeof(id) + sizeof(seq_nr) + len;
+	FILE *df = xfrd_open_xfrfile(nsd, filenumber, seq_nr?"a":"w");
+	if(!df) {
+		log_msg(LOG_ERR, "could not open transfer %s file %llu: %s",
+			zone, (unsigned long long)filenumber, strerror(errno));
+		return;
+	}
 
 	if (gettimeofday(&tv, NULL) != 0) {
-		log_msg(LOG_ERR, "could not set timestamp for %s: %s",
-			filename, strerror(errno));
-		return;
+		log_msg(LOG_ERR, "could not get timestamp for %s: %s",
+			zone, strerror(errno));
 	}
 
-	df = fopen(filename, "a");
-	if(!df) {
-		log_msg(LOG_ERR, "could not open file %s for append: %s",
-			filename, strerror(errno));
-		return;
+	/* if first part, first write the header */
+	if(seq_nr == 0) {
+		if(!write_32(df, DIFF_PART_XFRF) ||
+			!write_8(df, 0) /* notcommitted(yet) */ ||
+			!write_32(df, 0) /* numberofparts when done */ ||
+			!write_32(df, (uint32_t) tv.tv_sec) ||
+			!write_32(df, (uint32_t) tv.tv_usec) ||
+			!write_32(df, old_serial) ||
+			!write_32(df, new_serial) ||
+			!write_32(df, (uint32_t) tv.tv_sec) ||
+			!write_32(df, (uint32_t) tv.tv_usec) ||
+			!write_str(df, zone) ||
+			!write_str(df, pat)) {
+			log_msg(LOG_ERR, "could not write transfer %s file %llu: %s",
+				zone, (unsigned long long)filenumber, strerror(errno));
+			fclose(df);
+			return;
+		}
 	}
 
-	if(!write_32(df, DIFF_PART_IXFR) ||
-		!write_32(df, (uint32_t) tv.tv_sec) ||
-		!write_32(df, (uint32_t) tv.tv_usec) ||
-		!write_32(df, file_len) ||
-		!write_str(df, zone) ||
-		!write_32(df, new_serial) ||
-		!write_16(df, id) ||
-		!write_32(df, seq_nr) ||
+	if(!write_32(df, DIFF_PART_XXFR) ||
+		!write_32(df, len) ||
 		!write_data(df, data, len) ||
-		!write_32(df, file_len))
+		!write_32(df, len))
 	{
-		log_msg(LOG_ERR, "could not write to file %s: %s",
-			filename, strerror(errno));
+		log_msg(LOG_ERR, "could not write transfer %s file %llu: %s",
+			zone, (unsigned long long)filenumber, strerror(errno));
 	}
-	fflush(df);
 	fclose(df);
 }
 
 void
-diff_write_commit(const char* zone, uint32_t old_serial,
-	uint32_t new_serial, uint16_t id, uint32_t num_parts,
-	uint8_t commit, const char* log_str, const char* patname,
-	nsd_options_t* opt)
+diff_write_commit(const char* zone, uint32_t old_serial, uint32_t new_serial,
+	uint32_t num_parts, uint8_t commit, const char* log_str,
+	struct nsd* nsd, uint64_t filenumber)
 {
-	const char* filename = opt->difffile;
 	struct timeval tv;
 	FILE *df;
-	uint32_t len;
 
 	if (gettimeofday(&tv, NULL) != 0) {
 		log_msg(LOG_ERR, "could not set timestamp for %s: %s",
-			filename, strerror(errno));
-		return;
+			zone, strerror(errno));
 	}
 
-	df = fopen(filename, "a");
+	/* overwrite the first part of the file with 'committed = 1', 
+	 * as well as the end_time and number of parts.
+	 * also write old_serial and new_serial, so that a bad file mixup
+	 * will result in unusable serial numbers. */
+
+	df = xfrd_open_xfrfile(nsd, filenumber, "r+");
 	if(!df) {
-		log_msg(LOG_ERR, "could not open file %s for append: %s",
-			filename, strerror(errno));
+		log_msg(LOG_ERR, "could not open transfer %s file %llu: %s",
+			zone, (unsigned long long)filenumber, strerror(errno));
 		return;
 	}
-
-	len = strlen(zone) + sizeof(len) + sizeof(old_serial) +
-		sizeof(new_serial) + sizeof(id) + sizeof(num_parts) +
-		sizeof(commit) + strlen(log_str) + sizeof(len);
-
-	if(!write_32(df, DIFF_PART_SURE) ||
+	if(!write_32(df, DIFF_PART_XFRF) ||
+		!write_8(df, commit) /* committed */ ||
+		!write_32(df, num_parts) ||
 		!write_32(df, (uint32_t) tv.tv_sec) ||
 		!write_32(df, (uint32_t) tv.tv_usec) ||
-		!write_32(df, len) ||
-		!write_str(df, zone) ||
 		!write_32(df, old_serial) ||
-		!write_32(df, new_serial) ||
-		!write_16(df, id) ||
-		!write_32(df, num_parts) ||
-		!write_8(df, commit) ||
-		!write_str(df, log_str) ||
-		!write_str(df, patname) ||
-		!write_32(df, len))
+		!write_32(df, new_serial))
 	{
-		log_msg(LOG_ERR, "could not write to file %s: %s",
-			filename, strerror(errno));
+		log_msg(LOG_ERR, "could not write transfer %s file %llu: %s",
+			zone, (unsigned long long)filenumber, strerror(errno));
+		fclose(df);
+		return;
+	}
+
+	/* append the log_str to the end of the file */
+	if(fseek(df, 0, SEEK_END) == -1) {
+		log_msg(LOG_ERR, "could not fseek transfer %s file %llu: %s",
+			zone, (unsigned long long)filenumber, strerror(errno));
+		fclose(df);
+		return;
+	}
+	if(!write_str(df, log_str)) {
+		log_msg(LOG_ERR, "could not write transfer %s file %llu: %s",
+			zone, (unsigned long long)filenumber, strerror(errno));
+		fclose(df);
+		return;
+
 	}
 	fflush(df);
 	fclose(df);
@@ -150,17 +159,6 @@ diff_read_32(FILE *in, uint32_t* result)
 	} else {
 		return 0;
 	}
-}
-
-int
-diff_read_16(FILE *in, uint16_t* result)
-{
-        if (fread(result, sizeof(*result), 1, in) == 1) {
-                *result = ntohs(*result);
-                return 1;
-        } else {
-                return 0;
-        }
 }
 
 int
@@ -790,13 +788,12 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 
 /* return value 0: syntaxerror,badIXFR, 1:OK, 2:done_and_skip_it */
 static int
-apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
-	const char* zone, uint32_t serialno, nsd_options_t* opt,
-	uint16_t id, uint32_t seq_nr, uint32_t seq_total,
+apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
+	nsd_options_t* opt, uint32_t seq_nr, uint32_t seq_total,
 	int* is_axfr, int* delete_mode, int* rr_count,
-	udb_ptr* udbz, struct zone** zone_res, const char* patname)
+	udb_ptr* udbz, struct zone** zone_res, const char* patname, int* bytes)
 {
-	uint32_t filelen, msglen, pkttype, timestamp[2];
+	uint32_t msglen, checklen, pkttype;
 	int qcount, ancount, counter;
 	buffer_type* packet;
 	region_type* region;
@@ -804,40 +801,24 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	uint16_t rrlen;
 	const dname_type *dname_zone, *dname;
 	zone_type* zone_db;
-	char file_zone_name[3072];
-	uint32_t file_serial, file_seq_nr;
-	uint16_t file_id;
-	off_t mempos;
 
 	/* note that errors could not really happen due to format of the
 	 * packet since xfrd has checked all dnames and RRs before commit,
 	 * this is why the errors are fatal (exit process), it must be
 	 * something internal or a bad disk or something. */
 
-	memmove(&mempos, startpos, sizeof(off_t));
-	if(fseeko(in, mempos, SEEK_SET) == -1) {
-		log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
-		return 0;
-	}
 	/* read ixfr packet RRs and apply to in memory db */
-
-	if(!diff_read_32(in, &pkttype) || pkttype != DIFF_PART_IXFR) {
+	if(!diff_read_32(in, &pkttype) || pkttype != DIFF_PART_XXFR) {
 		log_msg(LOG_ERR, "could not read type or wrong type");
 		return 0;
 	}
-	if(!diff_read_32(in, &timestamp[0]) ||
-	   !diff_read_32(in, &timestamp[1])) {
-		log_msg(LOG_ERR, "could not read timestamp");
-		return 0;
-	}
 
-	if(!diff_read_32(in, &filelen)) {
+	if(!diff_read_32(in, &msglen)) {
 		log_msg(LOG_ERR, "could not read len");
 		return 0;
 	}
 
-	/* read header */
-	if(filelen < QHEADERSZ + sizeof(uint32_t)*3 + sizeof(uint16_t)) {
+	if(msglen < QHEADERSZ) {
 		log_msg(LOG_ERR, "msg too short");
 		return 0;
 	}
@@ -847,35 +828,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		log_msg(LOG_ERR, "out of memory");
 		return 0;
 	}
-
-	if(!diff_read_str(in, file_zone_name, sizeof(file_zone_name)) ||
-		!diff_read_32(in, &file_serial) ||
-		!diff_read_16(in, &file_id) ||
-		!diff_read_32(in, &file_seq_nr))
-	{
-		log_msg(LOG_ERR, "could not part data");
-		region_destroy(region);
-		return 0;
-	}
-
-	if(strcmp(file_zone_name, zone) != 0 || serialno != file_serial ||
-		id != file_id || seq_nr != file_seq_nr) {
-		log_msg(LOG_ERR, "internal error: reading part with changed id");
-		region_destroy(region);
-		return 0;
-	}
-	msglen = filelen - sizeof(uint32_t)*3 - sizeof(uint16_t)
-		- strlen(file_zone_name);
 	packet = buffer_create(region, QIOBUFSZ);
-	dname_zone = dname_parse(region, zone);
-	zone_db = find_or_create_zone(db, dname_zone, opt, zone, patname);
-	if(!zone_db) {
-		log_msg(LOG_ERR, "could not create zone %s %s", zone, patname);
-		region_destroy(region);
-		return 0;
-	}
-	*zone_res = zone_db;
-
 	if(msglen > QIOBUFSZ) {
 		log_msg(LOG_ERR, "msg too long");
 		region_destroy(region);
@@ -888,6 +841,23 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		return 0;
 	}
 	buffer_set_limit(packet, msglen);
+
+	/* see if check on data fails: checks that we are not reading
+	 * random garbage */
+	if(!diff_read_32(in, &checklen) || checklen != msglen) {
+		log_msg(LOG_ERR, "transfer part has incorrect checkvalue");
+		return 0;
+	}
+	*bytes += msglen;
+
+	dname_zone = dname_parse(region, zone);
+	zone_db = find_or_create_zone(db, dname_zone, opt, zone, patname);
+	if(!zone_db) {
+		log_msg(LOG_ERR, "could not create zone %s %s", zone, patname);
+		region_destroy(region);
+		return 0;
+	}
+	*zone_res = zone_db;
 
 	/* only answer section is really used, question, additional and
 	   authority section RRs are skipped */
@@ -1106,229 +1076,75 @@ check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
 	return 0;
 }
 
-/* for multiple tcp packets use a data structure that has
- * a rbtree (zone_names) with for each zone:
- * 	has a rbtree by sequence number
- *		with inside a serial_number and ID (for checking only)
- *		and contains a off_t to the IXFR packet in the file.
- * so when you get a commit for a zone, get zone obj, find sequence,
- * then check if you have all sequence numbers available. Apply all packets.
- */
-struct diff_read_data {
-	/* rbtree of struct diff_zone*/
-	rbtree_t* zones;
-	/* region for allocation */
-	region_type* region;
-};
-struct diff_zone {
-	/* key is dname of zone */
-	rbnode_t node;
-	/* rbtree of struct diff_xfrpart */
-	rbtree_t* parts;
-};
-struct diff_xfrpart {
-	/* key is sequence number */
-	rbnode_t node;
-	uint32_t seq_nr;
-	uint32_t new_serial;
-	uint16_t id;
-	off_t file_pos;
-};
-
-static struct diff_read_data*
-diff_read_data_create()
-{
-	region_type* region = region_create(xalloc, free);
-	struct diff_read_data* data = (struct diff_read_data*)
-		region_alloc(region, sizeof(struct diff_read_data));
-	if(!data) {
-		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
-		exit(1);
-	}
-	data->region = region;
-	data->zones = rbtree_create(region,
-		(int (*)(const void *, const void *)) dname_compare);
-	return data;
-}
-
-static struct diff_zone*
-diff_read_find_zone(struct diff_read_data* data, const char* name)
-{
-	const dname_type* dname = dname_parse(data->region, name);
-	struct diff_zone* zp = (struct diff_zone*)
-		rbtree_search(data->zones, dname);
-	return zp;
-}
-
-static int intcompf(const void* a, const void* b)
-{
-	if(*(uint32_t*)a < *(uint32_t*)b)
-		return -1;
-	if(*(uint32_t*)a > *(uint32_t*)b)
-		return +1;
-	return 0;
-}
-
-static struct diff_zone*
-diff_read_insert_zone(struct diff_read_data* data, const char* name)
-{
-	const dname_type* dname = dname_parse(data->region, name);
-	struct diff_zone* zp = region_alloc(data->region,
-		sizeof(struct diff_zone));
-	if(!zp) {
-		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
-		exit(1);
-	}
-	zp->node = *RBTREE_NULL;
-	zp->node.key = dname;
-	zp->parts = rbtree_create(data->region, intcompf);
-	rbtree_insert(data->zones, (rbnode_t*)zp);
-	return zp;
-}
-
-static struct diff_xfrpart*
-diff_read_find_part(struct diff_zone* zp, uint32_t seq_nr)
-{
-	struct diff_xfrpart* xp = (struct diff_xfrpart*)
-		rbtree_search(zp->parts, &seq_nr);
-	return xp;
-}
-
-static struct diff_xfrpart*
-diff_read_insert_part(struct diff_read_data* data,
-	struct diff_zone* zp, uint32_t seq_nr)
-{
-	struct diff_xfrpart* xp = region_alloc(data->region,
-		sizeof(struct diff_xfrpart));
-	if(!xp) {
-		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
-		exit(1);
-	}
-	xp->node = *RBTREE_NULL;
-	xp->node.key = &xp->seq_nr;
-	xp->seq_nr = seq_nr;
-	rbtree_insert(zp->parts, (rbnode_t*)xp);
-	return xp;
-}
-
-/* mark commit as rollback and close inputfile, fatal exits */
-static void
-mark_and_exit(nsd_options_t* opt, FILE* f, off_t commitpos, const char* desc)
-{
-	const char* filename = opt->difffile;
-	fclose(f);
-	if(!(f = fopen(filename, "r+"))) {
-		log_msg(LOG_ERR, "mark xfr, failed to re-open difffile %s: %s",
-			filename, strerror(errno));
-	} else if(fseeko(f, commitpos, SEEK_SET) == -1) {
-		log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
-		fclose(f);
-	} else {
-		uint8_t c = 0;
-		(void)write_data(f, &c, sizeof(c));
-		fclose(f);
-		log_msg(LOG_ERR, "marked xfr as failed: %s", desc);
-		log_msg(LOG_ERR, "marked xfr so that next reload can succeed");
-	}
-	exit(1);
-}
-
 static int
-read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
-	struct diff_read_data* data, struct diff_log** log,
-	udb_base* taskudb, udb_ptr* last_task)
+apply_ixfr_for_zone(namedb_type* db, zone_type* zonedb, FILE* in,
+	nsd_options_t* opt, udb_base* taskudb, udb_ptr* last_task)
 {
 	char zone_buf[3072];
 	char log_buf[5120];
 	char patname_buf[2048];
-	uint32_t old_serial, new_serial, num_parts;
-	uint16_t id;
+
+	uint32_t old_serial, new_serial, num_parts, type;
+	uint32_t time_end[2], time_start[2];
 	uint8_t committed;
-	struct diff_zone *zp;
 	uint32_t i;
-	int have_all_parts = 1;
-	struct diff_log* thislog = 0;
-	off_t commitpos;
-	zone_type* zonedb = NULL;
+	int num_bytes = 0;
 
 	/* read zone name and serial */
-	if(!diff_read_str(in, zone_buf, sizeof(zone_buf)) ||
+	if(!diff_read_32(in, &type)) {
+		log_msg(LOG_ERR, "diff file too short");
+		return 0;
+	}
+	if(type != DIFF_PART_XFRF) {
+		log_msg(LOG_ERR, "xfr file has wrong format");
+		return 0;
+
+	}
+	/* committed and num_parts are first because they need to be
+	 * updated once the rest is written.  The log buf is not certain
+	 * until its done, so at end of file.  The patname is in case a
+	 * new zone is created, we know what the options-pattern is */
+	if(!diff_read_8(in, &committed) ||
+		!diff_read_32(in, &num_parts) ||
+		!diff_read_32(in, &time_end[0]) ||
+		!diff_read_32(in, &time_end[1]) ||
 		!diff_read_32(in, &old_serial) ||
 		!diff_read_32(in, &new_serial) ||
-		!diff_read_16(in, &id) ||
-		!diff_read_32(in, &num_parts)) {
+		!diff_read_32(in, &time_start[0]) ||
+		!diff_read_32(in, &time_start[1]) ||
+		!diff_read_str(in, zone_buf, sizeof(zone_buf)) ||
+		!diff_read_str(in, patname_buf, sizeof(patname_buf))) {
 		log_msg(LOG_ERR, "diff file bad commit part");
 		return 0;
-	}
-	commitpos = ftello(in); /* position of commit byte */
-	if(commitpos == -1) {
-		log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
-		return 0;
-	}
-	if(!diff_read_8(in, &committed) ||
-		!diff_read_str(in, log_buf, sizeof(log_buf)) ||
-		!diff_read_str(in, patname_buf, sizeof(patname_buf)) )
-	{
-		log_msg(LOG_ERR, "diff file bad commit part");
-		return 0;
-	}
-
-	if(log) {
-		thislog = (struct diff_log*)region_alloc(db->region, sizeof(struct diff_log));
-		if(!thislog) {
-			log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
-			exit(1);
-		}
-		thislog->zone_name = region_strdup(db->region, zone_buf);
-		thislog->comment = region_strdup(db->region, log_buf);
-		thislog->error = 0;
-		thislog->next = *log;
-		*log = thislog;
 	}
 
 	/* has been read in completely */
-	zp = diff_read_find_zone(data, zone_buf);
-	if(!zp) {
-		log_msg(LOG_ERR, "diff file commit without IXFR");
-		if(thislog)
-			thislog->error = "error no IXFR parts";
-		return 1;
+	if(strcmp(zone_buf, dname_to_string(zonedb->apex->dname,0)) != 0) {
+		log_msg(LOG_ERR, "file %s does not match task %s",
+			zone_buf, dname_to_string(zonedb->apex->dname,0));
+		return 0;
 	}
-	if(committed && check_for_bad_serial(db, zone_buf, old_serial)) {
+	if(!committed) {
+		log_msg(LOG_ERR, "diff file %s was not committed", zone_buf);
+		return 0;
+	}
+	if(num_parts == 0) {
+		log_msg(LOG_ERR, "diff file %s was not completed", zone_buf);
+		return 0;
+	}
+	if(check_for_bad_serial(db, zone_buf, old_serial)) {
 		DEBUG(DEBUG_XFRD,1, (LOG_ERR,
 			"skipping diff file commit with bad serial"));
-		zp->parts->root = RBTREE_NULL;
-		zp->parts->count = 0;
-		if(thislog)
-			thislog->error = "error bad serial";
 		return 1;
 	}
-	for(i=0; i<num_parts; i++) {
-		struct diff_xfrpart *xp = diff_read_find_part(zp, i);
-		if(!xp || xp->id != id || xp->new_serial != new_serial) {
-			have_all_parts = 0;
-		}
-	}
-	if(!have_all_parts) {
-		DEBUG(DEBUG_XFRD,1, (LOG_ERR,
-			"skipping diff file commit without all parts"));
-		if(thislog)
-			thislog->error = "error missing parts";
-	}
 
-	if(committed && have_all_parts)
+	if(committed)
 	{
 		int is_axfr=0, delete_mode=0, rr_count=0;
-		off_t resume_pos;
-		const dname_type* apex = (const dname_type*)zp->node.key;
+		const dname_type* apex = zonedb->apex->dname;
 		udb_ptr z;
 
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s", log_buf));
-		resume_pos = ftello(in);
-		if(resume_pos == -1) {
-			log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
-			return 0;
-		}
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s", zone_buf));
 		if(udb_base_get_userflags(db->udb) != 0) {
 			log_msg(LOG_ERR, "database corrupted, cannot update");
 			exit(1);
@@ -1347,23 +1163,28 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		}
 		/* set the udb dirty until we are finished applying changes */
 		udb_base_set_userflags(db->udb, 1);
+		/* read and apply all of the parts */
 		for(i=0; i<num_parts; i++) {
-			struct diff_xfrpart *xp = diff_read_find_part(zp, i);
 			int ret;
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));
-			ret = apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
-				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
-				&rr_count, &z, &zonedb, patname_buf);
+			ret = apply_ixfr(db, in, zone_buf, new_serial, opt,
+				i, num_parts, &is_axfr, &delete_mode,
+				&rr_count, &z, &zonedb, patname_buf, &num_bytes);
 			if(ret == 0) {
-				log_msg(LOG_ERR, "bad ixfr packet part %d in %s", (int)i,
-					opt->difffile);
+				log_msg(LOG_ERR, "bad ixfr packet part %d in diff file for %s", (int)i, zone_buf);
 				/* the udb is still dirty, it is bad */
-				mark_and_exit(opt, in, commitpos, log_buf);
+				exit(1);
 			} else if(ret == 2) {
 				break;
 			}
 		}
 		udb_base_set_userflags(db->udb, 0);
+		/* read the final log_str: but do not fail on it */
+		if(!diff_read_str(in, log_buf, sizeof(log_buf))) {
+			log_msg(LOG_ERR, "could not read log for transfer %s",
+				zone_buf);
+			snprintf(log_buf, sizeof(log_buf), "error reading log");
+		}
 #ifdef NSEC3
 		if(zonedb) prehash_zone(db, zonedb, &z);
 #endif /* NSEC3 */
@@ -1372,324 +1193,17 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		udb_zone_set_log_str(db->udb, &z, log_buf);
 		udb_ptr_unlink(&z, db->udb);
 		if(taskudb) task_new_soainfo(taskudb, last_task, zonedb);
-		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
-			log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
-			return 0;
+
+		if(1 <= verbosity) {
+			double elapsed = time_end[0] - time_start[0] + (double)(time_end[1] - time_start[1]) / 1000000.0;
+			VERBOSITY(2, (LOG_INFO, "zone %s %s of %d bytes in %g seconds",
+				zone_buf, log_buf, num_bytes, elapsed));
 		}
 	}
 	else {
 	 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skipping xfr: %s", log_buf));
 	}
-
-	/* clean out the parts for the zone after the commit/rollback */
-	zp->parts->root = RBTREE_NULL;
-	zp->parts->count = 0;
 	return 1;
-}
-
-static int
-store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* startpos)
-{
-	char zone_name[3072];
-	struct diff_zone* zp;
-	struct diff_xfrpart* xp;
-	uint32_t new_serial, seq;
-	uint16_t id;
-	if(!diff_read_str(in, zone_name, sizeof(zone_name)) ||
-		!diff_read_32(in, &new_serial) ||
-		!diff_read_16(in, &id) ||
-		!diff_read_32(in, &seq)) {
-		log_msg(LOG_INFO, "could not read ixfr store info: file format error");
-		return 0;
-	}
-	len -= sizeof(uint32_t)*3 + sizeof(uint16_t) + strlen(zone_name);
-	if(fseeko(in, len, SEEK_CUR) == -1)
-		log_msg(LOG_INFO, "fseek failed: %s", strerror(errno));
-	/* store the info */
-	zp = diff_read_find_zone(data, zone_name);
-	if(!zp)
-		zp = diff_read_insert_zone(data, zone_name);
-	xp = diff_read_find_part(zp, seq);
-	if(xp) {
-		log_msg(LOG_INFO, "discarding partial xfr part: %s %d", zone_name, (int)seq);
-		/* overwrite with newer value (which probably relates to next commit) */
-	}
-	else {
-		xp = diff_read_insert_part(data, zp, seq);
-	}
-	xp->new_serial = new_serial;
-	xp->id = id;
-	memmove(&xp->file_pos, startpos, sizeof(off_t));
-	return 1;
-}
-
-static int
-read_process_part(namedb_type* db, FILE *in, uint32_t type,
-	nsd_options_t* opt, struct diff_read_data* data,
-	struct diff_log** log, off_t* startpos,
-	udb_base* taskudb, udb_ptr* last_task)
-{
-	uint32_t len, len2;
-
-	/* read length */
-	if(!diff_read_32(in, &len))
-		return 1;
-	/* read content */
-	if(type == DIFF_PART_IXFR) {
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part IXFR len %d", (int)len));
-		if(!store_ixfr_data(in, len, data, startpos))
-			return 0;
-	}
-	else if(type == DIFF_PART_SURE) {
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part SURE len %d", (int)len));
-		if(!read_sure_part(db, in, opt, data, log, taskudb, last_task))
-			return 0;
-	} else {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "unknown part %x len %d", (unsigned)type, (int)len));
-		return 0;
-	}
-	/* read length */
-	if(!diff_read_32(in, &len2))
-		return 1; /* short read is OK */
-	/* verify length */
-	if(len != len2)
-		return 0; /* bad data is wrong */
-	return 1;
-}
-
-/*
- * Finds smallest offset in data structs
- * returns 0 if no offsets in the data structs.
- */
-static int
-find_smallest_offset(struct diff_read_data* data, off_t* offset)
-{
-	int found_any = 0;
-	struct diff_zone* dz;
-	struct diff_xfrpart* dx;
-	off_t mem_offset, mem_fpos;
-
-	if(!data || !data->zones)
-		return 0;
-	RBTREE_FOR(dz, struct diff_zone*, data->zones)
-	{
-		if(!dz->parts)
-			continue;
-		RBTREE_FOR(dx, struct diff_xfrpart*, dz->parts)
-		{
-			memmove(&mem_fpos, &dx->file_pos, sizeof(off_t));
-
-			if(found_any) {
-				memmove(&mem_offset, offset, sizeof(off_t));
-
-				if(mem_fpos < mem_offset)
-					memmove(offset, &mem_fpos, sizeof(off_t));
-			} else {
-				found_any = 1;
-				memmove(offset, &mem_fpos, sizeof(off_t));
-			}
-		}
-	}
-
-	return found_any;
-}
-
-int
-diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
-	udb_base* taskudb, udb_ptr* last_task)
-{
-	const char* filename = opt->difffile;
-	FILE *df;
-	uint32_t type, timestamp[2], curr_timestamp[2];
-	struct diff_read_data* data = diff_read_data_create();
-	off_t startpos;
-
-	df = fopen(filename, "r");
-	if(!df) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "could not open file %s for reading: %s",
-			filename, strerror(errno)));
-		region_destroy(data->region);
-		return 1;
-	}
-
-	/* check timestamp */
-	curr_timestamp[0] = (uint32_t) db->diff_timestamp.tv_sec;
-	curr_timestamp[1] = (uint32_t) db->diff_timestamp.tv_usec;
-
-	if(!diff_read_32(df, &type)) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "difffile %s is empty",
-			filename));
-		db->diff_skip = 0;
-		db->diff_pos = 0;
-	}
-	else if (!diff_read_32(df, &timestamp[0]) ||
-		 !diff_read_32(df, &timestamp[1])) {
-		log_msg(LOG_ERR, "difffile %s bad first part: no timestamp",
-			filename);
-		region_destroy(data->region);
-		return 0;
-	}
-	else if (curr_timestamp[0] != timestamp[0] ||
-		 curr_timestamp[1] != timestamp[1]) {
-		/* new timestamp, no skipping */
-		db->diff_timestamp.tv_sec = (time_t) timestamp[0];
-		db->diff_timestamp.tv_usec = (suseconds_t) timestamp[1];
-
-		if (db->diff_skip) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "new timestamp on "
-				"difffile %s, restoring diff_skip and diff_pos "
-				"[old timestamp: %u.%u; new timestamp: %u.%u]",
-				filename, (unsigned)curr_timestamp[0],
-				(unsigned)curr_timestamp[1],
-				(unsigned)timestamp[0],
-				(unsigned)timestamp[1]));
-			db->diff_skip = 0;
-			db->diff_pos = 0;
-		}
-	}
-
-	/* Always seek, to diff_pos or to beginning of the file. */
-	if (fseeko(df, 0, SEEK_SET)==-1) {
-		log_msg(LOG_INFO, "could not fseeko file %s: %s.", filename,
-				strerror(errno));
-		region_destroy(data->region);
-		return 0;
-	}
-	if(db->diff_skip) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skip diff file"));
-		if(fseeko(df, db->diff_pos, SEEK_SET)==-1) {
-			log_msg(LOG_INFO, "could not fseeko file %s: %s. "
-					  "Reread from start.", filename,
-				strerror(errno));
-		}
-	}
-
-	startpos = ftello(df);
-	if(startpos == -1) {
-		log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
-		region_destroy(data->region);
-		return 0;
-	}
-
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "start of diff file read at pos %u",
-		(unsigned)db->diff_pos));
-	while(diff_read_32(df, &type))
-	{
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "iter loop"));
-
-		/* read timestamp */
-		if(!diff_read_32(df, &timestamp[0]) ||
-			!diff_read_32(df, &timestamp[1])) {
-			log_msg(LOG_INFO, "could not read timestamp: %s.",
-				strerror(errno));
-			region_destroy(data->region);
-			return 0;
-		}
-
-		if(!read_process_part(db, df, type, opt, data, log,
-			&startpos, taskudb, last_task))
-		{
-			log_msg(LOG_INFO, "error processing diff file");
-			region_destroy(data->region);
-			return 0;
-		}
-		startpos = ftello(df);
-		if(startpos == -1) {
-			log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
-			region_destroy(data->region);
-			return 0;
-		}
-	}
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "end of diff file read"));
-
-	if(find_smallest_offset(data, &db->diff_pos)) {
-		/* can skip to the first unused element */
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "next time skip diff file"));
-		db->diff_skip = 1;
-	} else {
-		/* all processed, can skip to here next time */
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "next time skip diff file"));
-		db->diff_skip = 1;
-		db->diff_pos = ftello(df);
-		if(db->diff_pos == -1) {
-			log_msg(LOG_INFO, "could not ftello: %s.",
-				strerror(errno));
-			db->diff_skip = 0;
-		}
-	}
-
-	region_destroy(data->region);
-	fclose(df);
-	return 1;
-}
-
-static int diff_broken(FILE *df, off_t* break_pos)
-{
-	uint32_t type, len, len2;
-	*break_pos = ftello(df);
-
-	/* try to read and validate parts of the file */
-	while(diff_read_32(df, &type)) /* cannot read type is no error, normal EOF */
-	{
-		/* check type */
-		if(type != DIFF_PART_IXFR && type != DIFF_PART_SURE)
-			return 1;
-		/* check length */
-		if(!diff_read_32(df, &len))
-			return 1; /* EOF inside the part is error */
-		if(fseeko(df, len, SEEK_CUR) == -1)
-		{
-			log_msg(LOG_INFO, "fseeko failed: %s", strerror(errno));
-			return 1;
-		}
-		/* fseek clears EOF flag, but try reading length value,
-		   if EOF, the part is truncated */
-		if(!diff_read_32(df, &len2))
-			return 1;
-		if(len != len2)
-			return 1; /* bad part, lengths must agree */
-		/* this part is ok */
-		*break_pos = ftello(df);
-	}
-	return 0;
-}
-
-void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
-{
-	off_t break_pos;
-	const char* filename = opt->difffile;
-	FILE *df;
-
-	/* open file here and keep open, so it cannot change under our nose */
-	df = fopen(filename, "r+");
-	if(!df) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "could not open file %s for garbage collecting: %s",
-			filename, strerror(errno)));
-		return;
-	}
-	/* and skip into file, since nsd does not read anything before the pos */
-	if(db && db->diff_skip) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "garbage collect skip diff file"));
-		if(fseeko(df, db->diff_pos, SEEK_SET)==-1) {
-			log_msg(LOG_INFO, "could not fseeko file %s: %s.",
-				filename, strerror(errno));
-			fclose(df);
-			return;
-		}
-	}
-
-	/* detect break point */
-	if(diff_broken(df, &break_pos))
-	{
-		/* snip off at break_pos */
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "snipping off trailing partial part of %s",
-			filename));
-		if(ftruncate(fileno(df), break_pos) == -1)
-			log_msg(LOG_ERR, "ftruncate %s failed: %s",
-				filename, strerror(errno));
-	}
-
-	fclose(df);
 }
 
 struct udb_base* task_file_create(const char* file)
@@ -1714,7 +1228,8 @@ task_create_new_elem(struct udb_base* udb, udb_ptr* last, udb_ptr* e,
 	/* fill in tasklist item */
 	udb_rel_ptr_init(&TASKLIST(e)->next);
 	TASKLIST(e)->size = sz;
-	TASKLIST(e)->serial = 0;
+	TASKLIST(e)->oldserial = 0;
+	TASKLIST(e)->newserial = 0;
 	TASKLIST(e)->yesno = 0;
 
 	if(zname) {
@@ -2011,6 +1526,25 @@ void task_new_del_pattern(udb_base* udb, udb_ptr* last, const char* name)
 	udb_ptr_unlink(&e, udb);
 }
 
+int
+task_new_apply_xfr(udb_base* udb, udb_ptr* last, const dname_type* dname,
+	uint32_t old_serial, uint32_t new_serial, uint64_t filenumber)
+{
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task apply_xfr"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)
+		+dname_total_size(dname), dname)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add applyxfr");
+		return 0;
+	}
+	TASKLIST(&e)->oldserial = old_serial;
+	TASKLIST(&e)->newserial = new_serial;
+	TASKLIST(&e)->yesno = filenumber;
+	TASKLIST(&e)->task_type = task_apply_xfr;
+	udb_ptr_unlink(&e, udb);
+	return 1;
+}
+
 void
 task_process_expire(namedb_type* db, struct task_list_d* task)
 {
@@ -2173,6 +1707,40 @@ task_process_del_pattern(struct nsd* nsd, struct task_list_d* task)
 	pattern_options_remove(nsd->options, name);
 }
 
+static void
+task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
+	struct task_list_d* task)
+{
+	zone_type* zone;
+	FILE* df;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "applyxfr task %s", dname_to_string(
+		task->zname, NULL)));
+	zone = namedb_find_zone(nsd->db, task->zname);
+	if(!zone) {
+		/* assume the zone has been deleted and a zone transfer was
+		 * still waiting to be processed */
+		return;
+	}
+	/* apply the XFR */
+	/* oldserial, newserial, yesno is filenumber */
+	df = xfrd_open_xfrfile(nsd, task->yesno, "r");
+	if(!df) {
+		/* could not open file to update */
+		/* TODO: reply to xfrd failed-update */
+		return;
+	}
+	/* read and apply zone transfer */
+	/* TODO */
+	if(!apply_ixfr_for_zone(nsd->db, zone, df, nsd->options, udb,
+		last_task)) {
+		/* TODO: reply to xfrd failed-update */
+	}
+
+	fclose(df);
+	xfrd_unlink_xfrfile(nsd, task->yesno);
+}
+
+
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
         udb_ptr* task)
 {
@@ -2206,6 +1774,9 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_del_pattern:
 		task_process_del_pattern(nsd, TASKLIST(task));
+		break;
+	case task_apply_xfr:
+		task_process_apply_xfr(nsd, udb, last_task, TASKLIST(task));
 		break;
 	default:
 		log_msg(LOG_WARNING, "unhandled task in reload type %d",

@@ -1,3 +1,7 @@
+29 June 2012: Wouter
+	- Implemented /tmp/nsd.xfr.xxx/ to replace ixfr.db.  So that nsdc
+	  patch is no longer needed.
+
 8 June 2012: Wouter
 	- Fix tpkg test cutest_qroot and rr-test for prinout of algorithms
 	  as numbers, and copy of DO flag to the answer.

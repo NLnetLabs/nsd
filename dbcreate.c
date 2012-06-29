@@ -242,13 +242,16 @@ write_to_zonefile(zone_type* zone, const char* filename, const char* logs)
 }
 
 /** create directories above this file, .../dir/dir/dir/file */
-static int
+int
 create_dirs(const char* path)
 {
 	char dir[4096];
 	char* p;
 	strlcpy(dir, path, sizeof(dir));
-	p = strchr(dir, PATHSEP);
+	/* if we start with / then do not try to create '' */
+	if(dir[0] == PATHSEP)
+		p = strchr(dir+1, PATHSEP);
+	else	p = strchr(dir, PATHSEP);
 	/* create each directory component from the left */
 	while(p) {
 		assert(*p == PATHSEP);

@@ -46,9 +46,6 @@ logfile: "@logfile@"
 pidfile: "@pidfile@"
 .RE
 .RS 5
-difffile: "@difffile@"
-.RE
-.RS 5
 xfrdfile: "@xfrdfile@"
 .RE
 .TP
@@ -218,10 +215,7 @@ file) relative to this directory. Set the value to "" (the empty string)
 to disable the change of working directory.
 .TP
 .B difffile:\fR <filename>
-When NSD receives IXFR updates it will store them in this file. 
-This file contains the differences between the database file and the 
-latest zone version. Default is 
-.IR @difffile@ .
+Ignored, for compatibility with NSD3 config files. 
 .TP
 .B xfrdfile:\fR <filename>
 The soa timeout and zone transfer daemon in NSD will save its state 

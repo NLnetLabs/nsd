@@ -52,6 +52,9 @@ struct xfrd_state {
 	uint8_t got_time;
 	time_t current_time;
 
+	/* counter for xfr file numbers */
+	uint64_t xfrfilenumber;
+
 	/* timer for NSD reload */
 	struct timespec reload_timeout;
 	netio_handler_type reload_handler;
@@ -176,6 +179,8 @@ struct xfrd_zone {
 	size_t msg_rr_count;
 	uint8_t msg_is_ixfr; /* 1:IXFR detected. 2:middle IXFR SOA seen. */
 	tsig_record_type tsig; /* tsig state for IXFR/AXFR */
+	uint64_t xfrfilenumber; /* identifier for file to store xfr into,
+				valid if msg_seq_nr nonzero */
 };
 
 enum xfrd_packet_result {

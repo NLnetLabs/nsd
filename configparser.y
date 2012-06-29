@@ -250,7 +250,7 @@ server_zonelistfile: VAR_ZONELISTFILE STRING
 server_difffile: VAR_DIFFFILE STRING
 	{ 
 		OUTYY(("P(server_difffile:%s)\n", $2)); 
-		cfg_parser->opt->difffile = region_strdup(cfg_parser->opt->region, $2);
+		/* ignore the value for backwards compatibility in config file*/
 	}
 	;
 server_xfrdfile: VAR_XFRDFILE STRING

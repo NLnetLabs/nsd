@@ -73,7 +73,6 @@ struct nsd_options {
 	const char* chroot;
 	const char* username;
 	const char* zonesdir;
-	const char* difffile;
 	const char* xfrdfile;
 	const char* zonelistfile;
 	const char* nsid;

@@ -61,10 +61,6 @@ server:
 	# File to store pid for nsd in.
 	# pidfile: "@pidfile@"
 
-	# The file where incoming zone transfers are stored.
-	# run nsd-patch to update zone files, then you can safely delete it.
-	# difffile: "@difffile@"
-
 	# The file where secondary zone refresh and expire timeouts are kept.
 	# If you delete this file, all secondary zones are forced to be 
 	# 'refreshing' (as if nsd got a notify).

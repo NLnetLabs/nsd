@@ -3,48 +3,34 @@ DIFF support file format.
 This file contains changes to the main NSD-DATABASE file.
 The file contents is in network format.
 
-Diff file parts, each part has
-- 32 bits type field.
-- 64 bits timestamp field.
-- 32 bits length field.
-- length bytes of content.
-- 32 bits repeat of the length field.
+The file is a transfer, with a header and a number of data segments.
 
-TYPE="IXFR"
-- zone name
-- 32 bit new serial number.
-- 16 bit ID number (the query ID from the query,
-  could be different from the ID in this packet)
-- 32 bit sequence number of the packet (starting from 0).
-- remaining contents is IXFR packet contents, max 64K (the RRs). 
-(or contents is AXFR, since IXFR spec allows for that)
-without a SURE part, it is probably sent with bad tsig.
-
-TYPE="SURE"
-contents is:
-a) reference to the IXFR packet that is OKed.
-	- str: zone name, 
-	- 32 bit old serial number. (to check that db-serial is unchanged).
-	  or 0 if no serial available yet.
-	- 32 bit new serial number, 
-	- 16 bit ID number (query_id)
-	( note that due to having one TCP per zone, and checking
-	that the queryID on incoming packets, one transfer,commit
-	for a zone; no interleaved IXFR packets for different commits. )
-	( so the serial, ID are for checking only )
-	- 32 bit number of IXFR packets that are to be applied.
-	- these IXFR packets must precede the SURE packet.
-b) uint8: commit=1(IXFR is OK) or rollback=0(ignore that IXFR). 
-c) space for a text string message (preceded by 32bitcount), i.e.
-	'at time <stamp> came from <addr>, tsig checked with key <key>'.
-	or rejected <reason for rejection>.
-d) pattern name: so that a newly created zone for which the zone transfer
+- File starts with 32bit value 'XFRF'
+- header with:
+  - 8bit: commit=1(IXFR is OK) or rollback=0(ignore that IXFR). 
+  - 32 bit number of packets that are to be applied. 0 if file not completed.
+  - timestamp of endtime of download.
+  - 32 bit old serial number. (to check that db-serial is unchanged).
+    or 0 if no serial available yet.
+  - 32 bit new serial number.
+  - timestamp of starttime of download.
+  - zone name (string).
+  - pattern name: so that a newly created zone for which the zone transfer
 	is processed before the config-add task can be created. same string
 	format with 32bitcount with name of the pattern.
 
-Unknown types are an error.
-A part truncated by EOF must be ignored.
-A part that ends in a bad length field must be ignored.
+- a number of parts that start with 'XXFR'
+- 32 bits length field.
+- length bytes of content.
+	contents is the IXFR or AXFR packet contents, max 64K. 
+- 32 bits repeat of the length field.
 
-xfrd only appends the file or truncates trailing garbage.
-reload only reads the file.
+at end of file a log string space for a text string message
+(preceded by 32bitcount), i.e.  'at time <stamp> came from <addr>, tsig
+checked with key <key>'.  or rejected <reason for rejection>.
+
+The length fields and type fields check that the input is formatted,
+and complete otherwise an error occurred (like, disk failure).
+The commit flag is only set after the write of the entire file has
+completed (rewind, overwrite commit value with true).
+
