@@ -1730,7 +1730,6 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		return;
 	}
 	/* read and apply zone transfer */
-	/* TODO */
 	if(!apply_ixfr_for_zone(nsd->db, zone, df, nsd->options, udb,
 		last_task)) {
 		/* TODO: reply to xfrd failed-update */
