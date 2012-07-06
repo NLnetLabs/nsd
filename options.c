@@ -64,6 +64,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->username = USER;
 	opt->zonesdir = ZONESDIR;
 	opt->xfrdfile = XFRDFILE;
+	opt->xfrdir = XFRDIR;
 	opt->zonelistfile = ZONELISTFILE;
 	opt->xfrd_reload_timeout = 1;
 	opt->control_enable = 0;

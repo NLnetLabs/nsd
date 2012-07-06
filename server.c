@@ -630,11 +630,11 @@ server_prepare_xfrd(struct nsd* nsd)
 	char tmpfile[256];
 	/* create task mmaps */
 	nsd->mytask = 0;
-	snprintf(tmpfile, sizeof(tmpfile), "/tmp/nsd.%u.task.0",
-		(unsigned)getpid());
+	snprintf(tmpfile, sizeof(tmpfile), "%s/nsd.%u.task.0",
+		nsd->options->xfrdir, (unsigned)getpid());
 	nsd->task[0] = task_file_create(tmpfile);
-	snprintf(tmpfile, sizeof(tmpfile), "/tmp/nsd.%u.task.1",
-		(unsigned)getpid());
+	snprintf(tmpfile, sizeof(tmpfile), "%s/nsd.%u.task.1",
+		nsd->options->xfrdir, (unsigned)getpid());
 	nsd->task[1] = task_file_create(tmpfile);
 	assert(udb_base_get_userdata(nsd->task[0])->data == 0);
 	assert(udb_base_get_userdata(nsd->task[1])->data == 0);

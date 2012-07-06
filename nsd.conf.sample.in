@@ -66,6 +66,9 @@ server:
 	# 'refreshing' (as if nsd got a notify).
 	# xfrdfile: "@xfrdfile@"
 
+	# The directory where zone transfers are stored, in a subdir of it.
+	# xfrdir: "@xfrdir@"
+
 	# don't answer VERSION.BIND and VERSION.SERVER CHAOS class queries
 	# hide-version: no
 

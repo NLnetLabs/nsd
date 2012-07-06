@@ -22,7 +22,7 @@ dbdir = @dbdir@
 pidfile = @pidfile@
 logfile = @logfile@
 dbfile = @dbfile@
-difffile = @difffile@
+xfrdir = @xfrdir@
 xfrdfile = @xfrdfile@
 zonelistfile = @zonelistfile@
 nsdconfigfile = @nsd_conf_file@
@@ -59,7 +59,7 @@ EDIT		= sed \
 			-e 's,@pidfile\@,$(pidfile),g' \
 			-e 's,@logfile\@,$(logfile),g' \
 			-e 's,@dbfile\@,$(dbfile),g' \
-			-e 's,@difffile\@,$(difffile),g' \
+			-e 's,@xfrdir\@,$(xfrdir),g' \
 			-e 's,@xfrdfile\@,$(xfrdfile),g' \
 			-e 's,@zonelistfile\@,$(zonelistfile),g' \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \

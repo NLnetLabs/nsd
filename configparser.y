@@ -61,7 +61,7 @@ extern config_parser_state_t* cfg_parser;
 %token VAR_PATTERN VAR_INCLUDEPATTERN VAR_ZONELISTFILE
 %token VAR_REMOTE_CONTROL VAR_CONTROL_ENABLE VAR_CONTROL_INTERFACE
 %token VAR_CONTROL_PORT VAR_SERVER_KEY_FILE VAR_SERVER_CERT_FILE
-%token VAR_CONTROL_KEY_FILE VAR_CONTROL_CERT_FILE
+%token VAR_CONTROL_KEY_FILE VAR_CONTROL_CERT_FILE VAR_XFRDIR
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -86,7 +86,7 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
 	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
 	server_ipv6_edns_size | server_verbosity | server_hide_version |
-	server_zonelistfile;
+	server_zonelistfile | server_xfrdir;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -245,6 +245,12 @@ server_zonelistfile: VAR_ZONELISTFILE STRING
 	{ 
 		OUTYY(("P(server_zonelistfile:%s)\n", $2)); 
 		cfg_parser->opt->zonelistfile = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+server_xfrdir: VAR_XFRDIR STRING
+	{ 
+		OUTYY(("P(server_xfrdir:%s)\n", $2)); 
+		cfg_parser->opt->xfrdir = region_strdup(cfg_parser->opt->region, $2);
 	}
 	;
 server_difffile: VAR_DIFFFILE STRING

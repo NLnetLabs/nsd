@@ -467,10 +467,8 @@ xfrd_write_state(struct xfrd_state* xfrd)
 static void
 tempdirname(char* buf, size_t sz, struct nsd* nsd)
 {
-	const char* dir = "/tmp";
-	/* if(nsd->options->tempdir)  TODO
-	 * 	dir = nsd->options->tempdir; */
-	snprintf(buf, sz, "%s/nsd-xfr-%d", dir, (int)nsd->xfrd_pid);
+	snprintf(buf, sz, "%s/nsd-xfr-%d",
+		nsd->options->xfrdir, (int)nsd->xfrd_pid);
 }
 
 void xfrd_make_tempdir(struct nsd* nsd)

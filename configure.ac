@@ -114,6 +114,20 @@ AC_ARG_WITH([zonelistfile], AC_HELP_STRING([--with-zonelistfile=path],
 AC_DEFINE_UNQUOTED(ZONELISTFILE, ["`eval echo $zonelistfile`"], [Pathname to the NSD zone list file.])
 AC_SUBST(zonelistfile)
 
+# default xfr dir location.
+xfrdir="/tmp"
+AC_ARG_WITH([xfrdir], AC_HELP_STRING([--with-xfrdir=path], 
+	[Pathname to where the NSD transfer dir is created]), [xfrdir=$withval])
+AC_DEFINE_UNQUOTED(XFRDIR, ["`eval echo $xfrdir`"], [Pathname to where the NSD transfer dir is created.])
+AC_SUBST(xfrdir)
+
+# default zonelist file location.
+zonelistfile=${dbdir}/zone.list
+AC_ARG_WITH([zonelistfile], AC_HELP_STRING([--with-zonelistfile=path], 
+	[Pathname to the NSD zone list file]), [zonelistfile=$withval])
+AC_DEFINE_UNQUOTED(ZONELISTFILE, ["`eval echo $zonelistfile`"], [Pathname to the NSD zone list file.])
+AC_SUBST(zonelistfile)
+
 #
 # Determine default chroot directory
 #

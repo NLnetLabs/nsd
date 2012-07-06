@@ -225,6 +225,11 @@ gone. For more details see the section on zone expiry behavior of
 NSD. Default is
 .IR @xfrdfile@ .
 .TP
+.B xfrdir:\fR <directory>
+The zone transfers are stored here before they are processed.  A directory
+is created here that is removed when NSD exits.  Default is
+.IR @xfrdir@ .
+.TP
 .B xfrd\-reload\-timeout:\fR <number>
 If this value is \-1, xfrd will not trigger a reload after a zone 
 transfer. If positive xfrd will trigger a reload after a zone 

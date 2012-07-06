@@ -74,6 +74,7 @@ struct nsd_options {
 	const char* username;
 	const char* zonesdir;
 	const char* xfrdfile;
+	const char* xfrdir;
 	const char* zonelistfile;
 	const char* nsid;
 	int xfrd_reload_timeout;

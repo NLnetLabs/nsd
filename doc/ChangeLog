@@ -1,3 +1,8 @@
+6 July 2012: Wouter
+	- add xfrdir: "/tmp" option and configure --with-xfrdir="/tmp".
+	  The nsd.task files and a subdirectory for zone transfers are
+	  created there.
+
 2 July 2012: Wouter
 	- fix checkconf unit test and add test for backwards compatibility
 	  for difffile: "x" statement.
