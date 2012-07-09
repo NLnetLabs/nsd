@@ -170,7 +170,7 @@ addition to standard configure options, one may use the following:
 
 	Enables BIND8-like statistics.
 
-  --enable-zone-statistics
+  --enable-zone-stats
 
 	Enables per zone statistics (if BIND8 stats is enabled).
 
