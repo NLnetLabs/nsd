@@ -1709,13 +1709,15 @@ task_process_del_pattern(struct nsd* nsd, struct task_list_d* task)
 
 static void
 task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
-	struct task_list_d* task)
+	udb_ptr* task)
 {
+	/* we have to use an udb_ptr task here, because the apply_xfr procedure
+	 * appends soa_info which may remap and change the pointer. */
 	zone_type* zone;
 	FILE* df;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "applyxfr task %s", dname_to_string(
-		task->zname, NULL)));
-	zone = namedb_find_zone(nsd->db, task->zname);
+		TASKLIST(task)->zname, NULL)));
+	zone = namedb_find_zone(nsd->db, TASKLIST(task)->zname);
 	if(!zone) {
 		/* assume the zone has been deleted and a zone transfer was
 		 * still waiting to be processed */
@@ -1723,7 +1725,7 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	}
 	/* apply the XFR */
 	/* oldserial, newserial, yesno is filenumber */
-	df = xfrd_open_xfrfile(nsd, task->yesno, "r");
+	df = xfrd_open_xfrfile(nsd, TASKLIST(task)->yesno, "r");
 	if(!df) {
 		/* could not open file to update */
 		/* TODO: reply to xfrd failed-update */
@@ -1736,7 +1738,7 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	}
 
 	fclose(df);
-	xfrd_unlink_xfrfile(nsd, task->yesno);
+	xfrd_unlink_xfrfile(nsd, TASKLIST(task)->yesno);
 }
 
 
@@ -1775,7 +1777,7 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		task_process_del_pattern(nsd, TASKLIST(task));
 		break;
 	case task_apply_xfr:
-		task_process_apply_xfr(nsd, udb, last_task, TASKLIST(task));
+		task_process_apply_xfr(nsd, udb, last_task, task);
 		break;
 	default:
 		log_msg(LOG_WARNING, "unhandled task in reload type %d",

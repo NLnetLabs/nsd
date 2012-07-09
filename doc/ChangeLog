@@ -1,3 +1,8 @@
+9 July 2012: Wouter
+	- delete temporary transfer files on exit of xfrd and reload.
+	- fix bug in apply_xfr that must use an udb_ptr because it shifts
+	  when new allocations are made.
+
 6 July 2012: Wouter
 	- add xfrdir: "/tmp" option and configure --with-xfrdir="/tmp".
 	  The nsd.task files and a subdirectory for zone transfers are

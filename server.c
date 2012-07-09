@@ -841,8 +841,9 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 }
 
 static void
-reload_process_tasks(struct nsd* nsd, udb_ptr* last_task)
+reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
 {
+	sig_atomic_t cmd = NSD_QUIT_SYNC;
 	udb_ptr t, next;
 	udb_base* u = nsd->task[nsd->mytask];
 	udb_ptr_init(&next, u);
@@ -859,6 +860,27 @@ reload_process_tasks(struct nsd* nsd, udb_ptr* last_task)
 
 		/* go to next */
 		udb_ptr_set_ptr(&t, u, &next);
+
+		/* if the parent has quit, we must quit too, poll the fd for cmds */
+		if(block_read(nsd, cmdsocket, &cmd, sizeof(cmd), 0) == sizeof(cmd)) {
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc command from main %d", (int)cmd));
+			if(cmd == NSD_QUIT) {
+				DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: quit to follow nsd"));
+				/* unlink files of remainder of tasks */
+				while(!udb_ptr_is_null(&t)) {
+					if(TASKLIST(&t)->task_type == task_apply_xfr) {
+						xfrd_unlink_xfrfile(nsd, TASKLIST(&t)->yesno);
+					}
+					udb_ptr_set_rptr(&t, u, &TASKLIST(&t)->next);
+				}
+				udb_ptr_unlink(&t, u);
+				udb_ptr_unlink(&next, u);
+				/* sync to disk (if needed) */
+				udb_base_sync(nsd->db->udb, 0);
+				exit(0);
+			}
+		}
+
 	}
 	udb_ptr_unlink(&t, u);
 	udb_ptr_unlink(&next, u);
@@ -920,7 +942,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* see what tasks we got from xfrd */
 	task_remap(nsd->task[nsd->mytask]);
 	udb_ptr_init(&last_task, nsd->task[nsd->mytask]);
-	reload_process_tasks(nsd, &last_task);
+	reload_process_tasks(nsd, &last_task, cmdsocket);
 
 #ifndef NDEBUG
 	if(nsd_debug_level >= 1)
