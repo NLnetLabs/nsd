@@ -494,8 +494,9 @@ void xfrd_del_tempdir(struct nsd* nsd)
 	tempdirname(tnm, sizeof(tnm), nsd);
 	/* ignore parent directories, they are likely /var/tmp, /tmp or
 	 * /var/cache/nsd and do not have to be deleted */
-	if(rmdir(tnm)==-1) {
-		log_msg(LOG_ERR, "rmdir %s failed: %s", tnm, strerror(errno));
+	if(rmdir(tnm)==-1 && errno != ENOENT) {
+		log_msg(LOG_WARNING, "rmdir %s failed: %s", tnm,
+			strerror(errno));
 	}
 }
 
@@ -532,7 +533,7 @@ void xfrd_unlink_xfrfile(struct nsd* nsd, uint64_t number)
 	char fname[1024];
 	tempxfrname(fname, sizeof(fname), nsd, number);
 	if(unlink(fname) == -1) {
-		log_msg(LOG_ERR, "could not unlink %s: %s", fname,
+		log_msg(LOG_WARNING, "could not unlink %s: %s", fname,
 			strerror(errno));
 	}
 }

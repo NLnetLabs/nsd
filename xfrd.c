@@ -45,6 +45,8 @@ xfrd_state_t* xfrd = 0;
 static void xfrd_main();
 /* shut down xfrd, close sockets. */
 static void xfrd_shutdown();
+/* delete pending task xfr files in tmp */
+static void xfrd_clean_pending_tasks(struct nsd* nsd, udb_base* u);
 /* create zone rbtree at start */
 static void xfrd_init_zones();
 /* initial handshake with SOAINFO from main and send expire to main */
@@ -230,10 +232,39 @@ xfrd_shutdown()
 		close_notify_fds(xfrd->notify_zones);
 	}
 
+	/* if we are killed past this point this is not a problem,
+	 * some files left in /tmp are cleaned by the OS, but it is neater
+	 * to clean them out */
+
+	/* unlink xfr files for running transfers */
+	RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones)
+	{
+		if(zone->msg_seq_nr)
+			xfrd_unlink_xfrfile(xfrd->nsd, zone->xfrfilenumber);
+	}
+	/* unlink xfr files in not-yet-done task file */
+	xfrd_clean_pending_tasks(xfrd->nsd, xfrd->nsd->task[xfrd->nsd->mytask]);
+	xfrd_del_tempdir(xfrd->nsd);
+
 	/* shouldn't we clean up memory used by xfrd process */
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown complete"));
 
 	exit(0);
+}
+
+static void
+xfrd_clean_pending_tasks(struct nsd* nsd, udb_base* u)
+{
+	udb_ptr t;
+	udb_ptr_new(&t, u, udb_base_get_userdata(u));
+	/* no dealloc of entries, we delete the entire file when done */
+	while(!udb_ptr_is_null(&t)) {
+		if(TASKLIST(&t)->task_type == task_apply_xfr) {
+			xfrd_unlink_xfrfile(nsd, TASKLIST(&t)->yesno);
+		}
+		udb_ptr_set_rptr(&t, u, &TASKLIST(&t)->next);
+	}
+	udb_ptr_unlink(&t, u);
 }
 
 void
