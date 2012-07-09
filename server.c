@@ -866,6 +866,8 @@ reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
 			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc command from main %d", (int)cmd));
 			if(cmd == NSD_QUIT) {
 				DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: quit to follow nsd"));
+				/* sync to disk (if needed) */
+				udb_base_sync(nsd->db->udb, 0);
 				/* unlink files of remainder of tasks */
 				while(!udb_ptr_is_null(&t)) {
 					if(TASKLIST(&t)->task_type == task_apply_xfr) {
@@ -875,8 +877,6 @@ reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
 				}
 				udb_ptr_unlink(&t, u);
 				udb_ptr_unlink(&next, u);
-				/* sync to disk (if needed) */
-				udb_base_sync(nsd->db->udb, 0);
 				exit(0);
 			}
 		}

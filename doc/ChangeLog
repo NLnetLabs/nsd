@@ -1,5 +1,7 @@
 9 July 2012: Wouter
 	- delete temporary transfer files on exit of xfrd and reload.
+	- when tasks are applied, reload checks if it must exit between
+	  tasks, so that it can quickly exit when NSD is told to quit.
 	- fix bug in apply_xfr that must use an udb_ptr because it shifts
 	  when new allocations are made.
 
