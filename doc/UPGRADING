@@ -1,3 +1,46 @@
+Upgrading from NSD 3.x to NSD 4
+
+by Wouter C.A. Wijngaards, NLnetLabs, Jul 2012
+
+This document lists the changes in the upgrade from NSD 3 to NSD 4 systems.
+(scroll down for the NSD 2.x to NSD 3 upgrade manual).
+
+* nsdc is gone.  You can control the daemon via kill -HUP and kill -TERM,
+or you can use nsd-control.
+
+* to setup nsd-control you have to run nsd-control-setup (as root) and enable
+remote-control in the nsd.conf file.  It uses SSL to contact the daemon.
+
+* the nsd.conf file is backwards compatible with NSD3.
+	* the difffile: setting is no longer used but ignored for
+	  backwards compatibility.
+	* zones listed in nsd.conf are hardcoded and cannot be removed
+	* the zonelistfile: setting sets the file where zones that are
+	  added dynamically (and can be removed dynamically) are stored.
+	* the xfrdir: is used to store temporary zone transfer files.
+	* it is possible to define patterns in the nsd.conf file and
+	  use the patterns to give config settings for the zones.
+	  * patterns accept the same sort of settings which NSD3-zones did.
+	  * you can make super-patterns with the include-pattern: setting
+	  * the zonefile: statement creates directories when needed, if they
+	    do not exist.  In the zonefile: statement you can use %s (and
+	    other codes) to use (part of) the name of the zone to generate
+	    the pathname of the zonefile.
+	  * if there is no zonefile (for slave zones) it is not used.
+
+* nsdc rebuild and so on is gone, use nsd-control reload.
+	* it scans if zonefiles are modified and reads those.
+* nsdc patch is not necessary
+	* the database is edited at runtime.
+		* it mmap's the nsd.db file for file I/O, this increases
+		  virtual memory usage of NSD with the size of the file.
+	* if you like cronjobs, you could have one to nsd-control write
+	  and write slave zones that have changed to their zonefile.
+* other nsdc commands, repattern (reread patterns), add a zone, delete a zone,
+  and zone transfer control, statistics.
+
+
+
 Upgrading from NSD 2.x to NSD 3
 
 by Wouter C.A. Wijngaards, NLnetLabs, Aug 2006
