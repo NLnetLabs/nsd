@@ -28,8 +28,9 @@ remote-control in the nsd.conf file.  It uses SSL to contact the daemon.
 	    the pathname of the zonefile.
 	  * if there is no zonefile (for slave zones) it is not used.
 
-* nsdc rebuild and so on is gone, use nsd-control reload.
+* nsdc rebuild and so on is gone, use nsd-control reload or kill -HUP.
 	* it scans if zonefiles are modified and reads those.
+	* you can also specify a zone by name and have nsd read that file.
 * nsdc patch is not necessary
 	* the database is edited at runtime.
 		* it mmap's the nsd.db file for file I/O, this increases
