@@ -133,8 +133,7 @@ Return the specified
 when asked for
 .I CH TXT ID.SERVER
 (This option is used to determine which server is answering the queries
-when they are multicast). The default is the name returned by
-gethostname(3).
+when they are anycast). The default is the name returned by gethostname(3).
 .TP
 .B \-I\fI nsid
 Add the specified

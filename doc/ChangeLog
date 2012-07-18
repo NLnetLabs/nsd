@@ -1,3 +1,6 @@
+18 July 2012: Wouter
+	- Fix bug#460: man page correction - identity.
+
 9 July 2012: Wouter
 	- delete temporary transfer files on exit of xfrd and reload.
 	- when tasks are applied, reload checks if it must exit between
