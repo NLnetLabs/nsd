@@ -942,7 +942,8 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	if(!zone_db) {
 		log_msg(LOG_ERR, "no zone exists");
 		region_destroy(region);
-		return 0;
+		/* break out and stop the IXFR, ignore it */
+		return 2;
 	}
 
 	if(msglen > QIOBUFSZ) {

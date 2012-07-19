@@ -71,7 +71,7 @@ Rebuild the credns(8) database by invoking zonec(8) with appropriate
 arguments.
 .TP 
 .I restart
-Restart crednsc(8). This equals to crednsc stop && crednsc start.
+Restart credns(8). This equals to crednsc stop && crednsc start.
 .TP
 .I running
 Check whether credns(8) is running. Returns error message and error 

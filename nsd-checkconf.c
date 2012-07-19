@@ -324,6 +324,9 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 		SERV_GET_STR(difffile, o);
 		SERV_GET_STR(xfrdfile, o);
 		SERV_GET_STR(port, o);
+#if defined(BIND8_STATS) && defined(USE_ZONE_STATS)
+		SERV_GET_STR(zonestatsfile, o);
+#endif
 		/* int */
 		SERV_GET_INT(server_count, o);
 		SERV_GET_INT(tcp_count, o);

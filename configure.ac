@@ -647,8 +647,8 @@ esac
 zonestatsfile=${localstatedir}/log/nsd.stats
 AC_SUBST(zonestatsfile)
 AC_DEFINE_UNQUOTED(ZONESTATSFILE, ["`eval echo $zonestatsfile`"], [Pathname to the NSD statistics file])
-AC_ARG_ENABLE(zone_statistics, [])dnl AC_HELP_STRING([--enable-zone-statistics], [Maintain statistics per zone, instead of global statistics.]))
-case "$enable_zone_statistics" in
+AC_ARG_ENABLE(zone_stats, AC_HELP_STRING([--enable-zone-stats], [Maintain statistics per zone, instead of global statistics.]))
+case "$enable_zone_stats" in
         yes)
 		AC_DEFINE_UNQUOTED([USE_ZONE_STATS], [], [Define this to enable zone statistics.])
 		;;
@@ -838,9 +838,9 @@ if test "$enable_checking" = "yes"; then
         echo "*************************************************"
 fi
 
-if test "$enable_zone_statistics" = "yes"; then
+if test "$enable_zone_stats" = "yes"; then
         echo "*************************************************"
-        echo "* You have activated \"--enable-zone-statistics\" *"
+        echo "* You have activated \"--enable-zone-stats\"      *"
         echo "*                                               *"
         echo "* This will make credns maintain statistics    *"
         echo "* on a per zone basis. This could lead to       *"
