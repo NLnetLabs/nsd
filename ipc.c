@@ -330,10 +330,10 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 			/* read rest later */
 			return;
 		}
-		/* read the acl number */
+		/* read the acl numbers */
 		got_acl = data->got_bytes - sizeof(data->total_bytes) - data->total_bytes;
 		if((len = read(handler->fd, (char*)&data->acl_num+got_acl,
-			sizeof(data->acl_num)-got_acl)) == -1 ) {
+			sizeof(data->acl_num)+sizeof(data->acl_xfr)-got_acl)) == -1 ) {
 			log_msg(LOG_ERR, "handle_child_command: read: %s",
 				strerror(errno));
 			return;
@@ -345,7 +345,7 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 		}
 		got_acl += len;
 		data->got_bytes += len;
-		if(got_acl >= (int)sizeof(data->acl_num)) {
+		if(got_acl >= (int)(sizeof(data->acl_num)+sizeof(data->acl_xfr))) {
 			uint16_t len = htons(data->total_bytes);
 			DEBUG(DEBUG_IPC,2, (LOG_INFO,
 				"main fwd passed packet write %d", (int)data->got_bytes));
@@ -360,7 +360,9 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 			   !write_socket(*data->xfrd_sock, buffer_begin(data->packet),
 				data->total_bytes) ||
 			   !write_socket(*data->xfrd_sock, &data->acl_num,
-			   	sizeof(data->acl_num))) {
+			   	sizeof(data->acl_num)) ||
+			   !write_socket(*data->xfrd_sock, &data->acl_xfr,
+			   	sizeof(data->acl_xfr))) {
 				log_msg(LOG_ERR, "error in ipc fwd main2xfrd: %s",
 					strerror(errno));
 			}
@@ -575,6 +577,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 	if(xfrd->ipc_conn->is_reading==2) {
 		buffer_type* tmp = xfrd->ipc_pass;
 		uint32_t acl_num;
+		int32_t acl_xfr;
 		/* read acl_num */
 		int ret = conn_read(xfrd->ipc_conn);
 		if(ret == -1) {
@@ -589,7 +592,8 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		xfrd->ipc_conn->packet = tmp;
 		xfrd->ipc_conn->is_reading = 0;
 		acl_num = buffer_read_u32(xfrd->ipc_pass);
-		xfrd_handle_passed_packet(xfrd->ipc_conn->packet, acl_num);
+		acl_xfr = (int32_t)buffer_read_u32(xfrd->ipc_pass);
+		xfrd_handle_passed_packet(xfrd->ipc_conn->packet, acl_num, acl_xfr);
 		return;
 	}
 	if(xfrd->ipc_conn->is_reading) {
@@ -610,7 +614,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		xfrd->ipc_pass = xfrd->ipc_conn->packet;
 		xfrd->ipc_conn->packet = tmp;
 		xfrd->ipc_conn->total_bytes = sizeof(xfrd->ipc_conn->msglen);
-		xfrd->ipc_conn->msglen = sizeof(uint32_t);
+		xfrd->ipc_conn->msglen = 2*sizeof(uint32_t);
 		buffer_clear(xfrd->ipc_conn->packet);
 		buffer_set_limit(xfrd->ipc_conn->packet, xfrd->ipc_conn->msglen);
 		return;

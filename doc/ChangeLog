@@ -1,3 +1,7 @@
+26 July 2012: Yuri
+	- Prioritize notify sender for requesting XFR.
+	  (thanks Ilya Bakulin)
+
 19 July 2012: Willem
 	- Fix for VU#624931 CVE-2012-2978: NSD denial of service 
 	  vulnerability from non-standard DNS packet from any host

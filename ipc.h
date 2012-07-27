@@ -34,6 +34,7 @@ struct main_ipc_handler_data
 	size_t		got_bytes;
 	uint16_t	total_bytes;
 	uint32_t	acl_num;
+	int32_t		acl_xfr;
 };
 
 /*
