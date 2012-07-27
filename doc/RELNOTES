@@ -9,6 +9,8 @@ BUG FIXES:
 	- Bugfix #460: man page correction - identity.
 	- Bugfix #461: NSD child segfaults when asked for out-of-zone data
 	  with --enable-zone-stats. [VU#517036 CVE-2012-2979]
+        - Prioritize notify sender for requesting XFR.
+          (thanks Ilya Bakulin)
 
 
 3.2.12

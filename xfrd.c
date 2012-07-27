@@ -1500,13 +1500,15 @@ xfrd_handle_reload(netio_type *ATTR_UNUSED(netio),
 }
 
 void
-xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
+xfrd_handle_passed_packet(buffer_type* packet,
+	int acl_num, int acl_num_xfr)
 {
 	uint8_t qnamebuf[MAXDOMAINLEN];
 	uint16_t qtype, qclass;
 	const dname_type* dname;
 	region_type* tempregion = region_create(xalloc, free);
 	xfrd_zone_t* zone;
+	acl_options_t* xfr_acl;
 
 	buffer_skip(packet, QHEADERSZ);
 	if(!packet_read_query_section(packet, qnamebuf, &qtype, &qclass)) {
@@ -1545,12 +1547,20 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 					xfrd_set_refresh_now(zone);
 			}
 		}
-		next = find_same_master_notify(zone, acl_num);
-		if(next != -1) {
-			zone->next_master = next;
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-				"xfrd: notify set next master to query %d",
-				next));
+		/* First, see if our notifier has a match in provide-xfr */
+		xfr_acl = acl_find_num(
+			zone->zone_options->request_xfr, acl_num_xfr);
+		if (xfr_acl) {
+			next = acl_num_xfr;
+		} /* If not, find master that matches notifiers ACL entry */
+		else {
+			next = find_same_master_notify(zone, acl_num);
+			if(next != -1) {
+				zone->next_master = next;
+				DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+					"xfrd: notify set next master to query %d",
+					next));
+			}
 		}
 	}
 	else {
@@ -1602,7 +1612,7 @@ find_same_master_notify(xfrd_zone_t* zone, int acl_num_nfy)
 		return -1;
 	while(master)
 	{
-		if(acl_same_host(nfy_acl, master))
+		if(acl_addr_matches_host(nfy_acl, master))
 			return num;
 		master = master->next;
 		num++;
