@@ -1,3 +1,7 @@
+25 July 2012: Matthijs
+	- Bug #461: NSD denial of service vulnerability when using
+	  per zone statistics.
+
 23 July 2012: Matthijs
 	- Fix for nsd-patch segfault if zone has been removed from nsd.conf
 	  (thanks Ilya Bakulin)
