@@ -1508,7 +1508,6 @@ xfrd_handle_passed_packet(buffer_type* packet,
 	const dname_type* dname;
 	region_type* tempregion = region_create(xalloc, free);
 	xfrd_zone_t* zone;
-	acl_options_t* xfr_acl;
 
 	buffer_skip(packet, QHEADERSZ);
 	if(!packet_read_query_section(packet, qnamebuf, &qtype, &qclass)) {
@@ -1548,19 +1547,15 @@ xfrd_handle_passed_packet(buffer_type* packet,
 			}
 		}
 		/* First, see if our notifier has a match in provide-xfr */
-		xfr_acl = acl_find_num(
-			zone->zone_options->request_xfr, acl_num_xfr);
-		if (xfr_acl) {
+		if (acl_find_num(zone->zone_options->request_xfr, acl_num_xfr))
 			next = acl_num_xfr;
-		} /* If not, find master that matches notifiers ACL entry */
-		else {
+		else /* If not, find master that matches notifiers ACL entry */
 			next = find_same_master_notify(zone, acl_num);
-			if(next != -1) {
-				zone->next_master = next;
-				DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-					"xfrd: notify set next master to query %d",
-					next));
-			}
+		if(next != -1) {
+			zone->next_master = next;
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+				"xfrd: notify set next master to query %d",
+				next));
 		}
 	}
 	else {
