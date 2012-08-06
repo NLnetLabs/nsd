@@ -1162,6 +1162,7 @@ int acl_check_incoming(acl_options_t* acl, struct query* q,
 	return found_match;
 }
 
+#ifdef INET6
 int acl_addr_matches_ipv6host(acl_options_t* acl, struct sockaddr_storage* addr_storage, unsigned int port)
 {
 	struct sockaddr_in6* addr = (struct sockaddr_in6*)addr_storage;
@@ -1188,6 +1189,7 @@ int acl_addr_matches_ipv6host(acl_options_t* acl, struct sockaddr_storage* addr_
 	}
 	return 1;
 }
+#endif
 
 int acl_addr_matches_ipv4host(acl_options_t* acl, struct sockaddr_in* addr, unsigned int port)
 {
