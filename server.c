@@ -808,7 +808,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* Send quit command to parent: blocking, wait for receipt. */
 	do {
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
-		if (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1)
+		if (!write_socket(cmdsocket, &cmd, sizeof(cmd)))
 		{
 			log_msg(LOG_ERR, "problems sending command from reload %d to oldnsd %d: %s",
 				(int)nsd->pid, (int)old_pid, strerror(errno));
@@ -1020,8 +1020,7 @@ server_main(struct nsd *nsd)
 					reload_listener.fd = -1;
 					reload_listener.event_types = NETIO_EVENT_NONE;
 					/* inform xfrd reload attempt ended */
-					if(!write_socket(xfrd_listener.fd,
-						&cmd, sizeof(cmd)) == -1) {
+					if(!write_socket(xfrd_listener.fd, &cmd, sizeof(cmd))) {
 						log_msg(LOG_ERR, "problems "
 						  "sending SOAEND to xfrd: %s",
 						  strerror(errno));
@@ -1174,9 +1173,9 @@ server_main(struct nsd *nsd)
 	/* Truncate the pid file.  */
 	if ((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
 		log_msg(LOG_ERR, "can not truncate the pid file %s: %s", nsd->pidfile, strerror(errno));
+	} else {
+		close(fd);
 	}
-	close(fd);
-
 	/* Unlink it if possible... */
 	unlinkpid(nsd->pidfile);
 

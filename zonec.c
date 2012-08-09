@@ -16,9 +16,6 @@
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
@@ -37,7 +34,6 @@
 #include "rdata.h"
 #include "region-allocator.h"
 #include "util.h"
-#include "zparser.h"
 #include "options.h"
 #include "nsec3.h"
 
@@ -688,7 +684,7 @@ zparser_conv_loc(region_type *region, char *str)
 				zc_error_prev_line("space expected after seconds");
 				return NULL;
 			}
-
+			/* Probably need some precision specifiers for %lf */
 			if (sscanf(start, "%lf", &d) != 1) {
 				zc_error_prev_line("error parsing seconds");
 			}

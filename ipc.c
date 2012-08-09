@@ -597,7 +597,7 @@ xfrd_send_quit_req(xfrd_state_t* xfrd)
 	xfrd->ipc_handler.event_types &= (~NETIO_EVENT_WRITE);
 	xfrd->sending_zone_state = 0;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send ackreload(quit)"));
-	if(write_socket(xfrd->ipc_handler.fd, &cmd, sizeof(cmd)) == -1) {
+	if(!write_socket(xfrd->ipc_handler.fd, &cmd, sizeof(cmd))) {
 		log_msg(LOG_ERR, "xfrd: error writing ack to main: %s",
 			strerror(errno));
 	}

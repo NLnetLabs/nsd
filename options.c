@@ -13,10 +13,8 @@
 #include "options.h"
 #include "query.h"
 #include "tsig.h"
-#include "difffile.h"
 
 #include "configyyrename.h"
-#include "configparser.h"
 nsd_options_t* nsd_options = 0;
 config_parser_state_t* cfg_parser = 0;
 extern FILE* c_in, *c_out;

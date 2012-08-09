@@ -189,7 +189,7 @@ readpid(const char *file)
 		return -1;
 	}
 
-	pid = strtol(pidbuf, &t, 10);
+	pid = (pid_t) strtol(pidbuf, &t, 10);
 
 	if (*t && *t != '\n') {
 		return -1;
@@ -1089,6 +1089,10 @@ main(int argc, char *argv[])
 		}
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
 			nsd.chrootdir));
+		if (chdir("/")) {
+			log_msg(LOG_ERR, "unable to chdir to chroot: %s", strerror(errno));
+			exit(1);
+		}
 	}
 	else
 #endif /* HAVE_CHROOT */
