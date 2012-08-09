@@ -855,7 +855,7 @@ RR records details.
   "NSEC3"    50,    # RFC 5155.
   "NSEC3PARAM" 51,  # RFC 5155.
 
-  "TLSA"     52,    # draft-ietf-dane-protocol
+  "TLSA"     52,    # RFC 6698.
 
   Unknown    53 - 98,
 
