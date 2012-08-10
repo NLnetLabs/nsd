@@ -10,8 +10,8 @@
 #ifndef XFRD_NOTIFY_H
 #define XFRD_NOTIFY_H
 
+#include <event.h>
 #include "tsig.h"
-#include "netio.h"
 #include "rbtree.h"
 
 struct nsd;
@@ -38,8 +38,9 @@ struct notify_zone_t {
 
 	/* notify sending handler */
 	/* Not saved on disk (i.e. kill of daemon stops notifies) */
-	netio_handler_type notify_send_handler;
-	struct timespec notify_timeout;
+	int notify_send_enable;
+	struct event notify_send_handler;
+	struct timeval notify_timeout;
 	struct acl_options* notify_current; /* current slave to notify */
 	uint8_t notify_restart; /* restart notify after repattern */
 	uint8_t notify_retry; /* how manieth retry in sending to current */
@@ -53,8 +54,8 @@ struct notify_zone_t {
 };
 
 /* initialise outgoing notifies */
-void init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
-        const dname_type* apex, struct zone_options* options);
+void init_notify_send(rbtree_t* tree, region_type* region,
+	const dname_type* apex, struct zone_options* options);
 /* delete notify zone */
 void xfrd_del_notify(struct xfrd_state* xfrd, const dname_type* dname);
 

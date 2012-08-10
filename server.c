@@ -607,9 +607,6 @@ server_shutdown(struct nsd *nsd)
 				nsd->children[i].child_fd = -1;
 			}
 	}
-#ifdef HAVE_SSL
-	daemon_remote_close(nsd->rc); /* close sockets of rc */
-#endif
 
 	log_finalize();
 	tsig_finalize();

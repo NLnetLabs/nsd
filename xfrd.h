@@ -10,7 +10,7 @@
 #ifndef XFRD_H
 #define XFRD_H
 
-#include "netio.h"
+#include <event.h>
 #include "rbtree.h"
 #include "namedb.h"
 #include "options.h"
@@ -35,7 +35,7 @@ struct xfrd_state {
 	/* time when daemon was last started */
 	time_t xfrd_start_time;
 	struct region* region;
-	netio_type* netio;
+	struct event_base* event_base;
 	struct nsd* nsd;
 
 	struct xfrd_tcp_set* tcp_set;
@@ -56,14 +56,14 @@ struct xfrd_state {
 	uint64_t xfrfilenumber;
 
 	/* timer for NSD reload */
-	struct timespec reload_timeout;
-	netio_handler_type reload_handler;
+	struct timeval reload_timeout;
+	struct event reload_handler;
 	/* last reload must have caught all zone updates before this time */
 	time_t reload_cmd_last_sent;
 	uint8_t can_send_reload;
 
 	/* communication channel with server_main */
-	netio_handler_type ipc_handler;
+	struct event ipc_handler;
 	struct xfrd_tcp *ipc_conn;
 	struct buffer* ipc_pass;
 	/* sending ipc to server_main */
@@ -150,8 +150,8 @@ struct xfrd_zone {
 	int fresh_xfr_timeout;
 
 	/* handler for timeouts */
-	struct timespec timeout;
-	netio_handler_type zone_handler;
+	struct timeval timeout;
+	struct event zone_handler;
 
 	/* tcp connection zone is using, or -1 */
 	int tcp_conn;
@@ -312,6 +312,9 @@ void xfrd_set_reload_now(xfrd_state_t* xfrd);
 
 /* handle incoming notify (soa or NULL) and start zone xfr if necessary */
 void xfrd_handle_notify_and_start_xfr(xfrd_zone_t* zone, xfrd_soa_t* soa);
+
+/* handle zone timeout, event */
+void xfrd_handle_zone(int fd, short event, void* arg);
 
 const char* xfrd_pretty_time(time_t v);
 

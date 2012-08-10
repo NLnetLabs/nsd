@@ -241,7 +241,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		zone->next_master = nextmas;
 		zone->round_num = round_num;
 		zone->timeout.tv_sec = timeout;
-		zone->timeout.tv_nsec = 0;
+		zone->timeout.tv_usec = 0;
 
 		/* read the zone OK, now set the master properly */
 		zone->master = acl_find_num(zone->zone_options->pattern->
@@ -443,8 +443,8 @@ xfrd_write_state(struct xfrd_state* xfrd)
 		fprintf(out, "\tnext_master: %d\n", zone->next_master);
 		fprintf(out, "\tround_num: %d\n", zone->round_num);
 		fprintf(out, "\tnext_timeout: %d",
-			zone->zone_handler.timeout?(int)zone->timeout.tv_sec:0);
-		if(zone->zone_handler.timeout) {
+			(zone->zone_handler.ev_flags&EV_TIMEOUT)?(int)zone->timeout.tv_sec:0);
+		if((zone->zone_handler.ev_flags&EV_TIMEOUT)) {
 			neato_timeout(out, "\t# =", zone->timeout.tv_sec - xfrd_time());
 		}
 		fprintf(out, "\n");

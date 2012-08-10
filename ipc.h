@@ -16,6 +16,7 @@ struct nsd;
 struct nsd_child;
 struct xfrd_tcp;
 struct nsdst;
+struct event;
 
 /*
  * Data for the server_main IPC handler 
@@ -81,13 +82,15 @@ void child_handle_parent_command(netio_type *netio,
  * Routine used by xfrd
  * Handle interprocess communication with parent process, read and write.
  */
-void xfrd_handle_ipc(netio_type *netio,
-	netio_handler_type *handler, netio_event_types_type event_types);
+void xfrd_handle_ipc(int fd, short event, void* arg);
 
 /* check if all children have exited in an orderly fashion and set mode */
 void parent_check_all_children_exited(struct nsd* nsd);
 
 /** add stats to total */
 void stats_add(struct nsdst* total, struct nsdst* s);
+
+/** set event to listen to given mode, no timeout, must be added already */
+void ipc_set_listening(struct event* event, short mode);
 
 #endif /* NSD_IPC_H */

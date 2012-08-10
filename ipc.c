@@ -28,7 +28,7 @@ static void xfrd_send_reload_req(xfrd_state_t* xfrd);
 /* send quit request over the IPC channel */
 static void xfrd_send_quit_req(xfrd_state_t* xfrd);
 /* perform read part of handle ipc for xfrd */
-static void xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd);
+static void xfrd_handle_ipc_read(struct event* handler, xfrd_state_t* xfrd);
 
 void
 child_handle_parent_command(netio_type *ATTR_UNUSED(netio),
@@ -484,7 +484,7 @@ xfrd_send_reload_req(xfrd_state_t* xfrd)
 	udb_ptr_unlink(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
 	task_process_sync(xfrd->nsd->task[xfrd->nsd->mytask]);
 	/* ask server_main for a reload */
-	if(write(xfrd->ipc_handler.fd, &req, sizeof(req)) == -1) {
+	if(write(xfrd->ipc_handler.ev_fd, &req, sizeof(req)) == -1) {
 		udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
 		udb_ptr_set(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask], p);
 		if(errno == EAGAIN || errno == EINTR)
@@ -506,14 +506,28 @@ xfrd_send_reload_req(xfrd_state_t* xfrd)
 	xfrd->can_send_reload = 0;
 }
 
+void
+ipc_set_listening(struct event* event, short mode)
+{
+	int fd = event->ev_fd;
+	struct event_base* base = event->ev_base;
+	event_del(event);
+	event_set(event, fd, mode, event->ev_callback, event->ev_arg);
+	if(event_base_set(base, event) != 0)
+		log_msg(LOG_ERR, "ipc: cannot set event_base");
+	/* no timeout for IPC events */
+	if(event_add(event, NULL) != 0)
+		log_msg(LOG_ERR, "ipc: cannot add event");
+}
+
 static void
 xfrd_send_shutdown_req(xfrd_state_t* xfrd)
 {
 	sig_atomic_t cmd = NSD_SHUTDOWN;
 	xfrd->ipc_send_blocked = 1;
-	xfrd->ipc_handler.event_types &= (~NETIO_EVENT_WRITE);
+	ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send shutdown"));
-	if(write_socket(xfrd->ipc_handler.fd, &cmd, sizeof(cmd)) == -1) {
+	if(write_socket(xfrd->ipc_handler.ev_fd, &cmd, sizeof(cmd)) == -1) {
 		log_msg(LOG_ERR, "xfrd: error writing shutdown to main: %s",
 			strerror(errno));
 	}
@@ -525,9 +539,9 @@ xfrd_send_quit_req(xfrd_state_t* xfrd)
 {
 	sig_atomic_t cmd = NSD_QUIT;
 	xfrd->ipc_send_blocked = 1;
-	xfrd->ipc_handler.event_types &= (~NETIO_EVENT_WRITE);
+	ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send ackreload(quit)"));
-	if(write_socket(xfrd->ipc_handler.fd, &cmd, sizeof(cmd)) == -1) {
+	if(write_socket(xfrd->ipc_handler.ev_fd, &cmd, sizeof(cmd)) == -1) {
 		log_msg(LOG_ERR, "xfrd: error writing ack to main: %s",
 			strerror(errno));
 	}
@@ -535,21 +549,19 @@ xfrd_send_quit_req(xfrd_state_t* xfrd)
 }
 
 void
-xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
-	netio_handler_type *handler,
-	netio_event_types_type event_types)
+xfrd_handle_ipc(int ATTR_UNUSED(fd), short event, void* arg)
 {
-	xfrd_state_t* xfrd = (xfrd_state_t*)handler->user_data;
-        if ((event_types & NETIO_EVENT_READ))
+	xfrd_state_t* xfrd = (xfrd_state_t*)arg;
+        if ((event & EV_READ))
 	{
 		/* first attempt to read as a signal from main
 		 * could block further send operations */
-		xfrd_handle_ipc_read(handler, xfrd);
+		xfrd_handle_ipc_read(&xfrd->ipc_handler, xfrd);
 	}
-        if ((event_types & NETIO_EVENT_WRITE))
+        if ((event & EV_WRITE))
 	{
 		if(xfrd->ipc_send_blocked) { /* wait for RELOAD_DONE */
-			handler->event_types = NETIO_EVENT_READ;
+			ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ);
 			return;
 		}
 		if(xfrd->need_to_send_shutdown) {
@@ -562,14 +574,15 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 		if(!(xfrd->can_send_reload && xfrd->need_to_send_reload) &&
 			!xfrd->need_to_send_shutdown &&
 			!xfrd->need_to_send_quit) {
-			handler->event_types = NETIO_EVENT_READ; /* disable writing for now */
+			/* disable writing for now */
+			ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ);
 		}
 	}
 
 }
 
 static void
-xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
+xfrd_handle_ipc_read(struct event* handler, xfrd_state_t* xfrd)
 {
         sig_atomic_t cmd;
         int len;
@@ -620,7 +633,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		return;
 	}
 
-        if((len = read(handler->fd, &cmd, sizeof(cmd))) == -1) {
+        if((len = read(handler->ev_fd, &cmd, sizeof(cmd))) == -1) {
                 log_msg(LOG_ERR, "xfrd_handle_ipc: read: %s",
                         strerror(errno));
                 return;
@@ -649,7 +662,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		   the new parent does not want half a packet) */
 		xfrd->can_send_reload = 1;
 		xfrd->ipc_send_blocked = 0;
-		handler->event_types |= NETIO_EVENT_WRITE;
+		ipc_set_listening(handler, EV_PERSIST|EV_READ|EV_WRITE);
 		xfrd_reopen_logfile();
 		xfrd_check_failed_updates();
 		break;
@@ -667,7 +680,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 	case NSD_RELOAD:
 		/* main tells us that reload is done, stop ipc send to main */
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv RELOAD"));
-		handler->event_types |= NETIO_EVENT_WRITE;
+		ipc_set_listening(handler, EV_PERSIST|EV_READ|EV_WRITE);
 		xfrd->need_to_send_quit = 1;
 		break;
         default:

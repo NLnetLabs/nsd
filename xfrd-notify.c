@@ -29,21 +29,29 @@ static void setup_notify_active(struct notify_zone_t* zone);
 static int xfrd_handle_notify_reply(struct notify_zone_t* zone, buffer_type* packet);
 
 /* handle zone notify send */
-static void xfrd_handle_notify_send(netio_type *netio,
-        netio_handler_type *handler, netio_event_types_type event_types);
+static void xfrd_handle_notify_send(int fd, short event, void* arg);
 
 static void xfrd_notify_next(struct notify_zone_t* zone);
 
 static void xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet);
 
+static void
+notify_send_disable(struct notify_zone_t* zone)
+{
+	zone->notify_send_enable = 0;
+	event_del(&zone->notify_send_handler);
+	if(zone->notify_send_handler.ev_fd != -1) {
+		close(zone->notify_send_handler.ev_fd);
+	}
+}
+
 void
 notify_disable(struct notify_zone_t* zone)
 {
 	zone->notify_current = 0;
-	zone->notify_send_handler.timeout = NULL;
-	if(zone->notify_send_handler.fd != -1) {
-		close(zone->notify_send_handler.fd);
-		zone->notify_send_handler.fd = -1;
+	/* if added, then remove */
+	if(zone->notify_send_enable) {
+		notify_send_disable(zone);
 	}
 
 	if(xfrd->notify_udp_num == XFRD_MAX_UDP_NOTIFY) {
@@ -72,8 +80,8 @@ notify_disable(struct notify_zone_t* zone)
 }
 
 void
-init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
-	const dname_type* apex, zone_options_t* options)
+init_notify_send(rbtree_t* tree, region_type* region, const dname_type* apex,
+	zone_options_t* options)
 {
 	struct notify_zone_t* not = (struct notify_zone_t*)
 		region_alloc(region, sizeof(struct notify_zone_t));
@@ -89,13 +97,8 @@ init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
 	memset(not->current_soa, 0, sizeof(struct xfrd_soa));
 
 	not->is_waiting = 0;
-	not->notify_send_handler.fd = -1;
-	not->notify_send_handler.timeout = 0;
-	not->notify_send_handler.user_data = not;
-	not->notify_send_handler.event_types =
-		NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
-	not->notify_send_handler.event_handler = xfrd_handle_notify_send;
-	netio_add_handler(netio, &not->notify_send_handler);
+
+	not->notify_send_enable = 0;
 	tsig_create_record_custom(&not->notify_tsig, NULL, 0, 0, 4);
 	not->notify_current = 0;
 	rbtree_insert(tree, (rbnode_t*)not);
@@ -121,13 +124,10 @@ xfrd_del_notify(xfrd_state_t* xfrd, const dname_type* dname)
 		not->is_waiting = 0;
 	}
 
-	/* close fd */
-	if(not->notify_send_handler.fd != -1) {
+	/* event */
+	if(not->notify_send_enable) {
 		notify_disable(not);
 	}
-
-	/* netio */
-	netio_remove_handler(xfrd->netio, &not->notify_send_handler);
 
 	/* del tsig */
 	tsig_delete_record(&not->notify_tsig, NULL);
@@ -186,9 +186,10 @@ xfrd_notify_next(struct notify_zone_t* zone)
 static void
 xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 {
-	if(zone->notify_send_handler.fd != -1)
-		close(zone->notify_send_handler.fd);
-	zone->notify_send_handler.fd = -1;
+	int fd;
+	if(zone->notify_send_enable) {
+		notify_send_disable(zone);
+	}
 	/* Set timeout for next reply */
 	zone->notify_timeout.tv_sec = xfrd_time() + XFRD_NOTIFY_RETRY_TIMOUT;
 	/* send NOTIFY to secondary. */
@@ -205,41 +206,51 @@ xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 		xfrd_tsig_sign_request(packet, &zone->notify_tsig, zone->notify_current);
 	}
 	buffer_flip(packet);
-	zone->notify_send_handler.fd = xfrd_send_udp(zone->notify_current,
-		packet, zone->options->pattern->outgoing_interface);
-	if(zone->notify_send_handler.fd == -1) {
+	fd = xfrd_send_udp(zone->notify_current, packet,
+		zone->options->pattern->outgoing_interface);
+	if(fd == -1) {
 		log_msg(LOG_ERR, "xfrd: zone %s: could not send notify #%d to %s",
 			zone->apex_str, zone->notify_retry,
 			zone->notify_current->ip_address_spec);
+		event_set(&zone->notify_send_handler, -1, EV_TIMEOUT,
+			xfrd_handle_notify_send, zone);
+		if(event_base_set(xfrd->event_base, &zone->notify_send_handler) != 0)
+			log_msg(LOG_ERR, "notify_send: event_base_set failed");
+		if(evtimer_add(&zone->notify_send_handler, &zone->notify_timeout) != 0)
+			log_msg(LOG_ERR, "notify_send: evtimer_add failed");
 		return;
 	}
+	event_set(&zone->notify_send_handler, fd, EV_READ | EV_TIMEOUT,
+		xfrd_handle_notify_send, zone);
+	if(event_base_set(xfrd->event_base, &zone->notify_send_handler) != 0)
+		log_msg(LOG_ERR, "notify_send: event_base_set failed");
+	if(event_add(&zone->notify_send_handler, &zone->notify_timeout) != 0)
+		log_msg(LOG_ERR, "notify_send: evtimer_add failed");
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: sent notify #%d to %s",
 		zone->apex_str, zone->notify_retry,
 		zone->notify_current->ip_address_spec));
 }
 
 static void
-xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
-	netio_handler_type *handler, netio_event_types_type event_types)
+xfrd_handle_notify_send(int fd, short event, void* arg)
 {
-	struct notify_zone_t* zone = (struct notify_zone_t*)handler->user_data;
+	struct notify_zone_t* zone = (struct notify_zone_t*)arg;
 	buffer_type* packet = xfrd_get_temp_buffer();
 	assert(zone->notify_current);
 	if(zone->is_waiting) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"xfrd: notify waiting, skipped, %s", zone->apex_str));
-		assert(zone->notify_send_handler.fd == -1);
 		return;
 	}
-	if(event_types & NETIO_EVENT_READ) {
+	if((event & EV_READ)) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"xfrd: zone %s: read notify ACK", zone->apex_str));
-		assert(handler->fd != -1);
-		if(xfrd_udp_read_packet(packet, zone->notify_send_handler.fd)) {
+		assert(fd != -1);
+		if(xfrd_udp_read_packet(packet, fd)) {
 			if(xfrd_handle_notify_reply(zone, packet))
 				xfrd_notify_next(zone);
 		}
-	} else if(event_types & NETIO_EVENT_TIMEOUT) {
+	} else if((event & EV_TIMEOUT)) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: notify timeout",
 			zone->apex_str));
 		/* timeout, try again */
@@ -264,9 +275,16 @@ setup_notify_active(struct notify_zone_t* zone)
 {
 	zone->notify_retry = 0;
 	zone->notify_current = zone->options->pattern->notify;
-	zone->notify_send_handler.timeout = &zone->notify_timeout;
 	zone->notify_timeout.tv_sec = xfrd_time();
-	zone->notify_timeout.tv_nsec = 0;
+	zone->notify_timeout.tv_usec = 0;
+
+	event_set(&zone->notify_send_handler, -1, EV_TIMEOUT,
+		xfrd_handle_notify_send, zone);
+	if(event_base_set(xfrd->event_base, &zone->notify_send_handler) != 0)
+		log_msg(LOG_ERR, "notifysend: event_base_set failed");
+	if(evtimer_add(&zone->notify_send_handler, &zone->notify_timeout) != 0)
+		log_msg(LOG_ERR, "notifysend: evtimer_add failed");
+	zone->notify_send_enable = 1;
 }
 
 static void
@@ -299,14 +317,13 @@ notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 		xfrd->notify_waiting_first = zone;
 	}
 	xfrd->notify_waiting_last = zone;
-	zone->notify_send_handler.timeout = NULL;
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: notify on waiting list.",
 		zone->apex_str));
 }
 
 void xfrd_notify_start(struct notify_zone_t* zone)
 {
-	if(zone->is_waiting || zone->notify_send_handler.fd != -1)
+	if(zone->is_waiting || zone->notify_send_enable)
 		return;
 	notify_enable(zone, NULL);
 }
@@ -344,9 +361,7 @@ void close_notify_fds(rbtree_t* tree)
 	struct notify_zone_t* zone;
 	RBTREE_FOR(zone, struct notify_zone_t*, tree)
 	{
-		if(zone->notify_send_handler.fd != -1) {
-			close(zone->notify_send_handler.fd);
-			zone->notify_send_handler.fd = -1;
-		}
+		if(zone->notify_send_enable)
+			notify_send_disable(zone);
 	}
 }

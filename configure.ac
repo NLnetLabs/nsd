@@ -505,6 +505,69 @@ AC_DEFUN([CHECK_SSL], [
     fi
 ])dnl
 
+# check for libevent
+AC_ARG_WITH(libevent, AC_HELP_STRING([--with-libevent=pathname],
+    [use libevent (will check /usr/local /opt/local /usr/lib /usr/pkg /usr/sfw /usr  or you can specify an explicit path), useful when the zone count is high.]),
+    [ ],[ withval="yes" ])
+if test x_$withval = x_yes -o x_$withval != x_no; then
+        AC_MSG_CHECKING(for libevent)
+        if test x_$withval = x_ -o x_$withval = x_yes; then
+            withval="/usr/local /opt/local /usr/lib /usr/pkg /usr/sfw /usr"
+        fi
+        for dir in $withval; do
+            thedir="$dir"
+            if test -f "$dir/include/event.h"; then
+                found_libevent="yes"
+		dnl assume /usr is in default path.
+		if test "$thedir" != "/usr"; then
+                    CPPFLAGS="$CPPFLAGS -I$thedir/include"
+		fi
+                break;
+            fi
+        done
+        if test x_$found_libevent != x_yes; then
+		if test -f "$dir/event.h" -a \( -f "$dir/libevent.la" -o -f "$dir/libev.la" \) ; then
+			# libevent source directory
+            		AC_MSG_RESULT(found in $thedir)
+                	CPPFLAGS="$CPPFLAGS -I$thedir -I$thedir/include"
+			# remove evdns from linking
+			ev_files_o=`ls $thedir/*.o | grep -v evdns\.o | grep -v bufferevent_openssl\.o`
+			cp $ev_files_o .
+			LDFLAGS="$ev_files_o $LDFLAGS -lm"
+		else
+            		AC_MSG_ERROR([Cannot find the libevent library.
+You can restart ./configure --with-libevent=no to use a builtin alternative.])
+		fi
+        else
+            AC_MSG_RESULT(found in $thedir)
+	    dnl assume /usr is in default path, do not add "".
+	    if test "$thedir" != "/usr" -a "$thedir" != ""; then
+                LDFLAGS="$LDFLAGS -L$thedir/lib"
+		ACX_RUNTIME_PATH_ADD([$thedir/lib])
+	    fi
+        fi
+	# check for library used by libevent after 1.3c
+	AC_SEARCH_LIBS([clock_gettime], [rt])
+
+	# is the event.h header libev or libevent?
+	AC_CHECK_HEADERS([event.h],,, [AC_INCLUDES_DEFAULT])
+	AC_CHECK_DECL(EV_VERSION_MAJOR, [
+		AC_SEARCH_LIBS(event_set, [ev])
+	],[
+		AC_SEARCH_LIBS(event_set, [event])
+	],[AC_INCLUDES_DEFAULT
+#include <event.h>
+	])
+	AC_CHECK_FUNCS([event_base_free]) # only in libevent 1.2 and later
+	AC_CHECK_FUNCS([event_base_once]) # only in libevent 1.4.1 and later
+	AC_CHECK_FUNCS([event_base_new]) # only in libevent 1.4.1 and later
+	AC_CHECK_FUNCS([event_base_get_method]) # only in libevent 1.4.3 and later
+	AC_CHECK_FUNCS([ev_loop]) # only in libev. (tested on 3.51)
+	AC_CHECK_FUNCS([ev_default_loop]) # only in libev. (tested on 4.00)
+else
+	AC_DEFINE(USE_MINI_EVENT, 1, [Define if you want to use internal select based events])
+fi
+
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT

@@ -187,7 +187,7 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		zone->tcp_waiting = 0;
 
 		/* stop udp use (if any) */
-		if(zone->zone_handler.fd != -1)
+		if(zone->zone_handler.ev_fd != -1)
 			xfrd_udp_release(zone);
 
 		if(!xfrd_tcp_open(set, zone))
@@ -277,9 +277,14 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		return 0;
 	}
 
-	zone->zone_handler.fd = fd;
-	zone->zone_handler.event_types = NETIO_EVENT_TIMEOUT|NETIO_EVENT_WRITE;
 	xfrd_set_timer(zone, xfrd_time() + set->tcp_timeout);
+	event_del(&zone->zone_handler);
+	event_set(&zone->zone_handler, fd, EV_PERSIST|EV_TIMEOUT|EV_WRITE,
+		xfrd_handle_zone, zone);
+	if(event_base_set(xfrd->event_base, &zone->zone_handler) != 0)
+		log_msg(LOG_ERR, "xfrd tcp: event_base_set failed");
+	if(event_add(&zone->zone_handler, &zone->timeout) != 0)
+		log_msg(LOG_ERR, "xfrd tcp: event_add failed");
 	return 1;
 }
 
@@ -382,7 +387,7 @@ int conn_write(xfrd_tcp_t* tcp)
 void
 xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
-	int ret;
+	int ret, fd;
 	xfrd_tcp_t* tcp = set->tcp_state[zone->tcp_conn];
 	assert(zone->tcp_conn != -1);
 	if(tcp->total_bytes == 0) {
@@ -416,7 +421,16 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	/* done writing, get ready for reading */
 	tcp->is_reading = 1;
 	tcp_conn_ready_for_reading(tcp);
-	zone->zone_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
+
+	fd = zone->zone_handler.ev_fd;
+	event_del(&zone->zone_handler);
+	event_set(&zone->zone_handler, fd, EV_PERSIST|EV_TIMEOUT|EV_READ,
+		xfrd_handle_zone, zone);
+	if(event_base_set(xfrd->event_base, &zone->zone_handler) != 0)
+		log_msg(LOG_ERR, "xfrd tcp: event_base_set failed");
+	if(event_add(&zone->zone_handler, &zone->timeout) != 0)
+		log_msg(LOG_ERR, "xfrd tcp: event_add failed");
+
 	xfrd_tcp_read(set, zone);
 }
 
@@ -546,8 +560,10 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	assert(zone->tcp_waiting == 0);
 	zone->tcp_conn = -1;
 	zone->tcp_waiting = 0;
-	zone->zone_handler.fd = -1;
-	zone->zone_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
+	if(zone->zone_handler.ev_flags)
+		event_del(&zone->zone_handler);
+	zone->zone_handler.ev_fd = -1;
+	zone->zone_handler.ev_flags = 0;
 
 	if(set->tcp_state[conn]->fd != -1)
 		close(set->tcp_state[conn]->fd);
@@ -569,7 +585,7 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		zone->tcp_conn = conn;
 		zone->tcp_waiting = 0;
 		/* stop udp (if any) */
-		if(zone->zone_handler.fd != -1)
+		if(zone->zone_handler.ev_fd != -1)
 			xfrd_udp_release(zone);
 
 		if(!xfrd_tcp_open(set, zone))

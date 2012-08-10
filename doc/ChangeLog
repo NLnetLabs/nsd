@@ -1,3 +1,6 @@
+10 August 2012: Wouter
+	- libevent in xfrd.
+
 26 July 2012: Yuri
 	- Prioritize notify sender for requesting XFR.
 	  (thanks Ilya Bakulin)

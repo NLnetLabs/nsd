@@ -55,16 +55,17 @@
 #include <unistd.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <event.h>
 #include "remote.h"
 #include "util.h"
 #include "xfrd.h"
 #include "xfrd-notify.h"
 #include "xfrd-tcp.h"
 #include "nsd.h"
-#include "netio.h"
 #include "options.h"
 #include "difffile.h"
 #include "xfrd.h"
+#include "ipc.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>
@@ -88,9 +89,9 @@ struct rc_state {
 	/** the next item in list */
 	struct rc_state* next, *prev;
 	/** the commpoint */
-	struct netio_handler* c;
+	struct event c;
 	/** timeout for this state */
-	struct timespec tval;
+	struct timeval tval;
 	/** in the handshake part */
 	enum { rc_none, rc_hs_read, rc_hs_write } shake_state;
 	/** the ssl state */
@@ -105,13 +106,21 @@ struct rc_state {
 };
 
 /**
+ * list of events for accepting connections
+ */
+struct acceptlist {
+	struct acceptlist* next;
+	struct event c;
+};
+
+/**
  * The remote control state.
  */
 struct daemon_remote {
 	/** the master process for this remote control */
 	struct xfrd_state* xfrd;
 	/** commpoints for accepting remote control connections */
-	struct netio_handler_list* accept_list;
+	struct acceptlist* accept_list;
 	/** number of active commpoints that are handling remote control */
 	int active;
 	/** max active commpoints */
@@ -155,13 +164,11 @@ static int ssl_read_line(SSL* ssl, char* buf, size_t max);
 
 /** perform the accept of a new remote control connection */
 static void
-remote_accept_callback(netio_type *netio, netio_handler_type *handler,
-	netio_event_types_type event_types);
+remote_accept_callback(int fd, short event, void* arg);
 
 /** perform remote control */
 static void
-remote_control_callback(netio_type *netio, netio_handler_type *handler,
-	netio_event_types_type event_types);
+remote_control_callback(int fd, short event, void* arg);
 
 
 /** ---- end of private defines ---- **/
@@ -271,15 +278,16 @@ daemon_remote_create(nsd_options_t* cfg)
 void daemon_remote_close(struct daemon_remote* rc)
 {
 	struct rc_state* p, *np;
-	netio_handler_list_type* h, *nh;
+	struct acceptlist* h, *nh;
 	if(!rc) return;
 
 	/* close listen sockets */
 	h = rc->accept_list;
 	while(h) {
 		nh = h->next;
-		close(h->handler->fd);
-		free(h->handler);
+		if(h->c.ev_flags)
+			event_del(&h->c);
+		close(h->c.ev_fd);
 		free(h);
 		h = nh;
 	}
@@ -289,10 +297,12 @@ void daemon_remote_close(struct daemon_remote* rc)
 	p = rc->busy_list;
 	while(p) {
 		np = p->next;
+		close(h->c.ev_fd);
+		if(p->c.ev_flags)
+			event_del(&p->c);
 		if(p->ssl)
 			SSL_free(p->ssl);
-		close(p->c->fd);
-		free(p->c);
+		close(p->c.ev_fd);
 		free(p);
 		p = np;
 	}
@@ -375,7 +385,7 @@ add_open(struct daemon_remote* rc, const char* ip, int nr, int noproto_is_err)
 {
 	struct addrinfo hints;
 	struct addrinfo* res;
-	netio_handler_list_type* hl;
+	struct acceptlist* hl;
 	int noproto;
 	int fd, r;
 	char port[15];
@@ -412,11 +422,12 @@ add_open(struct daemon_remote* rc, const char* ip, int nr, int noproto_is_err)
 	}
 
 	/* alloc */
-	hl = (netio_handler_list_type*)xalloc_zero(sizeof(*hl));
-	hl->handler = (netio_handler_type*)xalloc_zero(sizeof(*hl->handler));
+	hl = (struct acceptlist*)xalloc_zero(sizeof(*hl));
 	hl->next = rc->accept_list;
 	rc->accept_list = hl;
-	hl->handler->fd = fd;
+
+	hl->c.ev_fd = fd;
+	hl->c.ev_flags = 0;
 	return 1;
 }
 
@@ -446,36 +457,38 @@ int daemon_remote_open_ports(struct daemon_remote* rc, nsd_options_t* cfg)
 
 void daemon_remote_attach(struct daemon_remote* rc, struct xfrd_state* xfrd)
 {
-	netio_handler_list_type* p;
+	int fd;
+	struct acceptlist* p;
 	if(!rc) return;
 	rc->xfrd = xfrd;
 	for(p = rc->accept_list; p; p = p->next) {
-		/* add to netio */
-		p->handler->timeout = NULL;
-		p->handler->user_data = rc;
-		p->handler->event_types = NETIO_EVENT_READ;
-		p->handler->event_handler = &remote_accept_callback;
-		netio_add_handler(xfrd->netio, p->handler);
+		/* add event */
+		fd = p->c.ev_fd;
+		event_set(&p->c, fd, EV_PERSIST|EV_READ, remote_accept_callback,
+			rc);
+		if(event_base_set(xfrd->event_base, &p->c) != 0)
+			log_msg(LOG_ERR, "remote: cannot set event_base");
+		if(event_add(&p->c, NULL) != 0)
+			log_msg(LOG_ERR, "remote: cannot add event");
 	}
 }
 
 static void
-remote_accept_callback(netio_type *netio, netio_handler_type *handler,
-	netio_event_types_type event_types)
+remote_accept_callback(int fd, short event, void* arg)
 {
-	struct daemon_remote *rc = (struct daemon_remote*) handler->user_data;
+	struct daemon_remote *rc = (struct daemon_remote*)arg;
 	struct sockaddr_storage addr;
 	socklen_t addrlen;
 	int newfd;
 	struct rc_state* n;
 
-	if (!(event_types & NETIO_EVENT_READ)) {
+	if (!(event & EV_READ)) {
 		return;
 	}
 
 	/* perform the accept */
 	addrlen = sizeof(addr);
-	newfd = accept(handler->fd, (struct sockaddr*)&addr, &addrlen);
+	newfd = accept(fd, (struct sockaddr*)&addr, &addrlen);
 	if(newfd == -1) {
 		if (    errno != EINTR
 			&& errno != EWOULDBLOCK
@@ -510,20 +523,16 @@ remote_accept_callback(netio_type *netio, netio_handler_type *handler,
 		log_msg(LOG_ERR, "out of memory");
 		goto close_exit;
 	}
-	n->c = (struct netio_handler*)calloc(1, sizeof(*n->c));
-	if(!n->c) {
-		log_msg(LOG_ERR, "out of memory");
-		free(n);
-		goto close_exit;
-	}
-	n->c->fd = newfd;
-	n->c->timeout = &n->tval;
-	n->tval.tv_sec = REMOTE_CONTROL_TCP_TIMEOUT;
-	n->tval.tv_nsec = 0L;
-	timespec_add(&n->tval, netio_current_time(netio));
-	n->c->event_types = NETIO_EVENT_READ | NETIO_EVENT_TIMEOUT;
-	n->c->event_handler = &remote_control_callback;
-	n->c->user_data = n;
+
+	n->tval.tv_sec = REMOTE_CONTROL_TCP_TIMEOUT + xfrd_time();
+	n->tval.tv_usec = 0L;
+
+	event_set(&n->c, newfd, EV_PERSIST|EV_TIMEOUT|EV_READ,
+		remote_control_callback, n);
+	if(event_base_set(xfrd->event_base, &n->c) != 0)
+		log_msg(LOG_ERR, "remote_accept: cannot set event_base");
+	if(event_add(&n->c, &n->tval) != 0)
+		log_msg(LOG_ERR, "remote_accept: cannot add event");
 
 	if(2 <= verbosity) {
 		char s[128];
@@ -535,7 +544,7 @@ remote_accept_callback(netio_type *netio, netio_handler_type *handler,
 	n->ssl = SSL_new(rc->ctx);
 	if(!n->ssl) {
 		log_crypto_err("could not SSL_new");
-		free(n->c);
+		event_del(&n->c);
 		free(n);
 		goto close_exit;
 	}
@@ -543,8 +552,8 @@ remote_accept_callback(netio_type *netio, netio_handler_type *handler,
         (void)SSL_set_mode(n->ssl, SSL_MODE_AUTO_RETRY);
 	if(!SSL_set_fd(n->ssl, newfd)) {
 		log_crypto_err("could not SSL_set_fd");
+		event_del(&n->c);
 		SSL_free(n->ssl);
-		free(n->c);
 		free(n);
 		goto close_exit;
 	}
@@ -557,11 +566,10 @@ remote_accept_callback(netio_type *netio, netio_handler_type *handler,
 	if(n->next) n->next->prev = n;
 	rc->busy_list = n;
 	rc->active ++;
-	netio_add_handler(netio, n->c);
 
 	/* perform the first nonblocking read already, for windows, 
 	 * so it can return wouldblock. could be faster too. */
-	remote_control_callback(netio, n->c, NETIO_EVENT_READ);
+	remote_control_callback(newfd, EV_READ, n);
 }
 
 /** delete from list */
@@ -588,19 +596,19 @@ stats_list_remove_elem(struct rc_state** list, struct rc_state* todel)
 
 /** decrease active count and remove commpoint from busy list */
 static void
-clean_point(netio_type* netio, struct daemon_remote* rc, struct rc_state* s)
+clean_point(struct daemon_remote* rc, struct rc_state* s)
 {
 	if(s->in_stats_list)
 		stats_list_remove_elem(&rc->stats_list, s);
 	state_list_remove_elem(&rc->busy_list, s);
 	rc->active --;
+	if(s->c.ev_flags)
+		event_del(&s->c);
 	if(s->ssl) {
 		SSL_shutdown(s->ssl);
 		SSL_free(s->ssl);
 	}
-	netio_remove_handler(netio, s->c);
-	close(s->c->fd);
-	free(s->c);
+	close(s->c.ev_fd);
 	free(s);
 }
 
@@ -718,7 +726,11 @@ static void
 do_stop(SSL* ssl, xfrd_state_t* xfrd)
 {
 	xfrd->need_to_send_shutdown = 1;
-	xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
+
+	if(!(xfrd->ipc_handler.ev_flags&EV_WRITE)) {
+		ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ|EV_WRITE);
+	}
+
 	send_ok(ssl);
 }
 
@@ -813,7 +825,7 @@ force_transfer_zone(xfrd_zone_t* zone)
 	/* if in TCP transaction, stop it immediately. */
 	if(zone->tcp_conn != -1)
 		xfrd_tcp_release(xfrd->tcp_set, zone);
-	if(zone->zone_handler.fd != -1)
+	else if(zone->zone_handler.ev_fd != -1)
 		xfrd_udp_release(zone);
 	/* pretend we not longer have it and force any
 	 * zone to be downloaded (even same serial, w AXFR) */
@@ -878,7 +890,7 @@ print_zonestatus(SSL* ssl, xfrd_state_t* xfrd, zone_options_t* zo)
 		if(nz->is_waiting) {
 			if(!ssl_printf(ssl, "	notify: \"waiting-for-fd\"\n"))
 				return 0;
-		} else if(nz->notify_send_handler.fd != -1) {
+		} else if(nz->notify_send_enable) {
 			if(!ssl_printf(ssl, "	notify: \"sent try %d "
 				"to %s with serial %u\"\n", nz->notify_retry,
 				nz->notify_current->ip_address_spec,
@@ -907,7 +919,7 @@ print_zonestatus(SSL* ssl, xfrd_state_t* xfrd, zone_options_t* zo)
 	if(xz->udp_waiting) {
 		if(!ssl_printf(ssl, "	transfer: \"waiting-for-UDP-fd\"\n"))
 			return 0;
-	} else if(xz->zone_handler.fd != -1) {
+	} else if(xz->zone_handler.ev_fd != -1 && xz->tcp_conn == -1) {
 		if(!ssl_printf(ssl, "	transfer: \"sent UDP to %s\"\n",
 			xz->master->ip_address_spec))
 			return 0;
@@ -1000,7 +1012,8 @@ do_stats(struct daemon_remote* rc, int peek, struct rc_state* rs)
 	rs->stats_next = rc->stats_list;
 	rc->stats_list = rs;
 	/* block the tcp waiting for the reload */
-	rs->c->event_types = NETIO_EVENT_NONE;
+	event_del(&rs->c);
+	rs->c.ev_flags = 0;
 	/* force a reload */
 	xfrd_set_reload_now(xfrd);
 #else
@@ -1053,8 +1066,7 @@ do_addzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 		xfrd->last_task, arg, arg2);
 	xfrd_set_reload_now(xfrd);
 	/* add to xfrd - notify (for master and slaves) */
-	init_notify_send(xfrd->notify_zones, xfrd->netio, xfrd->region,
-		dname, zopt);
+	init_notify_send(xfrd->notify_zones, xfrd->region, dname, zopt);
 	/* add to xfrd - slave */
 	if(zone_is_slave(zopt)) {
 		xfrd_init_slave_zone(xfrd, dname, zopt);
@@ -1196,8 +1208,7 @@ repat_interrupt_zones(xfrd_state_t* xfrd, nsd_options_t* newopt)
 			if(xz->tcp_conn != -1) {
 				xfrd_tcp_release(xfrd->tcp_set, xz);
 				xfrd_set_refresh_now(xz);
-			}
-			if(xz->zone_handler.fd != -1) {
+			} else if(xz->zone_handler.ev_fd != -1) {
 				xfrd_udp_release(xz);
 				xfrd_set_refresh_now(xz);
 			}
@@ -1217,7 +1228,7 @@ repat_interrupt_zones(xfrd_state_t* xfrd, nsd_options_t* newopt)
 			oldp->pname);
 		if(!newp || !acl_list_equal(oldp->notify, newp->notify)) {
 			/* interrupt notify */
-			if(nz->notify_send_handler.fd != -1) {
+			if(nz->notify_send_enable) {
 				notify_disable(nz);
 				/* set to restart the notify after the
 				 * pattern has been changed. */
@@ -1392,7 +1403,7 @@ handle_req(struct daemon_remote* rc, struct rc_state* s, SSL* ssl)
 	char pre[10];
 	char magic[8];
 	char buf[1024];
-	if (fcntl(s->c->fd, F_SETFL, 0) == -1) { /* set blocking */
+	if (fcntl(s->c.ev_fd, F_SETFL, 0) == -1) { /* set blocking */
 		log_msg(LOG_ERR, "cannot fcntl rc: %s", strerror(errno));
 	}
 
@@ -1429,15 +1440,14 @@ handle_req(struct daemon_remote* rc, struct rc_state* s, SSL* ssl)
 }
 
 static void
-remote_control_callback(netio_type* ATTR_UNUSED(netio),
-	netio_handler_type *handler, netio_event_types_type event_types)
+remote_control_callback(int fd, short event, void* arg)
 {
-	struct rc_state* s = (struct rc_state*)handler->user_data;
+	struct rc_state* s = (struct rc_state*)arg;
 	struct daemon_remote* rc = s->rc;
 	int r;
-	if( (event_types&NETIO_EVENT_TIMEOUT) ) {
+	if( (event&EV_TIMEOUT) ) {
 		log_msg(LOG_ERR, "remote control timed out");
-		clean_point(netio, rc, s);
+		clean_point(rc, s);
 		return;
 	}
 	/* (continue to) setup the SSL connection */
@@ -1451,8 +1461,13 @@ remote_control_callback(netio_type* ATTR_UNUSED(netio),
 				return;
 			}
 			s->shake_state = rc_hs_read;
-			handler->event_types =
-				NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
+			event_del(&s->c);
+			event_set(&s->c, fd, EV_PERSIST|EV_TIMEOUT|EV_READ,
+				remote_control_callback, s);
+			if(event_base_set(xfrd->event_base, &s->c) != 0)
+				log_msg(LOG_ERR, "remote_accept: cannot set event_base");
+			if(event_add(&s->c, &s->tval) != 0)
+				log_msg(LOG_ERR, "remote_accept: cannot add event");
 			return;
 		} else if(r2 == SSL_ERROR_WANT_WRITE) {
 			if(s->shake_state == rc_hs_write) {
@@ -1460,14 +1475,19 @@ remote_control_callback(netio_type* ATTR_UNUSED(netio),
 				return;
 			}
 			s->shake_state = rc_hs_write;
-			handler->event_types =
-				NETIO_EVENT_WRITE|NETIO_EVENT_TIMEOUT;
+			event_del(&s->c);
+			event_set(&s->c, fd, EV_PERSIST|EV_TIMEOUT|EV_WRITE,
+				remote_control_callback, s);
+			if(event_base_set(xfrd->event_base, &s->c) != 0)
+				log_msg(LOG_ERR, "remote_accept: cannot set event_base");
+			if(event_add(&s->c, &s->tval) != 0)
+				log_msg(LOG_ERR, "remote_accept: cannot add event");
 			return;
 		} else {
 			if(r == 0)
 				log_msg(LOG_ERR, "remote control connection closed prematurely");
 			log_crypto_err("remote control failed ssl");
-			clean_point(netio, rc, s);
+			clean_point(rc, s);
 			return;
 		}
 	}
@@ -1479,7 +1499,7 @@ remote_control_callback(netio_type* ATTR_UNUSED(netio),
 		if(!x) {
 			VERBOSITY(2, (LOG_INFO, "remote control connection "
 				"provided no client certificate"));
-			clean_point(netio, rc, s);
+			clean_point(rc, s);
 			return;
 		}
 		VERBOSITY(3, (LOG_INFO, "remote control connection authenticated"));
@@ -1487,7 +1507,7 @@ remote_control_callback(netio_type* ATTR_UNUSED(netio),
 	} else {
 		VERBOSITY(2, (LOG_INFO, "remote control connection failed to "
 			"authenticate with client certificate"));
-		clean_point(netio, rc, s);
+		clean_point(rc, s);
 		return;
 	}
 
@@ -1496,7 +1516,7 @@ remote_control_callback(netio_type* ATTR_UNUSED(netio),
 
 	if(!s->in_stats_list) {
 		VERBOSITY(3, (LOG_INFO, "remote control operation completed"));
-		clean_point(netio, rc, s);
+		clean_point(rc, s);
 	}
 }
 
@@ -1703,7 +1723,7 @@ void daemon_remote_process_stats(struct daemon_remote* rc)
 		VERBOSITY(3, (LOG_INFO, "remote control stats printed"));
 		rc->stats_list = s->next;
 		s->in_stats_list = 0;
-		clean_point(rc->xfrd->netio, rc, s);
+		clean_point(rc, s);
 	}
 }
 #endif /* BIND8_STATS */
