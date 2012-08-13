@@ -579,6 +579,9 @@ xfrd_set_timer_refresh(xfrd_zone_t* zone)
 	set_min = zone->soa_disk_acquired + XFRD_LOWERBOUND_REFRESH;
 	if(set < set_min)
 		set = set_min;
+	if(set < xfrd_time())
+		set = 0;
+	else	set -= xfrd_time();
 	xfrd_set_timer(zone, set);
 }
 
@@ -588,7 +591,7 @@ xfrd_set_timer_retry(xfrd_zone_t* zone)
 	/* set timer for next retry or expire timeout if earlier. */
 	if(zone->soa_disk_acquired == 0) {
 		/* if no information, use reasonable timeout */
-		xfrd_set_timer(zone, xfrd_time() + zone->fresh_xfr_timeout
+		xfrd_set_timer(zone, zone->fresh_xfr_timeout
 			+ random()%zone->fresh_xfr_timeout);
 		/* exponential backoff - some master data in zones is paid-for
 		   but non-working, and will not get fixed. */
@@ -600,15 +603,18 @@ xfrd_set_timer_retry(xfrd_zone_t* zone)
 		zone->soa_disk_acquired + ntohl(zone->soa_disk.expire))
 	{
 		if(ntohl(zone->soa_disk.retry) < XFRD_LOWERBOUND_RETRY)
-			xfrd_set_timer(zone, xfrd_time() + XFRD_LOWERBOUND_RETRY);
+			xfrd_set_timer(zone, XFRD_LOWERBOUND_RETRY);
 		else
-			xfrd_set_timer(zone, xfrd_time() + ntohl(zone->soa_disk.retry));
+			xfrd_set_timer(zone, ntohl(zone->soa_disk.retry));
 	} else {
 		if(ntohl(zone->soa_disk.expire) < XFRD_LOWERBOUND_RETRY)
-			xfrd_set_timer(zone, xfrd_time() + XFRD_LOWERBOUND_RETRY);
-		else
-			xfrd_set_timer(zone, zone->soa_disk_acquired +
-				ntohl(zone->soa_disk.expire));
+			xfrd_set_timer(zone, XFRD_LOWERBOUND_RETRY);
+		else {
+			if(zone->soa_disk_acquired + ntohl(zone->soa_disk.expire) < xfrd_time())
+				xfrd_set_timer(zone, 0);
+			else xfrd_set_timer(zone, zone->soa_disk_acquired +
+				ntohl(zone->soa_disk.expire) - xfrd_time());
+		}
 	}
 }
 
@@ -619,14 +625,14 @@ xfrd_handle_zone(int ATTR_UNUSED(fd), short event, void* arg)
 
 	if(zone->tcp_conn != -1) {
 		/* busy in tcp transaction */
-		if(xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && event & EV_READ) {
+		if(xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && (event & EV_READ)) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp read", zone->apex_str));
-			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
+			xfrd_set_timer(zone, xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_read(xfrd->tcp_set, zone);
 			return;
-		} else if(!xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && event & EV_WRITE) {
+		} else if(!xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && (event & EV_WRITE)) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp write", zone->apex_str));
-			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
+			xfrd_set_timer(zone, xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_write(xfrd->tcp_set, zone);
 			return;
 		} else if((event & EV_TIMEOUT)) {
@@ -750,21 +756,21 @@ xfrd_make_request(xfrd_zone_t* zone)
 		!zone->master->ixfr_disabled) {
 
 		if (zone->master->allow_udp) {
-			xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
+			xfrd_set_timer(zone, XFRD_UDP_TIMEOUT);
 			xfrd_udp_obtain(zone);
 		}
 		else { /* doing 3 rounds of IXFR/TCP might not be useful */
-			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
+			xfrd_set_timer(zone, xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 		}
 	}
 	else if (zone->master->use_axfr_only || zone->soa_disk_acquired <= 0) {
-		xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
+		xfrd_set_timer(zone, xfrd->tcp_set->tcp_timeout);
 		xfrd_tcp_obtain(xfrd->tcp_set, zone);
 	}
 	else if (zone->master->ixfr_disabled) {
 		if (zone->zone_options->pattern->allow_axfr_fallback) {
-			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
+			xfrd_set_timer(zone, xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 		}
 		else
@@ -907,10 +913,9 @@ xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 	/* randomize the time, within 90%-100% of original */
 	/* not later so zones cannot expire too late */
 	/* only for times far in the future */
-	if(t > xfrd_time() + 10) {
-		time_t extra = t - xfrd_time();
-		time_t base = extra*9/10;
-		t = xfrd_time() + base + random()%(extra-base);
+	if(t > 10) {
+		time_t base = t*9/10;
+		t = base + random()%(t-base);
 	}
 
 	/* keep existing flags and fd, but re-add with timeout */
@@ -918,7 +923,7 @@ xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 		event_del(&zone->zone_handler);
 	zone->timeout.tv_sec = t;
 	zone->timeout.tv_usec = 0;
-	event_set(&zone->zone_handler, fd, (fd == -1)?EV_TIMEOUT:fl,
+	event_set(&zone->zone_handler, fd, (fd == -1)?EV_TIMEOUT:EV_PERSIST|fl,
 		xfrd_handle_zone, zone);
 	if(event_base_set(xfrd->event_base, &zone->zone_handler) != 0)
 		log_msg(LOG_ERR, "xfrd timer: event_base_set failed");
@@ -1094,7 +1099,7 @@ xfrd_udp_read(xfrd_zone_t* zone)
 	}
 	switch(xfrd_handle_received_xfr_packet(zone, xfrd->packet)) {
 		case xfrd_packet_tcp:
-			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
+			xfrd_set_timer(zone, xfrd->tcp_set->tcp_timeout);
 			xfrd_udp_release(zone);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 			break;
@@ -1301,7 +1306,7 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 		xfrd_tsig_sign_request(xfrd->packet, &zone->tsig, zone->master);
 	}
 	buffer_flip(xfrd->packet);
-	xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
+	xfrd_set_timer(zone, XFRD_UDP_TIMEOUT);
 
 	if((fd = xfrd_send_udp(zone->master, xfrd->packet,
 		zone->zone_options->pattern->outgoing_interface)) == -1)
@@ -1823,11 +1828,16 @@ xfrd_set_reload_timeout()
 	}
 	/* cannot reload now, set that after the timeout a reload has to happen */
 	if(xfrd->reload_handler.ev_flags == 0) {
+		struct timeval tv;
+		tv.tv_sec = xfrd->reload_timeout.tv_sec - xfrd_time();
+		tv.tv_usec = 0;
+		if(tv.tv_sec > xfrd->nsd->options->xfrd_reload_timeout)
+			tv.tv_sec = xfrd->nsd->options->xfrd_reload_timeout;
 		event_set(&xfrd->reload_handler, -1, EV_TIMEOUT,
 			xfrd_handle_reload, xfrd);
 		if(event_base_set(xfrd->event_base, &xfrd->reload_handler) != 0)
 			log_msg(LOG_ERR, "cannot set reload event base");
-		if(event_add(&xfrd->reload_handler, &xfrd->reload_timeout) != 0)
+		if(event_add(&xfrd->reload_handler, &tv) != 0)
 			log_msg(LOG_ERR, "cannot add reload event");
 	}
 }

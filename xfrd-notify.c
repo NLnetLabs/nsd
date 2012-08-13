@@ -191,7 +191,7 @@ xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 		notify_send_disable(zone);
 	}
 	/* Set timeout for next reply */
-	zone->notify_timeout.tv_sec = xfrd_time() + XFRD_NOTIFY_RETRY_TIMOUT;
+	zone->notify_timeout.tv_sec = XFRD_NOTIFY_RETRY_TIMOUT;
 	/* send NOTIFY to secondary. */
 	xfrd_setup_packet(packet, TYPE_SOA, CLASS_IN, zone->apex);
 	zone->notify_query_id = ID(packet);
@@ -218,6 +218,7 @@ xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 			log_msg(LOG_ERR, "notify_send: event_base_set failed");
 		if(evtimer_add(&zone->notify_send_handler, &zone->notify_timeout) != 0)
 			log_msg(LOG_ERR, "notify_send: evtimer_add failed");
+		zone->notify_send_enable = 1;
 		return;
 	}
 	event_set(&zone->notify_send_handler, fd, EV_READ | EV_TIMEOUT,
@@ -226,6 +227,7 @@ xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 		log_msg(LOG_ERR, "notify_send: event_base_set failed");
 	if(event_add(&zone->notify_send_handler, &zone->notify_timeout) != 0)
 		log_msg(LOG_ERR, "notify_send: evtimer_add failed");
+	zone->notify_send_enable = 1;
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: sent notify #%d to %s",
 		zone->apex_str, zone->notify_retry,
 		zone->notify_current->ip_address_spec));
@@ -275,9 +277,11 @@ setup_notify_active(struct notify_zone_t* zone)
 {
 	zone->notify_retry = 0;
 	zone->notify_current = zone->options->pattern->notify;
-	zone->notify_timeout.tv_sec = xfrd_time();
+	zone->notify_timeout.tv_sec = 0;
 	zone->notify_timeout.tv_usec = 0;
 
+	if(zone->notify_send_enable)
+		notify_send_disable(zone);
 	event_set(&zone->notify_send_handler, -1, EV_TIMEOUT,
 		xfrd_handle_notify_send, zone);
 	if(event_base_set(xfrd->event_base, &zone->notify_send_handler) != 0)
@@ -335,6 +339,8 @@ xfrd_send_notify(rbtree_t* tree, const dname_type* apex, struct xfrd_soa* new_so
 	struct notify_zone_t* zone = (struct notify_zone_t*)
 		rbtree_search(tree, apex);
 	assert(zone);
+	if(zone->notify_send_enable)
+		notify_disable(zone);
 
 	notify_enable(zone, new_soa);
 }
@@ -352,7 +358,8 @@ notify_handle_master_zone_soainfo(rbtree_t* tree,
 	if( (new_soa == NULL && zone->current_soa->serial == 0) ||
 		(new_soa && new_soa->serial == zone->current_soa->serial))
 		return;
-
+	if(zone->notify_send_enable)
+		notify_disable(zone);
 	notify_enable(zone, new_soa);
 }
 

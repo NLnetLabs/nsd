@@ -277,7 +277,7 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		return 0;
 	}
 
-	xfrd_set_timer(zone, xfrd_time() + set->tcp_timeout);
+	xfrd_set_timer(zone, set->tcp_timeout);
 	event_del(&zone->zone_handler);
 	event_set(&zone->zone_handler, fd, EV_PERSIST|EV_TIMEOUT|EV_WRITE,
 		xfrd_handle_zone, zone);
