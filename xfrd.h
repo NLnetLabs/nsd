@@ -200,10 +200,10 @@ enum xfrd_packet_result {
    Note that also some sockets are used for writing the ixfr.db, xfrd.state
    files and for the pipes to the main parent process.
 */
-#define XFRD_MAX_TCP 50 /* max number of TCP AXFR/IXFR concurrent connections.*/
+#define XFRD_MAX_TCP 128 /* max number of TCP AXFR/IXFR concurrent connections.*/
 			/* Each entry has 64Kb buffer preallocated.*/
-#define XFRD_MAX_UDP 100 /* max number of UDP sockets at a time for IXFR */
-#define XFRD_MAX_UDP_NOTIFY 50 /* max concurrent UDP sockets for NOTIFY */
+#define XFRD_MAX_UDP 256 /* max number of UDP sockets at a time for IXFR */
+#define XFRD_MAX_UDP_NOTIFY 256 /* max concurrent UDP sockets for NOTIFY */
 
 extern xfrd_state_t* xfrd;
 

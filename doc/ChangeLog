@@ -1,5 +1,6 @@
 20 August 2012: Wouter
 	- Fix hang on exit in xfrd.
+	- optimized socket counts for zone transfer speed.
 
 13 August 2012: Wouter
 	- Fix xfrd libevent events.
