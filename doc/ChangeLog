@@ -1,3 +1,6 @@
+20 August 2012: Wouter
+	- Fix hang on exit in xfrd.
+
 13 August 2012: Wouter
 	- Fix xfrd libevent events.
 

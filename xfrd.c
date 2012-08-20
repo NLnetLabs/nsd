@@ -237,8 +237,8 @@ xfrd_shutdown()
 				zone->zone_handler.ev_fd = -1;
 			}
 		}
-		close_notify_fds(xfrd->notify_zones);
 	}
+	close_notify_fds(xfrd->notify_zones);
 
 	/* if we are killed past this point this is not a problem,
 	 * some files left in /tmp are cleaned by the OS, but it is neater
