@@ -1,3 +1,6 @@
+21 August 2012: Matthijs
+	- Fix bug#464: Conditionally define MAXHOSTNAMELEN
+
 20 August 2012: Wouter
 	- Fix hang on exit in xfrd.
 	- optimized socket counts for zone transfer speed.
