@@ -1,3 +1,6 @@
+21 August 2012: Matthijs
+	- Fix hang on exit in xfrd.
+
 26 July 2012: Yuri
 	- Prioritize notify sender for requesting XFR.
 	  (thanks Ilya Bakulin)

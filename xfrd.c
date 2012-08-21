@@ -200,8 +200,8 @@ xfrd_shutdown()
 			close(zone->zone_handler.fd);
 			zone->zone_handler.fd = -1;
 		}
-		close_notify_fds(xfrd->notify_zones);
 	}
+	close_notify_fds(xfrd->notify_zones);
 
 	/* shouldn't we clean up memory used by xfrd process */
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown complete"));
