@@ -807,6 +807,7 @@ char *strptime(const char *s, const char *format, struct tm *tm);
 ])
 AH_BOTTOM(
 AHX_MEMCMP_BROKEN(nsd)
+AHX_CONFIG_MAXHOSTNAMELEN
 )
 AH_BOTTOM([
 
