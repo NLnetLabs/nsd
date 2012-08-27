@@ -31,19 +31,17 @@ static void xfrd_send_quit_req(xfrd_state_t* xfrd);
 static void xfrd_handle_ipc_read(struct event* handler, xfrd_state_t* xfrd);
 
 void
-child_handle_parent_command(netio_type *ATTR_UNUSED(netio),
-		      netio_handler_type *handler,
-		      netio_event_types_type event_types)
+child_handle_parent_command(int fd, short event, void* arg)
 {
 	sig_atomic_t mode;
 	int len;
 	struct ipc_handler_conn_data *data =
-		(struct ipc_handler_conn_data *) handler->user_data;
-	if (!(event_types & NETIO_EVENT_READ)) {
+		(struct ipc_handler_conn_data *) arg;
+	if (!(event & EV_READ)) {
 		return;
 	}
 
-	if ((len = read(handler->fd, &mode, sizeof(mode))) == -1) {
+	if ((len = read(fd, &mode, sizeof(mode))) == -1) {
 		log_msg(LOG_ERR, "handle_parent_command: read: %s",
 			strerror(errno));
 		return;
@@ -64,14 +62,14 @@ child_handle_parent_command(netio_type *ATTR_UNUSED(netio),
 #ifdef BIND8_STATS
 		DEBUG(DEBUG_IPC, 2, (LOG_INFO, "quit QUIT_WITH_STATS"));
 		/* reply with ack and stats and then quit */
-		if(!write_socket(handler->fd, &mode, sizeof(mode))) {
+		if(!write_socket(fd, &mode, sizeof(mode))) {
 			log_msg(LOG_ERR, "cannot write quitwst to parent");
 		}
-		if(!write_socket(handler->fd, &data->nsd->st,
+		if(!write_socket(fd, &data->nsd->st,
 			sizeof(data->nsd->st))) {
 			log_msg(LOG_ERR, "cannot write stats to parent");
 		}
-		fsync(handler->fd);
+		fsync(fd);
 #endif /* BIND8_STATS */
 		data->nsd->mode = NSD_QUIT;
 		break;

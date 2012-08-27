@@ -232,8 +232,10 @@ int server_init(struct nsd *nsd);
 int server_prepare(struct nsd *nsd);
 void server_main(struct nsd *nsd);
 void server_child(struct nsd *nsd);
+struct event_base* nsd_child_event_base(void);
 /* extra domain numbers for temporary domains */
 #define EXTRA_DOMAIN_NUMBERS 1024
+#define SLOW_ACCEPT_TIMEOUT 2 /* in seconds */
 /* allocate and init xfrd variables */
 void server_prepare_xfrd(struct nsd *nsd);
 /* start xfrdaemon (again) */

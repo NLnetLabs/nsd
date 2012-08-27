@@ -97,21 +97,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 	memset(xfrd, 0, sizeof(xfrd_state_t));
 	xfrd->region = region;
 	xfrd->xfrd_start_time = time(0);
-#ifdef USE_MINI_EVENT
-	xfrd->event_base = event_init(&xfrd->secs, &xfrd->now);
-#else
-#  if defined(HAVE_EV_LOOP) || defined(HAVE_EV_DEFAULT_LOOP)
-	/* libev */
-	xfrd->event_base = (struct event_base *)ev_default_loop(EVFLAG_AUTO);
-#  else
-	/* libevent */
-#    ifdef HAVE_EVENT_BASE_NEW
-	xfrd->event_base = event_base_new();
-#    else
-	xfrd->event_base = event_init();
-#    endif
-#  endif
-#endif
+	xfrd->event_base = nsd_child_event_base();
 	if(!xfrd->event_base) {
 		log_msg(LOG_ERR, "xfrd: cannot create event base");
 		exit(1);
@@ -201,7 +187,7 @@ xfrd_main()
 		if(event_base_loop(xfrd->event_base, EVLOOP_ONCE) == -1) {
 			if (errno != EINTR) {
 				log_msg(LOG_ERR,
-					"xfrd netio_dispatch failed: %s",
+					"xfrd dispatch failed: %s",
 					strerror(errno));
 			}
 		}

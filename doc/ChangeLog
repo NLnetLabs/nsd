@@ -1,3 +1,6 @@
+27 August 2012: Wouter
+	- libevent in server_child.
+
 21 August 2012: Matthijs
 	- Fix bug#464: Conditionally define MAXHOSTNAMELEN
 

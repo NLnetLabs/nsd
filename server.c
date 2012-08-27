@@ -32,6 +32,7 @@
 #ifndef SHUT_WR
 #define SHUT_WR 1
 #endif
+#include <event.h>
 
 #include "axfr.h"
 #include "namedb.h"
@@ -57,19 +58,22 @@ struct udp_handler_data
 	query_type        *query;
 };
 
-/*
- * Data for the TCP accept handlers.  Most data is simply passed along
- * to the TCP connection handler.
- */
 struct tcp_accept_handler_data {
 	struct nsd         *nsd;
 	struct nsd_socket  *socket;
-	size_t              tcp_accept_handler_count;
-	netio_handler_type *tcp_accept_handlers;
+	struct event       event;
 };
 
-int slowaccept;
-struct timespec slowaccept_timeout;
+/*
+ * These globals are used to enable the TCP accept handlers
+ * when the number of TCP connection drops below the maximum
+ * number of TCP connections.
+ */
+static size_t		tcp_accept_handler_count;
+static struct tcp_accept_handler_data*	tcp_accept_handlers;
+
+static struct event slowaccept_event;
+static int slowaccept;
 
 /*
  * Data for the TCP connection handlers.
@@ -104,19 +108,16 @@ struct tcp_handler_data
 	query_type*			query;
 
 	/*
-	 * These fields are used to enable the TCP accept handlers
-	 * when the number of TCP connection drops below the maximum
-	 * number of TCP connections.
-	 */
-	size_t				tcp_accept_handler_count;
-	netio_handler_type*	tcp_accept_handlers;
-
-	/*
 	 * The query_state is used to remember if we are performing an
 	 * AXFR, if we're done processing, or if we should discard the
 	 * query and connection.
 	 */
 	query_state_type	query_state;
+
+	/*
+	 * The event for the file descriptor and tcp timeout
+	 */
+	struct event event;
 
 	/*
 	 * The bytes_transmitted field is used to remember the number
@@ -135,9 +136,7 @@ struct tcp_handler_data
 /*
  * Handle incoming queries on the UDP server sockets.
  */
-static void handle_udp(netio_type *netio,
-		       netio_handler_type *handler,
-		       netio_event_types_type event_types);
+static void handle_udp(int fd, short event, void* arg);
 
 /*
  * Handle incoming connections on the TCP sockets.  These handlers
@@ -148,27 +147,21 @@ static void handle_udp(netio_type *netio,
  * NETIO_EVENT_NONE type.  This is done using the function
  * configure_tcp_accept_handlers.
  */
-static void handle_tcp_accept(netio_type *netio,
-			      netio_handler_type *handler,
-			      netio_event_types_type event_types);
+static void handle_tcp_accept(int fd, short event, void* arg);
 
 /*
  * Handle incoming queries on a TCP connection.  The TCP connections
  * are configured to be non-blocking and the handler may be called
  * multiple times before a complete query is received.
  */
-static void handle_tcp_reading(netio_type *netio,
-			       netio_handler_type *handler,
-			       netio_event_types_type event_types);
+static void handle_tcp_reading(int fd, short event, void* arg);
 
 /*
  * Handle outgoing responses on a TCP connection.  The TCP connections
  * are configured to be non-blocking and the handler may be called
  * multiple times before a complete response is sent.
  */
-static void handle_tcp_writing(netio_type *netio,
-			       netio_handler_type *handler,
-			       netio_event_types_type event_types);
+static void handle_tcp_writing(int fd, short event, void* arg);
 
 /*
  * Send all children the quit nonblocking, then close pipe.
@@ -181,12 +174,9 @@ static void set_children_stats(struct nsd* nsd);
 #endif /* BIND8_STATS */
 
 /*
- * Change the event types the HANDLERS are interested in to
- * EVENT_TYPES.
+ * Change the event types the HANDLERS are interested in to EVENT_TYPES.
  */
-static void configure_handler_event_types(size_t count,
-					  netio_handler_type *handlers,
-					  netio_event_types_type event_types);
+static void configure_handler_event_types(short event_types);
 
 static uint16_t *compressed_dname_offsets = 0;
 static uint32_t compression_table_capacity = 0;
@@ -669,7 +659,6 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		/* create new file, overwrite the old one */
 		nsd->task[1-nsd->mytask] = task_file_create(tmpfile);
 		free(tmpfile);
-		/* get rid of or rename old directory in /tmp TODO */
 	}
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == -1) {
 		log_msg(LOG_ERR, "startxfrd failed on socketpair: %s", strerror(errno));
@@ -1364,6 +1353,28 @@ server_process_query(struct nsd *nsd, struct query *query)
 }
 
 
+struct event_base*
+nsd_child_event_base(void)
+{
+	struct event_base* base;
+#ifdef USE_MINI_EVENT
+	base = event_init(&xfrd->secs, &xfrd->now);
+#else
+#  if defined(HAVE_EV_LOOP) || defined(HAVE_EV_DEFAULT_LOOP)
+	/* libev */
+	base = (struct event_base *)ev_default_loop(EVFLAG_AUTO);
+#  else
+	/* libevent */
+#    ifdef HAVE_EVENT_BASE_NEW
+	base = event_base_new();
+#    else
+	base = event_init();
+#    endif
+#  endif
+#endif
+	return base;
+}
+
 /*
  * Serve DNS requests.
  */
@@ -1372,10 +1383,14 @@ server_child(struct nsd *nsd)
 {
 	size_t i;
 	region_type *server_region = region_create(xalloc, free);
-	netio_type *netio = netio_create(server_region);
-	netio_handler_type *tcp_accept_handlers;
+	struct event_base* event_base = nsd_child_event_base();
 	query_type *udp_query;
 	sig_atomic_t mode;
+
+	if(!event_base) {
+		log_msg(LOG_ERR, "nsd server could not create event base");
+		exit(1);
+	}
 
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
 	DEBUG(DEBUG_IPC, 2, (LOG_INFO, "child process started"));
@@ -1388,20 +1403,21 @@ server_child(struct nsd *nsd)
 	}
 
 	if (nsd->this_child && nsd->this_child->parent_fd != -1) {
-		netio_handler_type *handler;
-
-		handler = (netio_handler_type *) region_alloc(
-			server_region, sizeof(netio_handler_type));
-		handler->fd = nsd->this_child->parent_fd;
-		handler->timeout = NULL;
-		handler->user_data = (struct ipc_handler_conn_data*)region_alloc(
+		struct event *handler;
+		struct ipc_handler_conn_data* user_data =
+			(struct ipc_handler_conn_data*)region_alloc(
 			server_region, sizeof(struct ipc_handler_conn_data));
-		((struct ipc_handler_conn_data*)handler->user_data)->nsd = nsd;
-		((struct ipc_handler_conn_data*)handler->user_data)->conn =
-			xfrd_tcp_create(server_region);
-		handler->event_types = NETIO_EVENT_READ;
-		handler->event_handler = child_handle_parent_command;
-		netio_add_handler(netio, handler);
+		user_data->nsd = nsd;
+		user_data->conn = xfrd_tcp_create(server_region);
+
+		handler = (struct event*) region_alloc(
+			server_region, sizeof(*handler));
+		event_set(handler, nsd->this_child->parent_fd, EV_PERSIST|
+			EV_READ, child_handle_parent_command, user_data);
+		if(event_base_set(event_base, handler) != 0)
+			log_msg(LOG_ERR, "nsd ipcchild: event_base_set failed");
+		if(event_add(handler, NULL) != 0)
+			log_msg(LOG_ERR, "nsd ipcchild: event_add failed");
 	}
 
 	if (nsd->server_kind & NSD_SERVER_UDP) {
@@ -1410,7 +1426,7 @@ server_child(struct nsd *nsd)
 
 		for (i = 0; i < nsd->ifs; ++i) {
 			struct udp_handler_data *data;
-			netio_handler_type *handler;
+			struct event *handler;
 
 			data = (struct udp_handler_data *) region_alloc(
 				server_region,
@@ -1419,14 +1435,14 @@ server_child(struct nsd *nsd)
 			data->nsd = nsd;
 			data->socket = &nsd->udp[i];
 
-			handler = (netio_handler_type *) region_alloc(
-				server_region, sizeof(netio_handler_type));
-			handler->fd = nsd->udp[i].s;
-			handler->timeout = NULL;
-			handler->user_data = data;
-			handler->event_types = NETIO_EVENT_READ;
-			handler->event_handler = handle_udp;
-			netio_add_handler(netio, handler);
+			handler = (struct event*) region_alloc(
+				server_region, sizeof(*handler));
+			event_set(handler, nsd->udp[i].s, EV_PERSIST|EV_READ,
+				handle_udp, data);
+			if(event_base_set(event_base, handler) != 0)
+				log_msg(LOG_ERR, "nsd udp: event_base_set failed");
+			if(event_add(handler, NULL) != 0)
+				log_msg(LOG_ERR, "nsd udp: event_add failed");
 		}
 	}
 
@@ -1435,30 +1451,24 @@ server_child(struct nsd *nsd)
 	 * and disable them based on the current number of active TCP
 	 * connections.
 	 */
-	tcp_accept_handlers = (netio_handler_type *) region_alloc(
-		server_region, nsd->ifs * sizeof(netio_handler_type));
+	tcp_accept_handler_count = nsd->ifs;
+	tcp_accept_handlers = (struct tcp_accept_handler_data*) region_alloc(
+		server_region, nsd->ifs * sizeof(*tcp_accept_handlers));
 	if (nsd->server_kind & NSD_SERVER_TCP) {
 		for (i = 0; i < nsd->ifs; ++i) {
-			struct tcp_accept_handler_data *data;
-			netio_handler_type *handler;
-
-			data = (struct tcp_accept_handler_data *) region_alloc(
-				server_region,
-				sizeof(struct tcp_accept_handler_data));
+			struct event *handler = &tcp_accept_handlers[i].event;
+			struct tcp_accept_handler_data* data =
+				&tcp_accept_handlers[i];
 			data->nsd = nsd;
 			data->socket = &nsd->tcp[i];
-			data->tcp_accept_handler_count = nsd->ifs;
-			data->tcp_accept_handlers = tcp_accept_handlers;
-
-			handler = &tcp_accept_handlers[i];
-			handler->fd = nsd->tcp[i].s;
-			handler->timeout = NULL;
-			handler->user_data = data;
-			handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_ACCEPT;
-			handler->event_handler = handle_tcp_accept;
-			netio_add_handler(netio, handler);
+			event_set(handler, nsd->tcp[i].s, EV_PERSIST|EV_READ,
+				handle_tcp_accept, data);
+			if(event_base_set(event_base, handler) != 0)
+				log_msg(LOG_ERR, "nsd tcp: event_base_set failed");
+			if(event_add(handler, NULL) != 0)
+				log_msg(LOG_ERR, "nsd tcp: event_add failed");
 		}
-	}
+	} else tcp_accept_handler_count = 0;
 
 	/* The main loop... */
 	while ((mode = nsd->mode) != NSD_QUIT) {
@@ -1495,9 +1505,9 @@ server_child(struct nsd *nsd)
 		}
 		else if(mode == NSD_RUN) {
 			/* Wait for a query... */
-			if (netio_dispatch(netio, NULL, NULL) == -1) {
+			if(event_base_loop(event_base, EVLOOP_ONCE) == -1) {
 				if (errno != EINTR) {
-					log_msg(LOG_ERR, "netio_dispatch failed: %s", strerror(errno));
+					log_msg(LOG_ERR, "dispatch failed: %s", strerror(errno));
 					break;
 				}
 			}
@@ -1515,6 +1525,7 @@ server_child(struct nsd *nsd)
 #endif /* BIND8_STATS */
 
 #if 0 /* OS collects memory pages */
+	event_base_free(event_base);
 	region_destroy(server_region);
 #endif
 	server_shutdown(nsd);
@@ -1525,19 +1536,16 @@ server_child(struct nsd *nsd)
 #endif
 
 static void
-handle_udp(netio_type *ATTR_UNUSED(netio),
-	   netio_handler_type *handler,
-	   netio_event_types_type event_types)
+handle_udp(int fd, short event, void* arg)
 {
-	struct udp_handler_data *data
-		= (struct udp_handler_data *) handler->user_data;
+	struct udp_handler_data *data = (struct udp_handler_data *) arg;
 	int received, sent;
 #ifndef NONBLOCKING_IS_BROKEN
 	int i;
 #endif
 	struct query *q = data->query;
 
-	if (!(event_types & NETIO_EVENT_READ)) {
+	if (!(event & EV_READ)) {
 		return;
 	}
 
@@ -1547,7 +1555,7 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 		/* Initialize the query... */
 		query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
 
-		received = recvfrom(handler->fd,
+		received = recvfrom(fd,
 				    buffer_begin(q->packet),
 				    buffer_remaining(q->packet),
 				    0,
@@ -1582,7 +1590,7 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 
 			buffer_flip(q->packet);
 
-			sent = sendto(handler->fd,
+			sent = sendto(fd,
 				      buffer_begin(q->packet),
 				      buffer_remaining(q->packet),
 				      0,
@@ -1611,23 +1619,19 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 
 
 static void
-cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
+cleanup_tcp_handler(struct tcp_handler_data* data)
 {
-	struct tcp_handler_data *data
-		= (struct tcp_handler_data *) handler->user_data;
-	netio_remove_handler(netio, handler);
-	close(handler->fd);
-	slowaccept = 0;
+	event_del(&data->event);
+	close(data->event.ev_fd);
 
 	/*
 	 * Enable the TCP accept handlers when the current number of
 	 * TCP connections is about to drop below the maximum number
 	 * of TCP connections.
 	 */
-	if (data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
-		configure_handler_event_types(data->tcp_accept_handler_count,
-					      data->tcp_accept_handlers,
-					      NETIO_EVENT_READ);
+	if (slowaccept || data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
+		configure_handler_event_types(EV_READ|EV_PERSIST);
+		slowaccept = 0;
 	}
 	--data->nsd->current_tcp_count;
 	assert(data->nsd->current_tcp_count >= 0);
@@ -1636,28 +1640,27 @@ cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
 }
 
 static void
-handle_tcp_reading(netio_type *netio,
-		   netio_handler_type *handler,
-		   netio_event_types_type event_types)
+handle_tcp_reading(int fd, short event, void* arg)
 {
-	struct tcp_handler_data *data
-		= (struct tcp_handler_data *) handler->user_data;
+	struct tcp_handler_data *data = (struct tcp_handler_data *) arg;
 	ssize_t received;
+	struct event_base* ev_base;
+	struct timeval timeout;
 
-	if (event_types & NETIO_EVENT_TIMEOUT) {
+	if ((event & EV_TIMEOUT)) {
 		/* Connection timed out.  */
-		cleanup_tcp_handler(netio, handler);
+		cleanup_tcp_handler(data);
 		return;
 	}
 
 	if (data->nsd->tcp_query_count > 0 &&
 		data->query_count >= data->nsd->tcp_query_count) {
 		/* No more queries allowed on this tcp connection.  */
-		cleanup_tcp_handler(netio, handler);
+		cleanup_tcp_handler(data);
 		return;
 	}
 
-	assert(event_types & NETIO_EVENT_READ);
+	assert((event & EV_READ));
 
 	if (data->bytes_transmitted == 0) {
 		query_reset(data->query, TCP_MAX_MESSAGE_LEN, 1);
@@ -1667,7 +1670,7 @@ handle_tcp_reading(netio_type *netio,
 	 * Check if we received the leading packet length bytes yet.
 	 */
 	if (data->bytes_transmitted < sizeof(uint16_t)) {
-		received = read(handler->fd,
+		received = read(fd,
 				(char *) &data->query->tcplen
 				+ data->bytes_transmitted,
 				sizeof(uint16_t) - data->bytes_transmitted);
@@ -1683,12 +1686,12 @@ handle_tcp_reading(netio_type *netio,
 				if (verbosity >= 2 || errno != ECONNRESET)
 #endif /* ECONNRESET */
 				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
-				cleanup_tcp_handler(netio, handler);
+				cleanup_tcp_handler(data);
 				return;
 			}
 		} else if (received == 0) {
 			/* EOF */
-			cleanup_tcp_handler(netio, handler);
+			cleanup_tcp_handler(data);
 			return;
 		}
 
@@ -1715,13 +1718,13 @@ handle_tcp_reading(netio_type *netio,
 		 */
 		if (data->query->tcplen < QHEADERSZ + 1 + sizeof(uint16_t) + sizeof(uint16_t)) {
 			VERBOSITY(2, (LOG_WARNING, "packet too small, dropping tcp connection"));
-			cleanup_tcp_handler(netio, handler);
+			cleanup_tcp_handler(data);
 			return;
 		}
 
 		if (data->query->tcplen > data->query->maxlen) {
 			VERBOSITY(2, (LOG_WARNING, "insufficient tcp buffer, dropping connection"));
-			cleanup_tcp_handler(netio, handler);
+			cleanup_tcp_handler(data);
 			return;
 		}
 
@@ -1731,7 +1734,7 @@ handle_tcp_reading(netio_type *netio,
 	assert(buffer_remaining(data->query->packet) > 0);
 
 	/* Read the (remaining) query data.  */
-	received = read(handler->fd,
+	received = read(fd,
 			buffer_current(data->query->packet),
 			buffer_remaining(data->query->packet));
 	if (received == -1) {
@@ -1746,12 +1749,12 @@ handle_tcp_reading(netio_type *netio,
 			if (verbosity >= 2 || errno != ECONNRESET)
 #endif /* ECONNRESET */
 			log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
-			cleanup_tcp_handler(netio, handler);
+			cleanup_tcp_handler(data);
 			return;
 		}
 	} else if (received == 0) {
 		/* EOF */
-		cleanup_tcp_handler(netio, handler);
+		cleanup_tcp_handler(data);
 		return;
 	}
 
@@ -1788,7 +1791,7 @@ handle_tcp_reading(netio_type *netio,
 	if (data->query_state == QUERY_DISCARDED) {
 		/* Drop the packet and the entire connection... */
 		STATUP(data->nsd, dropped);
-		cleanup_tcp_handler(netio, handler);
+		cleanup_tcp_handler(data);
 		return;
 	}
 
@@ -1805,36 +1808,40 @@ handle_tcp_reading(netio_type *netio,
 	data->query->tcplen = buffer_remaining(data->query->packet);
 	data->bytes_transmitted = 0;
 
-	handler->timeout->tv_sec = data->nsd->tcp_timeout;
-	handler->timeout->tv_nsec = 0L;
-	timespec_add(handler->timeout, netio_current_time(netio));
+	timeout.tv_sec = data->nsd->tcp_timeout;
+	timeout.tv_usec = 0L;
 
-	handler->event_types = NETIO_EVENT_WRITE | NETIO_EVENT_TIMEOUT;
-	handler->event_handler = handle_tcp_writing;
+	ev_base = data->event.ev_base;
+	event_del(&data->event);
+	event_set(&data->event, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT,
+		handle_tcp_writing, data);
+	if(event_base_set(ev_base, &data->event) != 0)
+		log_msg(LOG_ERR, "event base set tcpr failed");
+	if(event_add(&data->event, &timeout) != 0)
+		log_msg(LOG_ERR, "event add tcpr failed");
 }
 
 static void
-handle_tcp_writing(netio_type *netio,
-		   netio_handler_type *handler,
-		   netio_event_types_type event_types)
+handle_tcp_writing(int fd, short event, void* arg)
 {
-	struct tcp_handler_data *data
-		= (struct tcp_handler_data *) handler->user_data;
+	struct tcp_handler_data *data = (struct tcp_handler_data *) arg;
 	ssize_t sent;
 	struct query *q = data->query;
+	struct timeval timeout;
+	struct event_base* ev_base;
 
-	if (event_types & NETIO_EVENT_TIMEOUT) {
+	if ((event & EV_TIMEOUT)) {
 		/* Connection timed out.  */
-		cleanup_tcp_handler(netio, handler);
+		cleanup_tcp_handler(data);
 		return;
 	}
 
-	assert(event_types & NETIO_EVENT_WRITE);
+	assert((event & EV_WRITE));
 
 	if (data->bytes_transmitted < sizeof(q->tcplen)) {
 		/* Writing the response packet length.  */
 		uint16_t n_tcplen = htons(q->tcplen);
-		sent = write(handler->fd,
+		sent = write(fd,
 			     (const char *) &n_tcplen + data->bytes_transmitted,
 			     sizeof(n_tcplen) - data->bytes_transmitted);
 		if (sent == -1) {
@@ -1852,7 +1859,7 @@ handle_tcp_writing(netio_type *netio,
 				  if(verbosity >= 2 || errno != EPIPE)
 #endif /* EPIPE 'broken pipe' */
 				    log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
-				cleanup_tcp_handler(netio, handler);
+				cleanup_tcp_handler(data);
 				return;
 			}
 		}
@@ -1871,7 +1878,7 @@ handle_tcp_writing(netio_type *netio,
 
 	assert(data->bytes_transmitted < q->tcplen + sizeof(q->tcplen));
 
-	sent = write(handler->fd,
+	sent = write(fd,
 		     buffer_current(q->packet),
 		     buffer_remaining(q->packet));
 	if (sent == -1) {
@@ -1889,7 +1896,7 @@ handle_tcp_writing(netio_type *netio,
 				  if(verbosity >= 2 || errno != EPIPE)
 #endif /* EPIPE 'broken pipe' */
 			log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
-			cleanup_tcp_handler(netio, handler);
+			cleanup_tcp_handler(data);
 			return;
 		}
 	}
@@ -1918,9 +1925,16 @@ handle_tcp_writing(netio_type *netio,
 			q->tcplen = buffer_remaining(q->packet);
 			data->bytes_transmitted = 0;
 			/* Reset timeout.  */
-			handler->timeout->tv_sec = data->nsd->tcp_timeout;
-			handler->timeout->tv_nsec = 0;
-			timespec_add(handler->timeout, netio_current_time(netio));
+			timeout.tv_sec = data->nsd->tcp_timeout;
+			timeout.tv_usec = 0L;
+			ev_base = data->event.ev_base;
+			event_del(&data->event);
+			event_set(&data->event, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT,
+				handle_tcp_writing, data);
+			if(event_base_set(ev_base, &data->event) != 0)
+				log_msg(LOG_ERR, "event base set tcpw failed");
+			if(event_add(&data->event, &timeout) != 0)
+				log_msg(LOG_ERR, "event add tcpw failed");
 
 			/*
 			 * Write data if/when the socket is writable
@@ -1937,44 +1951,56 @@ handle_tcp_writing(netio_type *netio,
 	if (data->nsd->tcp_query_count > 0 &&
 		data->query_count >= data->nsd->tcp_query_count) {
 
-		(void) shutdown(handler->fd, SHUT_WR);
+		(void) shutdown(fd, SHUT_WR);
 	}
 
 	data->bytes_transmitted = 0;
 
-	handler->timeout->tv_sec = data->nsd->tcp_timeout;
-	handler->timeout->tv_nsec = 0;
-	timespec_add(handler->timeout, netio_current_time(netio));
-
-	handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_TIMEOUT;
-	handler->event_handler = handle_tcp_reading;
+	timeout.tv_sec = data->nsd->tcp_timeout;
+	timeout.tv_usec = 0L;
+	ev_base = data->event.ev_base;
+	event_del(&data->event);
+	event_set(&data->event, fd, EV_PERSIST | EV_READ | EV_TIMEOUT,
+		handle_tcp_reading, data);
+	if(event_base_set(ev_base, &data->event) != 0)
+		log_msg(LOG_ERR, "event base set tcpw failed");
+	if(event_add(&data->event, &timeout) != 0)
+		log_msg(LOG_ERR, "event add tcpw failed");
 }
 
 
+static void
+handle_slowaccept_timeout(int ATTR_UNUSED(fd), short ATTR_UNUSED(event),
+	void* ATTR_UNUSED(arg))
+{
+	if(slowaccept) {
+		configure_handler_event_types(EV_PERSIST | EV_READ);
+		slowaccept = 0;
+	}
+}
+
 /*
  * Handle an incoming TCP connection.  The connection is accepted and
- * a new TCP reader event handler is added to NETIO.  The TCP handler
+ * a new TCP reader event handler is added.  The TCP handler
  * is responsible for cleanup when the connection is closed.
  */
 static void
-handle_tcp_accept(netio_type *netio,
-		  netio_handler_type *handler,
-		  netio_event_types_type event_types)
+handle_tcp_accept(int fd, short event, void* arg)
 {
 	struct tcp_accept_handler_data *data
-		= (struct tcp_accept_handler_data *) handler->user_data;
+		= (struct tcp_accept_handler_data *) arg;
 	int s;
 	struct tcp_handler_data *tcp_data;
 	region_type *tcp_region;
-	netio_handler_type *tcp_handler;
 #ifdef INET6
 	struct sockaddr_storage addr;
 #else
 	struct sockaddr_in addr;
 #endif
 	socklen_t addrlen;
+	struct timeval timeout;
 
-	if (!(event_types & NETIO_EVENT_READ)) {
+	if (!(event & EV_READ)) {
 		return;
 	}
 
@@ -1984,7 +2010,7 @@ handle_tcp_accept(netio_type *netio,
 
 	/* Accept it... */
 	addrlen = sizeof(addr);
-	s = accept(handler->fd, (struct sockaddr *) &addr, &addrlen);
+	s = accept(fd, (struct sockaddr *) &addr, &addrlen);
 	if (s == -1) {
 		/**
 		 * EMFILE and ENFILE is a signal that the limit of open
@@ -1994,9 +2020,16 @@ handle_tcp_accept(netio_type *netio,
 		 */
 		if (errno == EMFILE || errno == ENFILE) {
 			if (!slowaccept) {
-				slowaccept_timeout.tv_sec = NETIO_SLOW_ACCEPT_TIMEOUT;
-				slowaccept_timeout.tv_nsec = 0L;
-				timespec_add(&slowaccept_timeout, netio_current_time(netio));
+				/* disable accept events */
+				struct timeval tv;
+				configure_handler_event_types(0);
+				tv.tv_sec = SLOW_ACCEPT_TIMEOUT;
+				tv.tv_usec = 0L;
+				event_set(&slowaccept_event, -1, EV_TIMEOUT,
+					handle_slowaccept_timeout, NULL);
+				(void)event_base_set(data->event.ev_base,
+					&slowaccept_event);
+				(void)event_add(&slowaccept_event, &tv);
 				slowaccept = 1;
 				/* We don't want to spam the logs here */
 			}
@@ -2033,28 +2066,20 @@ handle_tcp_accept(netio_type *netio,
 	tcp_data->nsd = data->nsd;
 	tcp_data->query_count = 0;
 
-	tcp_data->tcp_accept_handler_count = data->tcp_accept_handler_count;
-	tcp_data->tcp_accept_handlers = data->tcp_accept_handlers;
-
 	tcp_data->query_state = QUERY_PROCESSED;
 	tcp_data->bytes_transmitted = 0;
 	memcpy(&tcp_data->query->addr, &addr, addrlen);
 	tcp_data->query->addrlen = addrlen;
 
-	tcp_handler = (netio_handler_type *) region_alloc(
-		tcp_region, sizeof(netio_handler_type));
-	tcp_handler->fd = s;
-	tcp_handler->timeout = (struct timespec *) region_alloc(
-		tcp_region, sizeof(struct timespec));
-	tcp_handler->timeout->tv_sec = data->nsd->tcp_timeout;
-	tcp_handler->timeout->tv_nsec = 0L;
-	timespec_add(tcp_handler->timeout, netio_current_time(netio));
+	timeout.tv_sec = data->nsd->tcp_timeout;
+	timeout.tv_usec = 0;
 
-	tcp_handler->user_data = tcp_data;
-	tcp_handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_TIMEOUT;
-	tcp_handler->event_handler = handle_tcp_reading;
-
-	netio_add_handler(netio, tcp_handler);
+	event_set(&tcp_data->event, s, EV_PERSIST | EV_READ | EV_TIMEOUT,
+		handle_tcp_reading, tcp_data);
+	if(event_base_set(data->event.ev_base, &tcp_data->event) != 0)
+		log_msg(LOG_ERR, "cannot set tcp event base");
+	if(event_add(&tcp_data->event, &timeout) != 0)
+		log_msg(LOG_ERR, "cannot set tcp event base");
 
 	/*
 	 * Keep track of the total number of TCP handlers installed so
@@ -2063,9 +2088,7 @@ handle_tcp_accept(netio_type *netio,
 	 */
 	++data->nsd->current_tcp_count;
 	if (data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
-		configure_handler_event_types(data->tcp_accept_handler_count,
-					      data->tcp_accept_handlers,
-					      NETIO_EVENT_NONE);
+		configure_handler_event_types(0);
 	}
 }
 
@@ -2109,15 +2132,30 @@ set_children_stats(struct nsd* nsd)
 #endif /* BIND8_STATS */
 
 static void
-configure_handler_event_types(size_t count,
-			      netio_handler_type *handlers,
-			      netio_event_types_type event_types)
+configure_handler_event_types(short event_types)
 {
 	size_t i;
 
-	assert(handlers);
-
-	for (i = 0; i < count; ++i) {
-		handlers[i].event_types = event_types;
+	for (i = 0; i < tcp_accept_handler_count; ++i) {
+		struct event* handler = &tcp_accept_handlers[i].event;
+		if(event_types) {
+			/* reassign */
+			int fd = handler->ev_fd;
+			struct event_base* base = handler->ev_base;
+			if(handler->ev_flags)
+				event_del(handler);
+			event_set(handler, fd, event_types,
+				handler->ev_callback, handler->ev_arg);
+			if(event_base_set(base, handler) != 0)
+				log_msg(LOG_ERR, "conhand: cannot event_base");
+			if(event_add(handler, NULL) != 0)
+				log_msg(LOG_ERR, "conhand: cannot event_add");
+		} else {
+			/* remove */
+			if(handler->ev_flags) {
+				event_del(handler);
+				handler->ev_flags = 0;
+			}
+		}
 	}
 }

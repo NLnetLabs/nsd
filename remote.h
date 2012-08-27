@@ -86,7 +86,7 @@ int daemon_remote_open_ports(struct daemon_remote* rc,
  * Setup comm points for accepting remote control connections.
  * @param rc: state
  * @param xfrd: the process that hosts the control connection.
- *	The rc is attached to its netio.
+ *	The rc is attached to its event base.
  */
 void daemon_remote_attach(struct daemon_remote* rc, struct xfrd_state* xfrd);
 

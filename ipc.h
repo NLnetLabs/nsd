@@ -75,8 +75,7 @@ void parent_handle_child_command(netio_type *netio,
  * Routine used by server_child.
  * Handle a command received from the parent process.
  */
-void child_handle_parent_command(netio_type *netio,
-	netio_handler_type *handler, netio_event_types_type event_types);
+void child_handle_parent_command(int fd, short event, void* arg);
 
 /*
  * Routine used by xfrd
