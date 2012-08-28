@@ -596,7 +596,7 @@ xfrd_set_timer_retry(xfrd_zone_t* zone)
 		if(ntohl(zone->soa_disk.expire) < XFRD_LOWERBOUND_RETRY)
 			xfrd_set_timer(zone, XFRD_LOWERBOUND_RETRY);
 		else {
-			if(zone->soa_disk_acquired + ntohl(zone->soa_disk.expire) < xfrd_time())
+			if(zone->soa_disk_acquired + (time_t)ntohl(zone->soa_disk.expire) < xfrd_time())
 				xfrd_set_timer(zone, XFRD_LOWERBOUND_RETRY);
 			else xfrd_set_timer(zone, zone->soa_disk_acquired +
 				ntohl(zone->soa_disk.expire) - xfrd_time());
