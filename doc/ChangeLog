@@ -1,3 +1,6 @@
+11 September 2012: Wouter
+	- writev support for TCP.
+
 28 August 2012: Wouter
 	- TXT records with components longer than 255 fail to parse,
 	  but without segfault, it continues processing with non NULL value.

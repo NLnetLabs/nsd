@@ -1841,9 +1841,18 @@ handle_tcp_writing(int fd, short event, void* arg)
 	if (data->bytes_transmitted < sizeof(q->tcplen)) {
 		/* Writing the response packet length.  */
 		uint16_t n_tcplen = htons(q->tcplen);
+#ifdef HAVE_WRITEV
+		struct iovec iov[2];
+		iov[0].iov_base = (uint8_t*)&n_tcplen + data->bytes_transmitted;
+		iov[0].iov_len = sizeof(n_tcplen) - data->bytes_transmitted; 
+		iov[1].iov_base = buffer_begin(q->packet);
+		iov[1].iov_len = buffer_limit(q->packet);
+		sent = writev(handler->fd, iov, 2);
+#else /* HAVE_WRITEV */
 		sent = write(fd,
 			     (const char *) &n_tcplen + data->bytes_transmitted,
 			     sizeof(n_tcplen) - data->bytes_transmitted);
+#endif /* HAVE_WRITEV */
 		if (sent == -1) {
 			if (errno == EAGAIN || errno == EINTR) {
 				/*
@@ -1873,11 +1882,13 @@ handle_tcp_writing(int fd, short event, void* arg)
 			return;
 		}
 
-		assert(data->bytes_transmitted == sizeof(q->tcplen));
-	}
-
-	assert(data->bytes_transmitted < q->tcplen + sizeof(q->tcplen));
-
+#ifdef HAVE_WRITEV
+		sent -= sizeof(n_tcplen);
+		/* handle potential 'packet done' code */
+		goto packet_could_be_done;
+#endif
+ 	}
+ 
 	sent = write(fd,
 		     buffer_current(q->packet),
 		     buffer_remaining(q->packet));
@@ -1901,8 +1912,11 @@ handle_tcp_writing(int fd, short event, void* arg)
 		}
 	}
 
-	buffer_skip(q->packet, sent);
 	data->bytes_transmitted += sent;
+#ifdef HAVE_WRITEV
+  packet_could_be_done:
+#endif
+	buffer_skip(q->packet, sent);
 	if (data->bytes_transmitted < q->tcplen + sizeof(q->tcplen)) {
 		/*
 		 * Still more data to write when socket becomes
