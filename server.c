@@ -1847,7 +1847,7 @@ handle_tcp_writing(int fd, short event, void* arg)
 		iov[0].iov_len = sizeof(n_tcplen) - data->bytes_transmitted; 
 		iov[1].iov_base = buffer_begin(q->packet);
 		iov[1].iov_len = buffer_limit(q->packet);
-		sent = writev(handler->fd, iov, 2);
+		sent = writev(fd, iov, 2);
 #else /* HAVE_WRITEV */
 		sent = write(fd,
 			     (const char *) &n_tcplen + data->bytes_transmitted,
