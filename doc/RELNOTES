@@ -2,7 +2,8 @@ NSD RELEASE NOTES
 
 3.2.13
 ================
-
+FEATURES:
+	- TCP writev support.
 BUG FIXES:
 	- Fix for nsd-patch segfault if zone has been removed from nsd.conf
 	  (thanks Ilya Bakulin).

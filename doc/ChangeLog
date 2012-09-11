@@ -1,3 +1,6 @@
+11 September 2012: Wouter
+	- writev support for TCP.
+
 27 Agust 2012: Yuri
       - Fix crash in zonec if TXT string too long.
         (thanks Ilya Bakulin)
