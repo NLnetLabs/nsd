@@ -1014,8 +1014,15 @@ main(int argc, char *argv[])
 		nsd.options->zonelistfile += l;
 		nsd.options->xfrdir += l;
 
+#ifdef HAVE_TZSET
+		/* set timezone whilst not yet in chroot */
+		tzset();
+#endif
 		if (chroot(nsd.chrootdir)) {
 			error("unable to chroot: %s", strerror(errno));
+		}
+		if (chdir("/")) {
+			error("unable to chdir to chroot: %s", strerror(errno));
 		}
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
 			nsd.chrootdir));
