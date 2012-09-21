@@ -634,7 +634,7 @@ server_prepare_xfrd(struct nsd* nsd)
 	((struct ipc_handler_conn_data*)nsd->xfrd_listener->user_data)->nsd =
 		nsd;
 	((struct ipc_handler_conn_data*)nsd->xfrd_listener->user_data)->conn =
-		xfrd_tcp_create(nsd->region);
+		xfrd_tcp_create(nsd->region, QIOBUFSZ);
 }
 
 
@@ -1408,7 +1408,7 @@ server_child(struct nsd *nsd)
 			(struct ipc_handler_conn_data*)region_alloc(
 			server_region, sizeof(struct ipc_handler_conn_data));
 		user_data->nsd = nsd;
-		user_data->conn = xfrd_tcp_create(server_region);
+		user_data->conn = xfrd_tcp_create(server_region, QIOBUFSZ);
 
 		handler = (struct event*) region_alloc(
 			server_region, sizeof(*handler));

@@ -193,7 +193,8 @@ xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 	/* Set timeout for next reply */
 	zone->notify_timeout.tv_sec = XFRD_NOTIFY_RETRY_TIMOUT;
 	/* send NOTIFY to secondary. */
-	xfrd_setup_packet(packet, TYPE_SOA, CLASS_IN, zone->apex);
+	xfrd_setup_packet(packet, TYPE_SOA, CLASS_IN, zone->apex,
+		qid_generate());
 	zone->notify_query_id = ID(packet);
 	OPCODE_SET(packet, OPCODE_NOTIFY);
 	AA_SET(packet);

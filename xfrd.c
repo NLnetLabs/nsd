@@ -128,7 +128,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 		log_msg(LOG_ERR, "xfrd ipc handler: event_base_set failed");
 	if(event_add(&xfrd->ipc_handler, NULL) != 0)
 		log_msg(LOG_ERR, "xfrd ipc handler: event_add failed");
-	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region);
+	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region, QIOBUFSZ);
 	/* not reading using ipc_conn yet */
 	xfrd->ipc_conn->is_reading = 0;
 	xfrd->ipc_conn->fd = socket;
@@ -485,6 +485,20 @@ xfrd_reopen_logfile(void)
 }
 
 void
+xfrd_deactivate_zone(xfrd_zone_t* z)
+{
+	if(z->is_activated) {
+		/* delete from activated list */
+		if(z->activated_prev)
+			z->activated_prev->activated_next = z->activated_next;
+		else	xfrd->activated_first = z->activated_next;
+		if(z->activated_next)
+			z->activated_next->activated_prev = z->activated_prev;
+		z->is_activated = 0;
+	}
+}
+
+void
 xfrd_del_slave_zone(xfrd_state_t* xfrd, const dname_type* dname)
 {
 	xfrd_zone_t* z = (xfrd_zone_t*)rbtree_delete(xfrd->zones, dname);
@@ -515,15 +529,7 @@ xfrd_del_slave_zone(xfrd_state_t* xfrd, const dname_type* dname)
 		else	xfrd->udp_waiting_last = z->udp_waiting_prev;
 		z->udp_waiting = 0;
 	}
-	if(z->is_activated) {
-		/* delete from activated list */
-		if(z->activated_prev)
-			z->activated_prev->activated_next = z->activated_next;
-		else	xfrd->activated_first = z->activated_next;
-		if(z->activated_next)
-			z->activated_next->activated_prev = z->activated_prev;
-		z->is_activated = 0;
-	}
+	xfrd_deactivate_zone(z);
 	if(z->tcp_conn != -1) {
 		xfrd_tcp_release(xfrd->tcp_set, z);
 	} else if(z->zone_handler.ev_fd != -1 && z->zone_handler.ev_flags) {
@@ -610,24 +616,11 @@ xfrd_handle_zone(int ATTR_UNUSED(fd), short event, void* arg)
 	xfrd_zone_t* zone = (xfrd_zone_t*)arg;
 
 	if(zone->tcp_conn != -1) {
-		/* busy in tcp transaction */
-		if(xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && (event & EV_READ)) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp read", zone->apex_str));
-			xfrd_set_timer(zone, xfrd->tcp_set->tcp_timeout);
-			xfrd_tcp_read(xfrd->tcp_set, zone);
-			return;
-		} else if(!xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && (event & EV_WRITE)) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp write", zone->apex_str));
-			xfrd_set_timer(zone, xfrd->tcp_set->tcp_timeout);
-			xfrd_tcp_write(xfrd->tcp_set, zone);
-			return;
-		} else if((event & EV_TIMEOUT)) {
-			/* tcp connection timed out. Stop it. */
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp timeout", zone->apex_str));
-			xfrd_tcp_release(xfrd->tcp_set, zone);
-			/* continue to retry; as if a timeout happened */
-			event = EV_TIMEOUT;
-		}
+		/* busy in tcp transaction: an internal error */
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp", zone->apex_str));
+		xfrd_tcp_release(xfrd->tcp_set, zone);
+		/* continue to retry; as if a timeout happened */
+		event = EV_TIMEOUT;
 	}
 
 	if((event & EV_READ)) {
@@ -1280,7 +1273,8 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 			zone->apex_str);
 		return -1;
 	}
-	xfrd_setup_packet(xfrd->packet, TYPE_IXFR, CLASS_IN, zone->apex);
+	xfrd_setup_packet(xfrd->packet, TYPE_IXFR, CLASS_IN, zone->apex,
+		qid_generate());
 	zone->query_id = ID(xfrd->packet);
 	zone->msg_seq_nr = 0;
 	zone->msg_rr_count = 0;

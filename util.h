@@ -333,6 +333,8 @@ int compare_serial(uint32_t a, uint32_t b);
  * Generate a random query ID.
  */
 uint16_t qid_generate(void);
+/* value between 0 .. (max-1) inclusive */
+int random_generate(int max);
 
 /*
  * call region_destroy on (region*)data, useful for region_add_cleanup().

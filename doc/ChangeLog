@@ -1,5 +1,6 @@
 21 September 2012: Wouter
 	- tzset before chroot for correct timezone (from Camiel Dobbelaar).
+	- pipeline support for AXFR and IXFR tcp queries.
 
 11 September 2012: Wouter
 	- writev support for TCP.
