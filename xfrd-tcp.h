@@ -108,6 +108,7 @@ struct xfrd_tcp_pipeline {
 	/* list of queries that want to send, first to get write event,
 	 * if NULL, no write event interest */
 	struct xfrd_zone* tcp_send_first, *tcp_send_last;
+	/* the unused and id arrays must be last in the structure */
 	/* per-ID number the queries that have this ID number, every
 	 * query owns one ID numbers (until it is done). NULL: unused
 	 * When a query is done but not all answer-packets have been

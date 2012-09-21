@@ -237,11 +237,10 @@ static void
 tcp_zone_waiting_list_popfirst(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
 	assert(zone->tcp_waiting);
-	if(set->tcp_waiting_last == zone)
-		set->tcp_waiting_last = 0;
 	set->tcp_waiting_first = zone->tcp_waiting_next;
 	if(zone->tcp_waiting_next)
 		zone->tcp_waiting_next->tcp_waiting_prev = NULL;
+	else	set->tcp_waiting_last = 0;
 	zone->tcp_waiting_next = 0;
 	zone->tcp_waiting = 0;
 }
@@ -395,11 +394,9 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	assert(zone->tcp_conn == -1);
 	assert(zone->tcp_waiting == 0);
 
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: tcp_obtain"));
 	if(set->tcp_count < XFRD_MAX_TCP) {
 		int i;
 		assert(!set->tcp_waiting_first);
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: tcp_obtain: newpipe"));
 		set->tcp_count ++;
 		/* find a free tcp_buffer */
 		for(i=0; i<XFRD_MAX_TCP; i++) {
@@ -443,7 +440,6 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	/* check for a pipeline to the same master with unused ID */
 	if((tp = pipeline_find(set, zone))!= NULL) {
 		int i;
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: tcp_obtain: findpipe"));
 		if(zone->zone_handler.ev_fd != -1)
 			xfrd_udp_release(zone);
 		for(i=0; i<XFRD_MAX_TCP; i++) {
