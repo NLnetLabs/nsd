@@ -12,6 +12,7 @@ BUG FIXES:
 	  with --enable-zone-stats. [VU#517036 CVE-2012-2979]
         - Prioritize notify sender for requesting XFR.
           (thanks Ilya Bakulin)
+	- Fix --disable-full-prehash when nsdc patch happens while ixfr too.
 
 
 3.2.12

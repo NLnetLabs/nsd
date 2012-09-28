@@ -750,6 +750,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 			exit(1);
 		}
+#ifndef FULL_PREHASH
+		prehash(nsd->db, 0);
+#endif
 	}
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
 		log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);

@@ -1,3 +1,7 @@
+28 September 2012: Wouter
+	- fixed --disable-full-prehash when new nsd.db is read in and there
+	  are already ixfrs to apply, it did not rehash the new nsd.db.
+
 21 September 2012: Wouter
 	- tzset before chroot for correct timezone (from Camiel Dobbelaar).
 
