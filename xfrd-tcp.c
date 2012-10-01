@@ -276,8 +276,7 @@ static void
 tcp_pipe_id_remove(struct xfrd_tcp_pipeline* tp, xfrd_zone_t* zone)
 {
 	assert(tp->num_unused < ID_PIPE_NUM && tp->num_unused >= 0);
-	assert(tp->id[zone->query_id] == zone ||
-		tp->id[zone->query_id] == TCP_NULL_SKIP);
+	assert(tp->id[zone->query_id] == zone);
 	tp->id[zone->query_id] = NULL;
 	tp->unused[tp->num_unused] = zone->query_id;
 	/* must remove and re-add for sort order in tree */
@@ -292,7 +291,7 @@ xfrd_tcp_pipe_stop(struct xfrd_tcp_pipeline* tp)
 {
 	int i, conn = -1;
 	assert(tp->num_unused < ID_PIPE_NUM); /* at least one 'in-use' */
-	assert(tp->num_unused > tp->num_skip); /* at least one 'nonskip' */
+	assert(ID_PIPE_NUM - tp->num_unused > tp->num_skip); /* at least one 'nonskip' */
 	/* need to retry for all the zones connected to it */
 	/* these could use different lists and go to a different nextmaster*/
 	for(i=0; i<ID_PIPE_NUM; i++) {
@@ -826,6 +825,7 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 		case xfrd_packet_newlease:
 			/* set to skip if more packets with this ID */
 			tp->id[zone->query_id] = TCP_NULL_SKIP;
+			tp->num_skip++;
 			/* fall through to remove zone from tp */
 		case xfrd_packet_transfer:
 			xfrd_tcp_release(xfrd->tcp_set, zone);
@@ -842,6 +842,7 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 		default:
 			/* set to skip if more packets with this ID */
 			tp->id[zone->query_id] = TCP_NULL_SKIP;
+			tp->num_skip++;
 			xfrd_tcp_release(xfrd->tcp_set, zone);
 			/* query next server */
 			xfrd_make_request(zone);
@@ -864,7 +865,8 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	/* remove from tcp_send list */
 	tcp_pipe_sendlist_remove(tp, zone);
 	/* remove it from the ID list */
-	tcp_pipe_id_remove(tp, zone);
+	if(tp->id[zone->query_id] != TCP_NULL_SKIP)
+		tcp_pipe_id_remove(tp, zone);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: released tcp pipe now %d unused",
 		tp->num_unused));
 	/* if pipe was full, but no more, then see if waiting element is
@@ -889,7 +891,7 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	}
 
 	/* if all unused, or only skipped leftover, close the pipeline */
-	if(tp->num_unused >= ID_PIPE_NUM || tp->num_skip >= tp->num_unused)
+	if(tp->num_unused >= ID_PIPE_NUM || tp->num_skip >= ID_PIPE_NUM - tp->num_unused)
 		xfrd_tcp_pipe_release(set, tp, conn);
 }
 
