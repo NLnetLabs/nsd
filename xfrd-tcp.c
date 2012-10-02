@@ -414,6 +414,7 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 			xfrd_udp_release(zone);
 
 		if(!xfrd_tcp_open(set, tp, zone)) {
+			zone->tcp_conn = -1;
 			set->tcp_count --;
 			xfrd_set_refresh_now(zone);
 			return;
@@ -926,6 +927,7 @@ xfrd_tcp_pipe_release(xfrd_tcp_set_t* set, struct xfrd_tcp_pipeline* tp,
 		if(zone->zone_handler.ev_fd != -1)
 			xfrd_udp_release(zone);
 		if(!xfrd_tcp_open(set, tp, zone)) {
+			zone->tcp_conn = -1;
 			set->tcp_count --;
 			xfrd_set_refresh_now(zone);
 			return;
