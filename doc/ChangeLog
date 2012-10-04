@@ -1,3 +1,6 @@
+4 October 2012: Wouter
+	 - Fixup no use of internals ev_flags of libevent.
+
 1 October 2012: Wouter
 	- fix xfrd tcp skip.
 

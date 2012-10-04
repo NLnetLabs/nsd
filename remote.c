@@ -88,6 +88,8 @@ const int inhibit_zero = 1;
 struct rc_state {
 	/** the next item in list */
 	struct rc_state* next, *prev;
+	/* if the event was added to the event_base */
+	int event_added;
 	/** the commpoint */
 	struct event c;
 	/** timeout for this state */
@@ -110,6 +112,7 @@ struct rc_state {
  */
 struct acceptlist {
 	struct acceptlist* next;
+	int event_added;
 	struct event c;
 };
 
@@ -285,7 +288,7 @@ void daemon_remote_close(struct daemon_remote* rc)
 	h = rc->accept_list;
 	while(h) {
 		nh = h->next;
-		if(h->c.ev_flags)
+		if(h->event_added)
 			event_del(&h->c);
 		close(h->c.ev_fd);
 		free(h);
@@ -298,7 +301,7 @@ void daemon_remote_close(struct daemon_remote* rc)
 	while(p) {
 		np = p->next;
 		close(h->c.ev_fd);
-		if(p->c.ev_flags)
+		if(p->event_added)
 			event_del(&p->c);
 		if(p->ssl)
 			SSL_free(p->ssl);
@@ -427,7 +430,7 @@ add_open(struct daemon_remote* rc, const char* ip, int nr, int noproto_is_err)
 	rc->accept_list = hl;
 
 	hl->c.ev_fd = fd;
-	hl->c.ev_flags = 0;
+	hl->event_added = 0;
 	return 1;
 }
 
@@ -470,6 +473,7 @@ void daemon_remote_attach(struct daemon_remote* rc, struct xfrd_state* xfrd)
 			log_msg(LOG_ERR, "remote: cannot set event_base");
 		if(event_add(&p->c, NULL) != 0)
 			log_msg(LOG_ERR, "remote: cannot add event");
+		p->event_added = 1;
 	}
 }
 
@@ -533,6 +537,7 @@ remote_accept_callback(int fd, short event, void* arg)
 		log_msg(LOG_ERR, "remote_accept: cannot set event_base");
 	if(event_add(&n->c, &n->tval) != 0)
 		log_msg(LOG_ERR, "remote_accept: cannot add event");
+	n->event_added = 1;
 
 	if(2 <= verbosity) {
 		char s[128];
@@ -602,7 +607,7 @@ clean_point(struct daemon_remote* rc, struct rc_state* s)
 		stats_list_remove_elem(&rc->stats_list, s);
 	state_list_remove_elem(&rc->busy_list, s);
 	rc->active --;
-	if(s->c.ev_flags)
+	if(s->event_added)
 		event_del(&s->c);
 	if(s->ssl) {
 		SSL_shutdown(s->ssl);
@@ -1013,7 +1018,7 @@ do_stats(struct daemon_remote* rc, int peek, struct rc_state* rs)
 	rc->stats_list = rs;
 	/* block the tcp waiting for the reload */
 	event_del(&rs->c);
-	rs->c.ev_flags = 0;
+	rs->event_added = 0;
 	/* force a reload */
 	xfrd_set_reload_now(xfrd);
 #else

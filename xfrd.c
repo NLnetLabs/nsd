@@ -116,7 +116,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 	assert(shortsoa || udb_base_get_userdata(xfrd->nsd->task[xfrd->nsd->mytask])->data == 0);
 
 	xfrd->reload_handler.ev_fd = -1;
-	xfrd->reload_handler.ev_flags = 0;
+	xfrd->reload_added = 0;
 	xfrd->reload_timeout.tv_sec = 0;
 	xfrd->reload_cmd_last_sent = xfrd->xfrd_start_time;
 	xfrd->can_send_reload = !reload_active;
@@ -206,9 +206,9 @@ xfrd_shutdown()
 	xfrd_write_state(xfrd);
 	event_del(&xfrd->ipc_handler);
 	close(xfrd->ipc_handler.ev_fd);
-	if(xfrd->reload_handler.ev_flags) {
+	if(xfrd->reload_added) {
 		event_del(&xfrd->reload_handler);
-		xfrd->reload_handler.ev_flags = 0;
+		xfrd->reload_added = 0;
 	}
 #ifdef HAVE_SSL
 	daemon_remote_close(xfrd->nsd->rc); /* close sockets of rc */
@@ -216,12 +216,13 @@ xfrd_shutdown()
 	/* close sockets */
 	RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones)
 	{
-		if(zone->zone_handler.ev_flags) {
+		if(zone->event_added) {
 			event_del(&zone->zone_handler);
 			if(zone->zone_handler.ev_fd != -1) {
 				close(zone->zone_handler.ev_fd);
 				zone->zone_handler.ev_fd = -1;
 			}
+			zone->event_added = 0;
 		}
 	}
 	close_notify_fds(xfrd->notify_zones);
@@ -290,7 +291,7 @@ xfrd_init_slave_zone(xfrd_state_t* xfrd, const dname_type* dname,
 	xzone->soa_notified.email[0]=1;
 
 	xzone->zone_handler.ev_fd = -1;
-	xzone->zone_handler.ev_flags = 0;
+	xzone->event_added = 0;
 
 	xzone->tcp_conn = -1;
 	xzone->tcp_waiting = 0;
@@ -532,9 +533,10 @@ xfrd_del_slave_zone(xfrd_state_t* xfrd, const dname_type* dname)
 	xfrd_deactivate_zone(z);
 	if(z->tcp_conn != -1) {
 		xfrd_tcp_release(xfrd->tcp_set, z);
-	} else if(z->zone_handler.ev_fd != -1 && z->zone_handler.ev_flags) {
+	} else if(z->zone_handler.ev_fd != -1 && z->event_added) {
 		xfrd_udp_release(z);
-	}
+	} else if(z->event_added)
+		event_del(&z->zone_handler);
 
 	/* tsig */
 	tsig_delete_record(&z->tsig, NULL);
@@ -633,7 +635,8 @@ xfrd_handle_zone(int ATTR_UNUSED(fd), short event, void* arg)
 
 	/* timeout */
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s timeout", zone->apex_str));
-	if(zone->zone_handler.ev_fd != -1 && (event & EV_TIMEOUT)) {
+	if(zone->zone_handler.ev_fd != -1 && zone->event_added &&
+		(event & EV_TIMEOUT)) {
 		assert(zone->tcp_conn == -1);
 		xfrd_udp_release(zone);
 	}
@@ -774,7 +777,7 @@ xfrd_udp_obtain(xfrd_zone_t* zone)
 		if(fd == -1)
 			xfrd->udp_use_num--;
 		else {
-			if(zone->zone_handler.ev_flags)
+			if(zone->event_added)
 				event_del(&zone->zone_handler);
 			event_set(&zone->zone_handler, fd,
 				EV_PERSIST|EV_READ|EV_TIMEOUT,
@@ -783,6 +786,7 @@ xfrd_udp_obtain(xfrd_zone_t* zone)
 				log_msg(LOG_ERR, "xfrd udp: event_base_set failed");
 			if(event_add(&zone->zone_handler, &zone->timeout) != 0)
 				log_msg(LOG_ERR, "xfrd udp: event_add failed");
+			zone->event_added = 1;
 		}
 		return;
 	}
@@ -879,16 +883,16 @@ void
 xfrd_unset_timer(xfrd_zone_t* zone)
 {
 	assert(zone->zone_handler.ev_fd == -1);
-	if(zone->zone_handler.ev_flags)
+	if(zone->event_added)
 		event_del(&zone->zone_handler);
-	zone->zone_handler.ev_flags = 0;
+	zone->event_added = 0;
 }
 
 void
 xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 {
 	int fd = zone->zone_handler.ev_fd;
-	int fl = zone->zone_handler.ev_flags;
+	int fl = (zone->zone_handler.ev_flags)&(EV_READ|EV_WRITE|EV_TIMEOUT);
 	/* randomize the time, within 90%-100% of original */
 	/* not later so zones cannot expire too late */
 	/* only for times far in the future */
@@ -898,8 +902,9 @@ xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 	}
 
 	/* keep existing flags and fd, but re-add with timeout */
-	if(fd != -1 || fl)
+	if(zone->event_added)
 		event_del(&zone->zone_handler);
+	else	fd = -1;
 	zone->timeout.tv_sec = t;
 	zone->timeout.tv_usec = 0;
 	event_set(&zone->zone_handler, fd, (fd == -1)?EV_TIMEOUT:EV_PERSIST|fl,
@@ -908,6 +913,7 @@ xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 		log_msg(LOG_ERR, "xfrd timer: event_base_set failed");
 	if(event_add(&zone->zone_handler, &zone->timeout) != 0)
 		log_msg(LOG_ERR, "xfrd timer: event_add failed");
+	zone->event_added = 1;
 }
 
 void
@@ -1020,13 +1026,13 @@ void
 xfrd_udp_release(xfrd_zone_t* zone)
 {
 	assert(zone->udp_waiting == 0);
-	if(zone->zone_handler.ev_flags)
+	if(zone->event_added)
 		event_del(&zone->zone_handler);
 	if(zone->zone_handler.ev_fd != -1) {
 		close(zone->zone_handler.ev_fd);
 	}
 	zone->zone_handler.ev_fd = -1;
-	zone->zone_handler.ev_flags = 0;
+	zone->event_added = 0;
 	/* see if there are waiting zones */
 	if(xfrd->udp_use_num == XFRD_MAX_UDP)
 	{
@@ -1044,7 +1050,7 @@ xfrd_udp_release(xfrd_zone_t* zone)
 			if(wz->tcp_conn == -1) {
 				int fd = xfrd_send_ixfr_request_udp(wz);
 				if(fd != -1) {
-					if(wz->zone_handler.ev_flags)
+					if(wz->event_added)
 						event_del(&wz->zone_handler);
 					event_set(&wz->zone_handler, fd,
 						EV_READ|EV_TIMEOUT|EV_PERSIST,
@@ -1054,6 +1060,7 @@ xfrd_udp_release(xfrd_zone_t* zone)
 						log_msg(LOG_ERR, "cannot set event_base for ixfr");
 					if(event_add(&wz->zone_handler, &wz->timeout) != 0)
 						log_msg(LOG_ERR, "cannot add event for ixfr");
+					wz->event_added = 1;
 					return;
 				} else {
 					/* make this zone do something with
@@ -1807,7 +1814,7 @@ xfrd_set_reload_timeout()
 		return;
 	}
 	/* cannot reload now, set that after the timeout a reload has to happen */
-	if(xfrd->reload_handler.ev_flags == 0) {
+	if(xfrd->reload_added == 0) {
 		struct timeval tv;
 		tv.tv_sec = xfrd->reload_timeout.tv_sec - xfrd_time();
 		tv.tv_usec = 0;
@@ -1819,6 +1826,7 @@ xfrd_set_reload_timeout()
 			log_msg(LOG_ERR, "cannot set reload event base");
 		if(event_add(&xfrd->reload_handler, &tv) != 0)
 			log_msg(LOG_ERR, "cannot add reload event");
+		xfrd->reload_added = 1;
 	}
 }
 
@@ -1828,7 +1836,7 @@ xfrd_handle_reload(int ATTR_UNUSED(fd), short event, void* ATTR_UNUSED(arg))
 	/* reload timeout */
 	assert(event & EV_TIMEOUT);
 	/* timeout wait period after this request is sent */
-	xfrd->reload_handler.ev_flags = 0;
+	xfrd->reload_added = 0;
 	xfrd->reload_timeout.tv_sec = xfrd_time() +
 		xfrd->nsd->options->xfrd_reload_timeout;
 	xfrd_set_reload_now(xfrd);
@@ -1990,7 +1998,7 @@ xfrd_check_failed_updates()
 				/* this zone still has to be loaded,
 				   make sure reload is set to be sent. */
 				if(xfrd->need_to_send_reload == 0 &&
-					xfrd->reload_handler.ev_flags == 0) {
+					xfrd->reload_added == 0) {
 					log_msg(LOG_ERR, "xfrd: zone %s: needs "
 									 "to be loaded. reload lost? "
 									 "try again", zone->apex_str);

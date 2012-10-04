@@ -58,6 +58,7 @@ struct xfrd_state {
 	/* timer for NSD reload */
 	struct timeval reload_timeout;
 	struct event reload_handler;
+	int reload_added;
 	/* last reload must have caught all zone updates before this time */
 	time_t reload_cmd_last_sent;
 	uint8_t can_send_reload;
@@ -152,6 +153,7 @@ struct xfrd_zone {
 	/* handler for timeouts */
 	struct timeval timeout;
 	struct event zone_handler;
+	int event_added;
 
 	/* tcp connection zone is using, or -1 */
 	int tcp_conn;

@@ -61,6 +61,7 @@ struct udp_handler_data
 struct tcp_accept_handler_data {
 	struct nsd         *nsd;
 	struct nsd_socket  *socket;
+	int event_added;
 	struct event       event;
 };
 
@@ -1467,6 +1468,7 @@ server_child(struct nsd *nsd)
 				log_msg(LOG_ERR, "nsd tcp: event_base_set failed");
 			if(event_add(handler, NULL) != 0)
 				log_msg(LOG_ERR, "nsd tcp: event_add failed");
+			data->event_added = 1;
 		}
 	} else tcp_accept_handler_count = 0;
 
@@ -1819,6 +1821,8 @@ handle_tcp_reading(int fd, short event, void* arg)
 		log_msg(LOG_ERR, "event base set tcpr failed");
 	if(event_add(&data->event, &timeout) != 0)
 		log_msg(LOG_ERR, "event add tcpr failed");
+	/* see if we can write the answer right away(usually so,EAGAIN ifnot)*/
+	handle_tcp_writing(fd, EV_WRITE, data);
 }
 
 static void
@@ -2156,7 +2160,7 @@ configure_handler_event_types(short event_types)
 			/* reassign */
 			int fd = handler->ev_fd;
 			struct event_base* base = handler->ev_base;
-			if(handler->ev_flags)
+			if(tcp_accept_handlers[i].event_added)
 				event_del(handler);
 			event_set(handler, fd, event_types,
 				handler->ev_callback, handler->ev_arg);
@@ -2166,9 +2170,9 @@ configure_handler_event_types(short event_types)
 				log_msg(LOG_ERR, "conhand: cannot event_add");
 		} else {
 			/* remove */
-			if(handler->ev_flags) {
+			if(tcp_accept_handlers[i].event_added) {
 				event_del(handler);
-				handler->ev_flags = 0;
+				tcp_accept_handlers[i].event_added = 0;
 			}
 		}
 	}
