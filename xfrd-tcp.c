@@ -541,6 +541,7 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, struct xfrd_tcp_pipeline* tp,
 	tv.tv_usec = 0;
 	if(event_add(&tp->handler, &tv) != 0)
 		log_msg(LOG_ERR, "xfrd tcp: event_add failed");
+	tp->handler_added = 1;
 	return 1;
 }
 
@@ -902,10 +903,9 @@ xfrd_tcp_pipe_release(xfrd_tcp_set_t* set, struct xfrd_tcp_pipeline* tp,
 {
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: tcp pipe released"));
 	/* one handler per tcp pipe */
-	if(tp->handler.ev_flags != 0)
+	if(tp->handler_added)
 		event_del(&tp->handler);
-	tp->handler.ev_fd = -1;
-	tp->handler.ev_flags = 0;
+	tp->handler_added = 0;
 
 	/* fd in tcp_r and tcp_w is the same, close once */
 	if(tp->tcp_r->fd != -1)

@@ -94,6 +94,7 @@ struct xfrd_tcp_pipeline {
 	/* number of skip-set IDs (these are 'in-use') */
 	int num_skip;
 
+	int handler_added;
 	/* the event handler for this pipe (it'll disambiguate by ID) */
 	struct event handler;
 
