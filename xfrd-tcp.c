@@ -317,6 +317,8 @@ tcp_pipe_reset_timeout(struct xfrd_tcp_pipeline* tp)
 	struct timeval tv;
 	tv.tv_sec = xfrd->tcp_set->tcp_timeout;
 	tv.tv_usec = 0;
+	log_msg(LOG_INFO, "tcppiperesettm event_del %p flags %x",
+		&tp->handler, tp->handler.ev_flags);
 	if(tp->handler_added)
 		event_del(&tp->handler);
 	event_set(&tp->handler, fd, EV_PERSIST|EV_TIMEOUT|EV_READ|
@@ -905,6 +907,8 @@ xfrd_tcp_pipe_release(xfrd_tcp_set_t* set, struct xfrd_tcp_pipeline* tp,
 {
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: tcp pipe released"));
 	/* one handler per tcp pipe */
+	log_msg(LOG_INFO, "tcppiperelease event_del %p flags %x",
+		&tp->handler, tp->handler.ev_flags);
 	if(tp->handler_added)
 		event_del(&tp->handler);
 	tp->handler_added = 0;
