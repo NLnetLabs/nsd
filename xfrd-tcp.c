@@ -317,13 +317,15 @@ tcp_pipe_reset_timeout(struct xfrd_tcp_pipeline* tp)
 	struct timeval tv;
 	tv.tv_sec = xfrd->tcp_set->tcp_timeout;
 	tv.tv_usec = 0;
-	event_del(&tp->handler);
+	if(tp->handler_added)
+		event_del(&tp->handler);
 	event_set(&tp->handler, fd, EV_PERSIST|EV_TIMEOUT|EV_READ|
 		(tp->tcp_send_first?EV_WRITE:0), xfrd_handle_tcp_pipe, tp);
 	if(event_base_set(xfrd->event_base, &tp->handler) != 0)
 		log_msg(LOG_ERR, "xfrd tcp: event_base_set failed");
 	if(event_add(&tp->handler, &tv) != 0)
 		log_msg(LOG_ERR, "xfrd tcp: event_add failed");
+	tp->handler_added = 1;
 }
 
 /* handle event from fd of tcp pipe */
