@@ -340,7 +340,7 @@ xfrd_handle_tcp_pipe(int ATTR_UNUSED(fd), short event, void* arg)
 		tcp_pipe_reset_timeout(tp);
 		xfrd_tcp_read(tp);
 	}
-	if((event & EV_WRITE)) {
+	if((event & EV_WRITE) && tp->handler_added) {
 		tcp_pipe_reset_timeout(tp);
 		if(tp->tcp_send_first) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: event tcp write, zone %s",

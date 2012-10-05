@@ -1,3 +1,6 @@
+5 October 2012: Wouter
+	 - fix bug with event loop in zone transfer pipeline.
+
 4 October 2012: Wouter
 	 - Fixup no use of internals ev_flags of libevent.
 
