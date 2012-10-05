@@ -281,6 +281,7 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				nsd->signal_hint_shutdown = 0;
 				nsd->signal_hint_stats = 0;
 				nsd->signal_hint_statsusr = 0;
+				close(*xfrd_sock_p);
 				close(nsd->this_child->child_fd);
 				nsd->this_child->child_fd = -1;
 				server_child(nsd);
