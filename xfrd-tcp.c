@@ -434,7 +434,7 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 			tp->unused[i] = i;
 		}
 
-		/* insert intro tree */
+		/* insert into tree */
 		(void)rbtree_insert(set->pipetree, &tp->node);
 		xfrd_deactivate_zone(zone);
 		xfrd_unset_timer(zone);
@@ -926,11 +926,14 @@ xfrd_tcp_pipe_release(xfrd_tcp_set_t* set, struct xfrd_tcp_pipeline* tp,
 
 	/* a waiting zone can use the free tcp slot (to another server) */
 	if(set->tcp_count == XFRD_MAX_TCP && set->tcp_waiting_first) {
+		int i;
+
 		/* pop first waiting process */
 		xfrd_zone_t* zone = set->tcp_waiting_first;
 		/* start it */
 		assert(zone->tcp_conn == -1);
 		zone->tcp_conn = conn;
+
 		/* stop udp (if any) */
 		if(zone->zone_handler.ev_fd != -1)
 			xfrd_udp_release(zone);
@@ -940,6 +943,20 @@ xfrd_tcp_pipe_release(xfrd_tcp_set_t* set, struct xfrd_tcp_pipeline* tp,
 			xfrd_set_refresh_now(zone);
 			return;
 		}
+		/* re-init this tcppipe */
+		/* ip and ip_len set by tcp_open */
+		tp->node.key = tp;
+		tp->num_unused = ID_PIPE_NUM;
+		tp->num_skip = 0;
+		tp->tcp_send_first = NULL;
+		tp->tcp_send_last = NULL;
+		memset(tp->id, 0, sizeof(tp->id));
+		for(i=0; i<ID_PIPE_NUM; i++) {
+			tp->unused[i] = i;
+		}
+
+		/* insert into tree */
+		(void)rbtree_insert(set->pipetree, &tp->node);
 		/* succeeded? remove zone from lists and setup write */
 		xfrd_unset_timer(zone);
 		tcp_zone_waiting_list_popfirst(set, zone);
