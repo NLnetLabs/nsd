@@ -537,6 +537,8 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, struct xfrd_tcp_pipeline* tp,
 	tp->tcp_w->fd = fd;
 
 	/* set the tcp pipe event */
+	if(tp->handler_added)
+		event_del(&tp->handler);
 	event_set(&tp->handler, fd, EV_PERSIST|EV_TIMEOUT|EV_READ|EV_WRITE,
 		xfrd_handle_tcp_pipe, tp);
 	if(event_base_set(xfrd->event_base, &tp->handler) != 0)
