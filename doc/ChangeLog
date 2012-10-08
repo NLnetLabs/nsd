@@ -1,7 +1,10 @@
+8 October 2012: Wouter
+	- Sync with unbound lookup3, has raninit value.
+
 5 October 2012: Wouter
-	 - fix bug with event loop in zone transfer pipeline.
-	 - close xfrd_sock_p in server_child because otherwise due to use of
-	   kqueue, it gets a broken pipe when that process exits (on FreeBSD).
+	- fix bug with event loop in zone transfer pipeline.
+	- close xfrd_sock_p in server_child because otherwise due to use of
+	  kqueue, it gets a broken pipe when that process exits (on FreeBSD).
 
 4 October 2012: Wouter
 	 - Fixup no use of internals ev_flags of libevent.

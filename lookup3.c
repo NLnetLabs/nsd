@@ -1,4 +1,5 @@
 /*
+  January 2012(Wouter) added randomised initial value, fallout from 28c3.
   March 2007(Wouter) adapted from lookup3.c original, add config.h include.
      added #ifdef VALGRIND to remove 298,384,660 'unused variable k8' warnings.
      added include of lookup3.h to check definitions match declarations.
@@ -51,6 +52,15 @@ on 1 byte), but shoehorning those bytes into integers efficiently is messy.
 #ifdef linux
 # include <endian.h>    /* attempt to define endianness */
 #endif
+
+/* random initial value */
+static uint32_t raninit = 0xdeadbeef;
+
+void
+hash_set_raninit(uint32_t v)
+{
+	raninit = v;
+}
 
 /*
  * My best guess at if you are big-endian or little-endian.  This may
@@ -187,7 +197,7 @@ uint32_t        initval)         /* the previous hash, or an arbitrary value */
   uint32_t a,b,c;
 
   /* Set up the internal state */
-  a = b = c = 0xdeadbeef + (((uint32_t)length)<<2) + initval;
+  a = b = c = raninit + (((uint32_t)length)<<2) + initval;
 
   /*------------------------------------------------- handle most of the key */
   while (length > 3)
@@ -215,6 +225,8 @@ uint32_t        initval)         /* the previous hash, or an arbitrary value */
 }
 
 
+#ifdef SELF_TEST
+
 /*
 --------------------------------------------------------------------
 hashword2() -- same as hashword(), but take two seeds and return two
@@ -232,7 +244,7 @@ uint32_t       *pb)               /* IN: more seed OUT: secondary hash value */
   uint32_t a,b,c;
 
   /* Set up the internal state */
-  a = b = c = 0xdeadbeef + ((uint32_t)(length<<2)) + *pc;
+  a = b = c = raninit + ((uint32_t)(length<<2)) + *pc;
   c += *pb;
 
   /*------------------------------------------------- handle most of the key */
@@ -260,6 +272,7 @@ uint32_t       *pb)               /* IN: more seed OUT: secondary hash value */
   *pc=c; *pb=b;
 }
 
+#endif /* SELF_TEST */
 
 /*
 -------------------------------------------------------------------------------
@@ -294,7 +307,7 @@ uint32_t hashlittle( const void *key, size_t length, uint32_t initval)
   union { const void *ptr; size_t i; } u;     /* needed for Mac Powerbook G4 */
 
   /* Set up the internal state */
-  a = b = c = 0xdeadbeef + ((uint32_t)length) + initval;
+  a = b = c = raninit + ((uint32_t)length) + initval;
 
   u.ptr = key;
   if (HASH_LITTLE_ENDIAN && ((u.i & 0x3) == 0)) {
@@ -459,6 +472,7 @@ uint32_t hashlittle( const void *key, size_t length, uint32_t initval)
   return c;
 }
 
+#ifdef SELF_TEST
 
 /*
  * hashlittle2: return 2 32-bit hash values
@@ -480,7 +494,7 @@ void hashlittle2(
   union { const void *ptr; size_t i; } u;     /* needed for Mac Powerbook G4 */
 
   /* Set up the internal state */
-  a = b = c = 0xdeadbeef + ((uint32_t)length) + *pc;
+  a = b = c = raninit + ((uint32_t)length) + *pc;
   c += *pb;
 
   u.ptr = key;
@@ -646,7 +660,9 @@ void hashlittle2(
   *pc=c; *pb=b;
 }
 
+#endif /* SELF_TEST */
 
+#if 0	/* currently not used */
 
 /*
  * hashbig():
@@ -660,7 +676,7 @@ uint32_t hashbig( const void *key, size_t length, uint32_t initval)
   union { const void *ptr; size_t i; } u; /* to cast key to (size_t) happily */
 
   /* Set up the internal state */
-  a = b = c = 0xdeadbeef + ((uint32_t)length) + initval;
+  a = b = c = raninit + ((uint32_t)length) + initval;
 
   u.ptr = key;
   if (HASH_BIG_ENDIAN && ((u.i & 0x3) == 0)) {
@@ -778,6 +794,7 @@ uint32_t hashbig( const void *key, size_t length, uint32_t initval)
   return c;
 }
 
+#endif /* 0 == currently not used */
 
 #ifdef SELF_TEST
 
@@ -934,7 +951,7 @@ void driver3()
     printf("hashlittle2 and hashlittle mismatch\n");
 
   /* check that hashword2 and hashword produce the same results */
-  len = 0xdeadbeef;
+  len = raninit;
   i=47, j=0;
   hashword2(&len, 1, &i, &j);
   if (hashword(&len, 1, 47) != i)
