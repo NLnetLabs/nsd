@@ -7,6 +7,22 @@
 #define RRL_H
 #include "query.h"
 
+/** the classification types for the rrl */
+enum rrl_type {
+	/* classification types */
+	rrl_type_nxdomain	= 0x01,
+	rrl_type_error		= 0x02,
+	rrl_type_referral	= 0x04,
+	rrl_type_any		= 0x08,
+	rrl_type_wildcard	= 0x10,
+	rrl_type_nodata		= 0x20,
+	rrl_type_dnskey		= 0x40,
+	rrl_type_positive	= 0x80,
+
+	/* to distinguish between ip4 and ip6 netblocks, used in code */
+	rrl_ip6			= 0x8000
+};
+
 /** Number of buckets */
 #define RRL_BUCKETS 1000000
 
@@ -32,6 +48,11 @@ int rrl_process_query(query_type* query);
  * Returns DISCARD or PROCESSED(with TC flag).
  */
 query_state_type rrl_slip(query_type* query);
+
+/** convert classification type to string */
+const char* rrltype2str(enum rrl_type c);
+/** convert string to classification type */
+enum rrl_type rrlstr2type(const char* s);
 
 /** for unit test, update rrl bucket; return rate */
 uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,

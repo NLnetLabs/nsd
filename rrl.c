@@ -89,7 +89,7 @@ void rrl_init(size_t ch)
 
 /** return the source netblock of the query, this is the genuine source
  * for genuine queries and the target for reflected packets */
-static uint64_t rrl_get_source(query_type* query, uint8_t* c2)
+static uint64_t rrl_get_source(query_type* query, uint16_t* c2)
 {
 	/* we take a /24 for IPv4 and /64 for IPv6 */
 	/* note there is an IPv6 subnet, that maps
@@ -102,7 +102,7 @@ static uint64_t rrl_get_source(query_type* query, uint8_t* c2)
 			sin_addr.s_addr & htonl(0xffffff00);
 	} else {
 		uint64_t s;
-		*c2 = 0x80;
+		*c2 = rrl_ip6;
 		memmove(&s, &((struct sockaddr_in6*)&query->addr)->sin6_addr,
 			sizeof(s));
 		return s;
@@ -114,7 +114,7 @@ static uint64_t rrl_get_source(query_type* query, uint8_t* c2)
 }
 
 /** debug source to string */
-static const char* rrlsource2str(uint64_t s, uint8_t c2)
+static const char* rrlsource2str(uint64_t s, uint16_t c2)
 {
 	static char buf[64];
 	struct in_addr a4;
@@ -138,85 +138,97 @@ static const char* rrlsource2str(uint64_t s, uint8_t c2)
 	return buf;
 }
 
-/** debug type to string */
-static const char* rrltype2str(int c)
+enum rrl_type rrlstr2type(const char* s)
 {
-	switch(c & 0x7f) {
-		case 1: return "nxdomain";
-		case 2: return "error_response";
-		case 3: return "qtype_any";
-		case 4: return "referral";
-		case 5: return "wildcard";
-		case 6: return "nodata";
-		case 7: return "answer";
+	if(strcmp(s, "nxdomain")==0) return rrl_type_nxdomain;
+	else if(strcmp(s, "error")==0) return rrl_type_error;
+	else if(strcmp(s, "referral")==0) return rrl_type_referral;
+	else if(strcmp(s, "any")==0) return rrl_type_any;
+	else if(strcmp(s, "wildcard")==0) return rrl_type_wildcard;
+	else if(strcmp(s, "nodata")==0) return rrl_type_nodata;
+	else if(strcmp(s, "dnskey")==0) return rrl_type_dnskey;
+	else if(strcmp(s, "positive")==0) return rrl_type_positive;
+	return 0; /* unknown */
+}
+
+const char* rrltype2str(enum rrl_type c)
+{
+	switch(c & 0x0fff) {
+		case rrl_type_nxdomain: return "nxdomain";
+		case rrl_type_error: return "error";
+		case rrl_type_referral: return "referral";
+		case rrl_type_any: return "any";
+		case rrl_type_wildcard: return "wildcard";
+		case rrl_type_nodata: return "nodata";
+		case rrl_type_dnskey: return "dnskey";
+		case rrl_type_positive: return "positive";
 	}
 	return "unknown";
 }
 
 /** classify the query in a number of different types, each has separate
  * ratelimiting, so that positive queries are not impeded by others */
-static uint8_t rrl_classify(query_type* query, const uint8_t** d, size_t* d_len)
+static uint16_t rrl_classify(query_type* query, const uint8_t** d,	
+	size_t* d_len)
 {
-	/* Types:	nr	dname
-	 * nxdomain:	1	zone
-	 * error:	2	zone
-	 * qtypeANY:	3	qname
-	 * referral:	4	delegpt
-	 * wildcard:	5	wildcard
-	 * nodata:	6	zone
-	 * positive:	7	qname
-	 */
 	if(RCODE(query->packet) == RCODE_NXDOMAIN) {
 		if(query->zone && query->zone->apex) {
 			*d = dname_name(domain_dname(query->zone->apex));
 			*d_len = domain_dname(query->zone->apex)->name_size;
 		}
-		return 1;
+		return rrl_type_nxdomain;
 	}
 	if(RCODE(query->packet) != RCODE_OK) {
 		if(query->zone && query->zone->apex) {
 			*d = dname_name(domain_dname(query->zone->apex));
 			*d_len = domain_dname(query->zone->apex)->name_size;
 		}
-		return 2;
+		return rrl_type_error;
+	}
+	if(query->delegation_domain) {
+		*d = dname_name(domain_dname(query->delegation_domain));
+		*d_len = domain_dname(query->delegation_domain)->name_size;
+		return rrl_type_referral;
 	}
 	if(query->qtype == TYPE_ANY) {
 		if(query->qname) {
 			*d = dname_name(query->qname);
 			*d_len = query->qname->name_size;
 		}
-		return 3;
-	}
-	if(query->delegation_domain) {
-		*d = dname_name(domain_dname(query->delegation_domain));
-		*d_len = domain_dname(query->delegation_domain)->name_size;
-		return 4;
+		return rrl_type_any;
 	}
 	if(query->wildcard_domain) {
 		*d = dname_name(domain_dname(query->wildcard_domain));
 		*d_len = domain_dname(query->wildcard_domain)->name_size;
-		return 5;
+		return rrl_type_wildcard;
 	}
-	if(ANCOUNT(query->packet) == 0) { /* nodata */
+	if(ANCOUNT(query->packet) == 0) {
 		if(query->zone && query->zone->apex) {
 			*d = dname_name(domain_dname(query->zone->apex));
 			*d_len = domain_dname(query->zone->apex)->name_size;
 		}
-		return 6;
+		return rrl_type_nodata;
+	}
+	if(query->qtype == TYPE_DNSKEY) {
+		if(query->qname) {
+			*d = dname_name(query->qname);
+			*d_len = query->qname->name_size;
+		}
+		return rrl_type_dnskey;
 	}
 	/* positive */
 	if(query->qname) {
 		*d = dname_name(query->qname);
 		*d_len = query->qname->name_size;
 	}
-	return 7;
+	return rrl_type_positive;
 }
 
 /** Examine the query and return hash and source of netblock. */
 static void examine_query(query_type* query, uint32_t* hash, uint64_t* source)
 {
 	/* compile a binary string representing the query */
-	uint8_t c, c2;
+	uint16_t c, c2;
 	/* size with 16 bytes to spare */
 	uint8_t buf[MAXDOMAINLEN + sizeof(*source) + sizeof(c) + 16];
 	const uint8_t* dname = NULL; size_t dname_len;
@@ -296,7 +308,7 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 		/* log what is blocked for operational debugging */
 		if(verbosity >= 2 && b->counter + b->rate/2 == rrl_ratelimit
 			&& b->rate < rrl_ratelimit) {
-			uint8_t c, c2;
+			uint16_t c, c2;
 			const uint8_t* d = NULL;
 			size_t d_len;
 			uint64_t s = rrl_get_source(query, &c2);
