@@ -28,4 +28,8 @@ int rrl_process_query(query_type* query);
  */
 query_state_type rrl_slip(query_type* query);
 
+/** for unit test, update rrl bucket; return rate */
+uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
+	int32_t now);
+
 #endif /* RRL_H */

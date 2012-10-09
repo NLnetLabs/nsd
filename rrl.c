@@ -32,7 +32,7 @@ struct rrl_bucket {
 /* the (global) array of RRL buckets */
 static struct rrl_bucket* rrl_array = NULL;
 static size_t rrl_array_size = RRL_BUCKETS;
-static uint32_t rrl_ratelimit = 400; /* double the qps, default 200 qps */
+static uint32_t rrl_ratelimit = 400; /* 2x qps, default is 200 qps */
 
 void rrl_init(void)
 {
@@ -205,7 +205,7 @@ static void rrl_attenuate_bucket(struct rrl_bucket* b, int32_t elapsed)
 }
 
 /** update the rate in a ratelimit bucket, return actual rate */
-static uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
+uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 	int32_t now)
 {
 	struct rrl_bucket* b = &rrl_array[hash % rrl_array_size];

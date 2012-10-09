@@ -23,6 +23,9 @@ CuSuite * reg_cutest_region(void);
 CuSuite * reg_cutest_udb(void);
 CuSuite * reg_cutest_udb_radtree(void);
 CuSuite * reg_cutest_namedb(void);
+#ifdef RATELIMIT
+CuSuite * reg_cutest_rrl(void);
+#endif
 
 /* dummy functions to link */
 struct nsd;
@@ -61,6 +64,9 @@ int runalltests(void)
 	CuSuiteAddSuite(suite, reg_cutest_udb());
 	CuSuiteAddSuite(suite, reg_cutest_udb_radtree());
 	CuSuiteAddSuite(suite, reg_cutest_namedb());
+#ifdef RATELIMIT
+	CuSuiteAddSuite(suite, reg_cutest_rrl());
+#endif
 
 	CuSuiteRunDisplay(suite, disp_callback);
 	fprintf(stderr, "\n");

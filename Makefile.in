@@ -75,7 +75,7 @@ NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o netio.o nsd.o server.o dbacce
 ALL_OBJ=$(NSD_OBJ) nsd-checkconf.o nsd-control.o
 NSD_CHECKCONF_OBJ=$(COMMON_OBJ) nsd-checkconf.o
 NSD_CONTROL_OBJ=$(COMMON_OBJ) nsd-control.o
-CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o zonec.o rrl.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest.o qtest.o
+CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o zonec.o rrl.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_rrl.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest.o qtest.o
 
 all:	$(CCWHOLE)
 
@@ -247,6 +247,9 @@ cutest_options.o:	$(srcdir)/tpkg/cutest/cutest_options.c
 
 cutest_region.o:	$(srcdir)/tpkg/cutest/cutest_region.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_region.c
+
+cutest_rrl.o:	$(srcdir)/tpkg/cutest/cutest_rrl.c
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_rrl.c
 
 cutest_udb.o:	$(srcdir)/tpkg/cutest/cutest_udb.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_udb.c
@@ -455,6 +458,9 @@ cutest_rbtree.o: $(srcdir)/tpkg/cutest/cutest_rbtree.c config.h \
 cutest_region.o: $(srcdir)/tpkg/cutest/cutest_region.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/rbtree.h \
  $(srcdir)/region-allocator.h
+cutest_rrl.o: $(srcdir)/tpkg/cutest/cutest_rrl.c config.h $(srcdir)/tpkg/cutest/cutest.h \
+ $(srcdir)/rrl.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h \
+ $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h
 cutest_run.o: $(srcdir)/tpkg/cutest/cutest_run.c config.h $(srcdir)/tpkg/cutest/cutest.h \
  $(srcdir)/tpkg/cutest/qtest.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 cutest_udb.o: $(srcdir)/tpkg/cutest/cutest_udb.c config.h $(srcdir)/tpkg/cutest/cutest.h \
