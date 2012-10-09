@@ -9,6 +9,7 @@
 #include "rrl.h"
 #include "util.h"
 #include "lookup3.h"
+#include "options.h"
 
 #ifdef RATELIMIT
 
@@ -41,19 +42,22 @@ struct rrl_bucket {
 /* the (global) array of RRL buckets */
 static struct rrl_bucket* rrl_array = NULL;
 static size_t rrl_array_size = RRL_BUCKETS;
-static uint32_t rrl_ratelimit = 400; /* 2x qps, default is 200 qps */
+static uint32_t rrl_ratelimit = RRL_LIMIT; /* 2x qps */
+static uint32_t rrl_whitelist_ratelimit = RRL_WLIST_LIMIT; /* 2x qps */
 
 /* the array of mmaps for the children (saved between reloads) */
 static void** rrl_maps = NULL;
 static size_t rrl_maps_num = 0;
 
-void rrl_mmap_init(int numch, size_t numbuck)
+void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm)
 {
 #ifdef HAVE_MMAP
 	size_t i;
 #endif
 	if(numbuck != 0)
 		rrl_array_size = numbuck;
+	rrl_ratelimit = lm;
+	rrl_whitelist_ratelimit = wlm;
 #ifdef HAVE_MMAP
 	/* allocate the ratelimit hashtable in a memory map so it is
 	 * preserved across reforks (every child its own table) */
@@ -225,7 +229,8 @@ static uint16_t rrl_classify(query_type* query, const uint8_t** d,
 }
 
 /** Examine the query and return hash and source of netblock. */
-static void examine_query(query_type* query, uint32_t* hash, uint64_t* source)
+static void examine_query(query_type* query, uint32_t* hash, uint64_t* source,
+	uint32_t* lm)
 {
 	/* compile a binary string representing the query */
 	uint16_t c, c2;
@@ -235,7 +240,12 @@ static void examine_query(query_type* query, uint32_t* hash, uint64_t* source)
 	uint32_t r = 0x267fcd16;
 
 	*source = rrl_get_source(query, &c2);
-	c = rrl_classify(query, &dname, &dname_len) | c2;
+	c = rrl_classify(query, &dname, &dname_len);
+	if(query->zone && query->zone->opts && 
+		(query->zone->opts->pattern->rrl_whitelist & c))
+		*lm = rrl_whitelist_ratelimit;
+	if(*lm == 0) return;
+	c |= c2;
 	memmove(buf, source, sizeof(*source));
 	memmove(buf+sizeof(*source), &c, sizeof(c));
 
@@ -266,7 +276,7 @@ static void rrl_attenuate_bucket(struct rrl_bucket* b, int32_t elapsed)
 
 /** update the rate in a ratelimit bucket, return actual rate */
 uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
-	int32_t now)
+	int32_t now, uint32_t lm)
 {
 	struct rrl_bucket* b = &rrl_array[hash % rrl_array_size];
 
@@ -306,16 +316,19 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 		b->counter ++;
 
 		/* log what is blocked for operational debugging */
-		if(verbosity >= 2 && b->counter + b->rate/2 == rrl_ratelimit
-			&& b->rate < rrl_ratelimit) {
-			uint16_t c, c2;
+		if(verbosity >= 2 && b->counter + b->rate/2 == lm
+			&& b->rate < lm) {
+			uint16_t c, c2, wl = 0;
 			const uint8_t* d = NULL;
 			size_t d_len;
 			uint64_t s = rrl_get_source(query, &c2);
 			c = rrl_classify(query, &d, &d_len) | c2;
-			log_msg(LOG_INFO, "ratelimit %s type %s target %s",
+			if(query->zone && query->zone->opts && 
+				(query->zone->opts->pattern->rrl_whitelist & c))
+				wl = 1;
+			log_msg(LOG_INFO, "ratelimit %s type %s%s target %s",
 				d?wiredname2str(d):"", rrltype2str(c),
-				rrlsource2str(s, c2));
+				wl?"(whitelisted)":"", rrlsource2str(s, c2));
 		}
 	}
 
@@ -332,12 +345,18 @@ int rrl_process_query(query_type* query)
 	uint64_t source;
 	uint32_t hash;
 	int32_t now = (int32_t)time(NULL);
+	uint32_t lm = rrl_ratelimit;
+	if(rrl_ratelimit == 0 && rrl_whitelist_ratelimit == 0)
+		return 0;
 
 	/* examine query */
-	examine_query(query, &hash, &source);
+	examine_query(query, &hash, &source, &lm);
+
+	if(lm == 0)
+		return 0; /* no limit for this */
 
 	/* update rate */
-	return (rrl_update(query, hash, source, now) >= rrl_ratelimit);
+	return (rrl_update(query, hash, source, now, lm) >= lm);
 }
 
 query_state_type rrl_slip(query_type* query)

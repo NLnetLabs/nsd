@@ -14,6 +14,7 @@
 #include "query.h"
 #include "tsig.h"
 #include "difffile.h"
+#include "rrl.h"
 
 #include "configyyrename.h"
 #include "configparser.h"
@@ -66,6 +67,11 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->xfrdfile = XFRDFILE;
 	opt->xfrdir = XFRDIR;
 	opt->zonelistfile = ZONELISTFILE;
+#ifdef RATELIMIT
+	opt->rrl_size = RRL_BUCKETS;
+	opt->rrl_ratelimit = RRL_LIMIT;
+	opt->rrl_whitelist_ratelimit = RRL_WLIST_LIMIT;
+#endif
 	opt->xfrd_reload_timeout = 1;
 	opt->control_enable = 0;
 	opt->control_interface = NULL;
@@ -725,6 +731,9 @@ pattern_options_t* pattern_options_create(region_type* region)
 	p->allow_axfr_fallback = 1;
 	p->allow_axfr_fallback_is_default = 1;
 	p->implicit = 0;
+#ifdef RATELIMIT
+	p->rrl_whitelist = 0;
+#endif
 	return p;
 }
 
@@ -829,6 +838,9 @@ static void copy_pat_fixed(region_type* region, pattern_options_t* orig,
 	if(p->zonefile)
 		orig->zonefile = region_strdup(region, p->zonefile);
 	else orig->zonefile = NULL;
+#ifdef RATELIMIT
+	orig->rrl_whitelist = p->rrl_whitelist;
+#endif
 }
 
 void pattern_options_add_modify(nsd_options_t* opt, pattern_options_t* p)
@@ -887,6 +899,9 @@ int pattern_options_equal(pattern_options_t* p, pattern_options_t* q)
 	if(!acl_list_equal(p->provide_xfr, q->provide_xfr)) return 0;
 	if(!acl_list_equal(p->outgoing_interface, q->outgoing_interface))
 		return 0;
+#ifdef RATELIMIT
+	if(p->rrl_whitelist != q->rrl_whitelist) return 0;
+#endif
 	return 1;
 }
 
@@ -899,6 +914,17 @@ static void marshal_u8(struct buffer* b, uint8_t v)
 static uint8_t unmarshal_u8(struct buffer* b)
 {
 	return buffer_read_u8(b);
+}
+
+static void marshal_u16(struct buffer* b, uint16_t v)
+{
+	buffer_reserve(b, 2);
+	buffer_write_u16(b, v);
+}
+
+static uint16_t unmarshal_u16(struct buffer* b)
+{
+	return buffer_read_u16(b);
 }
 
 static void marshal_str(struct buffer* b, const char* s)
@@ -970,6 +996,9 @@ void pattern_options_marshal(struct buffer* b, pattern_options_t* p)
 {
 	marshal_str(b, p->pname);
 	marshal_str(b, p->zonefile);
+#ifdef RATELIMIT
+	marshal_u16(b, p->rrl_whitelist);
+#endif
 	marshal_u8(b, p->allow_axfr_fallback);
 	marshal_u8(b, p->allow_axfr_fallback_is_default);
 	marshal_u8(b, p->notify_retry);
@@ -987,6 +1016,9 @@ pattern_options_t* pattern_options_unmarshal(region_type* r, struct buffer* b)
 	pattern_options_t* p = pattern_options_create(r);
 	p->pname = unmarshal_str(r, b);
 	p->zonefile = unmarshal_str(r, b);
+#ifdef RATELIMIT
+	p->rrl_whitelist = unmarshal_u16(b);
+#endif
 	p->allow_axfr_fallback = unmarshal_u8(b);
 	p->allow_axfr_fallback_is_default = unmarshal_u8(b);
 	p->notify_retry = unmarshal_u8(b);
@@ -1639,6 +1671,9 @@ void config_apply_pattern(const char* name)
 		a->notify_retry = pat->notify_retry;
 		a->notify_retry_is_default = 0;
 	}
+#ifdef RATELIMIT
+	a->rrl_whitelist |= pat->rrl_whitelist;
+#endif
 	/* append acl items */
 	append_acl(&a->allow_notify, &cfg_parser->current_allow_notify,
 		pat->allow_notify);

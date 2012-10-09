@@ -533,7 +533,9 @@ server_prepare(struct nsd *nsd)
 	}
 #endif
 #ifdef RATELIMIT
-	rrl_mmap_init(nsd->child_count, RRL_BUCKETS);
+	rrl_mmap_init(nsd->child_count, nsd->options->rrl_size,
+		nsd->options->rrl_ratelimit,
+		nsd->options->rrl_whitelist_ratelimit);
 #endif
 
 	/* Open the database... */

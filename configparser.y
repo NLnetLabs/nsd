@@ -20,6 +20,7 @@
 #include "util.h"
 #include "dname.h"
 #include "tsig.h"
+#include "rrl.h"
 #include "configyyrename.h"
 int c_lex(void);
 void c_error(const char *message);
@@ -62,6 +63,7 @@ extern config_parser_state_t* cfg_parser;
 %token VAR_REMOTE_CONTROL VAR_CONTROL_ENABLE VAR_CONTROL_INTERFACE
 %token VAR_CONTROL_PORT VAR_SERVER_KEY_FILE VAR_SERVER_CERT_FILE
 %token VAR_CONTROL_KEY_FILE VAR_CONTROL_CERT_FILE VAR_XFRDIR
+%token VAR_RRL_SIZE VAR_RRL_RATELIMIT VAR_RRL_WHITELIST_RATELIMIT VAR_RRL_WHITELIST
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -86,7 +88,8 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
 	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
 	server_ipv6_edns_size | server_verbosity | server_hide_version |
-	server_zonelistfile | server_xfrdir;
+	server_zonelistfile | server_xfrdir | server_rrl_size |
+	server_rrl_ratelimit | server_rrl_whitelist_ratelimit;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -305,6 +308,32 @@ server_ipv6_edns_size: VAR_IPV6_EDNS_SIZE STRING
 		cfg_parser->opt->ipv6_edns_size = atoi($2);
 	}
 	;
+server_rrl_size: VAR_RRL_SIZE STRING
+	{ 
+		OUTYY(("P(server_rrl_size:%s)\n", $2)); 
+#ifdef RATELIMIT
+		if(atoi($2) <= 0)
+			yyerror("number greater than zero expected");
+		cfg_parser->opt->rrl_size = atoi($2);
+#endif
+	}
+	;
+server_rrl_ratelimit: VAR_RRL_RATELIMIT STRING
+	{ 
+		OUTYY(("P(server_rrl_ratelimit:%s)\n", $2)); 
+#ifdef RATELIMIT
+		cfg_parser->opt->rrl_ratelimit = atoi($2);
+#endif
+	}
+	;
+server_rrl_whitelist_ratelimit: VAR_RRL_WHITELIST_RATELIMIT STRING
+	{ 
+		OUTYY(("P(server_rrl_whitelist_ratelimit:%s)\n", $2)); 
+#ifdef RATELIMIT
+		cfg_parser->opt->rrl_whitelist_ratelimit = atoi($2);
+#endif
+	}
+	;
 
 rcstart: VAR_REMOTE_CONTROL
 	{
@@ -407,7 +436,8 @@ contents_pattern: contents_pattern content_pattern | content_pattern;
 content_pattern: pattern_name | zone_config_item;
 zone_config_item: zone_zonefile | zone_allow_notify | zone_request_xfr |
 	zone_notify | zone_notify_retry | zone_provide_xfr | 
-	zone_outgoing_interface | zone_allow_axfr_fallback | include_pattern;
+	zone_outgoing_interface | zone_allow_axfr_fallback | include_pattern |
+	zone_rrl_whitelist;
 pattern_name: VAR_NAME STRING
 	{ 
 		OUTYY(("P(pattern_name:%s)\n", $2)); 
@@ -609,6 +639,14 @@ zone_allow_axfr_fallback: VAR_ALLOW_AXFR_FALLBACK STRING
 			cfg_parser->current_pattern->allow_axfr_fallback = (strcmp($2, "yes")==0);
 			cfg_parser->current_pattern->allow_axfr_fallback_is_default = 0;
 		}
+	}
+	;
+zone_rrl_whitelist: VAR_RRL_WHITELIST STRING
+	{ 
+		OUTYY(("P(zone_rrl_whitelist:%s)\n", $2)); 
+#ifdef RATELIMIT
+		cfg_parser->current_pattern->rrl_whitelist |= rrlstr2type($2);
+#endif
 	}
 	;
 

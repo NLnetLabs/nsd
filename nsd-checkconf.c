@@ -308,6 +308,11 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
 		SERV_GET_INT(verbosity, o);
+#ifdef RATELIMIT
+		SERV_GET_INT(rrl_size, o);
+		SERV_GET_INT(rrl_ratelimit, o);
+		SERV_GET_INT(rrl_whitelist_ratelimit, o);
+#endif
 		/* remote control */
 		SERV_GET_BIN(control_enable, o);
 		SERV_GET_IP(control_interface, control_interface, o);
@@ -390,6 +395,11 @@ config_test_print_server(nsd_options_t* opt)
 	{
 		print_string_var("ip-address:", ip->address);
 	}
+#ifdef RATELIMIT
+	printf("\trrl-size: %d\n", (int)opt->rrl_size);
+	printf("\trrl-ratelimit: %d\n", (int)opt->rrl_ratelimit);
+	printf("\trrl-whitelist-ratelimit: %d\n", (int)opt->rrl_whitelist_ratelimit);
+#endif
 
 	printf("\nremote-control:\n");
 	printf("\tcontrol-enable: %s\n", opt->control_enable?"yes":"no");

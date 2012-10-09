@@ -25,11 +25,15 @@ enum rrl_type {
 
 /** Number of buckets */
 #define RRL_BUCKETS 1000000
+/** default rrl limit, in 2x qps , the default is 200 qps */
+#define RRL_LIMIT 400
+/** default whitelist rrl limit, in 2x qps, default is thus 2000 qps */
+#define RRL_WLIST_LIMIT 4000
 
 /**
  * Initialize for n children (optional, otherwise no mmaps used)
  */
-void rrl_mmap_init(int numch, size_t numbuck);
+void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm);
 
 /**
  * Initialize rate limiting (for this child server process)
@@ -56,6 +60,6 @@ enum rrl_type rrlstr2type(const char* s);
 
 /** for unit test, update rrl bucket; return rate */
 uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
-	int32_t now);
+	int32_t now, uint32_t lm);
 
 #endif /* RRL_H */

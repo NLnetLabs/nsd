@@ -4,6 +4,7 @@
 	- unit test for rrl.
 	- rrl uses mmap to save state across reloads.
 	- rrl enum and u16 flags (dnskey type).
+	- rrl whitelist and config.
 
 8 October 2012: Wouter
 	- Sync with unbound lookup3, has raninit value.

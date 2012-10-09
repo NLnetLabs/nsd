@@ -94,6 +94,15 @@ struct nsd_options {
 	/** certificate file for nsd-control */
 	char* control_cert_file;
 
+#ifdef RATELIMIT
+	/** number of buckets in rrl hashtable */
+	size_t rrl_size;
+	/** max qps (2x) for queries, 0 is nolimit */
+	size_t rrl_ratelimit;
+	/** max qps (2x) for whitelisted queries, 0 is nolimit */
+	size_t rrl_whitelist_ratelimit;
+#endif
+
 	region_type* region;
 };
 
@@ -114,6 +123,9 @@ struct pattern_options {
 	acl_options_t* notify;
 	acl_options_t* provide_xfr;
 	acl_options_t* outgoing_interface;
+#ifdef RATELIMIT
+	uint16_t rrl_whitelist; /* bitmap with rrl types */
+#endif
 	uint8_t allow_axfr_fallback;
 	uint8_t allow_axfr_fallback_is_default;
 	uint8_t notify_retry;
