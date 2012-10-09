@@ -1,6 +1,7 @@
 9 October 2012: Wouter
 	- with --enable-ratelimit you enable ratelimiting, with verbosity 2
 	  it logs what is ratelimited for operational inspection.
+	- unit test for rrl.
 
 8 October 2012: Wouter
 	- Sync with unbound lookup3, has raninit value.
