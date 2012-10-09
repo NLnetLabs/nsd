@@ -11,9 +11,14 @@
 #define RRL_BUCKETS 1000000
 
 /**
+ * Initialize for n children (optional, otherwise no mmaps used)
+ */
+void rrl_mmap_init(int numch, size_t numbuck);
+
+/**
  * Initialize rate limiting (for this child server process)
  */
-void rrl_init(void);
+void rrl_init(size_t ch);
 
 /**
  * Process query that happens, the query structure contains the

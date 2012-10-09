@@ -2,6 +2,7 @@
 	- with --enable-ratelimit you enable ratelimiting, with verbosity 2
 	  it logs what is ratelimited for operational inspection.
 	- unit test for rrl.
+	- rrl uses mmap to save state across reloads.
 
 8 October 2012: Wouter
 	- Sync with unbound lookup3, has raninit value.

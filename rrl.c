@@ -5,11 +5,20 @@
  * BSD, see LICENSE.
  */
 #include "config.h"
+#include <errno.h>
 #include "rrl.h"
 #include "util.h"
 #include "lookup3.h"
 
 #ifdef RATELIMIT
+
+#ifdef HAVE_MMAP
+#include <sys/mman.h>
+#if defined(MAP_ANON) && !defined(MAP_ANONYMOUS)
+#define MAP_ANONYMOUS   MAP_ANON
+#endif
+#endif /* HAVE_MMAP */
+
 
 /**
  * The rate limiting data structure bucket, this represents one rate of
@@ -34,9 +43,48 @@ static struct rrl_bucket* rrl_array = NULL;
 static size_t rrl_array_size = RRL_BUCKETS;
 static uint32_t rrl_ratelimit = 400; /* 2x qps, default is 200 qps */
 
-void rrl_init(void)
+/* the array of mmaps for the children (saved between reloads) */
+static void** rrl_maps = NULL;
+static size_t rrl_maps_num = 0;
+
+void rrl_mmap_init(int numch, size_t numbuck)
 {
-	rrl_array = xalloc_zero(sizeof(struct rrl_bucket)*rrl_array_size);
+#ifdef HAVE_MMAP
+	size_t i;
+#endif
+	if(numbuck != 0)
+		rrl_array_size = numbuck;
+#ifdef HAVE_MMAP
+	/* allocate the ratelimit hashtable in a memory map so it is
+	 * preserved across reforks (every child its own table) */
+	rrl_maps_num = (size_t)numch;
+	rrl_maps = (void**)xalloc(sizeof(void*)*rrl_maps_num);
+	for(i=0; i<rrl_maps_num; i++) {
+		rrl_maps[i] = mmap(NULL,
+			sizeof(struct rrl_bucket)*rrl_array_size, 
+			PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+		if(rrl_maps[i] == MAP_FAILED) {
+			log_msg(LOG_ERR, "rrl: mmap failed: %s",
+				strerror(errno));
+			exit(1);
+		}
+		memset(rrl_maps[i], 0,
+			sizeof(struct rrl_bucket)*rrl_array_size);
+	}
+#else
+	(void)numch;
+	rrl_maps_num = 0;
+	rrl_maps = NULL;
+#endif
+}
+
+void rrl_init(size_t ch)
+{
+	if(!rrl_maps || ch >= rrl_maps_num)
+	    rrl_array = xalloc_zero(sizeof(struct rrl_bucket)*rrl_array_size);
+#ifdef HAVE_MMAP
+	else rrl_array = (struct rrl_bucket*)rrl_maps[ch];
+#endif
 }
 
 /** return the source netblock of the query, this is the genuine source

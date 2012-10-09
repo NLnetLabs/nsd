@@ -532,6 +532,9 @@ server_prepare(struct nsd *nsd)
 		hash_set_raninit(random());
 	}
 #endif
+#ifdef RATELIMIT
+	rrl_mmap_init(nsd->child_count, RRL_BUCKETS);
+#endif
 
 	/* Open the database... */
 	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options)) == NULL) {
@@ -1426,7 +1429,7 @@ server_child(struct nsd *nsd)
 	}
 
 #ifdef RATELIMIT
-	rrl_init();
+	rrl_init((nsd->this_child - nsd->children)/sizeof(nsd->children[0]));
 #endif
 
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
