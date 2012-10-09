@@ -1030,7 +1030,7 @@ answer_authoritative(struct nsd   *nsd,
 		/* Generate the domain from the wildcard.  */
 		domain_type *wildcard_child = domain_wildcard_child(closest_encloser);
 #ifdef RATELIMIT
-		q->wildcard_domain = closest_encloser;
+		q->wildcard_domain = wildcard_child;
 #endif
 
 		match = (domain_type *) region_alloc(q->region,

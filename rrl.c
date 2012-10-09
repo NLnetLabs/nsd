@@ -25,8 +25,8 @@ struct rrl_bucket {
 	/* counter for queries arrived in this second */
 	uint32_t counter;
 	/* timestamp, which time is the time of the counter, the rate is from
-	 * one timestep before that, zero means unused. */
-	uint32_t stamp;
+	 * one timestep before that. */
+	int32_t stamp;
 };
 
 /* the (global) array of RRL buckets */
@@ -40,7 +40,7 @@ void rrl_init(void)
 }
 
 /** return the source netblock of the query, this is the genuine source
- * for genuine querys and the target for reflected packets */
+ * for genuine queries and the target for reflected packets */
 static uint64_t rrl_get_source(query_type* query, uint8_t* c2)
 {
 	/* we take a /24 for IPv4 and /64 for IPv6 */
@@ -73,10 +73,10 @@ static const char* rrlsource2str(uint64_t s, uint8_t c2)
 #ifdef INET6
 	if(c2) {
 		/* IPv6 */
-		struct in6_addr a;
-		memset(&a, 0, sizeof(a));
-		memmove(&a, &s, sizeof(s));
-		if(!inet_ntop(AF_INET6, &a, buf, sizeof(buf)))
+		struct in6_addr a6;
+		memset(&a6, 0, sizeof(a6));
+		memmove(&a6, &s, sizeof(s));
+		if(!inet_ntop(AF_INET6, &a6, buf, sizeof(buf)))
 			strlcpy(buf, "[ip6 ntop failed]", sizeof(buf));
 		else	strlcat(buf, "/64", sizeof(buf));
 		return buf;
@@ -199,12 +199,14 @@ static void rrl_attenuate_bucket(struct rrl_bucket* b, int32_t elapsed)
 		 * the counters in the inbetween steps were 0 */
 		/* r(t) = 0 + 0/2 + 0/4 + .. + oldrate/2^dt */
 		b->rate >>= elapsed;
+		/* we know that elapsed >= 2 */
+		b->rate += (b->counter>>(elapsed-1));
 	}
 }
 
 /** update the rate in a ratelimit bucket, return actual rate */
 static uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
-	uint32_t now)
+	int32_t now)
 {
 	struct rrl_bucket* b = &rrl_array[hash % rrl_array_size];
 
@@ -224,14 +226,14 @@ static uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 
 	/* check if old, zero or smooth it */
 	/* circular arith for time */
-	if((int32_t)now - (int32_t)b->stamp == 1) {
+	if(now - b->stamp == 1) {
 		/* very busy bucket and time just stepped one step */
 		b->rate = b->rate/2 + b->counter;
 		b->counter = 1;
 		b->stamp = now;
-	} else if((int32_t)now - (int32_t)b->stamp > 0) {
+	} else if(now - b->stamp > 0) {
 		/* older bucket */
-		rrl_attenuate_bucket(b, (int32_t)now - (int32_t)b->stamp);
+		rrl_attenuate_bucket(b, now - b->stamp);
 		b->counter = 1;
 		b->stamp = now;
 	} else if(now != b->stamp) {
@@ -268,7 +270,8 @@ static uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 int rrl_process_query(query_type* query)
 {
 	uint64_t source;
-	uint32_t hash, now = time(NULL);
+	uint32_t hash;
+	int32_t now = (int32_t)time(NULL);
 
 	/* examine query */
 	examine_query(query, &hash, &source);

@@ -528,7 +528,7 @@ server_prepare(struct nsd *nsd)
 	if(RAND_status() && RAND_bytes((unsigned char*)&v, sizeof(v)) > 0) {
 		hash_set_raninit(v);
 	} else {
-		srandom((unsigned long) getpid() * (unsigned long) time(NULL));
+		srandom((unsigned long)v);
 		hash_set_raninit(random());
 	}
 #endif

@@ -18,7 +18,7 @@ void rrl_init(void);
 /**
  * Process query that happens, the query structure contains the
  * information about the query and the answer.
- * returns true if the query is ratelimited
+ * returns true if the query is ratelimited.
  */
 int rrl_process_query(query_type* query);
 
