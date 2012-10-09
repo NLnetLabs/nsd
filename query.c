@@ -225,6 +225,10 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	q->axfr_current_domain = NULL;
 	q->axfr_current_rrset = NULL;
 	q->axfr_current_rr = 0;
+
+#ifdef RATELIMIT
+	q->wildcard_domain = NULL;
+#endif
 }
 
 /* get a temporary domain number (or 0=failure) */
@@ -1025,6 +1029,9 @@ answer_authoritative(struct nsd   *nsd,
 	} else if (domain_wildcard_child(closest_encloser)) {
 		/* Generate the domain from the wildcard.  */
 		domain_type *wildcard_child = domain_wildcard_child(closest_encloser);
+#ifdef RATELIMIT
+		q->wildcard_domain = closest_encloser;
+#endif
 
 		match = (domain_type *) region_alloc(q->region,
 						     sizeof(domain_type));

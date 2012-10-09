@@ -34,6 +34,8 @@
 #endif
 #include <event.h>
 
+#include <openssl/rand.h>
+
 #include "axfr.h"
 #include "namedb.h"
 #include "netio.h"
@@ -45,6 +47,8 @@
 #include "ipc.h"
 #include "udb.h"
 #include "remote.h"
+#include "lookup3.h"
+#include "rrl.h"
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 
@@ -516,6 +520,19 @@ server_init(struct nsd *nsd)
 int
 server_prepare(struct nsd *nsd)
 {
+	/* set secret modifier for hashing (udb ptr buckets and rate limits) */
+#ifdef HAVE_ARC4RANDOM
+	hash_set_raninit(arc4random());
+#else
+	uint32_t v = getpid() ^ time(NULL);
+	if(RAND_status() && RAND_bytes((unsigned char*)&v, sizeof(v)) > 0) {
+		hash_set_raninit(v);
+	} else {
+		srandom((unsigned long) getpid() * (unsigned long) time(NULL));
+		hash_set_raninit(random());
+	}
+#endif
+
 	/* Open the database... */
 	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options)) == NULL) {
 		log_msg(LOG_ERR, "unable to open the database %s: %s",
@@ -1354,6 +1371,20 @@ server_process_query(struct nsd *nsd, struct query *query)
 	return query_process(query, nsd);
 }
 
+static query_state_type
+server_process_query_udp(struct nsd *nsd, struct query *query)
+{
+#ifdef RATELIMIT
+	if(query_process(query, nsd) != QUERY_DISCARDED) {
+		if(rrl_process_query(query))
+			return rrl_slip(query);
+		else	return QUERY_PROCESSED;
+	}
+	return QUERY_DISCARDED;
+#else
+	return query_process(query, nsd);
+#endif
+}
 
 struct event_base*
 nsd_child_event_base(void)
@@ -1393,6 +1424,10 @@ server_child(struct nsd *nsd)
 		log_msg(LOG_ERR, "nsd server could not create event base");
 		exit(1);
 	}
+
+#ifdef RATELIMIT
+	rrl_init();
+#endif
 
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
 	DEBUG(DEBUG_IPC, 2, (LOG_INFO, "child process started"));
@@ -1583,7 +1618,7 @@ handle_udp(int fd, short event, void* arg)
 		buffer_flip(q->packet);
 
 		/* Process and answer the query... */
-		if (server_process_query(data->nsd, q) != QUERY_DISCARDED) {
+		if (server_process_query_udp(data->nsd, q) != QUERY_DISCARDED) {
 			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet)) {
 				STATUP(data->nsd, nona);
 			}

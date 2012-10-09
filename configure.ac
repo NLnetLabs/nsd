@@ -875,6 +875,15 @@ case "$enable_checking" in
                 ;;
 esac
 
+AC_ARG_ENABLE(ratelimit, AC_HELP_STRING([--enable-ratelimit], [Enable rate limiting]))
+case "$enable_ratelimit" in
+	yes)
+		AC_DEFINE_UNQUOTED([RATELIMIT], [], [Define this to enable rate limiting.])
+		;;
+	no|*)
+		;;
+esac
+
 # we need SSL for TSIG (and maybe also for NSEC3).
 CHECK_SSL
 if test x$HAVE_SSL = x"yes"; then
