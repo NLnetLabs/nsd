@@ -34,7 +34,7 @@ static void rrl_1(CuTest *tc)
 	uint32_t rate = 200;
 	memset(&q, 0, sizeof(q));
 
-	rrl_init();
+	rrl_init(0);
 
 	CuAssert(tc, "rrl 1st query", 1 == rrl_update(&q, hash, source, now));
 	for(i=1; i<rate; i++) {
