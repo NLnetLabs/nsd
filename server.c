@@ -522,15 +522,14 @@ server_prepare(struct nsd *nsd)
 {
 	/* set secret modifier for hashing (udb ptr buckets and rate limits) */
 #ifdef HAVE_ARC4RANDOM
+	srandom(arc4random());
 	hash_set_raninit(arc4random());
 #else
 	uint32_t v = getpid() ^ time(NULL);
-	if(RAND_status() && RAND_bytes((unsigned char*)&v, sizeof(v)) > 0) {
+	srandom((unsigned long)v);
+	if(RAND_status() && RAND_bytes((unsigned char*)&v, sizeof(v)) > 0)
 		hash_set_raninit(v);
-	} else {
-		srandom((unsigned long)v);
-		hash_set_raninit(random());
-	}
+	else	hash_set_raninit(random());
 #endif
 #ifdef RATELIMIT
 	rrl_mmap_init(nsd->child_count, nsd->options->rrl_size,

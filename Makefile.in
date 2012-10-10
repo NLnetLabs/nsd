@@ -75,7 +75,7 @@ NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o netio.o nsd.o server.o dbacce
 ALL_OBJ=$(NSD_OBJ) nsd-checkconf.o nsd-control.o
 NSD_CHECKCONF_OBJ=$(COMMON_OBJ) nsd-checkconf.o
 NSD_CONTROL_OBJ=$(COMMON_OBJ) nsd-control.o
-CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o zonec.o rrl.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_rrl.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest.o qtest.o
+CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o zonec.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_rrl.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest.o qtest.o
 
 all:	$(CCWHOLE)
 
