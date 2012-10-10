@@ -56,8 +56,8 @@ void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm)
 #endif
 	if(numbuck != 0)
 		rrl_array_size = numbuck;
-	rrl_ratelimit = lm;
-	rrl_whitelist_ratelimit = wlm;
+	rrl_ratelimit = lm*2;
+	rrl_whitelist_ratelimit = wlm*2;
 #ifdef HAVE_MMAP
 	/* allocate the ratelimit hashtable in a memory map so it is
 	 * preserved across reforks (every child its own table) */
@@ -152,6 +152,7 @@ enum rrl_type rrlstr2type(const char* s)
 	else if(strcmp(s, "nodata")==0) return rrl_type_nodata;
 	else if(strcmp(s, "dnskey")==0) return rrl_type_dnskey;
 	else if(strcmp(s, "positive")==0) return rrl_type_positive;
+	else if(strcmp(s, "all")==0) return rrl_type_all;
 	return 0; /* unknown */
 }
 
@@ -166,6 +167,7 @@ const char* rrltype2str(enum rrl_type c)
 		case rrl_type_nodata: return "nodata";
 		case rrl_type_dnskey: return "dnskey";
 		case rrl_type_positive: return "positive";
+		case rrl_type_all: return "all";
 	}
 	return "unknown";
 }

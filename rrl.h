@@ -19,6 +19,8 @@ enum rrl_type {
 	rrl_type_dnskey		= 0x40,
 	rrl_type_positive	= 0x80,
 
+	/* all classification types */
+	rrl_type_all		= 0xff,
 	/* to distinguish between ip4 and ip6 netblocks, used in code */
 	rrl_ip6			= 0x8000
 };
