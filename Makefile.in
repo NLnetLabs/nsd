@@ -360,7 +360,8 @@ netio.o: $(srcdir)/netio.c config.h $(srcdir)/netio.h $(srcdir)/region-allocator
 nsd.o: $(srcdir)/nsd.c config.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
  $(srcdir)/util.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/tsig.h $(srcdir)/dname.h $(srcdir)/remote.h
 nsd-checkconf.o: $(srcdir)/nsd-checkconf.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h \
- $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dname.h $(srcdir)/options.h $(srcdir)/rbtree.h
+ $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dname.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/rrl.h $(srcdir)/query.h \
+ $(srcdir)/namedb.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h
 nsd-control.o: $(srcdir)/nsd-control.c config.h $(srcdir)/util.h $(srcdir)/tsig.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/dname.h $(srcdir)/options.h $(srcdir)/rbtree.h
 nsec3.o: $(srcdir)/nsec3.c config.h $(srcdir)/nsec3.h $(srcdir)/iterated_hash.h $(srcdir)/namedb.h $(srcdir)/dname.h \
