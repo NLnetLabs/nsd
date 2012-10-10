@@ -1,3 +1,6 @@
+10 October 2012: Wouter
+	- implement nsd-checkconf option use of rrl-whitelist.
+
 9 October 2012: Wouter
 	- with --enable-ratelimit you enable ratelimiting, with verbosity 2
 	  it logs what is ratelimited for operational inspection.

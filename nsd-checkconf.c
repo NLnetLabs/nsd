@@ -16,6 +16,7 @@
 #include "options.h"
 #include "util.h"
 #include "dname.h"
+#include "rrl.h"
 
 extern char *optarg;
 extern int optind;
@@ -46,6 +47,12 @@ extern int optind;
 		return;					\
 	}
 
+#define ZONE_GET_RRL(NAME, VAR, PATTERN) 			\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
+		zone_print_rrl_whitelist("", PATTERN->NAME);	\
+		return;					\
+	}
+
 #define SERV_GET_BIN(NAME, VAR) 			\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
 		printf("%s\n", opt->NAME?"yes":"no"); 	\
@@ -72,6 +79,21 @@ extern int optind;
 		}						\
 		return;						\
 	}
+
+#ifdef RATELIMIT
+static void zone_print_rrl_whitelist(const char* s, uint16_t w)
+{
+	int i;
+	if(w==rrl_type_all) {
+		printf("%sall\n", s);
+		return;
+	}
+	for(i=0x01; i <= 0x80; i<<=1) {
+		if( (w&i) )
+			printf("%s%s\n", s, rrltype2str(i));
+	}
+}
+#endif /* RATELIMIT */
 
 static char buf[BUFSIZ];
 
@@ -255,6 +277,9 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		ZONE_GET_BIN(notify_retry, o, zone->pattern);
 		ZONE_GET_OUTGOING(outgoing_interface, o, zone->pattern);
 		ZONE_GET_BIN(allow_axfr_fallback, o, zone->pattern);
+#ifdef RATELIMIT
+		ZONE_GET_RRL(rrl_whitelist, o, zone->pattern);
+#endif
 		printf("Zone option not handled: %s %s\n", z, o);
 		exit(1);
 	} else if(pat) {
@@ -275,6 +300,9 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		ZONE_GET_BIN(notify_retry, o, p);
 		ZONE_GET_OUTGOING(outgoing_interface, o, p);
 		ZONE_GET_BIN(allow_axfr_fallback, o, p);
+#ifdef RATELIMIT
+		ZONE_GET_RRL(rrl_whitelist, o, p);
+#endif
 		printf("Pattern option not handled: %s %s\n", pat, o);
 		exit(1);
 	} else {
@@ -344,6 +372,9 @@ static void print_zone_content_elems(pattern_options_t* pat)
 {
 	if(pat->zonefile)
 		print_string_var("zonefile:", pat->zonefile);
+#ifdef RATELIMIT
+	zone_print_rrl_whitelist("\trrl-whitelist: ", pat->rrl_whitelist);
+#endif
 	print_acl("allow-notify:", pat->allow_notify);
 	print_acl("request-xfr:", pat->request_xfr);
 	if(!pat->notify_retry_is_default)
