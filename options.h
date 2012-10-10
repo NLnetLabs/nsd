@@ -97,9 +97,9 @@ struct nsd_options {
 #ifdef RATELIMIT
 	/** number of buckets in rrl hashtable */
 	size_t rrl_size;
-	/** max qps (2x) for queries, 0 is nolimit */
+	/** max qps for queries, 0 is nolimit */
 	size_t rrl_ratelimit;
-	/** max qps (2x) for whitelisted queries, 0 is nolimit */
+	/** max qps for whitelisted queries, 0 is nolimit */
 	size_t rrl_whitelist_ratelimit;
 #endif
 

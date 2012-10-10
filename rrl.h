@@ -34,6 +34,7 @@ enum rrl_type {
 
 /**
  * Initialize for n children (optional, otherwise no mmaps used)
+ * ratelimits lm and wlm are in qps (this routines x2s them for internal use).
  */
 void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm);
 
