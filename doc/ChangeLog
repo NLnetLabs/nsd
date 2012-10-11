@@ -1,5 +1,6 @@
 11 October 2012: Wouter
 	- Fix build on OpenBSD (Thanks Oliver Peter).
+	- tpkg for RRL.
 
 10 October 2012: Wouter
 	- implement nsd-checkconf option use of rrl-whitelist.
