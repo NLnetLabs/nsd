@@ -1,5 +1,8 @@
 NSD RELEASE NOTES
 
+upcoming
+	- Fix build on OpenBSD (Thanks Oliver Peter).
+
 3.2.13
 ================
 FEATURES:
