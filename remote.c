@@ -528,7 +528,7 @@ remote_accept_callback(int fd, short event, void* arg)
 		goto close_exit;
 	}
 
-	n->tval.tv_sec = REMOTE_CONTROL_TCP_TIMEOUT + xfrd_time();
+	n->tval.tv_sec = REMOTE_CONTROL_TCP_TIMEOUT; 
 	n->tval.tv_usec = 0L;
 
 	event_set(&n->c, newfd, EV_PERSIST|EV_TIMEOUT|EV_READ,
