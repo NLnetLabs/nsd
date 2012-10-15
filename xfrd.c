@@ -618,6 +618,8 @@ xfrd_handle_zone(int ATTR_UNUSED(fd), short event, void* arg)
 	xfrd_zone_t* zone = (xfrd_zone_t*)arg;
 
 	if(zone->tcp_conn != -1) {
+		if(event == 0) /* activated, but already in TCP, nothing to do*/
+			return;
 		/* busy in tcp transaction: an internal error */
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp", zone->apex_str));
 		xfrd_tcp_release(xfrd->tcp_set, zone);

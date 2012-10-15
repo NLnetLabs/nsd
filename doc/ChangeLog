@@ -1,3 +1,7 @@
+15 October 2012: Wouter
+	- Fix activated zone does not interrupt transfer.
+	- Log of connection failure for zone transfer is neater.
+
 12 October 2012: Wouter
 	- Fix invalid time argument in nsd control (for OpenBSD).
 

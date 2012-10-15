@@ -333,12 +333,7 @@ void
 xfrd_handle_tcp_pipe(int ATTR_UNUSED(fd), short event, void* arg)
 {
 	struct xfrd_tcp_pipeline* tp = (struct xfrd_tcp_pipeline*)arg;
-	if((event & EV_READ)) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: event tcp read"));
-		tcp_pipe_reset_timeout(tp);
-		xfrd_tcp_read(tp);
-	}
-	if((event & EV_WRITE) && tp->handler_added) {
+	if((event & EV_WRITE)) {
 		tcp_pipe_reset_timeout(tp);
 		if(tp->tcp_send_first) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: event tcp write, zone %s",
@@ -346,7 +341,12 @@ xfrd_handle_tcp_pipe(int ATTR_UNUSED(fd), short event, void* arg)
 			xfrd_tcp_write(tp, tp->tcp_send_first);
 		}
 	}
-	if((event & EV_TIMEOUT)) {
+	if((event & EV_READ) && tp->handler_added) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: event tcp read"));
+		tcp_pipe_reset_timeout(tp);
+		xfrd_tcp_read(tp);
+	}
+	if((event & EV_TIMEOUT) && tp->handler_added) {
 		/* tcp connection timed out */
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: event tcp timeout"));
 		xfrd_tcp_pipe_stop(tp);
@@ -665,8 +665,9 @@ xfrd_tcp_write(struct xfrd_tcp_pipeline* tp, xfrd_zone_t* zone)
 		if(error == EINPROGRESS || error == EWOULDBLOCK)
 			return; /* try again later */
 		if(error != 0) {
-			log_msg(LOG_ERR, "Could not tcp connect to %s: %s",
-				zone->master->ip_address_spec, strerror(error));
+			log_msg(LOG_ERR, "%s: Could not tcp connect to %s: %s",
+				zone->apex_str, zone->master->ip_address_spec,
+				strerror(error));
 			xfrd_tcp_pipe_stop(tp);
 			return;
 		}
