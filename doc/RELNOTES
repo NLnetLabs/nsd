@@ -1,21 +1,29 @@
 NSD RELEASE NOTES
 
-upcoming
-	- Fix build on OpenBSD (Thanks Oliver Peter).
+3.2.14 (upcoming)
+================
+
+FEATURES:
+	- TCP writev support.
+
+BUG FIXES:
+	- Fix build on OpenBSD (thanks Oliver Peter).
+        - Prioritize notify sender for requesting XFR (thanks Ilya Bakulin).
+	- Fix crash in zonec if TXT string too long  (thanks Ilya Bakulin).
+        - tzset before chroot for correct timezone (thanks Camiel Dobbelaar).
+	- Fix --disable-full-prehash bug when nsdc patch happens while ixfr too,
+	  it did not rehash the new database.
+	- Bugfix #464: Conditionally define MAXHOSTNAMELEN.
 
 3.2.13
 ================
-FEATURES:
-	- TCP writev support.
+
 BUG FIXES:
 	- Fix for nsd-patch segfault if zone has been removed from nsd.conf
 	  (thanks Ilya Bakulin).
 	- Bugfix #460: man page correction - identity.
 	- Bugfix #461: NSD child segfaults when asked for out-of-zone data
 	  with --enable-zone-stats. [VU#517036 CVE-2012-2979]
-        - Prioritize notify sender for requesting XFR.
-          (thanks Ilya Bakulin)
-	- Fix --disable-full-prehash when nsdc patch happens while ixfr too.
 
 
 3.2.12

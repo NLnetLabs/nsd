@@ -19,6 +19,9 @@
 	- Fix hang on exit in xfrd.
 	- Fix bug#464: Conditionally define MAXHOSTNAMELEN
 
+9 August 2012: Matthijs
+	- Code review (Thanks CZ.NIC)
+
 26 July 2012: Yuri
 	- Prioritize notify sender for requesting XFR.
 	  (thanks Ilya Bakulin)
