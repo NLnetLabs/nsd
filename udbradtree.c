@@ -582,7 +582,7 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 		}
 		/* create stringspace for the shared prefix */
 		if(common_len > 0) {
-			if(!udb_radnode_str_space(udb, &rnode, common_len-1)) {
+			if(!udb_radnode_str_space(udb, n, common_len-1)) {
 				udb_ptr_unlink(&rnode, udb);
 				udb_radnode_delete(udb, &com);
 				return 0;
