@@ -852,9 +852,9 @@ random_generate(int max)
 #ifdef HAVE_ARC4RANDOM_UNIFORM
     return (int) arc4random_uniform(max);
 #elif HAVE_ARC4RANDOM
-    return (int) arc4random() % max;
+    return (int) (arc4random() % max);
 #else
-    return (int) random() % max;
+    return (int) ((unsigned)random() % max);
 #endif
 }
 

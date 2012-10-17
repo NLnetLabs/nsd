@@ -207,8 +207,10 @@ pipeline_find(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	struct xfrd_tcp_pipeline* r;
 	/* smaller buf than a full pipeline with 64kb ID array, only need
 	 * the front part with the key info */
-	char buf[sizeof(struct xfrd_tcp_pipeline) -
-		ID_PIPE_NUM*(sizeof(struct xfrd_zone*) + sizeof(uint16_t))];
+	/* void* type for alignment of the struct */
+	void* buf[ (sizeof(struct xfrd_tcp_pipeline) -
+		ID_PIPE_NUM*(sizeof(struct xfrd_zone*) + sizeof(uint16_t))) /
+		sizeof(void*) + 1];
 	struct xfrd_tcp_pipeline* key = (struct xfrd_tcp_pipeline*)&buf;
 	key->node.key = key;
 	key->ip_len = xfrd_acl_sockaddr_to(zone->master, &key->ip);
