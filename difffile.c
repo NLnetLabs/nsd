@@ -22,6 +22,7 @@
 #include "udbzone.h"
 #include "nsec3.h"
 #include "nsd.h"
+#include "rrl.h"
 
 static int
 write_32(FILE *out, uint32_t val)
@@ -1526,6 +1527,23 @@ void task_new_del_pattern(udb_base* udb, udb_ptr* last, const char* name)
 	udb_ptr_unlink(&e, udb);
 }
 
+void task_new_opt_change(udb_base* udb, udb_ptr* last, nsd_options_t* opt)
+{
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task opt_change"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d),
+		NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add o_c");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_opt_change;
+#ifdef RATELIMIT
+	TASKLIST(&e)->oldserial = opt->rrl_ratelimit;
+	TASKLIST(&e)->newserial = opt->rrl_whitelist_ratelimit;
+#endif
+	udb_ptr_unlink(&e, udb);
+}
+
 int
 task_new_apply_xfr(udb_base* udb, udb_ptr* last, const dname_type* dname,
 	uint32_t old_serial, uint32_t new_serial, uint64_t filenumber)
@@ -1708,6 +1726,17 @@ task_process_del_pattern(struct nsd* nsd, struct task_list_d* task)
 }
 
 static void
+task_process_opt_change(struct nsd* nsd, struct task_list_d* task)
+{
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "optchange task"));
+#ifdef RATELIMIT
+	nsd->options->rrl_ratelimit = task->oldserial;
+	nsd->options->rrl_whitelist_ratelimit = task->newserial;
+	rrl_set_limit(nsd->options->rrl_ratelimit, nsd->options->rrl_whitelist_ratelimit);
+#endif
+}
+
+static void
 task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	udb_ptr* task)
 {
@@ -1775,6 +1804,9 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_del_pattern:
 		task_process_del_pattern(nsd, TASKLIST(task));
+		break;
+	case task_opt_change:
+		task_process_opt_change(nsd, TASKLIST(task));
 		break;
 	case task_apply_xfr:
 		task_process_apply_xfr(nsd, udb, last_task, task);

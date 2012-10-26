@@ -1,3 +1,6 @@
+26 October 2012: Wouter
+	- nsd-control repattern also changes rrl-ratelimit and whitelist limit.
+
 17 October 2012: Wouter
 	- Fix alignment problem in zone transfer pipeline code.
 	- Fix random generator generating negative.

@@ -1304,6 +1304,33 @@ static void repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 	repat_interrupt_notify_start(xfrd);
 }
 
+/** true if options are different that can be set via repat. */
+static int repat_options_changed(xfrd_state_t* xfrd, nsd_options_t* newopt)
+{
+#ifdef RATELIMIT
+	if(xfrd->nsd->options->rrl_ratelimit != newopt->rrl_ratelimit)
+		return 1;
+	if(xfrd->nsd->options->rrl_whitelist_ratelimit != newopt->rrl_whitelist_ratelimit)
+		return 1;
+#endif
+	return 0;
+}
+
+/** check if global options have changed */
+static void repat_options(xfrd_state_t* xfrd, nsd_options_t* newopt)
+{
+	if(repat_options_changed(xfrd, newopt)) {
+		/* update our options */
+#ifdef RATELIMIT
+		xfrd->nsd->options->rrl_ratelimit = newopt->rrl_ratelimit;
+		xfrd->nsd->options->rrl_whitelist_ratelimit = newopt->rrl_whitelist_ratelimit;
+#endif
+		task_new_opt_change(xfrd->nsd->task[xfrd->nsd->mytask],
+			xfrd->last_task, newopt);
+		xfrd_set_reload_now(xfrd);
+	}
+}
+
 /** print errors over ssl, gets pointer-to-pointer to ssl, so it can set
  * the pointer to NULL on failure and stop printing */
 static void print_ssl_cfg_err(void* arg, const char* str)
@@ -1348,6 +1375,7 @@ do_repattern(SSL* ssl, xfrd_state_t* xfrd)
 	 * first the keys, so that pattern->keyptr can be set right. */
 	repat_keys(xfrd, opt);
 	repat_patterns(xfrd, opt);
+	repat_options(xfrd, opt);
 	send_ok(ssl);
 	region_destroy(region);
 }

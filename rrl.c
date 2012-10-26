@@ -82,6 +82,12 @@ void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm)
 #endif
 }
 
+void rrl_set_limit(size_t lm, size_t wlm)
+{
+	rrl_ratelimit = lm*2;
+	rrl_whitelist_ratelimit = wlm*2;
+}
+
 void rrl_init(size_t ch)
 {
 	if(!rrl_maps || ch >= rrl_maps_num)
