@@ -1,3 +1,6 @@
+30 October 2012: Wouter
+	- review fixup of RRL SLIP response.
+
 26 October 2012: Wouter
 	- nsd-control repattern also changes rrl-ratelimit and whitelist limit.
 

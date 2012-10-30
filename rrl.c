@@ -379,7 +379,7 @@ query_state_type rrl_slip(query_type* query)
 		if(query->qname)
 			/* header, type, class, qname */
 			buffer_set_limit(query->packet,
-				QHEADERSZ+8+query->qname->name_size);
+				QHEADERSZ+4+query->qname->name_size);
 		else 	buffer_set_limit(query->packet, QHEADERSZ);
 		return QUERY_PROCESSED;
 	}
