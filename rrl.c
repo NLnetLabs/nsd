@@ -6,6 +6,7 @@
  */
 #include "config.h"
 #include <errno.h>
+#include <ctype.h>
 #include "rrl.h"
 #include "util.h"
 #include "lookup3.h"
@@ -48,6 +49,37 @@ static uint32_t rrl_whitelist_ratelimit = RRL_WLIST_LIMIT; /* 2x qps */
 /* the array of mmaps for the children (saved between reloads) */
 static void** rrl_maps = NULL;
 static size_t rrl_maps_num = 0;
+
+/* from NSD4 for RRL logs */
+static char* wiredname2str(const uint8_t* dname)
+{
+	static char buf[MAXDOMAINLEN*5+3];
+	char* p = buf;
+	uint8_t lablen;
+	if(*dname == 0) {
+		strlcpy(buf, ".", sizeof(buf));
+		return buf;
+	}
+	lablen = *dname++;
+	while(lablen) {
+		while(lablen--) {
+			uint8_t ch = *dname++;
+			if (isalnum(ch) || ch == '-' || ch == '_') {
+				*p++ = ch;
+			} else if (ch == '.' || ch == '\\') {
+				*p++ = '\\';
+				*p++ = ch;
+			} else {
+				snprintf(p, 5, "\\%03u", (unsigned int)ch);
+				p += 4;
+			}
+		}
+		lablen = *dname++;
+		*p++ = '.';
+	}
+	*p++ = 0;
+	return buf;
+}
 
 void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm)
 {
@@ -250,7 +282,7 @@ static void examine_query(query_type* query, uint32_t* hash, uint64_t* source,
 	*source = rrl_get_source(query, &c2);
 	c = rrl_classify(query, &dname, &dname_len);
 	if(query->zone && query->zone->opts && 
-		(query->zone->opts->pattern->rrl_whitelist & c))
+		(query->zone->opts->rrl_whitelist & c))
 		*lm = rrl_whitelist_ratelimit;
 	if(*lm == 0) return;
 	c |= c2;
@@ -332,7 +364,7 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 			uint64_t s = rrl_get_source(query, &c2);
 			c = rrl_classify(query, &d, &d_len) | c2;
 			if(query->zone && query->zone->opts && 
-				(query->zone->opts->pattern->rrl_whitelist & c))
+				(query->zone->opts->rrl_whitelist & c))
 				wl = 1;
 			log_msg(LOG_INFO, "ratelimit %s type %s%s target %s",
 				d?wiredname2str(d):"", rrltype2str(c),
@@ -379,7 +411,7 @@ query_state_type rrl_slip(query_type* query)
 		if(query->qname)
 			/* header, type, class, qname */
 			buffer_set_limit(query->packet,
-				QHEADERSZ+8+query->qname->name_size);
+				QHEADERSZ+4+query->qname->name_size);
 		else 	buffer_set_limit(query->packet, QHEADERSZ);
 		return QUERY_PROCESSED;
 	}
