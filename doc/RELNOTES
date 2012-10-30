@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 
 FEATURES:
 	- TCP writev support.
+	- RRL, --enable-ratelimit at configure time and config options.
 
 BUG FIXES:
 	- Fix build on OpenBSD (thanks Oliver Peter).

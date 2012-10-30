@@ -13,6 +13,7 @@
 #include "options.h"
 #include "query.h"
 #include "tsig.h"
+#include "rrl.h"
 
 #include "configyyrename.h"
 nsd_options_t* nsd_options = 0;
@@ -63,6 +64,11 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->difffile = DIFFFILE;
 	opt->xfrdfile = XFRDFILE;
 	opt->xfrd_reload_timeout = 10;
+#ifdef RATELIMIT
+	opt->rrl_size = RRL_BUCKETS;
+	opt->rrl_ratelimit = RRL_LIMIT;
+	opt->rrl_whitelist_ratelimit = RRL_WLIST_LIMIT;
+#endif
 	nsd_options = opt;
 	return opt;
 }
@@ -231,6 +237,9 @@ zone_options_t* zone_options_create(region_type* region)
 	zone->provide_xfr = 0;
 	zone->outgoing_interface = 0;
 	zone->allow_axfr_fallback = 1;
+#ifdef RATELIMIT
+	zone->rrl_whitelist = 0;
+#endif
 	return zone;
 }
 

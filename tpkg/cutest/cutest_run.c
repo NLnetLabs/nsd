@@ -17,6 +17,9 @@ CuSuite * reg_cutest_dns(void);
 CuSuite * reg_cutest_iterated_hash(void);
 CuSuite * reg_cutest_dname(void);
 CuSuite * reg_cutest_region(void);
+#ifdef RATELIMIT
+CuSuite * reg_cutest_rrl(void);
+#endif
 
 /* dummy functions to link */
 struct nsd;
@@ -50,6 +53,9 @@ int runalltests(void)
 	CuSuiteAddSuite(suite, reg_cutest_rbtree());
 	CuSuiteAddSuite(suite, reg_cutest_util());
 	CuSuiteAddSuite(suite, reg_cutest_iterated_hash());
+#ifdef RATELIMIT
+	CuSuiteAddSuite(suite, reg_cutest_rrl());
+#endif
 
 	CuSuiteRunDisplay(suite, disp_callback);
 	fprintf(stderr, "\n");

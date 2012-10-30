@@ -1,3 +1,6 @@
+30 October 2012: Wouter
+	- --enable-ratelimit enables RRL code (ported from NSD4).
+
 18 October 2012: Matthijs
 	- Bump version
 

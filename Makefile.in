@@ -81,6 +81,7 @@ ALL_OBJECTS	=			\
 	edns.o				\
 	ipc.o				\
 	iterated_hash.o			\
+	lookup3.o			\
 	namedb.o			\
 	netio.o				\
 	nsd-checkconf.o			\
@@ -95,6 +96,7 @@ ALL_OBJECTS	=			\
 	rbtree.o			\
 	rdata.o				\
 	region-allocator.o		\
+	rrl.o				\
 	server.o			\
 	tsig.o				\
 	tsig-openssl.o			\
@@ -121,6 +123,7 @@ NSD_OBJECTS	=				\
 	edns.o					\
 	ipc.o					\
 	iterated_hash.o				\
+	lookup3.o				\
 	namedb.o				\
 	netio.o					\
 	nsd.o					\
@@ -130,6 +133,7 @@ NSD_OBJECTS	=				\
 	rbtree.o				\
 	rdata.o					\
 	region-allocator.o			\
+	rrl.o					\
 	server.o				\
 	tsig.o					\
 	tsig-openssl.o				\
@@ -152,6 +156,7 @@ ZONEC_OBJECTS	=				\
 	dns.o					\
 	edns.o					\
 	iterated_hash.o				\
+	lookup3.o				\
 	namedb.o				\
 	nsec3.o					\
 	options.o				\
@@ -160,6 +165,7 @@ ZONEC_OBJECTS	=				\
 	rbtree.o				\
 	rdata.o					\
 	region-allocator.o			\
+	rrl.o					\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o					\
@@ -178,6 +184,7 @@ NSD_NOTIFY_OBJECTS	=			\
 	dns.o					\
 	edns.o					\
 	iterated_hash.o				\
+	lookup3.o				\
 	namedb.o				\
 	nsd-notify.o				\
 	nsec3.o					\
@@ -187,6 +194,7 @@ NSD_NOTIFY_OBJECTS	=			\
 	rbtree.o				\
 	rdata.o                                 \
 	region-allocator.o			\
+	rrl.o					\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o
@@ -202,6 +210,7 @@ NSD_XFER_OBJECTS	=			\
 	dns.o					\
 	edns.o					\
 	iterated_hash.o				\
+	lookup3.o				\
 	namedb.o				\
 	nsd-xfer.o				\
 	nsec3.o					\
@@ -211,6 +220,7 @@ NSD_XFER_OBJECTS	=			\
 	rbtree.o				\
 	rdata.o					\
 	region-allocator.o			\
+	rrl.o					\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o
@@ -226,6 +236,7 @@ NSD_CHECKCONF_OBJECTS	=			\
 	dns.o                                   \
 	edns.o					\
 	iterated_hash.o				\
+	lookup3.o				\
 	namedb.o                                \
 	nsd-checkconf.o                         \
 	nsec3.o					\
@@ -235,6 +246,7 @@ NSD_CHECKCONF_OBJECTS	=			\
 	rbtree.o                                \
 	rdata.o                                 \
 	region-allocator.o                      \
+	rrl.o					\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o
@@ -252,6 +264,7 @@ NSD_PATCH_OBJECTS	=			\
 	dns.o                                   \
 	edns.o					\
 	iterated_hash.o				\
+	lookup3.o				\
 	namedb.o				\
 	nsd-patch.o				\
 	nsec3.o					\
@@ -261,6 +274,7 @@ NSD_PATCH_OBJECTS	=			\
 	rbtree.o                                \
 	rdata.o                                 \
 	region-allocator.o                      \
+	rrl.o					\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o
@@ -280,6 +294,7 @@ CUTEST_OBJECTS		=			\
 	edns.o					\
 	ipc.o					\
 	iterated_hash.o				\
+	lookup3.o				\
 	namedb.o				\
 	netio.o					\
 	nsec3.o					\
@@ -288,6 +303,7 @@ CUTEST_OBJECTS		=			\
 	rbtree.o				\
 	rdata.o					\
 	region-allocator.o			\
+	rrl.o					\
 	server.o				\
 	tsig.o					\
 	tsig-openssl.o				\
@@ -303,6 +319,7 @@ CUTEST_OBJECTS		=			\
 	cutest_rbtree.o 			\
 	cutest_options.o 			\
 	cutest_region.o 			\
+	cutest_rrl.o 				\
 	cutest_util.o 				\
 	cutest.o
 
@@ -488,6 +505,9 @@ cutest_run.o:	$(srcdir)/tpkg/cutest/cutest_run.c
 cutest_rbtree.o:	$(srcdir)/tpkg/cutest/cutest_rbtree.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_rbtree.c -o $@
 
+cutest_rrl.o:	$(srcdir)/tpkg/cutest/cutest_rrl.c
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_rrl.c -o $@
+
 cutest_options.o:	$(srcdir)/tpkg/cutest/cutest_options.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_options.c -o $@
 
@@ -562,13 +582,15 @@ buffer.o: $(srcdir)/buffer.c config.h $(srcdir)/buffer.h $(srcdir)/region-alloca
 configlexer.o: configlexer.c $(srcdir)/configyyrename.h config.h $(srcdir)/options.h \
  $(srcdir)/region-allocator.h $(srcdir)/rbtree.h configparser.h
 configparser.o: configparser.c config.h $(srcdir)/options.h $(srcdir)/region-allocator.h \
- $(srcdir)/rbtree.h $(srcdir)/util.h $(srcdir)/configyyrename.h
+ $(srcdir)/rbtree.h $(srcdir)/util.h $(srcdir)/rrl.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/dns.h $(srcdir)/nsd.h \
+ $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h $(srcdir)/configyyrename.h
 dbaccess.o: $(srcdir)/dbaccess.c config.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/rbtree.h $(srcdir)/options.h
 dbcreate.o: $(srcdir)/dbcreate.c config.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
- $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h
-difffile.o: $(srcdir)/difffile.c config.h $(srcdir)/difffile.h $(srcdir)/rbtree.h $(srcdir)/region-allocator.h \
- $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/options.h $(srcdir)/packet.h $(srcdir)/rdata.h
+ $(srcdir)/region-allocator.h $(srcdir)/util.h config.h $(srcdir)/dns.h $(srcdir)/rbtree.h
+difffile.o: $(srcdir)/difffile.c config.h $(srcdir)/difffile.h $(srcdir)/config.h $(srcdir)/rbtree.h \
+ $(srcdir)/region-allocator.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/options.h \
+ $(srcdir)/packet.h $(srcdir)/rdata.h $(srcdir)/nsec3.h
 dname.o: $(srcdir)/dname.c config.h $(srcdir)/dns.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
  $(srcdir)/util.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h
 dns.o: $(srcdir)/dns.c config.h $(srcdir)/dns.h $(srcdir)/zonec.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
@@ -578,41 +600,51 @@ ipc.o: $(srcdir)/ipc.c config.h $(srcdir)/ipc.h $(srcdir)/netio.h $(srcdir)/regi
  $(srcdir)/xfrd-tcp.h $(srcdir)/xfrd.h $(srcdir)/rbtree.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/dns.h $(srcdir)/options.h $(srcdir)/tsig.h $(srcdir)/nsd.h \
  $(srcdir)/edns.h $(srcdir)/xfrd-notify.h
 iterated_hash.o: $(srcdir)/iterated_hash.c config.h $(srcdir)/iterated_hash.h
+lookup3.o: $(srcdir)/lookup3.c config.h $(srcdir)/lookup3.h
 namedb.o: $(srcdir)/namedb.c config.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
  $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h
 netio.o: $(srcdir)/netio.c config.h $(srcdir)/netio.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 nsd.o: $(srcdir)/nsd.c config.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
- $(srcdir)/util.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/tsig.h $(srcdir)/dname.h
+ $(srcdir)/util.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/rbtree.h $(srcdir)/options.h $(srcdir)/tsig.h
 nsd-checkconf.o: $(srcdir)/nsd-checkconf.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h \
- $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dname.h $(srcdir)/options.h $(srcdir)/rbtree.h
+ $(srcdir)/region-allocator.h $(srcdir)/util.h config.h $(srcdir)/dname.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/rrl.h \
+ $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dns.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h
 nsd-notify.o: $(srcdir)/nsd-notify.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
- $(srcdir)/util.h $(srcdir)/dname.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/dns.h $(srcdir)/rbtree.h \
- $(srcdir)/region-allocator.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/buffer.h $(srcdir)/packet.h $(srcdir)/tsig.h
-nsd-patch.o: $(srcdir)/nsd-patch.c config.h $(srcdir)/options.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h \
- $(srcdir)/difffile.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h
+ $(srcdir)/util.h config.h $(srcdir)/dname.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/dns.h $(srcdir)/rbtree.h \
+ $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/buffer.h $(srcdir)/packet.h $(srcdir)/tsig.h
+nsd-patch.o: $(srcdir)/nsd-patch.c config.h $(srcdir)/options.h $(srcdir)/config.h $(srcdir)/region-allocator.h \
+ $(srcdir)/rbtree.h $(srcdir)/difffile.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h
 nsd-xfer.o: $(srcdir)/nsd-xfer.c config.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
- $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/rbtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h \
- $(srcdir)/rdata.h $(srcdir)/tsig-openssl.h $(srcdir)/zonec.h
-nsec3.o: $(srcdir)/nsec3.c config.h $(srcdir)/nsec3.h $(srcdir)/iterated_hash.h $(srcdir)/namedb.h $(srcdir)/dname.h \
- $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/answer.h \
- $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/tsig.h
-options.o: $(srcdir)/options.c config.h $(srcdir)/options.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h \
- $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h \
- $(srcdir)/tsig.h $(srcdir)/difffile.h $(srcdir)/configyyrename.h configparser.h
+ $(srcdir)/util.h config.h $(srcdir)/dns.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/rbtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h \
+ $(srcdir)/tsig.h $(srcdir)/tsig-openssl.h
+nsec3.o: $(srcdir)/nsec3.c config.h $(srcdir)/nsec3.h $(srcdir)/iterated_hash.h $(srcdir)/config.h $(srcdir)/namedb.h \
+ $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h \
+ $(srcdir)/answer.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/tsig.h
+options.o: $(srcdir)/options.c config.h $(srcdir)/options.h $(srcdir)/config.h $(srcdir)/region-allocator.h \
+ $(srcdir)/rbtree.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/nsd.h $(srcdir)/edns.h \
+ $(srcdir)/packet.h $(srcdir)/tsig.h $(srcdir)/rrl.h $(srcdir)/configyyrename.h
 packet.o: $(srcdir)/packet.c config.h $(srcdir)/packet.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
- $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/rbtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h $(srcdir)/rdata.h
+ $(srcdir)/region-allocator.h $(srcdir)/util.h config.h $(srcdir)/rbtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h \
+ $(srcdir)/rdata.h
 query.o: $(srcdir)/query.c config.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/rbtree.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h \
- $(srcdir)/axfr.h $(srcdir)/options.h $(srcdir)/nsec3.h
+ $(srcdir)/axfr.h $(srcdir)/options.h $(srcdir)/nsec3.h config.h
 rbtree.o: $(srcdir)/rbtree.c config.h $(srcdir)/rbtree.h $(srcdir)/region-allocator.h
 rdata.o: $(srcdir)/rdata.c config.h $(srcdir)/rdata.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/rbtree.h $(srcdir)/zonec.h
 region-allocator.o: $(srcdir)/region-allocator.c config.h $(srcdir)/region-allocator.h $(srcdir)/util.h
+rrl.o: $(srcdir)/rrl.c config.h $(srcdir)/rrl.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
+ $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h \
+ $(srcdir)/lookup3.h $(srcdir)/options.h
+rrl-orig.o: $(srcdir)/rrl-orig.c config.h $(srcdir)/rrl.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
+ $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h \
+ $(srcdir)/lookup3.h $(srcdir)/options.h
 server.o: $(srcdir)/server.c config.h $(srcdir)/axfr.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/rbtree.h $(srcdir)/packet.h \
- $(srcdir)/tsig.h $(srcdir)/netio.h $(srcdir)/xfrd.h $(srcdir)/options.h $(srcdir)/xfrd-tcp.h $(srcdir)/difffile.h $(srcdir)/nsec3.h $(srcdir)/ipc.h
+ $(srcdir)/tsig.h $(srcdir)/netio.h $(srcdir)/xfrd.h $(srcdir)/options.h $(srcdir)/xfrd-tcp.h $(srcdir)/difffile.h $(srcdir)/nsec3.h config.h \
+ $(srcdir)/ipc.h $(srcdir)/lookup3.h $(srcdir)/rrl.h
 tsig.o: $(srcdir)/tsig.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dname.h \
- $(srcdir)/tsig-openssl.h $(srcdir)/dns.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/rbtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h
+ $(srcdir)/tsig-openssl.h $(srcdir)/dns.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/rbtree.h
 tsig-openssl.o: $(srcdir)/tsig-openssl.c config.h $(srcdir)/tsig-openssl.h $(srcdir)/region-allocator.h \
  $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dname.h
 util.o: $(srcdir)/util.c config.h $(srcdir)/util.h $(srcdir)/region-allocator.h $(srcdir)/dname.h $(srcdir)/buffer.h \
@@ -629,10 +661,10 @@ xfrd-notify.o: $(srcdir)/xfrd-notify.c config.h $(srcdir)/xfrd-notify.h $(srcdir
 xfrd-tcp.o: $(srcdir)/xfrd-tcp.c config.h $(srcdir)/xfrd-tcp.h $(srcdir)/xfrd.h $(srcdir)/netio.h \
  $(srcdir)/region-allocator.h $(srcdir)/rbtree.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h \
  $(srcdir)/options.h $(srcdir)/tsig.h $(srcdir)/packet.h
-zlexer.o: zlexer.c config.h $(srcdir)/zonec.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
+zlexer.o: zlexer.c config.h $(srcdir)/config.h $(srcdir)/zonec.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h zparser.h
 zonec.o: $(srcdir)/zonec.c config.h $(srcdir)/zonec.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
- $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/rdata.h zparser.h $(srcdir)/options.h \
+ $(srcdir)/region-allocator.h $(srcdir)/util.h config.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/rdata.h $(srcdir)/options.h \
  $(srcdir)/nsec3.h
 zparser.o: zparser.c config.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h \
  $(srcdir)/namedb.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/zonec.h
@@ -653,20 +685,23 @@ strlcpy.o: $(srcdir)/compat/strlcpy.c config.h
 strptime.o: $(srcdir)/compat/strptime.c
 cutest.o: $(srcdir)/tpkg/cutest/cutest.c $(srcdir)/tpkg/cutest/cutest.h
 cutest_dname.o: $(srcdir)/tpkg/cutest/cutest_dname.c config.h $(srcdir)/tpkg/cutest/cutest.h \
- $(srcdir)/region-allocator.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h
+ $(srcdir)/region-allocator.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h config.h
 cutest_dns.o: $(srcdir)/tpkg/cutest/cutest_dns.c config.h $(srcdir)/tpkg/cutest/cutest.h \
  $(srcdir)/region-allocator.h $(srcdir)/dns.h
 cutest_iterated_hash.o: $(srcdir)/tpkg/cutest/cutest_iterated_hash.c config.h \
- $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/iterated_hash.h $(srcdir)/dname.h \
- $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h
+ $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/util.h config.h $(srcdir)/iterated_hash.h \
+ $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 cutest_options.o: $(srcdir)/tpkg/cutest/cutest_options.c config.h \
- $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/options.h $(srcdir)/region-allocator.h \
- $(srcdir)/rbtree.h $(srcdir)/util.h
+ $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/options.h config.h \
+ $(srcdir)/region-allocator.h $(srcdir)/rbtree.h $(srcdir)/util.h
 cutest_rbtree.o: $(srcdir)/tpkg/cutest/cutest_rbtree.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h $(srcdir)/region-allocator.h
 cutest_region.o: $(srcdir)/tpkg/cutest/cutest_region.c config.h \
- $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/rbtree.h \
+ $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/util.h config.h $(srcdir)/rbtree.h \
  $(srcdir)/region-allocator.h
+cutest_rrl.o: $(srcdir)/tpkg/cutest/cutest_rrl.c config.h $(srcdir)/tpkg/cutest/cutest.h \
+ $(srcdir)/rrl.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h \
+ config.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h
 cutest_run.o: $(srcdir)/tpkg/cutest/cutest_run.c config.h $(srcdir)/tpkg/cutest/cutest.h
 cutest_util.o: $(srcdir)/tpkg/cutest/cutest_util.c config.h $(srcdir)/tpkg/cutest/cutest.h \
- $(srcdir)/region-allocator.h $(srcdir)/util.h
+ $(srcdir)/region-allocator.h $(srcdir)/util.h config.h
