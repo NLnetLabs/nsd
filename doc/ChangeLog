@@ -1,5 +1,6 @@
 30 October 2012: Wouter
 	- review fixup of RRL SLIP response.
+	- RRL uses dev/random at start, nonRRL does not.
 
 26 October 2012: Wouter
 	- nsd-control repattern also changes rrl-ratelimit and whitelist limit.

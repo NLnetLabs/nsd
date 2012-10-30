@@ -521,6 +521,7 @@ server_init(struct nsd *nsd)
 int
 server_prepare(struct nsd *nsd)
 {
+#ifdef RATELIMIT
 	/* set secret modifier for hashing (udb ptr buckets and rate limits) */
 #ifdef HAVE_ARC4RANDOM
 	srandom(arc4random());
@@ -532,11 +533,10 @@ server_prepare(struct nsd *nsd)
 		hash_set_raninit(v);
 	else	hash_set_raninit(random());
 #endif
-#ifdef RATELIMIT
 	rrl_mmap_init(nsd->child_count, nsd->options->rrl_size,
 		nsd->options->rrl_ratelimit,
 		nsd->options->rrl_whitelist_ratelimit);
-#endif
+#endif /* RATELIMIT */
 
 	/* Open the database... */
 	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options)) == NULL) {
