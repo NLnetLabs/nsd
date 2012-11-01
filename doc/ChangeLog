@@ -1,3 +1,6 @@
+1 November 2012: Wouter
+	- Fix default settings for rrl.
+
 30 October 2012: Wouter
 	- --enable-ratelimit enables RRL code (ported from NSD4).
 

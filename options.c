@@ -66,8 +66,8 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->xfrd_reload_timeout = 10;
 #ifdef RATELIMIT
 	opt->rrl_size = RRL_BUCKETS;
-	opt->rrl_ratelimit = RRL_LIMIT;
-	opt->rrl_whitelist_ratelimit = RRL_WLIST_LIMIT;
+	opt->rrl_ratelimit = RRL_LIMIT/2;
+	opt->rrl_whitelist_ratelimit = RRL_WLIST_LIMIT/2;
 #endif
 	nsd_options = opt;
 	return opt;
