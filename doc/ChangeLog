@@ -1,3 +1,6 @@
+1 November 2012: Wouter
+	- Fix default settings for RRL.
+
 30 October 2012: Wouter
 	- review fixup of RRL SLIP response.
 	- RRL uses dev/random at start, nonRRL does not.
