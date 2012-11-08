@@ -1,3 +1,6 @@
+8 November 2012: Willem
+	- Fix AXFR. Loop through the zone to transfer only
+
 2 November 2012: Wouter
 	- Fix bug 478: declaration after statement (for gcc 2.95).
 
