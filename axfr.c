@@ -62,10 +62,7 @@ query_axfr(struct nsd *nsd, struct query *query)
 			return QUERY_PROCESSED;
 		}
 
-		if(radix_first(nsd->db->domains->nametree)->elem)
-			query->axfr_current_domain = (domain_type*)radix_first(
-			nsd->db->domains->nametree)->elem;
-		else	query->axfr_current_domain = NULL;
+		query->axfr_current_domain = qdomain;
 		query->axfr_current_rrset = NULL;
 		query->axfr_current_rr = 0;
 		if(query->tsig.status == TSIG_OK) {
@@ -97,7 +94,7 @@ query_axfr(struct nsd *nsd, struct query *query)
 	/* Add zone RRs until answer is full.  */
 	assert(query->axfr_current_domain);
 
-	while (query->axfr_current_domain != NULL)
+	do
 	{
 		if (!query->axfr_current_rrset) {
 			query->axfr_current_rrset = domain_find_any_rrset(
@@ -128,6 +125,9 @@ query_axfr(struct nsd *nsd, struct query *query)
 		query->axfr_current_domain
 			= domain_next(query->axfr_current_domain);
 	}
+	while (query->axfr_current_domain != NULL &&
+			domain_is_subdomain(query->axfr_current_domain,
+					    query->axfr_zone->apex));
 
 	/* Add terminating SOA RR.  */
 	assert(query->axfr_zone->soa_rrset->rr_count == 1);
