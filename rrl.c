@@ -326,7 +326,7 @@ rrl_msg(query_type* query, const char* str)
 	s = rrl_get_source(query, &c2);
 	c = rrl_classify(query, &d, &d_len) | c2;
 	if(query->zone && query->zone->opts && 
-		(query->zone->opts->pattern->rrl_whitelist & c))
+		(query->zone->opts->rrl_whitelist & c))
 		wl = 1;
 	log_msg(LOG_INFO, "ratelimit %s %s type %s%s target %s",
 		str, d?wiredname2str(d):"", rrltype2str(c),
