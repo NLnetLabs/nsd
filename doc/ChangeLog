@@ -1,3 +1,6 @@
+9 November 2012: Willem
+	- Log when NSD-RRL stops a stream from being blocked.
+
 8 November 2012: Willem
 	- Fix AXFR. Loop through the zone to transfer only
 

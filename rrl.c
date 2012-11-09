@@ -314,6 +314,32 @@ static void rrl_attenuate_bucket(struct rrl_bucket* b, int32_t elapsed)
 	}
 }
 
+/** log a message about ratelimits */
+static void
+rrl_msg(query_type* query, const char* str)
+{
+	uint16_t c, c2, wl = 0;
+	const uint8_t* d = NULL;
+	size_t d_len;
+	uint64_t s;
+	if(verbosity < 2) return;
+	s = rrl_get_source(query, &c2);
+	c = rrl_classify(query, &d, &d_len) | c2;
+	if(query->zone && query->zone->opts && 
+		(query->zone->opts->pattern->rrl_whitelist & c))
+		wl = 1;
+	log_msg(LOG_INFO, "ratelimit %s %s type %s%s target %s",
+		str, d?wiredname2str(d):"", rrltype2str(c),
+		wl?"(whitelisted)":"", rrlsource2str(s, c2));
+}
+
+/** true if the query used to be blocked by the ratelimit */
+static int
+used_to_block(uint32_t rate, uint32_t counter, uint32_t lm)
+{
+	return rate >= lm || counter+rate/2 >= lm;
+}
+
 /** update the rate in a ratelimit bucket, return actual rate */
 uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 	int32_t now, uint32_t lm)
@@ -326,6 +352,7 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 	/* check if different source */
 	if(b->source != source) {
 		/* initialise */
+		/* TODO: we do not have enough information to log b->source */
 		b->source = source;
 		b->counter = 1;
 		b->rate = 0;
@@ -338,16 +365,24 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 	/* circular arith for time */
 	if(now - b->stamp == 1) {
 		/* very busy bucket and time just stepped one step */
+		int oldblock = used_to_block(b->rate, b->counter, lm);
 		b->rate = b->rate/2 + b->counter;
+		if(oldblock && b->rate < lm)
+			rrl_msg(query, "unblock");
 		b->counter = 1;
 		b->stamp = now;
 	} else if(now - b->stamp > 0) {
 		/* older bucket */
+		int olderblock = used_to_block(b->rate, b->counter, lm);
 		rrl_attenuate_bucket(b, now - b->stamp);
+		if(olderblock && b->rate < lm)
+			rrl_msg(query, "unblock");
 		b->counter = 1;
 		b->stamp = now;
 	} else if(now != b->stamp) {
 		/* robust, timestamp from the future */
+		if(used_to_block(b->rate, b->counter, lm))
+			rrl_msg(query, "unblock");
 		b->rate = 0;
 		b->counter = 1;
 		b->stamp = now;
@@ -356,20 +391,8 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 		b->counter ++;
 
 		/* log what is blocked for operational debugging */
-		if(verbosity >= 2 && b->counter + b->rate/2 == lm
-			&& b->rate < lm) {
-			uint16_t c, c2, wl = 0;
-			const uint8_t* d = NULL;
-			size_t d_len;
-			uint64_t s = rrl_get_source(query, &c2);
-			c = rrl_classify(query, &d, &d_len) | c2;
-			if(query->zone && query->zone->opts && 
-				(query->zone->opts->rrl_whitelist & c))
-				wl = 1;
-			log_msg(LOG_INFO, "ratelimit %s type %s%s target %s",
-				d?wiredname2str(d):"", rrltype2str(c),
-				wl?"(whitelisted)":"", rrlsource2str(s, c2));
-		}
+		if(b->counter + b->rate/2 == lm && b->rate < lm)
+			rrl_msg(query, "block");
 	}
 
 	/* return max from current rate and projected next-value for rate */
