@@ -1,5 +1,5 @@
 19 November 2012: Wouter
-	- Fix bug in libevent use when tcp-count is hit, caused hang (in NSD4).
+	- Fix bug 480: libevent use when tcp-count is hit caused hang (in NSD4).
 
 9 November 2012: Wouter
 	- Log when NSD-RRL stops a stream from being blocked.
