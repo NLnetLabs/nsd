@@ -364,6 +364,11 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("xfrdfile:", opt->xfrdfile);
 	printf("\txfrd_reload_timeout: %d\n", opt->xfrd_reload_timeout);
 	printf("\tverbosity: %d\n", opt->verbosity);
+#ifdef RATELIMIT
+	printf("\trrl-size: %d\n", (int)opt->rrl_size);
+	printf("\trrl-ratelimit: %d\n", (int)opt->rrl_ratelimit);
+	printf("\trrl-whitelist-ratelimit: %d\n", (int)opt->rrl_whitelist_ratelimit);
+#endif
 
 	for(ip = opt->ip_addresses; ip; ip=ip->next)
 	{
@@ -426,11 +431,6 @@ additional_checks(nsd_options_t* opt, const char* filename)
 			errors ++;
 		}
 	}
-#ifdef RATELIMIT
-	printf("\trrl-size: %d\n", (int)opt->rrl_size);
-	printf("\trrl-ratelimit: %d\n", (int)opt->rrl_ratelimit);
-	printf("\trrl-whitelist-ratelimit: %d\n", (int)opt->rrl_whitelist_ratelimit);
-#endif
 
 	for(key = opt->keys; key; key=key->next)
 	{

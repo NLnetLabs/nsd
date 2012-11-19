@@ -1,3 +1,7 @@
+19 November 2012: Wouter
+	- Fix that nsd-checkconf works with printout of RRL values and thus
+	  nsdc works again.
+
 9 November 2012: Wouter
 	- Log when NSD-RRL stops a stream from being blocked.
 
