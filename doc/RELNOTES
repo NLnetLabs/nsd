@@ -1,17 +1,26 @@
 NSD RELEASE NOTES
 
-3.2.14 (upcoming)
+3.2.15 (upcoming)
+================
+
+FEATURES:
+	- Support for ILNP RR types: NID, L32, L64, LP (RFC6742).
+	- RRL, --enable-ratelimit at configure time and config options.
+
+BUG FIXES:
+	- Bugfix #478: declaration after statement (for gcc 2.95).
+
+3.2.14
 ================
 
 FEATURES:
 	- TCP writev support.
-	- RRL, --enable-ratelimit at configure time and config options.
 
 BUG FIXES:
 	- Fix build on OpenBSD (thanks Oliver Peter).
-        - Prioritize notify sender for requesting XFR (thanks Ilya Bakulin).
+	- Prioritize notify sender for requesting XFR (thanks Ilya Bakulin).
 	- Fix crash in zonec if TXT string too long  (thanks Ilya Bakulin).
-        - tzset before chroot for correct timezone (thanks Camiel Dobbelaar).
+	- tzset before chroot for correct timezone (thanks Camiel Dobbelaar).
 	- Fix --disable-full-prehash bug when nsdc patch happens while ixfr too,
 	  it did not rehash the new database.
 	- Bugfix #464: Conditionally define MAXHOSTNAMELEN.

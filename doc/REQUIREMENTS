@@ -865,6 +865,12 @@ RR records details.
   "UID"      101,   # [IANA-Reserved]
   "GID"      102,   # [IANA-Reserved]
   "UNSPEC"   103,   # [IANA-Reserved]
+
+  "NID"      104,   # RFC 6742
+  "L32"      105,   # RFC 6742
+  "L64"      106,   # RFC 6742
+  "LP"       107,   # RFC 6742
+
   "TKEY"     249,   # RFC 2930
   "TSIG"     250,   # RFC 2845
   "IXFR"     251,   # RFC 1995
@@ -999,12 +1005,15 @@ NSD Version 3.0. and above
 
    RFC 6605 (ECDSA) support.
 
-   draft-ietf-dane-protocol (DANE) support.
+   RFC 6698 (DANE) support for TLSA RR type.
+
+   RFC 6742 (ILNP) support for NID, L32, L64, LP RR types.
+
 
 Not implemented:
 
-  RFC2136 (Dynamic update) are not implemented and will not be implemented as
-  zone control is not implemented in NSD itself.
+   RFC2136 (Dynamic update) are not implemented and will not be implemented as
+   zone control is not implemented in NSD itself.
 
 
 Appendix D. Changes to this file.
