@@ -2209,6 +2209,7 @@ configure_handler_event_types(short event_types)
 				log_msg(LOG_ERR, "conhand: cannot event_base");
 			if(event_add(handler, NULL) != 0)
 				log_msg(LOG_ERR, "conhand: cannot event_add");
+			tcp_accept_handlers[i].event_added = 1;
 		} else {
 			/* remove */
 			if(tcp_accept_handlers[i].event_added) {
