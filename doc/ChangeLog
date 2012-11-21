@@ -1,3 +1,6 @@
+21 November 2012: Wouter
+	- Implement rrl log of unblock for collision.
+
 19 November 2012: Matthijs
 	- Bump version to 3.2.15.
 	- Implement RR types for ILNP, RFC6742.

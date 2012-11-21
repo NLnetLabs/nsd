@@ -38,6 +38,8 @@ struct rrl_bucket {
 	/* timestamp, which time is the time of the counter, the rate is from
 	 * one timestep before that. */
 	int32_t stamp;
+	/* flags for the source mask and type */
+	uint16_t flags;
 };
 
 /* the (global) array of RRL buckets */
@@ -270,7 +272,7 @@ static uint16_t rrl_classify(query_type* query, const uint8_t** d,
 
 /** Examine the query and return hash and source of netblock. */
 static void examine_query(query_type* query, uint32_t* hash, uint64_t* source,
-	uint32_t* lm)
+	uint16_t* flags, uint32_t* lm)
 {
 	/* compile a binary string representing the query */
 	uint16_t c, c2;
@@ -286,6 +288,7 @@ static void examine_query(query_type* query, uint32_t* hash, uint64_t* source,
 		*lm = rrl_whitelist_ratelimit;
 	if(*lm == 0) return;
 	c |= c2;
+	*flags = c;
 	memmove(buf, source, sizeof(*source));
 	memmove(buf+sizeof(*source), &c, sizeof(c));
 
@@ -342,7 +345,7 @@ used_to_block(uint32_t rate, uint32_t counter, uint32_t lm)
 
 /** update the rate in a ratelimit bucket, return actual rate */
 uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
-	int32_t now, uint32_t lm)
+	uint16_t flags, int32_t now, uint32_t lm)
 {
 	struct rrl_bucket* b = &rrl_array[hash % rrl_array_size];
 
@@ -350,10 +353,16 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 		(long long unsigned)source, hash, b->rate, b->counter, b->stamp));
 
 	/* check if different source */
-	if(b->source != source) {
+	if(b->source != source || b->flags != flags) {
 		/* initialise */
-		/* TODO: we do not have enough information to log b->source */
+		/* potentially the wrong limit here, used lower nonwhitelim */
+		if(verbosity >=2 &&
+			used_to_block(b->rate, b->counter, rrl_ratelimit))
+			log_msg(LOG_INFO, "ratelimit unblock ~ type %s target %s",
+				rrltype2str(b->flags),
+				rrlsource2str(b->source, b->flags));
 		b->source = source;
+		b->flags = flags;
 		b->counter = 1;
 		b->rate = 0;
 		b->stamp = now;
@@ -409,17 +418,18 @@ int rrl_process_query(query_type* query)
 	uint32_t hash;
 	int32_t now = (int32_t)time(NULL);
 	uint32_t lm = rrl_ratelimit;
+	uint16_t flags;
 	if(rrl_ratelimit == 0 && rrl_whitelist_ratelimit == 0)
 		return 0;
 
 	/* examine query */
-	examine_query(query, &hash, &source, &lm);
+	examine_query(query, &hash, &source, &flags, &lm);
 
 	if(lm == 0)
 		return 0; /* no limit for this */
 
 	/* update rate */
-	return (rrl_update(query, hash, source, now, lm) >= lm);
+	return (rrl_update(query, hash, source, flags, now, lm) >= lm);
 }
 
 query_state_type rrl_slip(query_type* query)
