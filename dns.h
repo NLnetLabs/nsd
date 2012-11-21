@@ -135,8 +135,14 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_DHCID	49	/* RFC4701 DHCP information */
 #define TYPE_NSEC3	50	/* NSEC3, secure denial, prevents zonewalking */
 #define TYPE_NSEC3PARAM 51	/* NSEC3PARAM at zone apex nsec3 parameters */
+#define TYPE_TLSA	52	/* draft-ietf-dane-protocol */
 
 #define TYPE_SPF        99      /* RFC 4408 */
+
+#define TYPE_NID        104     /* RFC 6742 */
+#define TYPE_L32        105     /* RFC 6742 */
+#define TYPE_L64        106     /* RFC 6742 */
+#define TYPE_LP         107     /* RFC 6742 */
 
 #define TYPE_TSIG	250
 #define TYPE_IXFR	251
@@ -181,7 +187,8 @@ enum rdata_wireformat
 	RDATA_WF_BINARY, 	     /* Binary data (unknown length).  */
 	RDATA_WF_BINARYWITHLENGTH,   /* Binary data preceded by 1 byte length */
 	RDATA_WF_APL,		     /* APL data.  */
-	RDATA_WF_IPSECGATEWAY	     /* IPSECKEY gateway ip4, ip6 or dname. */
+	RDATA_WF_IPSECGATEWAY,	     /* IPSECKEY gateway ip4, ip6 or dname. */
+	RDATA_WF_AAAA_HALF	     /* 64-bit uncompressed IPv6 address.  */
 };
 typedef enum rdata_wireformat rdata_wireformat_type;
 
@@ -215,6 +222,7 @@ enum rdata_zoneformat
 	RDATA_ZF_NXT,		/* NXT type bitmap.  */
 	RDATA_ZF_NSEC,		/* NSEC type bitmap.  */
 	RDATA_ZF_LOC,		/* Location data.  */
+	RDATA_ZF_AAAA_HALF,	/* 64-bit uncompressed IPv6 address.  */
 	RDATA_ZF_UNKNOWN	/* Unknown data.  */
 };
 typedef enum rdata_zoneformat rdata_zoneformat_type;
@@ -237,7 +245,7 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
  *
  * spf + 1
  */
-#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_SPF + 1)
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_LP + 1)
 rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 rrtype_descriptor_type *rrtype_descriptor_by_type(uint16_t type);
 

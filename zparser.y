@@ -66,7 +66,8 @@ nsec3_add_params(const char* hash_algo_str, const char* flag_str,
 %token <type> T_GPOS T_EID T_NIMLOC T_ATMA T_NAPTR T_KX T_A6 T_DNAME T_SINK
 %token <type> T_OPT T_APL T_UINFO T_UID T_GID T_UNSPEC T_TKEY T_TSIG T_IXFR
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_DLV T_SSHFP T_RRSIG T_NSEC T_DNSKEY
-%token <type> T_SPF T_NSEC3 T_IPSECKEY T_DHCID T_NSEC3PARAM
+%token <type> T_SPF T_NSEC3 T_IPSECKEY T_DHCID T_NSEC3PARAM T_TLSA
+%token <type> T_NID T_L32 T_L64 T_LP
 
 /* other tokens */
 %token	       DOLLAR_TTL DOLLAR_ORIGIN NL SP
@@ -594,6 +595,16 @@ type_and_rdata:
     |	T_NSEC3PARAM sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_DNSKEY sp rdata_dnskey
     |	T_DNSKEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_TLSA sp rdata_tlsa
+    |	T_TLSA sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_NID sp rdata_nid
+    |	T_NID sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_L32 sp rdata_l32
+    |	T_L32 sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_L64 sp rdata_l64
+    |	T_L64 sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_LP sp rdata_lp
+    |	T_LP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_UTYPE sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	STR error NL
     {
@@ -887,6 +898,15 @@ rdata_nsec3_param:   STR sp STR sp STR sp STR trail
     }
     ;
 
+rdata_tlsa:	STR sp STR sp STR sp str_sp_seq trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* usage */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* selector */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* matching type */
+	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $7.str, $7.len)); /* ca data */
+    }
+    ;
+
 rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
     {
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* flags */
@@ -935,6 +955,35 @@ rdata_ipseckey:	rdata_ipsec_base sp str_sp_seq trail
 	   zadd_rdata_wireformat(zparser_conv_b64(parser->region, $3.str)); /* public key */
     }
     | rdata_ipsec_base trail
+    ;
+
+/* RFC 6742 */ 
+rdata_nid:	STR sp dotted_str trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str));  /* preference */
+	    zadd_rdata_wireformat(zparser_conv_aaaa_half(parser->region, $3.str));  /* NodeID */
+    }
+    ;
+
+rdata_l32:	STR sp dotted_str trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str));  /* preference */
+	    zadd_rdata_wireformat(zparser_conv_a(parser->region, $3.str));  /* Locator32 */
+    }
+    ;
+
+rdata_l64:	STR sp dotted_str trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str));  /* preference */
+	    zadd_rdata_wireformat(zparser_conv_aaaa_half(parser->region, $3.str));  /* Locator64 */
+    }
+    ;
+
+rdata_lp:	STR sp dname trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str));  /* preference */
+	    zadd_rdata_domain($3);  /* FQDN */
+    }
     ;
 
 rdata_unknown:	URR sp STR sp str_sp_seq trail

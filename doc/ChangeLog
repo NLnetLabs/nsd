@@ -1,5 +1,6 @@
 21 November 2012: Wouter
 	- Implement rrl log of unblock for collision.
+	- imported TLSA and ILNP support from NSD3.
 
 19 November 2012: Wouter
 	- Fix bug 480: libevent use when tcp-count is hit caused hang (in NSD4).
