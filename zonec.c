@@ -381,21 +381,22 @@ zparser_conv_aaaa(region_type *region, const char *text)
 uint16_t *
 zparser_conv_aaaa_half(region_type *region, const char *text)
 {
+	unsigned int ui[4];
 	uint16_t a[4];
 	uint16_t *r = NULL;
 
 	if (sscanf(text, "%x:%x:%x:%x",
-		(unsigned int*) &a[0],
-		(unsigned int*) &a[1],
-		(unsigned int*) &a[2],
-		(unsigned int*) &a[3]) == EOF) {
+		(unsigned int*) &ui[0],
+		(unsigned int*) &ui[1],
+		(unsigned int*) &ui[2],
+		(unsigned int*) &ui[3]) == EOF) {
 		zc_error_prev_line("invalid uncompressed IPv6 address '%s'",
 			text);
 	} else {
-		a[0] = htons(a[0]);
-		a[1] = htons(a[1]);
-		a[2] = htons(a[2]);
-		a[3] = htons(a[3]);
+		a[0] = htons(ui[0]);
+		a[1] = htons(ui[1]);
+		a[2] = htons(ui[2]);
+		a[3] = htons(ui[3]);
 		r = alloc_rdata_init(region, a, sizeof(a));
 	}
 	return r;
