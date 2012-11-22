@@ -385,11 +385,8 @@ zparser_conv_aaaa_half(region_type *region, const char *text)
 	uint16_t a[4];
 	uint16_t *r = NULL;
 
-	if (sscanf(text, "%x:%x:%x:%x",
-		(unsigned int*) &ui[0],
-		(unsigned int*) &ui[1],
-		(unsigned int*) &ui[2],
-		(unsigned int*) &ui[3]) == EOF) {
+	if (sscanf(text, "%x:%x:%x:%x", &ui[0], &ui[1], &ui[2], &ui[3]) ==
+		EOF) {
 		zc_error_prev_line("invalid uncompressed IPv6 address '%s'",
 			text);
 	} else {
