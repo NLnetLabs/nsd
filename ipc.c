@@ -634,8 +634,9 @@ xfrd_handle_ipc_read(struct event* handler, xfrd_state_t* xfrd)
 	}
 
         if((len = read(handler->ev_fd, &cmd, sizeof(cmd))) == -1) {
-                log_msg(LOG_ERR, "xfrd_handle_ipc: read: %s",
-                        strerror(errno));
+		if(errno != EINTR && errno != EAGAIN)
+                	log_msg(LOG_ERR, "xfrd_handle_ipc: read: %s",
+                        	strerror(errno));
                 return;
         }
         if(len == 0)
