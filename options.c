@@ -916,16 +916,20 @@ static uint8_t unmarshal_u8(struct buffer* b)
 	return buffer_read_u8(b);
 }
 
+#ifdef RATELIMIT
 static void marshal_u16(struct buffer* b, uint16_t v)
 {
 	buffer_reserve(b, 2);
 	buffer_write_u16(b, v);
 }
+#endif
 
+#ifdef RATELIMIT
 static uint16_t unmarshal_u16(struct buffer* b)
 {
 	return buffer_read_u16(b);
 }
+#endif
 
 static void marshal_str(struct buffer* b, const char* s)
 {

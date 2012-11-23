@@ -1308,6 +1308,7 @@ void task_process_sync(struct udb_base* taskudb)
 	/* need to sync before other process uses the mmap? */
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "task procsync %s size %d",
 		taskudb->fname, (int)taskudb->base_size));
+	(void)taskudb;
 }
 
 void task_remap(struct udb_base* taskudb)
@@ -1540,6 +1541,8 @@ void task_new_opt_change(udb_base* udb, udb_ptr* last, nsd_options_t* opt)
 #ifdef RATELIMIT
 	TASKLIST(&e)->oldserial = opt->rrl_ratelimit;
 	TASKLIST(&e)->newserial = opt->rrl_whitelist_ratelimit;
+#else
+	(void)opt;
 #endif
 	udb_ptr_unlink(&e, udb);
 }
@@ -1733,6 +1736,8 @@ task_process_opt_change(struct nsd* nsd, struct task_list_d* task)
 	nsd->options->rrl_ratelimit = task->oldserial;
 	nsd->options->rrl_whitelist_ratelimit = task->newserial;
 	rrl_set_limit(nsd->options->rrl_ratelimit, nsd->options->rrl_whitelist_ratelimit);
+#else
+	(void)nsd; (void)task;
 #endif
 }
 

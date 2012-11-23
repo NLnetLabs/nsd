@@ -139,6 +139,7 @@ send_stat_to_child(struct main_ipc_handler_data* data, int fd)
 	data->child->need_to_send_STATS = 0;
 }
 
+#ifndef NDEBUG
 int packet_read_query_section(buffer_type *packet, uint8_t* dest, uint16_t* qtype, uint16_t* qclass);
 static void
 debug_print_fwd_name(int ATTR_UNUSED(len), buffer_type* packet, int acl_num)
@@ -161,6 +162,7 @@ debug_print_fwd_name(int ATTR_UNUSED(len), buffer_type* packet, int acl_num)
 	buffer_set_position(packet, bufpos);
 	region_destroy(tempregion);
 }
+#endif
 
 static void
 send_quit_to_child(struct main_ipc_handler_data* data, int fd)

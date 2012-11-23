@@ -49,12 +49,14 @@ udb_void chunk_from_dataptr_ext(udb_void data) {
 	return chunk_from_dataptr(data);
 }
 
+#ifndef NDEBUG
 /** read last octet from a chunk */
 static uint8_t
 chunk_get_last(void* base, udb_void chunk, int exp)
 {
 	return *((uint8_t*)UDB_REL(base, chunk+(1<<exp)-1));
 }
+#endif
 
 /** write last octet of a chunk */
 static void
@@ -1511,9 +1513,11 @@ udb_alloc_compact(void* base, udb_alloc* alloc)
 			uint64_t xlsz = *((uint64_t*)UDB_REL(base,
 				at-sizeof(uint64_t)*2));
 			udb_void xl = at-xlsz;
+#ifndef NDEBUG
 			udb_xl_chunk_d* xlp = UDB_XL_CHUNK(xl);
 			assert(xlp->exp == UDB_EXP_XL);
 			assert(xlp->type != udb_chunk_type_free);
+#endif
 			/* got thesegment add to the xl chunk list */
 			if(xl_start != 0 && xl+xlsz != xl_start) {
 				/* nonadjoining XL part, but they are aligned,

@@ -756,11 +756,11 @@ xfrd_make_request(xfrd_zone_t* zone)
 		if (zone->zone_options->pattern->allow_axfr_fallback) {
 			xfrd_set_timer(zone, xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
-		}
-		else
+		} else {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s axfr "
 				"fallback not allowed, skipping master %s.",
 				zone->apex_str, zone->master->ip_address_spec));
+		}
 	}
 }
 
@@ -1837,6 +1837,7 @@ xfrd_handle_reload(int ATTR_UNUSED(fd), short event, void* ATTR_UNUSED(arg))
 {
 	/* reload timeout */
 	assert(event & EV_TIMEOUT);
+	(void)event;
 	/* timeout wait period after this request is sent */
 	xfrd->reload_added = 0;
 	xfrd->reload_timeout.tv_sec = xfrd_time() +

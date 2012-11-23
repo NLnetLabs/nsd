@@ -1312,6 +1312,8 @@ static int repat_options_changed(xfrd_state_t* xfrd, nsd_options_t* newopt)
 		return 1;
 	if(xfrd->nsd->options->rrl_whitelist_ratelimit != newopt->rrl_whitelist_ratelimit)
 		return 1;
+#else
+	(void)xfrd; (void)newopt;
 #endif
 	return 0;
 }

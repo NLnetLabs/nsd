@@ -69,6 +69,7 @@ apex_rrset_checks(namedb_type* db, rrset_type* rrset, domain_type* domain)
 	unsigned i;
 	zone_type* zone = rrset->zone;
 	assert(domain == zone->apex);
+	(void)domain;
 	if (rrset_rrtype(rrset) == TYPE_SOA) {
 		zone->soa_rrset = rrset;
 
