@@ -52,7 +52,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->nsid = 0;
 	opt->logfile = 0;
 	opt->server_count = 1;
-	opt->tcp_count = 10;
+	opt->tcp_count = 100;
 	opt->tcp_query_count = 0;
 	opt->tcp_timeout = TCP_TIMEOUT;
 	opt->ipv4_edns_size = EDNS_MAX_MESSAGE_LEN;
