@@ -1,3 +1,6 @@
+23 November 2012: Wouter
+	- Fix compiler warnings and fix blocking pipes.
+
 21 November 2012: Wouter
 	- Implement rrl log of unblock for collision.
 	- imported TLSA and ILNP support from NSD3.

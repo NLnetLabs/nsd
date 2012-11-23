@@ -240,6 +240,9 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 			default: /* SERVER MAIN */
 				close(nsd->children[i].parent_fd);
 				nsd->children[i].parent_fd = -1;
+				if (fcntl(nsd->children[i].child_fd, F_SETFL, O_NONBLOCK) == -1) {
+					log_msg(LOG_ERR, "cannot fcntl pipe: %s", strerror(errno));
+				}
 				if(!nsd->children[i].handler)
 				{
 					ipc_data = (struct main_ipc_handler_data*) region_alloc(
@@ -289,6 +292,9 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				close(*xfrd_sock_p);
 				close(nsd->this_child->child_fd);
 				nsd->this_child->child_fd = -1;
+				if (fcntl(nsd->this_child->parent_fd, F_SETFL, O_NONBLOCK) == -1) {
+					log_msg(LOG_ERR, "cannot fcntl pipe: %s", strerror(errno));
+				}
 				server_child(nsd);
 				/* NOTREACH */
 				exit(0);
@@ -696,6 +702,9 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 	case 0:
 		/* CHILD: close first socket, use second one */
 		close(sockets[0]);
+		if (fcntl(sockets[1], F_SETFL, O_NONBLOCK) == -1) {
+			log_msg(LOG_ERR, "cannot fcntl pipe: %s", strerror(errno));
+		}
 		if(del_db) xfrd_free_namedb(nsd);
 		/* use other task than I am using, since if xfrd died and is
 		 * restarted, the reload is using nsd->mytask */
@@ -707,6 +716,9 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 	default:
 		/* PARENT: close second socket, use first one */
 		close(sockets[1]);
+		if (fcntl(sockets[0], F_SETFL, O_NONBLOCK) == -1) {
+			log_msg(LOG_ERR, "cannot fcntl pipe: %s", strerror(errno));
+		}
 		nsd->xfrd_listener->fd = sockets[0];
 		nsd->xfrd_pid = pid;
 		break;
