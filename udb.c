@@ -490,6 +490,13 @@ udb_base_remap(udb_base* udb, udb_alloc* alloc, uint64_t nsize)
 	 * systems the layout of memory is otherwise broken. */
 	nb = mmap(udb->base, (size_t)nsize, (int)PROT_READ|PROT_WRITE,
 		(int)MAP_SHARED, (int)udb->fd, (off_t)0);
+	/* retry the mmap without basept in case of ENOMEM (FreeBSD8),
+	 * the kernel can then try to mmap it at a different location
+	 * where more memory is available */
+	if(nb == MAP_FAILED && errno == ENOMEM) {
+		nb = mmap(NULL, (size_t)nsize, (int)PROT_READ|PROT_WRITE,
+			(int)MAP_SHARED, (int)udb->fd, (off_t)0);
+	}
 	if(nb == MAP_FAILED) {
 		log_msg(LOG_ERR, "mmap(%s, size %u) error %s",
 			udb->fname, (unsigned)nsize, strerror(errno));
