@@ -55,6 +55,12 @@ struct udb_radsel_d {
 	/** length of the additional string for this edge,
 	 * additional string after the selection-byte for this edge.*/
 	udb_radstrlen_t len;
+	/** padding for non64bit compilers to 64bit boundaries, to make
+	 * the udb file more portable, without this the file would work
+	 * on the system it is created on (which is what we promise), but
+	 * with this, you have a chance of it working on other platforms */
+	uint16_t padding16;
+	uint32_t padding32;
 	/** node that deals with byte+str, to udb_radnode_r */
 	struct udb_rel_ptr node;
 };
