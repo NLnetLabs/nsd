@@ -160,6 +160,7 @@ enum rrl_type rrlstr2type(const char* s)
 	else if(strcmp(s, "nodata")==0) return rrl_type_nodata;
 	else if(strcmp(s, "dnskey")==0) return rrl_type_dnskey;
 	else if(strcmp(s, "positive")==0) return rrl_type_positive;
+	else if(strcmp(s, "rrsig")==0) return rrl_type_rrsig;
 	else if(strcmp(s, "all")==0) return rrl_type_all;
 	return 0; /* unknown */
 }
@@ -175,6 +176,7 @@ const char* rrltype2str(enum rrl_type c)
 		case rrl_type_nodata: return "nodata";
 		case rrl_type_dnskey: return "dnskey";
 		case rrl_type_positive: return "positive";
+		case rrl_type_rrsig: return "rrsig";
 		case rrl_type_all: return "all";
 	}
 	return "unknown";
@@ -210,6 +212,13 @@ static uint16_t rrl_classify(query_type* query, const uint8_t** d,
 			*d_len = query->qname->name_size;
 		}
 		return rrl_type_any;
+	}
+	if(query->qtype == TYPE_RRSIG) {
+		if(query->qname) {
+			*d = dname_name(query->qname);
+			*d_len = query->qname->name_size;
+		}
+		return rrl_type_rrsig;
 	}
 	if(query->wildcard_domain) {
 		*d = dname_name(domain_dname(query->wildcard_domain));

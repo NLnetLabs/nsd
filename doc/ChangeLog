@@ -1,3 +1,6 @@
+28 November 2012: Wouter
+	- RRL implements classification type RRSIG.
+
 26 November 2012: Wouter
 	- Fix to make nsd.udb portable between 32bit and 64bit machines.
 	- Fix to make udb mmap work for FreeBSD8 when it grows significantly.
