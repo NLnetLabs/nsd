@@ -1,3 +1,6 @@
+3 December 2012: Matthijs
+	- Fixup exit of server-child (merge from trunk).
+
 28 November 2012: Wouter
 	- RRL implements classification type RRSIG.
 
