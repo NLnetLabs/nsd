@@ -219,7 +219,8 @@ SIGTERM
 Stop answering queries, shutdown, and exit normally.
 .TP 
 SIGHUP
-Reload the database.
+Reload.  Scans zone files and if changed (mtime) reads
+them in.  Also reopens the logfile (assists logrotation).
 .TP
 SIGUSR1
 Dump BIND8\-style statistics into the log. Ignored otherwise.
