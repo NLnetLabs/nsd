@@ -30,6 +30,23 @@ static void xfrd_send_quit_req(xfrd_state_t* xfrd);
 /* perform read part of handle ipc for xfrd */
 static void xfrd_handle_ipc_read(struct event* handler, xfrd_state_t* xfrd);
 
+static void
+ipc_child_quit(struct nsd* nsd)
+{
+	/* call shutdown and quit routines */
+	nsd->mode = NSD_QUIT;
+#ifdef	BIND8_STATS
+	bind8_stats(nsd);
+#endif /* BIND8_STATS */
+
+#if 0 /* OS collects memory pages */
+	event_base_free(event_base);
+	region_destroy(server_region);
+#endif
+	server_shutdown(nsd);
+	exit(0);
+}
+
 void
 child_handle_parent_command(int fd, short event, void* arg)
 {
@@ -49,14 +66,16 @@ child_handle_parent_command(int fd, short event, void* arg)
 	if (len == 0)
 	{
 		/* parent closed the connection. Quit */
-		data->nsd->mode = NSD_QUIT;
+		ipc_child_quit(data->nsd);
 		return;
 	}
 
 	switch (mode) {
 	case NSD_STATS:
-	case NSD_QUIT:
 		data->nsd->mode = mode;
+		break;
+	case NSD_QUIT:
+		ipc_child_quit(data->nsd);
 		break;
 	case NSD_QUIT_WITH_STATS:
 #ifdef BIND8_STATS
@@ -71,7 +90,7 @@ child_handle_parent_command(int fd, short event, void* arg)
 		}
 		fsync(fd);
 #endif /* BIND8_STATS */
-		data->nsd->mode = NSD_QUIT;
+		ipc_child_quit(data->nsd);
 		break;
 	default:
 		log_msg(LOG_ERR, "handle_parent_command: bad mode %d",

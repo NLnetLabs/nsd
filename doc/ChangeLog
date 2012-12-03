@@ -1,3 +1,6 @@
+3 December 2012: Wouter
+	- Fixup exit of server-child while notifies are incoming.
+
 28 November 2012: Wouter
 	- RRL implements classification type RRSIG.
 

@@ -604,7 +604,7 @@ close_all_sockets(struct nsd_socket sockets[], size_t n)
  * Does not return.
  *
  */
-static void
+void
 server_shutdown(struct nsd *nsd)
 {
 	size_t i;

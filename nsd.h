@@ -232,6 +232,7 @@ int server_init(struct nsd *nsd);
 int server_prepare(struct nsd *nsd);
 void server_main(struct nsd *nsd);
 void server_child(struct nsd *nsd);
+void server_shutdown(struct nsd *nsd);
 struct event_base* nsd_child_event_base(void);
 /* extra domain numbers for temporary domains */
 #define EXTRA_DOMAIN_NUMBERS 1024
