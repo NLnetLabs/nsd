@@ -178,6 +178,10 @@ addition to standard configure options, one may use the following:
 	This option could lead to a reduced service level and increased
 	memory footprint.
 
+  --enable-ratelimit
+
+	Enables ratelimiting, based on query name, type and source.
+
   --with-configdir=dir
 
         Specified, NSD configuration directory, default /etc/nsd

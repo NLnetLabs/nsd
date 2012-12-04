@@ -603,10 +603,13 @@ AC_ARG_ENABLE(ratelimit, AC_HELP_STRING([--enable-ratelimit], [Enable rate limit
 case "$enable_ratelimit" in
 	yes)
 		AC_DEFINE_UNQUOTED([RATELIMIT], [], [Define this to enable rate limiting.])
+		ratelimit="1"
 		;;
 	no|*)
+		ratelimit="0"
 		;;
 esac
+AC_SUBST(ratelimit)
 
 # we need SSL for TSIG (and maybe also for NSEC3).
 CHECK_SSL

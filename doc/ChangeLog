@@ -1,3 +1,6 @@
+4 December 2012: Wouter
+	- NSD-RRL documented in manpage.
+
 3 December 2012: Matthijs
 	- Fixup exit of server-child (merge from trunk).
 

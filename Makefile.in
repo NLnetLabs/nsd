@@ -60,6 +60,7 @@ EDIT		= sed \
 			-e 's,@xfrdfile\@,$(xfrdfile),g' \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
+			-e 's,@rrl\@,@ratelimit@,g' \
 			-e 's,@user\@,$(user),g' \
 			-e 's,@spriority\@,$(spriority),g' \
 			-e 's,@kpriority\@,$(kpriority),g' 
