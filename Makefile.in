@@ -60,7 +60,6 @@ EDIT		= sed \
 			-e 's,@xfrdfile\@,$(xfrdfile),g' \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
-			-e 's,@rrl\@,@ratelimit@,g' \
 			-e 's,@user\@,$(user),g' \
 			-e 's,@spriority\@,$(spriority),g' \
 			-e 's,@kpriority\@,$(kpriority),g' 
@@ -340,7 +339,7 @@ nsd.conf.sample:	$(srcdir)/nsd.conf.sample.in config.h
 
 nsd.conf.5:	$(srcdir)/nsd.conf.5.in config.h
 	rm -f nsd.conf.5
-	$(EDIT) $(srcdir)/nsd.conf.5.in > nsd.conf.5
+	$(EDIT) $(srcdir)/nsd.conf.5.in | awk '/rrlstart'@ratelimit@'/ { while($$0 !~ /.*rrlend.*/) { getline; } getline; } {print} ' > nsd.conf.5
 
 nsd.8:	$(srcdir)/nsd.8.in config.h
 	rm -f nsd.8
