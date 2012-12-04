@@ -244,7 +244,8 @@ zone transfers. 2 lists soft warnings that are encountered.
 .B hide\-version:\fR <yes or no>
 Prevent NSD from replying with the version string on CHAOS class 
 queries.
-.if @rrl@ \{.TP
+.\" rrlstart
+.TP
 .B rrl\-size:\fR <numbuckets>
 This option gives the size of the hashtable. Default 1000000. More buckets
 use more memory, and reduce the chance of hash collisions.
@@ -261,7 +262,7 @@ The max qps for query sorts for a source, which have been
 whitelisted. Default 2000 qps. With the rrl\-whitelist option you can set
 specific queries to receive this qps limit instead of the normal limit.
 With the value 0 the rate is unlimited.
-.\}
+.\" rrlend
 .SS "Remote Control"
 The
 .B remote\-control:
@@ -434,7 +435,8 @@ A port number can be added using a suffix of @number, for example
 .B include\-pattern:\fR <pattern\-name>
 The options from the given pattern are included at this point.
 The referenced pattern must be defined above this zone.
-.if @rrl@ \{.TP
+.\" rrlstart
+.TP
 .B rrl\-whitelist:\fR <rrltype>
 This option causes queries of this rrltype to be whitelisted, for this
 zone. They receive the whitelist\-ratelimit. You can give multiple lines,
@@ -444,7 +446,7 @@ employs to make different types not interfere with one another.  The types
 are logged in the loglines when a subnet is blocked (in verbosity 2).
 The RRL classification types are: nxdomain, error, referral, any, rrsig,
 wildcard, nodata, dnskey, positive, all.
-.\}
+.\" rrlend
 .SS "Key Declarations"
 The 
 .B key: 
