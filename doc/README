@@ -170,6 +170,10 @@ addition to standard configure options, one may use the following:
 
         Enables BIND8-like statistics.
 
+  --enable-ratelimit
+
+	Enables ratelimiting, based on query name, type and source.
+
   --with-configdir=dir
 
         Specified, NSD configuration directory, default /etc/nsd

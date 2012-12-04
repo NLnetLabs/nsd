@@ -64,6 +64,7 @@ EDIT		= sed \
 			-e 's,@zonelistfile\@,$(zonelistfile),g' \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
+			-e 's,@rrl\@,@ratelimit@,g' \
 			-e 's,@user\@,$(user),g'
 
 TARGETS=nsd nsd-checkconf nsd-control nsd.conf.sample nsd-control-setup.sh
