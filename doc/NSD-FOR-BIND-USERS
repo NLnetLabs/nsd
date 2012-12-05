@@ -10,7 +10,7 @@ Contents
 7.  Master-Slave meshes.
 8.  AXFR behaviour.
 9.  Ports.
-10. nsdc needs no secret to talk to the server.
+10. nsd-control setup
 
 Please see the README for general information. This document
 assumes the reader is familiar with BIND tools and explains
@@ -220,11 +220,9 @@ such as 10.11.12.100@8853. NSD will not set its source port for
 outgoing connections to be equal to the configured port, ephemeral 
 ports are used for notify, ixfr and axfr requests to other servers.
 
-10. nsdc needs no secret to talk to the server.
+10. nsd-control setup
 
 The rndc tool for BIND named needs a secret to communicate securely with
-the server. rndc is designed to work on remote machines. The NSD nsdc tool 
-does not need that. It works on the local machine, and sends signals 
-instead of opening a socket. Since nsdc is on the local machine a secret
-is not so opportune.
+the server.  The NSD tool nsd-control can setup its secrets with the
+nsd-control-setup command.  It uses public keys, and SSL connections.
 
