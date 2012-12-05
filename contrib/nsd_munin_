@@ -4,10 +4,10 @@
 #
 # (C) 2008 W.C.A. Wijngaards.  BSD Licensed.
 #
-# To install; compile with --enable-bind8-stats (the default)
-#	and enable nsd-control in nsd.conf
+# To install; compile with --enable-bind8-stats (enabled by default)
+#	and enable nsd-control in nsd.conf with the line
 #	remote-control:	control-enable: yes
-# Run the command nsd-control-setup to generate the key files.
+# Run the command nsd-control-setup as root to generate the key files.
 #
 # Environment variables for this script
 #	statefile	- where to put temporary statefile.
