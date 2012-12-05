@@ -1,0 +1,58 @@
+NSD 4 features
+
+By W.C.A. Wijngaards, NLnet Labs, 2012.
+
+Introduction
+------------
+NSD4 has a number of new features and changes from NSD3.  This document
+presents the new features.
+
+Migration
+---------
+The old NSD3 config file can be used without changes for NSD4.
+There are new config statements and some old statements are gone.
+
+The nsd.db file has a new format that allows read and write.  Thus
+the nsd.db file needs to be re-created in NSD4 format.  This happens when
+you start NSD4.  If you need to rollback to NSD3, run its zonec to recreate
+the NSD3 nsd.db file (use nsdc rebuild).
+
+The cron job for nsdc patch is no longer needed.  It can be removed.
+
+If you admire cron jobs, you can have a cron job that does "nsd-control write".
+This would write the contents of (changed) slave zones to their zonefile in
+the text zonefile format.
+
+nsdc is gone, kill -HUP $nsd.pid or use nsd-control.  The kill -hup makes
+NSD4 check zone file timestamps and reload changed zones.  nsd-control reload
+is the same.
+
+You probably want to install and enable some of the new NSD 4 features,
+such as set up nsd-control and statistics.  And you may want to use the
+new pattern config options.
+
+Removed config options
+----------------------
+difffile: ixfr.db is gone.  This setting is no longer applicable, because the
+ixfr.db file is no longer used.  Files are created in tmp now.  The value
+is ignored by NSD4 if given in nsd.conf.
+
+New config options
+------------------
+
+
+Features with nsd-control 
+-------------------------
+
+Statistics
+----------
+
+Other features
+--------------
+* Support a high zone count
+* faster zone transfers
+* add and remove zones on without a restart
+* can reread config file parts with nsdc repattern
+* higher TCP service levels
+* read in only changed zone files
+
