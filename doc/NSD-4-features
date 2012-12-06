@@ -123,13 +123,15 @@ In source/contrib/nsd_munin_ is an example munin plugin.
 
 Other features
 --------------
-* Performance increase
-* Support a high zone count
-* faster zone transfers
-* add and remove zones on without a restart
-* can reread config file parts with nsdc repattern
-* higher TCP service levels
-* can read in changed zone files
+* Performance increase.
+* Support a high zone count.
+* Faster zone transfers.
+* Add and remove zones without a restart.
+* Can reread zone configuration from config file without a restart.
+* Higher TCP service levels, more sockets.
+* Detect which zone files have changed.
+* Stores nsec3prehash on disk, and calculates incrementally after IXFR.
+* Domain tree does not have the small leak of domain nodes.
 
 More documentation
 ------------------
