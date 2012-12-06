@@ -8,7 +8,9 @@ FEATURES:
 	- RRL, --enable-ratelimit at configure time and config options.
 
 BUG FIXES:
-	- Bugfix #478: declaration after statement (for gcc 2.95).
+	- Bugfix #478: Declaration after statement (for gcc 2.95).
+	- Bugfix #483: Better error message in case of TSIG error.
+
 
 3.2.14
 ================
