@@ -304,9 +304,6 @@ sig_handler(int sig)
 		nsd.signal_hint_statsusr = 1;
 		break;
 	case SIGINT:
-		/* Silent shutdown... */
-		nsd.signal_hint_quit = 1;
-		break;
 	case SIGTERM:
 	default:
 		nsd.signal_hint_shutdown = 1;
@@ -1077,7 +1074,7 @@ main(int argc, char *argv[])
 
 	if(nsd.server_kind == NSD_SERVER_MAIN) {
 		server_prepare_xfrd(&nsd);
-		/* fork xfrd before reading database, so it does not get
+		/* xfrd forks this before reading database, so it does not get
 		 * the memory size of the database */
 		server_start_xfrd(&nsd, 0, 0);
 	}

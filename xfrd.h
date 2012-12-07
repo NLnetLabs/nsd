@@ -70,6 +70,7 @@ struct xfrd_state {
 	/* sending ipc to server_main */
 	uint8_t need_to_send_shutdown;
 	uint8_t need_to_send_reload;
+	uint8_t need_to_send_stats;
 	uint8_t need_to_send_quit;
 	uint8_t	ipc_send_blocked;
 	struct udb_ptr* last_task;

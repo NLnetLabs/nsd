@@ -40,6 +40,10 @@ void bind8_stats(struct nsd * ATTR_UNUSED(nsd))
 {
 }
 
+void sig_handler(int ATTR_UNUSED(sig))
+{
+}
+
 void disp_callback(int failed)
 {
 	if(failed)

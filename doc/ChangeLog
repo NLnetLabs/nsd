@@ -1,3 +1,6 @@
+7 December 2012: Wouter
+	- stable pidfile, xfrd is process leader and forks server-parent.
+
 5 December 2012: Wouter
 	- NSD4_imp_6 tag.
 	- trunk has imp_7 implementation.

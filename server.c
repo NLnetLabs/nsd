@@ -699,8 +699,8 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 	case -1:
 		log_msg(LOG_ERR, "fork xfrd failed: %s", strerror(errno));
 		break;
-	case 0:
-		/* CHILD: close first socket, use second one */
+	default:
+		/* PARENT: close first socket, use second one */
 		close(sockets[0]);
 		if (fcntl(sockets[1], F_SETFL, O_NONBLOCK) == -1) {
 			log_msg(LOG_ERR, "cannot fcntl pipe: %s", strerror(errno));
@@ -709,28 +709,25 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		/* use other task than I am using, since if xfrd died and is
 		 * restarted, the reload is using nsd->mytask */
 		nsd->mytask = 1 - nsd->mytask;
-		nsd->xfrd_pid = getpid();
 		xfrd_init(sockets[1], nsd, del_db, reload_active);
 		/* ENOTREACH */
 		break;
-	default:
-		/* PARENT: close second socket, use first one */
+	case 0:
+		/* CHILD: close second socket, use first one */
 		close(sockets[1]);
 		if (fcntl(sockets[0], F_SETFL, O_NONBLOCK) == -1) {
 			log_msg(LOG_ERR, "cannot fcntl pipe: %s", strerror(errno));
 		}
 		nsd->xfrd_listener->fd = sockets[0];
-		nsd->xfrd_pid = pid;
 		break;
 	}
-	/* PARENT only */
+	/* server-parent only */
 	nsd->xfrd_listener->timeout = NULL;
 	nsd->xfrd_listener->event_types = NETIO_EVENT_READ;
 	nsd->xfrd_listener->event_handler = parent_handle_xfrd_command;
 	/* clear ongoing ipc reads */
 	data = (struct ipc_handler_conn_data *) nsd->xfrd_listener->user_data;
 	data->conn->is_reading = 0;
-	nsd->xfrd_pid = pid;
 }
 
 /** add all soainfo to taskdb */
@@ -956,7 +953,6 @@ static void
 server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int cmdsocket)
 {
-	pid_t old_pid;
 	sig_atomic_t cmd = NSD_QUIT_SYNC;
 	int ret;
 	udb_ptr last_task;
@@ -974,10 +970,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	udb_base_sync(nsd->db->udb, 0);
 
 	initialize_dname_compression_tables(nsd);
-
-	/* Get our new process id */
-	old_pid = nsd->pid;
-	nsd->pid = getpid();
 
 #ifdef BIND8_STATS
 	/* Restart dumping stats if required.  */
@@ -1002,22 +994,13 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		}
 	}
 
-	/* Overwrite pid before closing old parent, to avoid race condition:
-	 * - parent process already closed
-	 * - pidfile still contains old_pid
-	 * - control script contacts parent process, using contents of pidfile
-	 */
-	if (writepid(nsd) == -1) {
-		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
-	}
-
 	/* Send quit command to parent: blocking, wait for receipt. */
 	do {
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
 		if (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1)
 		{
-			log_msg(LOG_ERR, "problems sending command from reload %d to oldnsd %d: %s",
-				(int)nsd->pid, (int)old_pid, strerror(errno));
+			log_msg(LOG_ERR, "problems sending command from reload to oldnsd: %s",
+				strerror(errno));
 		}
 		/* blocking: wait for parent to really quit. (it sends RELOAD as ack) */
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc wait for ack main"));
@@ -1035,7 +1018,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	if(cmd == NSD_QUIT) {
 		/* small race condition possible here, parent got quit cmd. */
 		send_children_quit(nsd);
-		unlinkpid(nsd->pidfile);
 		exit(1);
 	}
 	assert(ret==-1 || ret == 0 || cmd == NSD_RELOAD);
@@ -1174,13 +1156,6 @@ server_main(struct nsd *nsd)
 						  "sending SOAEND to xfrd: %s",
 						  strerror(errno));
 					}
-				} else if (child_pid == nsd->xfrd_pid) {
-					log_msg(LOG_WARNING,
-					       "xfrd process %d failed with status %d, restarting ",
-					       (int) child_pid, status);
-					server_start_xfrd(nsd, 1,
-						(reload_listener.fd!=-1));
-					server_send_soa_xfrd(nsd, 1);
 				} else {
 					log_msg(LOG_WARNING,
 					       "Unknown child %d terminated with status %d",
@@ -1372,7 +1347,7 @@ server_main(struct nsd *nsd)
 		}
 		fsync(nsd->xfrd_listener->fd);
 		close(nsd->xfrd_listener->fd);
-		(void)kill(nsd->xfrd_pid, SIGTERM);
+		(void)kill(nsd->pid, SIGTERM);
 	}
 	xfrd_del_tempdir(nsd);
 

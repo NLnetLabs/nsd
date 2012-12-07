@@ -371,8 +371,9 @@ memory)
 	# get the total memory for NSD
 		pidf=`$chkconf -o pidfile $conf 2>&1`
 		pid=`cat $pidf 2>&1`
-		vszval=`ps -p "$pid" -o vsz= 2>&1`
-		rssval=`ps -p "$pid" -o rss= 2>&1`
+		# --ppid is linux ps parent pid.
+		vszval=`ps --ppid "$pid" -o vsz= 2>&1`
+		rssval=`ps --ppid "$pid" -o rss= 2>&1`
 		if test "`expr $rssval + 1 - 1 2>&1`" -eq "$rssval" 2>&1; then
 			rssval=`expr $rssval \* 1024` 
 		else

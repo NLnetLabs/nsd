@@ -119,9 +119,11 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 	}
 	if (len == 0)
 	{
-		DEBUG(DEBUG_IPC,1, (LOG_ERR, "handle_xfrd_command: xfrd closed channel."));
+		/* xfrd closed, we must quit */
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "handle_xfrd_command: xfrd closed channel."));
 		close(handler->fd);
 		handler->fd = -1;
+		data->nsd->mode = NSD_SHUTDOWN;
 		return;
 	}
 
@@ -133,6 +135,9 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 	case NSD_QUIT:
 	case NSD_SHUTDOWN:
 		data->nsd->mode = mode;
+		break;
+	case NSD_STATS:
+		data->nsd->signal_hint_stats = 1;
 		break;
 	case NSD_REAP_CHILDREN:
 		data->nsd->signal_hint_child = 1;
@@ -567,6 +572,18 @@ xfrd_send_quit_req(xfrd_state_t* xfrd)
 	xfrd->need_to_send_quit = 0;
 }
 
+static void
+xfrd_send_stats(xfrd_state_t* xfrd)
+{
+	sig_atomic_t cmd = NSD_STATS;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send stats"));
+	if(write_socket(xfrd->ipc_handler.ev_fd, &cmd, sizeof(cmd)) == -1) {
+		log_msg(LOG_ERR, "xfrd: error writing stats to main: %s",
+			strerror(errno));
+	}
+	xfrd->need_to_send_stats = 0;
+}
+
 void
 xfrd_handle_ipc(int ATTR_UNUSED(fd), short event, void* arg)
 {
@@ -589,10 +606,13 @@ xfrd_handle_ipc(int ATTR_UNUSED(fd), short event, void* arg)
 			xfrd_send_quit_req(xfrd);
 		} else if(xfrd->can_send_reload && xfrd->need_to_send_reload) {
 			xfrd_send_reload_req(xfrd);
+		} else if(xfrd->need_to_send_stats) {
+			xfrd_send_stats(xfrd);
 		}
 		if(!(xfrd->can_send_reload && xfrd->need_to_send_reload) &&
 			!xfrd->need_to_send_shutdown &&
-			!xfrd->need_to_send_quit) {
+			!xfrd->need_to_send_quit &&
+			!xfrd->need_to_send_stats) {
 			/* disable writing for now */
 			ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ);
 		}

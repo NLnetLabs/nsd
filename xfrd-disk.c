@@ -468,7 +468,7 @@ static void
 tempdirname(char* buf, size_t sz, struct nsd* nsd)
 {
 	snprintf(buf, sz, "%s/nsd-xfr-%d",
-		nsd->options->xfrdir, (int)nsd->xfrd_pid);
+		nsd->options->xfrdir, (int)nsd->pid);
 }
 
 void xfrd_make_tempdir(struct nsd* nsd)

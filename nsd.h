@@ -161,7 +161,6 @@ struct	nsd
 	struct udb_base* task[2];
 	int mytask; /* the base used by this process */
 	struct netio_handler* xfrd_listener;
-	pid_t xfrd_pid;
 	struct daemon_remote* rc;
 
 	/* Configuration */

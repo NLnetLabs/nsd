@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "xfrd.h"
 #include "xfrd-tcp.h"
 #include "xfrd-disk.h"
@@ -82,6 +84,28 @@ static void xfrd_udp_read(xfrd_zone_t* zone);
 /* find master by notify number */
 static int find_same_master_notify(xfrd_zone_t* zone, int acl_num_nfy);
 
+static void
+xfrd_signal_callback(int sig, short event, void* ATTR_UNUSED(arg))
+{
+	if(!(event & EV_SIGNAL))
+		return;
+	sig_handler(sig);
+}
+
+static void
+xfrd_sigsetup(int sig)
+{
+	/* no need to remember the event ; dealloc on process exit */
+	struct event *ev = xalloc_zero(sizeof(*ev));
+	signal_set(ev, sig, xfrd_signal_callback, NULL);
+	if(event_base_set(xfrd->event_base, ev) != 0) {
+		log_msg(LOG_ERR, "xfrd sig handler: event_base_set failed");
+	}
+	if(signal_add(ev, NULL) != 0) {
+		log_msg(LOG_ERR, "xfrd sig handler: signal_add failed");
+	}
+}
+
 void
 xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 {
@@ -89,7 +113,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 
 	assert(xfrd == 0);
 	/* to setup signalhandling */
-	nsd->server_kind = NSD_SERVER_BOTH;
+	nsd->server_kind = NSD_SERVER_MAIN;
 
 	region = region_create_custom(xalloc, free, DEFAULT_CHUNK_SIZE,
 		DEFAULT_LARGE_OBJECT_SIZE, DEFAULT_INITIAL_CLEANUP_SIZE, 1);
@@ -103,6 +127,14 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 		exit(1);
 	}
 	xfrd->nsd = nsd;
+	xfrd_sigsetup(SIGHUP);
+	xfrd_sigsetup(SIGTERM);
+	xfrd_sigsetup(SIGQUIT);
+	xfrd_sigsetup(SIGCHLD);
+	xfrd_sigsetup(SIGALRM);
+	xfrd_sigsetup(SIGILL);
+	xfrd_sigsetup(SIGUSR1);
+	xfrd_sigsetup(SIGINT);
 	xfrd->packet = buffer_create(xfrd->region, QIOBUFSZ);
 	xfrd->udp_waiting_first = NULL;
 	xfrd->udp_waiting_last = NULL;
@@ -134,6 +166,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 	xfrd->ipc_conn->fd = socket;
 	xfrd->need_to_send_reload = 0;
 	xfrd->need_to_send_shutdown = 0;
+	xfrd->need_to_send_stats = 0;
 
 	xfrd->notify_waiting_first = NULL;
 	xfrd->notify_waiting_last = NULL;
@@ -191,8 +224,38 @@ xfrd_main()
 					strerror(errno));
 			}
 		}
-		if(xfrd->nsd->signal_hint_quit || xfrd->nsd->signal_hint_shutdown)
-			xfrd->shutdown = 1;
+
+		if(xfrd->nsd->signal_hint_quit || xfrd->nsd->signal_hint_shutdown) {
+			xfrd->nsd->signal_hint_quit = 0;
+			xfrd->nsd->signal_hint_shutdown = 0;
+			xfrd->need_to_send_shutdown = 1;
+			if(!(xfrd->ipc_handler.ev_flags&EV_WRITE)) {
+				ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ|EV_WRITE);
+			}
+		} else if(xfrd->nsd->signal_hint_reload_hup) {
+			log_msg(LOG_WARNING, "SIGHUP received, reloading...");
+			xfrd->nsd->signal_hint_reload_hup = 0;
+			task_new_check_zonefiles(xfrd->nsd->task[
+				xfrd->nsd->mytask], xfrd->last_task, NULL);
+			xfrd_set_reload_now(xfrd);
+		} else if(xfrd->nsd->signal_hint_statsusr) {
+			xfrd->nsd->signal_hint_statsusr = 0;
+			xfrd->need_to_send_stats = 1;
+			if(!(xfrd->ipc_handler.ev_flags&EV_WRITE)) {
+				ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ|EV_WRITE);
+			}
+		} else if(xfrd->nsd->signal_hint_child) {
+			int status;
+			pid_t child_pid;
+			xfrd->nsd->signal_hint_child = 0;
+			while((child_pid = waitpid(0, &status, WNOHANG)) != -1 && child_pid != 0) {
+				if(status != 0) {
+					log_msg(LOG_ERR, "process serverparent %d exited with status %d",
+						(int)child_pid, status);
+				}
+			}
+		}
+
 	}
 	xfrd_shutdown();
 }
@@ -203,9 +266,9 @@ xfrd_shutdown()
 	xfrd_zone_t* zone;
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown"));
-	xfrd_write_state(xfrd);
 	event_del(&xfrd->ipc_handler);
-	close(xfrd->ipc_handler.ev_fd);
+	close(xfrd->ipc_handler.ev_fd); /* notifies parent we stop */
+	xfrd_write_state(xfrd);
 	if(xfrd->reload_added) {
 		event_del(&xfrd->reload_handler);
 		xfrd->reload_added = 0;
