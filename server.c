@@ -33,7 +33,11 @@
 #ifndef SHUT_WR
 #define SHUT_WR 1
 #endif
+#ifndef USE_MINI_EVENT
 #include <event.h>
+#else
+#include "mini_event.h"
+#endif
 
 #include <openssl/rand.h>
 
@@ -1383,7 +1387,9 @@ nsd_child_event_base(void)
 {
 	struct event_base* base;
 #ifdef USE_MINI_EVENT
-	base = event_init(&xfrd->secs, &xfrd->now);
+	static uint32_t secs;
+	static struct timeval now;
+	base = event_init(&secs, &now);
 #else
 #  if defined(HAVE_EV_LOOP) || defined(HAVE_EV_DEFAULT_LOOP)
 	/* libev */

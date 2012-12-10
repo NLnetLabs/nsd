@@ -10,7 +10,11 @@
 #ifndef XFRD_NOTIFY_H
 #define XFRD_NOTIFY_H
 
+#ifndef USE_MINI_EVENT
 #include <event.h>
+#else
+#include "mini_event.h"
+#endif
 #include "tsig.h"
 #include "rbtree.h"
 

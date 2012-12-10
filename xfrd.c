@@ -104,6 +104,7 @@ xfrd_sigsetup(int sig)
 	if(signal_add(ev, NULL) != 0) {
 		log_msg(LOG_ERR, "xfrd sig handler: signal_add failed");
 	}
+	(void)sig;
 }
 
 void
@@ -208,8 +209,45 @@ xfrd_process_activated(void)
 }
 
 static void
-xfrd_main()
+xfrd_sig_process(void)
 {
+	if(xfrd->nsd->signal_hint_quit || xfrd->nsd->signal_hint_shutdown) {
+		xfrd->nsd->signal_hint_quit = 0;
+		xfrd->nsd->signal_hint_shutdown = 0;
+		xfrd->need_to_send_shutdown = 1;
+		if(!(xfrd->ipc_handler.ev_flags&EV_WRITE)) {
+			ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ|EV_WRITE);
+		}
+	} else if(xfrd->nsd->signal_hint_reload_hup) {
+		log_msg(LOG_WARNING, "SIGHUP received, reloading...");
+		xfrd->nsd->signal_hint_reload_hup = 0;
+		task_new_check_zonefiles(xfrd->nsd->task[
+			xfrd->nsd->mytask], xfrd->last_task, NULL);
+		xfrd_set_reload_now(xfrd);
+	} else if(xfrd->nsd->signal_hint_statsusr) {
+		xfrd->nsd->signal_hint_statsusr = 0;
+		xfrd->need_to_send_stats = 1;
+		if(!(xfrd->ipc_handler.ev_flags&EV_WRITE)) {
+			ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ|EV_WRITE);
+		}
+	} else if(xfrd->nsd->signal_hint_child) {
+		int status;
+		pid_t child_pid;
+		xfrd->nsd->signal_hint_child = 0;
+		while((child_pid = waitpid(0, &status, WNOHANG)) != -1 && child_pid != 0) {
+			if(status != 0) {
+				log_msg(LOG_ERR, "process serverparent %d exited with status %d",
+					(int)child_pid, status);
+			}
+		}
+	}
+}
+
+static void
+xfrd_main(void)
+{
+	/* we may have signals from the startup period, process them */
+	xfrd_sig_process();
 	xfrd->shutdown = 0;
 	while(!xfrd->shutdown)
 	{
@@ -225,37 +263,7 @@ xfrd_main()
 			}
 		}
 
-		if(xfrd->nsd->signal_hint_quit || xfrd->nsd->signal_hint_shutdown) {
-			xfrd->nsd->signal_hint_quit = 0;
-			xfrd->nsd->signal_hint_shutdown = 0;
-			xfrd->need_to_send_shutdown = 1;
-			if(!(xfrd->ipc_handler.ev_flags&EV_WRITE)) {
-				ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ|EV_WRITE);
-			}
-		} else if(xfrd->nsd->signal_hint_reload_hup) {
-			log_msg(LOG_WARNING, "SIGHUP received, reloading...");
-			xfrd->nsd->signal_hint_reload_hup = 0;
-			task_new_check_zonefiles(xfrd->nsd->task[
-				xfrd->nsd->mytask], xfrd->last_task, NULL);
-			xfrd_set_reload_now(xfrd);
-		} else if(xfrd->nsd->signal_hint_statsusr) {
-			xfrd->nsd->signal_hint_statsusr = 0;
-			xfrd->need_to_send_stats = 1;
-			if(!(xfrd->ipc_handler.ev_flags&EV_WRITE)) {
-				ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ|EV_WRITE);
-			}
-		} else if(xfrd->nsd->signal_hint_child) {
-			int status;
-			pid_t child_pid;
-			xfrd->nsd->signal_hint_child = 0;
-			while((child_pid = waitpid(0, &status, WNOHANG)) != -1 && child_pid != 0) {
-				if(status != 0) {
-					log_msg(LOG_ERR, "process serverparent %d exited with status %d",
-						(int)child_pid, status);
-				}
-			}
-		}
-
+		xfrd_sig_process();
 	}
 	xfrd_shutdown();
 }

@@ -1,3 +1,6 @@
+10 December 2012: Wouter
+	- implement --with-libevent=no.
+
 10 December 2012: Matthijs
 	- Bug #483: Better error messages for TSIG errors.
 	- RFC 2845: If BADKEY or BADSIG, RCODE should be NOTAUTH.

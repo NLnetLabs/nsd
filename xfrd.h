@@ -10,7 +10,11 @@
 #ifndef XFRD_H
 #define XFRD_H
 
+#ifndef USE_MINI_EVENT
 #include <event.h>
+#else
+#include "mini_event.h"
+#endif
 #include "rbtree.h"
 #include "namedb.h"
 #include "options.h"

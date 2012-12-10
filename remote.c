@@ -55,7 +55,11 @@
 #include <unistd.h>
 #include <assert.h>
 #include <fcntl.h>
+#ifndef USE_MINI_EVENT
 #include <event.h>
+#else
+#include "mini_event.h"
+#endif
 #include "remote.h"
 #include "util.h"
 #include "xfrd.h"
