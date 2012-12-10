@@ -363,8 +363,9 @@ process_tsig(struct query* q)
 		return NSD_RC_FORMAT;
 	if(q->tsig.status == TSIG_OK) {
 		if(!tsig_from_query(&q->tsig)) {
-			log_msg(LOG_ERR, "query tsig unknown key/algorithm");
-			return NSD_RC_REFUSE;
+			log_msg(LOG_ERR, "query: bad tsig (%s)",
+				tsig_error(q->tsig.error_code));
+			return NSD_RC_NOTAUTH;
 		}
 		buffer_set_limit(q->packet, q->tsig.position);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) - 1);
@@ -373,7 +374,7 @@ process_tsig(struct query* q)
 		if(!tsig_verify(&q->tsig)) {
 			log_msg(LOG_ERR, "query: bad tsig signature for key %s",
 				dname_to_string(q->tsig.key->name, NULL));
-			return NSD_RC_REFUSE;
+			return NSD_RC_NOTAUTH;
 		}
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "query good tsig signature for %s",
 			dname_to_string(q->tsig.key->name, NULL)));

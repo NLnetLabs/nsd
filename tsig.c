@@ -621,8 +621,6 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 		tsig->rr_region, buffer_current(packet), tsig->other_size);
 	buffer_skip(packet, tsig->other_size);
 	tsig->status = TSIG_OK;
-	tsig->error_code = TSIG_ERROR_NOERROR;
-
 	return 1;
 }
 
