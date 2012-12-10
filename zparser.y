@@ -959,7 +959,7 @@ rdata_ipseckey:	rdata_ipsec_base sp str_sp_seq trail
 rdata_nid:	STR sp dotted_str trail
     {
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str));  /* preference */
-	    zadd_rdata_wireformat(zparser_conv_aaaa_half(parser->region, $3.str));  /* NodeID */
+	    zadd_rdata_wireformat(zparser_conv_ilnp64(parser->region, $3.str));  /* NodeID */
     }
     ;
 
@@ -973,7 +973,7 @@ rdata_l32:	STR sp dotted_str trail
 rdata_l64:	STR sp dotted_str trail
     {
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str));  /* preference */
-	    zadd_rdata_wireformat(zparser_conv_aaaa_half(parser->region, $3.str));  /* Locator64 */
+	    zadd_rdata_wireformat(zparser_conv_ilnp64(parser->region, $3.str));  /* Locator64 */
     }
     ;
 
