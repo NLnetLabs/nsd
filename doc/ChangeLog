@@ -1,5 +1,5 @@
 10 December 2012: Matthijs
-	- Better ILNP RR parsing
+	- Better ILNP RR parsing (thanks Stephane Bortzmeyer).
 
 6 December 2012: Matthijs
 	- Bug #483: Better error messages for TSIG errors.
