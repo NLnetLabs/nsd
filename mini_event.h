@@ -149,8 +149,6 @@ int event_base_loopexit(struct event_base *, struct timeval *);
 /** run select once */
 #define EVLOOP_ONCE 1
 int event_base_loop(struct event_base* base, int flags);
-/** update timer inside minievent */
-int minievent_settime(struct event_base* base);
 /** free event base. Free events yourself */
 void event_base_free(struct event_base *);
 /** set content of event */
