@@ -80,8 +80,8 @@ int mini_ev_cmp(const void* a, const void* b)
 }
 
 /** set time */
-static int
-settime(struct event_base* base)
+int
+minievent_settime(struct event_base* base)
 {
 	if(gettimeofday(base->time_tv, NULL) < 0) {
 		return -1;
@@ -107,7 +107,7 @@ void *event_init(uint32_t* time_secs, struct timeval* time_tv)
 	}
 	base->time_secs = time_secs;
 	base->time_tv = time_tv;
-	if(settime(base) < 0) {
+	if(minievent_settime(base) < 0) {
 		event_base_free(base);
 		return NULL;
 	}
@@ -202,14 +202,14 @@ static int handle_select(struct event_base* base, struct timeval* wait)
 
 	if((ret = select(base->maxfd+1, &r, &w, NULL, wait)) == -1) {
 		ret = errno;
-		if(settime(base) < 0)
+		if(minievent_settime(base) < 0)
 			return -1;
 		errno = ret;
 		if(ret == EAGAIN || ret == EINTR)
 			return 0;
 		return -1;
 	}
-	if(settime(base) < 0)
+	if(minievent_settime(base) < 0)
 		return -1;
 	
 	for(i=0; i<base->maxfd+1; i++) {
@@ -259,7 +259,7 @@ int event_base_loop(struct event_base* base, int flags)
 int event_base_dispatch(struct event_base* base)
 {
 	struct timeval wait;
-	if(settime(base) < 0)
+	if(minievent_settime(base) < 0)
 		return -1;
 	while(!base->need_to_exit)
 	{

@@ -245,6 +245,9 @@ xfrd_sig_process(void)
 static void
 xfrd_main(void)
 {
+#ifdef USE_MINI_EVENT
+	minievent_settime(xfrd->event_base);
+#endif
 	/* we may have signals from the startup period, process them */
 	xfrd_sig_process();
 	xfrd->shutdown = 0;
