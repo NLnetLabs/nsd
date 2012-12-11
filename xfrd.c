@@ -104,7 +104,6 @@ xfrd_sigsetup(int sig)
 	if(signal_add(ev, NULL) != 0) {
 		log_msg(LOG_ERR, "xfrd sig handler: signal_add failed");
 	}
-	(void)sig;
 }
 
 void

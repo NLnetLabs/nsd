@@ -632,7 +632,6 @@ server_shutdown(struct nsd *nsd)
 			}
 	}
 
-	log_finalize();
 	tsig_finalize();
 #ifdef HAVE_SSL
 	daemon_remote_delete(nsd->rc); /* ssl-delete secret keys */
@@ -642,6 +641,7 @@ server_shutdown(struct nsd *nsd)
 	nsd_options_destroy(nsd->options);
 	region_destroy(nsd->region);
 #endif
+	log_finalize();
 	exit(0);
 }
 

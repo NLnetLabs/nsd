@@ -391,15 +391,16 @@ static RETSIGTYPE sigh(int sig)
 /** install signal handler */
 int signal_add(struct event* ev, struct timeval* ATTR_UNUSED(tv))
 {
+	struct sigaction action;
 	if(ev->ev_fd == -1 || ev->ev_fd >= MAX_SIG)
 		return -1;
 	signal_base = ev->ev_base;
 	ev->ev_base->signals[ev->ev_fd] = ev;
 	ev->added = 1;
-	if(signal(ev->ev_fd, sigh) == SIG_ERR) {
-		return -1;
-	}
-	return 0;
+	action.sa_handler = sigh;
+	sigfillset(&action.sa_mask);
+	action.sa_flags = 0;
+	return sigaction(ev->ev_fd, &action, NULL);
 }
 
 /** remove signal handler */
