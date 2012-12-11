@@ -1,5 +1,6 @@
 11 December 2012: Wouter
 	- fix libevent=no signals on Solaris.
+	- Fix handle of activated zones from timeout event.
 
 10 December 2012: Wouter
 	- implement --with-libevent=no.

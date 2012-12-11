@@ -152,10 +152,11 @@ const char *event_get_method(void)
 }
 
 /** call timeouts handlers, and return how long to wait for next one or -1 */
-static void handle_timeouts(struct event_base* base, struct timeval* now, 
+static int handle_timeouts(struct event_base* base, struct timeval* now, 
 	struct timeval* wait)
 {
 	struct event* p;
+	int tofired = 0;
 #ifndef S_SPLINT_S
 	wait->tv_sec = (time_t)-1;
 #endif
@@ -176,14 +177,16 @@ static void handle_timeouts(struct event_base* base, struct timeval* now,
 				wait->tv_usec = p->ev_timeout.tv_usec 
 					- now->tv_usec;
 			}
-			return;
+			return tofired;
 		}
 #endif
 		/* event times out, remove it */
+		tofired = 1;
 		(void)rbtree_delete(base->times, p);
 		p->ev_flags &= ~EV_TIMEOUT;
 		(*p->ev_callback)(p->ev_fd, EV_TIMEOUT, p->ev_arg);
 	}
+	return tofired;
 }
 
 /** call select and callbacks for that */
@@ -243,7 +246,8 @@ int event_base_loop(struct event_base* base, int flags)
 	if(flags != EVLOOP_ONCE)
 		return event_base_dispatch(base);
 	/* see if timeouts need handling */
-	handle_timeouts(base, base->time_tv, &wait);
+	if(handle_timeouts(base, base->time_tv, &wait))
+		return 0; /* there were timeouts, end of loop */
 	if(base->need_to_exit)
 		return 0;
 	/* do select */
@@ -264,7 +268,7 @@ int event_base_dispatch(struct event_base* base)
 	while(!base->need_to_exit)
 	{
 		/* see if timeouts need handling */
-		handle_timeouts(base, base->time_tv, &wait);
+		(void)handle_timeouts(base, base->time_tv, &wait);
 		if(base->need_to_exit)
 			return 0;
 		/* do select */
@@ -343,9 +347,6 @@ int event_add(struct event* ev, struct timeval* tv)
 	if(tv && (ev->ev_flags&EV_TIMEOUT)) {
 #ifndef S_SPLINT_S
 		struct timeval *now = ev->ev_base->time_tv;
-                log_msg(LOG_INFO, "add_event timeout %d.%6.6d now %d.%6.6d",
-                       (int)tv->tv_sec, (int)tv->tv_usec,
-                       (int)now->tv_sec, (int)now->tv_usec);
 		ev->ev_timeout.tv_sec = tv->tv_sec + now->tv_sec;
 		ev->ev_timeout.tv_usec = tv->tv_usec + now->tv_usec;
 		while(ev->ev_timeout.tv_usec > 1000000) {
