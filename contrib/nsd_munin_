@@ -377,12 +377,26 @@ memory)
 		if test "`expr $rssval + 1 - 1 2>&1`" -eq "$rssval" 2>&1; then
 			rssval=`expr $rssval \* 1024` 
 		else
-			rssval=0
+			# on FreeBSD, OpenBSD, NetBSD ps -j has user,PID,PPID
+			zepid=`ps -j 2>&1 | awk '{ if($3=='$pid') print $2; }'`
+			rssval=`ps -p $zepid -o rss= 2>&1`
+			if test "`expr $rssval + 1 - 1 2>&1`" -eq "$rssval" 2>&1; then
+				rssval=`expr $rssval \* 1024` 
+			else
+				rssval=0
+			fi
 		fi
 		if test "`expr $vszval + 1 - 1 2>&1`" -eq "$vszval" 2>&1; then
 			vszval=`expr $vszval \* 1024` 
 		else
-			vszval=0
+			# on FreeBSD, OpenBSD, NetBSD ps -j has user,PID,PPID
+			zepid=`ps -j 2>&1 | awk '{ if($3=='$pid') print $2; }'`
+			vszval=`ps -p $zepid -o vsz= 2>&1`
+			if test "`expr $vszval + 1 - 1 2>&1`" -eq "$vszval" 2>&1; then
+				vszval=`expr $vszval \* 1024` 
+			else
+				vszval=0
+			fi
 		fi
 	echo "size_vsz" $vszval
 	echo "size_rss" $rssval
