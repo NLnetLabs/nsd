@@ -1,3 +1,6 @@
+11 December 2012: Matthijs
+	- Better ILNP RR parsing (thanks Stephane Bortzmeyer).
+
 11 December 2012: Wouter
 	- fix libevent=no signals on Solaris.
 	- Fix handle of activated zones from timeout event.
