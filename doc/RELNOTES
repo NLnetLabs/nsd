@@ -1,15 +1,81 @@
 NSD RELEASE NOTES
 
-3.2.11 (UPCOMING)
+4.0.0b1   BETA 1 release of NSD 4.0
+==================================
+FEATURES:
+	- add and remove zones without restart.
+	- nsdc is gone, use nsd-control for direct server control.
+	- performance increases
+	- support lots of zones
+	- and more ...
+	- longer desc in doc/NSD-4-features
+
+BUG FIXES:
+	- core code is fixed like 3.2.15r3763 (12 dec 2012).
+
+3.2.15 (development branch merge)
+=================================
+
+FEATURES:
+	- Support for ILNP RR types: NID, L32, L64, LP (RFC6742).
+	- RRL, --enable-ratelimit at configure time and config options.
+
+BUG FIXES:
+	- Bugfix #478: Declaration after statement (for gcc 2.95).
+	- Bugfix #483: Better error message in case of TSIG error.
+
+
+3.2.14
 ================
 
 FEATURES:
-	- Fallback to AXFR is IXFR is unknown at the primary. NSD considers
-	  IXFR unknown at the primary if there is a negative response for the IXFR
-	  RRtype. This does not override the value for 'allow-axfr-fallback'.
-	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155, RFC5702, 
-	  RFC5933, and RFC6605 (ECDSA)).
+	- TCP writev support.
 
+BUG FIXES:
+	- Fix build on OpenBSD (thanks Oliver Peter).
+	- Prioritize notify sender for requesting XFR (thanks Ilya Bakulin).
+	- Fix crash in zonec if TXT string too long  (thanks Ilya Bakulin).
+	- tzset before chroot for correct timezone (thanks Camiel Dobbelaar).
+	- Fix --disable-full-prehash bug when nsdc patch happens while ixfr too,
+	  it did not rehash the new database.
+	- Bugfix #464: Conditionally define MAXHOSTNAMELEN.
+
+3.2.13
+================
+
+BUG FIXES:
+	- Fix for nsd-patch segfault if zone has been removed from nsd.conf
+	  (thanks Ilya Bakulin).
+	- Bugfix #460: man page correction - identity.
+	- Bugfix #461: NSD child segfaults when asked for out-of-zone data
+	  with --enable-zone-stats. [VU#517036 CVE-2012-2979]
+
+
+3.2.12
+================
+
+BUG FIXES:
+	- Fix for VU#624931 CVE-2012-2978: NSD denial of service 
+	  vulnerability from non-standard DNS packet from any host
+	  on the internet.
+	  http://www.nlnetlabs.nl/downloads/CVE-2012-2978.txt
+
+
+3.2.11
+================
+
+FEATURES:
+	- Fallback to AXFR if IXFR is unknown at the primary. NSD considers
+	  IXFR unknown at the primary if there is a negative response for the
+	  IXFR RRtype. This does not override the value for
+	  'allow-axfr-fallback'.
+	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155,
+	  RFC5702, RFC5933, and RFC6605 (ECDSA)).
+	- Zone statistics, enable with --enable-zone-stats. This stores the
+	  BIND8 stats per zone in a configurable statistics file. This option
+	  does not scale and should therefore not be enabled when serving
+	  many zones.
+	- Support for TLSA RRtype (DANE).
 
 BUG FIXES:
 	- Fix for qtype ANY for a wildcard domain in NSEC signed zone: Don't
@@ -17,6 +83,9 @@ BUG FIXES:
 	  put the wildcard expanded NSEC into the answer section and keep the
 	  wildcard domain NSEC in the authority section.
 	- Fix for accept spinning reported by OpenBSD.
+	- Fix restart failed due to bad ixfr packet because of zone removed
+	  from nsd.conf.
+	- Bugfix #453: typo in nsdc man page.
 
 OPERATIONAL NOTES:
 	- NSD uses the query name for dname compression again (Fix #235 
@@ -28,7 +97,7 @@ OPERATIONAL NOTES:
 ================
 
 BUG FIXES:
-        - Bugfix #421: Truncate pidfile on shutdown, before unlink.
+	- Bugfix #421: Truncate pidfile on shutdown, before unlink.
 	- Bugfix #423: Fix slow zone transfer processing due to
 	  'Fix is_existing flag for ENT' bugfix.
 	- Fix bug #430: segfault when MAX_INTERFACES set to more than 65K.
@@ -50,6 +119,11 @@ FEATURES:
 	  The feature is enabled by default. You can disable it by configuring 
 	  NSD with --disable-minimal-responses.
 
+	- Less NSEC3 prehashing. This will make NSD handle zone transfers
+	  faster, but will decrease the performance of NXDOMAIN and wildcard
+	  NODATA responses. Full prehashing is enabled by default. If you want
+	  less NSEC3 prehashing, configure NSD with --disable-full-prehash.
+	  Thanks Secure64 for the patch.
 
 BUG FIXES:
 	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
@@ -88,7 +162,7 @@ BUG FIXES:
 	- Bugfix #348: Don't include header/library path if OpenSSL is in /usr
 	- Bugfix #350: Refused notifies should log client ip.
 	- Bugfix #352: Fix hard coded paths in man pages.
-	- Bugfix #354: The realclean target deletes a bit too much.
+	- Bugfix #354: The realclean target deletes a bit too much.	
 	- Bugfix #357, make xfrd quit with many zones.
 	- Bugfix #362: outgoing-interface and v4 vs. v6 leads to spurious
 	  warning messages.
