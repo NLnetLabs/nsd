@@ -1,3 +1,7 @@
+12 December 2012: Matthijs
+	- Fix RCODE when CNAME loop final answer does not exist, should
+	  return NXDOMAIN as stated by RFC 6604 (reported by Peter van Dijk).
+
 10 December 2012: Matthijs
 	- Better ILNP RR parsing (thanks Stephane Bortzmeyer).
 

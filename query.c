@@ -867,10 +867,8 @@ answer_nodata(struct query *query, answer_type *answer, domain_type *original)
 static void
 answer_nxdomain(query_type *query, answer_type *answer)
 {
-	if (query->cname_count == 0) {
-		RCODE_SET(query->packet, RCODE_NXDOMAIN);
-		answer_soa(query, answer);
-	}
+	RCODE_SET(query->packet, RCODE_NXDOMAIN);
+	answer_soa(query, answer);
 }
 
 

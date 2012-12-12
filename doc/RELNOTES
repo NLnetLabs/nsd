@@ -10,6 +10,8 @@ FEATURES:
 BUG FIXES:
 	- Bugfix #478: Declaration after statement (for gcc 2.95).
 	- Bugfix #483: Better error message in case of TSIG error.
+	- Fix RCODE when CNAME loop final answer does not exist, should
+	  return NXDOMAIN as stated by RFC 6604.
 
 
 3.2.14
