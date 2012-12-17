@@ -15,6 +15,7 @@ struct buffer;
 struct nsd;
 struct nsd_child;
 struct xfrd_tcp;
+struct xfrd_state;
 struct nsdst;
 struct event;
 
@@ -90,6 +91,6 @@ void parent_check_all_children_exited(struct nsd* nsd);
 void stats_add(struct nsdst* total, struct nsdst* s);
 
 /** set event to listen to given mode, no timeout, must be added already */
-void ipc_set_listening(struct event* event, short mode);
+void ipc_xfrd_set_listening(struct xfrd_state* xfrd, short mode);
 
 #endif /* NSD_IPC_H */

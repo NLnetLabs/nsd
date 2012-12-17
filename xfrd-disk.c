@@ -443,8 +443,8 @@ xfrd_write_state(struct xfrd_state* xfrd)
 		fprintf(out, "\tnext_master: %d\n", zone->next_master);
 		fprintf(out, "\tround_num: %d\n", zone->round_num);
 		fprintf(out, "\tnext_timeout: %d",
-			(zone->zone_handler.ev_flags&EV_TIMEOUT)?(int)zone->timeout.tv_sec:0);
-		if((zone->zone_handler.ev_flags&EV_TIMEOUT)) {
+			(zone->zone_handler_flags&EV_TIMEOUT)?(int)zone->timeout.tv_sec:0);
+		if((zone->zone_handler_flags&EV_TIMEOUT)) {
 			neato_timeout(out, "\t# =", zone->timeout.tv_sec - xfrd_time());
 		}
 		fprintf(out, "\n");

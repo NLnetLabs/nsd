@@ -531,17 +531,18 @@ xfrd_send_reload_req(xfrd_state_t* xfrd)
 }
 
 void
-ipc_set_listening(struct event* event, short mode)
+ipc_xfrd_set_listening(struct xfrd_state* xfrd, short mode)
 {
-	int fd = event->ev_fd;
-	struct event_base* base = event->ev_base;
-	event_del(event);
-	event_set(event, fd, mode, event->ev_callback, event->ev_arg);
-	if(event_base_set(base, event) != 0)
+	int fd = xfrd->ipc_handler.ev_fd;
+	struct event_base* base = xfrd->event_base;
+	event_del(&xfrd->ipc_handler);
+	event_set(&xfrd->ipc_handler, fd, mode, xfrd_handle_ipc, xfrd);
+	if(event_base_set(base, &xfrd->ipc_handler) != 0)
 		log_msg(LOG_ERR, "ipc: cannot set event_base");
 	/* no timeout for IPC events */
-	if(event_add(event, NULL) != 0)
+	if(event_add(&xfrd->ipc_handler, NULL) != 0)
 		log_msg(LOG_ERR, "ipc: cannot add event");
+	xfrd->ipc_handler_flags = mode;
 }
 
 static void
@@ -549,7 +550,7 @@ xfrd_send_shutdown_req(xfrd_state_t* xfrd)
 {
 	sig_atomic_t cmd = NSD_SHUTDOWN;
 	xfrd->ipc_send_blocked = 1;
-	ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ);
+	ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send shutdown"));
 	if(write_socket(xfrd->ipc_handler.ev_fd, &cmd, sizeof(cmd)) == -1) {
 		log_msg(LOG_ERR, "xfrd: error writing shutdown to main: %s",
@@ -563,7 +564,7 @@ xfrd_send_quit_req(xfrd_state_t* xfrd)
 {
 	sig_atomic_t cmd = NSD_QUIT;
 	xfrd->ipc_send_blocked = 1;
-	ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ);
+	ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send ackreload(quit)"));
 	if(write_socket(xfrd->ipc_handler.ev_fd, &cmd, sizeof(cmd)) == -1) {
 		log_msg(LOG_ERR, "xfrd: error writing ack to main: %s",
@@ -597,7 +598,7 @@ xfrd_handle_ipc(int ATTR_UNUSED(fd), short event, void* arg)
         if ((event & EV_WRITE))
 	{
 		if(xfrd->ipc_send_blocked) { /* wait for RELOAD_DONE */
-			ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ);
+			ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ);
 			return;
 		}
 		if(xfrd->need_to_send_shutdown) {
@@ -614,7 +615,7 @@ xfrd_handle_ipc(int ATTR_UNUSED(fd), short event, void* arg)
 			!xfrd->need_to_send_quit &&
 			!xfrd->need_to_send_stats) {
 			/* disable writing for now */
-			ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ);
+			ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ);
 		}
 	}
 
@@ -702,7 +703,7 @@ xfrd_handle_ipc_read(struct event* handler, xfrd_state_t* xfrd)
 		   the new parent does not want half a packet) */
 		xfrd->can_send_reload = 1;
 		xfrd->ipc_send_blocked = 0;
-		ipc_set_listening(handler, EV_PERSIST|EV_READ|EV_WRITE);
+		ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ|EV_WRITE);
 		xfrd_reopen_logfile();
 		xfrd_check_failed_updates();
 		break;
@@ -720,7 +721,7 @@ xfrd_handle_ipc_read(struct event* handler, xfrd_state_t* xfrd)
 	case NSD_RELOAD:
 		/* main tells us that reload is done, stop ipc send to main */
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv RELOAD"));
-		ipc_set_listening(handler, EV_PERSIST|EV_READ|EV_WRITE);
+		ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ|EV_WRITE);
 		xfrd->need_to_send_quit = 1;
 		break;
         default:

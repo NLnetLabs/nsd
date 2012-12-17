@@ -69,6 +69,7 @@ struct xfrd_state {
 
 	/* communication channel with server_main */
 	struct event ipc_handler;
+	int ipc_handler_flags;
 	struct xfrd_tcp *ipc_conn;
 	struct buffer* ipc_pass;
 	/* sending ipc to server_main */
@@ -158,6 +159,7 @@ struct xfrd_zone {
 	/* handler for timeouts */
 	struct timeval timeout;
 	struct event zone_handler;
+	int zone_handler_flags;
 	int event_added;
 
 	/* tcp connection zone is using, or -1 */

@@ -160,6 +160,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 		log_msg(LOG_ERR, "xfrd ipc handler: event_base_set failed");
 	if(event_add(&xfrd->ipc_handler, NULL) != 0)
 		log_msg(LOG_ERR, "xfrd ipc handler: event_add failed");
+	xfrd->ipc_handler_flags = EV_PERSIST|EV_READ;
 	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region, QIOBUFSZ);
 	/* not reading using ipc_conn yet */
 	xfrd->ipc_conn->is_reading = 0;
@@ -214,8 +215,8 @@ xfrd_sig_process(void)
 		xfrd->nsd->signal_hint_quit = 0;
 		xfrd->nsd->signal_hint_shutdown = 0;
 		xfrd->need_to_send_shutdown = 1;
-		if(!(xfrd->ipc_handler.ev_flags&EV_WRITE)) {
-			ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ|EV_WRITE);
+		if(!(xfrd->ipc_handler_flags&EV_WRITE)) {
+			ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ|EV_WRITE);
 		}
 	} else if(xfrd->nsd->signal_hint_reload_hup) {
 		log_msg(LOG_WARNING, "SIGHUP received, reloading...");
@@ -226,8 +227,8 @@ xfrd_sig_process(void)
 	} else if(xfrd->nsd->signal_hint_statsusr) {
 		xfrd->nsd->signal_hint_statsusr = 0;
 		xfrd->need_to_send_stats = 1;
-		if(!(xfrd->ipc_handler.ev_flags&EV_WRITE)) {
-			ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ|EV_WRITE);
+		if(!(xfrd->ipc_handler_flags&EV_WRITE)) {
+			ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ|EV_WRITE);
 		}
 	} else if(xfrd->nsd->signal_hint_child) {
 		int status;
@@ -261,7 +262,6 @@ xfrd_main(void)
 					strerror(errno));
 			}
 		}
-
 		xfrd_sig_process();
 	}
 	xfrd_shutdown();
@@ -361,6 +361,7 @@ xfrd_init_slave_zone(xfrd_state_t* xfrd, const dname_type* dname,
 	xzone->soa_notified.email[0]=1;
 
 	xzone->zone_handler.ev_fd = -1;
+	xzone->zone_handler_flags = 0;
 	xzone->event_added = 0;
 
 	xzone->tcp_conn = -1;
@@ -858,6 +859,7 @@ xfrd_udp_obtain(xfrd_zone_t* zone)
 				log_msg(LOG_ERR, "xfrd udp: event_base_set failed");
 			if(event_add(&zone->zone_handler, &zone->timeout) != 0)
 				log_msg(LOG_ERR, "xfrd udp: event_add failed");
+			zone->zone_handler_flags=EV_PERSIST|EV_READ|EV_TIMEOUT;
 			zone->event_added = 1;
 		}
 		return;
@@ -957,6 +959,7 @@ xfrd_unset_timer(xfrd_zone_t* zone)
 	assert(zone->zone_handler.ev_fd == -1);
 	if(zone->event_added)
 		event_del(&zone->zone_handler);
+	zone->zone_handler_flags = 0;
 	zone->event_added = 0;
 }
 
@@ -964,7 +967,7 @@ void
 xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 {
 	int fd = zone->zone_handler.ev_fd;
-	int fl = (zone->zone_handler.ev_flags)&(EV_READ|EV_WRITE|EV_TIMEOUT);
+	int fl = ((fd == -1)?EV_TIMEOUT:zone->zone_handler_flags);
 	/* randomize the time, within 90%-100% of original */
 	/* not later so zones cannot expire too late */
 	/* only for times far in the future */
@@ -979,12 +982,12 @@ xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 	else	fd = -1;
 	zone->timeout.tv_sec = t;
 	zone->timeout.tv_usec = 0;
-	event_set(&zone->zone_handler, fd, (fd == -1)?EV_TIMEOUT:EV_PERSIST|fl,
-		xfrd_handle_zone, zone);
+	event_set(&zone->zone_handler, fd, fl, xfrd_handle_zone, zone);
 	if(event_base_set(xfrd->event_base, &zone->zone_handler) != 0)
 		log_msg(LOG_ERR, "xfrd timer: event_base_set failed");
 	if(event_add(&zone->zone_handler, &zone->timeout) != 0)
 		log_msg(LOG_ERR, "xfrd timer: event_add failed");
+	zone->zone_handler_flags = fl;
 	zone->event_added = 1;
 }
 
@@ -1104,6 +1107,7 @@ xfrd_udp_release(xfrd_zone_t* zone)
 		close(zone->zone_handler.ev_fd);
 	}
 	zone->zone_handler.ev_fd = -1;
+	zone->zone_handler_flags = 0;
 	zone->event_added = 0;
 	/* see if there are waiting zones */
 	if(xfrd->udp_use_num == XFRD_MAX_UDP)
@@ -1132,6 +1136,7 @@ xfrd_udp_release(xfrd_zone_t* zone)
 						log_msg(LOG_ERR, "cannot set event_base for ixfr");
 					if(event_add(&wz->zone_handler, &wz->timeout) != 0)
 						log_msg(LOG_ERR, "cannot add event for ixfr");
+					wz->zone_handler_flags = EV_READ|EV_TIMEOUT|EV_PERSIST;
 					wz->event_added = 1;
 					return;
 				} else {
@@ -2176,7 +2181,7 @@ void xfrd_process_task_result(xfrd_state_t* xfrd, struct udb_base* taskudb)
 void xfrd_set_reload_now(xfrd_state_t* xfrd)
 {
 	xfrd->need_to_send_reload = 1;
-	if(!(xfrd->ipc_handler.ev_flags&EV_WRITE)) {
-		ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ|EV_WRITE);
+	if(!(xfrd->ipc_handler_flags&EV_WRITE)) {
+		ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ|EV_WRITE);
 	}
 }

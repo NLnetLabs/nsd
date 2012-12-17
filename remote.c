@@ -736,8 +736,8 @@ do_stop(SSL* ssl, xfrd_state_t* xfrd)
 {
 	xfrd->need_to_send_shutdown = 1;
 
-	if(!(xfrd->ipc_handler.ev_flags&EV_WRITE)) {
-		ipc_set_listening(&xfrd->ipc_handler, EV_PERSIST|EV_READ|EV_WRITE);
+	if(!(xfrd->ipc_handler_flags&EV_WRITE)) {
+		ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ|EV_WRITE);
 	}
 
 	send_ok(ssl);
