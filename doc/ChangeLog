@@ -1,3 +1,6 @@
+18 December 2012: Wouter
+	- makedist makes sha256 for tarballs.
+
 17 December 2012: Wouter
 	- Fix for use with libev (no use of event.ev_flags).
 
