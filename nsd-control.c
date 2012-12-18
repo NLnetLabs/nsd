@@ -385,10 +385,10 @@ int main(int argc, char* argv[])
 	if(argc == 0)
 		usage();
 	if(argc >= 1 && strcmp(argv[0], "start")==0) {
-		if(execlp("nsd", "nsd", "-c", cfgfile, 
+		if(execl(NSD_START_PATH, "nsd", "-c", cfgfile, 
 			(char*)NULL) < 0) {
-			fprintf(stderr, "could not exec nsd: %s\n",
-				strerror(errno));
+			fprintf(stderr, "could not exec %s: %s\n",
+				NSD_START_PATH, strerror(errno));
 			exit(1);
 		}
 	}

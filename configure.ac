@@ -121,6 +121,17 @@ AC_ARG_WITH([xfrdir], AC_HELP_STRING([--with-xfrdir=path],
 AC_DEFINE_UNQUOTED(XFRDIR, ["`eval echo $xfrdir`"], [Pathname to where the NSD transfer dir is created.])
 AC_SUBST(xfrdir)
 
+# nsd sbin location. tmpinstantiate execprefix with defaults if not yet done.
+if test "x${exec_prefix}" = "xNONE"; then
+	if test "x${prefix}" = "xNONE"; then exec_prefix="$ac_default_prefix"
+	else exec_prefix="${prefix}"; fi
+	nsd_start_path="`eval echo $sbindir`/nsd"
+	exec_prefix="NONE"
+else
+	nsd_start_path="`eval echo $sbindir`/nsd"
+fi
+AC_DEFINE_UNQUOTED(NSD_START_PATH, ["$nsd_start_path"], [Pathname to start nsd from nsd-control])
+
 #
 # Determine default chroot directory
 #
