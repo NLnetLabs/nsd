@@ -8,8 +8,9 @@ The old NSD3 config file can be used without changes for NSD4.  There are
 new config statements and some old statements are gone.
 
 The nsd.db file has a new format that allows read and write.  Thus the
-nsd.db file needs to be re-created in NSD4 format.  This happens when you
-start NSD4.  If you need to rollback to NSD3, run its zonec to recreate
+nsd.db file needs to be re-created in NSD4 format.  This happens when
+you start NSD4.  NSD4 needs write permission on the nsd.db directory
+for that.  If you need to rollback to NSD3, run its zonec to recreate
 the NSD3 nsd.db file (use nsdc rebuild).
 
 The cron job for nsdc patch is no longer needed.  It can be removed.
