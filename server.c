@@ -2197,7 +2197,7 @@ configure_handler_event_types(short event_types)
 			if(tcp_accept_handlers[i].event_added)
 				event_del(handler);
 			event_set(handler, fd, event_types,
-				handler->ev_callback, handler->ev_arg);
+				handle_tcp_accept, &tcp_accept_handlers[i]);
 			if(event_base_set(base, handler) != 0)
 				log_msg(LOG_ERR, "conhand: cannot event_base");
 			if(event_add(handler, NULL) != 0)

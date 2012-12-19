@@ -1,3 +1,6 @@
+19 December 2012: Wouter
+	- Fixup for libevent-2.1.2.
+
 18 December 2012: Wouter
 	- makedist makes sha256 for tarballs.
 	- nsd-control start runs an absolute path to start sbin/nsd.
