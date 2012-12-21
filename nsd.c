@@ -1008,7 +1008,7 @@ main(int argc, char *argv[])
 		nsd.dbfile += l;
 		nsd.pidfile += l;
 		nsd.options->xfrdfile += l;
-		nsd.options->zonelistfile += l;
+		nsd.options->zlfile += l;
 		nsd.options->xfrdir += l;
 
 #ifdef HAVE_TZSET
