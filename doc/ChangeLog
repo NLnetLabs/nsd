@@ -1,3 +1,6 @@
+21 December 2012: Wouter
+	- --with-logfile sets the logfile inside the example documentation.
+
 19 December 2012: Wouter
 	- Fixup for libevent-2.1.2.
 

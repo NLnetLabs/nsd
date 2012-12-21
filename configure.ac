@@ -52,6 +52,9 @@ AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $nsd_conf_file`"], [Pathname to the 
 # Default logfile
 #
 logfile=${localstatedir}/log/nsd.log
+AC_ARG_WITH([logfile],
+	AC_HELP_STRING([--with-logfile=path], [Pathname to the default log file]),
+	[logfile=$withval])
 AC_SUBST(logfile)
 
 #
