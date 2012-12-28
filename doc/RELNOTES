@@ -10,8 +10,11 @@ FEATURES:
 BUG FIXES:
 	- Bugfix #478: Declaration after statement (for gcc 2.95).
 	- Bugfix #483: Better error message in case of TSIG error.
+	- Bugfix #485: TTL should not be greater than 2^31 - 1.
 	- Fix RCODE when CNAME loop final answer does not exist, should
 	  return NXDOMAIN as stated by RFC 6604.
+	- Fix --disable-full-prehash bug, where after multiple incoming
+	  IXFRs, NSEC3 can be removed unjustified. 
 
 
 3.2.14

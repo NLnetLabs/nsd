@@ -1,3 +1,9 @@
+28 December 2012: Matthijs
+	- Fix for --disable-full-prehash, where NSEC3s can be illegaly 
+	  removed after IXFRs, possibly resulting in an assertion failure
+	  (reported by Kabindra Shrestha).
+	- Bug #485: NSD transmits RRs with TTL exceeding the max value (2^31-1).
+
 12 December 2012: Matthijs
 	- Fix RCODE when CNAME loop final answer does not exist, should
 	  return NXDOMAIN as stated by RFC 6604 (reported by Peter van Dijk).
