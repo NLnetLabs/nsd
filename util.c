@@ -43,6 +43,8 @@ unsigned nsd_debug_facilities = 0xffff;
 int nsd_debug_level = 0;
 #endif
 
+#define MSB 0x80000000;
+
 int verbosity = 0;
 
 static const char *global_ident = NULL;
@@ -477,10 +479,12 @@ strtottl(const char *nptr, const char **endptr)
 			break;
 		default:
 			seconds += i;
+			seconds &= ~MSB;
 			return seconds;
 		}
 	}
 	seconds += i;
+	seconds &= ~MSB;
 	return seconds;
 }
 
