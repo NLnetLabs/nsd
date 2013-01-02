@@ -479,6 +479,10 @@ strtottl(const char *nptr, const char **endptr)
 			break;
 		default:
 			seconds += i;
+			/**
+			 * According to RFC2308, Section 8, the MSB
+			 * (sign bit) should be set to zero.
+			 */
 			seconds &= ~MSB;
 			return seconds;
 		}
