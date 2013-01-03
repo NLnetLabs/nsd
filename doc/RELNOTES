@@ -6,6 +6,8 @@ NSD RELEASE NOTES
 FEATURES:
 	- Support for ILNP RR types: NID, L32, L64, LP (RFC6742).
 	- RRL, --enable-ratelimit at configure time and config options.
+	- TSIG initialization only fails when there is no digest found
+	  at all.
 
 BUG FIXES:
 	- Bugfix #478: Declaration after statement (for gcc 2.95).

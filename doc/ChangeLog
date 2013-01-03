@@ -1,3 +1,10 @@
+3 January 2013: Matthijs
+	- Bug #485: Fallback to DEFAULT_TTL if MSB is set.
+
+2 January 2013: Matthijs
+	- TSIG initialization only fails if no digests at all can be found.
+	  Makes nsd perform better in FIPS mode, where there is no MD5.
+
 28 December 2012: Matthijs
 	- Fix for --disable-full-prehash, where NSEC3s can be illegaly 
 	  removed after IXFRs, possibly resulting in an assertion failure
