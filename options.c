@@ -849,6 +849,7 @@ void pattern_options_add_modify(nsd_options_t* opt, pattern_options_t* p)
 	if(!orig) {
 		/* needs to be copied to opt region */
 		orig = pattern_options_create(opt->region);
+		orig->pname = region_strdup(opt->region, p->pname);
 		copy_pat_fixed(opt->region, orig, p);
 		orig->allow_notify = copy_acl_list(opt, p->allow_notify);
 		orig->request_xfr = copy_acl_list(opt, p->request_xfr);
@@ -1642,10 +1643,9 @@ static void append_acl(acl_options_t** start, acl_options_t** cur,
 	acl_options_t* list)
 {
 	while(list) {
-		acl_options_t* acl = region_alloc_init(cfg_parser->opt->region,
-			list, sizeof(*list));
+		acl_options_t* acl = copy_acl(cfg_parser->opt->region, list);
 		acl->next = NULL;
-		if(*start)
+		if(*cur)
 			(*cur)->next = acl;
 		else	*start = acl;
 		*cur = acl;

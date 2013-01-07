@@ -1114,7 +1114,8 @@ do_delzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 		region_recycle(xfrd->region, (void*)dname,
 			dname_total_size(dname));
 		(void)ssl_printf(ssl, "error zone defined in nsd.conf, "
-			"cannot delete it\n");
+			"cannot delete it in this manner: remove it from "
+			"nsd.conf yourself and repattern\n");
 		return;
 	}
 
@@ -1175,6 +1176,84 @@ static void repat_keys(xfrd_state_t* xfrd, nsd_options_t* newopt)
 			add_key(xfrd, k);
 		else if(!key_options_equal(k, origk))
 			add_key(xfrd, k);
+	}
+}
+
+/** find zone given the implicit pattern */
+static const dname_type*
+parse_implicit_name(xfrd_state_t* xfrd,const char* pname)
+{
+	if(strncmp(pname, PATTERN_IMPLICIT_MARKER,
+		strlen(PATTERN_IMPLICIT_MARKER)) != 0)
+		return NULL;
+	return dname_parse(xfrd->region, pname +
+		strlen(PATTERN_IMPLICIT_MARKER));
+}
+
+/** remove cfgzone and add task so that reload does too */
+static void remove_cfgzone(xfrd_state_t* xfrd, const char* pname)
+{
+	/* dname and find the zone for the implicit pattern */
+	zone_options_t* zopt = NULL;
+	const dname_type* dname = parse_implicit_name(xfrd, pname);
+	if(!dname) {
+		/* should have a parseable name, but it did not */
+		return;
+	}
+
+	/* find the zone entry for the implicit pattern */
+	zopt = zone_options_find(xfrd->nsd->options, dname);
+	if(!zopt) {
+		/* this should not happen; implicit pattern has zone entry */
+		region_recycle(xfrd->region, (void*)dname,
+			dname_total_size(dname));
+		return;
+	}
+
+	/* create deletion task */
+	task_new_del_zone(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task, dname);
+	xfrd_set_reload_now(xfrd);
+	/* delete it in xfrd */
+	if(zone_is_slave(zopt)) {
+		xfrd_del_slave_zone(xfrd, dname);
+	}
+	xfrd_del_notify(xfrd, dname);
+
+	/* delete from zoneoptions */
+	zone_options_delete(xfrd->nsd->options, zopt);
+
+	/* recycle parsed dname */
+	region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
+}
+
+/** add cfgzone and add task so that reload does too */
+static void add_cfgzone(xfrd_state_t* xfrd, const char* pname)
+{
+	/* add to our zonelist */
+	zone_options_t* zopt = zone_options_create(xfrd->nsd->options->region);
+	if(!zopt)
+		return;
+	zopt->part_of_config = 1;
+	zopt->name = region_strdup(xfrd->nsd->options->region, 
+		pname + strlen(PATTERN_IMPLICIT_MARKER));
+	zopt->pattern = pattern_options_find(xfrd->nsd->options, pname);
+	if(!zopt->name || !zopt->pattern)
+		return;
+	if(!nsd_options_insert_zone(xfrd->nsd->options, zopt)) {
+		log_msg(LOG_ERR, "bad domain name or duplicate zone '%s' "
+			"pattern %s", zopt->name, pname);
+	}
+
+	/* make addzone task and schedule reload */
+	task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task, zopt->name, pname);
+	xfrd_set_reload_now(xfrd);
+	/* add to xfrd - notify (for master and slaves) */
+	init_notify_send(xfrd->notify_zones, xfrd->region, zopt->node.key, zopt);
+	/* add to xfrd - slave */
+	if(zone_is_slave(zopt)) {
+		xfrd_init_slave_zone(xfrd, zopt->node.key, zopt);
 	}
 }
 
@@ -1279,6 +1358,7 @@ static void repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 	 */
 	nsd_options_t* oldopt = xfrd->nsd->options;
 	pattern_options_t* p;
+
 	repat_interrupt_zones(xfrd, newopt);
 	/* find deleted patterns */
 	p = (pattern_options_t*)rbtree_first(oldopt->patterns);
@@ -1286,11 +1366,12 @@ static void repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 		pattern_options_t* next = (pattern_options_t*)rbtree_next(
 			(rbnode_t*)p);
 		if(!pattern_options_find(newopt, p->pname)) {
-			if(!p->implicit) {
-				remove_pat(xfrd, p->pname);
-			} else log_msg(LOG_WARNING, "a fixed zone entry was "
-				"removed from config, needs restart (%s)",
-				p->pname);
+			if(p->implicit) {
+				/* first remove its zone */
+				VERBOSITY(1, (LOG_INFO, "zone removed from config: %s", p->pname + strlen(PATTERN_IMPLICIT_MARKER)));
+				remove_cfgzone(xfrd, p->pname);
+			}
+			remove_pat(xfrd, p->pname);
 		}
 		p = next;
 	}
@@ -1301,6 +1382,10 @@ static void repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 		if(!origp) {
 			/* no zones can use it, no zone_interrupt needed */
 			add_pat(xfrd, p);
+			if(p->implicit) {
+				VERBOSITY(1, (LOG_INFO, "zone added to config: %s", p->pname + strlen(PATTERN_IMPLICIT_MARKER)));
+				add_cfgzone(xfrd, p->pname);
+			}
 		} else if(!pattern_options_equal(p, origp)) {
 			add_pat(xfrd, p);
 		}

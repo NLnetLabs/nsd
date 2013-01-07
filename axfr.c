@@ -162,7 +162,7 @@ return_answer:
 query_state_type
 answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 {
-	acl_options_t *acl;
+	acl_options_t *acl = NULL;
 	/* Is it AXFR? */
 	switch (q->qtype) {
 	case TYPE_AXFR:

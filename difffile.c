@@ -737,13 +737,28 @@ find_or_create_zone(namedb_type* db, const dname_type* zone_name,
 	}
 	zopt = zone_options_find(opt, zone_name);
 	if(!zopt) {
-		/* create zone : presumably already added to zonelist
-		 * by xfrd, who wrote the AXFR or IXFR to disk, so we only
-		 * need to add it to our config.
-		 * This process does not need linesize and offset zonelist */
-		zopt = zone_list_zone_insert(opt, zstr, patname, 0, 0);
-		if(!zopt)
-			return 0;
+		/* if _implicit_ then insert as _part_of_config */
+		if(strncmp(patname, PATTERN_IMPLICIT_MARKER,
+			strlen(PATTERN_IMPLICIT_MARKER)) == 0) {
+			zopt = zone_options_create(opt->region);
+			if(!zopt) return 0;
+			zopt->part_of_config = 1;
+			zopt->name = region_strdup(opt->region, zstr);
+			zopt->pattern = pattern_options_find(opt, patname);
+			if(!zopt->name || !zopt->pattern) return 0;
+			if(!nsd_options_insert_zone(opt, zopt)) {
+				log_msg(LOG_ERR, "bad domain name or duplicate zone '%s' "
+					"pattern %s", zstr, patname);
+			}
+		} else {
+			/* create zone : presumably already added to zonelist
+			 * by xfrd, who wrote the AXFR or IXFR to disk, so we only
+			 * need to add it to our config.
+			 * This process does not need linesize and offset zonelist */
+			zopt = zone_list_zone_insert(opt, zstr, patname, 0, 0);
+			if(!zopt)
+				return 0;
+		}
 	}
 	zone = namedb_zone_create(db, zone_name, zopt);
 	return zone;
@@ -1423,7 +1438,7 @@ task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
 	size_t plen = strlen(pattern);
 	void *p;
 	udb_ptr e;
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task addzone"));
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task addzone %s %s", zone, pattern));
 	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
 		zlen + 1 + plen + 1, NULL)) {
 		log_msg(LOG_ERR, "tasklist: out of space, cannot add addz");
@@ -1440,7 +1455,7 @@ void
 task_new_del_zone(udb_base* udb, udb_ptr* last, const dname_type* dname)
 {
 	udb_ptr e;
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task delzone"));
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task delzone %s", dname_to_string(dname, 0)));
 	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)
 		+dname_total_size(dname), dname)) {
 		log_msg(LOG_ERR, "tasklist: out of space, cannot add delz");

@@ -1,3 +1,10 @@
+7 January 2013: Wouter
+	- fixed uninit variable for empty zone axfr request
+	- fixed alloc of acl options for config zones so they can be deleted.
+	- fixed that pattern name is copied, so that patterns stay the same.
+	- repattern also rereads the zones in the config file and applies that
+	  to the running server.
+
 21 December 2012: Wouter
 	- --with-logfile sets the logfile inside the example documentation.
 	- Fixed addzone and delzone inside chroot (thanks Will Pressly).

@@ -344,7 +344,8 @@ explicitly.
 .LP
 For zones that are configured in the \fInsd.conf\fR config file their
 settings are hardcoded (in an implicit pattern for themselves only)
-and they cannot be dynamically deleted.
+and they cannot be deleted via delzone, but remove them from the config
+file and repattern.
 .TP
 .B name:\fR <string>
 The name of the zone. This is the domain name of the apex of the 
