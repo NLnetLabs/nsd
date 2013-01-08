@@ -139,7 +139,8 @@ uninstall:
 test: 
 
 whole:	nsd-control-setup.sh nsd-checkconf nsd-control nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c $(MANUALS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e 's;\\([^ \\.]*\\)\\.o;$(srcdir)/\\1.c;g'` $(LIBOBJS) $(SSL_LIBS) $(LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e 's/[a-z]*lexer.o//g' -e 's/[a-z]*parser.o//g' | sed -e 's;\\([^ \\.]*\\)\\.o;$(srcdir)/\\1.c;g'` configlexer.c configparser.c zlexer.c
+zparser.c $(LIBOBJS) $(SSL_LIBS) $(LIBS)
 	@touch whole
 
 nsd:	$(NSD_OBJ) $(LIBOBJS)

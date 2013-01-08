@@ -1,3 +1,6 @@
+8 January 2013: Wouter
+	- Fix make outside of source directory.
+
 7 January 2013: Wouter
 	- fixed uninit variable for empty zone axfr request
 	- fixed alloc of acl options for config zones so they can be deleted.
