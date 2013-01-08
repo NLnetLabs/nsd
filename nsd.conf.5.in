@@ -362,6 +362,8 @@ Access control list. The listed (primary) address is allowed to
 send notifies to this (secondary) server. Notifies from unlisted or 
 specifically BLOCKED addresses are discarded. If NOKEY is given no 
 TSIG signature is required.
+BLOCKED supersedes other entries, other entries are scanned for a match
+in the order of the statements.
 .P
 .RS
 The ip\-spec is either a plain IP address (IPv4 or IPv6), or can be 
@@ -413,6 +415,8 @@ Access control list. The listed address (a secondary) is allowed to
 request AXFR from this server. Zone data will be provided to the 
 address. The specified key is used during AXFR. For unlisted or 
 BLOCKED addresses no data is provided, requests are discarded.
+BLOCKED supersedes other entries, other entries are scanned for a match
+in the order of the statements.
 .P
 .RS
 The ip\-spec is either a plain IP address (IPv4 or IPv6), or can be 
