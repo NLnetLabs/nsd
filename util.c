@@ -44,7 +44,7 @@ unsigned nsd_debug_facilities = 0xffff;
 int nsd_debug_level = 0;
 #endif
 
-#define MSB 0x80000000
+#define MSB_32 0x80000000
 
 int verbosity = 0;
 
@@ -489,14 +489,14 @@ strtottl(const char *nptr, const char **endptr)
 			 * If we encounter a value larger than 2^31 -1,
 			 * we fall back to the default TTL.
 			 */
-			if (seconds & MSB) {
+			if (seconds & MSB_32) {
 				seconds = DEFAULT_TTL;
 			}
 			return seconds;
 		}
 	}
 	seconds += i;
-	if (seconds & MSB) {
+	if (seconds & MSB_32) {
 		seconds = DEFAULT_TTL;
 	}
 	return seconds;
