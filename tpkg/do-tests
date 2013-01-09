@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 . ./common.sh
 
 # you need to have the following tools in your $PATH:

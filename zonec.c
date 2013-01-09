@@ -756,7 +756,7 @@ zparser_conv_loc(region_type *region, char *str)
 				zc_error_prev_line("space expected after seconds");
 				return NULL;
 			}
-
+			/* No need for precision specifiers, it's a double */
 			if (sscanf(start, "%lf", &d) != 1) {
 				zc_error_prev_line("error parsing seconds");
 			}

@@ -549,8 +549,8 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		}
 		rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num);
 		if(rrnum == -1) {
-			log_msg(LOG_WARNING, "diff: RR %s does not exist",
-				dname_to_string(dname,0));
+			log_msg(LOG_WARNING, "diff: RR <%s, %s> does not exist",
+				dname_to_string(dname,0), rrtype_to_string(type));
 			return 1; /* not fatal error */
 		}
 		/* delete the normalized RR from the udb */
@@ -662,8 +662,8 @@ add_RR(namedb_type* db, const dname_type* dname,
 	}
 	rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num);
 	if(rrnum != -1) {
-		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR %s already exists",
-			dname_to_string(dname,0)));
+		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR <%s, %s> already exists",
+			dname_to_string(dname,0), rrtype_to_string(type)));
 		/* ignore already existing RR: lenient accepting of messages */
 		return 1;
 	}

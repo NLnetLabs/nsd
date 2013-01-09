@@ -38,18 +38,6 @@ typedef struct tsig_algorithm_table tsig_algorithm_table_type;
 static tsig_algorithm_table_type *tsig_algorithm_table;
 static size_t max_algo_digest_size = 0;
 
-tsig_lookup_algorithm_table tsig_supported_algorithms[] = {
-	{ TSIG_HMAC_MD5, "hmac-md5" },
-#ifdef HAVE_EVP_SHA1
-	{ TSIG_HMAC_SHA1, "hmac-sha1" },
-#endif /* HAVE_EVP_SHA1 */
-
-#ifdef HAVE_EVP_SHA256
-	{ TSIG_HMAC_SHA256, "hmac-sha256" },
-#endif /* HAVE_EVP_SHA256 */
-        { 0, NULL }
-};
-
 static void
 tsig_digest_variables(tsig_record_type *tsig, int tsig_timers_only)
 {
@@ -209,19 +197,6 @@ tsig_get_algorithm_by_name(const char *name)
 	return NULL;
 }
 
-/*
- * Find an HMAC algorithm based on its id.
- */
-tsig_algorithm_type *
-tsig_get_algorithm_by_id(uint8_t alg)
-{
-	int i=0;
-	for (/*empty*/; tsig_supported_algorithms[i].id > 0; i++) {
-		if (tsig_supported_algorithms[i].id == alg)
-			return tsig_get_algorithm_by_name(tsig_supported_algorithms[i].short_name);
-	}
-	return NULL;
-}
 
 const char *
 tsig_error(int error_code)

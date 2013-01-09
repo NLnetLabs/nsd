@@ -103,7 +103,6 @@ OPTIMISATIONS
   The brief double answers are preferable to brief SERVFAIL.
 - nsd manual programs contain identical functions that are written down multiple 
   times. Do we need to introduce a util_programs.c or something?
-- speed up NSEC3 prehashing (Secure64 request).
 - reduce the memory leak on zone transfers (deleted domains are not removed from
   tree).
 - Options server: ip-address: and zone: outgoing-interface are pretty much the same.

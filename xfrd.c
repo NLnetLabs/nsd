@@ -1226,6 +1226,7 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet, acl_options_t* ifc)
 		log_msg(LOG_ERR, "xfrd: cannot bind outgoing interface '%s' to "
 				 "udp socket: No matching ip addresses found",
 			ifc->ip_address_spec);
+		close(fd);
 		return -1;
 	}
 
@@ -1237,6 +1238,7 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet, acl_options_t* ifc)
 	{
 		log_msg(LOG_ERR, "xfrd: sendto %s failed %s",
 			acl->ip_address_spec, strerror(errno));
+		close(fd);
 		return -1;
 	}
 	return fd;
