@@ -489,14 +489,14 @@ strtottl(const char *nptr, const char **endptr)
 			 * If we encounter a value larger than 2^31 -1,
 			 * we fall back to the default TTL.
 			 */
-			if (seconds & MSB_32) {
+			if ((seconds & MSB_32)) {
 				seconds = DEFAULT_TTL;
 			}
 			return seconds;
 		}
 	}
 	seconds += i;
-	if (seconds & MSB_32) {
+	if ((seconds & MSB_32)) {
 		seconds = DEFAULT_TTL;
 	}
 	return seconds;
