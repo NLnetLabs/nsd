@@ -157,7 +157,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define MAXLABELLEN	63
 #define MAXDOMAINLEN	255
 
-#define MAXRDATALEN	64      /* This is more than enough, think multiple TXT.  */
+#define MAXRDATALEN	64      /* This is more than enough, think multiple TXT. */
 #define MAX_RDLENGTH	65535
 
 /* Maximum size of a single RR.  */
@@ -186,7 +186,7 @@ enum rdata_wireformat
 	RDATA_WF_BINARYWITHLENGTH,   /* Binary data preceded by 1 byte length */
 	RDATA_WF_APL,		     /* APL data.  */
 	RDATA_WF_IPSECGATEWAY,	     /* IPSECKEY gateway ip4, ip6 or dname. */
-	RDATA_WF_AAAA_HALF	     /* 64-bit uncompressed IPv6 address.  */
+	RDATA_WF_ILNP64	     /* 64-bit uncompressed IPv6 address.  */
 };
 typedef enum rdata_wireformat rdata_wireformat_type;
 
@@ -220,7 +220,7 @@ enum rdata_zoneformat
 	RDATA_ZF_NXT,		/* NXT type bitmap.  */
 	RDATA_ZF_NSEC,		/* NSEC type bitmap.  */
 	RDATA_ZF_LOC,		/* Location data.  */
-	RDATA_ZF_AAAA_HALF,	/* 64-bit uncompressed IPv6 address.  */
+	RDATA_ZF_ILNP64,	/* 64-bit uncompressed IPv6 address.  */
 	RDATA_ZF_UNKNOWN	/* Unknown data.  */
 };
 typedef enum rdata_zoneformat rdata_zoneformat_type;

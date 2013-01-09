@@ -6,7 +6,7 @@
  * See LICENSE for the license.
  *
  */
-#include <config.h>
+#include "config.h"
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>

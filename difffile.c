@@ -7,7 +7,7 @@
  *
  */
 
-#include <config.h>
+#include "config.h"
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
@@ -85,7 +85,6 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 		log_msg(LOG_ERR, "could not write to file %s: %s",
 			filename, strerror(errno));
 	}
-	fflush(df);
 	fclose(df);
 }
 

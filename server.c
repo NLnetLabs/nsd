@@ -91,17 +91,17 @@ struct tcp_handler_data
 	 * data, including this structure.  This region is destroyed
 	 * when the connection is closed.
 	 */
-	region_type     *region;
+	region_type*		region;
 
 	/*
 	 * The global nsd structure.
 	 */
-	struct nsd      *nsd;
+	struct nsd*			nsd;
 
 	/*
 	 * The current query data for this TCP connection.
 	 */
-	query_type      *query;
+	query_type*			query;
 
 	/*
 	 * These fields are used to enable the TCP accept handlers
@@ -116,7 +116,7 @@ struct tcp_handler_data
 	 * AXFR, if we're done processing, or if we should discard the
 	 * query and connection.
 	 */
-	query_state_type query_state;
+	query_state_type	query_state;
 
 	/*
 	 * The bytes_transmitted field is used to remember the number
@@ -124,7 +124,7 @@ struct tcp_handler_data
 	 * packet.  The count includes the two additional bytes used
 	 * to specify the packet length on a TCP connection.
 	 */
-	size_t           bytes_transmitted;
+	size_t				bytes_transmitted;
 
 	/*
 	 * The number of queries handled by this specific TCP connection.

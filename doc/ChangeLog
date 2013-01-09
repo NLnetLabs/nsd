@@ -75,8 +75,8 @@
 	- writev support for TCP.
 
 27 Agust 2012: Yuri
-      - Fix crash in zonec if TXT string too long.
-        (thanks Ilya Bakulin)
+	- Fix crash in zonec if TXT string too long.
+	  (thanks Ilya Bakulin)
 
 21 August 2012: Matthijs
 	- Fix hang on exit in xfrd.

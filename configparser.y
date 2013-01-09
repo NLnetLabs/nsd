@@ -166,7 +166,7 @@ server_nsid: VAR_NSID STRING
 
 		OUTYY(("P(server_nsid:%s)\n", $2));
 
-                if (strlen($2) % 2 != 0) {
+		if (strlen($2) % 2 != 0) {
 			yyerror("the NSID must be a hex string of an even length.");
 		} else {
 			nsid_len = strlen($2) / 2;
