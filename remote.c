@@ -1455,7 +1455,7 @@ do_repattern(SSL* ssl, xfrd_state_t* xfrd)
 		cfgfile += l;
 	}
 
-	ssl_printf(ssl, "repattern start, read %s\n", cfgfile);
+	ssl_printf(ssl, "reconfig start, read %s\n", cfgfile);
 	opt = nsd_options_create(region);
 	if(!parse_options_file(opt, cfgfile, &print_ssl_cfg_err, &ssl)) {
 		/* error already printed */
@@ -1513,6 +1513,8 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 	} else if(cmdcmp(p, "verbosity", 9)) {
 		do_verbosity(ssl, skipwhite(p+9));
 	} else if(cmdcmp(p, "repattern", 9)) {
+		do_repattern(ssl, rc->xfrd);
+	} else if(cmdcmp(p, "reconfig", 8)) {
 		do_repattern(ssl, rc->xfrd);
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);

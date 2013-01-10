@@ -1,6 +1,8 @@
 10 January 2013: Wouter
 	- updated RELNOTES.
 	- applied patch from Robin Hack to remove double pid file truncation.
+	- repattern is called reconfig (because most config options are
+	  picked up, except for superuser options (chroot, logfile, port)).
 
 9 January 2013: Wouter
 	- 4.0.0b2 is beta2 version tag.
