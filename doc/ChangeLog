@@ -1,5 +1,6 @@
 10 January 2013: Wouter
 	- updated RELNOTES.
+	- applied patch from Robin Hack to remove double pid file truncation.
 
 9 January 2013: Wouter
 	- 4.0.0b2 is beta2 version tag.

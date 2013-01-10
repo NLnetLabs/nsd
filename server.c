@@ -1098,7 +1098,6 @@ server_main(struct nsd *nsd)
 	netio_handler_type reload_listener;
 	int reload_sockets[2] = {-1, -1};
 	struct timespec timeout_spec;
-	int fd;
 	int status;
 	pid_t child_pid;
 	pid_t reload_pid = -1;
@@ -1317,12 +1316,6 @@ server_main(struct nsd *nsd)
 			break;
 		}
 	}
-
-	/* Truncate the pid file.  */
-	if ((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
-		log_msg(LOG_ERR, "can not truncate the pid file %s: %s", nsd->pidfile, strerror(errno));
-	}
-	close(fd);
 
 	/* Unlink it if possible... */
 	unlinkpid(nsd->pidfile);

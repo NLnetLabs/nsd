@@ -241,8 +241,12 @@ unlinkpid(const char* file)
 	if (file) {
 		/* truncate pidfile */
 		fd = open(file, O_WRONLY | O_TRUNC, 0644);
-		if (fd != -1)
+		if (fd == -1) {
+			/* Truncate the pid file.  */
+			log_msg(LOG_ERR, "can not truncate the pid file %s: %s", file, strerror(errno));
+		} else 
 			close(fd);
+
 		/* unlink pidfile */
 		if (unlink(file) == -1)
 			log_msg(LOG_WARNING, "failed to unlink pidfile %s: %s",
