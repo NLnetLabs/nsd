@@ -1,5 +1,19 @@
 NSD RELEASE NOTES
 
+4.0.0b2   BETA 2 release of NSD 4.0
+==================================
+FEATURES:
+	- Add and remove zones from nsd.conf with nsd-control repattern.
+	- Merge changes from 3.2.15 (such as xname-rcode fix).
+
+BUG FIXES:
+	- Fix for use with libev.
+	- 'nsd-control start' runs an absolute path to start sbin/nsd.
+	- Fix for use with libevent-2.1.2.
+	- --with-logfile sets the logfile inside the example documentation.
+	- Fixed addzone and delzone inside chroot (thanks Will Pressly).
+	- Fix make outside of source directory.
+
 4.0.0b1   BETA 1 release of NSD 4.0
 ==================================
 FEATURES:
