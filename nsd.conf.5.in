@@ -141,6 +141,7 @@ By default
 is used. The specified file is used to store the dynamically added
 list of zones.  The list is written to by NSD to add and delete zones.
 It is a text file with a zone\-name and pattern\-name on each line.
+This file is used for the nsd\-control addzone and delzone commands.
 .TP
 .B identity:\fR <string>
 Returns the specified identity when asked for CH TXT ID.SERVER. 
