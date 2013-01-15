@@ -316,7 +316,9 @@ clause is used to denote a set of options to apply to some zones.
 The same zone options as for a zone are allowed.
 .TP
 .B name:\fR <string>
-The name of the pattern.  This is a (case sensitive) string.
+The name of the pattern.  This is a (case sensitive) string.  The pattern
+names that start with "_implicit_" are used internally for zones that
+have no pattern (they are defined in nsd.conf directly).
 .TP
 .B include\-pattern:\fR <pattern\-name>
 The options from the given pattern are included at this point in
