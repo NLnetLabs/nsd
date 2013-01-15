@@ -331,7 +331,6 @@ int namedb_lookup (struct namedb    *db,
 		   domain_type     **closest_encloser);
 /* pass number of children (to alloc in dirty array */
 struct namedb *namedb_open(const char *filename, struct nsd_options* opt);
-void namedb_fd_close(struct namedb *db);
 void namedb_close_udb(struct namedb* db);
 void namedb_close(struct namedb *db);
 void namedb_check_zonefiles(struct namedb* db, struct nsd_options* opt,

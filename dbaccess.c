@@ -34,8 +34,9 @@
 void
 namedb_close (struct namedb *db)
 {
-	namedb_fd_close(db);
-	if (db) {
+	if(db) {
+		if(db->udb)
+			udb_base_close(db->udb);
 		udb_base_free(db->udb);
 		radix_tree_delete(db->zonetree);
 		region_destroy(db->region);
@@ -53,13 +54,6 @@ namedb_close_udb (struct namedb *db)
 		udb_base_free_keep_mmap(db->udb);
 		db->udb = NULL;
 	}
-}
-
-void
-namedb_fd_close (struct namedb *db)
-{
-	if(db && db->udb)
-		udb_base_close(db->udb);
 }
 
 void
