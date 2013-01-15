@@ -414,7 +414,7 @@ namedb_open (const char *filename, nsd_options_t* opt)
 				 "timestamp", filename);
 		region_destroy(db_region);
 		close(fd);
-                return NULL;
+		return NULL;
         }
 
 	/* attempt to read the file (if it exists) */
