@@ -78,6 +78,7 @@ struct nsd_options {
 	const char* zonelistfile;
 	const char* nsid;
 	int xfrd_reload_timeout;
+	int zonefiles_check;
 
         /** remote control section. enable toggle. */
 	int control_enable;

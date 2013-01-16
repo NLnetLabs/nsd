@@ -100,6 +100,9 @@ server:
 	# Number of seconds between reloads triggered by xfrd.
 	# xfrd-reload-timeout: 1
 
+	# check mtime of all zone files on start and sighup
+	# zonefiles-check: yes
+
 
 # Remote control config section. 
 remote-control:

@@ -72,6 +72,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->rrl_ratelimit = RRL_LIMIT/2;
 	opt->rrl_whitelist_ratelimit = RRL_WLIST_LIMIT/2;
 #endif
+	opt->zonefiles_check = 1;
 	opt->xfrd_reload_timeout = 1;
 	opt->control_enable = 0;
 	opt->control_interface = NULL;

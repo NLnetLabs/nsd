@@ -313,6 +313,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		SERV_GET_BIN(ip4_only, o);
 		SERV_GET_BIN(ip6_only, o);
 		SERV_GET_BIN(hide_version, o);
+		SERV_GET_BIN(zonefiles_check, o);
 		/* str */
 		SERV_GET_STR(database, o);
 		SERV_GET_STR(identity, o);
@@ -431,6 +432,7 @@ config_test_print_server(nsd_options_t* opt)
 	printf("\trrl-ratelimit: %d\n", (int)opt->rrl_ratelimit);
 	printf("\trrl-whitelist-ratelimit: %d\n", (int)opt->rrl_whitelist_ratelimit);
 #endif
+	printf("\tzonefiles-check: %s\n", opt->zonefiles_check?"yes":"no");
 
 	printf("\nremote-control:\n");
 	printf("\tcontrol-enable: %s\n", opt->control_enable?"yes":"no");

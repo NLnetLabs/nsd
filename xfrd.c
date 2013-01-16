@@ -221,8 +221,9 @@ xfrd_sig_process(void)
 	} else if(xfrd->nsd->signal_hint_reload_hup) {
 		log_msg(LOG_WARNING, "SIGHUP received, reloading...");
 		xfrd->nsd->signal_hint_reload_hup = 0;
-		task_new_check_zonefiles(xfrd->nsd->task[
-			xfrd->nsd->mytask], xfrd->last_task, NULL);
+		if(xfrd->nsd->options->zonefiles_check)
+			task_new_check_zonefiles(xfrd->nsd->task[
+				xfrd->nsd->mytask], xfrd->last_task, NULL);
 		xfrd_set_reload_now(xfrd);
 	} else if(xfrd->nsd->signal_hint_statsusr) {
 		xfrd->nsd->signal_hint_statsusr = 0;

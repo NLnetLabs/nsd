@@ -64,6 +64,7 @@ extern config_parser_state_t* cfg_parser;
 %token VAR_CONTROL_PORT VAR_SERVER_KEY_FILE VAR_SERVER_CERT_FILE
 %token VAR_CONTROL_KEY_FILE VAR_CONTROL_CERT_FILE VAR_XFRDIR
 %token VAR_RRL_SIZE VAR_RRL_RATELIMIT VAR_RRL_WHITELIST_RATELIMIT VAR_RRL_WHITELIST
+%token VAR_ZONEFILES_CHECK
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -89,7 +90,8 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
 	server_ipv6_edns_size | server_verbosity | server_hide_version |
 	server_zonelistfile | server_xfrdir | server_rrl_size |
-	server_rrl_ratelimit | server_rrl_whitelist_ratelimit;
+	server_rrl_ratelimit | server_rrl_whitelist_ratelimit |
+	server_zonefiles_check;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -332,6 +334,14 @@ server_rrl_whitelist_ratelimit: VAR_RRL_WHITELIST_RATELIMIT STRING
 #ifdef RATELIMIT
 		cfg_parser->opt->rrl_whitelist_ratelimit = atoi($2);
 #endif
+	}
+	;
+server_zonefiles_check: VAR_ZONEFILES_CHECK STRING 
+	{ 
+		OUTYY(("P(server_zonefiles_check:%s)\n", $2)); 
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->zonefiles_check = (strcmp($2, "yes")==0);
 	}
 	;
 
