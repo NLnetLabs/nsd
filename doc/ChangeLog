@@ -1,3 +1,6 @@
+16 January 2013: Matthijs
+	- Code review Wouter
+
 3 January 2013: Matthijs
 	- Bug #485: Fallback to DEFAULT_TTL if MSB is set.
 

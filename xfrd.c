@@ -1210,6 +1210,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			return xfrd_packet_notimpl;
 		}
 		if (RCODE(packet) != RCODE_NOTAUTH) {
+			/* RFC 2845: If NOTAUTH, client should do TSIG checking */
 			return xfrd_packet_bad;
 		}
 	}
@@ -1220,6 +1221,9 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 				"to bad TSIG"));
 			return xfrd_packet_bad;
 		}
+	} else if (RCODE(packet) == RCODE_NOTAUTH) {
+		/* NOTAUTH but also not checking TSIG, fallback to bad packet */
+		return xfrd_packet_bad;
 	}
 	buffer_skip(packet, QHEADERSZ);
 

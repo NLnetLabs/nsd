@@ -393,7 +393,7 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 	unsigned long hex;
 	const char *ch;
 	int c;
-	char digits[ILNP_MAXSIZE];
+	char digits[ILNP_MAXSIZE+1];
 	unsigned int ui[ILNP_MAXSIZE];
 	uint16_t a[ILNP_MAXSIZE];
 
