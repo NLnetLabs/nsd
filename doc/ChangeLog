@@ -1,3 +1,6 @@
+18 January 2013: Wouter
+	- Fix spurious assertion in RRL for block.
+
 16 January 2013: Matthijs
 	- Code review Wouter
 	- Only use config.h created in build dir.
