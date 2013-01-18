@@ -1,3 +1,6 @@
+18 January 2013: Wouter
+	- Fix configure for gentoo gcc and headers.
+
 16 January 2013: Wouter
 	- Added zonefiles-check option, default yes, check mtimes of zone files
 	  on sighup and startup (from Robin Hack).

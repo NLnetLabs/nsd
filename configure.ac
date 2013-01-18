@@ -443,7 +443,102 @@ EOF
 ]
 		if $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c >/dev/null 2>&1; then
 			AC_MSG_RESULT(yes)
-			CCWHOLE="whole"
+
+		AC_MSG_CHECKING([if -combine and system headers work (gentoo)])
+[
+cat >conftest1.c <<EOF
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct radnode {
+	struct radnode* parent;
+	uint8_t pidx;
+	uint16_t len;
+	struct radsel* array; 
+};
+
+struct radtree {
+	struct radnode* root;
+};
+
+
+struct radsel {
+	uint8_t* str;
+	int len;
+	struct radnode* node;
+};
+
+
+static int
+radnode_cleanup_onechild(struct radnode* n, struct radnode* par)
+{
+	uint8_t* join = par->array->str;
+	uint8_t pidx = n->pidx;
+	memcpy(join, par->array[pidx].str, par->array[pidx].len);
+	memmove(join+par->array[pidx].len+1, n->array[0].str, n->array[0].len);
+	return 1;
+}
+
+static void
+radnode_array_clean_front(struct radnode* n)
+{
+	unsigned idx, shuf = 0;
+	memmove(&n->array[0], &n->array[shuf],
+		(n->len - shuf)*sizeof(struct radsel));
+	for(idx=0; idx<n->len; idx++)
+		if(n->array[idx].node)
+			n->array[idx].node->pidx = idx;
+}
+
+static void
+radnode_cleanup_leaf(struct radnode* par)
+{
+	radnode_array_clean_front(par);
+}
+
+static int
+radnode_cleanup(struct radnode* n)
+{
+	radnode_cleanup_onechild(n, n->parent);
+	radnode_cleanup_leaf(n->parent);
+	return 1;
+}
+
+void radix_delete(struct radnode* n)
+{
+	if(!radnode_cleanup(n)) { }
+}
+
+void
+radname_delete(struct radtree* rt)
+{
+	radix_delete(rt->root);
+}
+
+int main(void)
+{
+  return 0;
+}
+EOF
+cat >conftest2.c <<EOF
+#include <stdio.h>
+#include <string.h>
+
+struct radnode;
+struct radtree;
+void radix_delete(struct radnode* n);
+EOF
+]
+			if $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c >/dev/null 2>&1; then
+				AC_MSG_RESULT(yes)
+				CCWHOLE="whole"
+			else
+				AC_MSG_RESULT(no)
+				echo "failed command $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c" >&AS_MESSAGE_LOG_FD
+				$CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c >&AS_MESSAGE_LOG_FD 2>&1
+				CCWHOLE="unwhole"
+			fi
 		else
 			AC_MSG_RESULT(no)
 			echo "failed command $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c" >&AS_MESSAGE_LOG_FD
