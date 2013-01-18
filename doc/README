@@ -61,6 +61,7 @@ Step 2: Create user nsd or any other unprivileged user of your
         choice. In case of later make sure to use
         --with-user=<username> while running configure.
 	You can also set "username: <name>" in the nsd.conf file later.
+	Install openssl and libevent.
 
 Step 3: ./configure
 
@@ -204,6 +205,11 @@ addition to standard configure options, one may use the following:
         Specify the syslog facility to use.  The default is
         LOG_DAEMON.  See the syslog(3) manual page for the available
         facilities.
+
+  --with-libevent=path
+
+  	Specity the location of the libevent library (or libev).
+	--with-libevent=no uses a builtin portable implementation (select()).
 
   --with-ssl=path
 

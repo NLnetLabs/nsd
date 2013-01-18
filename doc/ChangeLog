@@ -1,5 +1,7 @@
 18 January 2013: Wouter
 	- Fix configure for gentoo gcc and headers.
+	- List libevent in README.
+	- Tabs and spaces nicer in nsd.conf.sample.
 
 16 January 2013: Wouter
 	- Added zonefiles-check option, default yes, check mtimes of zone files

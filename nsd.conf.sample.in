@@ -135,10 +135,10 @@ remote-control:
 # and give that file special access control permissions.
 #
 # key:
-# 	# The key name is sent to the other party, it must be the same
-# 	name: "keyname"
-# 	# algorithm hmac-md5, or hmac-sha1, or hmac-sha256 (if compiled in)
-# 	algorithm: hmac-sha256
+#	# The key name is sent to the other party, it must be the same
+#	name: "keyname"
+#	# algorithm hmac-md5, or hmac-sha1, or hmac-sha256 (if compiled in)
+#	algorithm: hmac-sha256
 #	# secret material, must be the same as the other party uses.
 #	# base64 encoded random number.
 #	# e.g. from dd if=/dev/random of=/dev/stdout count=1 bs=32 | base64
@@ -148,17 +148,17 @@ remote-control:
 # Patterns have zone configuration and they are shared by one or more zones.
 # 
 # pattern:
-# 	# name by which the pattern is referred to
-# 	name: "myzones"
-# 	# the zonefile for the zones that use this pattern.
-# 	# if relative then from the zonesdir (inside the chroot).
-# 	# the name is processed: %s - zone name (as appears in zone:name).
-# 	# %1 - first character of zone name, %2 second, %3 third.
-# 	# %z - topleveldomain label of zone, %y, %x next labels in name.
-# 	# if label or character does not exist you get a dot '.'.
-# 	# for example "%s.zone" or "zones/%1/%2/%3/%s" or "secondary/%z/%s"
-# 	zonefile: "%s.zone"
-# 	
+#	# name by which the pattern is referred to
+#	name: "myzones"
+#	# the zonefile for the zones that use this pattern.
+#	# if relative then from the zonesdir (inside the chroot).
+#	# the name is processed: %s - zone name (as appears in zone:name).
+#	# %1 - first character of zone name, %2 second, %3 third.
+#	# %z - topleveldomain label of zone, %y, %x next labels in name.
+#	# if label or character does not exist you get a dot '.'.
+#	# for example "%s.zone" or "zones/%1/%2/%3/%s" or "secondary/%z/%s"
+#	zonefile: "%s.zone"
+#	
 #	# If no master and slave access control elements are provided,
 #	# this zone will not be served to/from other servers.
 #
