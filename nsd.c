@@ -597,13 +597,13 @@ main(int argc, char *argv[])
 		error("could not read zonelist file %s\n",
 			nsd.options->zonelistfile);
 	}
-	if(nsd.options->ip4_only) {
+	if(nsd.options->do_ip4 && !nsd.options->do_ip6) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
 			hints[i].ai_family = AF_INET;
 		}
 	}
 #ifdef INET6
-	if(nsd.options->ip6_only) {
+	if(nsd.options->do_ip6 && !nsd.options->do_ip4) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
 			hints[i].ai_family = AF_INET6;
 		}

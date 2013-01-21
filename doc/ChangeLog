@@ -5,6 +5,7 @@
 	  because this could be /tmp).
 	- do not leave task files in /tmp if nsd fails to startup because
 	  of file permissions.
+	- do-ip4 and do-ip6 nsd.conf options just like unbound.
 
 18 January 2013: Wouter
 	- Fix configure for gentoo gcc and headers.

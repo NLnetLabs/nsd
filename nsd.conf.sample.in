@@ -24,11 +24,11 @@ server:
 	# enable debug mode, does not fork daemon process into the background.
 	# debug-mode: no
 
-	# listen only on IPv4 connections
-	# ip4-only: no
+	# listen on IPv4 connections
+	# do-ip4: yes
 
-	# listen only on IPv6 connections
-	# ip6-only: no
+	# listen on IPv6 connections
+	# do-ip6: yes
 
 	# port to answer queries on. default is 53.
 	# port: 53

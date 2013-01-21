@@ -45,8 +45,8 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->debug_mode = 0;
 	opt->verbosity = 0;
 	opt->hide_version = 0;
-	opt->ip4_only = 0;
-	opt->ip6_only = 0;
+	opt->do_ip4 = 1;
+	opt->do_ip6 = 1;
 	opt->database = DBFILE;
 	opt->identity = 0;
 	opt->nsid = 0;

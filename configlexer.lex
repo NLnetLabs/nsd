@@ -111,6 +111,8 @@ debug-mode{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DEBUG_MODE;}
 hide-version{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_HIDE_VERSION;}
 ip4-only{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_IP4_ONLY;}
 ip6-only{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_IP6_ONLY;}
+do-ip4{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_DO_IP4;}
+do-ip6{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_DO_IP6;}
 database{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_DATABASE;}
 identity{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_IDENTITY;}
 nsid{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_NSID;}

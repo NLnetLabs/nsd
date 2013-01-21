@@ -50,7 +50,7 @@ extern config_parser_state_t* cfg_parser;
 %token VAR_SERVER_COUNT VAR_TCP_COUNT VAR_PIDFILE VAR_PORT VAR_STATISTICS
 %token VAR_CHROOT VAR_USERNAME VAR_ZONESDIR VAR_XFRDFILE VAR_DIFFFILE
 %token VAR_XFRD_RELOAD_TIMEOUT VAR_TCP_QUERY_COUNT VAR_TCP_TIMEOUT
-%token VAR_IPV4_EDNS_SIZE VAR_IPV6_EDNS_SIZE
+%token VAR_IPV4_EDNS_SIZE VAR_IPV6_EDNS_SIZE VAR_DO_IP4 VAR_DO_IP6
 %token VAR_ZONEFILE 
 %token VAR_ZONE
 %token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR 
@@ -91,7 +91,7 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_ipv6_edns_size | server_verbosity | server_hide_version |
 	server_zonelistfile | server_xfrdir | server_rrl_size |
 	server_rrl_ratelimit | server_rrl_whitelist_ratelimit |
-	server_zonefiles_check;
+	server_zonefiles_check | server_do_ip4 | server_do_ip6 ;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -140,18 +140,42 @@ server_hide_version: VAR_HIDE_VERSION STRING
 	;
 server_ip4_only: VAR_IP4_ONLY STRING 
 	{ 
+		/* for backwards compatibility in config file with NSD3 */
 		OUTYY(("P(server_ip4_only:%s)\n", $2)); 
 		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
 			yyerror("expected yes or no.");
-		else cfg_parser->opt->ip4_only = (strcmp($2, "yes")==0);
+		else if(strcmp($2, "yes")==0) {
+			cfg_parser->opt->do_ip4 = 1;
+			cfg_parser->opt->do_ip6 = 0;
+		}
 	}
 	;
 server_ip6_only: VAR_IP6_ONLY STRING 
 	{ 
+		/* for backwards compatibility in config file with NSD3 */
 		OUTYY(("P(server_ip6_only:%s)\n", $2)); 
 		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
 			yyerror("expected yes or no.");
-		else cfg_parser->opt->ip6_only = (strcmp($2, "yes")==0);
+		else if(strcmp($2, "yes")==0) {
+			cfg_parser->opt->do_ip6 = 1;
+			cfg_parser->opt->do_ip4 = 0;
+		}
+	}
+	;
+server_do_ip4: VAR_DO_IP4 STRING 
+	{ 
+		OUTYY(("P(server_do_ip4:%s)\n", $2)); 
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->do_ip4 = (strcmp($2, "yes")==0);
+	}
+	;
+server_do_ip6: VAR_DO_IP6 STRING 
+	{ 
+		OUTYY(("P(server_do_ip6:%s)\n", $2)); 
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->do_ip6 = (strcmp($2, "yes")==0);
 	}
 	;
 server_database: VAR_DATABASE STRING

@@ -118,15 +118,11 @@ Turns on debugging mode for nsd, does not fork a daemon process.
 Default is no. Same as commandline option 
 .BR \-d.
 .TP
-.B ip4\-only:\fR <yes or no>
-If yes, NSD only listens to IPv4 connections. Same as commandline 
-option 
-.BR \-4.
+.B do\-ip4:\fR <yes or no>
+If yes, NSD listens to IPv4 connections.  Default yes.
 .TP
-.B ip6\-only:\fR <yes or no>
-If yes, NSD only listens to IPv6 connections. Same as commandline 
-option 
-.BR \-6.
+.B do\-ip6:\fR <yes or no>
+If yes, NSD listens to IPv6 connections.  Default yes.
 .TP
 .B database:\fR <filename>
 By default 

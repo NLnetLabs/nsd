@@ -450,11 +450,10 @@ int daemon_remote_open_ports(struct daemon_remote* rc, nsd_options_t* cfg)
 		}
 	} else {
 		/* defaults */
-		if(!cfg->ip4_only &&
-			!add_open(rc, "::1", cfg->control_port, 0)) {
+		if(cfg->do_ip6 && !add_open(rc, "::1", cfg->control_port, 0)) {
 			return 0;
 		}
-		if(!cfg->ip6_only &&
+		if(cfg->do_ip4 &&
 			!add_open(rc, "127.0.0.1", cfg->control_port, 1)) {
 			return 0;
 		}

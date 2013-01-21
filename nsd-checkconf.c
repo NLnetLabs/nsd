@@ -310,8 +310,8 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		SERV_GET_IP(ip_address, ip_addresses, o);
 		/* bin */
 		SERV_GET_BIN(debug_mode, o);
-		SERV_GET_BIN(ip4_only, o);
-		SERV_GET_BIN(ip6_only, o);
+		SERV_GET_BIN(do_ip4, o);
+		SERV_GET_BIN(do_ip6, o);
 		SERV_GET_BIN(hide_version, o);
 		SERV_GET_BIN(zonefiles_check, o);
 		/* str */
@@ -399,8 +399,8 @@ config_test_print_server(nsd_options_t* opt)
 	printf("# Config settings.\n");
 	printf("server:\n");
 	printf("\tdebug-mode: %s\n", opt->debug_mode?"yes":"no");
-	printf("\tip4-only: %s\n", opt->ip4_only?"yes":"no");
-	printf("\tip6-only: %s\n", opt->ip6_only?"yes":"no");
+	printf("\tdo-ip4: %s\n", opt->do_ip4?"yes":"no");
+	printf("\tdo-ip6: %s\n", opt->do_ip6?"yes":"no");
 	printf("\thide-version: %s\n", opt->hide_version?"yes":"no");
 	print_string_var("database:", opt->database);
 	print_string_var("identity:", opt->identity);
