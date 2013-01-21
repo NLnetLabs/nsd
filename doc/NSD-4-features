@@ -33,6 +33,9 @@ difffile: ixfr.db is gone.  This setting is no longer applicable, because
 the ixfr.db file is no longer used.  Files are created in tmp now.
 The value is ignored by NSD4 if given in nsd.conf.
 
+ip4-only and ip6-only: are replaced with more straightforward do-ip4 and
+do-ip6.  They are still accepted in nsd.conf for backwards compatibility.
+
 New config options
 ------------------
 zonelistfile: zone.list.  This file contains a plain text listing of
