@@ -655,9 +655,11 @@ server_prepare_xfrd(struct nsd* nsd)
 	snprintf(tmpfile, sizeof(tmpfile), "%s/nsd.%u.task.0",
 		nsd->options->xfrdir, (unsigned)getpid());
 	nsd->task[0] = task_file_create(tmpfile);
+	if(!nsd->task[0]) exit(1);
 	snprintf(tmpfile, sizeof(tmpfile), "%s/nsd.%u.task.1",
 		nsd->options->xfrdir, (unsigned)getpid());
 	nsd->task[1] = task_file_create(tmpfile);
+	if(!nsd->task[1]) exit(1);
 	assert(udb_base_get_userdata(nsd->task[0])->data == 0);
 	assert(udb_base_get_userdata(nsd->task[1])->data == 0);
 	/* create xfrd listener structure */

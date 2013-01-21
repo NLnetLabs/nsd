@@ -1,5 +1,6 @@
 21 January 2013: Wouter
 	- Improve tabs in sample nsd.conf for different tabsizes.
+	- Fix segv if xfrdir does not exit.
 
 18 January 2013: Wouter
 	- Fix configure for gentoo gcc and headers.
