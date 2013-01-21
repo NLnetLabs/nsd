@@ -113,6 +113,7 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(sbindir)
 	$(INSTALL) -d $(DESTDIR)$(configdir)
 	$(INSTALL) -d $(DESTDIR)$(piddir)
+	$(INSTALL) -d $(DESTDIR)$(xfrdir)
 	$(INSTALL) -d $(DESTDIR)$(dbdir)
 	$(INSTALL) -d $(DESTDIR)$(mandir)
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man8

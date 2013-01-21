@@ -1,6 +1,8 @@
 21 January 2013: Wouter
 	- Improve tabs in sample nsd.conf for different tabsizes.
 	- Fix segv if xfrdir does not exit.
+	- create xfrdir on make install (does not remove on make uninstall,
+	  because this could be /tmp).
 
 18 January 2013: Wouter
 	- Fix configure for gentoo gcc and headers.
