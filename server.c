@@ -552,6 +552,9 @@ server_prepare(struct nsd *nsd)
 	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options)) == NULL) {
 		log_msg(LOG_ERR, "unable to open the database %s: %s",
 			nsd->dbfile, strerror(errno));
+		unlink(nsd->task[0]->fname);
+		unlink(nsd->task[1]->fname);
+		xfrd_del_tempdir(nsd);
 		return -1;
 	}
 	/* check if zone files have been modified */
@@ -659,7 +662,10 @@ server_prepare_xfrd(struct nsd* nsd)
 	snprintf(tmpfile, sizeof(tmpfile), "%s/nsd.%u.task.1",
 		nsd->options->xfrdir, (unsigned)getpid());
 	nsd->task[1] = task_file_create(tmpfile);
-	if(!nsd->task[1]) exit(1);
+	if(!nsd->task[1]) {
+		unlink(nsd->task[0]->fname);
+		exit(1);
+	}
 	assert(udb_base_get_userdata(nsd->task[0])->data == 0);
 	assert(udb_base_get_userdata(nsd->task[1])->data == 0);
 	/* create xfrd listener structure */
