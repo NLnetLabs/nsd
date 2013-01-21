@@ -1,3 +1,6 @@
+21 January 2013: Wouter
+	- Improve tabs in sample nsd.conf for different tabsizes.
+
 18 January 2013: Wouter
 	- Fix configure for gentoo gcc and headers.
 	- List libevent in README.
