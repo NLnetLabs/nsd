@@ -51,7 +51,6 @@ diff_write_packet(const char* zone, const char* pat, uint32_t old_serial,
 	uint32_t new_serial, uint32_t seq_nr, uint8_t* data, size_t len,
 	struct nsd* nsd, uint64_t filenumber)
 {
-	struct timeval tv;
 	FILE *df = xfrd_open_xfrfile(nsd, filenumber, seq_nr?"a":"w");
 	if(!df) {
 		log_msg(LOG_ERR, "could not open transfer %s file %llu: %s",
@@ -59,13 +58,13 @@ diff_write_packet(const char* zone, const char* pat, uint32_t old_serial,
 		return;
 	}
 
-	if (gettimeofday(&tv, NULL) != 0) {
-		log_msg(LOG_ERR, "could not get timestamp for %s: %s",
-			zone, strerror(errno));
-	}
-
 	/* if first part, first write the header */
 	if(seq_nr == 0) {
+		struct timeval tv;
+		if (gettimeofday(&tv, NULL) != 0) {
+			log_msg(LOG_ERR, "could not get timestamp for %s: %s",
+				zone, strerror(errno));
+		}
 		if(!write_32(df, DIFF_PART_XFRF) ||
 			!write_8(df, 0) /* notcommitted(yet) */ ||
 			!write_32(df, 0) /* numberofparts when done */ ||
@@ -1211,7 +1210,9 @@ apply_ixfr_for_zone(namedb_type* db, zone_type* zonedb, FILE* in,
 		if(taskudb) task_new_soainfo(taskudb, last_task, zonedb);
 
 		if(1 <= verbosity) {
-			double elapsed = time_end[0] - time_start[0] + (double)(time_end[1] - time_start[1]) / 1000000.0;
+			double elapsed = (double)(time_end[0] - time_start[0])+
+				(double)((double)time_end[1]
+				-(double)time_start[1]) / 1000000.0;
 			VERBOSITY(2, (LOG_INFO, "zone %s %s of %d bytes in %g seconds",
 				zone_buf, log_buf, num_bytes, elapsed));
 		}
