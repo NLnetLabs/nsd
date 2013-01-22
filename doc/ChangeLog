@@ -1,5 +1,6 @@
 22 January 2013: Wouter
 	- Fix time calculation of zone transfer.
+	- log ip address with tcp failure.  
 
 21 January 2013: Wouter
 	- Improve tabs in sample nsd.conf for different tabsizes.

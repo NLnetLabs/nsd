@@ -1720,10 +1720,12 @@ handle_tcp_reading(int fd, short event, void* arg)
 				 */
 				return;
 			} else {
+				char buf[48];
+				addr2str(&data->query->addr, buf, sizeof(buf));
 #ifdef ECONNRESET
 				if (verbosity >= 2 || errno != ECONNRESET)
 #endif /* ECONNRESET */
-				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
+				log_msg(LOG_ERR, "failed reading from %s tcp: %s", buf, strerror(errno));
 				cleanup_tcp_handler(data);
 				return;
 			}
@@ -1783,10 +1785,12 @@ handle_tcp_reading(int fd, short event, void* arg)
 			 */
 			return;
 		} else {
+			char buf[48];
+			addr2str(&data->query->addr, buf, sizeof(buf));
 #ifdef ECONNRESET
 			if (verbosity >= 2 || errno != ECONNRESET)
 #endif /* ECONNRESET */
-			log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
+			log_msg(LOG_ERR, "failed reading from %s tcp: %s", buf, strerror(errno));
 			cleanup_tcp_handler(data);
 			return;
 		}
