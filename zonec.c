@@ -40,7 +40,8 @@
 #include "options.h"
 #include "nsec3.h"
 
-#define ILNP_MAXSIZE 4
+#define ILNP_MAXDIGITS 4
+#define ILNP_NUMGROUPS 4
 
 const dname_type *error_dname;
 domain_type *error_domain;
@@ -393,9 +394,9 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 	unsigned long hex;
 	const char *ch;
 	int c;
-	char digits[ILNP_MAXSIZE+1];
-	unsigned int ui[ILNP_MAXSIZE];
-	uint16_t a[ILNP_MAXSIZE];
+	char digits[ILNP_MAXDIGITS+1];
+	unsigned int ui[ILNP_NUMGROUPS];
+	uint16_t a[ILNP_NUMGROUPS];
 
 	ngroups = 1; /* Always at least one group */
 	num = 0;
@@ -410,9 +411,9 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 			hex = (unsigned long) strtol(digits, NULL, 16);
 			num = 0;
 			ui[ngroups - 1] = hex;
-			if (ngroups >= ILNP_MAXSIZE) {
+			if (ngroups >= ILNP_NUMGROUPS) {
 				zc_error_prev_line("ilnp64: more than %d groups "
-					"of digits", ILNP_MAXSIZE);
+					"of digits", ILNP_NUMGROUPS);
 				return NULL;
 			}
 			ngroups++;
@@ -425,9 +426,9 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 					"(non-hexadecimal) character %c", c);
 				return NULL;
 			}
-			if (num >= ILNP_MAXSIZE) {
+			if (num >= ILNP_MAXDIGITS) {
 				zc_error_prev_line("ilnp64: more than %d digits "
-					"in a group", ILNP_MAXSIZE);
+					"in a group", ILNP_MAXDIGITS);
 				return NULL;
 			}
 			digits[num++] = *ch;
@@ -443,7 +444,7 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 	ui[ngroups - 1] = hex;
 	if (ngroups < 4) {
 		zc_error_prev_line("ilnp64: less than %d groups of digits",
-			ILNP_MAXSIZE);
+			ILNP_NUMGROUPS);
 		return NULL;
 	}
 
