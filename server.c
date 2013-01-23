@@ -658,7 +658,8 @@ server_prepare_xfrd(struct nsd* nsd)
 	snprintf(tmpfile, sizeof(tmpfile), "%s/nsd.%u.task.0",
 		nsd->options->xfrdir, (unsigned)getpid());
 	nsd->task[0] = task_file_create(tmpfile);
-	if(!nsd->task[0]) exit(1);
+	if(!nsd->task[0])
+		exit(1);
 	snprintf(tmpfile, sizeof(tmpfile), "%s/nsd.%u.task.1",
 		nsd->options->xfrdir, (unsigned)getpid());
 	nsd->task[1] = task_file_create(tmpfile);
