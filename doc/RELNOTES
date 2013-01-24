@@ -1,5 +1,28 @@
 NSD RELEASE NOTES
 
+4.0.0b3   BETA 3 release of NSD 4.0
+==================================
+BUG FIXES:
+	- applied patch from Robin Hack to remove double pid file truncation.
+	- repattern is called reconfig (because most config options are
+	  picked up, except for superuser options (chroot, logfile, port))
+	- document that the zonefile attribute can be empty.
+	- documented that the _implicit_ pattern names are used internally.
+	- Added zonefiles-check option, default yes, check mtimes of zone files
+	  on sighup and startup (from Robin Hack).
+	- Fix spurious assertion failure for some rrl blocks.
+	- Tabs and spaces nicer in nsd.conf.sample.
+	- List libevent in README.
+	- Fix configure for gentoo gcc and headers.
+	- do-ip4 and do-ip6 nsd.conf options just like unbound.
+	- do not leave task files in /tmp if nsd fails to startup because
+	  of file permissions.
+	- create xfrdir on make install (does not remove on make uninstall,
+	  because this could be /tmp).
+	- Fix segv if xfrdir does not exit.
+	- log ip address with tcp failure.
+	- Fix time calculation of zone transfer.
+
 4.0.0b2   BETA 2 release of NSD 4.0
 ==================================
 FEATURES:
