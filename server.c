@@ -772,7 +772,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 			exit(1);
 		}
-#ifndef FULL_PREHASH
+#if defined(NSEC3) && !defined(FULL_PREHASH)
 		prehash(nsd->db, 0);
 #endif
 	}
