@@ -358,6 +358,7 @@ int main(int argc, char* argv[])
                 unsigned char buf[256];
                 unsigned int v, seed=(unsigned)time(NULL) ^ (unsigned)getpid();
                 size_t i;
+		v = seed;
                 for(i=0; i<256/sizeof(v); i++) {
                         memmove(buf+i*sizeof(v), &v, sizeof(v));
                         v = v*seed + (unsigned int)i;
