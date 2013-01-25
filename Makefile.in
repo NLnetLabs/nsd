@@ -46,7 +46,6 @@ INSTALL_DATA	= $(INSTALL) -m 644
 
 YACC		= @YACC@
 LEX		= @LEX@
-CCWHOLE		= @CCWHOLE@
 
 COMPILE		= $(CC) $(CPPFLAGS) $(CFLAGS)
 LINK		= $(CC) $(CFLAGS) $(LDFLAGS)
@@ -77,9 +76,7 @@ NSD_CHECKCONF_OBJ=$(COMMON_OBJ) nsd-checkconf.o
 NSD_CONTROL_OBJ=$(COMMON_OBJ) nsd-control.o
 CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_rrl.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest.o qtest.o
 
-all:	$(CCWHOLE)
-
-unwhole:	$(TARGETS) $(MANUALS)
+all:	$(TARGETS) $(MANUALS)
 
 $(ALL_OBJ):
 	$(COMPILE) -c $<
@@ -139,10 +136,6 @@ uninstall:
 
 test: 
 
-whole:	nsd-control-setup.sh nsd-checkconf nsd-control nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c $(MANUALS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e 's/[a-z]*lexer.o//g' -e 's/[a-z]*parser.o//g' | sed -e 's;\\([^ \\.]*\\)\\.o;$(srcdir)/\\1.c;g'` configlexer.c configparser.c zlexer.c zparser.c $(LIBOBJS) $(SSL_LIBS) $(LIBS)
-	@touch whole
-
 nsd:	$(NSD_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) $(SSL_LIBS) $(LIBS)
 
@@ -160,7 +153,7 @@ udb-inspect:	udb-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 
 clean:
 	rm -f *.o *.so y.* *.core *.gmon tags TAGS
-	rm -f $(TARGETS) $(MANUALS) cutest udb-inspect whole
+	rm -f $(TARGETS) $(MANUALS) cutest udb-inspect
 
 realclean: clean
 	rm -f Makefile config.h config.log config.status
