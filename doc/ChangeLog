@@ -1,5 +1,6 @@
 25 January 2013: Wouter
 	- fix gcc warning, do not use uninit value for rng init.
+	- fix zonefiles-check: entry in nsd.conf
 
 23 January 2013: Wouter
 	- beta3
