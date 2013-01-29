@@ -1817,8 +1817,8 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 		zone->msg_old_serial, zone->msg_new_serial, zone->msg_seq_nr,
 		buffer_begin(packet), buffer_limit(packet), xfrd->nsd,
 		zone->xfrfilenumber);
-	VERBOSITY(1, (LOG_INFO,
-		"xfrd: zone %s written received XFR from %s with serial %u to "
+	VERBOSITY(3, (LOG_INFO,
+		"xfrd: zone %s written received XFR packet from %s with serial %u to "
 		"disk", zone->apex_str, zone->master->ip_address_spec,
 		(int)zone->msg_new_serial));
 	zone->msg_seq_nr++;
