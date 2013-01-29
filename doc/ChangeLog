@@ -4,6 +4,7 @@
 29 January 2013: Wouter
 	- printout log less verbosely, not every axfr packet.
 	- remove printout of "bad transfer" to the log for notimpl.
+	- fixup tests for new netstat and new netcat.
 
 25 January 2013: Wouter
 	- fix gcc warning, do not use uninit value for rng init.
