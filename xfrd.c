@@ -1793,7 +1793,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 					zone->apex_str, zone->msg_rr_count?
 					(int)zone->msg_new_serial:0,
 					zone->master->ip_address_spec));
-			} else {
+			} else if (res == xfrd_packet_bad) {
 				VERBOSITY(1, (LOG_INFO, "xfrd: zone %s "
 					"bad transfer %u from %s",
 					zone->apex_str, zone->msg_rr_count?
