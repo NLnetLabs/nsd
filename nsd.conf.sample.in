@@ -103,6 +103,19 @@ server:
 	# check mtime of all zone files on start and sighup
 	# zonefiles-check: yes
 
+	# RRLconfig
+	# Response Rate Limiting, size of the hashtable. Default 1000000.
+	# rrl-size: 1000000
+
+	# Response Rate Limiting, maximum QPS allowed (from one query source).
+	# Default 200. If set to 0, ratelimiting is disabled. Also set
+	# rrl-whitelist-ratelimit to 0 to disable ratelimit processing.
+	# rrl-ratelimit: 200
+
+	# Response Rate Limiting, maximum QPS allowed (from one query source)
+	# for whitelisted types. Default 2000.
+	# rrl-whitelist-ratelimit: 2000
+	# RRLend
 
 # Remote control config section. 
 remote-control:
@@ -212,4 +225,17 @@ remote-control:
  	# zonefile: "example.com.zone"
  	# request-xfr: 192.0.2.1 example.com.key
 
+	# RRLconfig
+	# Response Rate Limiting, whitelist types
+	# rrl-whitelist: nxdomain
+	# rrl-whitelist: error
+	# rrl-whitelist: referral
+	# rrl-whitelist: any
+	# rrl-whitelist: rrsig
+	# rrl-whitelist: wildcard
+	# rrl-whitelist: nodata
+	# rrl-whitelist: dnskey
+	# rrl-whitelist: positive
+	# rrl-whitelist: all
+	# RRLend
 

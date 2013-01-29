@@ -88,7 +88,7 @@ nsd-control-setup.sh:	$(srcdir)/nsd-control-setup.sh.in config.h
 
 nsd.conf.sample:	$(srcdir)/nsd.conf.sample.in config.h
 	rm -f nsd.conf.sample
-	$(EDIT) $(srcdir)/nsd.conf.sample.in > nsd.conf.sample
+	$(EDIT) $(srcdir)/nsd.conf.sample.in | awk '/RRLconfig'@ratelimit@'/ { while($$0 !~ /.*RRLend.*/) { getline; } getline; } {print} ' > nsd.conf.sample
 
 nsd.conf.5:	$(srcdir)/nsd.conf.5.in config.h
 	rm -f nsd.conf.5
