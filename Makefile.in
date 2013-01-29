@@ -335,7 +335,7 @@ nsdc.sh:	$(srcdir)/nsdc.sh.in config.h
 
 nsd.conf.sample:	$(srcdir)/nsd.conf.sample.in config.h
 	rm -f nsd.conf.sample
-	$(EDIT) $(srcdir)/nsd.conf.sample.in > nsd.conf.sample
+	$(EDIT) $(srcdir)/nsd.conf.sample.in | awk '/rrlstart'@ratelimit@'/ { while($$0 !~ /.*rrlend.*/) { getline; } getline; } {print} ' > nsd.conf.sample
 
 nsd.conf.5:	$(srcdir)/nsd.conf.5.in config.h
 	rm -f nsd.conf.5
