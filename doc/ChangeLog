@@ -1,4 +1,7 @@
-24 January 2013: Matthijs
+29 January 2013: Matthijs
+	- RRL documented in nsd.conf.sample
+
+24 January 2013: Wouter
 	- fix compile --disable-nsec3.
 
 23 January 2013: Matthijs
