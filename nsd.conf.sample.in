@@ -99,7 +99,7 @@ server:
 	# Verbosity level.
 	# verbosity: 0
 
-	# .\" rrlstart
+	# RRLconfig
 	# Response Rate Limiting, size of the hashtable. Default 1000000.
 	# rrl-size: 1000000
 
@@ -111,7 +111,7 @@ server:
 	# Response Rate Limiting, maximum QPS allowed (from one query source)
 	# for whitelisted types. Default 2000.
 	# rrl-whitelist-ratelimit: 2000
-	# .\" rrlend
+	# RRLend
 
 # key for zone 1
 key:
@@ -187,8 +187,8 @@ zone:
 	# set local interface for sending notifies
 	outgoing-interface: 10.0.0.15
 
-	# .\" rrlstart
-	# Response Rate Liomiting, whitelist types
+	# RRLconfig
+	# Response Rate Limiting, whitelist types
 	# rrl-whitelist: nxdomain
 	# rrl-whitelist: error
 	# rrl-whitelist: referral
@@ -199,7 +199,7 @@ zone:
 	# rrl-whitelist: dnskey
 	# rrl-whitelist: positive
 	# rrl-whitelist: all
-	# .\" rrlend
+	# RRLend
 
 
 # keys for zone 2
