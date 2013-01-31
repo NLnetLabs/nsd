@@ -1,6 +1,7 @@
 31 January 2013: Wouter
 	- Fix that nsec3 zones are precompiled when read from udb.  This
 	  caused assertion failures.
+	- Fix is_apex flag for zones read from udb.
 
 29 January 2013: Matthijs
 	- RRL documented in nsd.conf.sample

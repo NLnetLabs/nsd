@@ -243,6 +243,7 @@ namedb_zone_create(namedb_type* db, const dname_type* dname,
 	assert(zone->node);
 	zone->apex = domain_table_insert(db->domains, dname);
 	zone->apex->usage++; /* the zone.apex reference */
+	zone->apex->is_apex = 1;
 	zone->soa_rrset = NULL;
 	zone->soa_nx_rrset = NULL;
 	zone->ns_rrset = NULL;
