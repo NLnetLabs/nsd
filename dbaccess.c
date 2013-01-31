@@ -315,6 +315,9 @@ read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 	region_free_all(dname_region);
 	read_zone_data(udb, db, dname_region, z, zone);
 	zone->is_changed = (ZONE(z)->is_changed != 0);
+#ifdef NSEC3
+	prehash_zone_complete(db, zone);
+#endif
 }
 
 /** read zones from nsd.db */
