@@ -402,9 +402,9 @@ zone_hash_nsec3param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
 	if(2 <= verbosity) {
 		udb_ptr par;
 		udb_ptr_new(&par, udb, &ZONE(zone)->nsec3param);
-		log_msg(LOG_INFO, "rehash of zone %s with parameters %s",
+		VERBOSITY(1, (LOG_INFO, "rehash of zone %s with parameters %s",
 			wiredname2str(ZONE(zone)->name),
-			udb_nsec3param_string(&par));
+			udb_nsec3param_string(&par)));
 		udb_ptr_unlink(&par, udb);
 	}
 	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
