@@ -906,7 +906,11 @@ print_zonestatus(SSL* ssl, xfrd_state_t* xfrd, zone_options_t* zo)
 				return 0;
 		}
 	}
-	if(!xz) return 1;
+	if(!xz) {
+		if(!ssl_printf(ssl, "	state: master\n"))
+			return 0;
+		return 1;
+	}
 	if(!ssl_printf(ssl, "	state: %s\n",
 		(xz->state == xfrd_zone_ok)?"ok":(
 		(xz->state == xfrd_zone_expired)?"expired":"refreshing")))
