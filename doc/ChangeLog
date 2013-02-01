@@ -1,3 +1,6 @@
+1 February 2013: Wouter
+	- Less printout of 'bad transfer'.
+
 31 January 2013: Wouter
 	- Fix that nsec3 zones are precompiled when read from udb.  This
 	  caused assertion failures.

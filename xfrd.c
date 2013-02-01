@@ -1183,6 +1183,7 @@ xfrd_udp_read(xfrd_zone_t* zone)
 			break;
 		case xfrd_packet_more:
 		case xfrd_packet_bad:
+		case xfrd_packet_drop:
 		default:
 			/* drop packet */
 			xfrd_udp_release(zone);
@@ -1686,7 +1687,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			}
 			/* try next master */
 			region_destroy(tempregion);
-			return xfrd_packet_bad;
+			return xfrd_packet_drop;
 		}
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "IXFR reply has ok serial (have \
 %u, reply %u).", (unsigned)ntohl(zone->soa_disk.serial), (unsigned)ntohl(soa->serial)));
@@ -1781,6 +1782,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 			return xfrd_packet_tcp;
 		case xfrd_packet_notimpl:
 		case xfrd_packet_bad:
+		case xfrd_packet_drop:
 		default:
 		{
 			/* rollback */
