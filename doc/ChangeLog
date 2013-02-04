@@ -1,3 +1,6 @@
+4 February 2013: Wouter
+	- Fix AXFR of NSEC3 slave zone.
+
 1 February 2013: Wouter
 	- Less printout of 'bad transfer'.
 

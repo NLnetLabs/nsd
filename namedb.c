@@ -258,7 +258,7 @@ void hash_tree_clear(struct radtree* tree)
 }
 
 /** create a hash space tree with itself in the root elem */
-static struct radtree*
+struct radtree*
 hash_tree_create(void)
 {
 	struct radtree* tree = radix_tree_create();

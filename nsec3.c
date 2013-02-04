@@ -260,14 +260,10 @@ void nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 	/* clear prehash items (there must not be items for other zones) */
 	prehash_clear(db->domains);
 	/* clear trees */
-	if(zone->nsec3tree)
-		hash_tree_clear(zone->nsec3tree);
-	if(zone->hashtree)
-		hash_tree_clear(zone->hashtree);
-	if(zone->wchashtree)
-		hash_tree_clear(zone->wchashtree);
-	if(zone->dshashtree)
-		hash_tree_clear(zone->dshashtree);
+	hash_tree_clear(zone->nsec3tree);
+	hash_tree_clear(zone->hashtree);
+	hash_tree_clear(zone->wchashtree);
+	hash_tree_clear(zone->dshashtree);
 	/* wipe hashes */
 	/* wipe precompile */
 	walk = zone->apex;

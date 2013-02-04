@@ -453,6 +453,16 @@ nsec3_add_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 		nsec3_find_zone_param(db, zone, udbz);
 		if(!zone->nsec3_param)
 			return;
+		/* create NSEC3 tree in case this is the first time we
+		 * find out that this zone is NSEC3-signed */
+		if(!zone->nsec3tree)
+			zone->nsec3tree = hash_tree_create();
+		if(!zone->hashtree)
+			zone->hashtree = hash_tree_create();
+		if(!zone->wchashtree)
+			zone->wchashtree = hash_tree_create();
+		if(!zone->dshashtree)
+			zone->dshashtree = hash_tree_create();
 		nsec3_precompile_newparam(db, zone, udbz);
 	}
 }
