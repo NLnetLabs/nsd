@@ -1,3 +1,7 @@
+5 February 2013: Wouter
+	- Fix that old zonefile does not override newer AXFR for slave zones.
+	- Nicer printout of notify.
+
 4 February 2013: Wouter
 	- Fix AXFR of NSEC3 slave zone.
 

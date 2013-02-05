@@ -461,7 +461,12 @@ answer_notify(struct nsd* nsd, struct query *query)
 		pos = buffer_position(query->packet);
 		buffer_clear(query->packet);
 		buffer_set_position(query->packet, pos);
-		VERBOSITY(2, (LOG_INFO, "Notify received and accepted, forward to xfrd"));
+		if(verbosity > 1) {
+			char address[128];
+			addr2str(&query->addr, address, sizeof(address));
+			VERBOSITY(2, (LOG_INFO, "notify for %s from %s",
+				dname_to_string(query->qname, NULL), address));
+		}
 		/* tsig is added in add_additional later (if needed) */
 		return QUERY_PROCESSED;
 	}

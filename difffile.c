@@ -1215,6 +1215,7 @@ apply_ixfr_for_zone(namedb_type* db, zone_type* zonedb, FILE* in,
 #endif /* NSEC3 */
 		zonedb->is_changed = 1;
 		ZONE(&z)->is_changed = 1;
+		ZONE(&z)->mtime = time_end[0];
 		udb_zone_set_log_str(db->udb, &z, log_buf);
 		udb_ptr_unlink(&z, db->udb);
 		if(taskudb) task_new_soainfo(taskudb, last_task, zonedb);
