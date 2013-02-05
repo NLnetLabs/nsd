@@ -85,6 +85,18 @@ static struct tcp_accept_handler_data*	tcp_accept_handlers;
 static struct event slowaccept_event;
 static int slowaccept;
 
+#ifndef NONBLOCKING_IS_BROKEN
+#  define NUM_RECV_PER_SELECT 100
+#endif
+
+#define RECVMMSG
+
+#if (!defined NONBLOCKING_IS_BROKEN && defined RECVMMSG)
+struct mmsghdr msgs[NUM_RECV_PER_SELECT];
+struct iovec iovecs[NUM_RECV_PER_SELECT];
+struct query *queries[NUM_RECV_PER_SELECT];
+#endif
+
 /*
  * Data for the TCP connection handlers.
  *
@@ -1459,9 +1471,23 @@ server_child(struct nsd *nsd)
 	}
 
 	if (nsd->server_kind & NSD_SERVER_UDP) {
+#if (defined NONBLOCKING_IS_BROKEN || !defined RECVMMSG)
 		udp_query = query_create(server_region,
 			compressed_dname_offsets, compression_table_size);
-
+#else
+		memset(msgs, 0, sizeof(msgs));
+		for (i = 0; i < NUM_RECV_PER_SELECT; i++) {
+			queries[i] = query_create(server_region,
+				compressed_dname_offsets, compression_table_size);
+			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
+			iovecs[i].iov_base          = buffer_begin(queries[i]->packet);
+			iovecs[i].iov_len           = UDP_MAX_MESSAGE_LEN;
+			msgs[i].msg_hdr.msg_iov     = &iovecs[i];
+			msgs[i].msg_hdr.msg_iovlen  = 1;
+			msgs[i].msg_hdr.msg_name    = &queries[i]->addr;
+			msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
+		}
+#endif
 		for (i = 0; i < nsd->ifs; ++i) {
 			struct udp_handler_data *data;
 			struct event *handler;
@@ -1570,28 +1596,14 @@ server_child(struct nsd *nsd)
 	server_shutdown(nsd);
 }
 
-#ifndef NONBLOCKING_IS_BROKEN
-#  define NUM_RECV_PER_SELECT 100
-#endif
-
 static void
 handle_udp(int fd, short event, void* arg)
 {
 	struct udp_handler_data *data = (struct udp_handler_data *) arg;
 	int received, sent;
-#define RECVMMSG
 #ifndef NONBLOCKING_IS_BROKEN
 #ifdef RECVMMSG
 	int recvcount;
-	struct mmsghdr msgs[NUM_RECV_PER_SELECT];
-	struct iovec iovecs[NUM_RECV_PER_SELECT];
-	char bufs[NUM_RECV_PER_SELECT][UDP_MAX_MESSAGE_LEN];
-	#ifdef INET6
-	size_t addrsize = sizeof(struct sockaddr_storage);
-	#else
-	size_t addrsize = sizeof(struct sockaddr_in);
-	#endif
-	char addrs[NUM_RECV_PER_SELECT][addrsize];
 #endif /* RECVMMSG */
 	int i;
 #endif /* NONBLOCKING_IS_BROKEN */
@@ -1602,16 +1614,8 @@ handle_udp(int fd, short event, void* arg)
 	}
 #ifndef NONBLOCKING_IS_BROKEN
 #ifdef RECVMMSG
-	memset(msgs, 0, sizeof(msgs));
-	for (i = 0; i < NUM_RECV_PER_SELECT; i++) {
-		iovecs[i].iov_base          = bufs[i];
-		iovecs[i].iov_len           = UDP_MAX_MESSAGE_LEN;
-		msgs[i].msg_hdr.msg_iov     = &iovecs[i];
-		msgs[i].msg_hdr.msg_iovlen  = 1;
-		msgs[i].msg_hdr.msg_name    = addrs[i];
-		msgs[i].msg_hdr.msg_namelen = addrsize;
-	}
 	recvcount = recvmmsg(fd, msgs, NUM_RECV_PER_SELECT, 0, NULL);
+	printf("recvcount %d \n", recvcount);
 	if (recvcount == -1) {
 		if (errno != EAGAIN && errno != EINTR) {
 			log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
@@ -1621,17 +1625,16 @@ handle_udp(int fd, short event, void* arg)
 		return;
 	}
 	for (i = 0; i < recvcount; i++) {
-		query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
-		q->addrlen = msgs[i].msg_hdr.msg_namelen;
-		memcpy(&q->addr, msgs[i].msg_hdr.msg_name, q->addrlen);
 		received = msgs[i].msg_len;
+		msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
 		if (received == -1) {
 			log_msg(LOG_ERR, "recvfrom failed");
 			STATUP(data->nsd, rxerr);
 			/* the error can be found in msgs[i].msg_hdr.msg_flags */
+			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
 			continue;
 		}
-		memcpy(buffer_begin(q->packet), bufs[i], received);
+		q = queries[i];
 #else
 	for(i=0; i<NUM_RECV_PER_SELECT; i++) {
 #endif /* RECVMMSG */
@@ -1654,7 +1657,7 @@ handle_udp(int fd, short event, void* arg)
 			}
 			return;
 		}
-#endif /* NONBLOCKING_IS_BROKEN || RECVMMSG */
+#endif /* NONBLOCKING_IS_BROKEN || !RECVMMSG */
 
 		/* Account... */
 		if (data->socket->addr->ai_family == AF_INET) {
@@ -1700,6 +1703,9 @@ handle_udp(int fd, short event, void* arg)
 			STATUP(data->nsd, dropped);
 		}
 #ifndef NONBLOCKING_IS_BROKEN
+#ifdef RECVMMSG
+		query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
+#endif
 	}
 #endif
 }
