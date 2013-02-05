@@ -1579,18 +1579,65 @@ handle_udp(int fd, short event, void* arg)
 {
 	struct udp_handler_data *data = (struct udp_handler_data *) arg;
 	int received, sent;
+#define RECVMMSG
 #ifndef NONBLOCKING_IS_BROKEN
+#ifdef RECVMMSG
+	int recvcount;
+	struct mmsghdr msgs[NUM_RECV_PER_SELECT];
+	struct iovec iovecs[NUM_RECV_PER_SELECT];
+	char bufs[NUM_RECV_PER_SELECT][UDP_MAX_MESSAGE_LEN];
+	#ifdef INET6
+	size_t addrsize = sizeof(struct sockaddr_storage);
+	#else
+	size_t addrsize = sizeof(struct sockaddr_in);
+	#endif
+	char addrs[NUM_RECV_PER_SELECT][addrsize];
+#endif /* RECVMMSG */
 	int i;
-#endif
+#endif /* NONBLOCKING_IS_BROKEN */
 	struct query *q = data->query;
 
 	if (!(event & EV_READ)) {
 		return;
 	}
-
 #ifndef NONBLOCKING_IS_BROKEN
+#ifdef RECVMMSG
+	memset(msgs, 0, sizeof(msgs));
+	for (i = 0; i < NUM_RECV_PER_SELECT; i++) {
+		iovecs[i].iov_base          = bufs[i];
+		iovecs[i].iov_len           = UDP_MAX_MESSAGE_LEN;
+		msgs[i].msg_hdr.msg_iov     = &iovecs[i];
+		msgs[i].msg_hdr.msg_iovlen  = 1;
+		msgs[i].msg_hdr.msg_name    = addrs[i];
+		msgs[i].msg_hdr.msg_namelen = addrsize;
+	}
+	recvcount = recvmmsg(fd, msgs, NUM_RECV_PER_SELECT, 0, NULL);
+	if (recvcount == -1) {
+		if (errno != EAGAIN && errno != EINTR) {
+			log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
+			STATUP(data->nsd, rxerr);
+		}
+		/* Simply no data available */
+		return;
+	}
+	for (i = 0; i < recvcount; i++) {
+		query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
+		q->addrlen = msgs[i].msg_hdr.msg_namelen;
+		memcpy(&q->addr, msgs[i].msg_hdr.msg_name, q->addrlen);
+		received = msgs[i].msg_len;
+		if (received == -1) {
+			log_msg(LOG_ERR, "recvfrom failed");
+			STATUP(data->nsd, rxerr);
+			/* the error can be found in msgs[i].msg_hdr.msg_flags */
+			continue;
+		}
+		memcpy(buffer_begin(q->packet), bufs[i], received);
+#else
 	for(i=0; i<NUM_RECV_PER_SELECT; i++) {
-#endif
+#endif /* RECVMMSG */
+#endif /* NONBLOCKING_IS_BROKEN */
+
+#if (defined NONBLOCKING_IS_BROKEN || !defined RECVMMSG)
 		/* Initialize the query... */
 		query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
 
@@ -1607,6 +1654,7 @@ handle_udp(int fd, short event, void* arg)
 			}
 			return;
 		}
+#endif /* NONBLOCKING_IS_BROKEN || RECVMMSG */
 
 		/* Account... */
 		if (data->socket->addr->ai_family == AF_INET) {
