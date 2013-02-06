@@ -3,6 +3,10 @@ NSD RELEASE NOTES
 3.2.16 (up next)
 ================
 
+BUG FIXES:
+	- Fix outgoing-interface: Don't fail if family is IPv6 but
+	  only IPv4 outgoing-interface is set, or vice versa.
+
 
 
 3.2.15

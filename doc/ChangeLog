@@ -1,3 +1,7 @@
+6 February 2013: Matthijs
+	- Fix outgoing-interface: Don't fail if family is IPv6 but
+	  only IPv4 outgoing-interface is set, or vice versa.
+
 4 February 2013: Matthijs
 	- Bump to 3.2.16
 
