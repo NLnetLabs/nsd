@@ -1,5 +1,7 @@
 7 February 2013: Wouter
 	- detect endianness in lookup3 on BSD, patch from Brad Smith.
+	- nsd-control verbosity prints out verbosity level without argument.
+	- nsd-control status prints out ratelimit if ratelimit is enabled.
 
 5 February 2013: Wouter
 	- Fix that old zonefile does not override newer AXFR for slave zones.

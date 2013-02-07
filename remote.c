@@ -972,6 +972,10 @@ static void
 do_verbosity(SSL* ssl, char* str)
 {
 	int val = atoi(str);
+	if(strcmp(str, "") == 0) {
+		ssl_printf(ssl, "verbosity %d\n", verbosity);
+		return;
+	}
 	if(val == 0 && strcmp(str, "0") != 0) {
 		ssl_printf(ssl, "error in verbosity number syntax: %s\n", str);
 		return;
@@ -1003,12 +1007,19 @@ find_arg2(SSL* ssl, char* arg, char** arg2)
 
 /** do the status command */
 static void
-do_status(SSL* ssl)
+do_status(SSL* ssl, xfrd_state_t* xfrd)
 {
 	if(!ssl_printf(ssl, "version: %s\n", PACKAGE_VERSION))
 		return;
 	if(!ssl_printf(ssl, "verbosity: %d\n", verbosity))
 		return;
+#ifdef RATELIMIT
+	if(!ssl_printf(ssl, "ratelimit: %d\n",
+		(int)xfrd->nsd->options->rrl_ratelimit))
+		return;
+#else
+	(void)xfrd;
+#endif
 }
 
 /** do the stats command */
@@ -1494,7 +1505,7 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 	} else if(cmdcmp(p, "write", 5)) {
 		do_write(ssl, rc->xfrd, skipwhite(p+5));
 	} else if(cmdcmp(p, "status", 6)) {
-		do_status(ssl);
+		do_status(ssl, rc->xfrd);
 	} else if(cmdcmp(p, "stats_noreset", 13)) {
 		do_stats(rc, 1, rs);
 	} else if(cmdcmp(p, "stats", 5)) {
