@@ -252,7 +252,7 @@ label:	STR
     }
     |	BITLAB
     {
-	    zc_error("bitlabels are not supported. RFC2673 has status experimental.");
+	    zc_error("bitlabels are now deprecated. RFC2673 is obsoleted.");
 	    $$ = error_dname;
     }
     ;
