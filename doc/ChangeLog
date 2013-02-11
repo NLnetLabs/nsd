@@ -1,5 +1,6 @@
 11 February 2013: Wouter
 	- fix tcp zonetransfer pipeline lookup function.
+	- remove compiler warning for memset from tsig read.
 
 7 February 2013: Wouter
 	- detect endianness in lookup3 on BSD, patch from Brad Smith.

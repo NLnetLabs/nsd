@@ -734,11 +734,13 @@ key_secret: VAR_SECRET STRING
 #endif
 		cfg_parser->current_key->secret = region_strdup(cfg_parser->opt->region, $2);
 		size = b64_pton($2, data, sizeof(data));
-		if(size == -1)
+		if(size == -1) {
 			c_error_msg("Cannot base64 decode tsig secret %s",
 				cfg_parser->current_key->name?
 				cfg_parser->current_key->name:"");
-		else	memset(data, 0xdd, size); /* wipe secret */
+		} else if(size != 0) {
+			memset(data, 0xdd, size); /* wipe secret */
+		}
 	}
 	;
 
