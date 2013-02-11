@@ -1260,6 +1260,7 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 #else
 	struct sockaddr_in frm;
 #endif /* INET6 */
+	int ret = 1;
 
 	if (!ifc) /* no outgoing interface set */
 		return 1;
@@ -1273,7 +1274,7 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: bind() %s to %s socket",
 			ifc->ip_address_spec, tcp? "tcp":"udp"));
-
+		ret = 0;
 		frm_len = xfrd_acl_sockaddr_frm(ifc, &frm);
 
 		if (tcp) {
@@ -1317,10 +1318,7 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 		/* try another */
 		ifc = ifc->next;
 	}
-
-	log_msg(LOG_WARNING, "xfrd: could not bind source address:port to "
-			     "socket: %s", strerror(errno));
-	return 0;
+	return ret;
 }
 
 void
