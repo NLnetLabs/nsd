@@ -84,8 +84,7 @@ child_handle_parent_command(int fd, short event, void* arg)
 		if(!write_socket(fd, &mode, sizeof(mode))) {
 			log_msg(LOG_ERR, "cannot write quitwst to parent");
 		}
-		if(!write_socket(fd, &data->nsd->st,
-			sizeof(data->nsd->st))) {
+		if(!write_socket(fd, &data->nsd->st, sizeof(data->nsd->st))) {
 			log_msg(LOG_ERR, "cannot write stats to parent");
 		}
 		fsync(fd);
