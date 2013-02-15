@@ -1,5 +1,6 @@
 15 February 2013: Wouter
 	- Fix compile on bigendian netbsd alpha.
+	- Fixup tests for older dig (check if +noedns option is supported)
 
 11 February 2013: Matthijs
 	- Fix outgoing-interface: Don't fail if family is IPv6 but
