@@ -32,6 +32,8 @@ struct rrl_bucket {
 	/* rate, in queries per second, which due to rate=r(t)+r(t-1)/2 is
 	 * equal to double the queries per second */
 	uint32_t rate;
+	/* the full hash */
+	uint32_t hash;
 	/* counter for queries arrived in this second */
 	uint32_t counter;
 	/* timestamp, which time is the time of the counter, the rate is from
@@ -305,7 +307,7 @@ rrl_msg(query_type* query, const char* str)
 	if(verbosity < 2) return;
 	s = rrl_get_source(query, &c2);
 	c = rrl_classify(query, &d, &d_len) | c2;
-	if(query->zone && query->zone->opts && 
+	if(query->zone && query->zone->opts &&
 		(query->zone->opts->pattern->rrl_whitelist & c))
 		wl = 1;
 	log_msg(LOG_INFO, "ratelimit %s %s type %s%s target %s",
@@ -330,14 +332,16 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 		(long long unsigned)source, hash, b->rate, b->counter, b->stamp));
 
 	/* check if different source */
-	if(b->source != source || b->flags != flags) {
+	if(b->source != source || b->flags != flags || b->hash != hash) {
 		/* initialise */
 		/* potentially the wrong limit here, used lower nonwhitelim */
 		if(verbosity >=2 &&
 			used_to_block(b->rate, b->counter, rrl_ratelimit))
-			log_msg(LOG_INFO, "ratelimit unblock ~ type %s target %s",
+			log_msg(LOG_INFO, "ratelimit unblock ~ type %s target %s (%s collision)",
 				rrltype2str(b->flags),
-				rrlsource2str(b->source, b->flags));
+				rrlsource2str(b->source, b->flags),
+				(b->hash!=hash?"bucket":"hash"));
+		b->hash = hash;
 		b->source = source;
 		b->flags = flags;
 		b->counter = 1;
