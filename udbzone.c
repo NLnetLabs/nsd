@@ -675,10 +675,12 @@ udb_zone_add_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 	int created_rrset = 0;
 	assert(udb_ptr_get_type(zone) == udb_chunk_type_zone);
 
+	VERBOSITY(2, (LOG_INFO, "udb_zone_add_rr dfind"));
 	/* find or create domain */
 	if(!domain_find_or_create(udb, zone, nm, nmlen, &domain)) {
 		return 0;
 	}
+	VERBOSITY(2, (LOG_INFO, "udb_zone_add_rr rrsetfind"));
 	/* find or create rrset(type) */
 	if(!rrset_find_or_create(udb, &domain, t, &rrset)) {
 		goto exit_clean_domain;
@@ -690,6 +692,7 @@ udb_zone_add_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 		udb_ptr_unlink(&rr, udb);
 		goto exit_clean_domain_rrset;
 	}
+	VERBOSITY(2, (LOG_INFO, "udb_zone_add_rr rrcreate"));
 	/* add RR to rrset */
 	if(!rrset_add_rr(udb, &rrset, t, k, ttl, rdata, rdatalen)) {
 	exit_clean_domain_rrset:
@@ -706,6 +709,7 @@ udb_zone_add_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 		udb_ptr_unlink(&domain, udb);
 		return 0;
 	}
+	VERBOSITY(2, (LOG_INFO, "udb_zone_add_rr postaccount"));
 	/* success, account changes */
 	if(created_rrset)
 		ZONE(zone)->rrset_count ++;

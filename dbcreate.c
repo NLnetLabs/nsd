@@ -85,6 +85,7 @@ udb_write_rr(udb_base* udb, udb_ptr* z, rr_type* rr)
 		rdatalen += add_rdata(rr, i, rdata+rdatalen,
 			sizeof(rdata)-rdatalen);
 	}
+	VERBOSITY(2, (LOG_INFO, "udb_zone_add_rr"));
 	return udb_zone_add_rr(udb, z, dname_name(domain_dname(rr->owner)),
 		domain_dname(rr->owner)->name_size, rr->type, rr->klass,
 		rr->ttl, rdata, rdatalen);

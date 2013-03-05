@@ -639,14 +639,18 @@ add_RR(namedb_type* db, const dname_type* dname,
 	ssize_t rdata_num;
 	int rrnum;
 	int rrset_added = 0;
+	VERBOSITY(2, (LOG_INFO, "add_RR dfind"));
 	domain = domain_table_find(db->domains, dname);
 	if(!domain) {
 		/* create the domain */
+		VERBOSITY(2, (LOG_INFO, "add_RR dinsert"));
 		domain = domain_table_insert(db->domains, dname);
 	}
+	VERBOSITY(2, (LOG_INFO, "add_RR rrsetfind"));
 	rrset = domain_find_rrset(domain, zone, type);
 	if(!rrset) {
 		/* create the rrset */
+		VERBOSITY(2, (LOG_INFO, "add_RR rrsetcreate"));
 		rrset = region_alloc(db->region, sizeof(rrset_type));
 		if(!rrset) {
 			log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
@@ -662,6 +666,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	/* dnames in rdata are normalized, conform RFC 4035,
 	 * Section 6.2
 	 */
+	VERBOSITY(2, (LOG_INFO, "add_RR rdataatoms"));
 	rdata_num = rdata_wireformat_to_rdata_atoms(
 		db->region, db->domains, type, rdatalen, packet, &rdatas);
 	if(rdata_num == -1) {
@@ -669,6 +674,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 			dname_to_string(dname,0));
 		return 0;
 	}
+	VERBOSITY(2, (LOG_INFO, "add_RR rrnumfind"));
 	rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num);
 	if(rrnum != -1) {
 		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR <%s, %s> already exists",
@@ -678,6 +684,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	}
 
 	/* re-alloc the rrs and add the new */
+	VERBOSITY(2, (LOG_INFO, "add_RR rralloc"));
 	rrs_old = rrset->rrs;
 	rrset->rrs = region_alloc(db->region,
 		(rrset->rr_count+1) * sizeof(rr_type));
@@ -690,6 +697,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	region_recycle(db->region, rrs_old, sizeof(rr_type) * rrset->rr_count);
 	rrset->rr_count ++;
 
+	VERBOSITY(2, (LOG_INFO, "add_RR rrassign"));
 	rrset->rrs[rrset->rr_count - 1].owner = domain;
 	rrset->rrs[rrset->rr_count - 1].rdatas = rdatas;
 	rrset->rrs[rrset->rr_count - 1].ttl = ttl;
@@ -714,10 +722,12 @@ add_RR(namedb_type* db, const dname_type* dname,
 	}
 
 	/* write the just-normalized RR to the udb */
+	VERBOSITY(2, (LOG_INFO, "add_RR udbwrite"));
 	if(!udb_write_rr(db->udb, udbz, &rrset->rrs[rrset->rr_count - 1])) {
 		log_msg(LOG_ERR, "could not add RR to nsd.db, disk-space?");
 		return 0;
 	}
+	VERBOSITY(2, (LOG_INFO, "add_RR posttrigger"));
 #ifdef NSEC3
 	if(rrset_added) {
 		domain_type* p = domain->parent;
