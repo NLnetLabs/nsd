@@ -470,7 +470,6 @@ static void*
 udb_base_remap(udb_base* udb, udb_alloc* alloc, uint64_t nsize)
 {
 	void* nb;
-	VERBOSITY(2, (LOG_INFO, "udb remap(%s, size %u)", udb->fname, (unsigned)nsize));
 	/* for use with valgrind, do not use mremap, but the other version */
 #ifdef MREMAP_MAYMOVE
 	nb = mremap(udb->base, udb->base_size, nsize, MREMAP_MAYMOVE);

@@ -427,11 +427,14 @@ domain_create(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 {
 	udb_ptr dtree, node;
 	/* create domain chunk */
+	VERBOSITY(2, (LOG_INFO, "dcreate alloc_space nmlen %d", (int)nmlen));
 	if(!udb_ptr_alloc_space(result, udb, udb_chunk_type_domain,
 		sizeof(struct domain_d)+nmlen))
 		return 0;
+	VERBOSITY(2, (LOG_INFO, "dcreate relptr init"));
 	udb_rel_ptr_init(&DOMAIN(result)->node);
 	udb_rel_ptr_init(&DOMAIN(result)->rrsets);
+	VERBOSITY(2, (LOG_INFO, "dcreate assign"));
 	DOMAIN(result)->namelen = nmlen;
 	memmove(DOMAIN(result)->name, nm, nmlen);
 	DOMAIN(result)->have_hash = 0;
@@ -441,14 +444,17 @@ domain_create(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 
 	/* insert into domain tree */
 	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
+	VERBOSITY(2, (LOG_INFO, "dcreate radname_insert"));
 	if(!udb_radname_insert(udb, &dtree, nm, nmlen, result, &node)) {
 		udb_ptr_free_space(result, udb, sizeof(struct domain_d)+nmlen);
 		udb_ptr_unlink(&dtree, udb);
 		return 0;
 	}
+	VERBOSITY(2, (LOG_INFO, "dcreate rptr_set"));
 	udb_rptr_set_ptr(&DOMAIN(result)->node, udb, &node);
 	udb_ptr_unlink(&dtree, udb);
 	udb_ptr_unlink(&node, udb);
+	VERBOSITY(2, (LOG_INFO, "dcreate done"));
 	return 1;
 }
 
@@ -473,8 +479,11 @@ domain_find_or_create(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
 	size_t nmlen, udb_ptr* result)
 {
 	assert(udb_ptr_get_type(zone) == udb_chunk_type_zone);
-	if(udb_domain_find(udb, zone, nm, nmlen, result))
+	VERBOSITY(2, (LOG_INFO, "dfind"));
+	if(udb_domain_find(udb, zone, nm, nmlen, result)) {
+		VERBOSITY(2, (LOG_INFO, "dfind done"));
 		return 1;
+	}
 	return domain_create(udb, zone, nm, nmlen, result);
 }
 
@@ -675,12 +684,10 @@ udb_zone_add_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 	int created_rrset = 0;
 	assert(udb_ptr_get_type(zone) == udb_chunk_type_zone);
 
-	VERBOSITY(2, (LOG_INFO, "udb_zone_add_rr dfind"));
 	/* find or create domain */
 	if(!domain_find_or_create(udb, zone, nm, nmlen, &domain)) {
 		return 0;
 	}
-	VERBOSITY(2, (LOG_INFO, "udb_zone_add_rr rrsetfind"));
 	/* find or create rrset(type) */
 	if(!rrset_find_or_create(udb, &domain, t, &rrset)) {
 		goto exit_clean_domain;
@@ -692,7 +699,6 @@ udb_zone_add_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 		udb_ptr_unlink(&rr, udb);
 		goto exit_clean_domain_rrset;
 	}
-	VERBOSITY(2, (LOG_INFO, "udb_zone_add_rr rrcreate"));
 	/* add RR to rrset */
 	if(!rrset_add_rr(udb, &rrset, t, k, ttl, rdata, rdatalen)) {
 	exit_clean_domain_rrset:
@@ -709,7 +715,6 @@ udb_zone_add_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 		udb_ptr_unlink(&domain, udb);
 		return 0;
 	}
-	VERBOSITY(2, (LOG_INFO, "udb_zone_add_rr postaccount"));
 	/* success, account changes */
 	if(created_rrset)
 		ZONE(zone)->rrset_count ++;
