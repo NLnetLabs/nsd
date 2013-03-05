@@ -1,3 +1,7 @@
+5 March 2013: Wouter
+	- Fixup the growth and shrinkage of nsd.db.  This should use less
+	  calls to remap and change the file and mmap size.
+
 15 February 2013: Wouter
 	- Fix compile on bigendian netbsd alpha.
 	- Fixup tests for older dig (check if +noedns option is supported)

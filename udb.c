@@ -1090,7 +1090,7 @@ grow_extra_check(udb_alloc* alloc, uint64_t ge)
 		uint64_t gnow = ge - bsz;
 		/* above 1Mb, grow at least 1 Mb, or 12.5% of current size,
 		 * in whole megabytes rounded up. */
-		uint64_t want = ((bsz / 8) & (mb-1)) + mb;
+		uint64_t want = ((bsz / 8) & ~(mb-1)) + mb;
 		if(gnow < want)
 			return bsz + want;
 	}
@@ -1101,15 +1101,17 @@ grow_extra_check(udb_alloc* alloc, uint64_t ge)
 static int
 enough_free(udb_alloc* alloc)
 {
-	if(alloc->udb->base_size <= 1024*1024) {
-		/* below 1 Mb, grown by double size,
+	if(alloc->udb->base_size <= 2*1024*1024) {
+		/* below 1 Mb, grown by double size, (so up to 2 mb),
 		 * do not shrink unless we can 1/3 in size */
-		if(alloc->disk->nextgrow*3 <= alloc->udb->base_size)
+		if(((size_t)alloc->disk->nextgrow)*3 <= alloc->udb->base_size)
 			return 1;
 	} else {
-		/* grown 12.5%, shrink 25% if possible */
+		/* grown 12.5%, shrink 25% if possible, at least one mb */
+		/* between 1mb and 4mb size, it shrinks by 1mb if possible */
 		uint64_t space = alloc->udb->base_size - alloc->disk->nextgrow;
-		if(space*4 >= alloc->udb->base_size)
+		if(space >= 1024*1024 && (space*4 >= alloc->udb->base_size
+			|| alloc->udb->base_size < 4*1024*1024))
 			return 1;
 	}
 	return 0;
