@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include "udbradtree.h"
 #include "radtree.h"
-#include "util.h"
 #define RADARRAY(ptr) ((struct udb_radarray_d*)UDB_PTR(ptr))
 
 /** see if radarray can be reduced (by a factor of two) */
@@ -466,7 +465,6 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 {
 	uint8_t* addstr = k+pos;
 	udb_radstrlen_t addlen = len-pos;
-	log_msg(LOG_INFO, "radsel_split");
 	if(udb_bstr_is_prefix(addstr, addlen, lookup_string(n, idx),
 		lookup_len(n, idx))) {
 		udb_radstrlen_t split_len = 0;
@@ -563,21 +561,17 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 			addstr, addlen);
 		assert(common_len < lookup_len(n, idx));
 		assert(common_len < addlen);
-		log_msg(LOG_INFO, "splitnode");
 		udb_ptr_new(&rnode, udb, &lookup(n)->array[idx].node);
 
 		/* create the new node for choice */
-		log_msg(LOG_INFO, "splitnode B");
 		if(!udb_ptr_alloc_space(&com, udb, udb_chunk_type_radnode,
 			sizeof(struct udb_radnode_d))) {
 			udb_ptr_unlink(&rnode, udb);
 			return 0; /* out of space */
 		}
-		log_msg(LOG_INFO, "splitnode C");
 		memset(UDB_PTR(&com), 0, sizeof(struct udb_radnode_d));
 		/* make stringspace for the two substring choices */
 		/* this allocates the com->lookup array */
-		log_msg(LOG_INFO, "splitnode D");
 		if(!udb_radnode_array_space_strremain(udb, &com,
 			lookup_string(n, idx), lookup_len(n, idx), common_len)
 		   || !udb_radnode_array_space_strremain(udb, &com,
@@ -586,7 +580,6 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 			udb_radnode_delete(udb, &com);
 			return 0;
 		}
-		log_msg(LOG_INFO, "splitnode E");
 		/* create stringspace for the shared prefix */
 		if(common_len > 0) {
 			if(!udb_radnode_str_space(udb, n, common_len-1)) {
@@ -595,11 +588,9 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 				return 0;
 			}
 		}
-		log_msg(LOG_INFO, "splitnode F");
 		/* allocs succeeded, proceed to link it all up */
 		udb_rptr_set_rptr(&RADNODE(&com)->parent, udb,
 			&RADNODE(&rnode)->parent);
-		log_msg(LOG_INFO, "splitnode G");
 		RADNODE(&com)->pidx = RADNODE(&rnode)->pidx;
 		udb_rptr_set_ptr(&RADNODE(&rnode)->parent, udb, &com);
 		RADNODE(&rnode)->pidx = lookup_string(n, idx)[common_len] -
