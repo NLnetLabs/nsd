@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include "udbradtree.h"
 #include "radtree.h"
+#include "util.h"
 #define RADARRAY(ptr) ((struct udb_radarray_d*)UDB_PTR(ptr))
 
 /** see if radarray can be reduced (by a factor of two) */
