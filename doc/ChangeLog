@@ -1,3 +1,6 @@
+7 March 2013: Wouter
+	- notify information is logged at correct verbosity level, 1.
+
 5 March 2013: Matthijs
 	- Add hash to rrl bucket
 
