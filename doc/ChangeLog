@@ -1,3 +1,6 @@
+8 March 2013: Wouter
+	- nsd-mem tool initial commit.
+
 7 March 2013: Wouter
 	- notify information is logged at correct verbosity level, 1.
 

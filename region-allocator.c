@@ -443,6 +443,11 @@ size_t region_get_mem(region_type* region)
 	return region->total_allocated;
 }
 
+size_t region_get_mem_unused(region_type* region)
+{
+	return region->unused_space;
+}
+
 /* debug routine, includes here to keep base region-allocator independent */
 #undef ALIGN_UP
 #include "util.h"
