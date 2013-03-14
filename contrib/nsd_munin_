@@ -369,35 +369,21 @@ hits)
 	;;
 memory)
 	# get the total memory for NSD
-		pidf=`$chkconf -o pidfile $conf 2>&1`
-		pid=`cat $pidf 2>&1`
-		# --ppid is linux ps parent pid.
-		vszval=`ps --ppid "$pid" -o vsz= 2>&1`
-		rssval=`ps --ppid "$pid" -o rss= 2>&1`
-		if test "`expr $rssval + 1 - 1 2>&1`" -eq "$rssval" 2>&1; then
-			rssval=`expr $rssval \* 1024` 
-		else
-			# on FreeBSD, OpenBSD, NetBSD ps -j has user,PID,PPID
-			zepid=`ps -j 2>&1 | awk '{ if($3=='$pid') print $2; }'`
-			rssval=`ps -p $zepid -o rss= 2>&1`
-			if test "`expr $rssval + 1 - 1 2>&1`" -eq "$rssval" 2>&1; then
-				rssval=`expr $rssval \* 1024` 
-			else
-				rssval=0
-			fi
-		fi
-		if test "`expr $vszval + 1 - 1 2>&1`" -eq "$vszval" 2>&1; then
-			vszval=`expr $vszval \* 1024` 
-		else
-			# on FreeBSD, OpenBSD, NetBSD ps -j has user,PID,PPID
-			zepid=`ps -j 2>&1 | awk '{ if($3=='$pid') print $2; }'`
-			vszval=`ps -p $zepid -o vsz= 2>&1`
-			if test "`expr $vszval + 1 - 1 2>&1`" -eq "$vszval" 2>&1; then
-				vszval=`expr $vszval \* 1024` 
-			else
-				vszval=0
-			fi
-		fi
+	serverpid=`$ctrl -c $conf serverpid 2>&1`
+	# small race condition, if reload happens between previous and next
+	# lines, if so, detect by checking if we have a number as output.
+	rssval=`ps -p $serverpid -o rss= 2>&1`
+	vszval=`ps -p $serverpid -o vsz= 2>&1`
+	if test "`expr $rssval + 1 - 1 2>&1`" -eq "$rssval" >/dev/null 2>&1; then
+		rssval=`expr $rssval \* 1024` 
+	else
+		rssval=0
+	fi
+	if test "`expr $vszval + 1 - 1 2>&1`" -eq "$vszval" >/dev/null 2>&1; then
+		vszval=`expr $vszval \* 1024` 
+	else
+		vszval=0
+	fi
 	echo "size_vsz" $vszval
 	echo "size_rss" $rssval
 	for x in size.db.mem size.xfrd.mem size.config.mem \

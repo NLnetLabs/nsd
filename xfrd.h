@@ -66,6 +66,7 @@ struct xfrd_state {
 	/* last reload must have caught all zone updates before this time */
 	time_t reload_cmd_last_sent;
 	uint8_t can_send_reload;
+	pid_t reload_pid;
 
 	/* communication channel with server_main */
 	struct event ipc_handler;

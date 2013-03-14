@@ -89,6 +89,7 @@ usage()
 	printf("  transfer [<zone>]		try to update slave zones to newer serial\n");
 	printf("  force_transfer [<zone>]	update slave zones with AXFR, no serial check\n");
 	printf("  zonestatus [<zone>]		print state, serial, activity\n");
+	printf("  serverpid			get pid of server process\n");
 	printf("  verbosity <number>		change logging detail\n");
 	exit(1);
 }

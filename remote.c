@@ -1485,6 +1485,13 @@ do_repattern(SSL* ssl, xfrd_state_t* xfrd)
 	region_destroy(region);
 }
 
+/** do the serverpid command: printout pid of server process */
+static void
+do_serverpid(SSL* ssl, xfrd_state_t* xfrd)
+{
+	(void)ssl_printf(ssl, "%u\n", (unsigned)xfrd->reload_pid);
+}
+
 /** check for name with end-of-string, space or tab after it */
 static int
 cmdcmp(char* p, const char* cmd, size_t len)
@@ -1530,6 +1537,8 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 		do_repattern(ssl, rc->xfrd);
 	} else if(cmdcmp(p, "reconfig", 8)) {
 		do_repattern(ssl, rc->xfrd);
+	} else if(cmdcmp(p, "serverpid", 9)) {
+		do_serverpid(ssl, rc->xfrd);
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}

@@ -511,6 +511,12 @@ xfrd_receive_soa(int socket, int shortsoa)
 		log_msg(LOG_ERR, "did not get start signal from main");
 		exit(1);
 	}
+#ifdef BIND8_STATS
+	if(block_read(NULL, socket, &xfrd->reload_pid, sizeof(pid_t), -1)
+		!= sizeof(pid_t)) {
+		log_msg(LOG_ERR, "xfrd cannot get reload_pid");
+	}
+#endif /* BIND8_STATS */
 
 	/* process tasklist (SOAINFO data) */
 	udb_ptr_unlink(xfrd->last_task, xtask);

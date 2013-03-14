@@ -122,6 +122,12 @@ Print state of the zone, the serial numbers and since when they have
 been acquired.  Also prints the notify action (to which server), and
 zone transfer (and from which master) if there is activity right now.
 .TP
+.B serverpid
+Prints the PID of the server process.  This is used for statistics (and
+only works when NSD is compiled with statistics enabled).  This pid is
+not for sending unix signals, use the pid from nsd.pid for that, that pid
+is also stable.
+.TP
 .B verbosity <number>
 Change logging verbosity.
 .SH "EXIT CODE"

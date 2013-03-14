@@ -770,6 +770,9 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 	 *   (xfrd will wait for current running reload to finish if any).
 	 */
 	sig_atomic_t cmd = 0;
+#ifdef BIND8_STATS
+	pid_t mypid;
+#endif
 	int xfrd_sock = nsd->xfrd_listener->fd;
 	struct udb_base* taskudb = nsd->task[nsd->mytask];
 	udb_ptr t;
@@ -794,6 +797,13 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
+#ifdef BIND8_STATS
+	mypid = getpid();
+	if(!write_socket(nsd->xfrd_listener->fd, &mypid,  sizeof(mypid))) {
+		log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
+			strerror(errno));
+	}
+#endif
 
 	if(!shortsoa) {
 		/* process the xfrd task works (expiry data) */
@@ -967,6 +977,9 @@ static void
 server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int cmdsocket)
 {
+#ifdef BIND8_STATS
+	pid_t mypid;
+#endif
 	sig_atomic_t cmd = NSD_QUIT_SYNC;
 	int ret;
 	udb_ptr last_task;
@@ -1048,6 +1061,13 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "problems sending reload_done xfrd: %s",
 			strerror(errno));
 	}
+#ifdef BIND8_STATS
+	mypid = getpid();
+	if(!write_socket(nsd->xfrd_listener->fd, &mypid,  sizeof(mypid))) {
+		log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
+			strerror(errno));
+	}
+#endif
 
 	/* try to reopen file */
 	if (nsd->file_rotation_ok)

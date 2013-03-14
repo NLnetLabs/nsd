@@ -695,6 +695,12 @@ xfrd_handle_ipc_read(struct event* handler, xfrd_state_t* xfrd)
 	case NSD_RELOAD_DONE:
 		/* reload has finished */
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv RELOAD_DONE"));
+#ifdef BIND8_STATS
+		if(block_read(NULL, handler->ev_fd, &xfrd->reload_pid,
+			sizeof(pid_t), -1) != sizeof(pid_t)) {
+			log_msg(LOG_ERR, "xfrd cannot get reload_pid");
+		}
+#endif /* BIND8_STATS */
 		/* read the not-mytask for the results and soainfo */
 		xfrd_process_task_result(xfrd,
 			xfrd->nsd->task[1-xfrd->nsd->mytask]);
