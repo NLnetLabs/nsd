@@ -151,12 +151,11 @@ static void
 pretty_mem(size_t x, const char* s)
 {
 	char buf[13];
-	if(x >= 1000000000000) {
+	memset(buf, 0, sizeof(buf));
+	if(snprintf(buf, sizeof(buf), "%12u", (unsigned)x) > 12) {
 		printf("%12u %s\n", (unsigned)x, s);
 		return;
 	}
-	memset(buf, 0, sizeof(buf));
-	snprintf(buf, sizeof(buf), "%12u", (unsigned)x);
 	printf("%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c %s\n",
 		buf[0], buf[1], buf[2], (buf[2]==' '?' ':'.'),
 		buf[3], buf[4], buf[5], (buf[5]==' '?' ':'.'),
