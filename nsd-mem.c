@@ -96,6 +96,10 @@ struct tot_mem {
 	size_t opt_unused;
 	/* dname compression table */
 	size_t compresstable;
+#ifdef RATELIMIT
+	/* size of rrl tables */
+	size_t rrl;
+#endif
 
 	/* total ram usage */
 	size_t ram;
@@ -146,7 +150,18 @@ account_zone(struct namedb* db, zone_type* zone, struct zone_mem* zmem)
 static void
 pretty_mem(size_t x, const char* s)
 {
-	printf("%u	%s\n", (unsigned)x, s);
+	char buf[13];
+	if(x >= 1000000000000) {
+		printf("%12u %s\n", (unsigned)x, s);
+		return;
+	}
+	memset(buf, 0, sizeof(buf));
+	snprintf(buf, sizeof(buf), "%12u", (unsigned)x);
+	printf("%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c %s\n",
+		buf[0], buf[1], buf[2], (buf[2]==' '?' ':'.'),
+		buf[3], buf[4], buf[5], (buf[5]==' '?' ':'.'),
+		buf[6], buf[7], buf[8], (buf[8]==' '?' ':'.'),
+		buf[9], buf[10], buf[11], s);
 }
 
 static void
@@ -169,8 +184,17 @@ account_total(nsd_options_t* opt, struct tot_mem* t)
 		(t->domaincount + 1 + EXTRA_DOMAIN_NUMBERS);
 	t->compresstable *= opt->server_count;
 
+#ifdef RATELIMIT
+#define SIZE_RRL_BUCKET (8 + 4 + 4 + 4 + 4 + 2)
+	t->rrl = opt->rrl_size * SIZE_RRL_BUCKET;
+	t->rrl *= opt->server_count;
+#endif
+
 	t->ram = t->data + t->data_unused + t->tree + t->n3tree +
 		t->opt_data + t->opt_unused + t->compresstable;
+#ifdef RATELIMIT
+	t->ram += t->rrl;
+#endif
 	t->disk = t->udb_data + t->udb_overhead;
 }
 
@@ -185,6 +209,9 @@ print_tot_mem(struct tot_mem* t)
 	pretty_mem(t->opt_data, "options");
 	pretty_mem(t->opt_unused, "options unused space (due to alignment)");
 	pretty_mem(t->compresstable, "name table (depends on servercount)");
+#ifdef RATELIMIT
+	pretty_mem(t->rrl, "RRL table (depends on servercount)");
+#endif
 	pretty_mem(t->udb_data, "data in nsd.db");
 	pretty_mem(t->udb_overhead, "overhead in nsd.db");
 	printf("\nsummary\n");

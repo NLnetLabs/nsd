@@ -1,3 +1,6 @@
+18 March 2013: Wouter
+	- update nsd-mem with pretty printout and RRL count.
+
 14 March 2013: Wouter
 	- Fix memory statistics in nsd_munin_.
 
