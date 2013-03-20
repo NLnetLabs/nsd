@@ -664,9 +664,12 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 		xfrd_set_refresh_now(zone);
 		return;
 	}
-	if(zone->soa_nsd_acquired && soa->serial == zone->soa_nsd.serial)
+	if(zone->soa_nsd_acquired && soa->serial == zone->soa_nsd.serial) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s has already been updated "
+			"to serial %u (at time %u)", zone->apex_str,
+			ntohl(zone->soa_nsd.serial), (unsigned) zone->soa_nsd_acquired));
 		return;
-
+	}
 	if(zone->soa_disk_acquired && soa->serial == zone->soa_disk.serial)
 	{
 		/* soa in disk has been loaded in memory */
@@ -1650,9 +1653,15 @@ xfrd_check_failed_updates()
 				   soa time is before the time of the reload cmd. */
 				xfrd_soa_t dumped_soa = zone->soa_disk;
 				log_msg(LOG_ERR, "xfrd: zone %s: soa serial %u "
-						 		 "update failed, restarting "
-						 		 "transfer (notified zone)",
-					zone->apex_str, ntohl(zone->soa_disk.serial));
+					"update failed (acquired: %u), restarting "
+					"transfer (notified zone)",
+					zone->apex_str,	ntohl(zone->soa_disk.serial),
+					(unsigned) zone->soa_disk_acquired);
+				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: nsd has "
+					"soa serial %u (acquired: %u, reload cmd sent: "
+					"%u)", zone->apex_str, ntohl(zone->soa_nsd.serial),
+					(unsigned) zone->soa_nsd_acquired,
+					(unsigned) xfrd->reload_cmd_last_sent));
 				/* revert the soa; it has not been acquired properly */
 				zone->soa_disk_acquired = zone->soa_nsd_acquired;
 				zone->soa_disk = zone->soa_nsd;
@@ -1666,8 +1675,8 @@ xfrd_check_failed_updates()
 				if(xfrd->need_to_send_reload == 0 &&
 					xfrd->reload_handler.timeout == NULL) {
 					log_msg(LOG_ERR, "xfrd: zone %s: needs "
-									 "to be loaded. reload lost? "
-									 "try again", zone->apex_str);
+						"to be loaded. reload lost? "
+						"try again", zone->apex_str);
 					xfrd_set_reload_timeout();
 				}
 			}
