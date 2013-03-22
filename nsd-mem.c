@@ -61,8 +61,6 @@ struct zone_mem {
 	size_t data_unused;
 	/* radix tree space used */
 	size_t tree;
-	/* nsec3 radix trees for nsec3 zones */
-	size_t n3tree;
 	/* udb data allocated */
 	size_t udb_data;
 	/* udb overhead (chunk2**x - data) */
@@ -80,8 +78,6 @@ struct tot_mem {
 	size_t data_unused;
 	/* radix tree space used */
 	size_t tree;
-	/* nsec3 radix trees for nsec3 zones */
-	size_t n3tree;
 	/* udb data allocated */
 	size_t udb_data;
 	/* udb overhead (chunk2**x - data) */
@@ -134,13 +130,11 @@ tree_size(struct radtree* t)
 }
 
 static void
-account_zone(struct namedb* db, zone_type* zone, struct zone_mem* zmem)
+account_zone(struct namedb* db, struct zone_mem* zmem)
 {
 	zmem->data = region_get_mem(db->region);
 	zmem->data_unused = region_get_mem_unused(db->region);
 	zmem->tree = tree_size(db->domains->nametree);
-	zmem->n3tree = tree_size(zone->nsec3tree) + tree_size(zone->hashtree)
-		+ tree_size(zone->wchashtree) + tree_size(zone->dshashtree);
 	zmem->udb_data = (size_t)db->udb->alloc->disk->stat_data;
 	zmem->udb_overhead = (size_t)(db->udb->alloc->disk->stat_alloc -
 		db->udb->alloc->disk->stat_data);
@@ -169,7 +163,6 @@ print_zone_mem(struct zone_mem* z)
 	pretty_mem(z->data, "zone data");
 	pretty_mem(z->data_unused, "zone unused space (due to alignment)");
 	pretty_mem(z->tree, "zone tree");
-	pretty_mem(z->n3tree, "nsec3 tree");
 	pretty_mem(z->udb_data, "data in nsd.db");
 	pretty_mem(z->udb_overhead, "overhead in nsd.db");
 }
@@ -189,7 +182,7 @@ account_total(nsd_options_t* opt, struct tot_mem* t)
 	t->rrl *= opt->server_count;
 #endif
 
-	t->ram = t->data + t->data_unused + t->tree + t->n3tree +
+	t->ram = t->data + t->data_unused + t->tree + 
 		t->opt_data + t->opt_unused + t->compresstable;
 #ifdef RATELIMIT
 	t->ram += t->rrl;
@@ -204,7 +197,6 @@ print_tot_mem(struct tot_mem* t)
 	pretty_mem(t->data, "data");
 	pretty_mem(t->data_unused, "unused space (due to alignment)");
 	pretty_mem(t->tree, "tree");
-	pretty_mem(t->n3tree, "nsec3 tree");
 	pretty_mem(t->opt_data, "options");
 	pretty_mem(t->opt_unused, "options unused space (due to alignment)");
 	pretty_mem(t->compresstable, "name table (depends on servercount)");
@@ -225,7 +217,6 @@ add_mem(struct tot_mem* t, struct zone_mem* z)
 	t->data += z->data;
 	t->data_unused += z->data_unused;
 	t->tree += z->tree;
-	t->n3tree += z->n3tree;
 	t->udb_data += z->udb_data;
 	t->udb_overhead += z->udb_overhead;
 	t->domaincount += z->domaincount;
@@ -256,7 +247,7 @@ check_zone_mem(const char* tf, const char* df, zone_options_t* zo,
 	namedb_read_zonefile(db, zone, taskudb, &last_task);
 
 	/* account the memory for this zone */
-	account_zone(db, zone, &zmem);
+	account_zone(db, &zmem);
 
 	/* pretty print the memory for this zone */
 	print_zone_mem(&zmem);

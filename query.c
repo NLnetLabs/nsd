@@ -1050,11 +1050,14 @@ answer_authoritative(struct nsd   *nsd,
 		match->rrsets = wildcard_child->rrsets;
 		match->is_existing = wildcard_child->is_existing;
 #ifdef NSEC3
+		match->nsec3 = wildcard_child->nsec3;
+		/* copy over these entries:
 		match->nsec3_is_exact = wildcard_child->nsec3_is_exact;
 		match->nsec3_cover = wildcard_child->nsec3_cover;
 		match->nsec3_wcard_child_cover = wildcard_child->nsec3_wcard_child_cover;
 		match->nsec3_ds_parent_is_exact = wildcard_child->nsec3_ds_parent_is_exact;
 		match->nsec3_ds_parent_cover = wildcard_child->nsec3_ds_parent_cover;
+		*/
 
 		if (q->edns.dnssec_ok && q->zone->nsec3_param) {
 			/* Only add nsec3 wildcard data when do bit is set */

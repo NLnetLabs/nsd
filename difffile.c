@@ -332,7 +332,8 @@ nsec3_delete_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 	if(!zone->nsec3_param)
 		return;
 	/* see if the domain was an NSEC3-domain in the chain, but no longer */
-	if(rr->type == TYPE_NSEC3 && rr->owner->nsec3_node &&
+	if(rr->type == TYPE_NSEC3 && rr->owner->nsec3 &&
+		rr->owner->nsec3->nsec3_node.key &&
 		nsec3_rr_uses_params(rr, zone) &&
 		nsec3_in_chain_count(rr->owner, zone) <= 1) {
 		domain_type* prev = nsec3_chain_find_prev(zone, rr->owner);
@@ -343,8 +344,8 @@ nsec3_delete_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 		if(rr->owner == zone->nsec3_last)
 			zone->nsec3_last = prev;
 		/* unlink from the nsec3tree */
-		zone_del_domain_in_hash_tree(rr->owner->nsec3_node);
-		rr->owner->nsec3_node = NULL;
+		zone_del_domain_in_hash_tree(zone->nsec3tree,
+			&rr->owner->nsec3->nsec3_node);
 		/* add previous NSEC3 to the prehash list */
 		if(prev && prev != rr->owner)
 			prehash_add(db->domains, prev);
@@ -371,26 +372,28 @@ nsec3_rrsets_changed_remove_prehash(domain_type* domain, zone_type* zone)
 	/* deletion of rrset already done, we can check if conditions apply */
 	/* see if the domain is no longer precompiled */
 	/* it has a hash_node, but no longer fulfills conditions */
-	if(nsec3_domain_part_of_zone(domain, zone) && domain->hash_node &&
+	if(nsec3_domain_part_of_zone(domain, zone) && domain->nsec3 &&
+		domain->nsec3->hash_node.key &&
 		!nsec3_condition_hash(domain, zone)) {
 		/* remove precompile */
-		domain->nsec3_cover = NULL;
-		domain->nsec3_wcard_child_cover = NULL;
-		domain->nsec3_is_exact = 0;
+		domain->nsec3->nsec3_cover = NULL;
+		domain->nsec3->nsec3_wcard_child_cover = NULL;
+		domain->nsec3->nsec3_is_exact = 0;
 		/* remove it from the hash tree */
-		zone_del_domain_in_hash_tree(domain->hash_node);
-		domain->hash_node = NULL;
-		zone_del_domain_in_hash_tree(domain->wchash_node);
-		domain->wchash_node = NULL;
+		zone_del_domain_in_hash_tree(zone->hashtree,
+			&domain->nsec3->hash_node);
+		zone_del_domain_in_hash_tree(zone->wchashtree,
+			&domain->nsec3->wchash_node);
 	}
-	if(domain != zone->apex && domain->dshash_node &&
+	if(domain != zone->apex && domain->nsec3 &&
+		domain->nsec3->dshash_node.key &&
 		!nsec3_condition_dshash(domain, zone)) {
 		/* remove precompile */
-		domain->nsec3_ds_parent_cover = NULL;
-		domain->nsec3_ds_parent_is_exact = 0;
+		domain->nsec3->nsec3_ds_parent_cover = NULL;
+		domain->nsec3->nsec3_ds_parent_is_exact = 0;
 		/* remove it from the hash tree */
-		zone_del_domain_in_hash_tree(domain->dshash_node);
-		domain->dshash_node = NULL;
+		zone_del_domain_in_hash_tree(zone->dshashtree,
+			&domain->nsec3->dshash_node);
 	}
 }
 
@@ -401,10 +404,12 @@ nsec3_rrsets_changed_add_prehash(namedb_type* db, domain_type* domain,
 {
 	if(!zone->nsec3_param)
 		return;
-	if(!domain->hash_node && nsec3_condition_hash(domain, zone)) {
+	if((!domain->nsec3 || !domain->nsec3->hash_node.key)
+		&& nsec3_condition_hash(domain, zone)) {
 		nsec3_precompile_domain(db, domain, zone, udbz);
 	}
-	if(!domain->dshash_node && nsec3_condition_dshash(domain, zone)) {
+	if((!domain->nsec3 || !domain->nsec3->dshash_node.key)
+		&& nsec3_condition_dshash(domain, zone)) {
 		nsec3_precompile_domain_ds(db, domain, zone, udbz);
 	}
 }
@@ -440,9 +445,10 @@ nsec3_add_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 	/* the RR has been added in full, also to UDB (and thus NSEC3PARAM 
 	 * in the udb has been adjusted) */
 	if(zone->nsec3_param && rr->type == TYPE_NSEC3 &&
-		!rr->owner->nsec3_node && nsec3_rr_uses_params(rr, zone)) {
+		(!rr->owner->nsec3 || !rr->owner->nsec3->nsec3_node.key)
+		&& nsec3_rr_uses_params(rr, zone)) {
 		/* added NSEC3 into the chain */
-		nsec3_precompile_nsec3rr(rr->owner, zone);
+		nsec3_precompile_nsec3rr(db, rr->owner, zone);
 		/* the domain has become an NSEC3-domain, if it was precompiled
 		 * previously, remove that, neatly done in routine above */
 		nsec3_rrsets_changed_remove_prehash(rr->owner, zone);
@@ -453,16 +459,7 @@ nsec3_add_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 		nsec3_find_zone_param(db, zone, udbz);
 		if(!zone->nsec3_param)
 			return;
-		/* create NSEC3 tree in case this is the first time we
-		 * find out that this zone is NSEC3-signed */
-		if(!zone->nsec3tree)
-			zone->nsec3tree = hash_tree_create();
-		if(!zone->hashtree)
-			zone->hashtree = hash_tree_create();
-		if(!zone->wchashtree)
-			zone->wchashtree = hash_tree_create();
-		if(!zone->dshashtree)
-			zone->dshashtree = hash_tree_create();
+		nsec3_zone_trees_create(db->region, zone);
 		nsec3_precompile_newparam(db, zone, udbz);
 	}
 }
@@ -496,7 +493,7 @@ nsec3_add_rrset_trigger(namedb_type* db, domain_type* domain, zone_type* zone,
 
 /* fixup usage lower for domain names in the rdata */
 static void
-rr_lower_usage(domain_table_type* table, rr_type* rr)
+rr_lower_usage(namedb_type* db, rr_type* rr)
 {
 	unsigned i;
 	for(i=0; i<rr->rdata_count; i++) {
@@ -504,18 +501,18 @@ rr_lower_usage(domain_table_type* table, rr_type* rr)
 			assert(rdata_atom_domain(rr->rdatas[i])->usage > 0);
 			rdata_atom_domain(rr->rdatas[i])->usage --;
 			if(rdata_atom_domain(rr->rdatas[i])->usage == 0)
-				domain_table_deldomain(table,
+				domain_table_deldomain(db,
 					rdata_atom_domain(rr->rdatas[i]));
 		}
 	}
 }
 
 static void
-rrset_lower_usage(domain_table_type* table, rrset_type* rrset)
+rrset_lower_usage(namedb_type* db, rrset_type* rrset)
 {
 	unsigned i;
 	for(i=0; i<rrset->rr_count; i++)
-		rr_lower_usage(table, &rrset->rrs[i]);
+		rr_lower_usage(db, &rrset->rrs[i]);
 }
 
 int
@@ -570,7 +567,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 #endif
 		/* lower usage (possibly deleting other domains, and thus
 		 * invalidating the current RR's domain pointers) */
-		rr_lower_usage(db->domains, &rrset->rrs[rrnum]);
+		rr_lower_usage(db, &rrset->rrs[rrnum]);
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
 			rrset_delete(db, domain, rrset);
@@ -580,7 +577,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 				type);
 #endif
 			/* see if the domain can be deleted (and inspect parents) */
-			domain_table_deldomain(db->domains, domain);
+			domain_table_deldomain(db, domain);
 		} else {
 			/* swap out the bad RR and decrease the count */
 			rr_type* rrs_orig = rrset->rrs;
@@ -786,7 +783,7 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 		/* delete all rrsets of the zone */
 		while((rrset = domain_find_any_rrset(domain, zone))) {
 			/* lower usage can delete other domains */
-			rrset_lower_usage(db->domains, rrset);
+			rrset_lower_usage(db, rrset);
 			/* rrset del does not delete our domain(yet) */
 			rrset_delete(db, domain, rrset);
 		}
@@ -794,7 +791,7 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 		 * or after the domain so store next ptr */
 		next = domain_next(domain);
 		/* see if the domain can be deleted (and inspect parents) */
-		domain_table_deldomain(db->domains, domain);
+		domain_table_deldomain(db, domain);
 		domain = next;
 	}
 
@@ -984,6 +981,9 @@ apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
 
 		if(*rr_count == 1 && type != TYPE_SOA) {
 			/* second RR: if not SOA: this is an AXFR; delete all zone contents */
+#ifdef NSEC3
+			nsec3_hash_tree_clear(zone_db);
+#endif
 			delete_zone_rrs(db, zone_db);
 			udb_zone_clear(db->udb, udbz);
 #ifdef NSEC3
@@ -1011,6 +1011,9 @@ apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
 			thisserial = buffer_read_u32(packet);
 			if(thisserial == serialno) {
 				/* AXFR */
+#ifdef NSEC3
+				nsec3_hash_tree_clear(zone_db);
+#endif
 				delete_zone_rrs(db, zone_db);
 				udb_zone_clear(db->udb, udbz);
 #ifdef NSEC3
@@ -1695,6 +1698,9 @@ task_process_del_zone(struct nsd* nsd, struct task_list_d* task)
 	if(!zone)
 		return;
 
+#ifdef NSEC3
+	nsec3_hash_tree_clear(zone);
+#endif
 	delete_zone_rrs(nsd->db, zone);
 	if(udb_zone_search(nsd->db->udb, &udbz, dname_name(task->zname),
 		task->zname->name_size)) {

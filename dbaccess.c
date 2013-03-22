@@ -170,22 +170,23 @@ read_rrset(udb_base* udb, namedb_type* db, zone_type* zone,
 static void
 read_nsec3_hashes(domain_type* domain, zone_type* zone, udb_ptr* d)
 {
+	if(!domain->nsec3) return;
 	if(domain_find_rrset(domain, zone, TYPE_NS) && domain != zone->apex) {
 		if(DOMAIN(d)->have_hash) {
-			memmove(domain->nsec3_ds_parent_hash,
+			memmove(domain->nsec3->nsec3_ds_parent_hash,
 				DOMAIN(d)->hash, NSEC3_HASH_LEN);
-			domain->have_nsec3_ds_parent_hash = 1;
+			domain->nsec3->have_nsec3_ds_parent_hash = 1;
 		}
 	} else {
 		if(DOMAIN(d)->have_hash) {
-			memmove(domain->nsec3_hash, DOMAIN(d)->hash,
+			memmove(domain->nsec3->nsec3_hash, DOMAIN(d)->hash,
 				NSEC3_HASH_LEN);
-			domain->have_nsec3_hash = 1;
+			domain->nsec3->have_nsec3_hash = 1;
 		}
 		if(DOMAIN(d)->have_wc_hash) {
-			memmove(domain->nsec3_wc_hash,
+			memmove(domain->nsec3->nsec3_wc_hash,
 				DOMAIN(d)->wc_hash, NSEC3_HASH_LEN);
-			domain->have_nsec3_wc_hash = 1;
+			domain->nsec3->have_nsec3_wc_hash = 1;
 		}
 	}
 }
@@ -273,7 +274,7 @@ namedb_zone_delete(namedb_type* db, zone_type* zone)
 		zone->apex->usage --;
 		if(zone->apex->usage == 0) {
 			/* delete the apex, possibly */
-			domain_table_deldomain(db->domains, zone->apex);
+			domain_table_deldomain(db, zone->apex);
 		}
 	}
 
@@ -285,10 +286,10 @@ namedb_zone_delete(namedb_type* db, zone_type* zone)
 			sizeof(rrset_type));
 	}
 #ifdef NSEC3
-	radix_tree_delete(zone->nsec3tree);
-	radix_tree_delete(zone->hashtree);
-	radix_tree_delete(zone->wchashtree);
-	radix_tree_delete(zone->dshashtree);
+	hash_tree_delete(db->region, zone->nsec3tree);
+	hash_tree_delete(db->region, zone->hashtree);
+	hash_tree_delete(db->region, zone->wchashtree);
+	hash_tree_delete(db->region, zone->dshashtree);
 #endif
 	region_recycle(db->region, zone, sizeof(zone_type));
 }
@@ -490,6 +491,9 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 
 	assert(parser);
 	/* wipe zone from memory */
+#ifdef NSEC3
+	nsec3_hash_tree_clear(zone);
+#endif
 	delete_zone_rrs(db, zone);
 #ifdef NSEC3
 	nsec3_clear_precompile(db, zone);
@@ -503,6 +507,9 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 			zone->opts->name, fname, errors);
 		/* wipe (partial) zone from memory */
 		zone->is_ok = 1;
+#ifdef NSEC3
+		nsec3_hash_tree_clear(zone);
+#endif
 		delete_zone_rrs(db, zone);
 #ifdef NSEC3
 		nsec3_clear_precompile(db, zone);

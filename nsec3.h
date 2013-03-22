@@ -100,13 +100,22 @@ void nsec3_precompile_domain(struct namedb* db, struct domain* domain,
 void nsec3_precompile_domain_ds(struct namedb* db, struct domain* domain,
 	struct zone* zone, struct udb_ptr* z);
 /* put nsec3 into nsec3tree and adjust zonelast */
-void nsec3_precompile_nsec3rr(struct domain* domain, struct zone* zone);
+void nsec3_precompile_nsec3rr(struct namedb* db, struct domain* domain,
+	struct zone* zone);
 /* precompile entire zone, assumes all is null at start */
 void nsec3_precompile_newparam(struct namedb* db, struct zone* zone,
 	struct udb_ptr* udbz);
 /* create b32.zone for a hash, allocated in the region */
 const struct dname* nsec3_b32_create(struct region* region, struct zone* zone,
 	unsigned char* hash);
+/* create trees for nsec3 updates and lookups in zone */
+void nsec3_zone_trees_create(struct region* region, struct zone* zone);
+/* clear trees for nsec3 in zone */
+void nsec3_hash_tree_clear(struct zone* zone);
+/* lookup zone that contains domain's nsec3 trees */
+struct zone* nsec3_tree_zone(struct namedb* db, struct domain* domain);
+/* lookup zone that contains domain's ds tree */
+struct zone* nsec3_tree_dszone(struct namedb* db, struct domain* domain);
 
 #endif /* NSEC3 */
 #endif /* NSEC3_H*/

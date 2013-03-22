@@ -15,6 +15,7 @@
 #include "dname.h"
 #include "dns.h"
 #include "radtree.h"
+#include "rbtree.h"
 struct zone_options;
 struct nsd_options;
 struct udb_base;
@@ -45,14 +46,8 @@ struct domain_table
 #endif /* NSEC3 */
 };
 
-struct domain
-{
-	struct radnode* rnode;
-	const dname_type* dname;
-	domain_type *parent;
-	domain_type *wildcard_child_closest_match;
-	rrset_type  *rrsets;
 #ifdef NSEC3
+struct nsec3_domain_data {
 	/* (if nsec3 chain complete) always the covering nsec3 record */
 	domain_type *nsec3_cover;
 	/* the nsec3 that covers the wildcard child of this domain. */
@@ -62,22 +57,14 @@ struct domain
 	/* NSEC3 domains to prehash, prev and next on the list or cleared */
 	domain_type *prehash_prev, *prehash_next;
 	/* entry in the nsec3tree (for NSEC3s in the chain in use) */
-	struct radnode *nsec3_node;
+	rbnode_t nsec3_node;
 	/* entry in the hashtree (for precompiled domains) */
-	struct radnode *hash_node;
+	rbnode_t hash_node;
 	/* entry in the wchashtree (the wildcard precompile) */
-	struct radnode *wchash_node;
+	rbnode_t wchash_node;
 	/* entry in the dshashtree (the parent ds precompile) */
-	struct radnode *dshash_node;
-#endif
-	/* double-linked list sorted by domain.number */
-	domain_type* numlist_prev, *numlist_next;
-	size_t     number; /* Unique domain name number.  */
-	size_t     usage; /* number of ptrs to this from RRs(in rdata) and
-			     from zone-apex pointers, also the root has one
-			     more to make sure it cannot be deleted. */
+	rbnode_t dshash_node;
 
-#ifdef NSEC3
 	/* nsec3 hash */
 	uint8_t nsec3_hash[NSEC3_HASH_LEN];
 	/* nsec3 hash of wildcard before this name */
@@ -92,7 +79,26 @@ struct domain
 	unsigned     nsec3_is_exact : 1;
 	/* same but on parent side */
 	unsigned     nsec3_ds_parent_is_exact : 1;
+};
+#endif /* NSEC3 */
+
+struct domain
+{
+	struct radnode* rnode;
+	const dname_type* dname;
+	domain_type *parent;
+	domain_type *wildcard_child_closest_match;
+	rrset_type  *rrsets;
+#ifdef NSEC3
+	struct nsec3_domain_data* nsec3;
 #endif
+	/* double-linked list sorted by domain.number */
+	domain_type* numlist_prev, *numlist_next;
+	size_t     number; /* Unique domain name number.  */
+	size_t     usage; /* number of ptrs to this from RRs(in rdata) and
+			     from zone-apex pointers, also the root has one
+			     more to make sure it cannot be deleted. */
+
 	/*
 	 * This domain name exists (see wildcard clarification draft).
 	 */
@@ -111,10 +117,10 @@ struct zone
 	rr_type	    *nsec3_param; /* NSEC3PARAM RR of chain in use or NULL */
 	domain_type *nsec3_last; /* last domain with nsec3, wraps */
 	/* in these trees, the root contains an elem ptr to the radtree* */
-	struct radtree *nsec3tree; /* tree with relevant NSEC3 domains */
-	struct radtree *hashtree; /* tree, hashed NSEC3precompiled domains */
-	struct radtree *wchashtree; /* tree, wildcard hashed domains */
-	struct radtree *dshashtree; /* tree, ds-parent-hash domains */
+	rbtree_t *nsec3tree; /* tree with relevant NSEC3 domains */
+	rbtree_t *hashtree; /* tree, hashed NSEC3precompiled domains */
+	rbtree_t *wchashtree; /* tree, wildcard hashed domains */
+	rbtree_t *dshashtree; /* tree, ds-parent-hash domains */
 #endif
 	struct zone_options *opts;
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
@@ -198,20 +204,13 @@ domain_type *domain_table_find(domain_table_type *table,
 domain_type *domain_table_insert(domain_table_type *table,
 				 const dname_type  *dname);
 
-/*
- * Delete a domain name from the domain table.  Removes dname_info node.
- * Only deletes if usage is 0, has no rrsets and no children.  Checks parents
- * for deletion as well.  Adjusts numberlist(domain.number), and 
- * wcard_child closest match.
- */
-void domain_table_deldomain(domain_table_type *table, domain_type* domain);
-
 /* put domain into nsec3 hash space tree */
-void zone_add_domain_in_hash_tree(struct radtree** tree, uint8_t* hash,
-        size_t hashlen, domain_type* domain, struct radnode** node);
-void zone_del_domain_in_hash_tree(struct radnode* node);
-struct radtree* hash_tree_create(void);
-void hash_tree_clear(struct radtree* tree);
+void zone_add_domain_in_hash_tree(region_type* region, rbtree_t** tree,
+	int (*cmpf)(const void*, const void*), domain_type* domain,
+	rbnode_t* node);
+void zone_del_domain_in_hash_tree(rbtree_t* tree, rbnode_t* node);
+void hash_tree_clear(rbtree_t* tree);
+void hash_tree_delete(region_type* region, rbtree_t* tree);
 void prehash_clear(domain_table_type* table);
 void prehash_add(domain_table_type* table, domain_type* domain);
 void prehash_del(domain_table_type* table, domain_type* domain);
@@ -318,6 +317,14 @@ rdata_atom_data(rdata_atom_type atom)
 
 /* Find the zone for the specified dname in DB. */
 zone_type *namedb_find_zone(namedb_type *db, const dname_type *dname);
+/*
+ * Delete a domain name from the domain table.  Removes dname_info node.
+ * Only deletes if usage is 0, has no rrsets and no children.  Checks parents
+ * for deletion as well.  Adjusts numberlist(domain.number), and 
+ * wcard_child closest match.
+ */
+void domain_table_deldomain(namedb_type *db, domain_type* domain);
+
 
 /** dbcreate.c */
 int udb_write_rr(struct udb_base* udb, struct udb_ptr* z, rr_type* rr);
@@ -349,6 +356,7 @@ void namedb_zone_delete(namedb_type* db, zone_type* zone);
 void namedb_write_zonefile(namedb_type* db, struct zone_options* zopt);
 void namedb_write_zonefiles(namedb_type* db, struct nsd_options* options);
 int create_dirs(const char* path);
+void allocate_domain_nsec3(domain_table_type *table, domain_type *result);
 
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)

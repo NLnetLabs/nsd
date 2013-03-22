@@ -18,7 +18,7 @@
 #include <string.h>
 
 #include "namedb.h"
-
+#include "nsec3.h"
 
 static domain_type *
 allocate_domain_info(domain_table_type *table,
@@ -40,20 +40,7 @@ allocate_domain_info(domain_table_type *table,
 	result->rrsets = NULL;
 	result->usage = 0;
 #ifdef NSEC3
-	result->nsec3_cover = NULL;
-	result->nsec3_wcard_child_cover = NULL;
-	result->nsec3_ds_parent_cover = NULL;
-	result->nsec3_is_exact = 0;
-	result->nsec3_ds_parent_is_exact = 0;
-	result->have_nsec3_hash = 0;
-	result->have_nsec3_wc_hash = 0;
-	result->have_nsec3_ds_parent_hash = 0;
-	result->prehash_prev = NULL;
-	result->prehash_next = NULL;
-	result->nsec3_node = NULL;
-	result->hash_node = NULL;
-	result->wchash_node = NULL;
-	result->dshash_node = NULL;
+	result->nsec3 = NULL;
 #endif
 	result->is_existing = 0;
 	result->is_apex = 0;
@@ -67,6 +54,31 @@ allocate_domain_info(domain_table_type *table,
 
 	return result;
 }
+
+#ifdef NSEC3
+void
+allocate_domain_nsec3(domain_table_type *table, domain_type *result)
+{
+	if(result->nsec3)
+		return;
+	result->nsec3 = (struct nsec3_domain_data*) region_alloc(table->region,
+		sizeof(struct nsec3_domain_data));
+	result->nsec3->nsec3_cover = NULL;
+	result->nsec3->nsec3_wcard_child_cover = NULL;
+	result->nsec3->nsec3_ds_parent_cover = NULL;
+	result->nsec3->nsec3_is_exact = 0;
+	result->nsec3->nsec3_ds_parent_is_exact = 0;
+	result->nsec3->have_nsec3_hash = 0;
+	result->nsec3->have_nsec3_wc_hash = 0;
+	result->nsec3->have_nsec3_ds_parent_hash = 0;
+	result->nsec3->prehash_prev = NULL;
+	result->nsec3->prehash_next = NULL;
+	result->nsec3->nsec3_node.key = NULL;
+	result->nsec3->hash_node.key = NULL;
+	result->nsec3->wchash_node.key = NULL;
+	result->nsec3->dshash_node.key = NULL;
+}
+#endif /* NSEC3 */
 
 /** make the domain last in the numlist, changes numbers of domains */
 static void
@@ -139,29 +151,21 @@ domain_can_be_deleted(domain_type* domain)
 /** see if domain is on the prehash list */
 int domain_is_prehash(domain_table_type* table, domain_type* domain)
 {
-	if(domain->prehash_prev || domain->prehash_next)
+	if(domain->nsec3
+		&& (domain->nsec3->prehash_prev || domain->nsec3->prehash_next))
 		return 1;
 	return (table->prehash_list == domain);
 }
 
-/** find root elem for a radnode */
-static void*
-radix_root_elem(struct radnode* node)
-{
-	while(node->parent)
-		node = node->parent;
-	return node->elem;
-}
-
 /** remove domain node from NSEC3 tree in hash space */
 void
-zone_del_domain_in_hash_tree(struct radnode* node)
+zone_del_domain_in_hash_tree(rbtree_t* tree, rbnode_t* node)
 {
-	struct radtree* tree;
-	if(!node) return;
-	tree = (struct radtree*)radix_root_elem(node);
-	assert(tree);
-	radix_delete(tree, node);
+	if(!node->key)
+		return;
+	rbtree_delete(tree, node->key);
+	/* note that domain is no longer in the tree */
+	node->key = NULL;
 }
 
 /** clear the prehash list */
@@ -169,9 +173,9 @@ void prehash_clear(domain_table_type* table)
 {
 	domain_type* d = table->prehash_list, *n;
 	while(d) {
-		n = d->prehash_next;
-		d->prehash_prev = NULL;
-		d->prehash_next = NULL;
+		n = d->nsec3->prehash_next;
+		d->nsec3->prehash_prev = NULL;
+		d->nsec3->prehash_next = NULL;
 		d = n;
 	}
 	table->prehash_list = NULL;
@@ -183,9 +187,10 @@ prehash_add(domain_table_type *table, domain_type* domain)
 {
 	if(domain_is_prehash(table, domain))
 		return;
-	domain->prehash_next = table->prehash_list;
+	allocate_domain_nsec3(table, domain);
+	domain->nsec3->prehash_next = table->prehash_list;
 	if(table->prehash_list)
-		table->prehash_list->prehash_prev = domain;
+		table->prehash_list->nsec3->prehash_prev = domain;
 	table->prehash_list = domain;
 }
 
@@ -193,36 +198,48 @@ prehash_add(domain_table_type *table, domain_type* domain)
 void
 prehash_del(domain_table_type *table, domain_type* domain)
 {
-	if(domain->prehash_next)
-		domain->prehash_next->prehash_prev = domain->prehash_prev;
-	if(domain->prehash_prev)
-		domain->prehash_prev->prehash_next = domain->prehash_next;
-	else	table->prehash_list = domain->prehash_next;
-	domain->prehash_next = NULL;
-	domain->prehash_prev = NULL;
+	if(domain->nsec3->prehash_next)
+		domain->nsec3->prehash_next->nsec3->prehash_prev =
+			domain->nsec3->prehash_prev;
+	if(domain->nsec3->prehash_prev)
+		domain->nsec3->prehash_prev->nsec3->prehash_next =
+			domain->nsec3->prehash_next;
+	else	table->prehash_list = domain->nsec3->prehash_next;
+	domain->nsec3->prehash_next = NULL;
+	domain->nsec3->prehash_prev = NULL;
 }
 #endif /* NSEC3 */
 
 /** perform domain name deletion */
 static void
-do_deldomain(domain_table_type *table, domain_type* domain)
+do_deldomain(namedb_type *db, domain_type* domain)
 {
 	assert(domain && domain->parent); /* exists and not root */
 	/* first adjust the number list so that domain is the last one */
-	numlist_make_last(table, domain);
+	numlist_make_last(db->domains, domain);
 	/* pop off the domain from the number list */
-	(void)numlist_pop_last(table);
+	(void)numlist_pop_last(db->domains);
 
 #ifdef NSEC3
 	/* if on prehash list, remove from prehash */
-	if(domain_is_prehash(table, domain))
-		prehash_del(table, domain);
+	if(domain_is_prehash(db->domains, domain))
+		prehash_del(db->domains, domain);
 
 	/* see if nsec3-nodes are used */
-	zone_del_domain_in_hash_tree(domain->nsec3_node);
-	zone_del_domain_in_hash_tree(domain->hash_node);
-	zone_del_domain_in_hash_tree(domain->wchash_node);
-	zone_del_domain_in_hash_tree(domain->dshash_node);
+	if(domain->nsec3) {
+		if(domain->nsec3->nsec3_node.key)
+			zone_del_domain_in_hash_tree(nsec3_tree_zone(db, domain)
+				->nsec3tree, &domain->nsec3->nsec3_node);
+		if(domain->nsec3->hash_node.key)
+			zone_del_domain_in_hash_tree(nsec3_tree_zone(db, domain)
+				->hashtree, &domain->nsec3->hash_node);
+		if(domain->nsec3->wchash_node.key)
+			zone_del_domain_in_hash_tree(nsec3_tree_zone(db, domain)
+				->wchashtree, &domain->nsec3->wchash_node);
+		if(domain->nsec3->dshash_node.key)
+			zone_del_domain_in_hash_tree(nsec3_tree_dszone(db, domain)
+				->dshashtree, &domain->nsec3->dshash_node);
+	}
 #endif /* NSEC3 */
 
 	/* see if this domain is someones wildcard-child-closest-match,
@@ -233,47 +250,51 @@ do_deldomain(domain_table_type *table, domain_type* domain)
 			domain_previous(domain);
 
 	/* actual removal */
-	radix_delete(table->nametree, domain->rnode);
-	region_recycle(table->region, (dname_type*)domain->dname,
+	radix_delete(db->domains->nametree, domain->rnode);
+	region_recycle(db->domains->region, (dname_type*)domain->dname,
 		dname_total_size(domain->dname));
-	region_recycle(table->region, domain, sizeof(domain_type));
+	region_recycle(db->domains->region, domain, sizeof(domain_type));
 }
 
-void domain_table_deldomain(domain_table_type *table, domain_type* domain)
+void domain_table_deldomain(namedb_type *db, domain_type* domain)
 {
 	while(domain_can_be_deleted(domain)) {
 		/* delete it */
-		do_deldomain(table, domain);
+		do_deldomain(db, domain);
 		/* test parent */
 		domain = domain->parent;
 	}
 }
 
 /** clear hash tree */
-void hash_tree_clear(struct radtree* tree)
+void hash_tree_clear(rbtree_t* tree)
 {
+	rbnode_t* n;
 	if(!tree) return;
-	radix_tree_clear(tree);
-	(void)radix_insert(tree, NULL, 0, tree);
+
+	/* note that elements are no longer in the tree */
+	for(n=rbtree_first(tree); n!=RBTREE_NULL; n=rbtree_next(n)) {
+		n->key = NULL;
+	}
+	tree->count = 0;
+	tree->root = RBTREE_NULL;
 }
 
-/** create a hash space tree with itself in the root elem */
-struct radtree*
-hash_tree_create(void)
+void hash_tree_delete(region_type* region, rbtree_t* tree)
 {
-	struct radtree* tree = radix_tree_create();
-	/* this ptr is used to find the tree for deletes */
-	(void)radix_insert(tree, NULL, 0, tree);
-	return tree;
+	region_recycle(region, tree, sizeof(rbtree_t));
 }
 
 /** add domain nsec3 node to hashedspace tree */
-void zone_add_domain_in_hash_tree(struct radtree** tree, uint8_t* hash,
-	size_t hashlen, domain_type* domain, struct radnode** node)
+void zone_add_domain_in_hash_tree(region_type* region, rbtree_t** tree,
+	int (*cmpf)(const void*, const void*),
+	domain_type* domain, rbnode_t* node)
 {
 	if(!*tree)
-		*tree = hash_tree_create();
-	*node = radix_insert(*tree, hash, hashlen, domain);
+		*tree = rbtree_create(region, cmpf);
+	memset(node, 0, sizeof(rbnode_t));
+	node->key = domain;
+	rbtree_insert(*tree, node);
 }
 
 /** delete radix tree as a region cleanup */
@@ -305,20 +326,7 @@ domain_table_create(region_type *region)
 	root->numlist_prev = NULL;
 	root->numlist_next = NULL;
 #ifdef NSEC3
-	root->nsec3_is_exact = 0;
-	root->nsec3_ds_parent_is_exact = 0;
-	root->nsec3_cover = NULL;
-	root->nsec3_wcard_child_cover = NULL;
-	root->nsec3_ds_parent_cover = NULL;
-	root->have_nsec3_hash = 0;
-	root->have_nsec3_wc_hash = 0;
-	root->have_nsec3_ds_parent_hash = 0;
-	root->prehash_prev = NULL;
-	root->prehash_next = NULL;
-	root->nsec3_node = NULL;
-	root->hash_node = NULL;
-	root->wchash_node = NULL;
-	root->dshash_node = NULL;
+	root->nsec3 = NULL;
 #endif
 
 	result = (domain_table_type *) region_alloc(region,

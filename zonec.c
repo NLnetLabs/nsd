@@ -1439,7 +1439,7 @@ zonec_read(const char *name, const char *zonefile, zone_type* zone)
 	yyparse();
 
 	/* remove origin if it was unused */
-	domain_table_deldomain(parser->db->domains, parser->origin);
+	domain_table_deldomain(parser->db, parser->origin);
 
 	/* check if zone file contained a correct SOA record */
 	if (!parser->current_zone) {
@@ -1540,7 +1540,7 @@ int zonec_parse_string(region_type* region, domain_table_type* domains,
 		*parsed = NULL;
 	else	*parsed = parser->prev_dname;
 	/* remove origin if it was not used during the parse */
-	domain_table_deldomain(parser->db->domains, parser->origin);
+	domain_table_deldomain(parser->db, parser->origin);
 	zonec_desetup_string_parser();
 	return errors;
 }

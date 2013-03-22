@@ -1,3 +1,6 @@
+22 March 2013: Wouter
+	- use less memory for non-nsec3, nsec3tree.
+
 18 March 2013: Wouter
 	- update nsd-mem with pretty printout and RRL count.
 
