@@ -172,15 +172,15 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 				if (verbosity > 0) {
 					char address[128];
 					if (addr2ip(q->addr, address, sizeof(address))) {
-						DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+						DEBUG(DEBUG_XFRD,3, (LOG_INFO,
 							"addr2ip failed"));
 						strlcpy(address, "[unknown]", sizeof(address));
 					}
 					VERBOSITY(1, (LOG_INFO, "axfr for zone %s from client %s refused, %s",
 						dname_to_string(q->qname, NULL), address, acl?"blocked":"no acl matches"));
-				}
-				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr refused, %s",
-					acl?"blocked":"no acl matches"));
+				} else	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "axfr refused, %s",
+						acl?"blocked":"no acl matches"));
+
 				if (!zone_opt) {
 					RCODE_SET(q->packet, RCODE_NOTAUTH);
 				} else {
@@ -188,7 +188,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 				}
 				return QUERY_PROCESSED;
 			}
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr admitted acl %s %s",
+			DEBUG(DEBUG_XFRD,3, (LOG_INFO, "axfr admitted acl %s %s",
 				acl->ip_address_spec, acl->key_name?acl->key_name:"NOKEY"));
 			return query_axfr(nsd, q);
 		}

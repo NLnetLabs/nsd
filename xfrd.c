@@ -140,7 +140,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->tcp_set->tcp_timeout = nsd->tcp_timeout;
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd pre-startup"));
 	diff_snip_garbage(nsd->db, nsd->options);
 	xfrd_init_zones();
 	xfrd_free_namedb();
@@ -151,7 +151,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	netio_add_handler(xfrd->netio, &xfrd->reload_handler);
 	netio_add_handler(xfrd->netio, &xfrd->ipc_handler);
 
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd startup"));
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd startup"));
 	xfrd_main();
 }
 
@@ -182,7 +182,7 @@ xfrd_shutdown()
 	xfrd_zone_t* zone;
 	int i;
 
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown"));
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd shutdown"));
 	xfrd_write_state(xfrd);
 	close(xfrd->ipc_handler.fd);
 	/* close tcp sockets */
@@ -204,7 +204,7 @@ xfrd_shutdown()
 	close_notify_fds(xfrd->notify_zones);
 
 	/* shouldn't we clean up memory used by xfrd process */
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown complete"));
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd shutdown complete"));
 
 	exit(0);
 }
@@ -227,7 +227,7 @@ xfrd_init_zones()
 
 	RBTREE_FOR(zone_opt, zone_options_t*, xfrd->nsd->options->zone_options)
 	{
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Zone %s\n", zone_opt->name));
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO, "Zone %s\n", zone_opt->name));
 		dname = dname_parse(xfrd->region, zone_opt->name);
 		if(!dname) {
 			log_msg(LOG_ERR, "xfrd: Could not parse zone name %s.", zone_opt->name);
@@ -237,13 +237,13 @@ xfrd_init_zones()
 		dbzone = domain_find_zone(domain_table_find(xfrd->nsd->db->domains, dname));
 		if(dbzone && dname_compare(dname, domain_dname(dbzone->apex)) != 0)
 			dbzone = 0; /* we found a parent zone */
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: adding %s zone %s\n",
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: adding %s zone %s\n",
 			dbzone?"filled":"empty", zone_opt->name));
 
 		init_notify_send(xfrd->notify_zones, xfrd->netio,
 			xfrd->region, dname, zone_opt, dbzone);
 		if(!zone_is_slave(zone_opt)) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s, master zone has no outgoing xfr requests", zone_opt->name));
+			DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s, master zone has no outgoing xfr requests", zone_opt->name));
 			continue;
 		}
 
@@ -297,7 +297,7 @@ xfrd_init_zones()
 		xzone->node.key = dname;
 		rbtree_insert(xfrd->zones, (rbnode_t*)xzone);
 	}
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: started server %d secondary zones", (int)xfrd->zones->count));
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: started server %d secondary zones", (int)xfrd->zones->count));
 }
 
 void
@@ -386,18 +386,18 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 	if(zone->tcp_conn != -1) {
 		/* busy in tcp transaction */
 		if(xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && event_types & NETIO_EVENT_READ) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp read", zone->apex_str));
+			DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s event tcp read", zone->apex_str));
 			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_read(xfrd->tcp_set, zone);
 			return;
 		} else if(!xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && event_types & NETIO_EVENT_WRITE) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp write", zone->apex_str));
+			DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s event tcp write", zone->apex_str));
 			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_write(xfrd->tcp_set, zone);
 			return;
 		} else if(event_types & NETIO_EVENT_TIMEOUT) {
 			/* tcp connection timed out. Stop it. */
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp timeout", zone->apex_str));
+			DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s event tcp timeout", zone->apex_str));
 			xfrd_tcp_release(xfrd->tcp_set, zone);
 			/* continue to retry; as if a timeout happened */
 			event_types = NETIO_EVENT_TIMEOUT;
@@ -406,27 +406,27 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 
 	if(event_types & NETIO_EVENT_READ) {
 		/* busy in udp transaction */
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event udp read", zone->apex_str));
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s event udp read", zone->apex_str));
 		xfrd_set_refresh_now(zone);
 		xfrd_udp_read(zone);
 		return;
 	}
 
 	/* timeout */
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s timeout", zone->apex_str));
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s timeout", zone->apex_str));
 	if(handler->fd != -1) {
 		assert(zone->tcp_conn == -1);
 		xfrd_udp_release(zone);
 	}
 
 	if(zone->tcp_waiting) {
-		DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s skips retry, TCP connections full",
+		DEBUG(DEBUG_XFRD,3, (LOG_ERR, "xfrd: zone %s skips retry, TCP connections full",
 			zone->apex_str));
 		xfrd_unset_timer(zone);
 		return;
 	}
 	if(zone->udp_waiting) {
-		DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s skips retry, UDP connections full",
+		DEBUG(DEBUG_XFRD,3, (LOG_ERR, "xfrd: zone %s skips retry, UDP connections full",
 			zone->apex_str));
 		xfrd_unset_timer(zone);
 		return;
@@ -585,7 +585,7 @@ xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 			rr->type, rr->rdata_count);
 		return;
 	}
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: copy_soa rr, type %d rrs %u, ttl %u.",
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: copy_soa rr, type %d rrs %u, ttl %u.",
 			rr->type, rr->rdata_count, rr->ttl));
 	soa->type = htons(rr->type);
 	soa->klass = htons(rr->klass);
@@ -604,7 +604,7 @@ xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 	memcpy(&soa->retry, rdata_atom_data(rr->rdatas[4]), sizeof(uint32_t));
 	memcpy(&soa->expire, rdata_atom_data(rr->rdatas[5]), sizeof(uint32_t));
 	memcpy(&soa->minimum, rdata_atom_data(rr->rdatas[6]), sizeof(uint32_t));
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO,
 		"xfrd: copy_soa rr, serial %u refresh %u retry %u expire %u",
 		ntohl(soa->serial), ntohl(soa->refresh), ntohl(soa->retry),
 		ntohl(soa->expire)));
@@ -626,7 +626,7 @@ void
 xfrd_set_refresh_now(xfrd_zone_t* zone)
 {
 	xfrd_set_timer(zone, xfrd_time());
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s sets timeout right now, state %d",
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd zone %s sets timeout right now, state %d",
 		zone->apex_str, zone->state));
 }
 
@@ -801,7 +801,7 @@ xfrd_udp_release(xfrd_zone_t* zone)
 static void
 xfrd_udp_read(xfrd_zone_t* zone)
 {
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s read udp data", zone->apex_str));
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s read udp data", zone->apex_str));
 	if(!xfrd_udp_read_packet(xfrd->packet, zone->zone_handler.fd)) {
 		xfrd_udp_release(zone);
 		return;
@@ -915,7 +915,7 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 			continue;
 		}
 
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: bind() %s to %s socket",
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: bind() %s to %s socket",
 			ifc->ip_address_spec, tcp? "tcp":"udp"));
 		ret = 0;
 		frm_len = xfrd_acl_sockaddr_frm(ifc, &frm);
@@ -948,13 +948,13 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 
 		/* found one */
 		if(bind(sockd, (struct sockaddr*)&frm, frm_len) >= 0) {
-			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: bind() %s to %s "
+			DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: bind() %s to %s "
 						       "socket was successful",
 			ifc->ip_address_spec, tcp? "tcp":"udp"));
 			return 1;
 		}
 
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: bind() %s to %s socket"
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: bind() %s to %s socket"
 					       "failed: %s",
 			ifc->ip_address_spec, tcp? "tcp":"udp",
 			strerror(errno)));
@@ -987,7 +987,7 @@ xfrd_tsig_sign_request(buffer_type* packet, tsig_record_type* tsig,
 	tsig_sign(tsig);
 	tsig_append_rr(tsig, packet);
 	ARCOUNT_SET(packet, ARCOUNT(packet) + 1);
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "appending tsig to packet"));
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "appending tsig to packet"));
 	/* prepare for validating tsigs */
 	tsig_prepare(tsig);
 }
@@ -1154,7 +1154,7 @@ xfrd_xfr_process_tsig(xfrd_zone_t* zone, buffer_type* packet)
 				zone->apex_str, zone->master->ip_address_spec);
 			return 0;
 		}
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s, from %s: good tsig signature",
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s, from %s: good tsig signature",
 			zone->apex_str, zone->master->ip_address_spec));
 		/* prepare for next tsigs */
 		tsig_prepare(&zone->tsig);
@@ -1221,7 +1221,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	/* check TSIG */
 	if(zone->master->key_options) {
 		if(!xfrd_xfr_process_tsig(zone, packet)) {
-			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "dropping xfr reply due "
+			DEBUG(DEBUG_XFRD,2, (LOG_ERR, "dropping xfr reply due "
 				"to bad TSIG"));
 			return xfrd_packet_bad;
 		}
@@ -1243,15 +1243,15 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	}
 	if(zone->msg_rr_count == 0 && ancount == 0) {
 		if(zone->tcp_conn == -1 && TC(packet)) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: TC flagged"));
+			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: TC flagged"));
 			return xfrd_packet_tcp;
 		}
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: too short xfr packet: no "
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: too short xfr packet: no "
 					       			   "answer"));
 		/* if IXFR is unknown, fallback to AXFR (if allowed) */
 		if (nscount == 1) {
 			if(!packet_skip_dname(packet) || !xfrd_parse_soa_info(packet, soa)) {
-				DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s, from %s: "
+				DEBUG(DEBUG_XFRD,2, (LOG_ERR, "xfrd: zone %s, from %s: "
 					"no SOA begins authority section",
 					zone->apex_str, zone->master->ip_address_spec));
 				return xfrd_packet_bad;
@@ -1267,7 +1267,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		if(!packet_skip_dname(packet) ||
 			!xfrd_parse_soa_info(packet, soa))
 		{
-			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s, from %s: "
+			DEBUG(DEBUG_XFRD,2, (LOG_ERR, "xfrd: zone %s, from %s: "
 						      "no SOA begins answer"
 						      " section",
 				zone->apex_str, zone->master->ip_address_spec));
@@ -1276,16 +1276,13 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		if(zone->soa_disk_acquired != 0 &&
 			zone->state != xfrd_zone_expired /* if expired - accept anything */ &&
 			compare_serial(ntohl(soa->serial), ntohl(zone->soa_disk.serial)) < 0) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-				"xfrd: zone %s ignoring old serial from %s",
-				zone->apex_str, zone->master->ip_address_spec));
 			VERBOSITY(1, (LOG_INFO,
 				"xfrd: zone %s ignoring old serial from %s",
 				zone->apex_str, zone->master->ip_address_spec));
 			return xfrd_packet_bad;
 		}
 		if(zone->soa_disk_acquired != 0 && zone->soa_disk.serial == soa->serial) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s got "
+			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: zone %s got "
 						       "update indicating "
 						       "current serial",
 				zone->apex_str));
@@ -1294,7 +1291,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			if(zone->soa_nsd.serial == soa->serial)
 				zone->soa_nsd_acquired = xfrd_time();
 			xfrd_set_zone_state(zone, xfrd_zone_ok);
- 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s is ok",
+ 			DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s is ok",
 				zone->apex_str));
 			if(zone->soa_notified_acquired == 0) {
 				/* not notified or anything, so stop asking around */
@@ -1305,7 +1302,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			/* try next master */
 			return xfrd_packet_bad;
 		}
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "IXFR reply has ok serial (have \
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "IXFR reply has ok serial (have \
 %u, reply %u).", ntohl(zone->soa_disk.serial), ntohl(soa->serial)));
 		/* serial is newer than soa_disk */
 		if(ancount == 1) {
@@ -1327,7 +1324,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	}
 
 	if(zone->tcp_conn == -1 && TC(packet)) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO,
 			"xfrd: zone %s received TC from %s. retry tcp.",
 			zone->apex_str, zone->master->ip_address_spec));
 		return xfrd_packet_tcp;
@@ -1337,19 +1334,19 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		/* too short to be a real ixfr/axfr data transfer: need at */
 		/* least two RRs in the answer section. */
 		/* The serial is newer, so try tcp to this master. */
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: udp reply is short. Try "
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: udp reply is short. Try "
 					       			   "tcp anyway."));
 		return xfrd_packet_tcp;
 	}
 
 	if(!xfrd_xfr_check_rrs(zone, packet, ancount_todo, &done, soa))
 	{
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s sent bad xfr "
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: zone %s sent bad xfr "
 					       			   "reply.", zone->apex_str));
 		return xfrd_packet_bad;
 	}
 	if(zone->tcp_conn == -1 && done == 0) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: udp reply incomplete"));
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: udp reply incomplete"));
 		return xfrd_packet_bad;
 	}
 	if(done == 0)
@@ -1407,7 +1404,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 					zone->query_id, zone->msg_seq_nr, 0,
 					(char*)buffer_begin(packet),
 					xfrd->nsd->options);
-				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s "
+				DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: zone %s "
 							       "xfr reverted "
 							       "\"%s\"",
 					zone->apex_str,
@@ -1469,7 +1466,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 		 * For expired zone after reload it is set ok (SOAINFO ipc). */
 		if(zone->state != xfrd_zone_expired)
 			xfrd_set_zone_state(zone, xfrd_zone_ok);
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO,
 			"xfrd: zone %s is waiting for reload",
 			zone->apex_str));
 		zone->round_num = -1; /* next try start anew */
@@ -1535,7 +1532,7 @@ xfrd_handle_passed_packet(buffer_type* packet,
 	}
 
 	dname = dname_make(tempregion, qnamebuf, 1);
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: got passed packet for %s, acl "
+	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: got passed packet for %s, acl "
 					   "%d", dname_to_string(dname,0), acl_num));
 
 	/* find the zone */
@@ -1572,7 +1569,7 @@ xfrd_handle_passed_packet(buffer_type* packet,
 			next = find_same_master_notify(zone, acl_num);
 		if(next != -1) {
 			zone->next_master = next;
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+			DEBUG(DEBUG_XFRD,3, (LOG_INFO,
 				"xfrd: notify set next master to query %d",
 				next));
 		}

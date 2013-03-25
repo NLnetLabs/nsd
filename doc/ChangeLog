@@ -1,3 +1,7 @@
+25 March 2013: Matthijs
+	- RRtypes ASFDB, RP, RT should not compress dnames (thanks Peter
+	  van Dijk).
+
 7 February 2013: Matthijs
 	- detect endianness in lookup3 on BSD, patch from Brad Smith.
 

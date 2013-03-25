@@ -376,7 +376,7 @@ process_tsig(struct query* q)
 				dname_to_string(q->tsig.key->name, NULL));
 			return NSD_RC_NOTAUTH;
 		}
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "query good tsig signature for %s",
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO, "query good tsig signature for %s",
 			dname_to_string(q->tsig.key->name, NULL)));
 	}
 	return NSD_RC_OK;
@@ -393,7 +393,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 	nsd_rc_type rc;
 
 	zone_options_t* zone_opt;
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "got notify %s processing acl",
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "got notify %s processing acl",
 		dname_to_string(query->qname, NULL)));
 
 	zone_opt = zone_options_find(nsd->options, query->qname);
@@ -404,7 +404,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 		return query_error(query, NSD_RC_SERVFAIL);
 
 	if(!tsig_find_rr(&query->tsig, query->packet)) {
-		DEBUG(DEBUG_XFRD,2, (LOG_ERR, "bad tsig RR format"));
+		DEBUG(DEBUG_XFRD,3, (LOG_ERR, "bad tsig RR format"));
 		return query_error(query, NSD_RC_FORMAT);
 	}
 	rc = process_tsig(query);
@@ -428,7 +428,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 			zone_opt->request_xfr, query, NULL);
 		acl_xfr = htonl(acl_num_xfr);
 
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "got notify %s passed acl %s %s",
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO, "got notify %s passed acl %s %s",
 			dname_to_string(query->qname, NULL),
 			why->ip_address_spec,
 			why->nokey?"NOKEY":
@@ -469,7 +469,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 	if (verbosity > 1) {
 		char address[128];
 		if (addr2ip(query->addr, address, sizeof(address))) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "addr2ip failed"));
+			DEBUG(DEBUG_XFRD,3, (LOG_INFO, "addr2ip failed"));
 			strlcpy(address, "[unknown]", sizeof(address));
 		}
 

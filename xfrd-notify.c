@@ -60,7 +60,7 @@ notify_disable(struct notify_zone_t* zone)
 				xfrd->notify_waiting_last = NULL;
 			/* see if this zone needs notify sending */
 			if(wz->notify_current) {
-				DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+				DEBUG(DEBUG_XFRD,3, (LOG_INFO,
 					"xfrd: zone %s: notify off waiting list.",
 					zone->apex_str)	);
 				setup_notify_active(wz);
@@ -128,7 +128,7 @@ xfrd_handle_notify_reply(struct notify_zone_t* zone, buffer_type* packet)
 			return 1; /* rfc1996: notimpl notify reply: consider retries done */
 		return 0;
 	}
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: host %s acknowledges notify",
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s: host %s acknowledges notify",
 		zone->apex_str, zone->notify_current->ip_address_spec));
 	return 1;
 }
@@ -140,7 +140,7 @@ xfrd_notify_next(struct notify_zone_t* zone)
 	zone->notify_current = zone->notify_current->next;
 	zone->notify_retry = 0;
 	if(zone->notify_current == 0) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO,
 			"xfrd: zone %s: no more notify-send acls. stop notify.",
 			zone->apex_str));
 		notify_disable(zone);
@@ -178,7 +178,7 @@ xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 			zone->notify_current->ip_address_spec);
 		return;
 	}
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: sent notify #%d to %s",
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s: sent notify #%d to %s",
 		zone->apex_str, zone->notify_retry,
 		zone->notify_current->ip_address_spec));
 }
@@ -191,13 +191,13 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 	buffer_type* packet = xfrd_get_temp_buffer();
 	assert(zone->notify_current);
 	if(zone->is_waiting) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO,
 			"xfrd: notify waiting, skipped, %s", zone->apex_str));
 		assert(zone->notify_send_handler.fd == -1);
 		return;
 	}
 	if(event_types & NETIO_EVENT_READ) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO,
 			"xfrd: zone %s: read notify ACK", zone->apex_str));
 		assert(handler->fd != -1);
 		if(xfrd_udp_read_packet(packet, zone->notify_send_handler.fd)) {
@@ -205,7 +205,7 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 				xfrd_notify_next(zone);
 		}
 	} else if(event_types & NETIO_EVENT_TIMEOUT) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: notify timeout",
+		DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s: notify timeout",
 			zone->apex_str));
 		/* timeout, try again */
 	}
@@ -264,7 +264,7 @@ notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 	}
 	xfrd->notify_waiting_last = zone;
 	zone->notify_send_handler.timeout = NULL;
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: notify on waiting list.",
+	DEBUG(DEBUG_XFRD,3, (LOG_INFO, "xfrd: zone %s: notify on waiting list.",
 		zone->apex_str));
 }
 
