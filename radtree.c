@@ -11,14 +11,16 @@
 #include <time.h>
 #include "radtree.h"
 #include "util.h"
+#include "region-allocator.h"
 
 #include <stdio.h>
 #include <ctype.h>
 
-struct radtree* radix_tree_create(void)
+struct radtree* radix_tree_create(struct region* region)
 {
-	struct radtree* rt = (struct radtree*)xalloc(sizeof(*rt));
+	struct radtree* rt = (struct radtree*)region_alloc(region, sizeof(*rt));
 	if(!rt) return NULL;
+	rt->region = region;
 	radix_tree_init(rt);
 	return rt;
 }
@@ -30,21 +32,21 @@ void radix_tree_init(struct radtree* rt)
 }
 
 /** delete radnodes in postorder recursion */
-static void radnode_del_postorder(struct radnode* n)
+static void radnode_del_postorder(struct region* region, struct radnode* n)
 {
 	unsigned i;
 	if(!n) return;
 	for(i=0; i<n->len; i++) {
-		radnode_del_postorder(n->array[i].node);
-		free(n->array[i].str);
+		radnode_del_postorder(region, n->array[i].node);
+		region_recycle(region, n->array[i].str, n->array[i].len);
 	}
-	free(n->array);
-	free(n);
+	region_recycle(region, n->array, n->capacity*sizeof(struct radsel));
+	region_recycle(region, n, sizeof(*n));
 }
 
 void radix_tree_clear(struct radtree* rt)
 {
-	radnode_del_postorder(rt->root);
+	radnode_del_postorder(rt->region, rt->root);
 	rt->root = NULL;
 	rt->count = 0;
 }
@@ -53,7 +55,7 @@ void radix_tree_delete(struct radtree* rt)
 {
 	if(!rt) return;
 	radix_tree_clear(rt);
-	free(rt);
+	region_recycle(rt->region, rt, sizeof(*rt));
 }
 
 /** return last elem-containing node in this subtree (excl self) */
@@ -177,7 +179,7 @@ static int radix_find_prefix_node(struct radtree* rt, uint8_t* k,
 
 /** grow array to at least the given size, offset unchanged */
 static int
-radnode_array_grow(struct radnode* n, unsigned want)
+radnode_array_grow(struct region* region, struct radnode* n, unsigned want)
 {
 	unsigned ns = ((unsigned)n->capacity)*2;
 	struct radsel* a;
@@ -187,12 +189,12 @@ radnode_array_grow(struct radnode* n, unsigned want)
 	if(ns > 256) ns = 256;
 	/* we do not use realloc, because we want to keep the old array
 	 * in case alloc fails, so that the tree is still usable */
-	a = (struct radsel*)xalloc(ns*sizeof(struct radsel));
+	a = (struct radsel*)region_alloc(region, ns*sizeof(struct radsel));
 	if(!a) return 0;
 	assert(n->len <= n->capacity);
 	assert(n->capacity < ns);
 	memcpy(&a[0], &n->array[0], n->len*sizeof(struct radsel));
-	free(n->array);
+	region_recycle(region, n->array, n->capacity*sizeof(struct radsel));
 	n->array = a;
 	n->capacity = ns;
 	return 1;
@@ -200,11 +202,12 @@ radnode_array_grow(struct radnode* n, unsigned want)
 
 /** make space in radnode array for another byte */
 static int
-radnode_array_space(struct radnode* n, uint8_t byte)
+radnode_array_space(struct region* region, struct radnode* n, uint8_t byte)
 {
 	/* is there an array? */
 	if(!n->array || n->capacity == 0) {
-		n->array = (struct radsel*)xalloc(sizeof(struct radsel));
+		n->array = (struct radsel*)region_alloc(region,
+			sizeof(struct radsel));
 		if(!n->array) return 0;
 		memset(&n->array[0], 0, sizeof(struct radsel));
 		n->len = 1;
@@ -222,7 +225,7 @@ radnode_array_space(struct radnode* n, uint8_t byte)
 		unsigned need = n->offset-byte;
 		if(n->len+need > n->capacity) {
 			/* grow array */
-			if(!radnode_array_grow(n, n->len+need))
+			if(!radnode_array_grow(region, n, n->len+need))
 				return 0;
 		}
 		/* reshuffle items to end */
@@ -243,7 +246,7 @@ radnode_array_space(struct radnode* n, uint8_t byte)
 		unsigned need = (byte-n->offset) - n->len + 1;
 		/* grow array */
 		if(n->len + need > n->capacity) {
-			if(!radnode_array_grow(n, n->len+need))
+			if(!radnode_array_grow(region, n, n->len+need))
 				return 0;
 		}
 		/* zero added entries */
@@ -256,10 +259,10 @@ radnode_array_space(struct radnode* n, uint8_t byte)
 
 /** create a prefix in the array strs */
 static int
-radsel_str_create(struct radsel* r, uint8_t* k, radstrlen_t pos,
-	radstrlen_t len)
+radsel_str_create(struct region* region, struct radsel* r, uint8_t* k,
+	radstrlen_t pos, radstrlen_t len)
 {
-	r->str = (uint8_t*)xalloc(sizeof(uint8_t)*(len-pos));
+	r->str = (uint8_t*)region_alloc(region, sizeof(uint8_t)*(len-pos));
 	if(!r->str)
 		return 0; /* out of memory */
 	memmove(r->str, k+pos, len-pos);
@@ -308,12 +311,12 @@ bstr_common_ext(uint8_t* x, radstrlen_t xlen, uint8_t* y, radstrlen_t ylen)
 /** allocate remainder from prefixes for a split:
  * plen: len prefix, l: longer bstring, llen: length of l. */
 static int
-radsel_prefix_remainder(radstrlen_t plen,
+radsel_prefix_remainder(struct region* region, radstrlen_t plen,
 	uint8_t* l, radstrlen_t llen,
 	uint8_t** s, radstrlen_t* slen)
 {
 	*slen = llen - plen;
-	*s = (uint8_t*)xalloc((*slen)*sizeof(uint8_t));
+	*s = (uint8_t*)region_alloc(region, (*slen)*sizeof(uint8_t));
 	if(!*s)
 		return 0;
 	memmove(*s, l+plen, llen-plen);
@@ -330,8 +333,8 @@ radsel_prefix_remainder(radstrlen_t plen,
  * @return false on alloc failure, no changes made.
  */
 static int
-radsel_split(struct radsel* r, uint8_t* k, radstrlen_t pos, radstrlen_t len,
-	struct radnode* add)
+radsel_split(struct region* region, struct radsel* r, uint8_t* k,
+	radstrlen_t pos, radstrlen_t len, struct radnode* add)
 {
 	uint8_t* addstr = k+pos;
 	radstrlen_t addlen = len-pos;
@@ -348,21 +351,22 @@ radsel_split(struct radsel* r, uint8_t* k, radstrlen_t pos, radstrlen_t len,
 		assert(addlen < r->len);
 		if(r->len-addlen > 1) {
 			/* shift one because a char is in the lookup array */
-			if(!radsel_prefix_remainder(addlen+1, r->str, r->len,
-				&split_str, &split_len))
+			if(!radsel_prefix_remainder(region, addlen+1, r->str,
+				r->len, &split_str, &split_len))
 				return 0;
 		}
 		if(addlen != 0) {
-			dupstr = (uint8_t*)xalloc(addlen*sizeof(uint8_t));
+			dupstr = (uint8_t*)region_alloc(region,
+				addlen*sizeof(uint8_t));
 			if(!dupstr) {
-				free(split_str);
+				region_recycle(region, split_str, split_len);
 				return 0;
 			}
 			memcpy(dupstr, addstr, addlen);
 		}
-		if(!radnode_array_space(add, r->str[addlen])) {
-			free(split_str);
-			free(dupstr);
+		if(!radnode_array_space(region, add, r->str[addlen])) {
+			region_recycle(region, split_str, split_len);
+			region_recycle(region, dupstr, addlen);
 			return 0;
 		}
 		/* alloc succeeded, now link it in */
@@ -375,7 +379,7 @@ radsel_split(struct radsel* r, uint8_t* k, radstrlen_t pos, radstrlen_t len,
 		r->node->pidx = 0;
 
 		r->node = add;
-		free(r->str);
+		region_recycle(region, r->str, r->len);
 		r->str = dupstr;
 		r->len = addlen;
 	} else if(bstr_is_prefix(r->str, r->len, addstr, addlen)) {
@@ -389,12 +393,12 @@ radsel_split(struct radsel* r, uint8_t* k, radstrlen_t pos, radstrlen_t len,
 		assert(r->len < addlen);
 		if(addlen-r->len > 1) {
 			/* shift one because a character goes into array */
-			if(!radsel_prefix_remainder(r->len+1, addstr, addlen,
-				&split_str, &split_len))
+			if(!radsel_prefix_remainder(region, r->len+1, addstr,
+				addlen, &split_str, &split_len))
 				return 0;
 		}
-		if(!radnode_array_space(r->node, addstr[r->len])) {
-			free(split_str);
+		if(!radnode_array_space(region, r->node, addstr[r->len])) {
+			region_recycle(region, split_str, split_len);
 			return 0;
 		}
 		/* alloc succeeded, now link it in */
@@ -416,48 +420,48 @@ radsel_split(struct radsel* r, uint8_t* k, radstrlen_t pos, radstrlen_t len,
 		assert(common_len < addlen);
 
 		/* create the new node for choice */
-		com = (struct radnode*)xalloc_zero(sizeof(*com));
+		com = (struct radnode*)region_alloc_zero(region, sizeof(*com));
 		if(!com) return 0; /* out of memory */
 
 		/* create the two substrings for subchoices */
 		if(r->len-common_len > 1) {
 			/* shift by one char because it goes in lookup array */
-			if(!radsel_prefix_remainder(common_len+1,
+			if(!radsel_prefix_remainder(region, common_len+1,
 				r->str, r->len, &s1_str, &s1_len)) {
-				free(com);
+				region_recycle(region, com, sizeof(*com));
 				return 0;
 			}
 		}
 		if(addlen-common_len > 1) {
-			if(!radsel_prefix_remainder(common_len+1,
+			if(!radsel_prefix_remainder(region, common_len+1,
 				addstr, addlen, &s2_str, &s2_len)) {
-				free(com);
-				free(s1_str);
+				region_recycle(region, com, sizeof(*com));
+				region_recycle(region, s1_str, s1_len);
 				return 0;
 			}
 		}
 
 		/* create the shared prefix to go in r */
 		if(common_len > 0) {
-			common_str = (uint8_t*)xalloc(
+			common_str = (uint8_t*)region_alloc(region,
 				common_len*sizeof(uint8_t*));
 			if(!common_str) {
-				free(com);
-				free(s1_str);
-				free(s2_str);
+				region_recycle(region, com, sizeof(*com));
+				region_recycle(region, s1_str, s1_len);
+				region_recycle(region, s2_str, s2_len);
 				return 0;
 			}
 			memcpy(common_str, addstr, common_len);
 		}
 
 		/* make space in the common node array */
-		if(!radnode_array_space(com, r->str[common_len]) ||
-			!radnode_array_space(com, addstr[common_len])) {
-			free(com->array);
-			free(com);
-			free(common_str);
-			free(s1_str);
-			free(s2_str);
+		if(!radnode_array_space(region, com, r->str[common_len]) ||
+			!radnode_array_space(region, com, addstr[common_len])) {
+			region_recycle(region, com->array, com->capacity*sizeof(struct radsel));
+			region_recycle(region, com, sizeof(*com));
+			region_recycle(region, common_str, common_len);
+			region_recycle(region, s1_str, s1_len);
+			region_recycle(region, s2_str, s2_len);
 			return 0;
 		}
 
@@ -474,7 +478,7 @@ radsel_split(struct radsel* r, uint8_t* k, radstrlen_t pos, radstrlen_t len,
 		com->array[add->pidx].node = add;
 		com->array[add->pidx].str = s2_str;
 		com->array[add->pidx].len = s2_len;
-		free(r->str);
+		region_recycle(region, r->str, r->len);
 		r->str = common_str;
 		r->len = common_len;
 		r->node = com;
@@ -488,7 +492,8 @@ struct radnode* radix_insert(struct radtree* rt, uint8_t* k, radstrlen_t len,
 	struct radnode* n;
 	radstrlen_t pos = 0;
 	/* create new element to add */
-	struct radnode* add = (struct radnode*)xalloc_zero(sizeof(*add));
+	struct radnode* add = (struct radnode*)region_alloc_zero(rt->region,
+		sizeof(*add));
 	if(!add) return NULL; /* out of memory */
 	add->elem = elem;
 
@@ -500,23 +505,26 @@ struct radnode* radix_insert(struct radtree* rt, uint8_t* k, radstrlen_t len,
 			rt->root = add;
 		} else {
 			/* add a root to point to new node */
-			n = (struct radnode*)xalloc_zero(sizeof(*n));
+			n = (struct radnode*)region_alloc_zero(rt->region,
+				sizeof(*n));
 			if(!n) return NULL;
-			if(!radnode_array_space(n, k[0])) {
-				free(n->array);
-				free(n);
-				free(add);
+			if(!radnode_array_space(rt->region, n, k[0])) {
+				region_recycle(rt->region, n->array,
+					n->capacity*sizeof(struct radsel));
+				region_recycle(rt->region, n, sizeof(*n));
+				region_recycle(rt->region, add, sizeof(*add));
 				return NULL;
 			}
 			add->parent = n;
 			add->pidx = 0;
 			n->array[0].node = add;
 			if(len > 1) {
-				if(!radsel_prefix_remainder(1, k, len,
+				if(!radsel_prefix_remainder(rt->region, 1, k, len,
 					&n->array[0].str, &n->array[0].len)) {
-					free(n->array);
-					free(n);
-					free(add);
+					region_recycle(rt->region, n->array,
+						n->capacity*sizeof(struct radsel));
+					region_recycle(rt->region, n, sizeof(*n));
+					region_recycle(rt->region, add, sizeof(*add));
 					return NULL;
 				}
 			}
@@ -526,11 +534,11 @@ struct radnode* radix_insert(struct radtree* rt, uint8_t* k, radstrlen_t len,
 		/* found an exact match */
 		if(n->elem) {
 			/* already exists, failure */
-			free(add);
+			region_recycle(rt->region, add, sizeof(*add));
 			return NULL;
 		}
 		n->elem = elem;
-		free(add);
+		region_recycle(rt->region, add, sizeof(*add));
 		add = n;
 	} else {
 		/* n is a node which can accomodate */
@@ -541,17 +549,17 @@ struct radnode* radix_insert(struct radtree* rt, uint8_t* k, radstrlen_t len,
 		/* see if it falls outside of array */
 		if(byte < n->offset || byte-n->offset >= n->len) {
 			/* make space in the array for it; adjusts offset */
-			if(!radnode_array_space(n, byte)) {
-				free(add);
+			if(!radnode_array_space(rt->region, n, byte)) {
+				region_recycle(rt->region, add, sizeof(*add));
 				return NULL;
 			}
 			assert(byte>=n->offset && byte-n->offset<n->len);
 			byte -= n->offset;
 			/* see if more prefix needs to be split off */
 			if(pos+1 < len) {
-				if(!radsel_str_create(&n->array[byte],
+				if(!radsel_str_create(rt->region, &n->array[byte],
 					k, pos+1, len)) {
-					free(add);
+					region_recycle(rt->region, add, sizeof(*add));
 					return NULL;
 				}
 			}
@@ -565,9 +573,9 @@ struct radnode* radix_insert(struct radtree* rt, uint8_t* k, radstrlen_t len,
 			byte -= n->offset;
 			if(pos+1 < len) {
 				/* split off more prefix */
-				if(!radsel_str_create(&n->array[byte],
+				if(!radsel_str_create(rt->region, &n->array[byte],
 					k, pos+1, len)) {
-					free(add);
+					region_recycle(rt->region, add, sizeof(*add));
 					return NULL;
 				}
 			}
@@ -581,9 +589,9 @@ struct radnode* radix_insert(struct radtree* rt, uint8_t* k, radstrlen_t len,
 			 * node to split out between the two.
 			 * One of the two might exactmatch the new 
 			 * intermediate node */
-			if(!radsel_split(&n->array[byte-n->offset], k, pos+1,
-				len, add)) {
-				free(add);
+			if(!radsel_split(rt->region, &n->array[byte-n->offset],
+				k, pos+1, len, add)) {
+				region_recycle(rt->region, add, sizeof(*add));
 				return NULL;
 			}
 		}
@@ -594,21 +602,22 @@ struct radnode* radix_insert(struct radtree* rt, uint8_t* k, radstrlen_t len,
 }
 
 /** Delete a radnode */
-static void radnode_delete(struct radnode* n)
+static void radnode_delete(struct region* region, struct radnode* n)
 {
 	unsigned i;
 	if(!n) return;
 	for(i=0; i<n->len; i++) {
 		/* safe to free NULL str */
-		free(n->array[i].str);
+		region_recycle(region, n->array[i].str, n->array[i].len);
 	}
-	free(n->array);
-	free(n);
+	region_recycle(region, n->array, n->capacity*sizeof(struct radsel));
+	region_recycle(region, n, sizeof(*n));
 }
 
 /** Cleanup node with one child, it is removed and joined into parent[x] str */
 static int
-radnode_cleanup_onechild(struct radnode* n, struct radnode* par)
+radnode_cleanup_onechild(struct region* region, struct radnode* n,
+	struct radnode* par)
 {
 	uint8_t* join;
 	radstrlen_t joinlen;
@@ -620,7 +629,7 @@ radnode_cleanup_onechild(struct radnode* n, struct radnode* par)
 	/* at parent, append child->str to array str */
 	assert(pidx < par->len);
 	joinlen = par->array[pidx].len + n->array[0].len + 1;
-	join = (uint8_t*)xalloc(joinlen*sizeof(uint8_t));
+	join = (uint8_t*)region_alloc(region, joinlen*sizeof(uint8_t));
 	if(!join) {
 		/* cleanup failed due to out of memory */
 		/* the tree is inefficient, with node n still existing */
@@ -632,7 +641,7 @@ radnode_cleanup_onechild(struct radnode* n, struct radnode* par)
 	join[par->array[pidx].len] = child->pidx + n->offset;
 	/* but join+len may not be aligned */
 	memmove(join+par->array[pidx].len+1, n->array[0].str, n->array[0].len);
-	free(par->array[pidx].str);
+	region_recycle(region, par->array[pidx].str, par->array[pidx].len);
 	par->array[pidx].str = join;
 	par->array[pidx].len = joinlen;
 	/* and set the node to our child. */
@@ -640,31 +649,32 @@ radnode_cleanup_onechild(struct radnode* n, struct radnode* par)
 	child->parent = par;
 	child->pidx = pidx;
 	/* we are unlinked, delete our node */
-	radnode_delete(n);
+	radnode_delete(region, n);
 	return 1;
 }
 
 /** remove array of nodes */
 static void
-radnode_array_clean_all(struct radnode* n)
+radnode_array_clean_all(struct region* region, struct radnode* n)
 {
 	n->offset = 0;
 	n->len = 0;
 	/* shrink capacity */
-	free(n->array);
+	region_recycle(region, n->array, n->capacity*sizeof(struct radsel));
 	n->array = NULL;
 	n->capacity = 0;
 }
 
 /** see if capacity can be reduced for the given node array */
 static void
-radnode_array_reduce_if_needed(struct radnode* n)
+radnode_array_reduce_if_needed(struct region* region, struct radnode* n)
 {
 	if(n->len <= n->capacity/2 && n->len != n->capacity) {
-		struct radsel* a = (struct radsel*)xalloc(sizeof(*a)*n->len);
+		struct radsel* a = (struct radsel*)region_alloc(region,
+			sizeof(*a)*n->len);
 		if(!a) return;
 		memcpy(a, n->array, sizeof(*a)*n->len);
-		free(n->array);
+		region_recycle(region, n->array, n->capacity*sizeof(*a));
 		n->array = a;
 		n->capacity = n->len;
 	}
@@ -672,7 +682,7 @@ radnode_array_reduce_if_needed(struct radnode* n)
 
 /** remove NULL nodes from front of array */
 static void
-radnode_array_clean_front(struct radnode* n)
+radnode_array_clean_front(struct region* region, struct radnode* n)
 {
 	/* move them up and adjust offset */
 	unsigned idx, shuf = 0;
@@ -683,7 +693,7 @@ radnode_array_clean_front(struct radnode* n)
 		return;
 	if(shuf == n->len) {
 		/* the array is empty, the tree is inefficient */
-		radnode_array_clean_all(n);
+		radnode_array_clean_all(region, n);
 		return;
 	}
 	assert(shuf < n->len);
@@ -696,12 +706,12 @@ radnode_array_clean_front(struct radnode* n)
 		if(n->array[idx].node)
 			n->array[idx].node->pidx = idx;
 	/* see if capacity can be reduced */
-	radnode_array_reduce_if_needed(n);
+	radnode_array_reduce_if_needed(region, n);
 }
 
 /** remove NULL nodes from end of array */
 static void
-radnode_array_clean_end(struct radnode* n)
+radnode_array_clean_end(struct region* region, struct radnode* n)
 {
 	/* shorten it */
 	unsigned shuf = 0;
@@ -712,29 +722,30 @@ radnode_array_clean_end(struct radnode* n)
 		return;
 	if(shuf == n->len) {
 		/* the array is empty, the tree is inefficient */
-		radnode_array_clean_all(n);
+		radnode_array_clean_all(region, n);
 		return;
 	}
 	assert(shuf < n->len);
 	n->len -= shuf;
 	/* array elements can stay where they are */
 	/* see if capacity can be reduced */
-	radnode_array_reduce_if_needed(n);
+	radnode_array_reduce_if_needed(region, n);
 }
 
 /** clean up radnode leaf, where we know it has a parent */
 static void
-radnode_cleanup_leaf(struct radnode* n, struct radnode* par)
+radnode_cleanup_leaf(struct region* region, struct radnode* n,
+	struct radnode* par)
 {
 	uint8_t pidx;
 	/* node was a leaf */
 	/* delete leaf node, but store parent+idx */
 	pidx = n->pidx;
-	radnode_delete(n);
+	radnode_delete(region, n);
 
 	/* set parent+idx entry to NULL str and node.*/
 	assert(pidx < par->len);
-	free(par->array[pidx].str);
+	region_recycle(region, par->array[pidx].str, par->array[pidx].len);
 	par->array[pidx].str = NULL;
 	par->array[pidx].len = 0;
 	par->array[pidx].node = NULL;
@@ -742,13 +753,13 @@ radnode_cleanup_leaf(struct radnode* n, struct radnode* par)
 	/* see if par offset or len must be adjusted */
 	if(par->len == 1) {
 		/* removed final element from array */
-		radnode_array_clean_all(par);
+		radnode_array_clean_all(region, par);
 	} else if(pidx == 0) {
 		/* removed first element from array */
-		radnode_array_clean_front(par);
+		radnode_array_clean_front(region, par);
 	} else if(pidx == par->len-1) {
 		/* removed last element from array */
-		radnode_array_clean_end(par);
+		radnode_array_clean_end(region, par);
 	}
 }
 
@@ -767,17 +778,17 @@ radnode_cleanup(struct radtree* rt, struct radnode* n)
 			/* cannot delete node with a data element */
 			return 1;
 		} else if(n->len == 1 && n->parent) {
-			return radnode_cleanup_onechild(n, n->parent);
+			return radnode_cleanup_onechild(rt->region, n, n->parent);
 		} else if(n->len == 0) {
 			struct radnode* par = n->parent;
 			if(!par) {
 				/* root deleted */
-				radnode_delete(n);
+				radnode_delete(rt->region, n);
 				rt->root = NULL;
 				return 1;
 			}
 			/* remove and delete the leaf node */
-			radnode_cleanup_leaf(n, par);
+			radnode_cleanup_leaf(rt->region, n, par);
 			/* see if parent can now be cleaned up */
 			n = par;
 		} else {

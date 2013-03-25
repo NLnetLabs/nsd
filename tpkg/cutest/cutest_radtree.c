@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <time.h>
 #include "radtree.h"
+#include "region-allocator.h"
+#include "util.h"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -788,9 +790,10 @@ static void radtree_1(CuTest* t)
 static void radtree_2(CuTest* t)
 {
 	struct radtree* rt;
+	struct region* region = region_create(xalloc, free);
 	tc = t;
 
-	rt = radix_tree_create();
+	rt = radix_tree_create(region);
 	if(verb) test_tree_print(rt);
 	test_checks(rt);
 
@@ -803,6 +806,7 @@ static void radtree_2(CuTest* t)
 
 	test_del(rt);
 	radix_tree_delete(rt);
+	region_destroy(region);
 }
 
 static void radtree_3(CuTest* t)

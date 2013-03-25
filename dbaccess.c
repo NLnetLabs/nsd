@@ -38,7 +38,6 @@ namedb_close (struct namedb *db)
 		if(db->udb)
 			udb_base_close(db->udb);
 		udb_base_free(db->udb);
-		radix_tree_delete(db->zonetree);
 		region_destroy(db->region);
 		zonec_desetup_parser();
 	}
@@ -410,7 +409,7 @@ namedb_open (const char *filename, nsd_options_t* opt)
 	db = (namedb_type *) region_alloc(db_region, sizeof(struct namedb));
 	db->region = db_region;
 	db->domains = domain_table_create(db->region);
-	db->zonetree = radix_tree_create();
+	db->zonetree = radix_tree_create(db->region);
 	db->diff_skip = 0;
 	db->diff_pos = 0;
 

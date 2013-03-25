@@ -7,6 +7,7 @@
 #define RADTREE_H
 
 struct radnode;
+struct region;
 
 /** length of the binary string */
 typedef uint16_t radstrlen_t;
@@ -25,6 +26,8 @@ struct radtree {
 	struct radnode* root;
 	/** count of number of elements */
 	size_t count;
+	/** region for allocation */
+	struct region* region;
 };
 
 /**
@@ -62,9 +65,10 @@ struct radsel {
 
 /**
  * Create new radix tree
+ * @param region: where to allocate the tree.
  * @return new tree or NULL on alloc failure.
  */
-struct radtree* radix_tree_create(void);
+struct radtree* radix_tree_create(struct region* region);
 
 /**
  * Init new radix tree.

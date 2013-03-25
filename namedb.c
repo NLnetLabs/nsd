@@ -299,12 +299,6 @@ void zone_add_domain_in_hash_tree(region_type* region, rbtree_t** tree,
 	rbtree_insert(*tree, node);
 }
 
-/** delete radix tree as a region cleanup */
-void del_radix_tree(void* arg)
-{
-	radix_tree_delete((struct radtree*)arg);
-}
-
 domain_table_type *
 domain_table_create(region_type *region)
 {
@@ -334,8 +328,7 @@ domain_table_create(region_type *region)
 	result = (domain_table_type *) region_alloc(region,
 						    sizeof(domain_table_type));
 	result->region = region;
-	result->nametree = radix_tree_create();
-	region_add_cleanup(region, &del_radix_tree, result->nametree);
+	result->nametree = radix_tree_create(region);
 	root->rnode = radname_insert(result->nametree, dname_name(root->dname),
 		root->dname->name_size, root);
 

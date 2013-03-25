@@ -2,6 +2,9 @@
 	- faster nsec3 updates.
 	- Fixup contrib/bug390.patch for 4.0.0b4.
 	- remove leak of nsec3.
+	- allocate radixtree in region for small (5%) total savings and
+	  about 15% savings in the radixtree itself (due to many small alloc
+	  savings in region).
 
 22 March 2013: Wouter
 	- use less memory for non-nsec3, nsec3tree.
