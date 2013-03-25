@@ -239,6 +239,8 @@ do_deldomain(namedb_type *db, domain_type* domain)
 		if(domain->nsec3->dshash_node.key)
 			zone_del_domain_in_hash_tree(nsec3_tree_dszone(db, domain)
 				->dshashtree, &domain->nsec3->dshash_node);
+		region_recycle(db->domains->region, domain->nsec3,
+			sizeof(struct nsec3_domain_data));
 	}
 #endif /* NSEC3 */
 
