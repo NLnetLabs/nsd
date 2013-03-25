@@ -393,9 +393,12 @@ zone_type* nsec3_tree_zone(namedb_type* db, domain_type* d)
 	while(d) {
 		if(d->is_apex) {
 			/* we can try a SOA if its present (faster than tree)*/
+			/* DNSKEY and NSEC3PARAM are also good indicators */
 			rrset_type *rrset;
 			for (rrset = d->rrsets; rrset; rrset = rrset->next)
-				if (rrset_rrtype(rrset) == TYPE_SOA)
+				if (rrset_rrtype(rrset) == TYPE_SOA ||
+					rrset_rrtype(rrset) == TYPE_DNSKEY ||
+					rrset_rrtype(rrset) == TYPE_NSEC3PARAM)
 					return rrset->zone;
 			return namedb_find_zone(db, d->dname);
 		}

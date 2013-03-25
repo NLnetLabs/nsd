@@ -1,3 +1,6 @@
+25 March 2013: Wouter
+	- faster nsec3 updates.
+
 22 March 2013: Wouter
 	- use less memory for non-nsec3, nsec3tree.
 
