@@ -1,5 +1,6 @@
 25 March 2013: Wouter
 	- faster nsec3 updates.
+	- Fixup contrib/bug390.patch for 4.0.0b4.
 
 22 March 2013: Wouter
 	- use less memory for non-nsec3, nsec3tree.
