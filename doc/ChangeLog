@@ -1,3 +1,6 @@
+26 March 2013: Wouter
+	- update lookup3.c with better endianness detection.
+
 25 March 2013: Wouter
 	- faster nsec3 updates.
 	- Fixup contrib/bug390.patch for 4.0.0b4.
