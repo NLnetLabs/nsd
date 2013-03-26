@@ -1,3 +1,6 @@
+26 March 2013: Wouter
+	- updated lookup3 with endianness detection changes.
+
 25 March 2013: Matthijs
 	- RRtypes ASFDB, RP, RT should not compress dnames (thanks Peter
 	  van Dijk).
