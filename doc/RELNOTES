@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 
 BUG FIXES:
 	- Bugfix #487: lookup3.c determine endianness for BSD systems.
+	- Bugfix #494: Exit with return code 1 if socket code fails.
 	- Fix outgoing-interface: Don't fail if family is IPv6 but
 	  only IPv4 outgoing-interface is set, or vice versa.
 

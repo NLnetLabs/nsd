@@ -224,6 +224,7 @@ int server_prepare(struct nsd *nsd);
 void server_main(struct nsd *nsd);
 void server_child(struct nsd *nsd);
 void server_shutdown(struct nsd *nsd);
+void close_all_sockets(struct nsd_socket sockets[], size_t n);
 /* extra domain numbers for temporary domains */
 #define EXTRA_DOMAIN_NUMBERS 1024
 

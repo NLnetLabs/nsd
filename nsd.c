@@ -981,6 +981,13 @@ main(int argc, char *argv[])
 		}
 	}
 
+	/* Initialize the server... */
+	if (server_init(&nsd) != 0) {
+		log_msg(LOG_ERR, "server initialization failed, %s could "
+			"not be started", argv0);
+		exit(1);
+	}
+
 	/* Unless we're debugging, fork... */
 	if (!nsd.debug) {
 		int fd;
@@ -992,9 +999,13 @@ main(int argc, char *argv[])
 			break;
 		case -1:
 			log_msg(LOG_ERR, "fork() failed: %s", strerror(errno));
+			close_all_sockets(nsd.udp, nsd.ifs);
+			close_all_sockets(nsd.tcp, nsd.ifs);
 			exit(1);
 		default:
 			/* Parent is done */
+			close_all_sockets(nsd.udp, nsd.ifs);
+			close_all_sockets(nsd.tcp, nsd.ifs);
 			exit(0);
 		}
 
@@ -1040,12 +1051,6 @@ main(int argc, char *argv[])
 	nsd.signal_hint_statsusr = 0;
 	nsd.quit_sync_done = 0;
 
-	/* Initialize the server... */
-	if (server_init(&nsd) != 0) {
-		log_msg(LOG_ERR, "server initialization failed, %s could "
-			"not be started", argv0);
-		exit(1);
-	}
 
 	/* Set user context */
 #ifdef HAVE_GETPWNAM

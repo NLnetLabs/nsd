@@ -592,7 +592,7 @@ server_start_children(struct nsd *nsd, region_type* region, netio_type* netio,
 	return restart_child_servers(nsd, region, netio, xfrd_sock_p);
 }
 
-static void
+void
 close_all_sockets(struct nsd_socket sockets[], size_t n)
 {
 	size_t i;

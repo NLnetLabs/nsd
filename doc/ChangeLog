@@ -1,3 +1,6 @@
+3 April 2012: Matthijs
+	- Bug #494: Exit with return code 1 if socket code fails.
+
 26 March 2013: Wouter
 	- updated lookup3 with endianness detection changes.
 
