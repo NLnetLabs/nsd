@@ -593,7 +593,7 @@ server_start_children(struct nsd *nsd, region_type* region, netio_type* netio,
 }
 
 void
-close_all_sockets(struct nsd_socket sockets[], size_t n)
+server_close_all_sockets(struct nsd_socket sockets[], size_t n)
 {
 	size_t i;
 
@@ -617,8 +617,8 @@ server_shutdown(struct nsd *nsd)
 {
 	size_t i;
 
-	close_all_sockets(nsd->udp, nsd->ifs);
-	close_all_sockets(nsd->tcp, nsd->ifs);
+	server_close_all_sockets(nsd->udp, nsd->ifs);
+	server_close_all_sockets(nsd->tcp, nsd->ifs);
 	/* CHILD: close command channel to parent */
 	if(nsd->this_child && nsd->this_child->parent_fd != -1)
 	{
@@ -1262,10 +1262,10 @@ server_child(struct nsd *nsd)
 	DEBUG(DEBUG_IPC, 2, (LOG_INFO, "child process started"));
 
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
-		close_all_sockets(nsd->tcp, nsd->ifs);
+		server_close_all_sockets(nsd->tcp, nsd->ifs);
 	}
 	if (!(nsd->server_kind & NSD_SERVER_UDP)) {
-		close_all_sockets(nsd->udp, nsd->ifs);
+		server_close_all_sockets(nsd->udp, nsd->ifs);
 	}
 
 	if (nsd->this_child && nsd->this_child->parent_fd != -1) {

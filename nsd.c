@@ -981,6 +981,30 @@ main(int argc, char *argv[])
 		}
 	}
 
+	/* Setup the signal handling... */
+	action.sa_handler = sig_handler;
+	sigfillset(&action.sa_mask);
+	action.sa_flags = 0;
+	sigaction(SIGTERM, &action, NULL);
+	sigaction(SIGHUP, &action, NULL);
+	sigaction(SIGINT, &action, NULL);
+	sigaction(SIGILL, &action, NULL);
+	sigaction(SIGUSR1, &action, NULL);
+	sigaction(SIGALRM, &action, NULL);
+	sigaction(SIGCHLD, &action, NULL);
+	action.sa_handler = SIG_IGN;
+	sigaction(SIGPIPE, &action, NULL);
+
+	/* Initialize... */
+	nsd.mode = NSD_RUN;
+	nsd.signal_hint_child = 0;
+	nsd.signal_hint_reload = 0;
+	nsd.signal_hint_quit = 0;
+	nsd.signal_hint_shutdown = 0;
+	nsd.signal_hint_stats = 0;
+	nsd.signal_hint_statsusr = 0;
+	nsd.quit_sync_done = 0;
+
 	/* Initialize the server... */
 	if (server_init(&nsd) != 0) {
 		log_msg(LOG_ERR, "server initialization failed, %s could "
@@ -999,13 +1023,13 @@ main(int argc, char *argv[])
 			break;
 		case -1:
 			log_msg(LOG_ERR, "fork() failed: %s", strerror(errno));
-			close_all_sockets(nsd.udp, nsd.ifs);
-			close_all_sockets(nsd.tcp, nsd.ifs);
+			server_close_all_sockets(nsd.udp, nsd.ifs);
+			server_close_all_sockets(nsd.tcp, nsd.ifs);
 			exit(1);
 		default:
 			/* Parent is done */
-			close_all_sockets(nsd.udp, nsd.ifs);
-			close_all_sockets(nsd.tcp, nsd.ifs);
+			server_close_all_sockets(nsd.tcp, nsd.ifs);
+			server_close_all_sockets(nsd.udp, nsd.ifs);
 			exit(0);
 		}
 
@@ -1024,33 +1048,8 @@ main(int argc, char *argv[])
 		}
 	}
 
-	/* Setup the signal handling... */
-	action.sa_handler = sig_handler;
-	sigfillset(&action.sa_mask);
-	action.sa_flags = 0;
-	sigaction(SIGTERM, &action, NULL);
-	sigaction(SIGHUP, &action, NULL);
-	sigaction(SIGINT, &action, NULL);
-	sigaction(SIGILL, &action, NULL);
-	sigaction(SIGUSR1, &action, NULL);
-	sigaction(SIGALRM, &action, NULL);
-	sigaction(SIGCHLD, &action, NULL);
-	action.sa_handler = SIG_IGN;
-	sigaction(SIGPIPE, &action, NULL);
-
 	/* Get our process id */
 	nsd.pid = getpid();
-
-	/* Initialize... */
-	nsd.mode = NSD_RUN;
-	nsd.signal_hint_child = 0;
-	nsd.signal_hint_reload = 0;
-	nsd.signal_hint_quit = 0;
-	nsd.signal_hint_shutdown = 0;
-	nsd.signal_hint_stats = 0;
-	nsd.signal_hint_statsusr = 0;
-	nsd.quit_sync_done = 0;
-
 
 	/* Set user context */
 #ifdef HAVE_GETPWNAM
