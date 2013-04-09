@@ -934,9 +934,8 @@ main(int argc, char *argv[])
 
 	/* Initialize the server... */
 	if (server_init(&nsd) != 0) {
-		log_msg(LOG_ERR, "server initialization failed, %s could "
+		error("server initialization failed, %s could "
 			"not be started", argv0);
-		exit(1);
 	}
 #if defined(HAVE_SSL)
 	if(nsd.options->control_enable) {
