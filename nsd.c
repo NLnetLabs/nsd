@@ -925,6 +925,7 @@ main(int argc, char *argv[])
 	nsd.mode = NSD_RUN;
 	nsd.signal_hint_child = 0;
 	nsd.signal_hint_reload = 0;
+	nsd.signal_hint_reload_hup = 0;
 	nsd.signal_hint_quit = 0;
 	nsd.signal_hint_shutdown = 0;
 	nsd.signal_hint_stats = 0;
