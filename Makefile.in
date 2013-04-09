@@ -156,7 +156,7 @@ udb-inspect:	udb-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 
 clean:
 	rm -f *.o *.so y.* *.core *.gmon tags TAGS
-	rm -f $(TARGETS) $(MANUALS) cutest udb-inspect
+	rm -f $(TARGETS) $(MANUALS) cutest udb-inspect nsd-mem
 
 realclean: clean
 	rm -f Makefile config.h config.log config.status

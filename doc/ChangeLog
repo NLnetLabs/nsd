@@ -1,3 +1,6 @@
+9 April 2013: Wouter
+	- Bug #494: Exit with return code 1 if socket code fails. (from 3.2)
+
 26 March 2013: Wouter
 	- update lookup3.c with better endianness detection.
 
