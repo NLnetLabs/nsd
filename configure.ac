@@ -773,13 +773,13 @@ AH_BOTTOM([
 ])
 
 AH_BOTTOM([
-#ifndef B64_PTON
+#ifndef HAVE_B64_NTOP
 int b64_ntop(uint8_t const *src, size_t srclength,
 	     char *target, size_t targsize);
-#endif /* !B64_PTON */
-#ifndef B64_NTOP
+#endif /* !HAVE_B64_NTOP */
+#ifndef HAVE_B64_PTON
 int b64_pton(char const *src, uint8_t *target, size_t targsize);
-#endif /* !B64_NTOP */
+#endif /* !HAVE_B64_PTON */
 #ifndef HAVE_FSEEKO
 #define fseeko fseek
 #define ftello ftell
