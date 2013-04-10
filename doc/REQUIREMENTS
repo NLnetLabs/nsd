@@ -1001,6 +1001,8 @@ NSD Version 3.0. and above
 
    RFC 6742 (ILNP) support for NID, L32, L64, LP RR types.
 
+   draft-jabley-dnsext-eui48-eui64-rrtypes support for EUI48, EUI64 RR types.
+
 
 Not implemented:
 

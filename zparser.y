@@ -67,7 +67,8 @@ nsec3_add_params(const char* hash_algo_str, const char* flag_str,
 %token <type> T_OPT T_APL T_UINFO T_UID T_GID T_UNSPEC T_TKEY T_TSIG T_IXFR
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_DLV T_SSHFP T_RRSIG T_NSEC T_DNSKEY
 %token <type> T_SPF T_NSEC3 T_IPSECKEY T_DHCID T_NSEC3PARAM T_TLSA
-%token <type> T_NID T_L32 T_L64 T_LP
+%token <type> T_NID T_L32 T_L64 T_LP T_EUI48 T_EUI64 
+
 
 /* other tokens */
 %token	       DOLLAR_TTL DOLLAR_ORIGIN NL SP
@@ -603,6 +604,10 @@ type_and_rdata:
     |	T_L64 sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_LP sp rdata_lp
     |	T_LP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_EUI48 sp rdata_eui48
+    |	T_EUI48 sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_EUI64 sp rdata_eui64
+    |	T_EUI64 sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_UTYPE sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	STR error NL
     {
@@ -981,6 +986,18 @@ rdata_lp:	STR sp dname trail
     {
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str));  /* preference */
 	    zadd_rdata_domain($3);  /* FQDN */
+    }
+    ;
+
+rdata_eui48:	STR trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_eui(parser->region, $1.str, 48));
+    }
+    ;
+
+rdata_eui64:	STR trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_eui(parser->region, $1.str, 64));
     }
     ;
 

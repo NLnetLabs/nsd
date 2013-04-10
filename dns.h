@@ -144,6 +144,9 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_L64        106     /* RFC 6742 */
 #define TYPE_LP         107     /* RFC 6742 */
 
+#define TYPE_EUI48      108     /* draft-jabley-dnsext-eui48-eui64-rrtypes */
+#define TYPE_EUI64      109     /* draft-jabley-dnsext-eui48-eui64-rrtypes */
+
 #define TYPE_TSIG	250
 #define TYPE_IXFR	251
 #define TYPE_AXFR	252
@@ -166,6 +169,8 @@ typedef enum nsd_rc nsd_rc_type;
 
 #define IP4ADDRLEN	(32/8)
 #define IP6ADDRLEN	(128/8)
+#define EUI48ADDRLEN	(48/8)
+#define EUI64ADDRLEN	(64/8)
 
 /*
  * The different types of RDATA wireformat data.
@@ -186,7 +191,9 @@ enum rdata_wireformat
 	RDATA_WF_BINARYWITHLENGTH,   /* Binary data preceded by 1 byte length */
 	RDATA_WF_APL,		     /* APL data.  */
 	RDATA_WF_IPSECGATEWAY,	     /* IPSECKEY gateway ip4, ip6 or dname. */
-	RDATA_WF_ILNP64	     /* 64-bit uncompressed IPv6 address.  */
+	RDATA_WF_ILNP64,	     /* 64-bit uncompressed IPv6 address.  */
+	RDATA_WF_EUI48,	             /* 48-bit address.  */
+	RDATA_WF_EUI64	             /* 64-bit address.  */
 };
 typedef enum rdata_wireformat rdata_wireformat_type;
 
@@ -221,6 +228,8 @@ enum rdata_zoneformat
 	RDATA_ZF_NSEC,		/* NSEC type bitmap.  */
 	RDATA_ZF_LOC,		/* Location data.  */
 	RDATA_ZF_ILNP64,	/* 64-bit uncompressed IPv6 address.  */
+	RDATA_ZF_EUI48,		/* EUI48 address.  */
+	RDATA_ZF_EUI64,		/* EUI64 address.  */
 	RDATA_ZF_UNKNOWN	/* Unknown data.  */
 };
 typedef enum rdata_zoneformat rdata_zoneformat_type;
@@ -243,7 +252,7 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
  *
  * lp + 1
  */
-#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_LP + 1)
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_EUI64 + 1)
 rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 rrtype_descriptor_type *rrtype_descriptor_by_type(uint16_t type);
 
