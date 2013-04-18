@@ -1,3 +1,6 @@
+18 April 2013: Wouter
+	- fix bug #491: pick program name (0th argument) as syslog identity.
+
 9 April 2013: Wouter
 	- Bug #494: Exit with return code 1 if socket code fails. (from 3.2)
 	- Fix B64_NTOP replacement definitions in configure.ac.

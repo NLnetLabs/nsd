@@ -406,7 +406,7 @@ main(int argc, char *argv[])
 
 	char* argv0 = (argv0 = strrchr(argv[0], '/')) ? argv0 + 1 : argv[0];
 
-	log_init("nsd");
+	log_init(argv0);
 
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
