@@ -1,3 +1,6 @@
+19 April 2013: Wouter
+	- own snprintf, fix use of snprintf return value (in debug print).
+
 18 April 2013: Wouter
 	- fix bug #491: pick program name (0th argument) as syslog identity.
 
