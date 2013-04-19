@@ -1,3 +1,6 @@
+19 April 2012: Matthijs
+	- Own snprintf. Fix use of snprintf return value in debug print.
+
 10 April 2012: Matthijs
 	- Fix B64_NTOP/PTON replacement definitions in configure.ac.
 	- Bug #496: Support for EUI498 and EUI64 RR types.
