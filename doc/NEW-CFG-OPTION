@@ -87,7 +87,7 @@ Make the test aware of the new option. Extract checkconf.tpkg:
 	$ tpkg extract checkconf.tpkg
 	$ cd checkconf.dir
 
-And add to the various checkconf.nsd[1-9].conf files:
+And add to the various checkconf.check[1-9] files:
 
 	dummy: "dummy"
 

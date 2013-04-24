@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 
 FEATURES:
+	- New config option "ip-transparent:" to allow NSD to bind to
+	  non local addresses. Default no.
 	- Bugfix #496: Support for EUI48 and EUI64 RR types.
 
 BUG FIXES:

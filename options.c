@@ -34,6 +34,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->keys = NULL;
 	opt->numkeys = 0;
 	opt->ip_addresses = NULL;
+	opt->ip_transparent = 0;
 	opt->debug_mode = 0;
 	opt->verbosity = 0;
 	opt->hide_version = 0;

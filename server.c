@@ -358,7 +358,7 @@ int
 server_init(struct nsd *nsd)
 {
 	size_t i;
-#if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)))
+#if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU) || defined(IP_TRANSPARENT)))
 	int on = 1;
 #endif
 
@@ -459,6 +459,15 @@ server_init(struct nsd *nsd)
 		}
 
 		/* Bind it... */
+		if (nsd->options->ip_transparent) {
+#ifdef IP_TRANSPARENT
+			if (setsockopt(nsd->udp[i].s, IPPROTO_IP, IP_TRANSPARENT, &on, sizeof(on)) < 0) {
+				log_msg(LOG_ERR, "setsockopt(...,IP_TRANSPARENT, ...) failed for udp: %s",
+					strerror(errno));
+			}
+#endif /* IP_TRANSPARENT */
+		}
+
 		if (bind(nsd->udp[i].s, (struct sockaddr *) nsd->udp[i].addr->ai_addr, nsd->udp[i].addr->ai_addrlen) != 0) {
 			log_msg(LOG_ERR, "can't bind udp socket: %s", strerror(errno));
 			return -1;
@@ -507,6 +516,15 @@ server_init(struct nsd *nsd)
 		}
 
 		/* Bind it... */
+		if (nsd->options->ip_transparent) {
+#ifdef IP_TRANSPARENT
+			if (setsockopt(nsd->tcp[i].s, IPPROTO_IP, IP_TRANSPARENT, &on, sizeof(on)) < 0) {
+				log_msg(LOG_ERR, "setsockopt(...,IP_TRANSPARENT, ...) failed for tcp: %s",
+					strerror(errno));
+			}
+#endif /* IP_TRANSPARENT */
+		}
+
 		if (bind(nsd->tcp[i].s, (struct sockaddr *) nsd->tcp[i].addr->ai_addr, nsd->tcp[i].addr->ai_addrlen) != 0) {
 			log_msg(LOG_ERR, "can't bind tcp socket: %s", strerror(errno));
 			return -1;

@@ -694,6 +694,9 @@ The above means that even for systems with multiple interfaces where you
 intend to provide DNS service to all interfaces, it is prudent to specify
 all the interfaces as ip-address config file options.
 
+With the config file option ip-transparent you can allow NSD to bind to
+non local addresses.
+
 
 4.0 Support and Feedback
 

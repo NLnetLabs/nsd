@@ -1,11 +1,14 @@
-19 April 2012: Matthijs
+24 April 2013: Matthijs
+	- New config option "ip-transparent:", to bind to non local addresses.
+
+19 April 2013: Wouter
 	- Own snprintf. Fix use of snprintf return value in debug print.
 
-10 April 2012: Matthijs
+10 April 2013: Matthijs
 	- Fix B64_NTOP/PTON replacement definitions in configure.ac.
 	- Bug #496: Support for EUI498 and EUI64 RR types.
 
-3 April 2012: Matthijs
+3 April 2013: Matthijs
 	- Bug #494: Exit with return code 1 if socket code fails.
 	- Bug #495: Wrong bufsize in dname_to_string for root domain.
 

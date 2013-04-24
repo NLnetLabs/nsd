@@ -283,6 +283,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 		/* look in the server section */
 		SERV_GET_IP(ip_address, o);
 		/* bin */
+		SERV_GET_BIN(ip_transparent, o);
 		SERV_GET_BIN(debug_mode, o);
 		SERV_GET_BIN(ip4_only, o);
 		SERV_GET_BIN(ip6_only, o);
@@ -338,6 +339,7 @@ config_test_print_server(nsd_options_t* opt)
 	printf("# Config settings.\n");
 	printf("server:\n");
 	printf("\tdebug-mode: %s\n", opt->debug_mode?"yes":"no");
+	printf("\tip-transparent: %s\n", opt->ip_transparent?"yes":"no");
 	printf("\tip4-only: %s\n", opt->ip4_only?"yes":"no");
 	printf("\tip6-only: %s\n", opt->ip6_only?"yes":"no");
 	printf("\thide-version: %s\n", opt->hide_version?"yes":"no");
