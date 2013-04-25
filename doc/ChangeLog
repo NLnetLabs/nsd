@@ -1,3 +1,8 @@
+25 April 2013: Matthijs
+	- New config option "ip-transparent:", to bind to non local addresses.
+	- RRtypes ASFDB, RP, RT should not compress dnames (thanks Peter
+	  van Dijk).
+
 19 April 2013: Wouter
 	- own snprintf, fix use of snprintf return value (in debug print).
 

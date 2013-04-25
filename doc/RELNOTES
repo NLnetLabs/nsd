@@ -50,7 +50,19 @@ FEATURES:
 BUG FIXES:
 	- core code is fixed like 3.2.15r3763 (12 dec 2012).
 
-3.2.15 (development branch merge)
+
+3.2.16 (development branch)
+=================================
+
+FEATURES:
+	- New config option "ip-transparent:" to allow NSD to bind to
+	  non local addresses. Default no.
+
+BUG FIXES:
+	- RRtypes ASFDB, RP, RT should not compress dnames.
+
+
+3.2.15
 =================================
 
 FEATURES:

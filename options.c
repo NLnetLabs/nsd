@@ -42,6 +42,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->patterns = rbtree_create(region, rbtree_strcmp);
 	opt->keys = rbtree_create(region, rbtree_strcmp);
 	opt->ip_addresses = NULL;
+	opt->ip_transparent = 0;
 	opt->debug_mode = 0;
 	opt->verbosity = 0;
 	opt->hide_version = 0;

@@ -45,7 +45,7 @@ extern config_parser_state_t* cfg_parser;
 
 %token SPACE LETTER NEWLINE COMMENT COLON ANY ZONESTR
 %token <str> STRING
-%token VAR_SERVER VAR_NAME VAR_IP_ADDRESS VAR_DEBUG_MODE
+%token VAR_SERVER VAR_NAME VAR_IP_ADDRESS VAR_IP_TRANSPARENT VAR_DEBUG_MODE
 %token VAR_IP4_ONLY VAR_IP6_ONLY VAR_DATABASE VAR_IDENTITY VAR_NSID VAR_LOGFILE
 %token VAR_SERVER_COUNT VAR_TCP_COUNT VAR_PIDFILE VAR_PORT VAR_STATISTICS
 %token VAR_CHROOT VAR_USERNAME VAR_ZONESDIR VAR_XFRDFILE VAR_DIFFFILE
@@ -82,7 +82,7 @@ serverstart: VAR_SERVER
 	}
 	;
 contents_server: contents_server content_server | ;
-content_server: server_ip_address | server_debug_mode | server_ip4_only | 
+content_server: server_ip_address | server_ip_transparent | server_debug_mode | server_ip4_only | 
 	server_ip6_only | server_database | server_identity | server_nsid | server_logfile | 
 	server_server_count | server_tcp_count | server_pidfile | server_port | 
 	server_statistics | server_chroot | server_username | server_zonesdir |
@@ -112,6 +112,14 @@ server_ip_address: VAR_IP_ADDRESS STRING
 
 		cfg_parser->current_ip_address_option->address = 
 			region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+server_ip_transparent: VAR_IP_TRANSPARENT STRING 
+	{ 
+		OUTYY(("P(server_ip_transparent:%s)\n", $2)); 
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->ip_transparent = (strcmp($2, "yes")==0);
 	}
 	;
 server_debug_mode: VAR_DEBUG_MODE STRING 
