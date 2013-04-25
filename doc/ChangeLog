@@ -1,5 +1,6 @@
 24 April 2013: Matthijs
-	- New config option "ip-transparent:", to bind to non local addresses.
+	- New config option "ip-transparent:", to bind to non local addresses
+	  (thanks Arjen Zonneveld).
 
 19 April 2013: Wouter
 	- Own snprintf. Fix use of snprintf return value in debug print.
