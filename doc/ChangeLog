@@ -1,5 +1,6 @@
 25 April 2013: Matthijs
-	- New config option "ip-transparent:", to bind to non local addresses.
+	- New config option "ip-transparent:", to bind to non local addresses
+	  (thanks Arjen Zonneveld).
 	- RRtypes ASFDB, RP, RT should not compress dnames (thanks Peter
 	  van Dijk).
 
