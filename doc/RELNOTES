@@ -14,6 +14,7 @@ BUG FIXES:
 	- Bugfix #495: Wrong bufsize in dname_to_string for root.
 	- Fix outgoing-interface: Don't fail if family is IPv6 but
 	  only IPv4 outgoing-interface is set, or vice versa.
+	- RRtypes ASFDB, RP, RT should not compress dnames.
 
 
 3.2.15
