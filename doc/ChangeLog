@@ -1,3 +1,7 @@
+26 April 2013: Wouter
+	- Patch from Lukas Wunner that makes nsd.conf include files work
+	  inside chroot/etc environments on repattern and reconfig.
+
 25 April 2013: Matthijs
 	- New config option "ip-transparent:", to bind to non local addresses
 	  (thanks Arjen Zonneveld).

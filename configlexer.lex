@@ -45,6 +45,15 @@ static void config_start_include(const char* filename)
 		c_error_msg("includes nested too deeply, skipped (>%d)", MAXINCLUDES);
 		return;
 	}
+	if (cfg_parser->chroot) {
+		int l = strlen(cfg_parser->chroot)-1; /* don't count trailing slash */
+		if (strncmp(cfg_parser->chroot, filename, l) != 0) {
+			c_error_msg("include file '%s' is not relative to chroot '%s'",
+				filename, cfg_parser->chroot);
+			return;
+		}
+		filename += l;
+	}
 	input = fopen(filename, "r");
 	if(!input) {
 		c_error_msg("cannot open include file '%s': %s",

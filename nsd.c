@@ -48,6 +48,7 @@
 /* The server handler... */
 static struct nsd nsd;
 static char hostname[MAXHOSTNAMELEN];
+extern config_parser_state_t* cfg_parser;
 
 static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
@@ -1016,6 +1017,10 @@ main(int argc, char *argv[])
 		nsd.options->xfrdfile += l;
 		nsd.options->zlfile += l;
 		nsd.options->xfrdir += l;
+
+		/* strip chroot from pathnames of "include:" statements
+		 * on subsequent repattern commands */
+		cfg_parser->chroot = nsd.chrootdir;
 
 #ifdef HAVE_TZSET
 		/* set timezone whilst not yet in chroot */

@@ -224,6 +224,7 @@ struct zonelist_bucket {
  */
 struct config_parser_state {
 	const char* filename;
+	const char* chroot;
 	int line;
 	int errors;
 	int server_settings_seen;

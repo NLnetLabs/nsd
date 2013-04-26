@@ -115,9 +115,11 @@ int parse_options_file(nsd_options_t* opt, const char* file,
 	pattern_options_t* pat;
 	acl_options_t* acl;
 
-	if(!cfg_parser)
+	if(!cfg_parser) {
 		cfg_parser = (config_parser_state_t*)region_alloc(
 			opt->region, sizeof(config_parser_state_t));
+		cfg_parser->chroot = 0;
+	}
 	cfg_parser->err = err;
 	cfg_parser->err_arg = err_arg;
 	cfg_parser->filename = file;
