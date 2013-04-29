@@ -999,11 +999,8 @@ main(int argc, char *argv[])
 	/* Chroot */
 #ifdef HAVE_CHROOT
 	if (nsd.chrootdir && strlen(nsd.chrootdir)) {
-		int l = strlen(nsd.chrootdir);
+		int l = strlen(nsd.chrootdir)-1; /* ends in trailing slash */
 		int ret = 0;
-
-		while (l>0 && nsd.chrootdir[l-1] == '/')
-			--l;
 
 		/* filename after chroot */
 		ret = file_inside_chroot(nsd.log_filename, nsd.chrootdir);
