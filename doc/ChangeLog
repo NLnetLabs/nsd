@@ -1,3 +1,6 @@
+29 April 2013: Wouter
+	- Remove unused pointer and fixup chroot include for trail slash.
+
 26 April 2013: Wouter
 	- Patch from Lukas Wunner that makes nsd.conf include files work
 	  inside chroot/etc environments on repattern and reconfig.

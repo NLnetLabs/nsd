@@ -18,7 +18,6 @@
 
 #include "configyyrename.h"
 #include "configparser.h"
-nsd_options_t* nsd_options = 0;
 config_parser_state_t* cfg_parser = 0;
 extern FILE* c_in, *c_out;
 int c_parse(void);
@@ -82,7 +81,6 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->server_cert_file = CONFIGDIR"/nsd_server.pem";
 	opt->control_key_file = CONFIGDIR"/nsd_control.key";
 	opt->control_cert_file = CONFIGDIR"/nsd_control.pem";
-	nsd_options = opt;
 	return opt;
 }
 

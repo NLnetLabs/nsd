@@ -46,13 +46,13 @@ static void config_start_include(const char* filename)
 		return;
 	}
 	if (cfg_parser->chroot) {
-		int l = strlen(cfg_parser->chroot)-1; /* don't count trailing slash */
+		int l = strlen(cfg_parser->chroot); /* chroot has trailing slash */
 		if (strncmp(cfg_parser->chroot, filename, l) != 0) {
 			c_error_msg("include file '%s' is not relative to chroot '%s'",
 				filename, cfg_parser->chroot);
 			return;
 		}
-		filename += l;
+		filename += l - 1; /* strip chroot without trailing slash */
 	}
 	input = fopen(filename, "r");
 	if(!input) {
