@@ -1334,6 +1334,7 @@ server_main(struct nsd *nsd)
 #endif /* BIND8_STATS */
 				close(reload_listener.fd);
 			}
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "server_main: shutdown sequence"));
 			/* only quit children after xfrd has acked */
 			send_children_quit(nsd);
 
@@ -1345,7 +1346,6 @@ server_main(struct nsd *nsd)
 			/* ENOTREACH */
 			break;
 		case NSD_SHUTDOWN:
-			send_children_quit(nsd);
 			log_msg(LOG_WARNING, "signal received, shutting down...");
 			break;
 		case NSD_REAP_CHILDREN:
@@ -1364,6 +1364,14 @@ server_main(struct nsd *nsd)
 			break;
 		}
 	}
+
+	/* close opened ports to avoid race with restart of nsd */
+	server_close_all_sockets(nsd->udp, nsd->ifs);
+	server_close_all_sockets(nsd->tcp, nsd->ifs);
+#ifdef HAVE_SSL
+	daemon_remote_close(nsd->rc);
+#endif
+	send_children_quit(nsd);
 
 	/* Unlink it if possible... */
 	unlinkpid(nsd->pidfile);
@@ -2194,6 +2202,7 @@ send_children_quit(struct nsd* nsd)
 {
 	sig_atomic_t command = NSD_QUIT;
 	size_t i;
+	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "send children quit"));
 	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
 	for (i = 0; i < nsd->child_count; ++i) {
 		if (nsd->children[i].pid > 0 && nsd->children[i].child_fd != -1) {

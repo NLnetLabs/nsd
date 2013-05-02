@@ -313,7 +313,7 @@ xfrd_shutdown()
 	xfrd_clean_pending_tasks(xfrd->nsd, xfrd->nsd->task[xfrd->nsd->mytask]);
 	xfrd_del_tempdir(xfrd->nsd);
 
-	/* shouldn't we clean up memory used by xfrd process */
+	/* process-exit cleans up memory used by xfrd process */
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown complete"));
 
 	exit(0);

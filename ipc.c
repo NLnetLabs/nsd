@@ -689,7 +689,7 @@ xfrd_handle_ipc_read(struct event* handler, xfrd_state_t* xfrd)
         switch(cmd) {
         case NSD_QUIT:
         case NSD_SHUTDOWN:
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: main send shutdown cmd."));
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: main sent shutdown cmd."));
                 xfrd->shutdown = 1;
                 break;
 	case NSD_RELOAD_DONE:
