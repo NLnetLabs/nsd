@@ -54,6 +54,11 @@ struct daemon_remote;
  * parent with this commandvalue, when the child is exiting.
  */
 #define NSD_QUIT_WITH_STATS 10
+/*
+ * QUIT_CHILD is sent at exit, to make sure the child has exited so that
+ * port53 is free when all of nsd's processes have exited at shutdown time
+ */
+#define NSD_QUIT_CHILD 11
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U

@@ -77,6 +77,14 @@ child_handle_parent_command(int fd, short event, void* arg)
 	case NSD_QUIT:
 		ipc_child_quit(data->nsd);
 		break;
+	case NSD_QUIT_CHILD:
+		/* close our listening sockets and ack */
+		server_close_all_sockets(data->nsd->udp, data->nsd->ifs);
+		server_close_all_sockets(data->nsd->tcp, data->nsd->ifs);
+		/* mode == NSD_QUIT_CHILD */
+		(void)write(fd, &mode, sizeof(mode));
+		ipc_child_quit(data->nsd);
+		break;
 	case NSD_QUIT_WITH_STATS:
 #ifdef BIND8_STATS
 		DEBUG(DEBUG_IPC, 2, (LOG_INFO, "quit QUIT_WITH_STATS"));

@@ -177,6 +177,8 @@ static void handle_tcp_writing(int fd, short event, void* arg);
  * Send all children the quit nonblocking, then close pipe.
  */
 static void send_children_quit(struct nsd* nsd);
+/* same, for shutdown time, waits for child to exit to avoid restart issues */
+static void send_children_quit_and_wait(struct nsd* nsd);
 
 /* set childrens flags to send NSD_STATS to them */
 #ifdef BIND8_STATS
@@ -1371,7 +1373,7 @@ server_main(struct nsd *nsd)
 #ifdef HAVE_SSL
 	daemon_remote_close(nsd->rc);
 #endif
-	send_children_quit(nsd);
+	send_children_quit_and_wait(nsd);
 
 	/* Unlink it if possible... */
 	unlinkpid(nsd->pidfile);
@@ -2215,6 +2217,38 @@ send_children_quit(struct nsd* nsd)
 					(int) command,
 					(int) nsd->children[i].pid,
 					strerror(errno));
+			}
+			fsync(nsd->children[i].child_fd);
+			close(nsd->children[i].child_fd);
+			nsd->children[i].child_fd = -1;
+		}
+	}
+}
+
+static void
+send_children_quit_and_wait(struct nsd* nsd)
+{
+	sig_atomic_t command;
+	size_t i;
+	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "send children quit and wait"));
+	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
+	for (i = 0; i < nsd->child_count; ++i) {
+		if (nsd->children[i].pid > 0 && nsd->children[i].child_fd != -1) {
+			command = NSD_QUIT_CHILD;
+			if (write(nsd->children[i].child_fd, &command,
+				sizeof(command)) == -1)
+			{
+				if(errno != EAGAIN && errno != EINTR)
+					log_msg(LOG_ERR, "problems sending command %d to server %d: %s",
+					(int) command,
+					(int) nsd->children[i].pid,
+					strerror(errno));
+			} else {
+				/* wait for reply */
+				int timeout = 3; /* seconds */
+				(void)block_read(NULL,
+					nsd->children[i].child_fd,
+					&command, sizeof(command), timeout);
 			}
 			fsync(nsd->children[i].child_fd);
 			close(nsd->children[i].child_fd);
