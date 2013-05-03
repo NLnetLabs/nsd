@@ -1,3 +1,6 @@
+3 May 2013: Wouter
+	- update acx_nlnetlabs.m4 to v23, w32 fixes with no impact on NSD3.
+
 24 April 2013: Matthijs
 	- New config option "ip-transparent:", to bind to non local addresses
 	  (thanks Arjen Zonneveld).

@@ -2,7 +2,9 @@
 # Copyright 2009, Wouter Wijngaards, NLnet Labs.   
 # BSD licensed.
 #
-# Version 21
+# Version 23
+# 2013-05-03 Update W32_SLEEP for newer mingw that links but not defines it.
+# 2013-03-22 Fix ACX_RSRC_VERSION for long version numbers.
 # 2012-02-09 Fix AHX_MEMCMP_BROKEN with undef in compat/memcmp.h.
 # 2012-01-20 Fix COMPILER_FLAGS_UNBOUND for gcc 4.6.2 assigned-not-used-warns.
 # 2011-12-05 Fix getaddrinfowithincludes on windows with fedora16 mingw32-gcc.
@@ -101,7 +103,7 @@ dnl Calculate comma separated windows-resource numbers from package version.
 dnl Picks the first three(,0) or four numbers out of the name.
 dnl $1: variable for the result
 AC_DEFUN([ACX_RSRC_VERSION], 
-[$1=[`echo $PACKAGE_VERSION | sed -e 's/^[^0-9]*\([0-9]\)[^0-9]*\([0-9]\)[^0-9]*\([0-9]\)[^0-9]*\([0-9]\).*$/\1,\2,\3,\4/' -e 's/^[^0-9]*\([0-9]\)[^0-9]*\([0-9]\)[^0-9]*\([0-9]\)[^0-9]*$/\1,\2,\3,0/' `]
+[$1=[`echo $PACKAGE_VERSION | sed -e 's/^[^0-9]*\([0-9][0-9]*\)[^0-9][^0-9]*\([0-9][0-9]*\)[^0-9][^0-9]*\([0-9][0-9]*\)[^0-9][^0-9]*\([0-9][0-9]*\).*$/\1,\2,\3,\4/' -e 's/^[^0-9]*\([0-9][0-9]*\)[^0-9][^0-9]*\([0-9][0-9]*\)[^0-9][^0-9]*\([0-9][0-9]*\)[^0-9]*$/\1,\2,\3,0/' `]
 ])
 
 dnl Routine to help check for compiler flags.
@@ -1208,7 +1210,7 @@ struct tm *gmtime_r(const time_t *timep, struct tm *result);
 dnl provide w32 compat definition for sleep
 AC_DEFUN([AHX_CONFIG_W32_SLEEP],
 [
-#ifndef HAVE_SLEEP
+#if !defined(HAVE_SLEEP) || defined(HAVE_WINDOWS_H)
 #define sleep(x) Sleep((x)*1000) /* on win32 */
 #endif /* HAVE_SLEEP */
 ])
