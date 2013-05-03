@@ -1,6 +1,7 @@
 3 May 2013: Wouter
 	- Fix race on exit of nsd, for restarts, so that the pidfile-pid
 	  process waits until port53 has been closed before exiting.
+	- update acx_nlnetlabs.m4 to v23, sleep w32 fix.
 
 29 April 2013: Wouter
 	- Remove unused pointer and fixup chroot include for trail slash.
