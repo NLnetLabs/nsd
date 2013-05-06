@@ -59,7 +59,9 @@ static int server_settings_seen = 0;
 %token VAR_ALGORITHM VAR_SECRET
 %token VAR_AXFR VAR_UDP
 %token VAR_VERBOSITY VAR_HIDE_VERSION
-%token VAR_RRL_SIZE VAR_RRL_RATELIMIT VAR_RRL_SLIP VAR_RRL_WHITELIST_RATELIMIT VAR_RRL_WHITELIST
+%token VAR_RRL_SIZE VAR_RRL_RATELIMIT VAR_RRL_SLIP 
+%token VAR_RRL_IPV4_PREFIX_LENGTH VAR_RRL_IPV6_PREFIX_LENGTH
+%token VAR_RRL_WHITELIST_RATELIMIT VAR_RRL_WHITELIST
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -84,7 +86,8 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
 	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
 	server_ipv6_edns_size | server_verbosity | server_hide_version |
-	server_rrl_size | server_rrl_ratelimit | server_rrl_slip | server_rrl_whitelist_ratelimit;
+	server_rrl_size | server_rrl_ratelimit | server_rrl_slip | 
+	server_rrl_ipv4_prefix_length | server_rrl_ipv6_prefix_length | server_rrl_whitelist_ratelimit;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -330,6 +333,26 @@ server_rrl_slip: VAR_RRL_SLIP STRING
 		if(atoi($2) < 0)
 			yyerror("number equal or greater than zero expected");
 		cfg_parser->opt->rrl_slip = atoi($2);
+#endif
+	}
+	;
+server_rrl_ipv4_prefix_length: VAR_RRL_IPV4_PREFIX_LENGTH STRING
+	{
+		OUTYY(("P(server_rrl_ipv4_prefix_length:%s)\n", $2)); 
+#ifdef RATELIMIT
+		if(atoi($2) < 0 || atoi($2) > 32)
+			yyerror("invalid IPv4 prefix length");
+		cfg_parser->opt->rrl_ipv4_prefix_length = atoi($2);
+#endif
+	}
+	;
+server_rrl_ipv6_prefix_length: VAR_RRL_IPV6_PREFIX_LENGTH STRING
+	{
+		OUTYY(("P(server_rrl_ipv6_prefix_length:%s)\n", $2)); 
+#ifdef RATELIMIT
+		if(atoi($2) < 0 || atoi($2) > 64)
+			yyerror("invalid IPv6 prefix length");
+		cfg_parser->opt->rrl_ipv6_prefix_length = atoi($2);
 #endif
 	}
 	;

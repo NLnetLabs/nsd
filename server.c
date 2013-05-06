@@ -562,7 +562,9 @@ server_prepare(struct nsd *nsd)
 	rrl_mmap_init(nsd->child_count, nsd->options->rrl_size,
 		nsd->options->rrl_ratelimit,
 		nsd->options->rrl_whitelist_ratelimit,
-		nsd->options->rrl_slip);
+		nsd->options->rrl_slip,
+		nsd->options->rrl_ipv4_prefix_length,
+		nsd->options->rrl_ipv6_prefix_length);
 #endif /* RATELIMIT */
 
 	/* Open the database... */

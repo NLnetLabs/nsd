@@ -317,6 +317,8 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 		SERV_GET_INT(rrl_size, o);
 		SERV_GET_INT(rrl_ratelimit, o);
 		SERV_GET_INT(rrl_slip, o);
+		SERV_GET_INT(rrl_ipv4_prefix_length, o);
+		SERV_GET_INT(rrl_ipv6_prefix_length, o);
 		SERV_GET_INT(rrl_whitelist_ratelimit, o);
 #endif
 
@@ -371,6 +373,8 @@ config_test_print_server(nsd_options_t* opt)
 	printf("\trrl-size: %d\n", (int)opt->rrl_size);
 	printf("\trrl-ratelimit: %d\n", (int)opt->rrl_ratelimit);
 	printf("\trrl-slip: %d\n", (int)opt->rrl_slip);
+	printf("\trrl-ipv4-prefix-length: %d\n", (int)opt->rrl_ipv4_prefix_length);
+	printf("\trrl-ipv6-prefix-length: %d\n", (int)opt->rrl_ipv6_prefix_length);
 	printf("\trrl-whitelist-ratelimit: %d\n", (int)opt->rrl_whitelist_ratelimit);
 #endif
 

@@ -69,6 +69,8 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->rrl_size = RRL_BUCKETS;
 	opt->rrl_ratelimit = RRL_LIMIT/2;
 	opt->rrl_slip = RRL_SLIP;
+	opt->rrl_ipv4_prefix_length = RRL_IPV4_PREFIX_LENGTH;
+	opt->rrl_ipv6_prefix_length = RRL_IPV6_PREFIX_LENGTH;
 	opt->rrl_whitelist_ratelimit = RRL_WLIST_LIMIT/2;
 #endif
 	nsd_options = opt;

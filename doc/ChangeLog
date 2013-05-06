@@ -1,5 +1,6 @@
 6 May 2013: Matthijs
 	- Add rrl-slip config option (thanks Stephane Bortzmeyer).
+	- Add rrl-ipv{4,6}-prefix-length config option.
 
 3 May 2013: Wouter
 	- update acx_nlnetlabs.m4 to v23, w32 fixes with no impact on NSD3.
