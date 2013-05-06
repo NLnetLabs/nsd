@@ -316,6 +316,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 #ifdef RATELIMIT
 		SERV_GET_INT(rrl_size, o);
 		SERV_GET_INT(rrl_ratelimit, o);
+		SERV_GET_INT(rrl_slip, o);
 		SERV_GET_INT(rrl_whitelist_ratelimit, o);
 #endif
 
@@ -369,6 +370,7 @@ config_test_print_server(nsd_options_t* opt)
 #ifdef RATELIMIT
 	printf("\trrl-size: %d\n", (int)opt->rrl_size);
 	printf("\trrl-ratelimit: %d\n", (int)opt->rrl_ratelimit);
+	printf("\trrl-slip: %d\n", (int)opt->rrl_slip);
 	printf("\trrl-whitelist-ratelimit: %d\n", (int)opt->rrl_whitelist_ratelimit);
 #endif
 

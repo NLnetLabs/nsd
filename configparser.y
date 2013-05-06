@@ -59,7 +59,7 @@ static int server_settings_seen = 0;
 %token VAR_ALGORITHM VAR_SECRET
 %token VAR_AXFR VAR_UDP
 %token VAR_VERBOSITY VAR_HIDE_VERSION
-%token VAR_RRL_SIZE VAR_RRL_RATELIMIT VAR_RRL_WHITELIST_RATELIMIT VAR_RRL_WHITELIST
+%token VAR_RRL_SIZE VAR_RRL_RATELIMIT VAR_RRL_SLIP VAR_RRL_WHITELIST_RATELIMIT VAR_RRL_WHITELIST
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -84,7 +84,7 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
 	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
 	server_ipv6_edns_size | server_verbosity | server_hide_version |
-	server_rrl_size | server_rrl_ratelimit | server_rrl_whitelist_ratelimit;
+	server_rrl_size | server_rrl_ratelimit | server_rrl_slip | server_rrl_whitelist_ratelimit;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -320,6 +320,16 @@ server_rrl_ratelimit: VAR_RRL_RATELIMIT STRING
 		OUTYY(("P(server_rrl_ratelimit:%s)\n", $2)); 
 #ifdef RATELIMIT
 		cfg_parser->opt->rrl_ratelimit = atoi($2);
+#endif
+	}
+	;
+server_rrl_slip: VAR_RRL_SLIP STRING
+	{ 
+		OUTYY(("P(server_rrl_slip:%s)\n", $2)); 
+#ifdef RATELIMIT
+		if(atoi($2) < 0)
+			yyerror("number equal or greater than zero expected");
+		cfg_parser->opt->rrl_slip = atoi($2);
 #endif
 	}
 	;

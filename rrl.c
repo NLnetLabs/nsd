@@ -46,6 +46,7 @@ struct rrl_bucket {
 static struct rrl_bucket* rrl_array = NULL;
 static size_t rrl_array_size = RRL_BUCKETS;
 static uint32_t rrl_ratelimit = RRL_LIMIT; /* 2x qps */
+static uint8_t rrl_slip_ratio = RRL_SLIP;
 static uint32_t rrl_whitelist_ratelimit = RRL_WLIST_LIMIT; /* 2x qps */
 
 /* the array of mmaps for the children (saved between reloads) */
@@ -83,7 +84,7 @@ static char* wiredname2str(const uint8_t* dname)
 	return buf;
 }
 
-void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm)
+void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm, size_t sm)
 {
 #ifdef HAVE_MMAP
 	size_t i;
@@ -91,6 +92,7 @@ void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm)
 	if(numbuck != 0)
 		rrl_array_size = numbuck;
 	rrl_ratelimit = lm*2;
+        rrl_slip_ratio = sm;
 	rrl_whitelist_ratelimit = wlm*2;
 #ifdef HAVE_MMAP
 	/* allocate the ratelimit hashtable in a memory map so it is
@@ -99,7 +101,7 @@ void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm)
 	rrl_maps = (void**)xalloc(sizeof(void*)*rrl_maps_num);
 	for(i=0; i<rrl_maps_num; i++) {
 		rrl_maps[i] = mmap(NULL,
-			sizeof(struct rrl_bucket)*rrl_array_size, 
+			sizeof(struct rrl_bucket)*rrl_array_size,
 			PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
 		if(rrl_maps[i] == MAP_FAILED) {
 			log_msg(LOG_ERR, "rrl: mmap failed: %s",
@@ -444,7 +446,7 @@ int rrl_process_query(query_type* query)
 query_state_type rrl_slip(query_type* query)
 {
 	/* discard half the packets, randomly */
-	if((random() & 0x1)) {
+	if((rrl_slip_ratio > 0) && ((rrl_slip_ratio == 1) || ((random() % rrl_slip_ratio) == 0))) {
 		/* set TC on the rest */
 		TC_SET(query->packet);
 		ANCOUNT_SET(query->packet, 0);

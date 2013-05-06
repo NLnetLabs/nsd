@@ -30,6 +30,8 @@ enum rrl_type {
 #define RRL_BUCKETS 1000000
 /** default rrl limit, in 2x qps , the default is 200 qps */
 #define RRL_LIMIT 400
+/** default slip */
+#define RRL_SLIP 2
 /** default whitelist rrl limit, in 2x qps, default is thus 2000 qps */
 #define RRL_WLIST_LIMIT 4000
 
@@ -37,7 +39,7 @@ enum rrl_type {
  * Initialize for n children (optional, otherwise no mmaps used)
  * ratelimits lm and wlm are in qps (this routines x2s them for internal use).
  */
-void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm);
+void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm, size_t sm);
 
 /**
  * Initialize rate limiting (for this child server process)

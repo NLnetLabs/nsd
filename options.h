@@ -70,6 +70,8 @@ struct nsd_options {
 	size_t rrl_size;
 	/** max qps for queries, 0 is nolimit */
 	size_t rrl_ratelimit;
+        /** ratio of slipped responses, 0 is noslip */
+        size_t rrl_slip;
 	/** max qps for whitelisted queries, 0 is nolimit */
 	size_t rrl_whitelist_ratelimit;
 #endif

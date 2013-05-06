@@ -111,6 +111,14 @@ server:
 	# rrl-whitelist-ratelimit to 0 to disable ratelimit processing.
 	# rrl-ratelimit: 200
 
+        # Response Rate Limiting, number of packets to discard before
+        # sending a SLIP response (a truncated one, allowing an honest
+        # resolver to retry with TCP). Default is 2 (one half of the
+        # queries will receive a SLIP response, 0 disables SLIP (all
+        # packets are discarded), 1 means every request will get a
+        # SLIP response.
+        # rrl-slip: 2
+ 
 	# Response Rate Limiting, maximum QPS allowed (from one query source)
 	# for whitelisted types. Default 2000.
 	# rrl-whitelist-ratelimit: 2000
