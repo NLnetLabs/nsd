@@ -42,7 +42,7 @@ Print usage help information and exit.
 .TP
 .B \-o\fI option
 Return only this option from the config file. This option can
-to be used in conjunction with the 
+be used in conjunction with the 
 .B \-z
 and the
 .B \-p
@@ -80,9 +80,7 @@ for zone 'zonename'.
 .P
 .RS
 If this option is not given, the server section of the config file
-is used.  This option is primarily used by 
-.B nsdc 
-to parse the config file from the shell.
+is used.
 .RE
 .P
 .RS
@@ -96,8 +94,7 @@ default
 configuration file
 .SH "SEE ALSO"
 .LP
-nsd(8), nsdc(8), nsd.conf(5), nsd\-notify(8), nsd\-patch(8), 
-nsd\-xfer(8)
+\fInsd\fR(8), \fInsd.conf\fR(5), \fInsd\-control\fR(8)
 .SH "AUTHORS"
 .LP
 .B NSD

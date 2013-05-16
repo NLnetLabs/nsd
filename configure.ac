@@ -144,6 +144,7 @@ AC_ARG_WITH([chroot],
 		chrootdir=$withval
 		AC_DEFINE_UNQUOTED(CHROOTDIR, ["`eval echo $chrootdir`"], [NSD default chroot directory])
 	])
+AC_SUBST(chrootdir)
 
 #
 # Determine the user name to drop privileges to

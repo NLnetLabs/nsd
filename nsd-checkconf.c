@@ -471,6 +471,26 @@ config_test_print_server(nsd_options_t* opt)
 
 }
 
+static void
+append_trailing_slash(const char** dirname, region_type* region)
+{
+	int l = strlen(*dirname);
+	if (l>0 && (*dirname)[l-1] != '/') {
+		char *dirname_slash = region_alloc(region, l+2);
+		memcpy(dirname_slash, *dirname, l+1);
+		strlcat(dirname_slash, "/", l+2);
+		*dirname = dirname_slash;
+	}
+}
+
+static int
+file_inside_chroot(const char* fname, const char* chr)
+{
+	/* true if filename starts with chroot or is not absolute */
+	return ((fname && fname[0] && strncmp(fname, chr, strlen(chr)) == 0) ||
+		(fname && fname[0] != '/'));
+}
+
 static int
 additional_checks(nsd_options_t* opt, const char* filename)
 {
@@ -526,35 +546,46 @@ additional_checks(nsd_options_t* opt, const char* filename)
 
 	/* not done here: parsing of ip-address. parsing of username. */
 
-        if (opt->chroot) {
-                int l = strlen(opt->chroot);
+        if (opt->chroot && opt->chroot[0]) {
+		/* append trailing slash for strncmp checking */
+		append_trailing_slash(&opt->chroot, opt->region);
+		append_trailing_slash(&opt->xfrdir, opt->region);
+		append_trailing_slash(&opt->zonesdir, opt->region);
 
-                if (strncmp(opt->chroot, opt->pidfile, l) != 0) {
+		/* zonesdir must be absolute and within chroot,
+		 * all other pathnames may be relative to zonesdir */
+		if (strncmp(opt->zonesdir, opt->chroot, strlen(opt->chroot)) != 0) {
+			fprintf(stderr, "%s: zonesdir %s is not relative to chroot %s.\n",
+				filename, opt->zonesdir, opt->chroot);
+			errors ++;
+                }
+		if (!file_inside_chroot(opt->pidfile, opt->chroot)) {
 			fprintf(stderr, "%s: pidfile %s is not relative to chroot %s.\n",
 				filename, opt->pidfile, opt->chroot);
 			errors ++;
                 }
-		if (strncmp(opt->chroot, opt->database, l) != 0) {
-			fprintf(stderr, "%s: databasefile %s is not relative to chroot %s.\n",
+		if (!file_inside_chroot(opt->database, opt->chroot)) {
+			fprintf(stderr, "%s: database %s is not relative to chroot %s.\n",
 				filename, opt->database, opt->chroot);
 			errors ++;
                 }
-		if (strncmp(opt->chroot, opt->xfrdfile, l) != 0) {
+		if (!file_inside_chroot(opt->xfrdfile, opt->chroot)) {
 			fprintf(stderr, "%s: xfrdfile %s is not relative to chroot %s.\n",
 				filename, opt->xfrdfile, opt->chroot);
 			errors ++;
                 }
-       		if (strncmp(opt->chroot, opt->zonelistfile, l) != 0) {
+		if (!file_inside_chroot(opt->zonelistfile, opt->chroot)) {
 			fprintf(stderr, "%s: zonelistfile %s is not relative to chroot %s.\n",
 				filename, opt->zonelistfile, opt->chroot);
 			errors ++;
                 }
-       		if (strncmp(opt->chroot, opt->xfrdir, l) != 0) {
+		if (!file_inside_chroot(opt->xfrdir, opt->chroot)) {
 			fprintf(stderr, "%s: xfrdir %s is not relative to chroot %s.\n",
 				filename, opt->xfrdir, opt->chroot);
 			errors ++;
                 }
- }
+	}
+
 	if (atoi(opt->port) <= 0) {
 		fprintf(stderr, "%s: port number '%s' is not a positive number.\n",
 			filename, opt->port);

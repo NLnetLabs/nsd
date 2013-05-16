@@ -27,6 +27,7 @@ xfrdfile = @xfrdfile@
 zonelistfile = @zonelistfile@
 nsdconfigfile = @nsd_conf_file@
 zonesdir = @zonesdir@
+chrootdir= @chrootdir@
 user = @user@
 
 # override $U variable which is used by autotools for deansification (for
@@ -55,6 +56,7 @@ EDIT		= sed \
 			-e 's,@sbindir\@,$(sbindir),g' \
 			-e 's,@configdir\@,$(configdir),g' \
 			-e 's,@zonesdir\@,$(zonesdir),g' \
+			-e 's,@chrootdir\@,$(chrootdir),g' \
 			-e 's,@pidfile\@,$(pidfile),g' \
 			-e 's,@logfile\@,$(logfile),g' \
 			-e 's,@dbfile\@,$(dbfile),g' \

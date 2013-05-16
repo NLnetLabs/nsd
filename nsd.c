@@ -128,18 +128,25 @@ error(const char *format, ...)
 	exit(1);
 }
 
+static void
+append_trailing_slash(const char** dirname, region_type* region)
+{
+	int l = strlen(*dirname);
+	if (l>0 && (*dirname)[l-1] != '/') {
+		char *dirname_slash = region_alloc(region, l+2);
+		memcpy(dirname_slash, *dirname, l+1);
+		strlcat(dirname_slash, "/", l+2);
+		/* old dirname is leaked, this is only used for chroot, once */
+		*dirname = dirname_slash;
+	}
+}
+
 static int
 file_inside_chroot(const char* fname, const char* chr)
 {
-#ifdef NDEBUG
-	assert(chr);
-#endif /* NDEBUG */
-	/* filename and chroot the same? */
-	if (fname && fname[0] && chr[0] && !strncmp(fname, chr, strlen(chr)))
-		return 2; /* strip chroot, file rotation ok */
-	else if (fname && fname[0] != '/')
-		return 1; /* don't strip, file rotation ok */
-	return 0; /* don't strip, don't try file rotation */
+	/* true if filename starts with chroot or is not absolute */
+	return ((fname && fname[0] && strncmp(fname, chr, strlen(chr)) == 0) ||
+		(fname && fname[0] != '/'));
 }
 
 void
@@ -849,33 +856,32 @@ main(int argc, char *argv[])
 	key_options_tsig_add(nsd.options);
 #endif
 
-	/* Relativize the pathnames for chroot... */
-	if (nsd.chrootdir) {
-		int l = strlen(nsd.chrootdir);
-
+	append_trailing_slash(&nsd.options->xfrdir, nsd.options->region);
+	/* Check relativity of pathnames to chroot */
+	if (nsd.chrootdir && nsd.chrootdir[0]) {
 		/* existing chrootdir: append trailing slash for strncmp checking */
-		if (l>0 && strncmp(nsd.chrootdir + (l-1), "/", 1) != 0) {
-			char *chroot_slash = region_alloc(nsd.region, l+2);
-			memcpy(chroot_slash, nsd.chrootdir, l+1);
-			strlcat(chroot_slash, "/", l+2);
-			nsd.chrootdir = chroot_slash;
-			++l;
-		}
+		append_trailing_slash(&nsd.chrootdir, nsd.region);
+		append_trailing_slash(&nsd.options->zonesdir, nsd.options->region);
 
-		if (strncmp(nsd.chrootdir, nsd.pidfile, l) != 0) {
-			error("%s is not relative to %s: chroot not possible",
+		/* zonesdir must be absolute and within chroot,
+		 * all other pathnames may be relative to zonesdir */
+		if (strncmp(nsd.options->zonesdir, nsd.chrootdir, strlen(nsd.chrootdir)) != 0) {
+			error("zonesdir %s is not relative to %s: chroot not possible",
+				nsd.options->zonesdir, nsd.chrootdir);
+		} else if (!file_inside_chroot(nsd.pidfile, nsd.chrootdir)) {
+			error("pidfile %s is not relative to %s: chroot not possible",
 				nsd.pidfile, nsd.chrootdir);
-		} else if (strncmp(nsd.chrootdir, nsd.dbfile, l) != 0) {
-			error("%s is not relative to %s: chroot not possible",
+		} else if (!file_inside_chroot(nsd.dbfile, nsd.chrootdir)) {
+			error("database %s is not relative to %s: chroot not possible",
 				nsd.dbfile, nsd.chrootdir);
-		} else if (strncmp(nsd.chrootdir, nsd.options->xfrdfile, l) != 0) {
-			error("%s is not relative to %s: chroot not possible",
+		} else if (!file_inside_chroot(nsd.options->xfrdfile, nsd.chrootdir)) {
+			error("xfrdfile %s is not relative to %s: chroot not possible",
 				nsd.options->xfrdfile, nsd.chrootdir);
-		} else if (strncmp(nsd.chrootdir, nsd.options->zonelistfile, l) != 0) {
-			error("%s is not relative to %s: chroot not possible",
+		} else if (!file_inside_chroot(nsd.options->zonelistfile, nsd.chrootdir)) {
+			error("zonelistfile %s is not relative to %s: chroot not possible",
 				nsd.options->zonelistfile, nsd.chrootdir);
-		} else if (strncmp(nsd.chrootdir, nsd.options->xfrdir, l) != 0) {
-			error("%s is not relative to %s: chroot not possible",
+		} else if (!file_inside_chroot(nsd.options->xfrdir, nsd.chrootdir)) {
+			error("xfrdir %s is not relative to %s: chroot not possible",
 				nsd.options->xfrdir, nsd.chrootdir);
 		}
 	}
@@ -998,22 +1004,26 @@ main(int argc, char *argv[])
 
 	/* Chroot */
 #ifdef HAVE_CHROOT
-	if (nsd.chrootdir && strlen(nsd.chrootdir)) {
+	if (nsd.chrootdir && nsd.chrootdir[0]) {
 		int l = strlen(nsd.chrootdir)-1; /* ends in trailing slash */
-		int ret = 0;
 
-		/* filename after chroot */
-		ret = file_inside_chroot(nsd.log_filename, nsd.chrootdir);
-		if (ret) {
+		if (file_inside_chroot(nsd.log_filename, nsd.chrootdir))
 			nsd.file_rotation_ok = 1;
-			if (ret == 2) /* also strip chroot */
-				nsd.log_filename += l;
-		}
-		nsd.dbfile += l;
-		nsd.pidfile += l;
-		nsd.options->xfrdfile += l;
-		nsd.options->zlfile += l;
-		nsd.options->xfrdir += l;
+
+		/* strip chroot from pathnames if they're absolute */
+		nsd.options->zonesdir += l;
+		if (nsd.log_filename[0] == '/')
+			nsd.log_filename += l;
+		if (nsd.pidfile[0] == '/')
+			nsd.pidfile += l;
+		if (nsd.dbfile[0] == '/')
+			nsd.dbfile += l;
+		if (nsd.options->xfrdfile[0] == '/')
+			nsd.options->xfrdfile += l;
+		if (nsd.options->zlfile[0] == '/')
+			nsd.options->zlfile += l;
+		if (nsd.options->xfrdir[0] == '/')
+			nsd.options->xfrdir += l;
 
 		/* strip chroot from pathnames of "include:" statements
 		 * on subsequent repattern commands */
@@ -1031,6 +1041,16 @@ main(int argc, char *argv[])
 		}
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
 			nsd.chrootdir));
+
+		/* chdir to zonesdir again after chroot */
+		if(nsd.options->zonesdir && nsd.options->zonesdir[0]) {
+			if(chdir(nsd.options->zonesdir)) {
+				error("cannot chdir to '%s': %s",
+					nsd.options->zonesdir, strerror(errno));
+			}
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed directory to %s",
+				nsd.options->zonesdir));
+		}
 	}
 	else
 #endif /* HAVE_CHROOT */

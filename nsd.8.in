@@ -83,7 +83,7 @@ configfile.
 .P
 Normally
 .B NSD
-should be started with the `nsdc(8) start` command invoked from a
+should be started with the `nsd\-control(8) start` command invoked from a
 .I /etc/rc.d/nsd.sh
 script or similar at the operating system startup.
 .TP
@@ -247,7 +247,7 @@ facility, unless the
 option is specified.
 .SH "SEE ALSO"
 .LP
-nsd.conf(5), nsd\-checkconf(8), nsd\-control(8)
+\fInsd.conf\fR(5), \fInsd\-checkconf\fR(8), \fInsd\-control\fR(8)
 .SH "AUTHORS"
 .LP
 .B NSD

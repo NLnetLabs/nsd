@@ -113,6 +113,13 @@ setup_ctx(nsd_options_t* cfg)
 	c_key = cfg->control_key_file;
 	c_cert = cfg->control_cert_file;
 
+	/* filenames may be relative to zonesdir */
+	if (cfg->zonesdir && cfg->zonesdir[0] &&
+		(s_cert[0] != '/' || c_key[0] != '/' || c_cert[0] != '/')) {
+		if(chdir(cfg->zonesdir))
+			ssl_err("could not chdir to zonesdir");
+	}
+
         ctx = SSL_CTX_new(SSLv23_client_method());
 	if(!ctx)
 		ssl_err("could not allocate SSL_CTX pointer");

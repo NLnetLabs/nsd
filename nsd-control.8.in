@@ -237,8 +237,9 @@ entries.
 nsd configuration file.
 .TP
 .I @configdir@
-directory with private keys (nsd.key and nsd.key) and
-self\-signed certificates (nsd.pem and nsd.pem).
+directory with private keys (nsd_server.key and nsd_control.key) and
+self\-signed certificates (nsd_server.pem and nsd_control.pem).
 .SH "SEE ALSO"
 \fInsd.conf\fR(5), 
-\fInsd\fR(8)
+\fInsd\fR(8),
+\fInsd\-checkconf\fR(8)

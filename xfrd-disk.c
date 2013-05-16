@@ -467,7 +467,7 @@ xfrd_write_state(struct xfrd_state* xfrd)
 static void
 tempdirname(char* buf, size_t sz, struct nsd* nsd)
 {
-	snprintf(buf, sz, "%s/nsd-xfr-%d",
+	snprintf(buf, sz, "%snsd-xfr-%d",
 		nsd->options->xfrdir, (int)nsd->pid);
 }
 

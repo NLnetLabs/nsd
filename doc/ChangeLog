@@ -1,3 +1,8 @@
+16 May 2013: Wouter
+	- Patch from Lukas Wunner that makes chroot more consistent.
+	  Make all paths absolute with the chrootdir in front, or use
+	  an absolute zonesdir with other patsh relative to that.
+
 3 May 2013: Wouter
 	- Fix race on exit of nsd, for restarts, so that the pidfile-pid
 	  process waits until port53 has been closed before exiting.
