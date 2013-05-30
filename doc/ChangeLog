@@ -1,3 +1,6 @@
+30 May 2013: Wouter
+	- Fix nsd-mem for printout of values above 4G.
+
 16 May 2013: Wouter
 	- Patch from Lukas Wunner that makes chroot more consistent.
 	  Make all paths absolute with the chrootdir in front, or use

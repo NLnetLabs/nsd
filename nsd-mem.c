@@ -113,10 +113,10 @@ account_zone(struct namedb* db, struct zone_mem* zmem)
 static void
 pretty_mem(size_t x, const char* s)
 {
-	char buf[13];
+	char buf[32];
 	memset(buf, 0, sizeof(buf));
-	if(snprintf(buf, sizeof(buf), "%12u", (unsigned)x) > 12) {
-		printf("%12u %s\n", (unsigned)x, s);
+	if(snprintf(buf, sizeof(buf), "%12llu", (long long unsigned)x) > 12) {
+		printf("%12llu %s\n", (unsigned long long)x, s);
 		return;
 	}
 	printf("%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c %s\n",
