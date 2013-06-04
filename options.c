@@ -296,7 +296,7 @@ zone_list_zone_insert(nsd_options_t* opt, const char* nm, const char* patnm,
 	return zone;
 }
 
-int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
+int parse_zone_list_file(nsd_options_t* opt)
 {
 	/* zonelist looks like this:
 	# name pattern
@@ -312,14 +312,13 @@ int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
 	opt->zonelist = NULL;
 	opt->zonefree_number = 0;
 	opt->zonelist_off = 0;
-	opt->zlfile = region_strdup(opt->region, zlfile);
 
 	/* try to open the zonelist file, an empty or nonexist file is OK */
-	opt->zonelist = fopen(zlfile, "r+");
+	opt->zonelist = fopen(opt->zonelistfile, "r+");
 	if(!opt->zonelist) {
 		if(errno == ENOENT)
 			return 1; /* file does not exist, it is created later */
-		log_msg(LOG_ERR, "could not open zone list %s: %s", zlfile,
+		log_msg(LOG_ERR, "could not open zone list %s: %s", opt->zonelistfile,
 			strerror(errno));
 		return 0;
 	}
@@ -328,7 +327,7 @@ int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
 	if(fread(buf, 1, strlen(ZONELIST_HEADER), opt->zonelist) !=
 		strlen(ZONELIST_HEADER) || strncmp(buf, ZONELIST_HEADER,
 		strlen(ZONELIST_HEADER)) != 0) {
-		log_msg(LOG_ERR, "zone list %s contains bad header\n", zlfile);
+		log_msg(LOG_ERR, "zone list %s contains bad header\n", opt->zonelistfile);
 		fclose(opt->zonelist);
 		opt->zonelist = NULL;
 		return 0;
@@ -349,7 +348,7 @@ int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
 			if(!space) {
 				/* parse error */
 				log_msg(LOG_ERR, "parse error in %s: '%s'",
-					zlfile, buf);
+					opt->zonelistfile, buf);
 				continue;
 			}
 			nm = buf+4;
@@ -368,7 +367,7 @@ int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
 			zone_list_free_insert(opt, linesize,
 				ftello(opt->zonelist)-linesize);
 		} else {
-			log_msg(LOG_WARNING, "bad data in %s, '%s'", zlfile,
+			log_msg(LOG_WARNING, "bad data in %s, '%s'", opt->zonelistfile,
 				buf);
 		}
 	}
@@ -403,10 +402,10 @@ zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 	if(!opt->zonelist || opt->zonelist_off == 0) {
 		/* create new file */
 		if(opt->zonelist) fclose(opt->zonelist);
-		opt->zonelist = fopen(opt->zlfile, "w+");
+		opt->zonelist = fopen(opt->zonelistfile, "w+");
 		if(!opt->zonelist) {
 			log_msg(LOG_ERR, "could not create zone list %s: %s",
-				opt->zlfile, strerror(errno));
+				opt->zonelistfile, strerror(errno));
 			log_msg(LOG_ERR, "zone %s could not be added", zname);
 			zone_options_delete(opt, zone);
 			return NULL;
@@ -415,32 +414,32 @@ zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 		if(r != strlen(ZONELIST_HEADER)) {
 			if(r == -1)
 				log_msg(LOG_ERR, "could not write to %s: %s",
-					opt->zlfile, strerror(errno));
+					opt->zonelistfile, strerror(errno));
 			else log_msg(LOG_ERR, "partial write to %s: disk full",
-				opt->zlfile);
+				opt->zonelistfile);
 			log_msg(LOG_ERR, "zone %s could not be added", zname);
 			zone_options_delete(opt, zone);
 			return NULL;
 		}
 		zone->off = ftello(opt->zonelist);
 		if(zone->off == -1)
-			log_msg(LOG_ERR, "ftello(%s): %s", opt->zlfile, strerror(errno));
+			log_msg(LOG_ERR, "ftello(%s): %s", opt->zonelistfile, strerror(errno));
 		r = fprintf(opt->zonelist, "add %s %s\n", zname, pname);
 		if(r != zone->linesize) {
 			if(r == -1)
 				log_msg(LOG_ERR, "could not write to %s: %s",
-					opt->zlfile, strerror(errno));
+					opt->zonelistfile, strerror(errno));
 			else log_msg(LOG_ERR, "partial write to %s: disk full",
-				opt->zlfile);
+				opt->zonelistfile);
 			log_msg(LOG_ERR, "zone %s could not be added", zname);
 			zone_options_delete(opt, zone);
 			return NULL;
 		}
 		opt->zonelist_off = ftello(opt->zonelist);
 		if(opt->zonelist_off == -1)
-			log_msg(LOG_ERR, "ftello(%s): %s", opt->zlfile, strerror(errno));
+			log_msg(LOG_ERR, "ftello(%s): %s", opt->zonelistfile, strerror(errno));
 		if(fflush(opt->zonelist) != 0) {
-			log_msg(LOG_ERR, "fflush %s: %s", opt->zlfile, strerror(errno));
+			log_msg(LOG_ERR, "fflush %s: %s", opt->zonelistfile, strerror(errno));
 		}
 		return zone;
 	}
@@ -450,7 +449,7 @@ zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 		/* no empty place, append to file */
 		zone->off = opt->zonelist_off;
 		if(fseeko(opt->zonelist, zone->off, SEEK_SET) == -1) {
-			log_msg(LOG_ERR, "fseeko(%s): %s", opt->zlfile, strerror(errno));
+			log_msg(LOG_ERR, "fseeko(%s): %s", opt->zonelistfile, strerror(errno));
 			log_msg(LOG_ERR, "zone %s could not be added", zname);
 			zone_options_delete(opt, zone);
 			return NULL;
@@ -459,16 +458,16 @@ zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 		if(r != zone->linesize) {
 			if(r == -1)
 				log_msg(LOG_ERR, "could not write to %s: %s",
-					opt->zlfile, strerror(errno));
+					opt->zonelistfile, strerror(errno));
 			else log_msg(LOG_ERR, "partial write to %s: disk full",
-				opt->zlfile);
+				opt->zonelistfile);
 			log_msg(LOG_ERR, "zone %s could not be added", zname);
 			zone_options_delete(opt, zone);
 			return NULL;
 		}
 		opt->zonelist_off += linesize;
 		if(fflush(opt->zonelist) != 0) {
-			log_msg(LOG_ERR, "fflush %s: %s", opt->zlfile, strerror(errno));
+			log_msg(LOG_ERR, "fflush %s: %s", opt->zonelistfile, strerror(errno));
 		}
 		return zone;
 	}
@@ -476,7 +475,7 @@ zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 	e = b->list;
 	zone->off = e->off;
 	if(fseeko(opt->zonelist, zone->off, SEEK_SET) == -1) {
-		log_msg(LOG_ERR, "fseeko(%s): %s", opt->zlfile, strerror(errno));
+		log_msg(LOG_ERR, "fseeko(%s): %s", opt->zonelistfile, strerror(errno));
 		log_msg(LOG_ERR, "zone %s could not be added", zname);
 		zone_options_delete(opt, zone);
 		return NULL;
@@ -485,15 +484,15 @@ zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 	if(r != zone->linesize) {
 		if(r == -1)
 			log_msg(LOG_ERR, "could not write to %s: %s",
-				opt->zlfile, strerror(errno));
+				opt->zonelistfile, strerror(errno));
 		else log_msg(LOG_ERR, "partial write to %s: disk full",
-			opt->zlfile);
+			opt->zonelistfile);
 		log_msg(LOG_ERR, "zone %s could not be added", zname);
 		zone_options_delete(opt, zone);
 		return NULL;
 	}
 	if(fflush(opt->zonelist) != 0) {
-		log_msg(LOG_ERR, "fflush %s: %s", opt->zlfile, strerror(errno));
+		log_msg(LOG_ERR, "fflush %s: %s", opt->zonelistfile, strerror(errno));
 	}
 
 	/* snip off and recycle element */
@@ -512,7 +511,7 @@ void zone_list_del(nsd_options_t* opt, zone_options_t* zone)
 {
 	/* put its space onto the free entry */
 	if(fseeko(opt->zonelist, zone->off, SEEK_SET) == -1) {
-		log_msg(LOG_ERR, "fseeko(%s): %s", opt->zlfile, strerror(errno));
+		log_msg(LOG_ERR, "fseeko(%s): %s", opt->zonelistfile, strerror(errno));
 		return;
 	}
 	fprintf(opt->zonelist, "del");
@@ -526,7 +525,7 @@ void zone_list_del(nsd_options_t* opt, zone_options_t* zone)
 		zone_list_compact(opt);
 	} else {
 		if(fflush(opt->zonelist) != 0) {
-			log_msg(LOG_ERR, "fflush %s: %s", opt->zlfile, strerror(errno));
+			log_msg(LOG_ERR, "fflush %s: %s", opt->zonelistfile, strerror(errno));
 		}
 	}
 }
@@ -556,7 +555,7 @@ void zone_list_compact(nsd_options_t* opt)
 	zone_options_t* zone;
 	off_t off;
 	int r;
-	snprintf(outname, sizeof(outname), "%s~", opt->zlfile);
+	snprintf(outname, sizeof(outname), "%s~", opt->zonelistfile);
 	/* useful, when : count-of-free > count-of-used */
 	/* write zonelist to zonelist~ */
 	out = fopen(outname, "w+");
@@ -604,9 +603,9 @@ void zone_list_compact(nsd_options_t* opt)
 	}
 
 	/* rename zonelist~ onto zonelist */
-	if(rename(outname, opt->zlfile) == -1) {
+	if(rename(outname, opt->zonelistfile) == -1) {
 		log_msg(LOG_ERR, "rename(%s to %s) failed: %s",
-			outname, opt->zlfile, strerror(errno));
+			outname, opt->zonelistfile, strerror(errno));
 		fclose(out);
 		return;
 	}

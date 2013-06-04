@@ -1,3 +1,6 @@
+4 Jun 2013: Wouter
+	- Remove duplicate zlfile variable from options structure.
+
 30 May 2013: Wouter
 	- Fix nsd-mem for printout of values above 4G.
 

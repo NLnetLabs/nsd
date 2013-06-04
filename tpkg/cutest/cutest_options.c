@@ -358,7 +358,7 @@ check_zonelist_file(CuTest *tc, nsd_options_t* opt, const char* s)
 	int line = 0;
 	size_t delcount = 0;
 	fflush(opt->zonelist);
-	in = fopen(opt->zlfile, "r");
+	in = fopen(opt->zonelistfile, "r");
 	while(fgets(buf, sizeof(buf), in)) {
 		line++;
 		if(strncmp(buf, s, strlen(buf)) != 0) {
@@ -401,6 +401,7 @@ static void zonelist_1(CuTest *tc)
 	opt->region = region;
 	snprintf(zname, sizeof(zname), "/tmp/unitzlist%u.cfg",
 		(unsigned)getpid());
+	opt->zonelistfile = zname;
 
 	/* create master and slave patterns */
 	p1 = pattern_options_create(opt->region);
@@ -411,7 +412,7 @@ static void zonelist_1(CuTest *tc)
 	nsd_options_insert_pattern(opt, p2);
 
 	/* file does not exist, try to open it */
-	CuAssertTrue(tc, parse_zone_list_file(opt, zname));
+	CuAssertTrue(tc, parse_zone_list_file(opt));
 	CuAssertTrue(tc, opt->zonefree->count == 0);
 	CuAssertTrue(tc, opt->zonelist == NULL);
 	CuAssertTrue(tc, opt->zonelist_off == (off_t)0);
@@ -458,6 +459,7 @@ static void zonelist_1(CuTest *tc)
 		DEFAULT_INITIAL_CLEANUP_SIZE, 1);
 	opt = nsd_options_create(region);
 	opt->region = region;
+	opt->zonelistfile = zname;
 
 	/* create master and slave patterns */
 	p1 = pattern_options_create(opt->region);
@@ -468,7 +470,7 @@ static void zonelist_1(CuTest *tc)
 	nsd_options_insert_pattern(opt, p2);
 
 	/* read zonelist contents (file exists) and compact */
-	CuAssertTrue(tc, parse_zone_list_file(opt, zname));
+	CuAssertTrue(tc, parse_zone_list_file(opt));
 	CuAssertTrue(tc, opt->zonelist != NULL);
 	CuAssertTrue(tc, opt->zonefree->count != 0);
 	CuAssertTrue(tc, opt->zonefree_number != 0);

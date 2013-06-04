@@ -601,7 +601,7 @@ main(int argc, char *argv[])
 	if(!parse_options_file(nsd.options, configfile, NULL, NULL)) {
 		error("could not read config: %s\n", configfile);
 	}
-	if(!parse_zone_list_file(nsd.options, nsd.options->zonelistfile)) {
+	if(!parse_zone_list_file(nsd.options)) {
 		error("could not read zonelist file %s\n",
 			nsd.options->zonelistfile);
 	}
@@ -1020,8 +1020,8 @@ main(int argc, char *argv[])
 			nsd.dbfile += l;
 		if (nsd.options->xfrdfile[0] == '/')
 			nsd.options->xfrdfile += l;
-		if (nsd.options->zlfile[0] == '/')
-			nsd.options->zlfile += l;
+		if (nsd.options->zonelistfile[0] == '/')
+			nsd.options->zonelistfile += l;
 		if (nsd.options->xfrdir[0] == '/')
 			nsd.options->xfrdir += l;
 

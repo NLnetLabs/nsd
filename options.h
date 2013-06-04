@@ -44,8 +44,6 @@ struct nsd_options {
 	FILE* zonelist;
 	/* last offset in file (or 0 if none) */
 	off_t zonelist_off;
-	/* actual zonelist file name in use */
-	char* zlfile;
 
 	/* rbtree of keys defined, by name */
 	rbtree_t* keys;
@@ -276,7 +274,7 @@ void key_options_remove(nsd_options_t* opt, const char* name);
 int key_options_equal(key_options_t* p, key_options_t* q);
 void key_options_add_modify(nsd_options_t* opt, key_options_t* key);
 /* read in zone list file. Returns false on failure */
-int parse_zone_list_file(nsd_options_t* opt, const char* zlfile);
+int parse_zone_list_file(nsd_options_t* opt);
 /* create zone entry and add to the zonelist file */
 zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 	const char* pname);
