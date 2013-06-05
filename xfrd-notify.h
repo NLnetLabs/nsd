@@ -59,7 +59,7 @@ struct notify_zone_t {
 
 /* initialise outgoing notifies */
 void init_notify_send(rbtree_t* tree, region_type* region,
-	const dname_type* apex, struct zone_options* options);
+	struct zone_options* options);
 /* delete notify zone */
 void xfrd_del_notify(struct xfrd_state* xfrd, const dname_type* dname);
 

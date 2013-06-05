@@ -335,13 +335,12 @@ xfrd_clean_pending_tasks(struct nsd* nsd, udb_base* u)
 }
 
 void
-xfrd_init_slave_zone(xfrd_state_t* xfrd, const dname_type* dname,
-	zone_options_t* zone_opt)
+xfrd_init_slave_zone(xfrd_state_t* xfrd, zone_options_t* zone_opt)
 {
 	xfrd_zone_t *xzone;
 	xzone = (xfrd_zone_t*)region_alloc(xfrd->region, sizeof(xfrd_zone_t));
 	memset(xzone, 0, sizeof(xfrd_zone_t));
-	xzone->apex = dname;
+	xzone->apex = zone_opt->node.key;
 	xzone->apex_str = zone_opt->name;
 	xzone->state = xfrd_zone_refreshing;
 	xzone->zone_options = zone_opt;
@@ -376,7 +375,7 @@ xfrd_init_slave_zone(xfrd_state_t* xfrd, const dname_type* dname,
 	/* set refreshing anyway, if we have data it may be old */
 	xfrd_set_refresh_now(xzone);
 
-	xzone->node.key = dname;
+	xzone->node.key = xzone->apex;
 	rbtree_insert(xfrd->zones, (rbnode_t*)xzone);
 }
 
@@ -384,8 +383,6 @@ static void
 xfrd_init_zones()
 {
 	zone_options_t *zone_opt;
-	const dname_type* dname;
-
 	assert(xfrd->zones == 0);
 
 	xfrd->zones = rbtree_create(xfrd->region,
@@ -395,25 +392,17 @@ xfrd_init_zones()
 
 	RBTREE_FOR(zone_opt, zone_options_t*, xfrd->nsd->options->zone_options)
 	{
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Zone %s\n", zone_opt->name));
-		dname = dname_parse(xfrd->region, zone_opt->name);
-		if(!dname) {
-			log_msg(LOG_ERR, "xfrd: Could not parse zone name %s.", zone_opt->name);
-			continue;
-		}
-
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: adding %s zone",
 			zone_opt->name));
 
-		init_notify_send(xfrd->notify_zones, xfrd->region, dname,
-			zone_opt);
+		init_notify_send(xfrd->notify_zones, xfrd->region, zone_opt);
 		if(!zone_is_slave(zone_opt)) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s, "
 				"master zone has no outgoing xfr requests",
 				zone_opt->name));
 			continue;
 		}
-		xfrd_init_slave_zone(xfrd, dname, zone_opt);
+		xfrd_init_slave_zone(xfrd, zone_opt);
 	}
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: started server %d "
 		"secondary zones", (int)xfrd->zones->count));
@@ -620,7 +609,7 @@ xfrd_del_slave_zone(xfrd_state_t* xfrd, const dname_type* dname)
 	/* tsig */
 	tsig_delete_record(&z->tsig, NULL);
 
-	/* z->dname is recycled when the xfrd-notify zone is removed */
+	/* z->dname is recycled when the zone_options is removed */
 	region_recycle(xfrd->region, z, sizeof(*z));
 }
 

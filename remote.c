@@ -1049,7 +1049,6 @@ do_stats(struct daemon_remote* rc, int peek, struct rc_state* rs)
 static void
 do_addzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 {
-	const dname_type* dname;
 	zone_options_t* zopt;
 	char* arg2 = NULL;
 	if(!find_arg2(ssl, arg, &arg2))
@@ -1069,18 +1068,10 @@ do_addzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 		return;
 	}
 
-	/* attempt to parse zone name and refuse if not possible */
-	dname = dname_parse(xfrd->region, arg);
-	if(!dname) {
-		(void)ssl_printf(ssl, "error cannot parse zone name\n");
-		return;
-	}
-
 	/* add to zonelist and adds to config in memory */
 	zopt = zone_list_add(xfrd->nsd->options, arg, arg2);
 	if(!zopt) {
-		region_recycle(xfrd->region, (void*)dname,
-			dname_total_size(dname));
+		/* also dname parse error here */
 		(void)ssl_printf(ssl, "error could not add zonelist entry\n");
 		return;
 	}
@@ -1089,10 +1080,10 @@ do_addzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 		xfrd->last_task, arg, arg2);
 	xfrd_set_reload_now(xfrd);
 	/* add to xfrd - notify (for master and slaves) */
-	init_notify_send(xfrd->notify_zones, xfrd->region, dname, zopt);
+	init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
 	/* add to xfrd - slave */
 	if(zone_is_slave(zopt)) {
-		xfrd_init_slave_zone(xfrd, dname, zopt);
+		xfrd_init_slave_zone(xfrd, zopt);
 	}
 
 	send_ok(ssl);
@@ -1264,10 +1255,10 @@ static void add_cfgzone(xfrd_state_t* xfrd, const char* pname)
 		xfrd->last_task, zopt->name, pname);
 	xfrd_set_reload_now(xfrd);
 	/* add to xfrd - notify (for master and slaves) */
-	init_notify_send(xfrd->notify_zones, xfrd->region, zopt->node.key, zopt);
+	init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
 	/* add to xfrd - slave */
 	if(zone_is_slave(zopt)) {
-		xfrd_init_slave_zone(xfrd, zopt->node.key, zopt);
+		xfrd_init_slave_zone(xfrd, zopt);
 	}
 }
 

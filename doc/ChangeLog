@@ -1,3 +1,6 @@
+5 Jun 2013: Wouter
+	- Fix segfault on repeated reconfigs, double free of zone apex name.
+
 4 Jun 2013: Wouter
 	- Remove duplicate zlfile variable from options structure.
 

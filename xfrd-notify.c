@@ -80,13 +80,12 @@ notify_disable(struct notify_zone_t* zone)
 }
 
 void
-init_notify_send(rbtree_t* tree, region_type* region, const dname_type* apex,
-	zone_options_t* options)
+init_notify_send(rbtree_t* tree, region_type* region, zone_options_t* options)
 {
 	struct notify_zone_t* not = (struct notify_zone_t*)
 		region_alloc(region, sizeof(struct notify_zone_t));
 	memset(not, 0, sizeof(struct notify_zone_t));
-	not->apex = apex;
+	not->apex = options->node.key;
 	not->apex_str = options->name;
 	not->node.key = not->apex;
 	not->options = options;
@@ -134,8 +133,7 @@ xfrd_del_notify(xfrd_state_t* xfrd, const dname_type* dname)
 
 	/* free it */
 	region_recycle(xfrd->region, not->current_soa, sizeof(xfrd_soa_t));
-	region_recycle(xfrd->region, (void*)not->apex,
-		dname_total_size(not->apex));
+	/* the apex is recycled when the zone_options.node.key is removed */
 	region_recycle(xfrd->region, not, sizeof(*not));
 }
 

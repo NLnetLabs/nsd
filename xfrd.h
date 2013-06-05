@@ -226,9 +226,8 @@ extern xfrd_state_t* xfrd;
 /* start xfrd, new start. Pass socket to server_main. */
 void xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active);
 
-/* add new slave zone, dname(in xfrd-region) and given options */
-void xfrd_init_slave_zone(xfrd_state_t* xfrd, const dname_type* dname,
-	zone_options_t* zone_opt);
+/* add new slave zone, dname(from zone_opt) and given options */
+void xfrd_init_slave_zone(xfrd_state_t* xfrd, zone_options_t* zone_opt);
 
 /* delete slave zone */
 void xfrd_del_slave_zone(xfrd_state_t* xfrd, const dname_type* dname);
