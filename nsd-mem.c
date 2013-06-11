@@ -248,6 +248,12 @@ check_mem(nsd_options_t* opt)
 	account_total(opt, &totmem);
 	/* print statistics */
 	print_tot_mem(&totmem);
+
+	/* final advice */
+	printf("\nFinal advice estimate:\n");
+	printf("(The partial mmap causes reload&AXFR to take longer(disk access))\n");
+	pretty_mem(totmem.ram + totmem.disk, "data and big mmap");
+	pretty_mem(totmem.ram + totmem.disk/6, "data and partial mmap");
 }
 
 /* dummy functions to link */

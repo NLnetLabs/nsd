@@ -2,6 +2,7 @@
 	- Fix memory leak in zone parser for txt record (since the large
 	  number of txt subsections fix).
 	- Fix zone parser allocations to be in db region.
+	- nsd-mem prints advice
 
 5 Jun 2013: Wouter
 	- Fix segfault on repeated reconfigs, double free of zone apex name.
