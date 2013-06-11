@@ -1055,8 +1055,7 @@ zadd_rdata_txt_clean_wireformat()
 	if ((tmp_data = (uint16_t *) region_alloc(parser->region, 
 		rd->data[0] + 2)) != NULL) {
 		memcpy(tmp_data, rd->data, rd->data[0] + 2);
-		region_recycle(parser->region, rd->data,
-			sizeof(uint16_t) + 65535 * sizeof(uint8_t));
+		/* rd->data of u16+65535 freed when rr_region is freed */
 		rd->data = tmp_data;
 	}
 	else {
@@ -1472,13 +1471,12 @@ zonec_read(const char *name, const char *zonefile, zone_type* zone)
 void
 zonec_setup_parser(namedb_type* db)
 {
-	region_type* global_region = region_create(xalloc, free);
 	region_type* rr_region = region_create(xalloc, free);
-	parser = zparser_create(global_region, rr_region, db);
+	parser = zparser_create(db->region, rr_region, db);
 	assert(parser);
 	/* Unique pointers used to mark errors.	 */
-	error_dname = (dname_type *) region_alloc(global_region, 0);
-	error_domain = (domain_type *) region_alloc(global_region, 0);
+	error_dname = (dname_type *) region_alloc(db->region, 1);
+	error_domain = (domain_type *) region_alloc(db->region, 1);
 	/* Open the network database */
 	setprotoent(1);
 	setservent(1);
@@ -1491,7 +1489,9 @@ void zonec_desetup_parser(void)
 		endservent();
 		endprotoent();
 		region_destroy(parser->rr_region);
-		region_destroy(parser->region);
+		/* removed when parser->region(=db->region) is destroyed:
+		 * region_recycle(parser->region, (void*)error_dname, 1);
+		 * region_recycle(parser->region, (void*)error_domain, 1); */
 		/* clear memory for exit, but this is not portable to
 		 * other versions of lex. yylex_destroy(); */
 	}
