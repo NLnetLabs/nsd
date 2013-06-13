@@ -14,6 +14,8 @@ FEATURES:
 	  packets discarded before we send back a truncated response.
 	- New config option "rrl-ipv4-prefix-length:" and
 	  "rrl-ipv6-prefix-length:" to set the prefix lengths.
+	- Improved RRL logging, also print triggering query src address and
+	  QTYPE.
 	- Provide RRL documentation in nsd.conf.sample.
 
 BUG FIXES:

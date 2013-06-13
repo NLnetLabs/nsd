@@ -7,6 +7,7 @@
 #include "config.h"
 #include <errno.h>
 #include <ctype.h>
+#include "dns.h"
 #include "rrl.h"
 #include "util.h"
 #include "lookup3.h"
@@ -360,15 +361,21 @@ rrl_msg(query_type* query, const char* str)
 	const uint8_t* d = NULL;
 	size_t d_len;
 	uint64_t s;
+	char address[128];
 	if(verbosity < 2) return;
+	if (addr2ip(query->addr, address, sizeof(address))) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "addr2ip failed"));
+		strlcpy(address, "[unknown]", sizeof(address));
+	}
 	s = rrl_get_source(query, &c2);
 	c = rrl_classify(query, &d, &d_len) | c2;
 	if(query->zone && query->zone->opts &&
 		(query->zone->opts->rrl_whitelist & c))
 		wl = 1;
-	log_msg(LOG_INFO, "ratelimit %s %s type %s%s target %s",
+	log_msg(LOG_INFO, "ratelimit %s %s type %s%s target %s query src %s qtype %s",
 		str, d?wiredname2str(d):"", rrltype2str(c),
-		wl?"(whitelisted)":"", rrlsource2str(s, c2));
+		wl?"(whitelisted)":"", rrlsource2str(s, c2),
+		address, rrtype_to_string(query->qtype));
 }
 
 /** true if the query used to be blocked by the ratelimit */
@@ -392,10 +399,18 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 		/* initialise */
 		/* potentially the wrong limit here, used lower nonwhitelim */
 		if(verbosity >=2 &&
-			used_to_block(b->rate, b->counter, rrl_ratelimit))
-			log_msg(LOG_INFO, "ratelimit unblock ~ type %s target %s",
+			used_to_block(b->rate, b->counter, rrl_ratelimit)) {
+			char address[128];
+			if (addr2ip(query->addr, address, sizeof(address))) {
+				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "addr2ip failed"));
+				strlcpy(address, "[unknown]", sizeof(address));
+			}
+			log_msg(LOG_INFO, "ratelimit unblock ~ type %s target %s "
+				"query src %s qtype %s",
 				rrltype2str(b->flags),
-				rrlsource2str(b->source, b->flags));
+				rrlsource2str(b->source, b->flags),
+				address, rrtype_to_string(query->qtype));
+		}
 		b->source = source;
 		b->flags = flags;
 		b->counter = 1;

@@ -2,6 +2,7 @@
 	- Use IPV6 minimum MTU settings with TCP to reduce failures that
 	  are caused by delays in learning working PMTU when communicating
 	  through a tunnel.
+	- Improved RRL logging: also print triggering query src addr and qtype.
 
 6 May 2013: Matthijs
 	- Add rrl-slip config option (thanks Stephane Bortzmeyer).
