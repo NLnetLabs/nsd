@@ -372,7 +372,7 @@ rrl_msg(query_type* query, const char* str)
 	if(query->zone && query->zone->opts &&
 		(query->zone->opts->rrl_whitelist & c))
 		wl = 1;
-	log_msg(LOG_INFO, "ratelimit %s %s type %s%s target %s query src %s qtype %s",
+	log_msg(LOG_INFO, "ratelimit %s %s type %s%s target %s query %s %s",
 		str, d?wiredname2str(d):"", rrltype2str(c),
 		wl?"(whitelisted)":"", rrlsource2str(s, c2),
 		address, rrtype_to_string(query->qtype));
@@ -406,7 +406,7 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 				strlcpy(address, "[unknown]", sizeof(address));
 			}
 			log_msg(LOG_INFO, "ratelimit unblock ~ type %s target %s "
-				"query src %s qtype %s",
+				"query %s %s",
 				rrltype2str(b->flags),
 				rrlsource2str(b->source, b->flags),
 				address, rrtype_to_string(query->qtype));
