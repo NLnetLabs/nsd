@@ -103,6 +103,7 @@ void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm, size_t sm,
 		rrl_ipv6_mask[0] = htonl(0xffffffff << (32-pls));
 		rrl_ipv6_mask[1] = 0;
 	} else {
+		pls -= 32;
 		rrl_ipv6_mask[0] = 0xffffffff;
 		rrl_ipv6_mask[1] = htonl(0xffffffff << (32-pls));
 	}

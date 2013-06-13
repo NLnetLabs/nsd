@@ -120,11 +120,11 @@ server:
 	# rrl-slip: 2
 
 	# Response Rate Limiting, IPv4 prefix length. Addresses are
-	# grouped into buckets of size (32 - IPV4-PREFIX-LENGTH)^2.
+	# grouped by netblock. 
 	# rrl-ipv4-prefix-length: 24
 
 	# Response Rate Limiting, IPv6 prefix length. Addresses are
-	# grouped into buckets of size (64 - IPV6-PREFIX-LENGTH)^2.
+	# grouped by netblock. 
 	# rrl-ipv6-prefix-length: 64
 
 	# Response Rate Limiting, maximum QPS allowed (from one query source)
