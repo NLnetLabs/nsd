@@ -1,3 +1,8 @@
+13 June 2013: Matthijs
+	- Use IPV6 minimum MTU settings with TCP to reduce failures that
+	  are caused by delays in learning working PMTU when communicating
+	  through a tunnel.
+
 6 May 2013: Matthijs
 	- Add rrl-slip config option (thanks Stephane Bortzmeyer).
 	- Add rrl-ipv{4,6}-prefix-length config option.
