@@ -991,13 +991,21 @@ rdata_lp:	STR sp dname trail
 
 rdata_eui48:	STR trail
     {
+#ifdef EUI_RRTYPES
 	    zadd_rdata_wireformat(zparser_conv_eui(parser->region, $1.str, 48));
+#else
+	    zc_error_prev_line("EUI48 not supported, enable with --enable-eui-rrtypes.");
+#endif
     }
     ;
 
 rdata_eui64:	STR trail
     {
+#ifdef EUI_RRTYPES
 	    zadd_rdata_wireformat(zparser_conv_eui(parser->region, $1.str, 64));
+#else
+	    zc_error_prev_line("EUI64 not supported, enable with --enable-eui-rrtypes.");
+#endif
     }
     ;
 

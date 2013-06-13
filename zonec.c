@@ -456,6 +456,7 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 	return r;
 }
 
+#ifdef EUI_RRTYPES
 static uint16_t *
 zparser_conv_eui48(region_type *region, const char *text)
 {
@@ -545,6 +546,7 @@ zparser_conv_eui(region_type *region, const char *text, size_t len)
 	}
 	return r;
 }
+#endif
 
 uint16_t *
 zparser_conv_text(region_type *region, const char *text, size_t len)

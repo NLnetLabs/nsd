@@ -182,6 +182,10 @@ addition to standard configure options, one may use the following:
 
 	Enables ratelimiting, based on query name, type and source.
 
+  --enable-eui-rrtypes
+
+	Enables EUI48 and EUI64 RRtypes.
+
   --with-configdir=dir
 
         Specified, NSD configuration directory, default /etc/nsd

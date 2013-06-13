@@ -427,11 +427,13 @@ static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+1)] 
 	  { RDATA_WF_SHORT, RDATA_WF_UNCOMPRESSED_DNAME },
 	  { RDATA_ZF_SHORT, RDATA_ZF_DNAME } },
 	/* 108 */
+#ifdef EUI_RRTYPES
 	{ TYPE_EUI48, "EUI48", T_EUI48, 1, 1,
 	  { RDATA_WF_EUI48 }, { RDATA_ZF_EUI48 } },
 	/* 109 */
 	{ TYPE_EUI64, "EUI64", T_EUI64, 1, 1,
 	  { RDATA_WF_EUI64 }, { RDATA_ZF_EUI64 } },
+#endif
 
 	/* 32769 */
 	{ TYPE_DLV, "DLV", T_DLV, 4, 4,

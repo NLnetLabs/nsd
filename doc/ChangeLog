@@ -3,6 +3,7 @@
 	  are caused by delays in learning working PMTU when communicating
 	  through a tunnel.
 	- Improved RRL logging: also print triggering query src addr and qtype.
+	- Enable EUI48 and EUI64 with --enable-eui-rrtypes.
 
 6 May 2013: Matthijs
 	- Add rrl-slip config option (thanks Stephane Bortzmeyer).
