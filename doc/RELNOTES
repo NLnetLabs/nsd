@@ -10,6 +10,11 @@ FEATURES:
 	  are caused by delays in learning working PMTU when communicating
 	  through a tunnel.
 	- Bugfix #496: Support for EUI48 and EUI64 RR types.
+	- New config option "rrl-slip:" to set the average number of
+	  packets discarded before we send back a truncated response.
+	- New config option "rrl-ipv4-prefix-length:" and
+	  "rrl-ipv6-prefix-length:" to set the prefix lengths.
+	- Provide RRL documentation in nsd.conf.sample.
 
 BUG FIXES:
 	- Bugfix #487: lookup3.c determine endianness for BSD systems.
