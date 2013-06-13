@@ -950,6 +950,9 @@ main(int argc, char *argv[])
 		} else if (strncmp(nsd.chrootdir, nsd.options->difffile, l) != 0) {
 			error("%s is not relative to %s: chroot not possible",
 				nsd.options->difffile, nsd.chrootdir);
+		} else if (strncmp(nsd.chrootdir, nsd.options->zonesdir, l) != 0) {
+			error("%s is not relative to %s: chroot not possible",
+				nsd.options->zonesdir, nsd.chrootdir);
 		}
 	}
 
@@ -1086,6 +1089,7 @@ main(int argc, char *argv[])
 		nsd.pidfile += l;
 		nsd.options->xfrdfile += l;
 		nsd.options->difffile += l;
+		nsd.options->zonesdir += l;
 
 #ifdef HAVE_TZSET
 		/* set timezone whilst not yet in chroot */
@@ -1101,6 +1105,15 @@ main(int argc, char *argv[])
 		}
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
 			nsd.chrootdir));
+		/* chdir to zonesdir again after chroot */
+		if(nsd.options->zonesdir && nsd.options->zonesdir[0]) {
+			if(chdir(nsd.options->zonesdir)) {
+				error("unable to chdir to '%s': %s",
+					nsd.options->zonesdir, strerror(errno));
+			}
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed directory to %s",
+				nsd.options->zonesdir));
+		}
 	}
 	else
 #endif /* HAVE_CHROOT */
