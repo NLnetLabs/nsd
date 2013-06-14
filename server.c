@@ -405,7 +405,7 @@ server_init(struct nsd *nsd)
 #  ifdef SO_RCVBUFFORCE
 	if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUFFORCE, (void*)&rcv,
 		(socklen_t)sizeof(rcv)) < 0) {
-		if(errno != EPERM) {
+		if(errno != EPERM && errno != ENOBUFS) {
 			log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, "
                                         "...) failed: %s", strerror(errno));
 			return -1;
@@ -415,10 +415,12 @@ server_init(struct nsd *nsd)
 #  endif /* SO_RCVBUFFORCE */
 		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUF, (void*)&rcv,
 			 (socklen_t)sizeof(rcv)) < 0) {
+			if(errno != ENOBUFS) {
 				log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, "
                                         "...) failed: %s", strerror(errno));
 				return -1;
 			}
+		}
 	}
 #endif /* SO_RCVBUF */
 
@@ -426,7 +428,7 @@ server_init(struct nsd *nsd)
 #  ifdef SO_SNDBUFFORCE
 	if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUFFORCE, (void*)&snd,
 		(socklen_t)sizeof(snd)) < 0) {
-		if(errno != EPERM) {
+		if(errno != EPERM && errno != ENOBUFS) {
 			log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, "
                                         "...) failed: %s", strerror(errno));
 			return -1;
@@ -436,10 +438,12 @@ server_init(struct nsd *nsd)
 #  endif /* SO_SNDBUFFORCE */
 		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUF, (void*)&snd,
 			 (socklen_t)sizeof(snd)) < 0) {
+			if(errno != ENOBUFS) {
 				log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUF, "
                                         "...) failed: %s", strerror(errno));
 				return -1;
 			}
+		}
 	}
 #endif /* SO_SNDBUF */
 
