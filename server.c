@@ -1718,15 +1718,15 @@ handle_udp(int fd, short event, void* arg)
 	for (i = 0; i < recvcount; i++) {
 	loopstart:
 		received = msgs[i].msg_len;
+		q = queries[i];
 		if (received == -1) {
 			log_msg(LOG_ERR, "recvmmsg failed %s", strerror(
 				msgs[i].msg_hdr.msg_flags));
 			STATUP(data->nsd, rxerr);
 			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
-			iovecs[i].iov_len = buffer_remaining(queries[i]->packet);
+			iovecs[i].iov_len = buffer_remaining(q->packet);
 			goto swap_drop;
 		}
-		q = queries[i];
 
 		/* Account... */
 		if (data->socket->addr->ai_family == AF_INET) {
