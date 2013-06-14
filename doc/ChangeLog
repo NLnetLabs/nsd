@@ -1,3 +1,8 @@
+14 Jun 2013: Wouter
+	- Optimizations: -O3 if possible (user can override CFLAGS), udp
+	  buffers are set to 1m by default (if socket options exist),
+	  use recvmmsg and sendmmsg, or only recvmmsg, or recvfrom.
+
 11 Jun 2013: Wouter
 	- Fix memory leak in zone parser for txt record (since the large
 	  number of txt subsections fix).

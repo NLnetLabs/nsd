@@ -85,6 +85,16 @@ static struct tcp_accept_handler_data*	tcp_accept_handlers;
 static struct event slowaccept_event;
 static int slowaccept;
 
+#ifndef NONBLOCKING_IS_BROKEN
+#  define NUM_RECV_PER_SELECT 100
+#endif
+
+#if (!defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG))
+struct mmsghdr msgs[NUM_RECV_PER_SELECT];
+struct iovec iovecs[NUM_RECV_PER_SELECT];
+struct query *queries[NUM_RECV_PER_SELECT];
+#endif
+
 /*
  * Data for the TCP connection handlers.
  *
@@ -385,6 +395,56 @@ server_init(struct nsd *nsd)
 			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
 			return -1;
 		}
+
+#if defined(SO_RCVBUF) || defined(SO_SNDBUF)
+	if(1) {
+	int rcv = 1*1024*1024;
+	int snd = 1*1024*1024;
+
+#ifdef SO_RCVBUF
+#  ifdef SO_RCVBUFFORCE
+	if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUFFORCE, (void*)&rcv,
+		(socklen_t)sizeof(rcv)) < 0) {
+		if(errno != EPERM) {
+			log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, "
+                                        "...) failed: %s", strerror(errno));
+			return -1;
+		} 
+#  else
+	if(1) {
+#  endif /* SO_RCVBUFFORCE */
+		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUF, (void*)&rcv,
+			 (socklen_t)sizeof(rcv)) < 0) {
+				log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, "
+                                        "...) failed: %s", strerror(errno));
+				return -1;
+			}
+	}
+#endif /* SO_RCVBUF */
+
+#ifdef SO_SNDBUF
+#  ifdef SO_SNDBUFFORCE
+	if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUFFORCE, (void*)&snd,
+		(socklen_t)sizeof(snd)) < 0) {
+		if(errno != EPERM) {
+			log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, "
+                                        "...) failed: %s", strerror(errno));
+			return -1;
+		} 
+#  else
+	if(1) {
+#  endif /* SO_SNDBUFFORCE */
+		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUF, (void*)&snd,
+			 (socklen_t)sizeof(snd)) < 0) {
+				log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUF, "
+                                        "...) failed: %s", strerror(errno));
+				return -1;
+			}
+	}
+#endif /* SO_SNDBUF */
+
+	}
+#endif /* defined(SO_RCVBUF) || defined(SO_SNDBUF) */
 
 #if defined(INET6)
 		if (nsd->udp[i].addr->ai_family == AF_INET6) {
@@ -1507,9 +1567,24 @@ server_child(struct nsd *nsd)
 	}
 
 	if (nsd->server_kind & NSD_SERVER_UDP) {
+#if (defined(NONBLOCKING_IS_BROKEN) || !defined(HAVE_RECVMMSG))
 		udp_query = query_create(server_region,
 			compressed_dname_offsets, compression_table_size);
-
+#else
+		udp_query = NULL;
+		memset(msgs, 0, sizeof(msgs));
+		for (i = 0; i < NUM_RECV_PER_SELECT; i++) {
+			queries[i] = query_create(server_region,
+				compressed_dname_offsets, compression_table_size);
+			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
+			iovecs[i].iov_base          = buffer_begin(queries[i]->packet);
+			iovecs[i].iov_len           = buffer_remaining(queries[i]->packet);;
+			msgs[i].msg_hdr.msg_iov     = &iovecs[i];
+			msgs[i].msg_hdr.msg_iovlen  = 1;
+			msgs[i].msg_hdr.msg_name    = &queries[i]->addr;
+			msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
+		}
+#endif
 		for (i = 0; i < nsd->ifs; ++i) {
 			struct udp_handler_data *data;
 			struct event *handler;
@@ -1618,9 +1693,111 @@ server_child(struct nsd *nsd)
 	server_shutdown(nsd);
 }
 
-#ifndef NONBLOCKING_IS_BROKEN
-#  define NUM_RECV_PER_SELECT 100
-#endif
+#if defined(HAVE_SENDMMSG) && !defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG)
+static void
+handle_udp(int fd, short event, void* arg)
+{
+	struct udp_handler_data *data = (struct udp_handler_data *) arg;
+	int received, sent, recvcount, i;
+	struct query *q;
+
+	if (!(event & EV_READ)) {
+		return;
+	}
+	recvcount = recvmmsg(fd, msgs, NUM_RECV_PER_SELECT, 0, NULL);
+	/* this printf strangely gave a performance increase on Linux */
+	/* printf("recvcount %d \n", recvcount); */
+	if (recvcount == -1) {
+		if (errno != EAGAIN && errno != EINTR) {
+			log_msg(LOG_ERR, "recvmmsg failed: %s", strerror(errno));
+			STATUP(data->nsd, rxerr);
+		}
+		/* Simply no data available */
+		return;
+	}
+	for (i = 0; i < recvcount; i++) {
+	loopstart:
+		received = msgs[i].msg_len;
+		if (received == -1) {
+			log_msg(LOG_ERR, "recvmmsg failed %s", strerror(
+				msgs[i].msg_hdr.msg_flags));
+			STATUP(data->nsd, rxerr);
+			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
+			iovecs[i].iov_len = buffer_remaining(q->packet);
+			goto swap_drop;
+		}
+		q = queries[i];
+
+		/* Account... */
+		if (data->socket->addr->ai_family == AF_INET) {
+			STATUP(data->nsd, qudp);
+		} else if (data->socket->addr->ai_family == AF_INET6) {
+			STATUP(data->nsd, qudp6);
+		}
+
+		buffer_skip(q->packet, received);
+		buffer_flip(q->packet);
+
+		/* Process and answer the query... */
+		if (server_process_query_udp(data->nsd, q) != QUERY_DISCARDED) {
+			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet)) {
+				STATUP(data->nsd, nona);
+			}
+
+			/* Add EDNS0 and TSIG info if necessary.  */
+			query_add_optional(q, data->nsd);
+
+			buffer_flip(q->packet);
+			iovecs[i].iov_len = buffer_remaining(q->packet);
+#ifdef BIND8_STATS
+			/* Account the rcode & TC... */
+			STATUP2(data->nsd, rcode, RCODE(q->packet));
+			if (TC(q->packet))
+				STATUP(data->nsd, truncated);
+#endif /* BIND8_STATS */
+		} else {
+			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
+			iovecs[i].iov_len = buffer_remaining(q->packet);
+		swap_drop:
+			STATUP(data->nsd, dropped);
+			if(i != recvcount-1) {
+				/* swap with last and decrease recvcount */
+				struct mmsghdr mtmp = msgs[i];
+				struct iovec iotmp = iovecs[i];
+				recvcount--;
+				msgs[i] = msgs[recvcount];
+				iovecs[i] = iovecs[recvcount];
+				queries[i] = queries[recvcount];
+				msgs[recvcount] = mtmp;
+				iovecs[recvcount] = iotmp;
+				queries[recvcount] = q;
+				msgs[i].msg_hdr.msg_iov = &iovecs[i];
+				msgs[recvcount].msg_hdr.msg_iov = &iovecs[recvcount];
+				goto loopstart;
+			} else { recvcount --; }
+		}
+	}
+
+	/* send until all are sent */
+	i = 0;
+	while(i<recvcount) {
+		sent = sendmmsg(fd, &msgs[i], recvcount-i, 0);
+		if(sent == -1) {
+			log_msg(LOG_ERR, "sendmmsg failed: %s", strerror(errno));
+#ifdef BIND8_STATS
+			data->nsd->st.txerr += recvcount-i;
+#endif /* BIND8_STATS */
+			break;
+		}
+		i += sent;
+	}
+	for(i=0; i<recvcount; i++) {
+		query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
+		iovecs[i].iov_len = buffer_remaining(queries[i]->packet);
+	}
+}
+
+#else /* defined(HAVE_SENDMMSG) && !defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG) */
 
 static void
 handle_udp(int fd, short event, void* arg)
@@ -1628,17 +1805,49 @@ handle_udp(int fd, short event, void* arg)
 	struct udp_handler_data *data = (struct udp_handler_data *) arg;
 	int received, sent;
 #ifndef NONBLOCKING_IS_BROKEN
+#ifdef HAVE_RECVMMSG
+	int recvcount;
+#endif /* HAVE_RECVMMSG */
 	int i;
+#endif /* NONBLOCKING_IS_BROKEN */
+	struct query *q;
+#if (defined(NONBLOCKING_IS_BROKEN) || !defined(HAVE_RECVMMSG))
+	q = data->query;
 #endif
-	struct query *q = data->query;
 
 	if (!(event & EV_READ)) {
 		return;
 	}
-
 #ifndef NONBLOCKING_IS_BROKEN
+#ifdef HAVE_RECVMMSG
+	recvcount = recvmmsg(fd, msgs, NUM_RECV_PER_SELECT, 0, NULL);
+	/* this printf strangely gave a performance increase on Linux */
+	/* printf("recvcount %d \n", recvcount); */
+	if (recvcount == -1) {
+		if (errno != EAGAIN && errno != EINTR) {
+			log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
+			STATUP(data->nsd, rxerr);
+		}
+		/* Simply no data available */
+		return;
+	}
+	for (i = 0; i < recvcount; i++) {
+		received = msgs[i].msg_len;
+		msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
+		if (received == -1) {
+			log_msg(LOG_ERR, "recvfrom failed");
+			STATUP(data->nsd, rxerr);
+			/* the error can be found in msgs[i].msg_hdr.msg_flags */
+			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
+			continue;
+		}
+		q = queries[i];
+#else
 	for(i=0; i<NUM_RECV_PER_SELECT; i++) {
-#endif
+#endif /* HAVE_RECVMMSG */
+#endif /* NONBLOCKING_IS_BROKEN */
+
+#if (defined(NONBLOCKING_IS_BROKEN) || !defined(HAVE_RECVMMSG))
 		/* Initialize the query... */
 		query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
 
@@ -1655,6 +1864,7 @@ handle_udp(int fd, short event, void* arg)
 			}
 			return;
 		}
+#endif /* NONBLOCKING_IS_BROKEN || !HAVE_RECVMMSG */
 
 		/* Account... */
 		if (data->socket->addr->ai_family == AF_INET) {
@@ -1700,9 +1910,13 @@ handle_udp(int fd, short event, void* arg)
 			STATUP(data->nsd, dropped);
 		}
 #ifndef NONBLOCKING_IS_BROKEN
+#ifdef HAVE_RECVMMSG
+		query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
+#endif
 	}
 #endif
 }
+#endif /* defined(HAVE_SENDMMSG) && !defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG) */
 
 
 static void
