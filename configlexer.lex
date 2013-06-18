@@ -171,6 +171,9 @@ AXFR			{ LEXOUT(("v(%s) ", yytext)); return VAR_AXFR;}
 UDP			{ LEXOUT(("v(%s) ", yytext)); return VAR_UDP;}
 rrl-size{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_SIZE;}
 rrl-ratelimit{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_RATELIMIT;}
+rrl-slip{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_SLIP;}
+rrl-ipv4-prefix-length{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_IPV4_PREFIX_LENGTH;}
+rrl-ipv6-prefix-length{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_IPV6_PREFIX_LENGTH;}
 rrl-whitelist-ratelimit{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_WHITELIST_RATELIMIT;}
 rrl-whitelist{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_WHITELIST;}
 zonefiles-check{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ZONEFILES_CHECK;}

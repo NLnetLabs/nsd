@@ -1,3 +1,7 @@
+18 Jun 2013: Matthijs
+	- RRL config options: rrl-slip, rrl-ipv4-prefix-length,
+	  rrl-ipv6-prefix-length.
+
 14 Jun 2013: Wouter
 	- Optimizations: -O3 if possible (user can override CFLAGS), udp
 	  buffers are set to 1m by default (if socket options exist),

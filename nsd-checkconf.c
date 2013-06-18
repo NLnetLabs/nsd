@@ -341,6 +341,9 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 #ifdef RATELIMIT
 		SERV_GET_INT(rrl_size, o);
 		SERV_GET_INT(rrl_ratelimit, o);
+		SERV_GET_INT(rrl_slip, o);
+		SERV_GET_INT(rrl_ipv4_prefix_length, o);
+		SERV_GET_INT(rrl_ipv6_prefix_length, o);
 		SERV_GET_INT(rrl_whitelist_ratelimit, o);
 #endif
 		/* remote control */
@@ -432,6 +435,9 @@ config_test_print_server(nsd_options_t* opt)
 #ifdef RATELIMIT
 	printf("\trrl-size: %d\n", (int)opt->rrl_size);
 	printf("\trrl-ratelimit: %d\n", (int)opt->rrl_ratelimit);
+	printf("\trrl-slip: %d\n", (int)opt->rrl_slip);
+	printf("\trrl-ipv4-prefix-length: %d\n", (int)opt->rrl_ipv4_prefix_length);
+	printf("\trrl-ipv6-prefix-length: %d\n", (int)opt->rrl_ipv6_prefix_length);
 	printf("\trrl-whitelist-ratelimit: %d\n", (int)opt->rrl_whitelist_ratelimit);
 #endif
 	printf("\tzonefiles-check: %s\n", opt->zonefiles_check?"yes":"no");
@@ -615,8 +621,8 @@ main(int argc, char* argv[])
 
 	log_init("nsd-checkconf");
 
-        /* Parse the command line... */
-        while ((c = getopt(argc, argv, "vo:a:p:s:z:")) != -1) {
+	/* Parse the command line... */
+	while ((c = getopt(argc, argv, "vo:a:p:s:z:")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose = 1;

@@ -168,7 +168,7 @@ option
 .TP
 .B tcp\-count:\fR <number>
 The maximum number of concurrent, active TCP connections by each server. 
-Default is 100. Same as commandline option 
+Default is 100. Same as commandline option
 .BR \-n .
 .TP
 .B tcp\-query\-count:\fR <number>
@@ -274,6 +274,17 @@ then it is disabled (unlimited rate), also set the whilelist\-ratelimit
 to 0 to disable ratelimit processing.  If you set verbosity to 2 the
 blocked and unblocked subnets are logged.  Blocked queries are blocked
 and some receive TCP fallback replies.
+.TP
+.B rrl\-slip:\fR <numpackets>
+This option controls the number of packets discarded before we send back a SLIP response
+(a response with "truncated" bit set to one). 0 disables the sending of SLIP packets, 
+1 means every query will get a SLIP response.
+.TP
+.B rrl\-ipv4\-prefix:\fR <subnet>
+IPv4 prefix length. Addresses are grouped by netblock.
+.TP
+.B rrl\-ipv6\-prefix:\fR <subnet>
+IPv6 prefix length. Addresses are grouped by netblock.
 .TP
 .B rrl\-whitelist\-ratelimit:\fR <qps>
 The max qps for query sorts for a source, which have been

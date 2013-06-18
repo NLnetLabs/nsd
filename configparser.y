@@ -63,7 +63,9 @@ extern config_parser_state_t* cfg_parser;
 %token VAR_REMOTE_CONTROL VAR_CONTROL_ENABLE VAR_CONTROL_INTERFACE
 %token VAR_CONTROL_PORT VAR_SERVER_KEY_FILE VAR_SERVER_CERT_FILE
 %token VAR_CONTROL_KEY_FILE VAR_CONTROL_CERT_FILE VAR_XFRDIR
-%token VAR_RRL_SIZE VAR_RRL_RATELIMIT VAR_RRL_WHITELIST_RATELIMIT VAR_RRL_WHITELIST
+%token VAR_RRL_SIZE VAR_RRL_RATELIMIT VAR_RRL_SLIP 
+%token VAR_RRL_IPV4_PREFIX_LENGTH VAR_RRL_IPV6_PREFIX_LENGTH
+%token VAR_RRL_WHITELIST_RATELIMIT VAR_RRL_WHITELIST
 %token VAR_ZONEFILES_CHECK
 
 %%
@@ -89,8 +91,9 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
 	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
 	server_ipv6_edns_size | server_verbosity | server_hide_version |
-	server_zonelistfile | server_xfrdir | server_rrl_size |
-	server_rrl_ratelimit | server_rrl_whitelist_ratelimit |
+	server_zonelistfile | server_xfrdir |
+	server_rrl_size | server_rrl_ratelimit | server_rrl_slip | 
+	server_rrl_ipv4_prefix_length | server_rrl_ipv6_prefix_length | server_rrl_whitelist_ratelimit |
 	server_zonefiles_check | server_do_ip4 | server_do_ip6 ;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
@@ -357,6 +360,36 @@ server_rrl_ratelimit: VAR_RRL_RATELIMIT STRING
 		OUTYY(("P(server_rrl_ratelimit:%s)\n", $2)); 
 #ifdef RATELIMIT
 		cfg_parser->opt->rrl_ratelimit = atoi($2);
+#endif
+	}
+	;
+server_rrl_slip: VAR_RRL_SLIP STRING
+	{ 
+		OUTYY(("P(server_rrl_slip:%s)\n", $2)); 
+#ifdef RATELIMIT
+		if(atoi($2) < 0)
+			yyerror("number equal or greater than zero expected");
+		cfg_parser->opt->rrl_slip = atoi($2);
+#endif
+	}
+	;
+server_rrl_ipv4_prefix_length: VAR_RRL_IPV4_PREFIX_LENGTH STRING
+	{
+		OUTYY(("P(server_rrl_ipv4_prefix_length:%s)\n", $2)); 
+#ifdef RATELIMIT
+		if(atoi($2) < 0 || atoi($2) > 32)
+			yyerror("invalid IPv4 prefix length");
+		cfg_parser->opt->rrl_ipv4_prefix_length = atoi($2);
+#endif
+	}
+	;
+server_rrl_ipv6_prefix_length: VAR_RRL_IPV6_PREFIX_LENGTH STRING
+	{
+		OUTYY(("P(server_rrl_ipv6_prefix_length:%s)\n", $2)); 
+#ifdef RATELIMIT
+		if(atoi($2) < 0 || atoi($2) > 64)
+			yyerror("invalid IPv6 prefix length");
+		cfg_parser->opt->rrl_ipv6_prefix_length = atoi($2);
 #endif
 	}
 	;

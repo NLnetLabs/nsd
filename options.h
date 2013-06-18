@@ -10,6 +10,7 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
+#include "config.h"
 #include <stdarg.h>
 #include "region-allocator.h"
 #include "rbtree.h"
@@ -99,6 +100,11 @@ struct nsd_options {
 	size_t rrl_size;
 	/** max qps for queries, 0 is nolimit */
 	size_t rrl_ratelimit;
+	/** ratio of slipped responses, 0 is noslip */
+	size_t rrl_slip;
+	/** ip prefix length */
+	size_t rrl_ipv4_prefix_length;
+	size_t rrl_ipv6_prefix_length;
 	/** max qps for whitelisted queries, 0 is nolimit */
 	size_t rrl_whitelist_ratelimit;
 #endif
