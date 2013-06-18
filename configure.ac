@@ -730,7 +730,7 @@ case "$enable_nsec3" in
         yes)
 		AC_DEFINE_UNQUOTED([NSEC3], [], [Define this to enable NSEC3 support.])
 		;;
-	*)
+		*)
 		if test x$HAVE_SSL = x"yes"; then
 			AC_DEFINE_UNQUOTED([NSEC3], [], [Define this to enable NSEC3 support.])
 		else

@@ -1310,6 +1310,9 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 					       "failed: %s",
 			ifc->ip_address_spec, tcp? "tcp":"udp",
 			strerror(errno)));
+
+		log_msg(LOG_WARNING, "xfrd: could not bind source address:port to "
+		     "socket: %s", strerror(errno));
 		/* try another */
 		ifc = ifc->next;
 	}
