@@ -548,9 +548,8 @@ main(int argc, char* argv[])
 
 	log_init("nsd-checkconf");
 
-
-        /* Parse the command line... */
-        while ((c = getopt(argc, argv, "vo:a:s:z:")) != -1) {
+	/* Parse the command line... */
+	while ((c = getopt(argc, argv, "vo:a:s:z:")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose = 1;

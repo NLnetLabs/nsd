@@ -32,7 +32,7 @@ extern config_parser_state_t* cfg_parser;
 static int server_settings_seen = 0;
 
 #if 0
-#define OUTYY(s)  printf s /* used ONLY when debugging */
+#define OUTYY(s) printf s /* used ONLY when debugging */
 #else
 #define OUTYY(s)
 #endif
