@@ -1571,6 +1571,7 @@ void task_new_opt_change(udb_base* udb, udb_ptr* last, nsd_options_t* opt)
 #ifdef RATELIMIT
 	TASKLIST(&e)->oldserial = opt->rrl_ratelimit;
 	TASKLIST(&e)->newserial = opt->rrl_whitelist_ratelimit;
+	TASKLIST(&e)->yesno = (uint64_t) opt->rrl_slip;
 #else
 	(void)opt;
 #endif
@@ -1768,7 +1769,9 @@ task_process_opt_change(struct nsd* nsd, struct task_list_d* task)
 #ifdef RATELIMIT
 	nsd->options->rrl_ratelimit = task->oldserial;
 	nsd->options->rrl_whitelist_ratelimit = task->newserial;
-	rrl_set_limit(nsd->options->rrl_ratelimit, nsd->options->rrl_whitelist_ratelimit);
+	nsd->options->rrl_slip = task->yesno;
+	rrl_set_limit(nsd->options->rrl_ratelimit, nsd->options->rrl_whitelist_ratelimit,
+		nsd->options->rrl_slip);
 #else
 	(void)nsd; (void)task;
 #endif

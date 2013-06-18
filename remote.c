@@ -1406,6 +1406,8 @@ static int repat_options_changed(xfrd_state_t* xfrd, nsd_options_t* newopt)
 		return 1;
 	if(xfrd->nsd->options->rrl_whitelist_ratelimit != newopt->rrl_whitelist_ratelimit)
 		return 1;
+	if(xfrd->nsd->options->rrl_slip != newopt->rrl_slip)
+		return 1;
 #else
 	(void)xfrd; (void)newopt;
 #endif
@@ -1420,6 +1422,7 @@ static void repat_options(xfrd_state_t* xfrd, nsd_options_t* newopt)
 #ifdef RATELIMIT
 		xfrd->nsd->options->rrl_ratelimit = newopt->rrl_ratelimit;
 		xfrd->nsd->options->rrl_whitelist_ratelimit = newopt->rrl_whitelist_ratelimit;
+		xfrd->nsd->options->rrl_slip = newopt->rrl_slip;
 #endif
 		task_new_opt_change(xfrd->nsd->task[xfrd->nsd->mytask],
 			xfrd->last_task, newopt);
