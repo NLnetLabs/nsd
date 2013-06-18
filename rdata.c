@@ -712,6 +712,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			break;
 		case RDATA_WF_ILNP64:
 			length = IP6ADDRLEN/2;
+			break;
 #ifdef EUI_RRTYPES
 		case RDATA_WF_EUI48:
 			length = EUI48ADDRLEN;
