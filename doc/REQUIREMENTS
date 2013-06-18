@@ -1001,6 +1001,7 @@ NSD Version 3.0. and above
 
    RFC 6742 (ILNP) support for NID, L32, L64, LP RR types.
 
+    draft-jabley-dnsext-eui48-eui64-rrtypes support for EUI48, EUI64 RR types.
 
 Not implemented:
 
@@ -1009,6 +1010,9 @@ Not implemented:
 
 
 Appendix D. Changes to this file.
+
+18 june 2013 (Matthijs Mekking).
+- Updated file with EUI48 and EUI64 RRtype support.
 
 25 april 2013 (Matthijs Mekking).
 - Removed requirements label compression for RP, RT and AFSDB.

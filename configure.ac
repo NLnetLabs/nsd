@@ -748,6 +748,15 @@ case "$enable_minimal_responses" in
                 ;;
 esac
 
+AC_ARG_ENABLE(eui-rrtypes, AC_HELP_STRING([--enable-eui-rrtypes], [Enable EUI48 and EUI64 RRtypes. Experimental.]))
+case "$enable_eui_rrtypes" in
+        yes)
+		AC_DEFINE_UNQUOTED([EUI_RRTYPES], [], [Define this to enable EUI48 and EUI64 RRtypes. Experimental.])
+                ;;
+        no|*)
+		;;
+esac
+
 AC_ARG_ENABLE(mmap, AC_HELP_STRING([--enable-mmap], [Use mmap instead of malloc. Experimental.]))
 case "$enable_mmap" in
         yes)

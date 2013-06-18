@@ -41,7 +41,8 @@
 #include "options.h"
 #include "nsec3.h"
 
-#define ILNP_MAXSIZE 4
+#define ILNP_MAXDIGITS 4
+#define ILNP_NUMGROUPS 4
 
 const dname_type *error_dname;
 domain_type *error_domain;
@@ -389,9 +390,9 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 	unsigned long hex;
 	const char *ch;
 	int c;
-	char digits[ILNP_MAXSIZE];
-	unsigned int ui[ILNP_MAXSIZE];
-	uint16_t a[ILNP_MAXSIZE];
+	char digits[ILNP_MAXDIGITS+1];
+	unsigned int ui[ILNP_NUMGROUPS];
+	uint16_t a[ILNP_NUMGROUPS];
 
 	ngroups = 1; /* Always at least one group */
 	num = 0;
@@ -406,9 +407,9 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 			hex = (unsigned long) strtol(digits, NULL, 16);
 			num = 0;
 			ui[ngroups - 1] = hex;
-			if (ngroups >= ILNP_MAXSIZE) {
+			if (ngroups >= ILNP_NUMGROUPS) {
 				zc_error_prev_line("ilnp64: more than %d groups "
-					"of digits", ILNP_MAXSIZE);
+					"of digits", ILNP_NUMGROUPS);
 				return NULL;
 			}
 			ngroups++;
@@ -421,9 +422,9 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 					"(non-hexadecimal) character %c", c);
 				return NULL;
 			}
-			if (num >= ILNP_MAXSIZE) {
+			if (num >= ILNP_MAXDIGITS) {
 				zc_error_prev_line("ilnp64: more than %d digits "
-					"in a group", ILNP_MAXSIZE);
+					"in a group", ILNP_MAXDIGITS);
 				return NULL;
 			}
 			digits[num++] = *ch;
@@ -439,7 +440,7 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 	ui[ngroups - 1] = hex;
 	if (ngroups < 4) {
 		zc_error_prev_line("ilnp64: less than %d groups of digits",
-			ILNP_MAXSIZE);
+			ILNP_NUMGROUPS);
 		return NULL;
 	}
 
@@ -450,6 +451,98 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 	r = alloc_rdata_init(region, a, sizeof(a));
 	return r;
 }
+
+#ifdef EUI_RRTYPES
+static uint16_t *
+zparser_conv_eui48(region_type *region, const char *text)
+{
+	uint8_t nums[6];
+	uint16_t *r = NULL;
+	unsigned int a, b, c, d, e, f;
+	int l;
+
+	if (sscanf(text, "%2x-%2x-%2x-%2x-%2x-%2x%n",
+		&a, &b, &c, &d, &e, &f, &l) != 6 ||
+		l != (int)strlen(text)){
+		zc_error_prev_line("eui48: invalid rr");
+		return NULL;
+	}
+	nums[0] = (uint8_t)a;
+	nums[1] = (uint8_t)b;
+	nums[2] = (uint8_t)c;
+	nums[3] = (uint8_t)d;
+	nums[4] = (uint8_t)e;
+	nums[5] = (uint8_t)f;
+	r = alloc_rdata_init(region, nums, sizeof(nums));
+	return r;
+}
+
+static uint16_t *
+zparser_conv_eui64(region_type *region, const char *text)
+{
+	uint8_t nums[8];
+	uint16_t *r = NULL;
+	unsigned int a, b, c, d, e, f, g, h;
+	int l;
+	if (sscanf(text, "%2x-%2x-%2x-%2x-%2x-%2x-%2x-%2x%n",
+		&a, &b, &c, &d, &e, &f, &g, &h, &l) != 8 ||
+		l != (int)strlen(text)) {
+		zc_error_prev_line("eui64: invalid rr");
+		return NULL;
+	}
+	nums[0] = (uint8_t)a;
+	nums[1] = (uint8_t)b;
+	nums[2] = (uint8_t)c;
+	nums[3] = (uint8_t)d;
+	nums[4] = (uint8_t)e;
+	nums[5] = (uint8_t)f;
+	nums[6] = (uint8_t)g;
+	nums[7] = (uint8_t)h;
+	r = alloc_rdata_init(region, nums, sizeof(nums));
+	return r;
+}
+
+uint16_t *
+zparser_conv_eui(region_type *region, const char *text, size_t len)
+{
+	uint16_t *r = NULL;
+	int nnum, num;
+	const char* ch;
+
+	nnum = len/8;
+	num = 1;
+	for (ch = text; *ch != '\0'; ch++) {
+		int c = (int) *ch;
+		if (*ch == '-') {
+			num++;
+		} else if (!isxdigit(c)) {
+			zc_error_prev_line("eui%u: invalid (non-hexadecimal) "
+				"character %c", (unsigned) len, c);
+			return NULL;
+		}
+	}
+	if (num != nnum) {
+		zc_error_prev_line("eui%u: wrong number of hex numbers",
+			(unsigned) len);
+		return NULL;
+	}
+
+	switch (len) {
+		case 48:
+			r = zparser_conv_eui48(region, text);
+			break;
+		case 64:
+			r = zparser_conv_eui64(region, text);
+		break;
+		default:
+			zc_error_prev_line("eui%u: invalid length",
+				(unsigned) len);
+			return NULL;
+			break;
+	}
+	return r;
+}
+#endif
 
 uint16_t *
 zparser_conv_text(region_type *region, const char *text, size_t len)

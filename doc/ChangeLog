@@ -1,6 +1,7 @@
 18 Jun 2013: Matthijs
 	- RRL config options: rrl-slip, rrl-ipv4-prefix-length,
 	  rrl-ipv6-prefix-length.
+	- Bug #496: Support for EUI498 and EUI64 RR types.
 
 14 Jun 2013: Wouter
 	- Optimizations: -O3 if possible (user can override CFLAGS), udp
