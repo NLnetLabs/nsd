@@ -579,7 +579,7 @@ AC_RUN_IFELSE([AC_LANG_SOURCE([[
 int main(void)
 { 
 	int s = socket(AF_INET, SOCK_DGRAM, 0);
-	int r = sendmmsg(s, 0, 0, 0, 0) == -1 && errno == ENOSYS;
+	int r = sendmmsg(s, 0, 0, 0) == -1 && errno == ENOSYS;
 	close(s);
 	return r;
 }

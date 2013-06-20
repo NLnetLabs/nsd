@@ -1754,7 +1754,7 @@ handle_udp(int fd, short event, void* arg)
 		received = msgs[i].msg_len;
 		q = queries[i];
 		if (received == -1) {
-			log_msg(LOG_ERR, "recvmmsg failed %s", strerror(
+			log_msg(LOG_ERR, "recvmmsg %d failed %s", i, strerror(
 				msgs[i].msg_hdr.msg_flags));
 			STATUP(data->nsd, rxerr);
 			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
