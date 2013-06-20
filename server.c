@@ -1859,7 +1859,7 @@ handle_udp(int fd, short event, void* arg)
 	/* printf("recvcount %d \n", recvcount); */
 	if (recvcount == -1) {
 		if (errno != EAGAIN && errno != EINTR) {
-			log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
+			log_msg(LOG_ERR, "recvmmsg failed: %s", strerror(errno));
 			STATUP(data->nsd, rxerr);
 		}
 		/* Simply no data available */
