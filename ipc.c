@@ -559,7 +559,7 @@ xfrd_send_shutdown_req(xfrd_state_t* xfrd)
 	xfrd->ipc_send_blocked = 1;
 	ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send shutdown"));
-	if(write_socket(xfrd->ipc_handler.ev_fd, &cmd, sizeof(cmd)) == -1) {
+	if(!write_socket(xfrd->ipc_handler.ev_fd, &cmd, sizeof(cmd))) {
 		log_msg(LOG_ERR, "xfrd: error writing shutdown to main: %s",
 			strerror(errno));
 	}
@@ -573,7 +573,7 @@ xfrd_send_quit_req(xfrd_state_t* xfrd)
 	xfrd->ipc_send_blocked = 1;
 	ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send ackreload(quit)"));
-	if(write_socket(xfrd->ipc_handler.ev_fd, &cmd, sizeof(cmd)) == -1) {
+	if(!write_socket(xfrd->ipc_handler.ev_fd, &cmd, sizeof(cmd))) {
 		log_msg(LOG_ERR, "xfrd: error writing ack to main: %s",
 			strerror(errno));
 	}
@@ -585,7 +585,7 @@ xfrd_send_stats(xfrd_state_t* xfrd)
 {
 	sig_atomic_t cmd = NSD_STATS;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send stats"));
-	if(write_socket(xfrd->ipc_handler.ev_fd, &cmd, sizeof(cmd)) == -1) {
+	if(!write_socket(xfrd->ipc_handler.ev_fd, &cmd, sizeof(cmd))) {
 		log_msg(LOG_ERR, "xfrd: error writing stats to main: %s",
 			strerror(errno));
 	}
