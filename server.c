@@ -568,12 +568,39 @@ server_init(struct nsd *nsd)
 		}
 #endif /* SO_REUSEADDR */
 
-#if defined(INET6) && defined(IPV6_V6ONLY)
-		if (nsd->tcp[i].addr->ai_family == AF_INET6 &&
-		    setsockopt(nsd->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
-		{
-			log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s", strerror(errno));
-			return -1;
+#if defined(INET6)
+		if (nsd->tcp[i].addr->ai_family == AF_INET6) {
+# if defined(IPV6_V6ONLY)
+			if (setsockopt(nsd->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY,
+				&on, sizeof(on)) < 0) {
+				log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s", strerror(errno));
+				return -1;
+			}
+# endif
+# if defined(IPV6_USE_MIN_MTU)
+			/*
+			 * Use minimum MTU to minimize delays learning working
+			 * PMTU when communicating through a tunnel.
+			 */
+			if (setsockopt(nsd->tcp[i].s,
+				       IPPROTO_IPV6, IPV6_USE_MIN_MTU,
+				       &on, sizeof(on)) < 0) {
+				log_msg(LOG_ERR, "setsockopt(..., IPV6_USE_MIN_MTU, ...) failed: %s", strerror(errno));
+				return -1;
+			}
+# elif defined(IPV6_MTU)
+			/*
+			 * On Linux, PMTUD is disabled by default for datagrams
+			 * so set the MTU equal to the MIN MTU to get the same.
+			 */
+			on = IPV6_MIN_MTU;
+			if (setsockopt(nsd->tcp[i].s, IPPROTO_IPV6, IPV6_MTU,
+				&on, sizeof(on)) < 0) {
+				log_msg(LOG_ERR, "setsockopt(..., IPV6_MTU, ...) failed: %s", strerror(errno));
+				return -1;
+			}
+			on = 1;
+# endif
 		}
 #endif
 		/* set it nonblocking */

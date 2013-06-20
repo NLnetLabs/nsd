@@ -57,6 +57,9 @@ BUG FIXES:
 FEATURES:
 	- New config option "ip-transparent:" to allow NSD to bind to
 	  non local addresses. Default no.
+	- Use IPV6 minimum MTU settings with TCP to reduce failures that
+	  are caused by delays in learning working PMTU when communicating
+	  through a tunnel.
 	- Bugfix #496: Support for EUI48 and EUI64 RR types. Experimental,
 	  turned off by default. Enable with --enable--eui-rrtypes.
 	- New config option "rrl-slip:" to set the average number of
