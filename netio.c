@@ -29,7 +29,7 @@ netio_type *
 netio_create(region_type *region)
 {
 	netio_type *result;
-	
+
 	assert(region);
 
 	result = (netio_type *) region_alloc(region, sizeof(netio_type));
@@ -44,7 +44,7 @@ void
 netio_add_handler(netio_type *netio, netio_handler_type *handler)
 {
 	netio_handler_list_type *elt;
-	
+
 	assert(netio);
 	assert(handler);
 
@@ -72,7 +72,7 @@ void
 netio_remove_handler(netio_type *netio, netio_handler_type *handler)
 {
 	netio_handler_list_type **elt_ptr;
-	
+
 	assert(netio);
 	assert(handler);
 
@@ -119,14 +119,14 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 	netio_handler_list_type *elt;
 	int rc;
 	int result = 0;
-	
+
 	assert(netio);
 
 	/*
 	 * Clear the cached current time.
 	 */
 	netio->have_current_time = 0;
-	
+
 	/*
 	 * Initialize the minimum timeout with the timeout parameter.
 	 */
@@ -208,7 +208,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 	 * some time so the cached value is likely to be old).
 	 */
 	netio->have_current_time = 0;
-	
+
 	if (rc == 0) {
 		/*
 		 * No events before the minimum timeout expired.

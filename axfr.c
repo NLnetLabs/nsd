@@ -94,8 +94,7 @@ query_axfr(struct nsd *nsd, struct query *query)
 	/* Add zone RRs until answer is full.  */
 	assert(query->axfr_current_domain);
 
-	do
-	{
+	do {
 		if (!query->axfr_current_rrset) {
 			query->axfr_current_rrset = domain_find_any_rrset(
 				query->axfr_current_domain,

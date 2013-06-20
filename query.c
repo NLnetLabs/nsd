@@ -945,7 +945,7 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 	}
 
 	if (q->qclass != CLASS_ANY && q->zone->ns_rrset && answer_needs_ns(q)) {
-		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->apex,
+		add_rrset(q, answer, OPTIONAL_AUTHORITY_SECTION, q->zone->apex,
 			  q->zone->ns_rrset);
 	}
 }

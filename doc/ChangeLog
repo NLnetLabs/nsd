@@ -4,6 +4,7 @@
 	  through a tunnel.
 	- Improved RRL logging: also print triggering query src addr and qtype
 	  (thanks Klaus Darilion).
+	- Merge some minor stuff from NSD3.2
 
 18 Jun 2013: Matthijs
 	- Add rrl-slip config option (thanks Stephane Bortzmeyer).

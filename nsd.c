@@ -1041,11 +1041,10 @@ main(int argc, char *argv[])
 		}
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
 			nsd.chrootdir));
-
 		/* chdir to zonesdir again after chroot */
 		if(nsd.options->zonesdir && nsd.options->zonesdir[0]) {
 			if(chdir(nsd.options->zonesdir)) {
-				error("cannot chdir to '%s': %s",
+				error("unable to chdir to '%s': %s",
 					nsd.options->zonesdir, strerror(errno));
 			}
 			DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed directory to %s",

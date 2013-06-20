@@ -1869,7 +1869,7 @@ handle_udp(int fd, short event, void* arg)
 		received = msgs[i].msg_len;
 		msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
 		if (received == -1) {
-			log_msg(LOG_ERR, "recvfrom failed");
+			log_msg(LOG_ERR, "recvmmsg failed");
 			STATUP(data->nsd, rxerr);
 			/* the error can be found in msgs[i].msg_hdr.msg_flags */
 			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);

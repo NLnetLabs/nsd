@@ -186,21 +186,21 @@ enum rdata_wireformat
 	RDATA_WF_COMPRESSED_DNAME,   /* Possibly compressed domain name.  */
 	RDATA_WF_UNCOMPRESSED_DNAME, /* Uncompressed domain name.  */
 	RDATA_WF_LITERAL_DNAME,      /* Literal (not downcased) dname.  */
-	RDATA_WF_BYTE,		         /* 8-bit integer.  */
-	RDATA_WF_SHORT,		         /* 16-bit integer.  */
-	RDATA_WF_LONG,		         /* 32-bit integer.  */
-	RDATA_WF_TEXT,		         /* Text string.  */
-	RDATA_WF_TEXTS,		         /* Text string sequence.  */
-	RDATA_WF_A,		             /* 32-bit IPv4 address.  */
-	RDATA_WF_AAAA,		         /* 128-bit IPv6 address.  */
-	RDATA_WF_BINARY, 	         /* Binary data (unknown length).  */
+	RDATA_WF_BYTE,               /* 8-bit integer.  */
+	RDATA_WF_SHORT,              /* 16-bit integer.  */
+	RDATA_WF_LONG,               /* 32-bit integer.  */
+	RDATA_WF_TEXT,               /* Text string.  */
+	RDATA_WF_TEXTS,              /* Text string sequence.  */
+	RDATA_WF_A,                  /* 32-bit IPv4 address.  */
+	RDATA_WF_AAAA,               /* 128-bit IPv6 address.  */
+	RDATA_WF_BINARY,             /* Binary data (unknown length).  */
 	RDATA_WF_BINARYWITHLENGTH,   /* Binary data preceded by 1 byte length */
-	RDATA_WF_APL,		         /* APL data.  */
-	RDATA_WF_IPSECGATEWAY,	     /* IPSECKEY gateway ip4, ip6 or dname. */
+	RDATA_WF_APL,                /* APL data.  */
+	RDATA_WF_IPSECGATEWAY,       /* IPSECKEY gateway ip4, ip6 or dname. */
 #ifdef EUI_RRTYPES
-	RDATA_WF_ILNP64,	         /* 64-bit uncompressed IPv6 address.  */
+	RDATA_WF_ILNP64,             /* 64-bit uncompressed IPv6 address.  */
 	RDATA_WF_EUI48,	             /* 48-bit address.  */
-	RDATA_WF_EUI64	             /* 64-bit address.  */
+	RDATA_WF_EUI64               /* 64-bit address.  */
 #else
 	RDATA_WF_ILNP64              /* 64-bit uncompressed IPv6 address.  */
 #endif
