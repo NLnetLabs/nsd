@@ -1,6 +1,10 @@
+20 Jun 2013: Matthijs
+	- Improved RRL logging: also print triggering query src addr and qtype
+	  (thanks Klaus Darilion).
+
 18 Jun 2013: Matthijs
-	- RRL config options: rrl-slip, rrl-ipv4-prefix-length,
-	  rrl-ipv6-prefix-length.
+        - Add rrl-slip config option (thanks Stephane Bortzmeyer).
+        - Add rrl-ipv{4,6}-prefix-length config option.
 	- Bug #496: Support for EUI498 and EUI64 RR types.
 
 14 Jun 2013: Wouter

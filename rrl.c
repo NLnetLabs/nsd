@@ -331,15 +331,18 @@ rrl_msg(query_type* query, const char* str)
 	const uint8_t* d = NULL;
 	size_t d_len;
 	uint64_t s;
+	char address[128];
 	if(verbosity < 2) return;
+	addr2str(&query->addr, address, sizeof(address));
 	s = rrl_get_source(query, &c2);
 	c = rrl_classify(query, &d, &d_len) | c2;
 	if(query->zone && query->zone->opts &&
 		(query->zone->opts->pattern->rrl_whitelist & c))
 		wl = 1;
-	log_msg(LOG_INFO, "ratelimit %s %s type %s%s target %s",
+	log_msg(LOG_INFO, "ratelimit %s %s type %s%s target %s query %s %s",
 		str, d?wiredname2str(d):"", rrltype2str(c),
-		wl?"(whitelisted)":"", rrlsource2str(s, c2));
+		wl?"(whitelisted)":"", rrlsource2str(s, c2),
+		address, rrtype_to_string(query->qtype));
 }
 
 /** true if the query used to be blocked by the ratelimit */
@@ -363,11 +366,15 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 		/* initialise */
 		/* potentially the wrong limit here, used lower nonwhitelim */
 		if(verbosity >=2 &&
-			used_to_block(b->rate, b->counter, rrl_ratelimit))
-			log_msg(LOG_INFO, "ratelimit unblock ~ type %s target %s (%s collision)",
+			used_to_block(b->rate, b->counter, rrl_ratelimit)) {
+			char address[128];
+			addr2str(&query->addr, address, sizeof(address));
+			log_msg(LOG_INFO, "ratelimit unblock ~ type %s target %s query %s %s (%s collision)",
 				rrltype2str(b->flags),
 				rrlsource2str(b->source, b->flags),
+				address, rrtype_to_string(query->qtype),
 				(b->hash!=hash?"bucket":"hash"));
+		}
 		b->hash = hash;
 		b->source = source;
 		b->flags = flags;
