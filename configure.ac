@@ -570,7 +570,42 @@ AC_SYS_LARGEFILE
 AC_CHECK_SIZEOF(void*)
 AC_CHECK_SIZEOF(off_t)
 AC_CHECK_FUNCS([arc4random arc4random_uniform])
-AC_CHECK_FUNCS([tzset alarm chroot dup2 endpwent gethostname memset memcpy pwrite socket strcasecmp strchr strdup strerror strncasecmp strtol writev getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime setusercontext initgroups setresuid setreuid setresgid setregid getpwnam mmap recvmmsg sendmmsg])
+AC_CHECK_FUNCS([tzset alarm chroot dup2 endpwent gethostname memset memcpy pwrite socket strcasecmp strchr strdup strerror strncasecmp strtol writev getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime setusercontext initgroups setresuid setreuid setresgid setregid getpwnam mmap])
+
+AC_CHECK_FUNC([sendmmsg], [
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
+#include <sys/socket.h>
+#include <errno.h>
+int main(void)
+{ 
+	int s = socket(AF_INET, SOCK_DGRAM, 0);
+	int r = sendmmsg(s, 0, 0, 0, 0) == -1 && errno == ENOSYS;
+	close(s);
+	return r;
+}
+]])], [
+AC_DEFINE([HAVE_SENDMMSG], [1], [Define if sendmmsg is implemented])], [
+], [
+AC_DEFINE([HAVE_SENDMMSG], [1], [Define if sendmmsg exists])]
+)])
+
+AC_CHECK_FUNC([recvmmsg], [
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
+#include <sys/socket.h>
+#include <errno.h>
+int main(void)
+{ 
+	int s = socket(AF_INET, SOCK_DGRAM, 0);
+	int r = recvmmsg(s, 0, 0, 0, 0) == -1 && errno == ENOSYS;
+	close(s);
+	return r;
+}
+]])], [
+AC_DEFINE([HAVE_RECVMMSG], [1], [Define if recvmmsg is implemented])], [
+], [
+AC_DEFINE([HAVE_RECVMMSG], [1], [Define if recvmmsg exists])]
+)])
+
 
 # check if setreuid en setregid fail, on MacOSX10.4(darwin8).
 if echo $build_os | grep darwin8 > /dev/null; then
