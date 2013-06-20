@@ -1,5 +1,8 @@
 $Id$
 
+TESTING
+- remove this line
+
 AUTOCONF
 - check/translate arguments to --with-facility
 
