@@ -350,7 +350,7 @@ AC_CACHE_VAL(ac_cv_c_strptime_needs_defs,
 [
 cat >conftest.c <<EOF
 #include <time.h>
-int testing (void) { struct tm t; const char *timestr="201201"; return strptime(timestr, "%Y%m", &t)!=0; }
+int testing (void) { struct tm t; const char *timestr="201201"; return strptime(timestr, "%Y%m", &t) != 0; }
 EOF
 if test -z "`$CC -Wall -Werror -c conftest.c 2>&1`"; then
 eval "ac_cv_c_strptime_needs_defs=no"
@@ -391,10 +391,10 @@ AC_DEFINE_UNQUOTED([STRPTIME_WORKS], 1, [use default strptime.])
 fi
 ])dnl
 
-AC_CHECK_STRPTIME_WORKS
-
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
+
+AC_CHECK_STRPTIME_WORKS
 
 dnl LIBGTOP_CHECK_TYPE
 dnl Stolen from Gnome's anjuta

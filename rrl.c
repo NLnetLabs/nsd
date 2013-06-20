@@ -34,6 +34,8 @@ struct rrl_bucket {
 	/* rate, in queries per second, which due to rate=r(t)+r(t-1)/2 is
 	 * equal to double the queries per second */
 	uint32_t rate;
+	/* the full hash */
+	uint32_t hash;
 	/* counter for queries arrived in this second */
 	uint32_t counter;
 	/* timestamp, which time is the time of the counter, the rate is from
@@ -389,7 +391,7 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 		(long long unsigned)source, hash, b->rate, b->counter, b->stamp));
 
 	/* check if different source */
-	if(b->source != source || b->flags != flags) {
+	if(b->source != source || b->flags != flags || b->hash != hash) {
 		/* initialise */
 		/* potentially the wrong limit here, used lower nonwhitelim */
 		if(verbosity >=2 &&
@@ -399,12 +401,13 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "addr2ip failed"));
 				strlcpy(address, "[unknown]", sizeof(address));
 			}
-			log_msg(LOG_INFO, "ratelimit unblock ~ type %s target %s "
-				"query %s %s",
+			log_msg(LOG_INFO, "ratelimit unblock ~ type %s target %s query %s %s (%s collision)",
 				rrltype2str(b->flags),
 				rrlsource2str(b->source, b->flags),
-				address, rrtype_to_string(query->qtype));
+				address, rrtype_to_string(query->qtype),
+				(b->hash!=hash?"bucket":"hash"));
 		}
+		b->hash = hash;
 		b->source = source;
 		b->flags = flags;
 		b->counter = 1;

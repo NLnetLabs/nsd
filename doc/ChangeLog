@@ -1,3 +1,12 @@
+20 June 2013: Matthijs
+	- Merge some things from trunk:
+	  * NSD does not print statistics to logfile if period is 0.
+	  * Bug #491: pick program name (0th argument) as syslog identity.
+	  * Add hash to rrl bucket.
+	  * Fix segfault if no logfile is used.
+	  * Fix memory leak in zone parser for txt record (since the large
+	    number of txt subsections fix).
+
 17 June 2013: Matthijs
 	- While reading xfr, make sure there are no multiple SOA records.
 

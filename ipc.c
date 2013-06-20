@@ -200,7 +200,8 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 	}
 	if (len == 0)
 	{
-		DEBUG(DEBUG_IPC,1, (LOG_ERR, "handle_xfrd_command: xfrd closed channel."));
+		/* xfrd closed, we must quit */
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "handle_xfrd_command: xfrd closed channel."));
 		close(handler->fd);
 		handler->fd = -1;
 		return;
@@ -208,6 +209,7 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 
 	switch (mode) {
 	case NSD_RELOAD:
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "parent handle xfrd command RELOAD"));
 		data->nsd->signal_hint_reload = 1;
 		break;
 	case NSD_QUIT:

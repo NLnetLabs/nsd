@@ -46,11 +46,11 @@ lookup_table_type dns_certificate_types[] = {
 
 /* Taken from RFC 2535, section 7.  */
 lookup_table_type dns_algorithms[] = {
-	{ 1, "RSAMD5" },		/* RFC 2537 */
-	{ 2, "DH" },			/* RFC 2539 */
-	{ 3, "DSA" },			/* RFC 2536 */
+	{ 1, "RSAMD5" },	/* RFC 2537 */
+	{ 2, "DH" },		/* RFC 2539 */
+	{ 3, "DSA" },		/* RFC 2536 */
 	{ 4, "ECC" },
-	{ 5, "RSASHA1" },		/* RFC 3110 */
+	{ 5, "RSASHA1" },	/* RFC 3110 */
 	{ 6, "DSA-NSEC3-SHA1" },	/* RFC 5155 */
 	{ 7, "RSASHA1-NSEC3-SHA1" },	/* RFC 5155 */
 	{ 8, "RSASHA256" },		/* RFC 5702 */

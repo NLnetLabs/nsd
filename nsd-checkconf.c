@@ -55,6 +55,7 @@ extern int optind;
 #define SERV_GET_BIN(NAME, VAR) 			\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
 		printf("%s\n", opt->NAME?"yes":"no"); 	\
+		return;					\
 	}
 
 #define SERV_GET_STR(NAME, VAR) 		\

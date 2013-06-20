@@ -67,8 +67,7 @@ nsec3_add_params(const char* hash_algo_str, const char* flag_str,
 %token <type> T_OPT T_APL T_UINFO T_UID T_GID T_UNSPEC T_TKEY T_TSIG T_IXFR
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_DLV T_SSHFP T_RRSIG T_NSEC T_DNSKEY
 %token <type> T_SPF T_NSEC3 T_IPSECKEY T_DHCID T_NSEC3PARAM T_TLSA
-%token <type> T_NID T_L32 T_L64 T_LP T_EUI48 T_EUI64 
-
+%token <type> T_NID T_L32 T_L64 T_LP T_EUI48 T_EUI64
 
 /* other tokens */
 %token	       DOLLAR_TTL DOLLAR_ORIGIN NL SP
@@ -336,11 +335,11 @@ wire_rel_dname:	wire_label
 
 str_seq:	STR
     {
-	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->region, $1.str, $1.len), 1);
+	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $1.str, $1.len), 1);
     }
     |	str_seq sp STR
     {
-	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->region, $3.str, $3.len), 0);
+	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $3.str, $3.len), 0);
     }
     ;
 

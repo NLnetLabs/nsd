@@ -21,6 +21,7 @@ FEATURES:
 
 BUG FIXES:
 	- Bugfix #487: lookup3.c determine endianness for BSD systems.
+	- Bugfix #491: pick program name (0th argument) as syslog identity.
 	- Bugfix #494: Exit with return code 1 if socket code fails.
 	- Bugfix #495: Wrong bufsize in dname_to_string for root.
 	- Fix outgoing-interface: Don't fail if family is IPv6 but

@@ -241,8 +241,12 @@ unlinkpid(const char* file)
 	if (file) {
 		/* truncate pidfile */
 		fd = open(file, O_WRONLY | O_TRUNC, 0644);
-		if (fd != -1)
+		if (fd == -1) {
+			/* Truncate the pid file.  */
+			log_msg(LOG_ERR, "can not truncate the pid file %s: %s", file, strerror(errno));
+		} else 
 			close(fd);
+
 		/* unlink pidfile */
 		if (unlink(file) == -1)
 			log_msg(LOG_WARNING, "failed to unlink pidfile %s: %s",
@@ -386,6 +390,8 @@ bind8_stats (struct nsd *nsd)
 
 	/* Current time... */
 	time_t now;
+	if(!nsd->st.period)
+		return;
 	time(&now);
 
 	/* NSTATS */
@@ -479,7 +485,7 @@ main(int argc, char *argv[])
 
 	char* argv0 = (argv0 = strrchr(argv[0], '/')) ? argv0 + 1 : argv[0];
 
-	log_init("nsd");
+	log_init(argv0);
 
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
@@ -1031,8 +1037,8 @@ main(int argc, char *argv[])
 			exit(1);
 		default:
 			/* Parent is done */
-			server_close_all_sockets(nsd.tcp, nsd.ifs);
 			server_close_all_sockets(nsd.udp, nsd.ifs);
+			server_close_all_sockets(nsd.tcp, nsd.ifs);
 			exit(0);
 		}
 
