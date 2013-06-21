@@ -546,3 +546,4 @@ char* wiredname2str(const uint8_t* dname)
 	*p++ = 0;
 	return buf;
 }
+
