@@ -1,3 +1,6 @@
+25 June 2013: Matthijs
+	- acx_nlnetlabs.m4 updated, --disable-flto option.
+
 20 June 2013: Matthijs
 	- Merge some things from trunk:
 	  * NSD does not print statistics to logfile if period is 0.
