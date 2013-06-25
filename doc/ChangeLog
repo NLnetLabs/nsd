@@ -1,3 +1,6 @@
+25 Jun 2013: Wouter
+	- acx_nlnetlabs.m4 update, --disable-flto.
+
 20 Jun 2013: Matthijs
 	- Use IPV6 minimum MTU settings with TCP to reduce failures that
 	  are caused by delays in learning working PMTU when communicating
