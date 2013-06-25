@@ -426,7 +426,7 @@ static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+1)] 
 	{ TYPE_LP, "LP", T_LP, 2, 2,
 	  { RDATA_WF_SHORT, RDATA_WF_UNCOMPRESSED_DNAME },
 	  { RDATA_ZF_SHORT, RDATA_ZF_DNAME } },
-#ifdef EUI_RRTYPES
+#ifdef DRAFT_RRTYPES
 	/* 108 */
 	{ TYPE_EUI48, "EUI48", T_EUI48, 1, 1,
 	  { RDATA_WF_EUI48 }, { RDATA_ZF_EUI48 } },
