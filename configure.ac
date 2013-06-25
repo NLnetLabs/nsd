@@ -642,10 +642,10 @@ case "$enable_minimal_responses" in
                 ;;
 esac
 
-AC_ARG_ENABLE(eui-rrtypes, AC_HELP_STRING([--enable-eui-rrtypes], [Enable EUI48 and EUI64 RRtypes. Experimental.]))
-case "$enable_eui_rrtypes" in
+AC_ARG_ENABLE(draft-rrtypes, AC_HELP_STRING([--enable-draft-rrtypes], [Enable draft RRtypes.]))
+case "$enable_draft_rrtypes" in
         yes)
-		AC_DEFINE_UNQUOTED([EUI_RRTYPES], [], [Define this to enable EUI48 and EUI64 RRtypes. Experimental.])
+		AC_DEFINE_UNQUOTED([DRAFT_RRTYPES], [], [Define this to enable draft RRtypes.])
                 ;;
         no|*)
 		;;

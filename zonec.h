@@ -92,7 +92,7 @@ uint16_t *zparser_conv_byte(region_type *region, const char *text);
 uint16_t *zparser_conv_a(region_type *region, const char *text);
 uint16_t *zparser_conv_aaaa(region_type *region, const char *text);
 uint16_t *zparser_conv_ilnp64(region_type *region, const char *text);
-#ifdef EUI_RRTYPES
+#ifdef DRAFT_RRTYPES
 uint16_t *zparser_conv_eui(region_type *region, const char *text, size_t len);
 #endif
 uint16_t *zparser_conv_text(region_type *region, const char *text, size_t len);

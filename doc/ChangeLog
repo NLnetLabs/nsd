@@ -1,4 +1,7 @@
 25 June 2013: Matthijs
+	- Rename --enable-eui-rrtypes to --enable-draft-rrtypes.
+
+25 June 2013: Wouter
 	- acx_nlnetlabs.m4 updated, --disable-flto option.
 
 20 June 2013: Matthijs

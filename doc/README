@@ -182,9 +182,9 @@ addition to standard configure options, one may use the following:
 
 	Enables ratelimiting, based on query name, type and source.
 
-  --enable-eui-rrtypes
+  --enable-draft-rrtypes
 
-	Enables EUI48 and EUI64 RRtypes.
+	Enables draft RRtypes.
 
   --with-configdir=dir
 

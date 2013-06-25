@@ -235,7 +235,7 @@ rdata_ilnp64_to_string(buffer_type *output, rdata_atom_type rdata,
 	return 1;
 }
 
-#ifdef EUI_RRTYPES
+#ifdef DRAFT_RRTYPES
 static int
 rdata_eui48_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
@@ -631,7 +631,7 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_nsec_to_string,
 	rdata_loc_to_string,
 	rdata_ilnp64_to_string,
-#ifdef EUI_RRTYPES
+#ifdef DRAFT_RRTYPES
 	rdata_eui48_to_string,
 	rdata_eui64_to_string,
 #endif
@@ -713,7 +713,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 		case RDATA_WF_ILNP64:
 			length = IP6ADDRLEN/2;
 			break;
-#ifdef EUI_RRTYPES
+#ifdef DRAFT_RRTYPES
 		case RDATA_WF_EUI48:
 			length = EUI48ADDRLEN;
 		case RDATA_WF_EUI64:

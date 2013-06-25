@@ -854,7 +854,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	/* Start new child processes */
 	if (server_start_children(nsd, server_region, netio, xfrd_sock_p) != 0) {
-		send_children_quit(nsd);
+		send_children_quit(nsd); /* no wait required */
 		exit(1);
 	}
 
@@ -898,7 +898,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "reload: could not wait for parent to quit: %s",
 			strerror(errno));
 	}
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc reply main %d %d", ret, cmd));
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc reply main %d %d", ret, (int)cmd));
 	if(cmd == NSD_QUIT) {
 		/* small race condition possible here, parent got quit cmd. */
 		send_children_quit(nsd);
