@@ -1,6 +1,8 @@
 26 June 2013: Matthijs
 	- Fix bind8 stats test.
 	- Force stats if mode is NSD_STATS. 
+	- Better xfr syntax checking in xfrd, fallback to axfr after three
+	  bad xfr packets.
 
 25 June 2013: Matthijs
 	- Rename --enable-eui-rrtypes to --enable-draft-rrtypes.
