@@ -1484,7 +1484,7 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 			/* check the SOAs */
 			buffer_set_position(packet, soapos);
 			if(!xfrd_parse_soa_info(packet, soa)) {
-				DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr pkt "
+				DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
 					"unable to parse soainfo", zone->apex_str));
 				return 0;
 			}
