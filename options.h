@@ -176,9 +176,10 @@ struct acl_options {
 	acl_options_t* next;
 
 	/* options */
+	time_t ixfr_disabled;
+	int bad_xfr_count;
 	uint8_t use_axfr_only;
 	uint8_t allow_udp;
-	time_t ixfr_disabled;
 
 	/* ip address range */
 	const char* ip_address_spec;

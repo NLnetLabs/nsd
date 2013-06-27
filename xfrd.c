@@ -1177,9 +1177,19 @@ xfrd_udp_read(xfrd_zone_t* zone)
 			xfrd_make_request(zone);
 			break;
 		case xfrd_packet_more:
-		case xfrd_packet_bad:
 		case xfrd_packet_drop:
+			/* drop packet */
+			xfrd_udp_release(zone);
+			/* query next server */
+			xfrd_make_request(zone);
+			break;
+		case xfrd_packet_bad:
 		default:
+			zone->master->bad_xfr_count++;
+			if (zone->master->bad_xfr_count > 2) {
+				zone->master->ixfr_disabled = time(NULL);
+				zone->master->bad_xfr_count = 0;
+			}
 			/* drop packet */
 			xfrd_udp_release(zone);
 			/* query next server */
@@ -1425,47 +1435,75 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 	int *done, xfrd_soa_t* soa, region_type* temp)
 {
 	/* first RR has already been checked */
+	uint32_t tmp_serial = 0;
 	uint16_t type, rrlen;
 	size_t i, soapos, mempos;
 	const dname_type* dname;
 	domain_table_type* owners;
 	rdata_atom_type* rdatas;
-	
+
 	for(i=0; i<count; ++i,++zone->msg_rr_count)
 	{
+		if (*done) {
+			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr has "
+				"trailing garbage", zone->apex_str));
+			return 0;
+		}
 		region_free_all(temp);
 		owners = domain_table_create(temp);
 		/* check the dname for errors */
 		dname = dname_make_from_packet(temp, packet, 1, 1);
-		if(!dname)
+		if(!dname) {
+			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr unable "
+				"to parse owner name", zone->apex_str));
 			return 0;
-		if(!buffer_available(packet, 10))
+		}
+		if(!buffer_available(packet, 10)) {
+			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr hdr "
+				"too small", zone->apex_str));
 			return 0;
+		}
 		soapos = buffer_position(packet);
 		type = buffer_read_u16(packet);
 		(void)buffer_read_u16(packet); /* class */
 		(void)buffer_read_u32(packet); /* ttl */
 		rrlen = buffer_read_u16(packet);
-		if(!buffer_available(packet, rrlen))
+		if(!buffer_available(packet, rrlen)) {
+			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr pkt "
+				"too small", zone->apex_str));
 			return 0;
+		}
 		mempos = buffer_position(packet);
 		if(rdata_wireformat_to_rdata_atoms(temp, owners, type, rrlen,
-			packet, &rdatas) == -1)
+			packet, &rdatas) == -1) {
+			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr unable "
+				"to parse rdata", zone->apex_str));
 			return 0;
+		}
 		if(type == TYPE_SOA) {
 			/* check the SOAs */
 			buffer_set_position(packet, soapos);
-			if(!xfrd_parse_soa_info(packet, soa))
+			if(!xfrd_parse_soa_info(packet, soa)) {
+				DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr pkt "
+					"unable to parse soainfo", zone->apex_str));
 				return 0;
+			}
 			if(zone->msg_rr_count == 1 &&
 				ntohl(soa->serial) != zone->msg_new_serial) {
 				/* 2nd RR is SOA with lower serial, this is an IXFR */
 				zone->msg_is_ixfr = 1;
-				if(!zone->soa_disk_acquired)
+				if(!zone->soa_disk_acquired) {
+					DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
+						"got ixfr but need axfr", zone->apex_str));
 					return 0; /* got IXFR but need AXFR */
-				if(ntohl(soa->serial) != ntohl(zone->soa_disk.serial))
+				}
+				if(ntohl(soa->serial) != ntohl(zone->soa_disk.serial)) {
+					DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
+						"bad start serial", zone->apex_str));
 					return 0; /* bad start serial in IXFR */
+				}
 				zone->msg_old_serial = ntohl(soa->serial);
+				tmp_serial = ntohl(soa->serial);
 			}
 			else if(ntohl(soa->serial) == zone->msg_new_serial) {
 				/* saw another SOA of new serial. */
@@ -1475,6 +1513,20 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 					/* 2nd SOA for AXFR or 3rd newSOA for IXFR */
 					*done = 1;
 				}
+			}
+			else if (zone->msg_is_ixfr) {
+				/* some additional checks */
+				if(ntohl(soa->serial) > zone->msg_new_serial) {
+					DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
+						"bad middle serial", zone->apex_str));
+					return 0; /* bad middle serial in IXFR */
+				}
+				if(ntohl(soa->serial) < tmp_serial) {
+					DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
+						"serial decreasing not allowed", zone->apex_str));
+					return 0; /* middle serial decreases in IXFR */
+				}
+
 			}
 		}
 		buffer_set_position(packet, mempos);

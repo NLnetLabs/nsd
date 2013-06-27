@@ -79,6 +79,8 @@ BUG FIXES:
 	  only IPv4 outgoing-interface is set, or vice versa.
 	- RRtypes ASFDB, RP, RT should not compress dnames.
 	- Check that zone directory is within chroot directory.
+	- Better XFR checking, fallback to AXFR (if allowed) if three
+	  malformed XFR packets have been seen.
 
 
 3.2.15
