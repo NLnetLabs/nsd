@@ -1,6 +1,7 @@
 27 June 2013: Matthijs
 	- Bugfix #357: Parent process waits until children closed down
 	  sockets, to prevent nsd failing to bind to sockets when restarting.
+	- zonec: Don't crash on domain names with label length 0.
 
 26 June 2013: Matthijs
 	- Fix bind8 stats test.
