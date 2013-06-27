@@ -826,6 +826,11 @@ xfrd_udp_read(xfrd_zone_t* zone)
 			xfrd_make_request(zone);
 			break;
 		case xfrd_packet_more:
+			/* drop packet */
+			xfrd_udp_release(zone);
+			/* query next server */
+			xfrd_make_request(zone);
+			break;
 		case xfrd_packet_bad:
 		default:
 			zone->master->bad_xfr_count++;
