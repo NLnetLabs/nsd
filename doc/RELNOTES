@@ -71,9 +71,11 @@ FEATURES:
 	- Provide RRL documentation in nsd.conf.sample.
 
 BUG FIXES:
-        - Bugfix #487: lookup3.c determine endianness for BSD systems.
+	- Bugfix #357: Parent process waits until children closed down
+	  sockets, to prevent NSD failing to bind to sockets when restarting.
+	- Bugfix #487: lookup3.c determine endianness for BSD systems.
 	- Bugfix #491: pick program name (0th argument) as syslog identity.
-        - Bugfix #494: Exit with return code 1 if socket code fails.
+	- Bugfix #494: Exit with return code 1 if socket code fails.
 	- RRtypes ASFDB, RP, RT should not compress dnames.
 	- Fix outgoing-interface: Don't fail if family is IPv6 but
 	  only IPv4 outgoing-interface is set, or vice versa.
