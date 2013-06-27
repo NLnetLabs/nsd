@@ -1089,17 +1089,17 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 	for(i=0; i<count; ++i,++zone->msg_rr_count)
 	{
 		if (*done) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s xfr has "
+			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr has "
 				"trailing garbage", zone->apex_str));
 			return 0;
 		}
 		if(!packet_skip_dname(packet)) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s xfr unable "
+			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr unable "
 				"to skip owner name", zone->apex_str));
 			return 0;
 		}
 		if(!buffer_available(packet, 10)) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s xfr hdr "
+			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr hdr "
 				"too small", zone->apex_str));
 			return 0;
 		}
@@ -1109,7 +1109,7 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 		(void)buffer_read_u32(packet); /* ttl */
 		rrlen = buffer_read_u16(packet);
 		if(!buffer_available(packet, rrlen)) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s xfr pkt "
+			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr pkt "
 				"too small", zone->apex_str));
 			return 0;
 		}
@@ -1118,7 +1118,7 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 			size_t mempos = buffer_position(packet);
 			buffer_set_position(packet, soapos);
 			if(!xfrd_parse_soa_info(packet, soa)) {
-				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s xfr "
+				DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
 					"unable to parse soainfo", zone->apex_str));
 				return 0;
 			}
@@ -1127,12 +1127,12 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 				/* 2nd RR is SOA with lower serial, this is an IXFR */
 				zone->msg_is_ixfr = 1;
 				if(!zone->soa_disk_acquired) {
-					DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s xfr "
+					DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
 						"got ixfr but need axfr", zone->apex_str));
 					return 0; /* got IXFR but need AXFR */
 				}
 				if(ntohl(soa->serial) != ntohl(zone->soa_disk.serial)) {
-					DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s xfr "
+					DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
 						"bad start serial", zone->apex_str));
 					return 0; /* bad start serial in IXFR */
 				}
@@ -1151,12 +1151,12 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 			else if (zone->msg_is_ixfr) {
 				/* some additional checks */
 				if(ntohl(soa->serial) > zone->msg_new_serial) {
-					DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s xfr "
+					DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
 						"bad middle serial", zone->apex_str));
 					return 0; /* bad middle serial in IXFR */
 				}
 				if(ntohl(soa->serial) < tmp_serial) {
-					DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s xfr "
+					DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
 						"serial decreasing not allowed", zone->apex_str));
 					return 0; /* middle serial decreases in IXFR */
 				}
