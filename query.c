@@ -1323,7 +1323,7 @@ query_process(query_type *q, nsd_type *nsd)
 
 	arcount = ARCOUNT(q->packet);
 	if (arcount > 0) {
-		/* According to draft-ietf-dnsext-rfc2671bis-edns0-10:
+		/* According to RFC 6891:
 		 * "The placement flexibility for the OPT RR does not
 		 * override the need for the TSIG or SIG(0) RRs to be
 		 * the last in the additional section whenever they are
