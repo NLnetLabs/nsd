@@ -134,6 +134,14 @@ child_handle_parent_command(netio_type *ATTR_UNUSED(netio),
 	case NSD_QUIT:
 		ipc_child_quit(data->nsd);
 		break;
+	case NSD_QUIT_CHILD:
+		/* close our listening sockets and ack */
+		server_close_all_sockets(data->nsd->udp, data->nsd->ifs);
+		server_close_all_sockets(data->nsd->tcp, data->nsd->ifs);
+		/* mode == NSD_QUIT_CHILD */
+		(void)write(handler->fd, &mode, sizeof(mode));
+		ipc_child_quit(data->nsd);
+		break;
 	case NSD_ZONE_STATE:
 		data->conn->is_reading = 1;
 		data->conn->total_bytes = 0;

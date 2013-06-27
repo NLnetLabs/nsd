@@ -174,6 +174,8 @@ static void handle_tcp_writing(netio_type *netio,
  * Send all children the quit nonblocking, then close pipe.
  */
 static void send_children_quit(struct nsd* nsd);
+/* same, for shutdown time, waits for child to exit to avoid restart issues */
+static void send_children_quit_and_wait(struct nsd* nsd);
 
 /* set childrens flags to send NSD_STATS to them */
 #ifdef BIND8_STATS
@@ -863,7 +865,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc command from main %d", cmd));
 		if(cmd == NSD_QUIT) {
 			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: quit to follow nsd"));
-			send_children_quit(nsd);
+			send_children_quit(nsd); /* no wait required */
 			exit(0);
 		}
 	}
@@ -1057,7 +1059,7 @@ server_main(struct nsd *nsd)
 
 	/* Start the child processes that handle incoming queries */
 	if (server_start_children(nsd, server_region, netio, &xfrd_listener.fd) != 0) {
-		send_children_quit(nsd);
+		send_children_quit(nsd); /* no wait required */
 		exit(1);
 	}
 	reload_listener.fd = -1;
@@ -1218,7 +1220,7 @@ server_main(struct nsd *nsd)
 				close(reload_listener.fd);
 			}
 			/* only quit children after xfrd has acked */
-			send_children_quit(nsd);
+			send_children_quit(nsd); /* no wait required */
 
 			namedb_fd_close(nsd->db);
 			region_destroy(server_region);
@@ -1227,7 +1229,7 @@ server_main(struct nsd *nsd)
 			/* ENOTREACH */
 			break;
 		case NSD_SHUTDOWN:
-			send_children_quit(nsd);
+			send_children_quit_and_wait(nsd);
 			log_msg(LOG_WARNING, "signal received, shutting down...");
 			break;
 		case NSD_REAP_CHILDREN:
@@ -2097,6 +2099,38 @@ send_children_quit(struct nsd* nsd)
 					(int) command,
 					(int) nsd->children[i].pid,
 					strerror(errno));
+			}
+			fsync(nsd->children[i].child_fd);
+			close(nsd->children[i].child_fd);
+			nsd->children[i].child_fd = -1;
+		}
+	}
+}
+
+static void
+send_children_quit_and_wait(struct nsd* nsd)
+{
+	sig_atomic_t command;
+	size_t i;
+	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "send children quit and wait"));
+	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
+	for (i = 0; i < nsd->child_count; ++i) {
+		if (nsd->children[i].pid > 0 && nsd->children[i].child_fd != -1) {
+			command = NSD_QUIT_CHILD;
+			if (write(nsd->children[i].child_fd, &command,
+				sizeof(command)) == -1)
+			{
+				if(errno != EAGAIN && errno != EINTR)
+					log_msg(LOG_ERR, "problems sending command %d to server %d: %s",
+					(int) command,
+					(int) nsd->children[i].pid,
+					strerror(errno));
+			} else {
+				/* wait for reply */
+				int timeout = 3; /* seconds */
+				(void)block_read(NULL,
+					nsd->children[i].child_fd,
+					&command, sizeof(command), timeout);
 			}
 			fsync(nsd->children[i].child_fd);
 			close(nsd->children[i].child_fd);
