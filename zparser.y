@@ -243,7 +243,7 @@ label:	STR
 		    zc_error("label exceeds %d character limit", MAXLABELLEN);
 		    $$ = error_dname;
 	    } else if ($1.len <= 0) {
-		    zc_error("zero label length", MAXLABELLEN);
+		    zc_error("zero label length");
 		    $$ = error_dname;
 	    } else {
 		    $$ = dname_make_from_label(parser->rr_region,

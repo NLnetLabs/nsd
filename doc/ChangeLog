@@ -1,5 +1,6 @@
 28 June 2013: Matthijs
 	- Update tmp serial in xfr checking.
+	- Fix warning in labellength 0 code.
 
 27 June 2013: Matthijs
 	- Bugfix #357: Parent process waits until children closed down
