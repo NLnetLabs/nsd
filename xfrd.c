@@ -1156,11 +1156,13 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 						"bad middle serial", zone->apex_str));
 					return 0; /* bad middle serial in IXFR */
 				}
-				if(ntohl(soa->serial) < tmp_serial) {
+                                if(ntohl(soa->serial) < tmp_serial) {
 					DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
 						"serial decreasing not allowed", zone->apex_str));
 					return 0; /* middle serial decreases in IXFR */
 				}
+				/** serial ok, update tmp serial */
+				tmp_serial = ntohl(soa->serial);
 
 			}
 			buffer_set_position(packet, mempos);

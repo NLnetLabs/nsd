@@ -572,3 +572,4 @@ dname_make_wildcard(struct region *region,
 	return 0;
 }
 #endif
+

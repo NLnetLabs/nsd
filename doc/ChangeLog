@@ -1,3 +1,6 @@
+28 June 2013: Matthijs
+	- Update tmp serial in xfr checking.
+
 27 June 2013: Matthijs
 	- Bugfix #357: Parent process waits until children closed down
 	  sockets, to prevent nsd failing to bind to sockets when restarting.
