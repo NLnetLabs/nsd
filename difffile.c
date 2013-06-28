@@ -361,7 +361,7 @@ nsec3_delete_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 		/* if no more NSEC3, done */
 		if(!zone->nsec3_param)
 			return;
-		nsec3_precompile_newparam(db, zone, udbz);
+		nsec3_precompile_newparam(db, zone);
 	}
 }
 
@@ -400,24 +400,26 @@ nsec3_rrsets_changed_remove_prehash(domain_type* domain, zone_type* zone)
 /* see if domain needs to get precompiled info */
 static void
 nsec3_rrsets_changed_add_prehash(namedb_type* db, domain_type* domain,
-	zone_type* zone, udb_ptr* udbz)
+	zone_type* zone)
 {
 	if(!zone->nsec3_param)
 		return;
 	if((!domain->nsec3 || !domain->nsec3->hash_node.key)
 		&& nsec3_condition_hash(domain, zone)) {
-		nsec3_precompile_domain(db, domain, zone, udbz);
+		region_type* tmpregion = region_create(xalloc, free);
+		nsec3_precompile_domain(db, domain, zone, tmpregion);
+		region_destroy(tmpregion);
 	}
 	if((!domain->nsec3 || !domain->nsec3->dshash_node.key)
 		&& nsec3_condition_dshash(domain, zone)) {
-		nsec3_precompile_domain_ds(db, domain, zone, udbz);
+		nsec3_precompile_domain_ds(db, domain, zone);
 	}
 }
 
 /* see if nsec3 rrset-deletion triggers need action */
 static void
 nsec3_delete_rrset_trigger(namedb_type* db, domain_type* domain,
-	zone_type* zone, udb_ptr* udbz, uint16_t type)
+	zone_type* zone, uint16_t type)
 {
 	if(!zone->nsec3_param)
 		return;
@@ -425,14 +427,14 @@ nsec3_delete_rrset_trigger(namedb_type* db, domain_type* domain,
 	/* for type nsec3, or a delegation, the domain may have become a
 	 * 'normal' domain with its remaining data now */
 	if(type == TYPE_NSEC3 || type == TYPE_NS || type == TYPE_DS)
-		nsec3_rrsets_changed_add_prehash(db, domain, zone, udbz);
+		nsec3_rrsets_changed_add_prehash(db, domain, zone);
 	/* for type DNAME or a delegation, obscured data may be revealed */
 	if(type == TYPE_NS || type == TYPE_DS || type == TYPE_DNAME) {
 		/* walk over subdomains and check them each */
 		domain_type *d;
 		for(d=domain_next(domain); d && domain_is_subdomain(d, domain);
 			d=domain_next(d)) {
-			nsec3_rrsets_changed_add_prehash(db, d, zone, udbz);
+			nsec3_rrsets_changed_add_prehash(db, d, zone);
 		}
 	}
 }
@@ -460,21 +462,21 @@ nsec3_add_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 		if(!zone->nsec3_param)
 			return;
 		nsec3_zone_trees_create(db->region, zone);
-		nsec3_precompile_newparam(db, zone, udbz);
+		nsec3_precompile_newparam(db, zone);
 	}
 }
 
 /* see if nsec3 rrset-addition triggers need action */
 static void
 nsec3_add_rrset_trigger(namedb_type* db, domain_type* domain, zone_type* zone,
-	udb_ptr* udbz, uint16_t type)
+	uint16_t type)
 {
 	/* the rrset has been added so we can inspect it */
 	if(!zone->nsec3_param)
 		return;
 	/* because the rrset is added we can check conditions easily.
 	 * check if domain needs to become precompiled now */
-	nsec3_rrsets_changed_add_prehash(db, domain, zone, udbz);
+	nsec3_rrsets_changed_add_prehash(db, domain, zone);
 	/* if a delegation, it changes from normal name to unhashed referral */
 	if(type == TYPE_NS || type == TYPE_DS) {
 		nsec3_rrsets_changed_remove_prehash(domain, zone);
@@ -573,8 +575,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			rrset_delete(db, domain, rrset);
 #ifdef NSEC3
 			/* cleanup nsec3 */
-			nsec3_delete_rrset_trigger(db, domain, zone, udbz,
-				type);
+			nsec3_delete_rrset_trigger(db, domain, zone, type);
 #endif
 			/* see if the domain can be deleted (and inspect parents) */
 			domain_table_deldomain(db, domain);
@@ -617,7 +618,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			 * 'normal' domain with its remaining data now */
 			if(type == TYPE_NSEC3)
 				nsec3_rrsets_changed_add_prehash(db, domain,
-					zone, udbz);
+					zone);
 #endif /* NSEC3 */
 		}
 	}
@@ -718,11 +719,11 @@ add_RR(namedb_type* db, const dname_type* dname,
 #ifdef NSEC3
 	if(rrset_added) {
 		domain_type* p = domain->parent;
-		nsec3_add_rrset_trigger(db, domain, zone, udbz, type);
+		nsec3_add_rrset_trigger(db, domain, zone, type);
 		/* go up and process (possibly created) empty nonterminals, 
 		 * until we hit the apex or root */
 		while(p && p->rrsets == NULL && !p->is_apex) {
-			nsec3_rrsets_changed_add_prehash(db, p, zone, udbz);
+			nsec3_rrsets_changed_add_prehash(db, p, zone);
 			p = p->parent;
 		}
 	}
@@ -1214,7 +1215,7 @@ apply_ixfr_for_zone(namedb_type* db, zone_type* zonedb, FILE* in,
 			snprintf(log_buf, sizeof(log_buf), "error reading log");
 		}
 #ifdef NSEC3
-		if(zonedb) prehash_zone(db, zonedb, &z);
+		if(zonedb) prehash_zone(db, zonedb);
 #endif /* NSEC3 */
 		zonedb->is_changed = 1;
 		ZONE(&z)->is_changed = 1;

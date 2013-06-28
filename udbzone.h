@@ -56,15 +56,7 @@ struct domain_d {
 	udb_rel_ptr rrsets;
 	/** length of the domain name */
 	udb_radstrlen_t namelen;
-	/** is the hash filled */
-	uint8_t have_hash;
-	/** NSEC3 hash of this name, with zone parameters */
-	uint8_t hash[NSEC3_HASH_LEN];
-	/** is the wildcard hash filled */
-	uint8_t have_wc_hash;
-	/** NSEC3 hash of *.thisname, with zone parameters */
-	uint8_t wc_hash[NSEC3_HASH_LEN];
-	/** the zone (wire uncompressed) name in DNS format */
+	/** the domain (wire uncompressed) name in DNS format */
 	uint8_t name[0];
 };
 
@@ -126,14 +118,6 @@ int udb_zone_add_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
 /** del an RR from a zone */
 void udb_zone_del_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
 	size_t nmlen, uint16_t t, uint16_t k, uint8_t* rdata, size_t rdatalen);
-
-/** lookup nsec3 hash or create the hash : caches results in file */
-int udb_zone_lookup_hash(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
-	size_t nmlen, uint8_t hash[NSEC3_HASH_LEN]);
-/** lookup nsec3 hash or create, for nm and *.nm */
-int udb_zone_lookup_hash_wc(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
-	size_t nmlen, uint8_t hash[NSEC3_HASH_LEN],
-	uint8_t wchash[NSEC3_HASH_LEN]);
 
 /** get pretty string for nsec3parameters (static buffer returned) */
 const char* udb_nsec3param_string(udb_ptr* rr);

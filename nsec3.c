@@ -120,44 +120,27 @@ nsec3_hash_and_store(zone_type *zone, const dname_type *dname, uint8_t* store)
 
 /** find hash or create it and store it */
 static void
-nsec3_lookup_hash_and_wc(namedb_type* db, zone_type* zone, udb_ptr* z,
-	const dname_type* dname, domain_type* domain)
+nsec3_lookup_hash_and_wc(zone_type* zone, const dname_type* dname,
+	domain_type* domain, region_type* tmpregion)
 {
-	uint8_t h[NSEC3_HASH_LEN], h_wc[NSEC3_HASH_LEN];
 	const dname_type* wcard;
 	if(domain->nsec3->have_nsec3_hash && domain->nsec3->have_nsec3_wc_hash) {
-		return;
-	}
-	if(udb_zone_lookup_hash_wc(db->udb, z, dname_name(dname),
-		dname->name_size, h, h_wc)) {
-		STORE_HASH(nsec3_hash, h);
-		STORE_HASH(nsec3_wc_hash, h_wc);
 		return;
 	}
 	/* lookup failed; disk failure or so */
 	nsec3_hash_and_store(zone, dname, domain->nsec3->nsec3_hash);
 	domain->nsec3->have_nsec3_hash = 1;
-	if(1) {
-		region_type* region = region_create(xalloc, free);
-		wcard = dname_parse(region, "*");
-		wcard = dname_concatenate(region, wcard, dname);
-		nsec3_hash_and_store(zone, wcard, domain->nsec3->nsec3_wc_hash);
-		domain->nsec3->have_nsec3_wc_hash = 1;
-		region_destroy(region);
-	}
+	wcard = dname_parse(tmpregion, "*");
+	wcard = dname_concatenate(tmpregion, wcard, dname);
+	nsec3_hash_and_store(zone, wcard, domain->nsec3->nsec3_wc_hash);
+	domain->nsec3->have_nsec3_wc_hash = 1;
 }
 
 static void
-nsec3_lookup_hash_ds(namedb_type* db, zone_type* zone, udb_ptr* z,
-	const dname_type* dname, domain_type* domain)
+nsec3_lookup_hash_ds(zone_type* zone, const dname_type* dname,
+	domain_type* domain)
 {
-	uint8_t h[NSEC3_HASH_LEN];
 	if(domain->nsec3->have_nsec3_ds_parent_hash) {
-		return;
-	}
-	if(udb_zone_lookup_hash(db->udb, z, dname_name(dname),
-		dname->name_size, h)) {
-		STORE_HASH(nsec3_ds_parent_hash, h);
 		return;
 	}
 	/* lookup failed; disk failure or so */
@@ -177,7 +160,7 @@ nsec3_has_soa(rr_type* rr)
 }
 
 static rr_type*
-check_apex_soa(namedb_type* namedb, zone_type *zone, udb_ptr* z)
+check_apex_soa(namedb_type* namedb, zone_type *zone)
 {
 	uint8_t h[NSEC3_HASH_LEN];
 	domain_type* domain;
@@ -185,10 +168,8 @@ check_apex_soa(namedb_type* namedb, zone_type *zone, udb_ptr* z)
 	unsigned j;
 	rrset_type* nsec3_rrset;
 	region_type* tmpregion;
-	if(!udb_zone_lookup_hash(namedb->udb, z, dname_name(dname),
-		dname->name_size, h)) {
-		return NULL;
-	}
+
+	nsec3_hash_and_store(zone, dname, h);
 	tmpregion = region_create(xalloc, free);
 	hashed_apex = nsec3_b32_create(tmpregion, zone, h);
 	domain = domain_table_find(namedb->domains, hashed_apex);
@@ -446,14 +427,14 @@ nsec3_find_cover(zone_type* zone, uint8_t* hash, size_t hashlen,
 }
 
 void nsec3_precompile_domain(struct namedb* db, struct domain* domain,
-	struct zone* zone, struct udb_ptr* z)
+	struct zone* zone, region_type* tmpregion)
 {
 	domain_type* result = 0;
 	int exact;
 	allocate_domain_nsec3(db->domains, domain);
 
 	/* hash it */
-	nsec3_lookup_hash_and_wc(db, zone, z, domain_dname(domain), domain);
+	nsec3_lookup_hash_and_wc(zone, domain_dname(domain), domain, tmpregion);
 
 	/* add into tree */
 	zone_add_domain_in_hash_tree(db->region, &zone->hashtree,
@@ -476,7 +457,7 @@ void nsec3_precompile_domain(struct namedb* db, struct domain* domain,
 }
 
 void nsec3_precompile_domain_ds(struct namedb* db, struct domain* domain,
-	struct zone* zone, struct udb_ptr* z)
+	struct zone* zone)
 {
 	domain_type* result = 0;
 	int exact;
@@ -484,7 +465,7 @@ void nsec3_precompile_domain_ds(struct namedb* db, struct domain* domain,
 
 	/* hash it : it could have different hash parameters then the
 	   other hash for this domain name */
-	nsec3_lookup_hash_ds(db, zone, z, domain_dname(domain), domain);
+	nsec3_lookup_hash_ds(zone, domain_dname(domain), domain);
 	/* lookup in tree cover ptr (or exact) */
 	exact = nsec3_find_cover(zone, domain->nsec3->nsec3_ds_parent_hash,
 		sizeof(domain->nsec3->nsec3_ds_parent_hash), &result);
@@ -526,10 +507,11 @@ void nsec3_precompile_nsec3rr(namedb_type* db, struct domain* domain,
 	}
 }
 
-void nsec3_precompile_newparam(namedb_type* db, zone_type* zone,
-	udb_ptr* udbz)
+void nsec3_precompile_newparam(namedb_type* db, zone_type* zone)
 {
+	region_type* tmpregion = region_create(xalloc, free);
 	domain_type* walk;
+
 	/* add nsec3s of chain to nsec3tree */
 	for(walk=zone->apex; walk && domain_is_subdomain(walk, zone->apex);
 		walk = domain_next(walk)) {
@@ -540,11 +522,14 @@ void nsec3_precompile_newparam(namedb_type* db, zone_type* zone,
 	/* hash and precompile zone */
 	for(walk=zone->apex; walk && domain_is_subdomain(walk, zone->apex);
 		walk = domain_next(walk)) {
-		if(nsec3_condition_hash(walk, zone))
-			nsec3_precompile_domain(db, walk, zone, udbz);
+		if(nsec3_condition_hash(walk, zone)) {
+			nsec3_precompile_domain(db, walk, zone, tmpregion);
+			region_free_all(tmpregion);
+		}
 		if(nsec3_condition_dshash(walk, zone))
-			nsec3_precompile_domain_ds(db, walk, zone, udbz);
+			nsec3_precompile_domain_ds(db, walk, zone);
 	}
+	region_destroy(tmpregion);
 }
 
 void
@@ -562,14 +547,14 @@ prehash_zone_complete(struct namedb* db, struct zone* zone)
 		udb_ptr_init(&udbz, db->udb); /* zero the ptr */
 	}
 	nsec3_find_zone_param(db, zone, &udbz);
-	if(!zone->nsec3_param || !check_apex_soa(db, zone, &udbz)) {
+	if(!zone->nsec3_param || !check_apex_soa(db, zone)) {
 		zone->nsec3_param = NULL;
 		zone->nsec3_last = NULL;
 		udb_ptr_unlink(&udbz, db->udb);
 		return;
 	}
-	nsec3_precompile_newparam(db, zone, &udbz);
 	udb_ptr_unlink(&udbz, db->udb);
+	nsec3_precompile_newparam(db, zone);
 }
 
 static void
@@ -733,7 +718,7 @@ process_prehash_domain(domain_type* domain, zone_type* zone)
 	}
 }
 
-void prehash_zone(struct namedb* db, struct zone* zone, udb_ptr* udbz)
+void prehash_zone(struct namedb* db, struct zone* zone)
 {
 	domain_type* d;
 	if(!zone->nsec3_param) {
@@ -747,7 +732,7 @@ void prehash_zone(struct namedb* db, struct zone* zone, udb_ptr* udbz)
 	/* clear prehash list */
 	prehash_clear(db->domains);
 
-	if(!check_apex_soa(db, zone, udbz)) {
+	if(!check_apex_soa(db, zone)) {
 		zone->nsec3_param = NULL;
 		zone->nsec3_last = NULL;
 	}

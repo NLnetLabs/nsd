@@ -289,68 +289,6 @@ void udb_zone_set_log_str(udb_base* udb, udb_ptr* zone, const char* str)
 }
 
 #ifdef NSEC3
-/** get params */
-static void get_nsec3_params(udb_base* udb, udb_ptr* zone,
-	const unsigned char** salt, int* saltlen, int* iter)
-{
-	udb_ptr p;
-	/* get the NSEC3 parameters */
-	udb_ptr_new(&p, udb, &ZONE(zone)->nsec3param);
-	assert(udb_ptr_get_type(&p) == udb_chunk_type_rr);
-	assert(RR(&p)->type == TYPE_NSEC3PARAM);
-	
-	/* NSEC3PARAM [hashtype u8] [flags u8] [iter u16] [len u8] salt */
-	if(RR(&p)->len < 5 /* too short, malformed RR */
-	|| RR(&p)->wire[0] != NSEC3_SHA1_HASH /* unknown hash type */
-	|| RR(&p)->wire[1] != 0 /* if flags set MUST be ignored */
-		) {
-		*salt = NULL;
-		*saltlen = 0;
-		*iter = 0;
-		udb_ptr_unlink(&p, udb);
-		return;
-	}
-	*iter = read_uint16(&RR(&p)->wire[2]);
-	*saltlen = RR(&p)->wire[4];
-	if(RR(&p)->len < 5 + *saltlen) {
-		*saltlen = 0; /* out of bounds on salt */
-		udb_ptr_unlink(&p, udb);
-		return;
-	}
-	*salt = &RR(&p)->wire[5];
-	udb_ptr_unlink(&p, udb);
-}
-
-/** calculate hash for a domain name and store */
-static void
-calculate_hash(udb_base* udb, udb_ptr* zone, struct domain_d* domain)
-{
-	const unsigned char* salt;
-	int saltlen, iter;
-	get_nsec3_params(udb, zone, &salt, &saltlen, &iter);
-	/* calculate hash */
-	iterated_hash(domain->hash, salt, saltlen, domain->name,
-		domain->namelen, iter);
-}
-
-/** calculate wildcard hash for a domain name and store */
-static void
-calculate_hash_wc(udb_base* udb, udb_ptr* zone, struct domain_d* domain)
-{
-	const unsigned char* salt;
-	int saltlen, iter;
-	get_nsec3_params(udb, zone, &salt, &saltlen, &iter);
-	/* calculate hash */
-	if(domain->namelen <= MAXDOMAINLEN-2) {
-		uint8_t wcname[MAXDOMAINLEN];
-		wcname[0] = 1;
-		wcname[1] = '*';
-		memmove(wcname+2, domain->name, domain->namelen);
-		iterated_hash(domain->wc_hash, salt, saltlen, wcname,
-			domain->namelen+2, iter);
-	}
-}
-
 /** select the nsec3param for nsec3 usage */
 static void
 select_nsec3_param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
@@ -390,11 +328,10 @@ udb_nsec3param_string(udb_ptr* rr)
 	return params;
 }
 
-/** hash the entire zone with a newly selected nsec3param record from rrset */
+/** look in zone for new selected nsec3param record from rrset */
 static void
 zone_hash_nsec3param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
 {
-	udb_ptr dtree, d;
 	select_nsec3_param(udb, zone, rrset);
 	if(ZONE(zone)->nsec3param.data == 0)
 		return;
@@ -407,16 +344,6 @@ zone_hash_nsec3param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
 			udb_nsec3param_string(&par)));
 		udb_ptr_unlink(&par, udb);
 	}
-	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
-	for(udb_radix_first(udb,&dtree,&d); d.data; udb_radix_next(udb,&d)) {
-		udb_ptr domain;
-		udb_ptr_new(&domain, udb, &RADNODE(&d)->elem);
-		DOMAIN(&domain)->have_hash = 0;
-		DOMAIN(&domain)->have_wc_hash = 0;
-		udb_ptr_unlink(&domain, udb);
-	}
-	udb_ptr_unlink(&dtree, udb);
-	udb_ptr_unlink(&d, udb);
 }
 #endif /* NSEC3 */
 
@@ -434,10 +361,6 @@ domain_create(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 	udb_rel_ptr_init(&DOMAIN(result)->rrsets);
 	DOMAIN(result)->namelen = nmlen;
 	memmove(DOMAIN(result)->name, nm, nmlen);
-	DOMAIN(result)->have_hash = 0;
-	memset(DOMAIN(result)->hash, 0, NSEC3_HASH_LEN);
-	DOMAIN(result)->have_wc_hash = 0;
-	memset(DOMAIN(result)->wc_hash, 0, NSEC3_HASH_LEN);
 
 	/* insert into domain tree */
 	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
@@ -771,63 +694,6 @@ udb_zone_del_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 	udb_ptr_unlink(&rrset, udb);
 	udb_ptr_unlink(&domain, udb);
 }
-
-#ifdef NSEC3
-int
-udb_zone_lookup_hash(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
-        size_t nmlen, uint8_t hash[NSEC3_HASH_LEN])
-{
-	udb_ptr d;
-	if(!zone->data) return 0;
-	if(!ZONE(zone)->nsec3param.data)
-		return 0;
-	if(!udb_domain_find(udb, zone, nm, nmlen, &d)) {
-		/* domain does not exist, an emptynonterminal or so */
-		/* this could be cached too */
-		return 0;
-	}
-	assert(d.data);
-	/* found domain, see if we have nsec3 hash */
-	if(!DOMAIN(&d)->have_hash) {
-		calculate_hash(udb, zone, DOMAIN(&d));
-		DOMAIN(&d)->have_hash = 1;
-	}
-	memmove(hash, DOMAIN(&d)->hash, NSEC3_HASH_LEN);
-	udb_ptr_unlink(&d, udb);
-	return 1;
-}
-#endif /* NSEC3 */
-
-#ifdef NSEC3
-int
-udb_zone_lookup_hash_wc(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
-        size_t nmlen, uint8_t hash[NSEC3_HASH_LEN],
-        uint8_t wchash[NSEC3_HASH_LEN])
-{
-	udb_ptr d;
-	if(!zone->data) return 0;
-	if(!ZONE(zone)->nsec3param.data)
-		return 0;
-	if(!udb_domain_find(udb, zone, nm, nmlen, &d)) {
-		/* domain does not exist, an emptynonterminal or so */
-		return 0;
-	}
-	assert(d.data);
-	/* found domain, see if we have nsec3 hash */
-	if(!DOMAIN(&d)->have_hash) {
-		calculate_hash(udb, zone, DOMAIN(&d));
-		DOMAIN(&d)->have_hash = 1;
-	}
-	if(!DOMAIN(&d)->have_wc_hash) {
-		calculate_hash_wc(udb, zone, DOMAIN(&d));
-		DOMAIN(&d)->have_wc_hash = 1;
-	}
-	memmove(hash, DOMAIN(&d)->hash, NSEC3_HASH_LEN);
-	memmove(wchash, DOMAIN(&d)->wc_hash, NSEC3_HASH_LEN);
-	udb_ptr_unlink(&d, udb);
-	return 1;
-}
-#endif /* NSEC3 */
 
 void
 udb_zone_walk_chunk(void* base, void* d, uint64_t s, udb_walk_relptr_cb* cb,

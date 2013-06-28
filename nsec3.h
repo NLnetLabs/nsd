@@ -23,7 +23,7 @@ struct rr;
 /*
  * calculate prehash information for zone.
  */
-void prehash_zone(struct namedb* db, struct zone* zone, struct udb_ptr* udbz);
+void prehash_zone(struct namedb* db, struct zone* zone);
 /*
  * calculate prehash for zone, assumes no partial precompile or prehashlist
  */
@@ -95,16 +95,15 @@ void nsec3_find_zone_param(struct namedb* db, struct zone* zone,
 	struct udb_ptr* z);
 /* hash domain and wcchild, and lookup nsec3 in tree, and precompile */
 void nsec3_precompile_domain(struct namedb* db, struct domain* domain,
-	struct zone* zone, struct udb_ptr* z);
+	struct zone* zone, struct region* tmpregion);
 /* hash ds_parent_cover, and lookup nsec3 and precompile */
 void nsec3_precompile_domain_ds(struct namedb* db, struct domain* domain,
-	struct zone* zone, struct udb_ptr* z);
+	struct zone* zone);
 /* put nsec3 into nsec3tree and adjust zonelast */
 void nsec3_precompile_nsec3rr(struct namedb* db, struct domain* domain,
 	struct zone* zone);
 /* precompile entire zone, assumes all is null at start */
-void nsec3_precompile_newparam(struct namedb* db, struct zone* zone,
-	struct udb_ptr* udbz);
+void nsec3_precompile_newparam(struct namedb* db, struct zone* zone);
 /* create b32.zone for a hash, allocated in the region */
 const struct dname* nsec3_b32_create(struct region* region, struct zone* zone,
 	unsigned char* hash);

@@ -1,5 +1,8 @@
 28 Jun 2013: Matthijs
 	- Update tmp serial in xfr checking.
+	- nsd.db 12% smaller, no nsec3 hash storage.  Also ups udb version
+	  because of the format change.  printout udb write complete for
+	  debug.
 
 28 Jun 2013: Wouter
 	- Fix warning in labellength 0 code.

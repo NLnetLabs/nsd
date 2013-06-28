@@ -334,7 +334,7 @@ struct udb_alloc {
 /** magic string that starts an UDB file, uint64_t, note first byte=0, to mark
  * header start as a chunk. */
 #define UDB_MAGIC (((uint64_t)'u'<<48)|((uint64_t)'d'<<40)|((uint64_t)'b' \
-	<<32)|((uint64_t)'v'<<24)|((uint64_t)'0'<<16)|((uint64_t)'9'<<8))
+	<<32)|((uint64_t)'v'<<24)|((uint64_t)'0'<<16)|((uint64_t)'a'<<8))
 
 /* UDB BASE */
 /**
