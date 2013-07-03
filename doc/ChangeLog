@@ -1,5 +1,7 @@
 3 Jul 2013: Wouter
 	- region-allocator has list of large allocations, so delete is in O(1).
+	- recursive readroutine for speedup of nsd.db reads (30%).
+	- udb-inspect prints type summary of nodes in nsd.db.
 
 28 Jun 2013: Matthijs
 	- Update tmp serial in xfr checking.

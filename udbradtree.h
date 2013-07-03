@@ -61,7 +61,7 @@ struct udb_radsel_d {
 	 * with this, you have a chance of it working on other platforms */
 	uint16_t padding16;
 	uint32_t padding32;
-	/** node that deals with byte+str, to udb_radnode_r */
+	/** node that deals with byte+str, to udb_radnode_d */
 	struct udb_rel_ptr node;
 };
 

@@ -39,6 +39,9 @@ static int v = 0;
 #define MAP_FAILED ((void*)-1)
 #endif
 
+/* udb type is a uint8 */
+#define NUM_UDB_TYPES 256
+
 /** print usage text */
 static void
 usage(void)
@@ -151,6 +154,11 @@ struct inspect_totals {
 	uint64_t exp_num[UDB_ALLOC_CHUNKS_MAX];
 	/** numfree per size */
 	uint64_t exp_free[UDB_ALLOC_CHUNKS_MAX];
+
+	/** count per type */
+	uint64_t type_num[NUM_UDB_TYPES];
+	/** count per size per type */
+	uint64_t type_exp_num[NUM_UDB_TYPES][UDB_ALLOC_CHUNKS_MAX];
 };
 
 /** convert chunk type to string */
@@ -330,8 +338,13 @@ inspect_chunk(void* base, void* cv, struct inspect_totals* t)
 
 	/* update stats */
 	t->exp_num[exp]++;
-	if(tp == udb_chunk_type_free)
+	if(tp == udb_chunk_type_free) {
 		t->exp_free[exp]++;
+	} else {
+		t->type_num[tp]++;
+		t->type_exp_num[tp][exp]++;
+	}
+
 	/* check end marker */
 	if(exp == UDB_EXP_XL) {
 		if(sz != *(uint64_t*)(cv+sz-2*sizeof(uint64_t))) {
@@ -362,7 +375,7 @@ inspect_all_chunks(void* base, udb_glob_d* g, udb_alloc_d* a,
 static void
 print_totals(struct inspect_totals* t)
 {
-	int i;
+	int i, tp;
 	printf("*** total num chunks:	%llu\n", ULL t->num_chunks);
 	for(i=0; i<UDB_ALLOC_CHUNKS_MAX; i++) {
 		if(t->exp_num[i] != 0 || t->exp_free[i] != 0)
@@ -370,6 +383,18 @@ print_totals(struct inspect_totals* t)
 				"total %llu\n", i, ULL t->exp_free[i],
 				ULL (t->exp_num[i] - t->exp_free[i]),
 				ULL t->exp_num[i]);
+	}
+	for(tp=0; tp<NUM_UDB_TYPES; tp++) {
+		if(t->type_num[tp] == 0)
+			continue;
+		printf("type %s num chunks:	%llu\n",
+			chunk_type2str(tp), ULL t->type_num[tp]);
+		for(i=0; i<UDB_ALLOC_CHUNKS_MAX; i++) {
+			if(t->type_exp_num[tp][i] != 0)
+				printf("type %s exp %d chunks:	%llu\n",
+					chunk_type2str(tp), i,
+					ULL t->type_exp_num[tp][i]);
+		}
 	}
 }
 

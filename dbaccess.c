@@ -17,7 +17,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <stdio.h>		/* DEBUG */
 
 #include "dns.h"
 #include "namedb.h"
@@ -164,39 +163,70 @@ read_rrset(udb_base* udb, namedb_type* db, zone_type* zone,
 		apex_rrset_checks(db, rrset, domain);
 }
 
+/** read one elem from db, of type domain_d */
+static void read_node_elem(udb_base* udb, namedb_type* db, 
+	region_type* dname_region, zone_type* zone, struct domain_d* d)
+{
+	const dname_type* dname;
+	domain_type* domain;
+	udb_ptr urrset;
+
+	dname = dname_make(dname_region, d->name, 0);
+	if(!dname) return;
+	domain = domain_table_insert(db->domains, dname);
+
+	/* add rrsets */
+	udb_ptr_init(&urrset, udb);
+	udb_ptr_set_rptr(&urrset, udb, &d->rrsets);
+	while(urrset.data) {
+		read_rrset(udb, db, zone, domain, &urrset);
+		udb_ptr_set_rptr(&urrset, udb, &RRSET(&urrset)->next);
+	}
+	region_free_all(dname_region);
+	udb_ptr_unlink(&urrset, udb);
+}
+
+/** recurse read radix from disk. This radix tree is by domain name, so max of
+ * 256 depth, and thus the stack usage is small. */
+static void read_zone_recurse(udb_base* udb, namedb_type* db,
+	region_type* dname_region, zone_type* zone, struct udb_radnode_d* node)
+{
+	if(node->elem.data) {
+		/* pre-order process of node->elem, for radix tree this is
+		 * also in-order processing (identical to order tree_next()) */
+		read_node_elem(udb, db, dname_region, zone, (struct domain_d*)
+			(udb->base + node->elem.data));
+	}
+	if(node->lookup.data) {
+		uint16_t i;
+		struct udb_radarray_d* a = (struct udb_radarray_d*)
+			(udb->base + node->lookup.data);
+		/* we do not care for what the exact radix key is, we want
+		 * to add all of them and the read routine does not need
+		 * the radix-key, it has it stored */
+		for(i=0; i<a->len; i++) {
+			if(a->array[i].node.data) {
+				read_zone_recurse(udb, db, dname_region, zone,
+					(struct udb_radnode_d*)(udb->base +
+						a->array[i].node.data));
+			}
+		}
+	}
+}
+
 /** read zone data */
 static void
 read_zone_data(udb_base* udb, namedb_type* db, region_type* dname_region,
 	udb_ptr* z, zone_type* zone)
 {
-	udb_ptr dtree, n, d, urrset;
-	udb_ptr_init(&urrset, udb);
-	udb_ptr_init(&d, udb);
+	udb_ptr dtree;
+	/* recursively read domains, we only read so ptrs stay valid */
 	udb_ptr_new(&dtree, udb, &ZONE(z)->domains);
-	/* walk over domain names */
-	for(udb_radix_first(udb,&dtree,&n); n.data; udb_radix_next(udb,&n)) {
-		const dname_type* dname;
-		domain_type* domain;
-
-		/* add the domain */
-		udb_ptr_set_rptr(&d, udb, &RADNODE(&n)->elem);
-		dname = dname_make(dname_region, DOMAIN(&d)->name, 0);
-		if(!dname) continue;
-		domain = domain_table_insert(db->domains, dname);
-		assert(udb_ptr_get_type(&d) == udb_chunk_type_domain);
-
-		/* add rrsets */
-		udb_ptr_set_rptr(&urrset, udb, &DOMAIN(&d)->rrsets);
-		while(urrset.data) {
-			read_rrset(udb, db, zone, domain, &urrset);
-			udb_ptr_set_rptr(&urrset, udb, &RRSET(&urrset)->next);
-		}
-		region_free_all(dname_region);
-	}
+	if(RADTREE(&dtree)->root.data)
+		read_zone_recurse(udb, db, dname_region, zone,
+			(struct udb_radnode_d*)
+			(udb->base + RADTREE(&dtree)->root.data));
 	udb_ptr_unlink(&dtree, udb);
-	udb_ptr_unlink(&d, udb);
-	udb_ptr_unlink(&n, udb);
-	udb_ptr_unlink(&urrset, udb);
 }
 
 /** create a zone */
