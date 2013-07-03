@@ -1,3 +1,6 @@
+3 Jul 2013: Wouter
+	- region-allocator has list of large allocations, so delete is in O(1).
+
 28 Jun 2013: Matthijs
 	- Update tmp serial in xfr checking.
 	- nsd.db 12% smaller, no nsec3 hash storage.  Also ups udb version
