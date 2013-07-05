@@ -236,8 +236,8 @@ check_mem(nsd_options_t* opt)
 	char tf[512];
 	char df[512];
 	memset(&totmem, 0, sizeof(totmem));
-	snprintf(tf, sizeof(tf), "/tmp/nsd-mem-task-%u.db", (unsigned)getpid());
-	snprintf(df, sizeof(df), "/tmp/nsd-mem-db-%u.db", (unsigned)getpid());
+	snprintf(tf, sizeof(tf), "./nsd-mem-task-%u.db", (unsigned)getpid());
+	snprintf(df, sizeof(df), "./nsd-mem-db-%u.db", (unsigned)getpid());
 
 	/* read all zones and account memory */
 	RBTREE_FOR(zo, zone_options_t*, opt->zone_options) {

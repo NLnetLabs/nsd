@@ -1,3 +1,8 @@
+5 Jul 2013: Wouter
+	- nsd-mem stores temp files in current dir because /tmp is too small. 
+	- printout pct parsed, read, nsec3 and written every 100.000 elements
+	  and after 5 seconds.  For big zones.
+
 3 Jul 2013: Wouter
 	- region-allocator has list of large allocations, so delete is in O(1).
 	- recursive readroutine for speedup of nsd.db reads (30%).

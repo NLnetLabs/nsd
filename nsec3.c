@@ -17,6 +17,7 @@
 #include "nsd.h"
 #include "answer.h"
 #include "udbzone.h"
+#include "options.h"
 
 /* compare nsec3 hashes in nsec3 tree */
 static int
@@ -511,10 +512,13 @@ void nsec3_precompile_newparam(namedb_type* db, zone_type* zone)
 {
 	region_type* tmpregion = region_create(xalloc, free);
 	domain_type* walk;
+	time_t s = time(NULL);
+	unsigned n = 0, c = 0;
 
 	/* add nsec3s of chain to nsec3tree */
 	for(walk=zone->apex; walk && domain_is_subdomain(walk, zone->apex);
 		walk = domain_next(walk)) {
+		n ++;
 		if(nsec3_in_chain_count(walk, zone) != 0) {
 			nsec3_precompile_nsec3rr(db, walk, zone);
 		}
@@ -528,6 +532,11 @@ void nsec3_precompile_newparam(namedb_type* db, zone_type* zone)
 		}
 		if(nsec3_condition_dshash(walk, zone))
 			nsec3_precompile_domain_ds(db, walk, zone);
+		if(++c % ZONEC_PCT_COUNT == 0 && time(NULL) > s + ZONEC_PCT_TIME) {
+			s = time(NULL);
+			VERBOSITY(1, (LOG_INFO, "nsec3 %s %d %%",
+				zone->opts->name, c*100/n));
+		}
 	}
 	region_destroy(tmpregion);
 }

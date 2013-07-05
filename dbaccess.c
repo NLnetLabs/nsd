@@ -30,6 +30,10 @@
 #include "nsec3.h"
 #include "difffile.h"
 
+static time_t udb_time = 0;
+static unsigned udb_rrsets = 0;
+static unsigned udb_rrset_count = 0;
+
 void
 namedb_close (struct namedb *db)
 {
@@ -181,6 +185,12 @@ static void read_node_elem(udb_base* udb, namedb_type* db,
 	while(urrset.data) {
 		read_rrset(udb, db, zone, domain, &urrset);
 		udb_ptr_set_rptr(&urrset, udb, &RRSET(&urrset)->next);
+
+		if(++udb_rrsets % ZONEC_PCT_COUNT == 0 && time(NULL) > udb_time + ZONEC_PCT_TIME) {
+			udb_time = time(NULL);
+			VERBOSITY(1, (LOG_INFO, "read %s %d %%",
+				zone->opts->name, udb_rrsets*100/udb_rrset_count));
+		}
 	}
 	region_free_all(dname_region);
 	udb_ptr_unlink(&urrset, udb);
@@ -302,6 +312,8 @@ read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 	zone_type* zone;
 	assert(dname);
 	assert(udb_ptr_get_type(z) == udb_chunk_type_zone);
+	udb_rrsets = 0;
+	udb_rrset_count = ZONE(z)->rrset_count;
 	if(!zo) {
 		/* deleted from the options, remove it from the nsd.db too */
 		VERBOSITY(2, (LOG_WARNING, "zone %s is deleted",
@@ -328,6 +340,7 @@ read_zones(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 	udb_ptr_init(&z, udb);
 	udb_ptr_new(&ztree, udb, udb_base_get_userdata(udb));
 	udb_radix_first(udb,&ztree,&n);
+	udb_time = time(NULL);
 	while(n.data) {
 		udb_ptr_set_rptr(&z, udb, &RADNODE(&n)->elem);
 		udb_radix_next(udb, &n); /* store in case n is deleted */
@@ -521,6 +534,9 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 		}
 		/* read from udb */
 		dname_region = region_create(xalloc, free);
+		udb_rrsets = 0;
+		udb_rrset_count = ZONE(&z)->rrset_count;
+		udb_time = time(NULL);
 		read_zone_data(db->udb, db, dname_region, &z, zone);
 		region_destroy(dname_region);
 		udb_ptr_unlink(&z, db->udb);
@@ -531,9 +547,9 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 		zone->is_changed = 0;
 		/* store zone into udb */
 		if(!write_zone_to_udb(db->udb, zone, mtime)) {
-			log_msg(LOG_ERR, "failed to store zone in udb");
+			log_msg(LOG_ERR, "failed to store zone in db");
 		} else {
-			VERBOSITY(2, (LOG_INFO, "zone %s written to udb",
+			VERBOSITY(2, (LOG_INFO, "zone %s written to db",
 				zone->opts->name));
 		}
 	}

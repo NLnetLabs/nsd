@@ -22,6 +22,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
 
 #include <netinet/in.h>
 
@@ -47,11 +50,7 @@
 const dname_type *error_dname;
 domain_type *error_domain;
 
-/* Some global flags... */
-static int vflag = 0;
-/* if -v then print progress each 'progress' RRs */
-static int progress = 10000;
-
+static time_t startzonec = 0;
 static long int totalrrs = 0;
 
 extern uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
@@ -1439,8 +1438,15 @@ process_rr(void)
 	if(rr->owner == zone->apex)
 		apex_rrset_checks(parser->db, rrset, rr->owner);
 
-	if (vflag > 1 && totalrrs > 0 && (totalrrs % progress == 0)) {
-		log_msg(LOG_INFO, "%ld", totalrrs);
+	if(parser->line % ZONEC_PCT_COUNT == 0 && time(NULL) > startzonec + ZONEC_PCT_TIME) {
+		struct stat buf;
+		startzonec = time(NULL);
+		buf.st_size = 0;
+		fstat(fileno(yyin), &buf);
+		if(buf.st_size == 0) buf.st_size = 1;
+		VERBOSITY(1, (LOG_INFO, "parse %s %d %%",
+			parser->current_zone->opts->name,
+			(int)((uint64_t)ftell(yyin)*(uint64_t)100/(uint64_t)buf.st_size)));
 	}
 	++totalrrs;
 	return 1;
@@ -1504,6 +1510,7 @@ zonec_read(const char *name, const char *zonefile, zone_type* zone)
 	const dname_type *dname;
 
 	totalrrs = 0;
+	startzonec = time(NULL);
 	parser->errors = 0;
 
 	dname = dname_parse(parser->region, name);
@@ -1550,9 +1557,6 @@ zonec_read(const char *name, const char *zonefile, zone_type* zone)
 	if(!zone_is_slave(zone->opts))
 		check_dname(zone);
 
-	if(vflag > 1)
-		log_msg(LOG_INFO, "zonefile %s read %ld RRs",
-			parser->filename, totalrrs);
 	parser->filename = NULL;
 	return parser->errors;
 }
@@ -1624,6 +1628,7 @@ int zonec_parse_string(region_type* region, domain_table_type* domains,
 	parser->current_zone = zone;
 	parser->errors = 0;
 	totalrrs = 0;
+	startzonec = time(NULL)+100000; /* disable */
 	parser_push_stringbuf(str);
 	yyparse();
 	parser_pop_stringbuf();

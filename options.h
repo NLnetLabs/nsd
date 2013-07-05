@@ -323,6 +323,9 @@ int zone_is_slave(zone_options_t* opt);
 /* create zonefile name, returns static pointer (perhaps to options data) */
 const char* config_make_zonefile(zone_options_t* zone);
 
+#define ZONEC_PCT_TIME 5 /* seconds, then it starts to print pcts */
+#define ZONEC_PCT_COUNT 100000 /* elements before pct check is done */
+
 /* parsing helpers */
 void c_error(const char* msg);
 void c_error_msg(const char* fmt, ...) ATTR_FORMAT(printf, 1, 2);
