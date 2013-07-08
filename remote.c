@@ -372,7 +372,7 @@ create_tcp_accept_sock(struct addrinfo* addr, int* noproto)
 		return -1;
 	}
 	/* Listen to it... */
-	if (listen(s, TCP_BACKLOG) == -1) {
+	if (listen(s, TCP_BACKLOG_REMOTE) == -1) {
 		log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
 		return -1;
 	}

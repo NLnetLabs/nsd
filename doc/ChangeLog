@@ -1,3 +1,9 @@
+8 Jul 2013: Wouter
+	- Increase tcpbacklog default to 256 (silently capped to 128 on BSD).
+	  For remote control keep it at 16, it has less TCP load.
+	  It does not actually increase TCP performance (some except), but
+	  reduces connection loss when there is a spike in TCP connections.
+
 5 Jul 2013: Wouter
 	- nsd-mem stores temp files in current dir because /tmp is too small. 
 	- printout pct parsed, read, nsec3 and written every 100.000 elements
