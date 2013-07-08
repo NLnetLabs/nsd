@@ -52,7 +52,7 @@ static uint32_t rrl_ratelimit = RRL_LIMIT; /* 2x qps */
 static uint8_t rrl_slip_ratio = RRL_SLIP;
 static uint8_t rrl_ipv4_prefixlen = RRL_IPV4_PREFIX_LENGTH;
 static uint8_t rrl_ipv6_prefixlen = RRL_IPV6_PREFIX_LENGTH;
-static uint32_t rrl_ipv6_mask[2]; /* max prefixlen 64 */
+static uint64_t rrl_ipv6_mask; /* max prefixlen 64 */
 static uint32_t rrl_whitelist_ratelimit = RRL_WLIST_LIMIT; /* 2x qps */
 
 /* the array of mmaps for the children (saved between reloads) */
@@ -103,12 +103,10 @@ void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm, size_t sm,
 	rrl_ipv4_prefixlen = plf;
 	rrl_ipv6_prefixlen = pls;
 	if (pls < 32) {
-		rrl_ipv6_mask[0] = htonl(0xffffffff << (32-pls));
-		rrl_ipv6_mask[1] = 0;
+		rrl_ipv6_mask = ((uint64_t) htonl(0xffffffff << (32-pls))) << 32;
 	} else {
 		pls -= 32;
-		rrl_ipv6_mask[0] = 0xffffffff;
-		rrl_ipv6_mask[1] = htonl(0xffffffff << (32-pls));
+		rrl_ipv6_mask =  (uint64_t) htonl(0xffffffff << (32-pls));
 	}
 	rrl_whitelist_ratelimit = wlm*2;
 #ifdef HAVE_MMAP
@@ -158,12 +156,11 @@ static uint64_t rrl_get_source(query_type* query, uint16_t* c2)
 			sin_addr.s_addr & htonl(0xffffffff << (32-rrl_ipv4_prefixlen));
 	} else {
 		uint64_t s;
-		uint32_t* mask;
+		uint64_t* mask;
 		*c2 = rrl_ip6;
-		mask = (uint32_t*) memmove(&s, &((struct sockaddr_in6*)&query->addr)->sin6_addr,
+		mask = (uint64_t*) memmove(&s, &((struct sockaddr_in6*)&query->addr)->sin6_addr,
 			sizeof(s));
-		*mask &= rrl_ipv6_mask[0];
-		*(mask+1) &= rrl_ipv6_mask[1];
+		*mask &= rrl_ipv6_mask;
 		return s;
 	}
 #else
@@ -481,7 +478,7 @@ int rrl_process_query(query_type* query)
 
 query_state_type rrl_slip(query_type* query)
 {
-	/* discard half the packets, randomly */
+	/* discard number of packets, randomly */
 	if((rrl_slip_ratio > 0) && ((rrl_slip_ratio == 1) || ((random() % rrl_slip_ratio) == 0))) {
 		/* set TC on the rest */
 		TC_SET(query->packet);
