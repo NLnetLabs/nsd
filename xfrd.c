@@ -1090,9 +1090,13 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 	for(i=0; i<count; ++i,++zone->msg_rr_count)
 	{
 		if (*done) {
-			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr has "
-				"trailing garbage", zone->apex_str));
-			return 0;
+			/**
+			 * We are done, but there are more RRs coming. Ignore
+                         * trailing garbage.
+			 */
+			DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: zone %s xfr is "
+				"done, ignore trailing garbage", zone->apex_str));
+			return 1;
 		}
 		if(!packet_skip_dname(packet)) {
 			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr unable "
