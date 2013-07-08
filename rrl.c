@@ -105,8 +105,8 @@ void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm, size_t sm,
 	if (pls < 32) {
 		rrl_ipv6_mask = ((uint64_t) htonl(0xffffffff << (32-pls))) << 32;
 	} else {
-		pls -= 32;
-		rrl_ipv6_mask =  (uint64_t) htonl(0xffffffff << (32-pls));
+		rrl_ipv6_mask =  ((uint64_t) htonl(0xffffffff << (64-pls))) |
+			(((uint64_t)0xffffffff)<<32);
 	}
 	rrl_whitelist_ratelimit = wlm*2;
 #ifdef HAVE_MMAP
@@ -156,12 +156,10 @@ static uint64_t rrl_get_source(query_type* query, uint16_t* c2)
 			sin_addr.s_addr & htonl(0xffffffff << (32-rrl_ipv4_prefixlen));
 	} else {
 		uint64_t s;
-		uint64_t* mask;
 		*c2 = rrl_ip6;
-		mask = (uint64_t*) memmove(&s, &((struct sockaddr_in6*)&query->addr)->sin6_addr,
+		memmove(&s, &((struct sockaddr_in6*)&query->addr)->sin6_addr,
 			sizeof(s));
-		*mask &= rrl_ipv6_mask;
-		return s;
+		return s & rrl_ipv6_mask;
 	}
 #else
 	*c2 = 0;
