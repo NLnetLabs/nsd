@@ -49,7 +49,7 @@ database prepared by the zone compiler from standard zone files.
 For NSD operation this means that zones have to be compiled by zonec
 before NSD can use them.
 
-All this can be controlled via rc.d (sigTERM, HUP) or nsd-control,
+All this can be controlled via rc.d (SIGTERM, SIGHUP) or nsd-control,
 and uses a simple configuration file 'nsd.conf'.
 
 
@@ -261,10 +261,10 @@ Become a superuser (if necessary) and type ``make install''
 
 This step should install four binaries
 
-nsd             - the daemon itself
+nsd               - the daemon itself
 nsd-control-setup - a shell script that creates keys for nsd-control.
-nsd-control	- program that connects over SSL to nsd and gives commands.
-nsd-checkconf	- simple C program to check nsd.conf before use.
+nsd-control	      - program that connects over SSL to nsd and gives commands.
+nsd-checkconf	  - simple C program to check nsd.conf before use.
 
 Plus the manual pages and a sample configuration file.
 

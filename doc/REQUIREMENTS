@@ -863,6 +863,9 @@ RR records details.
   "L64"      106,   # RFC 6742
   "LP"       107,   # RFC 6742
 
+  "EUI48"    108,   # [draft-jabley-dnsext-eui48-eui64-rrtypes]
+  "EUI64"    109,   # [draft-jabley-dnsext-eui48-eui64-rrtypes]
+
   "TKEY"     249,   # RFC 2930
   "TSIG"     250,   # RFC 2845
   "IXFR"     251,   # RFC 1995
@@ -1001,7 +1004,7 @@ NSD Version 3.0. and above
 
    RFC 6742 (ILNP) support for NID, L32, L64, LP RR types.
 
-    draft-jabley-dnsext-eui48-eui64-rrtypes support for EUI48, EUI64 RR types.
+   draft-jabley-dnsext-eui48-eui64-rrtypes support for EUI48, EUI64 RR types.
 
 Not implemented:
 
