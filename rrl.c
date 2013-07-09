@@ -130,7 +130,6 @@ static uint64_t rrl_get_source(query_type* query, uint16_t* c2)
 			sin_addr.s_addr & htonl(0xffffffff << (32-rrl_ipv4_prefixlen));
 	} else {
 		uint64_t s;
-		uint32_t* mask;
 		*c2 = rrl_ip6;
 		memmove(&s, &((struct sockaddr_in6*)&query->addr)->sin6_addr,
 			sizeof(s));
