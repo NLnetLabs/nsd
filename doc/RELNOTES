@@ -1,5 +1,29 @@
 NSD RELEASE NOTES
 
+4.0.0b5   BETA 5 release of NSD 4.0
+==================================
+BUG FIXES:
+	- The same fixes up to NSD 3.2.16.
+
+
+4.0.0b4   BETA 4 release of NSD 4.0
+==================================
+BUG FIXES:
+	- remove -fwhole-program gcc flag usage.  We cannot reliably detect
+	  if it works without failure.
+	- fix zonefiles-check: entry in nsd.conf
+	- fix gcc warning, do not use uninit value for rng init.
+	- remove printout of "bad transfer" to the log for notimpl.
+	- printout log less verbosely, not every axfr packet.
+	- RRL documented in nsd.conf.sample
+	- Fix is_apex flag for zones read from udb.
+	- Fix that nsec3 zones are precompiled when read from udb.  This
+	  caused assertion failures.
+	- Less printout of 'bad transfer'.
+	- Fix AXFR of NSEC3 slave zone.
+	- Fix that old zonefile does not override newer AXFR for slave zones.
+	- Nicer printout of notify on verbosity 2.
+
 4.0.0b3   BETA 3 release of NSD 4.0
 ==================================
 BUG FIXES:
