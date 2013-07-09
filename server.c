@@ -2098,7 +2098,7 @@ send_children_command(struct nsd* nsd, sig_atomic_t command, int timeout)
 					(int) command,
 					(int) nsd->children[i].pid,
 					strerror(errno));
-			} else if (timeout) {
+			} else if (timeout > 0) {
 				/* wait for reply */
 				(void)block_read(NULL,
 					nsd->children[i].child_fd,
