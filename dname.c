@@ -392,12 +392,12 @@ const char *
 dname_to_string(const dname_type *dname, const dname_type *origin)
 {
 	static char buf[MAXDOMAINLEN * 5];
-	return dname_to_string_r(dname, origin, buf, sizeof(buf));
+	return dname_to_string_r(dname, origin, buf);
 }
 
 const char *
 dname_to_string_r(const dname_type *dname, const dname_type *origin,
-	char* buf, size_t bufsize)
+	char* buf)
 {
 	size_t i;
 	size_t labels_to_convert = 0;
@@ -408,8 +408,10 @@ dname_to_string_r(const dname_type *dname, const dname_type *origin,
 		*buf = '\0';
 		return buf;
 	}
+	dst = buf;
 	if (dname->label_count == 1) {
-		strlcpy(buf, ".", bufsize);
+		*dst++ = '.';
+		*dst = '\0';
 		return buf;
 	}
 	labels_to_convert = dname->label_count - 1;
@@ -420,7 +422,6 @@ dname_to_string_r(const dname_type *dname, const dname_type *origin,
 		absolute = 0;
 	}
 
-	dst = buf;
 	src = dname_name(dname);
 	for (i = 0; i < labels_to_convert; ++i) {
 		size_t len = label_length(src);

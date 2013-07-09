@@ -1,3 +1,6 @@
+9 July 2013: Matthijs
+	- Code review Wouter, Yuri, Willem.
+
 28 June 2013: Matthijs
 	- Update tmp serial in xfr checking.
 	- Fix warning in labellength 0 code.
@@ -56,7 +59,7 @@
 
 10 April 2013: Matthijs
 	- Fix B64_NTOP/PTON replacement definitions in configure.ac.
-	- Bug #496: Support for EUI498 and EUI64 RR types.
+	- Bug #496: Support for EUI48 and EUI64 RR types.
 
 3 April 2013: Matthijs
 	- Bug #494: Exit with return code 1 if socket code fails.

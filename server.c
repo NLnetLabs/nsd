@@ -2083,9 +2083,8 @@ handle_tcp_accept(netio_type *netio,
 }
 
 static void
-send_children_quit(struct nsd* nsd)
+send_children_command(struct nsd* nsd, sig_atomic_t command, int timeout)
 {
-	sig_atomic_t command = NSD_QUIT;
 	size_t i;
 	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
 	for (i = 0; i < nsd->child_count; ++i) {
@@ -2099,35 +2098,8 @@ send_children_quit(struct nsd* nsd)
 					(int) command,
 					(int) nsd->children[i].pid,
 					strerror(errno));
-			}
-			fsync(nsd->children[i].child_fd);
-			close(nsd->children[i].child_fd);
-			nsd->children[i].child_fd = -1;
-		}
-	}
-}
-
-static void
-send_children_quit_and_wait(struct nsd* nsd)
-{
-	sig_atomic_t command;
-	size_t i;
-	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "send children quit and wait"));
-	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
-	for (i = 0; i < nsd->child_count; ++i) {
-		if (nsd->children[i].pid > 0 && nsd->children[i].child_fd != -1) {
-			command = NSD_QUIT_CHILD;
-			if (write(nsd->children[i].child_fd, &command,
-				sizeof(command)) == -1)
-			{
-				if(errno != EAGAIN && errno != EINTR)
-					log_msg(LOG_ERR, "problems sending command %d to server %d: %s",
-					(int) command,
-					(int) nsd->children[i].pid,
-					strerror(errno));
-			} else {
+			} else if (timeout) {
 				/* wait for reply */
-				int timeout = 3; /* seconds */
 				(void)block_read(NULL,
 					nsd->children[i].child_fd,
 					&command, sizeof(command), timeout);
@@ -2137,6 +2109,19 @@ send_children_quit_and_wait(struct nsd* nsd)
 			nsd->children[i].child_fd = -1;
 		}
 	}
+}
+
+static void
+send_children_quit(struct nsd* nsd)
+{
+	send_children_command(nsd, NSD_QUIT, 0);
+}
+
+static void
+send_children_quit_and_wait(struct nsd* nsd)
+{
+	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "send children quit and wait"));
+	send_children_command(nsd, NSD_QUIT_CHILD, 3);
 }
 
 #ifdef BIND8_STATS
