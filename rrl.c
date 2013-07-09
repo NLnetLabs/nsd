@@ -102,7 +102,7 @@ void rrl_mmap_init(int numch, size_t numbuck, size_t lm, size_t wlm, size_t sm,
 	rrl_slip_ratio = sm;
 	rrl_ipv4_prefixlen = plf;
 	rrl_ipv6_prefixlen = pls;
-	if (pls < 32) {
+	if (pls <= 32) {
 		rrl_ipv6_mask = ((uint64_t) htonl(0xffffffff << (32-pls))) << 32;
 	} else {
 		rrl_ipv6_mask =  ((uint64_t) htonl(0xffffffff << (64-pls))) |
