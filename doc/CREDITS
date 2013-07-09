@@ -10,8 +10,8 @@ Erik Rozendaal, NLnet Labs      - design and implementation for NSD 1.2.x
                                   and later.
 Daniel Karrenberg, RIPE NCC     - design, major testing and bug reports
 Jaap Akkerhuis, SIDN NL         - consultancy, advice and company :)
-Jelte Jansen, NLnet Labs		- testing, patches, advice, NSD 3
-Matthijs Mekking, NLnet Labs	- testing, patches, maintenance, NSD 3
+Jelte Jansen, NLnet Labs        - testing, patches, advice, NSD 3
+Matthijs Mekking, NLnet Labs    - testing, patches, maintenance, NSD 3
 Miek Gieben, NLnet Labs         - testing, patches, zone compiler, NSD2
 Olaf Kolkman, RIPE NCC          - protocol purist, design, perl test implementation
 Ronald van der Pol, NLnet Labs  - code review, MacOS X portability, IPv6.
