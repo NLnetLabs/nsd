@@ -16,7 +16,7 @@ Miek Gieben, NLnet Labs         - testing, patches, zone compiler, NSD2
 Olaf Kolkman, RIPE NCC          - protocol purist, design, perl test implementation
 Ronald van der Pol, NLnet Labs  - code review, MacOS X portability, IPv6.
 Ted Lindgreen, NLnet Labs       - design, code review, testing
-Wouter Wijngaards, NLnet Labs   - design and implementation for NSD 3.
+Wouter Wijngaards, NLnet Labs   - design and implementation for NSD 3 and NSD 4.
 
 Contributors (in alphabetical order):
 
