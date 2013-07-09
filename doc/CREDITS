@@ -12,7 +12,7 @@ Daniel Karrenberg, RIPE NCC     - design, major testing and bug reports
 Jaap Akkerhuis, SIDN NL         - consultancy, advice and company :)
 Jelte Jansen, NLnet Labs        - testing, patches, advice, NSD 3
 Matthijs Mekking, NLnet Labs    - testing, patches, maintenance, NSD 3
-Miek Gieben, NLnet Labs         - testing, patches, zone compiler, NSD2
+Miek Gieben, NLnet Labs         - testing, patches, zone compiler, NSD 2
 Olaf Kolkman, RIPE NCC          - protocol purist, design, perl test implementation
 Ronald van der Pol, NLnet Labs  - code review, MacOS X portability, IPv6.
 Ted Lindgreen, NLnet Labs       - design, code review, testing
