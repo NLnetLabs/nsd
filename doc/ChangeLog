@@ -1,3 +1,7 @@
+9 Jul 2013: Wouter
+	- unlink xfr file if transfer is stopped, timeouted or interrupted.
+	  And unlink xfr file in progress when the zone is deleted.
+
 8 Jul 2013: Wouter
 	- Increase tcpbacklog default to 256 (silently capped to 128 on BSD).
 	  For remote control keep it at 16, it has less TCP load.

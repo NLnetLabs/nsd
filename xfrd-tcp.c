@@ -20,6 +20,7 @@
 #include "options.h"
 #include "namedb.h"
 #include "xfrd.h"
+#include "xfrd-disk.h"
 #include "util.h"
 
 /* sort tcppipe, first on IP address, for an IPadresss, sort on num_unused */
@@ -581,6 +582,9 @@ xfrd_tcp_setup_write_packet(struct xfrd_tcp_pipeline* tp, xfrd_zone_t* zone)
         	NSCOUNT_SET(tcp->packet, 1);
 		xfrd_write_soa_buffer(tcp->packet, zone->apex, &zone->soa_disk);
 	}
+	/* old transfer needs to be removed still? */
+	if(zone->msg_seq_nr)
+		xfrd_unlink_xfrfile(xfrd->nsd, zone->xfrfilenumber);
 	zone->msg_seq_nr = 0;
 	zone->msg_rr_count = 0;
 	if(zone->master->key_options && zone->master->key_options->tsig_key) {

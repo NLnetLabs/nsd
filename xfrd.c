@@ -605,6 +605,8 @@ xfrd_del_slave_zone(xfrd_state_t* xfrd, const dname_type* dname)
 		xfrd_udp_release(z);
 	} else if(z->event_added)
 		event_del(&z->zone_handler);
+	if(z->msg_seq_nr)
+		xfrd_unlink_xfrfile(xfrd->nsd, z->xfrfilenumber);
 
 	/* tsig */
 	tsig_delete_record(&z->tsig, NULL);
@@ -1371,6 +1373,9 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 	xfrd_setup_packet(xfrd->packet, TYPE_IXFR, CLASS_IN, zone->apex,
 		qid_generate());
 	zone->query_id = ID(xfrd->packet);
+	/* delete old xfr file? */
+	if(zone->msg_seq_nr)
+		xfrd_unlink_xfrfile(xfrd->nsd, zone->xfrfilenumber);
 	zone->msg_seq_nr = 0;
 	zone->msg_rr_count = 0;
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "sent query with ID %d", zone->query_id));
@@ -1849,6 +1854,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 					zone->apex_str, zone->msg_rr_count?
 					(int)zone->msg_new_serial:0,
 					zone->master->ip_address_spec));
+				zone->msg_seq_nr = 0;
 			} else if (res == xfrd_packet_bad) {
 				VERBOSITY(1, (LOG_INFO, "xfrd: zone %s "
 					"bad transfer %u from %s",
