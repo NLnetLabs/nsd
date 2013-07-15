@@ -1,5 +1,6 @@
 15 Jul 2013: Wouter
 	- beta 5 tag.
+	- trunk has beta6 named in configure.
 
 9 Jul 2013: Wouter
 	- unlink xfr file if transfer is stopped, timeouted or interrupted.
