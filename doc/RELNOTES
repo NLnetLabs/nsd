@@ -2,9 +2,58 @@ NSD RELEASE NOTES
 
 4.0.0b5   BETA 5 release of NSD 4.0
 ==================================
+FEATURES:
+	- Optimizations for startup, qps and tcp speed, beta bug fixes and
+	  merge with code changes with NSD 3.2.16.
+	- nsd-mem tool (make nsd-mem) to estimate memory usage.
+	- Same as NSD 3.2.16: --enable-draft-rrtypes(EUI48, EUI64), rr-slip,
+	  rrl-ipv[46]-prefix-length, ip-transparent config options.
+	- configure option --disable-flto.
+	- improved RRL logging (query details that caused blockage).
+	- nsd-control status prints out ratelimit if ratelimit is enabled.
+	- nsd-control verbosity prints out verbosity level without argument.
+	- Fix #491: pick program name (of executable) as syslog identity.
+	- printout percentage for long activities (to log).  After about 5
+	  seconds have passed.
 BUG FIXES:
 	- The same fixes up to NSD 3.2.16.
-
+	- Fix that old zonefile does not override newer AXFR for slave zones.
+	- Nicer printout of notify.
+	- Fix tcp zonetransfer pipeline lookup function.
+	- Fix compile on bigendian netbsd alpha.
+	- Fixup the growth and shrinkage of nsd.db.  This should use less
+	  calls to remap and change the file and mmap size.
+	- notify information is logged at correct verbosity level, 1.
+	- Fix memory statistics in nsd_munin_.
+	- faster nsec3 updates.
+	- Fixup contrib/bug390.patch for 4.0.0b4.
+	- remove leak of nsec3.
+	- allocate radixtree in region for small (5%) total savings and
+	  about 15% savings in the radixtree itself (due to many small alloc
+	  savings in region).
+	- Patch from Lukas Wunner that makes nsd.conf include files work
+	  inside chroot/etc environments on repattern and reconfig.
+	- Fix race on exit of nsd, for restarts, so that the pidfile-pid
+	  process waits until port53 has been closed before exiting.
+	- Patch from Lukas Wunner that makes chroot more consistent.
+	  Make all paths absolute with the chrootdir in front, or use
+	  an absolute zonesdir with other paths relative to that.
+	- Fix segfault on repeated reconfigs, double free of zone apex name.
+	- Fix zone parser allocations are put in the db region.
+	- Fix memory leak in zone parser for txt record.
+	- Optimizations: -O3 if possible (user can override CFLAGS), udp
+	  buffers are set to 1m by default (if socket options exist),
+	  use recvmmsg and sendmmsg, or only recvmmsg, or recvfrom.
+	- nsd.db 12% smaller, no nsec3 hash storage.  Also ups udb version
+	  because of the format change.  The nsd.db is recreated when a 
+	  different version number is detected on startup.
+	- Fix region-allocator for speedup of load and change of large data.
+	- Increase tcpbacklog default to 256 (silently capped to 128 on BSD).
+	  For remote control keep it at 16, it has less TCP load.
+	  It does not actually increase TCP performance (some except), but
+	  reduces connection loss when there is a spike in TCP connections.
+	- unlink xfr file if transfer is stopped, timeouted or interrupted.
+	  And unlink xfr file in progress when the zone is deleted.
 
 4.0.0b4   BETA 4 release of NSD 4.0
 ==================================

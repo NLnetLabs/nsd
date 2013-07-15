@@ -1,3 +1,6 @@
+15 Jul 2013: Wouter
+	- beta 5 tag.
+
 9 Jul 2013: Wouter
 	- unlink xfr file if transfer is stopped, timeouted or interrupted.
 	  And unlink xfr file in progress when the zone is deleted.
@@ -20,11 +23,11 @@
 
 28 Jun 2013: Matthijs
 	- Update tmp serial in xfr checking.
+
+28 Jun 2013: Wouter
 	- nsd.db 12% smaller, no nsec3 hash storage.  Also ups udb version
 	  because of the format change.  printout udb write complete for
 	  debug.
-
-28 Jun 2013: Wouter
 	- Fix warning in labellength 0 code.
 
 27 Jun 2013: Matthijs
