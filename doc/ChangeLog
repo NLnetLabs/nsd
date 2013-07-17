@@ -1,3 +1,6 @@
+16 Jul 2013: Wouter
+	- Fix segfault with no logfile and chroot.
+
 15 Jul 2013: Wouter
 	- beta 5 tag.
 	- trunk has beta6 named in configure.

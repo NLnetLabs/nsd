@@ -1012,8 +1012,10 @@ main(int argc, char *argv[])
 
 		/* strip chroot from pathnames if they're absolute */
 		nsd.options->zonesdir += l;
-		if (nsd.log_filename[0] == '/')
-			nsd.log_filename += l;
+		if (nsd.log_filename){
+			if (nsd.log_filename[0] == '/')
+				nsd.log_filename += l;
+		}
 		if (nsd.pidfile[0] == '/')
 			nsd.pidfile += l;
 		if (nsd.dbfile[0] == '/')
