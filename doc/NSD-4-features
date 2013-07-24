@@ -64,11 +64,12 @@ needed to allow the user to specify the config statement pattern for a
 newly added zone.  But you can also use it to organise the configuration.
 
 zone: These already exist in NSD3 and work similarly.  For NSD4,
-they create a zone that cannot be dynamically removed because it is
-hardcoded in the nsd.conf file.  Zones that are dynamically added can
-also be dynamically removed, but those zones are in the zones.list file.
-The zone can have the normal zone config statements, and it can also
-use include-pattern to apply config statements from a pattern to it.
+they create a zone, these zones added and removed by a restart or the
+nsd-control reconfig command.  Zones that are dynamically added can
+also be dynamically removed (with nsd-control addzone and delzone),
+those zones are in the zones.list file. The zone can have the normal
+zone config statements, and it can also use include-pattern to apply
+config statements from a pattern to it.
 
 The nsd-control Utility
 -----------------------
@@ -88,11 +89,13 @@ reload [zone] : without a zone name it checks if zone files have changed,
 if so, loads them.  If you specify the zone name (nsd-control reload
 example.com) it'll load that zone.
 
-repattern : this rereads the nsd.conf file without a restart.  Only the
+reconfig : this rereads the nsd.conf file without a restart.  Only the
 zone configuration, and ratelimits are updated from it.  Other settings,
 file paths, chroot location, interfaces and port numbers, cannot
 be applied and need a restart, during the restart NSD will have the
-permissions to bind port 53 and chroot again.
+permissions to bind port 53 and chroot again.  It adds and removes
+zones that have been added and removed in the config file, and it also
+changes zone configurations.
 
 log_reopen : also done on SIGHUP, but this controls more exactly that only
 the logfile is reopened.
@@ -134,7 +137,7 @@ Other features
 * Can reread zone configuration from config file without a restart.
 * Higher TCP service levels, more sockets.
 * Detect which zone files have changed.
-* Stores nsec3prehash on disk, and calculates incrementally after IXFR.
+* Calculates nsec3-prehash incrementally after IXFR.
 * Domain tree does not have the small leak of domain nodes.
 
 More documentation
