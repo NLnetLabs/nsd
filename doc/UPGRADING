@@ -14,7 +14,7 @@ remote-control in the nsd.conf file.  It uses SSL to contact the daemon.
 * the nsd.conf file is backwards compatible with NSD3.
 	* the difffile: setting is no longer used but ignored for
 	  backwards compatibility.
-	* zones listed in nsd.conf are hardcoded and cannot be removed
+	* zones listed in nsd.conf are served.
 	* the zonelistfile: setting sets the file where zones that are
 	  added dynamically (and can be removed dynamically) are stored.
 	* the xfrdir: is used to store temporary zone transfer files.
@@ -31,14 +31,15 @@ remote-control in the nsd.conf file.  It uses SSL to contact the daemon.
 * nsdc rebuild and so on is gone, use nsd-control reload or kill -HUP.
 	* it scans if zonefiles are modified and reads those.
 	* you can also specify a zone by name and have nsd read that file.
+    * if you nsd-control reconfig it rereads the config file for zones.
 * nsdc patch is not necessary
 	* the database is edited at runtime.
 		* it mmap's the nsd.db file for file I/O, this increases
 		  virtual memory usage of NSD with the size of the file.
 	* if you like cronjobs, you could have one to nsd-control write
 	  and write slave zones that have changed to their zonefile.
-* other nsdc commands, repattern (reread patterns), add a zone, delete a zone,
-  and zone transfer control, statistics.
+* other nsdc commands, reconfig (reread patterns, zones, keys),
+  add a zone, delete a zone, and zone transfer control, statistics.
 
 
 
