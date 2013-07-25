@@ -1802,13 +1802,15 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	df = xfrd_open_xfrfile(nsd, TASKLIST(task)->yesno, "r");
 	if(!df) {
 		/* could not open file to update */
-		/* TODO: reply to xfrd failed-update */
+		/* there is no reply to xfrd failed-update,
+		 * because xfrd has a scan for apply-failures. */
 		return;
 	}
 	/* read and apply zone transfer */
 	if(!apply_ixfr_for_zone(nsd, zone, df, nsd->options, udb,
 		last_task, TASKLIST(task)->yesno)) {
-		/* TODO: reply to xfrd failed-update */
+		/* there is no reply to xfrd failed-update,
+		 * because xfrd has a scan for apply-failures. */
 	}
 
 	fclose(df);
