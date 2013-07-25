@@ -310,10 +310,7 @@ read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 	const dname_type* dname = dname_make(dname_region, ZONE(z)->name, 0);
 	zone_options_t* zo = dname?zone_options_find(opt, dname):NULL;
 	zone_type* zone;
-	assert(dname);
-	assert(udb_ptr_get_type(z) == udb_chunk_type_zone);
-	udb_rrsets = 0;
-	udb_rrset_count = ZONE(z)->rrset_count;
+	if(!dname) return;
 	if(!zo) {
 		/* deleted from the options, remove it from the nsd.db too */
 		VERBOSITY(2, (LOG_WARNING, "zone %s is deleted",
@@ -322,6 +319,9 @@ read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 		region_free_all(dname_region);
 		return;
 	}
+	assert(udb_ptr_get_type(z) == udb_chunk_type_zone);
+	udb_rrsets = 0;
+	udb_rrset_count = ZONE(z)->rrset_count;
 	zone = namedb_zone_create(db, dname, zo);
 	region_free_all(dname_region);
 	read_zone_data(udb, db, dname_region, z, zone);
