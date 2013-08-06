@@ -179,7 +179,9 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region);
 	xfrd->tcp_set->tcp_timeout = nsd->tcp_timeout;
+#ifndef HAVE_ARC4RANDOM
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
+#endif
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
 	xfrd_init_zones();
@@ -655,8 +657,13 @@ xfrd_set_timer_retry(xfrd_zone_t* zone)
 	/* set timer for next retry or expire timeout if earlier. */
 	if(zone->soa_disk_acquired == 0) {
 		/* if no information, use reasonable timeout */
+#ifdef HAVE_ARC4RANDOM
+		xfrd_set_timer(zone, zone->fresh_xfr_timeout
+			+ arc4random()%zone->fresh_xfr_timeout);
+#else
 		xfrd_set_timer(zone, zone->fresh_xfr_timeout
 			+ random()%zone->fresh_xfr_timeout);
+#endif
 		/* exponential backoff - some master data in zones is paid-for
 		   but non-working, and will not get fixed. */
 		zone->fresh_xfr_timeout *= 2;
@@ -972,7 +979,11 @@ xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 	/* only for times far in the future */
 	if(t > 10) {
 		time_t base = t*9/10;
+#ifdef HAVE_ARC4RANDOM
+		t = base + arc4random()%(t-base);
+#else
 		t = base + random()%(t-base);
+#endif
 	}
 
 	/* keep existing flags and fd, but re-add with timeout */

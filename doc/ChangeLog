@@ -1,3 +1,7 @@
+6 Aug 2013: Wouter
+	- Removed use of random when arc4random is available.  Thus, random
+	  and srandom are then not linked with the executable.
+
 16 Jul 2013: Wouter
 	- Fix segfault with no logfile and chroot.
 
