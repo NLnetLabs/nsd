@@ -477,7 +477,11 @@ int rrl_process_query(query_type* query)
 query_state_type rrl_slip(query_type* query)
 {
 	/* discard number of packets, randomly */
+#ifdef HAVE_ARC4RANDOM
+	if((rrl_slip_ratio > 0) && ((rrl_slip_ratio == 1) || ((arc4random() % rrl_slip_ratio) == 0))) {
+#else
 	if((rrl_slip_ratio > 0) && ((rrl_slip_ratio == 1) || ((random() % rrl_slip_ratio) == 0))) {
+#endif
 		/* set TC on the rest */
 		TC_SET(query->packet);
 		ANCOUNT_SET(query->packet, 0);

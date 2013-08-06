@@ -32,6 +32,8 @@ BUG FIXES:
 	- Check that zone directory is within chroot directory.
 	- Better XFR checking, fallback to AXFR (if allowed) if three
 	  malformed XFR packets have been seen.
+	- Removed use of random when arc4random is available.  Thus, random
+	  and srandom are then not linked with the executable.
 
 
 3.2.15
