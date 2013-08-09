@@ -269,6 +269,8 @@ ANY     [^\"\n\\]|\\.
 <bitlabel><<EOF>>	{
 	zc_error("EOF inside bitlabel");
 	BEGIN(INITIAL);
+	yyrestart(yyin); /* this is so that lex does not give an internal err */
+	yyterminate();
 }
 <bitlabel>{BIT}*	{ yymore(); }
 <bitlabel>\n		{ ++parser->line; yymore(); }
@@ -283,6 +285,8 @@ ANY     [^\"\n\\]|\\.
 <quotedstring><<EOF>> 	{
 	zc_error("EOF inside quoted string");
 	BEGIN(INITIAL);
+	yyrestart(yyin); /* this is so that lex does not give an internal err */
+	yyterminate();
 }
 <quotedstring>{ANY}*	{ LEXOUT(("STR ")); yymore(); }
 <quotedstring>\n 	{ ++parser->line; yymore(); }
