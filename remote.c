@@ -304,7 +304,6 @@ void daemon_remote_close(struct daemon_remote* rc)
 	p = rc->busy_list;
 	while(p) {
 		np = p->next;
-		close(h->c.ev_fd);
 		if(p->event_added)
 			event_del(&p->c);
 		if(p->ssl)

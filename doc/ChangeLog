@@ -2,6 +2,7 @@
 	- Fix that xfrd, and nsd-control, does not stop responding when reload
 	  errors out.  The pid is sent like it should by server_main.
 	- Fix that EOF in quoted string error does not cause reload to exit.
+	- Fixup errors from the stack code checker.
 
 6 Aug 2013: Wouter
 	- Removed use of random when arc4random is available.  Thus, random

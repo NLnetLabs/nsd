@@ -1764,6 +1764,7 @@ udb_void udb_alloc_realloc(udb_alloc* alloc, udb_void r, size_t osz, size_t sz)
 	udb_void c, n, newd;
 	udb_chunk_d* cp, *np;
 	uint64_t avail;
+	uint8_t cp_type;
 	/* emulate some posix realloc stuff */
 	if(r == 0)
 		return udb_alloc_space(alloc, sz);
@@ -1774,6 +1775,7 @@ udb_void udb_alloc_realloc(udb_alloc* alloc, udb_void r, size_t osz, size_t sz)
 	}
 	c = chunk_from_dataptr(r);
 	cp = UDB_CHUNK(c);
+	cp_type = cp->type;
 	if(cp->exp == UDB_EXP_XL) {
 		avail = UDB_XL_CHUNK(c)->size - sizeof(udb_xl_chunk_d)
 			- sizeof(uint64_t)*2;
@@ -1790,7 +1792,7 @@ udb_void udb_alloc_realloc(udb_alloc* alloc, udb_void r, size_t osz, size_t sz)
 	cp = NULL; /* may be invalid now, robustness */
 	n = chunk_from_dataptr(newd);
 	np = UDB_CHUNK(n);
-	np->type = cp->type;
+	np->type = cp_type;
 	memcpy(UDB_REL(base, newd), UDB_REL(base, r), osz);
 	/* fixup ptrs */
 	chunk_fix_ptrs(base, alloc->udb, np, newd, osz, r);
