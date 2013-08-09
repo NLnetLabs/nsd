@@ -1287,6 +1287,9 @@ server_main(struct nsd *nsd)
 						&nsd->xfrd_listener->fd);
 				} else if (child_pid == reload_pid) {
 					sig_atomic_t cmd = NSD_RELOAD_DONE;
+#ifdef BIND8_STATS
+					pid_t mypid;
+#endif
 					log_msg(LOG_WARNING,
 					       "Reload process %d failed with status %d, continuing with old database",
 					       (int) child_pid, status);
@@ -1302,6 +1305,13 @@ server_main(struct nsd *nsd)
 						  "sending SOAEND to xfrd: %s",
 						  strerror(errno));
 					}
+#ifdef BIND8_STATS
+					mypid = getpid();
+					if(!write_socket(nsd->xfrd_listener->fd, &mypid,  sizeof(mypid))) {
+						log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
+							strerror(errno));
+					}
+#endif
 				} else {
 					log_msg(LOG_WARNING,
 					       "Unknown child %d terminated with status %d",
