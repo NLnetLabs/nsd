@@ -1,3 +1,7 @@
+13 Aug 2013: Wouter
+	- Bugfix#518 Incorrect RRL prefix length option names in nsd.conf
+	  man page from Ville Mattila.
+
 9 Aug 2013: Wouter
 	- Fix that xfrd, and nsd-control, does not stop responding when reload
 	  errors out.  The pid is sent like it should by server_main.

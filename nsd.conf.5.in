@@ -280,10 +280,10 @@ This option controls the number of packets discarded before we send back a SLIP 
 (a response with "truncated" bit set to one). 0 disables the sending of SLIP packets, 
 1 means every query will get a SLIP response.
 .TP
-.B rrl\-ipv4\-prefix:\fR <subnet>
+.B rrl\-ipv4\-prefix\-length:\fR <subnet>
 IPv4 prefix length. Addresses are grouped by netblock.
 .TP
-.B rrl\-ipv6\-prefix:\fR <subnet>
+.B rrl\-ipv6\-prefix\-length:\fR <subnet>
 IPv6 prefix length. Addresses are grouped by netblock.
 .TP
 .B rrl\-whitelist\-ratelimit:\fR <qps>
