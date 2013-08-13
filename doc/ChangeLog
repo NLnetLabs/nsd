@@ -1,3 +1,7 @@
+13 August 2013: Wouter
+	- Bugfix#518 Incorrect RRL prefix length option names in nsd.conf
+	  man page from Ville Mattila.
+
 6 August 2013: Wouter
 	- Removed use of random when arc4random is available.  Thus, random
 	  and srandom are then not linked with the executable.
