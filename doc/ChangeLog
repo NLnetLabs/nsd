@@ -1,3 +1,6 @@
+20 August 2013: Wouter
+	- Fix time at 2038, uint32s changed to time_t, support 64bit time_t.
+
 13 August 2013: Wouter
 	- Bugfix#518 Incorrect RRL prefix length option names in nsd.conf
 	  man page from Ville Mattila.

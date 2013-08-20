@@ -458,6 +458,7 @@ int rrl_process_query(query_type* query)
 {
 	uint64_t source;
 	uint32_t hash;
+	/* we can use circular arithmatic here, so int32 works after 2038 */
 	int32_t now = (int32_t)time(NULL);
 	uint32_t lm = rrl_ratelimit;
 	uint16_t flags;

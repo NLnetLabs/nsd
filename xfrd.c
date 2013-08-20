@@ -368,8 +368,8 @@ xfrd_set_timer_retry(xfrd_zone_t* zone)
 		if(zone->fresh_xfr_timeout > XFRD_TRANSFER_TIMEOUT_MAX)
 			zone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_MAX;
 	} else if(zone->state == xfrd_zone_expired ||
-		xfrd_time() + ntohl(zone->soa_disk.retry) <
-		zone->soa_disk_acquired + ntohl(zone->soa_disk.expire))
+		xfrd_time() + (time_t)ntohl(zone->soa_disk.retry) <
+		zone->soa_disk_acquired + (time_t)ntohl(zone->soa_disk.expire))
 	{
 		if(ntohl(zone->soa_disk.retry) < XFRD_LOWERBOUND_RETRY)
 			xfrd_set_timer(zone, xfrd_time() + XFRD_LOWERBOUND_RETRY);
@@ -442,13 +442,13 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 	if(zone->soa_disk_acquired)
 	{
 		if (zone->state != xfrd_zone_expired &&
-			(uint32_t)xfrd_time() >= zone->soa_disk_acquired + ntohl(zone->soa_disk.expire)) {
+			xfrd_time() >= zone->soa_disk_acquired + (time_t)ntohl(zone->soa_disk.expire)) {
 			/* zone expired */
 			log_msg(LOG_ERR, "xfrd: zone %s has expired", zone->apex_str);
 			xfrd_set_zone_state(zone, xfrd_zone_expired);
 		}
 		else if(zone->state == xfrd_zone_ok &&
-			(uint32_t)xfrd_time() >= zone->soa_disk_acquired + ntohl(zone->soa_disk.refresh)) {
+			xfrd_time() >= zone->soa_disk_acquired + (time_t)ntohl(zone->soa_disk.refresh)) {
 			/* zone goes to refreshing state. */
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s is refreshing", zone->apex_str));
 			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
@@ -689,22 +689,22 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 			(unsigned)ntohl(soa->serial));
 		zone->soa_nsd = zone->soa_disk;
 		zone->soa_nsd_acquired = zone->soa_disk_acquired;
-		if((uint32_t)xfrd_time() - zone->soa_disk_acquired
-			< ntohl(zone->soa_disk.refresh))
+		if(xfrd_time() - zone->soa_disk_acquired
+			< (time_t)ntohl(zone->soa_disk.refresh))
 		{
 			/* zone ok, wait for refresh time */
 			xfrd_set_zone_state(zone, xfrd_zone_ok);
 			zone->round_num = -1;
 			xfrd_set_timer_refresh(zone);
-		} else if((uint32_t)xfrd_time() - zone->soa_disk_acquired
-			< ntohl(zone->soa_disk.expire))
+		} else if(xfrd_time() - zone->soa_disk_acquired
+			< (time_t)ntohl(zone->soa_disk.expire))
 		{
 			/* zone refreshing */
 			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
 			xfrd_set_refresh_now(zone);
 		}
-		if((uint32_t)xfrd_time() - zone->soa_disk_acquired
-			>= ntohl(zone->soa_disk.expire)) {
+		if(xfrd_time() - zone->soa_disk_acquired
+			>= (time_t)ntohl(zone->soa_disk.expire)) {
 			/* zone expired */
 			xfrd_set_zone_state(zone, xfrd_zone_expired);
 			xfrd_set_refresh_now(zone);
@@ -1461,11 +1461,11 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 				buffer_clear(packet);
 				buffer_printf(packet, "xfrd: zone %s xfr "
 						      "rollback serial %u at "
-						      "time %u from %s of %u "
+						      "time %lld from %s of %u "
 						      "parts",
 					zone->apex_str,
 					(int)zone->msg_new_serial,
-					(int)xfrd_time(),
+					(long long)xfrd_time(),
 					zone->master->ip_address_spec,
 					zone->msg_seq_nr);
 
@@ -1506,8 +1506,9 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	/* done. we are completely sure of this */
 	buffer_clear(packet);
 	buffer_printf(packet, "xfrd: zone %s received update to serial %u at "
-			      "time %u from %s in %u parts",
-		zone->apex_str, (int)zone->msg_new_serial, (int)xfrd_time(),
+			      "time %lld from %s in %u parts",
+		zone->apex_str, (int)zone->msg_new_serial,
+		(long long)xfrd_time(),
 		zone->master->ip_address_spec, zone->msg_seq_nr);
 	if(zone->master->key_options) {
 		buffer_printf(packet, " TSIG verified with key %s",
@@ -1559,7 +1560,7 @@ xfrd_set_reload_timeout()
 	if(xfrd->nsd->options->xfrd_reload_timeout == -1)
 		return; /* automatic reload disabled. */
 	if(xfrd->reload_timeout.tv_sec == 0 ||
-		xfrd_time() >= xfrd->reload_timeout.tv_sec ) {
+		xfrd_time() >= (time_t)xfrd->reload_timeout.tv_sec ) {
 		/* no reload wait period (or it passed), do it right away */
 		xfrd->need_to_send_reload = 1;
 		xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
