@@ -25,6 +25,12 @@
 #include "rrl.h"
 
 static int
+write_64(FILE *out, uint64_t val)
+{
+	return write_data(out, &val, sizeof(val));
+}
+
+static int
 write_32(FILE *out, uint32_t val)
 {
 	val = htonl(val);
@@ -53,8 +59,8 @@ diff_write_packet(const char* zone, const char* pat, uint32_t old_serial,
 {
 	FILE *df = xfrd_open_xfrfile(nsd, filenumber, seq_nr?"a":"w");
 	if(!df) {
-		log_msg(LOG_ERR, "could not open transfer %s file %llu: %s",
-			zone, (unsigned long long)filenumber, strerror(errno));
+		log_msg(LOG_ERR, "could not open transfer %s file %lld: %s",
+			zone, (long long)filenumber, strerror(errno));
 		return;
 	}
 
@@ -68,16 +74,16 @@ diff_write_packet(const char* zone, const char* pat, uint32_t old_serial,
 		if(!write_32(df, DIFF_PART_XFRF) ||
 			!write_8(df, 0) /* notcommitted(yet) */ ||
 			!write_32(df, 0) /* numberofparts when done */ ||
-			!write_32(df, (uint32_t) tv.tv_sec) ||
+			!write_64(df, (uint64_t) tv.tv_sec) ||
 			!write_32(df, (uint32_t) tv.tv_usec) ||
 			!write_32(df, old_serial) ||
 			!write_32(df, new_serial) ||
-			!write_32(df, (uint32_t) tv.tv_sec) ||
+			!write_64(df, (uint64_t) tv.tv_sec) ||
 			!write_32(df, (uint32_t) tv.tv_usec) ||
 			!write_str(df, zone) ||
 			!write_str(df, pat)) {
-			log_msg(LOG_ERR, "could not write transfer %s file %llu: %s",
-				zone, (unsigned long long)filenumber, strerror(errno));
+			log_msg(LOG_ERR, "could not write transfer %s file %lld: %s",
+				zone, (long long)filenumber, strerror(errno));
 			fclose(df);
 			return;
 		}
@@ -88,8 +94,8 @@ diff_write_packet(const char* zone, const char* pat, uint32_t old_serial,
 		!write_data(df, data, len) ||
 		!write_32(df, len))
 	{
-		log_msg(LOG_ERR, "could not write transfer %s file %llu: %s",
-			zone, (unsigned long long)filenumber, strerror(errno));
+		log_msg(LOG_ERR, "could not write transfer %s file %lld: %s",
+			zone, (long long)filenumber, strerror(errno));
 	}
 	fclose(df);
 }
@@ -114,40 +120,50 @@ diff_write_commit(const char* zone, uint32_t old_serial, uint32_t new_serial,
 
 	df = xfrd_open_xfrfile(nsd, filenumber, "r+");
 	if(!df) {
-		log_msg(LOG_ERR, "could not open transfer %s file %llu: %s",
-			zone, (unsigned long long)filenumber, strerror(errno));
+		log_msg(LOG_ERR, "could not open transfer %s file %lld: %s",
+			zone, (long long)filenumber, strerror(errno));
 		return;
 	}
 	if(!write_32(df, DIFF_PART_XFRF) ||
 		!write_8(df, commit) /* committed */ ||
 		!write_32(df, num_parts) ||
-		!write_32(df, (uint32_t) tv.tv_sec) ||
+		!write_64(df, (uint64_t) tv.tv_sec) ||
 		!write_32(df, (uint32_t) tv.tv_usec) ||
 		!write_32(df, old_serial) ||
 		!write_32(df, new_serial))
 	{
-		log_msg(LOG_ERR, "could not write transfer %s file %llu: %s",
-			zone, (unsigned long long)filenumber, strerror(errno));
+		log_msg(LOG_ERR, "could not write transfer %s file %lld: %s",
+			zone, (long long)filenumber, strerror(errno));
 		fclose(df);
 		return;
 	}
 
 	/* append the log_str to the end of the file */
 	if(fseek(df, 0, SEEK_END) == -1) {
-		log_msg(LOG_ERR, "could not fseek transfer %s file %llu: %s",
-			zone, (unsigned long long)filenumber, strerror(errno));
+		log_msg(LOG_ERR, "could not fseek transfer %s file %lld: %s",
+			zone, (long long)filenumber, strerror(errno));
 		fclose(df);
 		return;
 	}
 	if(!write_str(df, log_str)) {
-		log_msg(LOG_ERR, "could not write transfer %s file %llu: %s",
-			zone, (unsigned long long)filenumber, strerror(errno));
+		log_msg(LOG_ERR, "could not write transfer %s file %lld: %s",
+			zone, (long long)filenumber, strerror(errno));
 		fclose(df);
 		return;
 
 	}
 	fflush(df);
 	fclose(df);
+}
+
+int
+diff_read_64(FILE *in, uint64_t* result)
+{
+	if (fread(result, sizeof(*result), 1, in) == 1) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 int
@@ -1115,7 +1131,8 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 	char patname_buf[2048];
 
 	uint32_t old_serial, new_serial, num_parts, type;
-	uint32_t time_end[2], time_start[2];
+	uint64_t time_end_0, time_start_0;
+	uint32_t time_end_1, time_start_1;
 	uint8_t committed;
 	uint32_t i;
 	int num_bytes = 0;
@@ -1136,12 +1153,12 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 	 * new zone is created, we know what the options-pattern is */
 	if(!diff_read_8(in, &committed) ||
 		!diff_read_32(in, &num_parts) ||
-		!diff_read_32(in, &time_end[0]) ||
-		!diff_read_32(in, &time_end[1]) ||
+		!diff_read_64(in, &time_end_0) ||
+		!diff_read_32(in, &time_end_1) ||
 		!diff_read_32(in, &old_serial) ||
 		!diff_read_32(in, &new_serial) ||
-		!diff_read_32(in, &time_start[0]) ||
-		!diff_read_32(in, &time_start[1]) ||
+		!diff_read_64(in, &time_start_0) ||
+		!diff_read_32(in, &time_start_1) ||
 		!diff_read_str(in, zone_buf, sizeof(zone_buf)) ||
 		!diff_read_str(in, patname_buf, sizeof(patname_buf))) {
 		log_msg(LOG_ERR, "diff file bad commit part");
@@ -1222,15 +1239,15 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 #endif /* NSEC3 */
 		zonedb->is_changed = 1;
 		ZONE(&z)->is_changed = 1;
-		ZONE(&z)->mtime = time_end[0];
+		ZONE(&z)->mtime = time_end_0;
 		udb_zone_set_log_str(nsd->db->udb, &z, log_buf);
 		udb_ptr_unlink(&z, nsd->db->udb);
 		if(taskudb) task_new_soainfo(taskudb, last_task, zonedb);
 
 		if(1 <= verbosity) {
-			double elapsed = (double)(time_end[0] - time_start[0])+
-				(double)((double)time_end[1]
-				-(double)time_start[1]) / 1000000.0;
+			double elapsed = (double)(time_end_0 - time_start_0)+
+				(double)((double)time_end_1
+				-(double)time_start_1) / 1000000.0;
 			VERBOSITY(2, (LOG_INFO, "zone %s %s of %d bytes in %g seconds",
 				zone_buf, log_buf, num_bytes, elapsed));
 		}

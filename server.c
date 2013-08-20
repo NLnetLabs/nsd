@@ -1541,7 +1541,7 @@ nsd_child_event_base(void)
 {
 	struct event_base* base;
 #ifdef USE_MINI_EVENT
-	static uint32_t secs;
+	static time_t secs;
 	static struct timeval now;
 	base = event_init(&secs, &now);
 #else

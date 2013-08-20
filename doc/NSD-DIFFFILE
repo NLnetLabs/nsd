@@ -9,11 +9,11 @@ The file is a transfer, with a header and a number of data segments.
 - header with:
   - 8bit: commit=1(IXFR is OK) or rollback=0(ignore that IXFR). 
   - 32 bit number of packets that are to be applied. 0 if file not completed.
-  - timestamp of endtime of download.
+  - timestamp of endtime of download (64bitsec,32bitusec).
   - 32 bit old serial number. (to check that db-serial is unchanged).
     or 0 if no serial available yet.
   - 32 bit new serial number.
-  - timestamp of starttime of download.
+  - timestamp of starttime of download (64bitsec,32bitusec).
   - zone name (string).
   - pattern name: so that a newly created zone for which the zone transfer
 	is processed before the config-add task can be created. same string
