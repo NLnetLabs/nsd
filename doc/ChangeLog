@@ -1,3 +1,7 @@
+19 September 2013: Wouter
+	- configure --disable-recvmmsg for compat with older Linux kernels,
+	  by default it autodetects support in the kernel on the buildmachine.
+
 20 Aug 2013: Wouter
 	- Fix time at 2038, uint32s changed to time_t, support 64bit time_t.
 
