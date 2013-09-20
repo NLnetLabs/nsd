@@ -305,7 +305,7 @@ static void examine_query(query_type* query, uint32_t* hash, uint64_t* source,
 	uint16_t c, c2;
 	/* size with 16 bytes to spare */
 	uint8_t buf[MAXDOMAINLEN + sizeof(*source) + sizeof(c) + 16];
-	const uint8_t* dname = NULL; size_t dname_len;
+	const uint8_t* dname = NULL; size_t dname_len = 0;
 	uint32_t r = 0x267fcd16;
 
 	*source = rrl_get_source(query, &c2);
