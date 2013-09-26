@@ -30,7 +30,7 @@ new pattern config options.
 Removed config options
 ----------------------
 difffile: ixfr.db is gone.  This setting is no longer applicable, because
-the ixfr.db file is no longer used.  Files are created in tmp now.
+the ixfr.db file is no longer used.  Files are created in /tmp now.
 The value is ignored by NSD4 if given in nsd.conf.
 
 ip4-only and ip6-only: are replaced with more straightforward do-ip4 and
@@ -71,7 +71,7 @@ those zones are in the zones.list file. The zone can have the normal
 zone config statements, and it can also use include-pattern to apply
 config statements from a pattern to it.
 
-The nsd-control Utility
+The nsd-control utility
 -----------------------
 You can control the NSD4 daemon with signals, SIGHUP, SIGTERM, if you
 want.  It reloads on SIGHUP and this includes parsing and loading changed
