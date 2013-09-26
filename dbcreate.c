@@ -55,6 +55,7 @@ rr_marshal_rdata(rr_type* rr, uint8_t* rdata, size_t sz)
 {
 	size_t len = 0;
 	unsigned i;
+	assert(rr);
 	for(i=0; i<rr->rdata_count; i++) {
 		len += add_rdata(rr, i, rdata+len, sz-len);
 	}
@@ -68,6 +69,7 @@ udb_del_rr(udb_base* udb, udb_ptr* z, rr_type* rr)
 	/* marshal the rdata (uncompressed) into a buffer */
 	uint8_t rdata[MAX_RDLENGTH];
 	size_t rdatalen = rr_marshal_rdata(rr, rdata, sizeof(rdata));
+	assert(udb);
 	udb_zone_del_rr(udb, z, dname_name(domain_dname(rr->owner)),
 		domain_dname(rr->owner)->name_size, rr->type, rr->klass,
 		rdata, rdatalen);
@@ -81,10 +83,12 @@ udb_write_rr(udb_base* udb, udb_ptr* z, rr_type* rr)
 	uint8_t rdata[MAX_RDLENGTH];
 	size_t rdatalen = 0;
 	unsigned i;
+	assert(rr);
 	for(i=0; i<rr->rdata_count; i++) {
 		rdatalen += add_rdata(rr, i, rdata+rdatalen,
 			sizeof(rdata)-rdatalen);
 	}
+	assert(udb);
 	return udb_zone_add_rr(udb, z, dname_name(domain_dname(rr->owner)),
 		domain_dname(rr->owner)->name_size, rr->type, rr->klass,
 		rr->ttl, rdata, rdatalen);
@@ -112,7 +116,7 @@ write_zone(udb_base* udb, udb_ptr* z, zone_type* zone)
 	int n = 0, c = 0;
 	time_t t = time(NULL);
 
-	/* count domains */
+	/* count domains: for pct logging */
 	for(walk=zone->apex; walk && domain_is_subdomain(walk, zone->apex);
 		walk=domain_next(walk)) {
 		n++;
@@ -190,7 +194,7 @@ print_rrs(FILE* out, struct zone* zone)
 			}
 		}
 	}
-        /* go through entire tree below the zone apex (incl subzones) */
+	/* go through entire tree below the zone apex (incl subzones) */
 	while(domain && domain_is_subdomain(domain, zone->apex))
 	{
 		for(rrset = domain->rrsets; rrset; rrset=rrset->next)
