@@ -35,19 +35,20 @@ static unsigned udb_rrsets = 0;
 static unsigned udb_rrset_count = 0;
 
 void
-namedb_close (struct namedb *db)
+namedb_close(struct namedb* db)
 {
 	if(db) {
-		if(db->udb)
+		if(db->udb) {
 			udb_base_close(db->udb);
-		udb_base_free(db->udb);
+			udb_base_free(db->udb);
+		}
 		zonec_desetup_parser();
 		region_destroy(db->region);
 	}
 }
 
 void
-namedb_close_udb (struct namedb *db)
+namedb_close_udb(struct namedb* db)
 {
 	if(db) {
 		/* we cannot actually munmap the data, because other
@@ -178,6 +179,7 @@ static void read_node_elem(udb_base* udb, namedb_type* db,
 	dname = dname_make(dname_region, d->name, 0);
 	if(!dname) return;
 	domain = domain_table_insert(db->domains, dname);
+	assert(domain); /* domain_table_insert should always return non-NULL */
 
 	/* add rrsets */
 	udb_ptr_init(&urrset, udb);
@@ -285,7 +287,7 @@ namedb_zone_delete(namedb_type* db, zone_type* zone)
 		}
 	}
 
-	/* soa_rrset is free-ed when the SOA was deleted */
+	/* soa_rrset is freed when the SOA was deleted */
 	if(zone->soa_nx_rrset) {
 		region_recycle(db->region, zone->soa_nx_rrset->rrs,
 			sizeof(rr_type));
@@ -354,7 +356,7 @@ read_zones(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 
 /** try to read the udb file or fail */
 static int
-try_read_udb(namedb_type* db, int fd, const char *filename,
+try_read_udb(namedb_type* db, int fd, const char* filename,
 	nsd_options_t* opt)
 {
 	/*
@@ -362,7 +364,7 @@ try_read_udb(namedb_type* db, int fd, const char *filename,
 	 * database.  The region is freed after each time a dname is
 	 * read from the database.
 	 */
-	region_type *dname_region;
+	region_type* dname_region;
 
 	assert(fd != -1);
 	if(!(db->udb=udb_base_create_fd(filename, fd, &namedb_walkfunc,
@@ -390,15 +392,15 @@ try_read_udb(namedb_type* db, int fd, const char *filename,
 }
 
 struct namedb *
-namedb_open (const char *filename, nsd_options_t* opt)
+namedb_open (const char* filename, nsd_options_t* opt)
 {
-	namedb_type *db;
+	namedb_type* db;
 
 	/*
 	 * Region used to store the loaded database.  The region is
 	 * freed in namedb_close.
 	 */
-	region_type *db_region;
+	region_type* db_region;
 	int fd;
 
 	/* attempt to open, if does not exist, create a new one */
@@ -476,7 +478,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 	int nonexist = 0;
 	unsigned int errors;
 	const char* fname;
-	if(!db || !zone || !zone->opts || !zone->opts->pattern->zonefile)
+	if(!db || !db->udb || !zone || !zone->opts || !zone->opts->pattern->zonefile)
 		return;
 	fname = config_make_zonefile(zone->opts);
 	if(!file_get_mtime(fname, &mtime, &nonexist)) {
