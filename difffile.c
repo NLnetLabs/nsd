@@ -57,7 +57,7 @@ diff_write_packet(const char* zone, const char* pat, uint32_t old_serial,
 	uint32_t new_serial, uint32_t seq_nr, uint8_t* data, size_t len,
 	struct nsd* nsd, uint64_t filenumber)
 {
-	FILE *df = xfrd_open_xfrfile(nsd, filenumber, seq_nr?"a":"w");
+	FILE* df = xfrd_open_xfrfile(nsd, filenumber, seq_nr?"a":"w");
 	if(!df) {
 		log_msg(LOG_ERR, "could not open transfer %s file %lld: %s",
 			zone, (long long)filenumber, strerror(errno));
@@ -106,7 +106,7 @@ diff_write_commit(const char* zone, uint32_t old_serial, uint32_t new_serial,
 	struct nsd* nsd, uint64_t filenumber)
 {
 	struct timeval tv;
-	FILE *df;
+	FILE* df;
 
 	if (gettimeofday(&tv, NULL) != 0) {
 		log_msg(LOG_ERR, "could not set timestamp for %s: %s",

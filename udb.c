@@ -2012,7 +2012,7 @@ void udb_ptr_free_space(udb_ptr* ptr, udb_base* udb, size_t sz)
 udb_chunk_type udb_ptr_get_type(udb_ptr* ptr)
 {
 	udb_void f;
-	if(ptr->data == 0) return udb_chunk_type_internal; /* something bad*/
+	if(!ptr || ptr->data == 0) return udb_chunk_type_internal; /* something bad*/
 	f = chunk_from_dataptr(ptr->data);
 	return ((udb_chunk_d*)UDB_REL(*ptr->base, f))->type;
 }
