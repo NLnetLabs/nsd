@@ -60,10 +60,11 @@
 #include "util.h"
 
 /** compare events in tree, based on timevalue, ptr for uniqueness */
-int mini_ev_cmp(const void* a, const void* b)
+int
+mini_ev_cmp(const void* a, const void* b)
 {
-	const struct event *e = (const struct event*)a;
-	const struct event *f = (const struct event*)b;
+	const struct event* e = (const struct event*)a;
+	const struct event* f = (const struct event*)b;
 	if(e->ev_timeout.tv_sec < f->ev_timeout.tv_sec)
 		return -1;
 	if(e->ev_timeout.tv_sec > f->ev_timeout.tv_sec)
@@ -93,7 +94,8 @@ settime(struct event_base* base)
 }
 
 /** create event base */
-void *event_init(time_t* time_secs, struct timeval* time_tv)
+void *
+event_init(time_t* time_secs, struct timeval* time_tv)
 {
 	struct event_base* base = (struct event_base*)malloc(
 		sizeof(struct event_base));
@@ -140,19 +142,22 @@ void *event_init(time_t* time_secs, struct timeval* time_tv)
 }
 
 /** get version */
-const char *event_get_version(void)
+const char *
+event_get_version(void)
 {
 	return "mini-event-"PACKAGE_VERSION;
 }
 
 /** get polling method, select */
-const char *event_get_method(void)
+const char *
+event_get_method(void)
 {
 	return "select";
 }
 
 /** call timeouts handlers, and return how long to wait for next one or -1 */
-static int handle_timeouts(struct event_base* base, struct timeval* now, 
+static int
+handle_timeouts(struct event_base* base, struct timeval* now, 
 	struct timeval* wait)
 {
 	struct event* p;
@@ -190,7 +195,8 @@ static int handle_timeouts(struct event_base* base, struct timeval* now,
 }
 
 /** call select and callbacks for that */
-static int handle_select(struct event_base* base, struct timeval* wait)
+static int
+handle_select(struct event_base* base, struct timeval* wait)
 {
 	fd_set r, w;
 	int ret, i;
@@ -240,7 +246,8 @@ static int handle_select(struct event_base* base, struct timeval* wait)
 }
 
 /** run select once */
-int event_base_loop(struct event_base* base, int flags)
+int
+event_base_loop(struct event_base* base, int flags)
 {
 	struct timeval wait;
 	if(flags != EVLOOP_ONCE)
@@ -260,7 +267,8 @@ int event_base_loop(struct event_base* base, int flags)
 }
 
 /** run select in a loop */
-int event_base_dispatch(struct event_base* base)
+int
+event_base_dispatch(struct event_base* base)
 {
 	struct timeval wait;
 	if(settime(base) < 0)
@@ -282,7 +290,8 @@ int event_base_dispatch(struct event_base* base)
 }
 
 /** exit that loop */
-int event_base_loopexit(struct event_base* base, 
+int
+event_base_loopexit(struct event_base* base, 
 	struct timeval* ATTR_UNUSED(tv))
 {
 	base->need_to_exit = 1;
@@ -290,7 +299,8 @@ int event_base_loopexit(struct event_base* base,
 }
 
 /* free event base, free events yourself */
-void event_base_free(struct event_base* base)
+void
+event_base_free(struct event_base* base)
 {
 	if(!base)
 		return;
@@ -305,7 +315,8 @@ void event_base_free(struct event_base* base)
 }
 
 /** set content of event */
-void event_set(struct event* ev, int fd, short bits, 
+void
+event_set(struct event* ev, int fd, short bits, 
 	void (*cb)(int, short, void *), void* arg)
 {
 	ev->node.key = ev;
@@ -317,7 +328,8 @@ void event_set(struct event* ev, int fd, short bits,
 }
 
 /* add event to a base */
-int event_base_set(struct event_base* base, struct event* ev)
+int
+event_base_set(struct event_base* base, struct event* ev)
 {
 	ev->ev_base = base;
 	ev->added = 0;
@@ -325,7 +337,8 @@ int event_base_set(struct event_base* base, struct event* ev)
 }
 
 /* add event to make it active, you may not change it with event_set anymore */
-int event_add(struct event* ev, struct timeval* tv)
+int
+event_add(struct event* ev, struct timeval* tv)
 {
 	if(ev->added)
 		event_del(ev);
@@ -346,7 +359,7 @@ int event_add(struct event* ev, struct timeval* tv)
 	}
 	if(tv && (ev->ev_flags&EV_TIMEOUT)) {
 #ifndef S_SPLINT_S
-		struct timeval *now = ev->ev_base->time_tv;
+		struct timeval* now = ev->ev_base->time_tv;
 		ev->ev_timeout.tv_sec = tv->tv_sec + now->tv_sec;
 		ev->ev_timeout.tv_usec = tv->tv_usec + now->tv_usec;
 		while(ev->ev_timeout.tv_usec > 1000000) {
@@ -361,7 +374,8 @@ int event_add(struct event* ev, struct timeval* tv)
 }
 
 /* remove event, you may change it again */
-int event_del(struct event* ev)
+int
+event_del(struct event* ev)
 {
 	if(ev->ev_fd != -1 && ev->ev_fd >= ev->ev_base->capfd)
 		return -1;
@@ -380,8 +394,10 @@ int event_del(struct event* ev)
 
 /** which base gets to handle signals */
 static struct event_base* signal_base = NULL;
+
 /** signal handler */
-static RETSIGTYPE sigh(int sig)
+static RETSIGTYPE
+sigh(int sig)
 {
 	struct event* ev;
 	if(!signal_base || sig < 0 || sig >= MAX_SIG)
@@ -393,7 +409,8 @@ static RETSIGTYPE sigh(int sig)
 }
 
 /** install signal handler */
-int signal_add(struct event* ev, struct timeval* ATTR_UNUSED(tv))
+int
+signal_add(struct event* ev, struct timeval* ATTR_UNUSED(tv))
 {
 	struct sigaction action;
 	if(ev->ev_fd == -1 || ev->ev_fd >= MAX_SIG)
@@ -408,7 +425,8 @@ int signal_add(struct event* ev, struct timeval* ATTR_UNUSED(tv))
 }
 
 /** remove signal handler */
-int signal_del(struct event* ev)
+int
+signal_del(struct event* ev)
 {
 	if(ev->ev_fd == -1 || ev->ev_fd >= MAX_SIG)
 		return -1;
@@ -419,7 +437,8 @@ int signal_del(struct event* ev)
 
 #else /* USE_MINI_EVENT */
 #ifndef USE_WINSOCK
-int mini_ev_cmp(const void* ATTR_UNUSED(a), const void* ATTR_UNUSED(b))
+int
+mini_ev_cmp(const void* ATTR_UNUSED(a), const void* ATTR_UNUSED(b))
 {
 	return 0;
 }
