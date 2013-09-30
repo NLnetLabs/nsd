@@ -1,5 +1,6 @@
 30 September 2013: Wouter
 	- tag 4.0.0rc1
+	- updated doc/RELNOTES
 
 19 September 2013: Wouter
 	- configure --disable-recvmmsg for compat with older Linux kernels,

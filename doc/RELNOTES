@@ -1,5 +1,38 @@
 NSD RELEASE NOTES
 
+4.0.0	NSD 4.0
+===============
+FEATURES:
+	- documented in doc/NSD-4-features. Change configuration without
+	  restart, direct nameserver control with nsd-control, support a
+	  higher number of zones. Higher performance (compared to NSD3).
+	- nsdc is gone. Use kill -HUP for reload (also checks if zonefiles
+	  have changed and rereads them), and kill -TERM for quit. Or use
+	  nsd-control for detailed control.
+	- cron job for nsdcpatch is gone. nsd-control write creates zonefiles.
+	- nsd.db has a new format that compacts itself when it is changed,
+	  thus nsdc patch is no longer necessary.
+	- nsd.db is memory mapped, NSD needs (part of) that mmap in ram.
+	- tcp-count can go above 1000; epoll/kqueue support with libevent.
+	- nsd-control reconfig for updates with no restart (zones, keys, ..)
+	- nsd-control-setup to create keys for nsd-control (enable nsd-control
+	  with remote-control: yes in nsd.conf).
+FEATURES (incremental from BETA5):
+	- configure --disable-recvmmsg for compat with older Linux kernels,
+	  by default it autodetects support in the kernel on the buildmachine.
+	- Fix time at 2038, uint32s changed to time_t, support 64bit time_t.
+	- Fix use of 32bit time, for 2038, thanks to Theo de Raadt for patch.
+BUG FIXES (incremental from BETA5):
+	- Bugfix#518 Incorrect RRL prefix length option names in nsd.conf
+	  man page from Ville Mattila.
+	- Fix that xfrd, and nsd-control, does not stop responding when reload
+	  errors out. The pid is sent like it should by server_main.
+	- Fix that EOF in quoted string error does not cause reload to exit.
+	- Fixup errors from the stack code checker.
+	- Removed use of random when arc4random is available. Thus, random
+	  and srandom are then not linked with the executable.
+	- Fix segfault with no logfile and chroot.
+
 4.0.0b5   BETA 5 release of NSD 4.0
 ==================================
 FEATURES:
