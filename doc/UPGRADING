@@ -11,7 +11,7 @@ or you can use nsd-control.
 * to setup nsd-control you have to run nsd-control-setup (as root) and enable
 remote-control in the nsd.conf file.  It uses SSL to contact the daemon.
 
-* the nsd.conf file is backwards compatible with NSD3.
+* the nsd.conf file from NSD3 can be used for NSD4 (defaults for new stuff).
 	* the difffile: setting is no longer used but ignored for
 	  backwards compatibility.
 	* zones listed in nsd.conf are served.
