@@ -21,9 +21,9 @@
 #include "nsec3.h"
 
 static domain_type *
-allocate_domain_info(domain_table_type *table,
-		     const dname_type *dname,
-		     domain_type *parent)
+allocate_domain_info(domain_table_type* table,
+		     const dname_type* dname,
+		     domain_type* parent)
 {
 	domain_type *result;
 
@@ -57,7 +57,7 @@ allocate_domain_info(domain_table_type *table,
 
 #ifdef NSEC3
 void
-allocate_domain_nsec3(domain_table_type *table, domain_type *result)
+allocate_domain_nsec3(domain_table_type* table, domain_type* result)
 {
 	if(result->nsec3)
 		return;
@@ -82,10 +82,10 @@ allocate_domain_nsec3(domain_table_type *table, domain_type *result)
 
 /** make the domain last in the numlist, changes numbers of domains */
 static void
-numlist_make_last(domain_table_type *table, domain_type* domain)
+numlist_make_last(domain_table_type* table, domain_type* domain)
 {
 	size_t sw;
-	domain_type *last = table->numlist_last;
+	domain_type* last = table->numlist_last;
 	if(domain == last)
 		return;
 	/* swap numbers with the last element */
@@ -123,7 +123,7 @@ numlist_make_last(domain_table_type *table, domain_type* domain)
 
 /** pop the biggest domain off the numlist */
 static domain_type*
-numlist_pop_last(domain_table_type *table)
+numlist_pop_last(domain_table_type* table)
 {
 	domain_type* d = table->numlist_last;
 	table->numlist_last = table->numlist_last->numlist_prev;
@@ -183,7 +183,7 @@ void prehash_clear(domain_table_type* table)
 
 /** add domain to prehash list */
 void
-prehash_add(domain_table_type *table, domain_type* domain)
+prehash_add(domain_table_type* table, domain_type* domain)
 {
 	if(domain_is_prehash(table, domain))
 		return;
@@ -196,7 +196,7 @@ prehash_add(domain_table_type *table, domain_type* domain)
 
 /** remove domain from prehash list */
 void
-prehash_del(domain_table_type *table, domain_type* domain)
+prehash_del(domain_table_type* table, domain_type* domain)
 {
 	if(domain->nsec3->prehash_next)
 		domain->nsec3->prehash_next->nsec3->prehash_prev =
@@ -212,7 +212,7 @@ prehash_del(domain_table_type *table, domain_type* domain)
 
 /** perform domain name deletion */
 static void
-do_deldomain(namedb_type *db, domain_type* domain)
+do_deldomain(namedb_type* db, domain_type* domain)
 {
 	assert(domain && domain->parent); /* exists and not root */
 	/* first adjust the number list so that domain is the last one */
@@ -258,7 +258,8 @@ do_deldomain(namedb_type *db, domain_type* domain)
 	region_recycle(db->domains->region, domain, sizeof(domain_type));
 }
 
-void domain_table_deldomain(namedb_type *db, domain_type* domain)
+void
+domain_table_deldomain(namedb_type* db, domain_type* domain)
 {
 	while(domain_can_be_deleted(domain)) {
 		/* delete it */
@@ -269,7 +270,8 @@ void domain_table_deldomain(namedb_type *db, domain_type* domain)
 }
 
 /** clear hash tree */
-void hash_tree_clear(rbtree_t* tree)
+void
+hash_tree_clear(rbtree_t* tree)
 {
 	rbnode_t* n;
 	if(!tree) return;
@@ -300,11 +302,11 @@ void zone_add_domain_in_hash_tree(region_type* region, rbtree_t** tree,
 }
 
 domain_table_type *
-domain_table_create(region_type *region)
+domain_table_create(region_type* region)
 {
-	const dname_type *origin;
-	domain_table_type *result;
-	domain_type *root;
+	const dname_type* origin;
+	domain_table_type* result;
+	domain_type* root;
 
 	assert(region);
 
@@ -377,11 +379,11 @@ domain_table_search(domain_table_type *table,
 }
 
 domain_type *
-domain_table_find(domain_table_type *table,
-		  const dname_type *dname)
+domain_table_find(domain_table_type* table,
+		  const dname_type* dname)
 {
-	domain_type *closest_match;
-	domain_type *closest_encloser;
+	domain_type* closest_match;
+	domain_type* closest_encloser;
 	int exact;
 
 	exact = domain_table_search(
@@ -391,12 +393,12 @@ domain_table_find(domain_table_type *table,
 
 
 domain_type *
-domain_table_insert(domain_table_type *table,
-		    const dname_type  *dname)
+domain_table_insert(domain_table_type* table,
+		    const dname_type* dname)
 {
-	domain_type *closest_match;
-	domain_type *closest_encloser;
-	domain_type *result;
+	domain_type* closest_match;
+	domain_type* closest_encloser;
+	domain_type* result;
 	int exact;
 
 	assert(table);
@@ -442,9 +444,9 @@ domain_table_insert(domain_table_type *table,
 }
 
 int
-domain_table_iterate(domain_table_type *table,
+domain_table_iterate(domain_table_type* table,
 		    domain_table_iterator_type iterator,
-		    void *user_data)
+		    void* user_data)
 {
 	int error = 0;
 	struct radnode* n;
@@ -456,7 +458,7 @@ domain_table_iterate(domain_table_type *table,
 
 
 void
-domain_add_rrset(domain_type *domain, rrset_type *rrset)
+domain_add_rrset(domain_type* domain, rrset_type* rrset)
 {
 #if 0 	/* fast */
 	rrset->next = domain->rrsets;
@@ -478,9 +480,9 @@ domain_add_rrset(domain_type *domain, rrset_type *rrset)
 
 
 rrset_type *
-domain_find_rrset(domain_type *domain, zone_type *zone, uint16_t type)
+domain_find_rrset(domain_type* domain, zone_type* zone, uint16_t type)
 {
-	rrset_type *result = domain->rrsets;
+	rrset_type* result = domain->rrsets;
 
 	while (result) {
 		if (result->zone == zone && rrset_rrtype(result) == type) {
@@ -492,9 +494,9 @@ domain_find_rrset(domain_type *domain, zone_type *zone, uint16_t type)
 }
 
 rrset_type *
-domain_find_any_rrset(domain_type *domain, zone_type *zone)
+domain_find_any_rrset(domain_type* domain, zone_type* zone)
 {
-	rrset_type *result = domain->rrsets;
+	rrset_type* result = domain->rrsets;
 
 	while (result) {
 		if (result->zone == zone) {
@@ -506,9 +508,9 @@ domain_find_any_rrset(domain_type *domain, zone_type *zone)
 }
 
 zone_type *
-domain_find_zone(domain_type *domain)
+domain_find_zone(domain_type* domain)
 {
-	rrset_type *rrset;
+	rrset_type* rrset;
 	while (domain) {
 		for (rrset = domain->rrsets; rrset; rrset = rrset->next) {
 			if (rrset_rrtype(rrset) == TYPE_SOA) {
@@ -521,9 +523,9 @@ domain_find_zone(domain_type *domain)
 }
 
 zone_type *
-domain_find_parent_zone(zone_type *zone)
+domain_find_parent_zone(zone_type* zone)
 {
-	rrset_type *rrset;
+	rrset_type* rrset;
 
 	assert(zone);
 
@@ -536,7 +538,7 @@ domain_find_parent_zone(zone_type *zone)
 }
 
 domain_type *
-domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns)
+domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns)
 {
 	while (domain && domain != zone->apex) {
 		*ns = domain_find_rrset(domain, zone, TYPE_NS);
@@ -550,18 +552,18 @@ domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns)
 }
 
 int
-domain_is_glue(domain_type *domain, zone_type *zone)
+domain_is_glue(domain_type* domain, zone_type* zone)
 {
-	rrset_type *unused;
-	domain_type *ns_domain = domain_find_ns_rrsets(domain, zone, &unused);
+	rrset_type* unused;
+	domain_type* ns_domain = domain_find_ns_rrsets(domain, zone, &unused);
 	return (ns_domain != NULL &&
 		domain_find_rrset(ns_domain, zone, TYPE_SOA) == NULL);
 }
 
 domain_type *
-domain_wildcard_child(domain_type *domain)
+domain_wildcard_child(domain_type* domain)
 {
-	domain_type *wildcard_child;
+	domain_type* wildcard_child;
 
 	assert(domain);
 	assert(domain->wildcard_child_closest_match);
@@ -577,14 +579,14 @@ domain_wildcard_child(domain_type *domain)
 }
 
 int
-zone_is_secure(zone_type *zone)
+zone_is_secure(zone_type* zone)
 {
 	assert(zone);
 	return zone->is_secure;
 }
 
 uint16_t
-rr_rrsig_type_covered(rr_type *rr)
+rr_rrsig_type_covered(rr_type* rr)
 {
 	assert(rr->type == TYPE_RRSIG);
 	assert(rr->rdata_count > 0);
@@ -594,7 +596,7 @@ rr_rrsig_type_covered(rr_type *rr)
 }
 
 zone_type *
-namedb_find_zone(namedb_type *db, const dname_type *dname)
+namedb_find_zone(namedb_type* db, const dname_type* dname)
 {
 	struct radnode* n = radname_search(db->zonetree, dname_name(dname),
 		dname->name_size);
@@ -603,7 +605,7 @@ namedb_find_zone(namedb_type *db, const dname_type *dname)
 }
 
 rrset_type *
-domain_find_non_cname_rrset(domain_type *domain, zone_type *zone)
+domain_find_non_cname_rrset(domain_type* domain, zone_type* zone)
 {
 	/* find any rrset type that is not allowed next to a CNAME */
 	/* nothing is allowed next to a CNAME, except RRSIG, NSEC, NSEC3 */
@@ -625,8 +627,8 @@ domain_find_non_cname_rrset(domain_type *domain, zone_type *zone)
 }
 
 int
-namedb_lookup(struct namedb    *db,
-	      const dname_type *dname,
+namedb_lookup(struct namedb* db,
+	      const dname_type* dname,
 	      domain_type     **closest_match,
 	      domain_type     **closest_encloser)
 {
