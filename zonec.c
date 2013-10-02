@@ -1505,7 +1505,7 @@ check_dname(zone_type* zone)
  * nsd_options can be NULL if no config file is passed.
  */
 unsigned int
-zonec_read(const char *name, const char *zonefile, zone_type* zone)
+zonec_read(const char* name, const char* zonefile, zone_type* zone)
 {
 	const dname_type *dname;
 
@@ -1580,7 +1580,8 @@ zonec_setup_parser(namedb_type* db)
 }
 
 /** desetup parse */
-void zonec_desetup_parser(void)
+void
+zonec_desetup_parser(void)
 {
 	if(parser) {
 		endservent();
@@ -1599,7 +1600,8 @@ static region_type* orig_region = NULL;
 static region_type* orig_dbregion = NULL;
 
 /** setup for string parse */
-void zonec_setup_string_parser(region_type* region, domain_table_type* domains)
+void
+zonec_setup_string_parser(region_type* region, domain_table_type* domains)
 {
 	assert(parser); /* global parser must be setup */
 	orig_domains = parser->db->domains;
@@ -1612,7 +1614,8 @@ void zonec_setup_string_parser(region_type* region, domain_table_type* domains)
 }
 
 /** desetup string parse */
-void zonec_desetup_string_parser(void)
+void
+zonec_desetup_string_parser(void)
 {
 	parser->region = orig_region;
 	parser->db->domains = orig_domains;
@@ -1620,7 +1623,8 @@ void zonec_desetup_string_parser(void)
 }
 
 /** parse a string into temporary storage */
-int zonec_parse_string(region_type* region, domain_table_type* domains,
+int
+zonec_parse_string(region_type* region, domain_table_type* domains,
 	zone_type* zone, char* str, domain_type** parsed, int* num_rrs)
 {
 	int errors;

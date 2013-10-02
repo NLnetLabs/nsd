@@ -471,7 +471,8 @@ tempdirname(char* buf, size_t sz, struct nsd* nsd)
 		nsd->options->xfrdir, (int)nsd->pid);
 }
 
-void xfrd_make_tempdir(struct nsd* nsd)
+void
+xfrd_make_tempdir(struct nsd* nsd)
 {
 	char tnm[1024];
 	tempdirname(tnm, sizeof(tnm), nsd);
@@ -488,7 +489,8 @@ void xfrd_make_tempdir(struct nsd* nsd)
 	}
 }
 
-void xfrd_del_tempdir(struct nsd* nsd)
+void
+xfrd_del_tempdir(struct nsd* nsd)
 {
 	char tnm[1024];
 	tempdirname(tnm, sizeof(tnm), nsd);
@@ -509,7 +511,8 @@ tempxfrname(char* buf, size_t sz, struct nsd* nsd, uint64_t number)
 	snprintf(buf, sz, "%s/xfr.%lld", tnm, (long long)number);
 }
 
-FILE* xfrd_open_xfrfile(struct nsd* nsd, uint64_t number, char* mode)
+FILE*
+xfrd_open_xfrfile(struct nsd* nsd, uint64_t number, char* mode)
 {
 	char fname[1024];
 	FILE* xfr;
@@ -528,7 +531,8 @@ FILE* xfrd_open_xfrfile(struct nsd* nsd, uint64_t number, char* mode)
 	return xfr;
 }
 
-void xfrd_unlink_xfrfile(struct nsd* nsd, uint64_t number)
+void
+xfrd_unlink_xfrfile(struct nsd* nsd, uint64_t number)
 {
 	char fname[1024];
 	tempxfrname(fname, sizeof(fname), nsd, number);

@@ -324,7 +324,8 @@ notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 		zone->apex_str));
 }
 
-void xfrd_notify_start(struct notify_zone_t* zone)
+void
+xfrd_notify_start(struct notify_zone_t* zone)
 {
 	if(zone->is_waiting || zone->notify_send_enable)
 		return;
@@ -362,7 +363,8 @@ notify_handle_master_zone_soainfo(rbtree_t* tree,
 	notify_enable(zone, new_soa);
 }
 
-void close_notify_fds(rbtree_t* tree)
+void
+close_notify_fds(rbtree_t* tree)
 {
 	struct notify_zone_t* zone;
 	RBTREE_FOR(zone, struct notify_zone_t*, tree)

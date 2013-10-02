@@ -916,97 +916,89 @@ print_rr(FILE *out,
         const dname_type *owner_origin
                 = dname_origin(region, owner);
         if (state) {
-	  if (!state->previous_owner
-                   || dname_compare(state->previous_owner, owner) != 0) {
-                int origin_changed = (!state->previous_owner_origin
-                                      || dname_compare(
-                                              state->previous_owner_origin,
-                                              owner_origin) != 0);
-                if (origin_changed) {
-                        buffer_printf(
-                                output,
-                                "$ORIGIN %s\n",
-                                dname_to_string(owner_origin, NULL));
-                }
+			if (!state->previous_owner
+				|| dname_compare(state->previous_owner, owner) != 0) {
+				int origin_changed = (!state->previous_owner_origin
+					|| dname_compare(state->previous_owner_origin,
+					   owner_origin) != 0);
+				if (origin_changed) {
+					buffer_printf(output, "$ORIGIN %s\n",
+						dname_to_string(owner_origin, NULL));
+				}
 
-                set_previous_owner(state, owner);
-                buffer_printf(output,
-                              "%s",
-                              dname_to_string(owner,
-                                              state->previous_owner_origin));
-	  }
-        } else {
-		buffer_printf(output, "%s", dname_to_string(owner, NULL));
+				set_previous_owner(state, owner);
+				buffer_printf(output, "%s",
+					dname_to_string(owner,
+						state->previous_owner_origin));
+			}
+		} else {
+			buffer_printf(output, "%s", dname_to_string(owner, NULL));
+		}
+
+		buffer_printf(output, "\t%lu\t%s\t%s",
+			(unsigned long) record->ttl,
+			rrclass_to_string(record->klass),
+			rrtype_to_string(record->type));
+
+		result = print_rdata(output, descriptor, record);
+		if (!result) {
+			/*
+			 * Some RDATA failed to print, so print the record's
+			 * RDATA in unknown format.
+			 */
+			result = rdata_atoms_to_unknown_string(output,
+				descriptor, record->rdata_count, record->rdatas);
+		}
+
+		if (result) {
+			buffer_printf(output, "\n");
+			buffer_flip(output);
+			result = write_data(out, buffer_current(output),
+			buffer_remaining(output));
 	}
 
-        buffer_printf(output,
-                      "\t%lu\t%s\t%s",
-                      (unsigned long) record->ttl,
-                      rrclass_to_string(record->klass),
-                      rrtype_to_string(record->type));
-
-        result = print_rdata(output, descriptor, record);
-        if (!result) {
-                /*
-                 * Some RDATA failed to print, so print the record's
-                 * RDATA in unknown format.
-                 */
-                result = rdata_atoms_to_unknown_string(output,
-                                                       descriptor,
-                                                       record->rdata_count,
-                                                       record->rdatas);
-        }
-
-        if (result) {
-                buffer_printf(output, "\n");
-                buffer_flip(output);
-		result = write_data(out, buffer_current(output),
-			buffer_remaining(output));
-        }
-
 	region_destroy(region);
-        return result;
+	return result;
 }
 
 const char*
 rcode2str(int rc)
 {
-        switch(rc)
-        {
-        case RCODE_OK:
-                return "NO ERROR";
-        case RCODE_FORMAT:
-                return "FORMAT ERROR";
-        case RCODE_SERVFAIL:
-                return "SERV FAIL";
-        case RCODE_NXDOMAIN:
-                return "NAME ERROR";
-        case RCODE_IMPL:
-                return "NOT IMPL";
-        case RCODE_REFUSE:
-                return "REFUSED";
-	case RCODE_YXDOMAIN:
-		return "YXDOMAIN";
-	case RCODE_YXRRSET:
-		return "YXRRSET";
-	case RCODE_NXRRSET:
-		return "NXRRSET";
-        case RCODE_NOTAUTH:
-                return "SERVER NOT AUTHORITATIVE FOR ZONE";
-	case RCODE_NOTZONE:
-		return "NOTZONE";
-        default:
-                return "UNKNOWN ERROR";
-        }
-        return NULL; /* ENOREACH */
+	switch(rc) {
+		case RCODE_OK:
+			return "NO ERROR";
+		case RCODE_FORMAT:
+			return "FORMAT ERROR";
+		case RCODE_SERVFAIL:
+			return "SERV FAIL";
+		case RCODE_NXDOMAIN:
+			return "NAME ERROR";
+		case RCODE_IMPL:
+			return "NOT IMPL";
+		case RCODE_REFUSE:
+			return "REFUSED";
+		case RCODE_YXDOMAIN:
+			return "YXDOMAIN";
+		case RCODE_YXRRSET:
+			return "YXRRSET";
+		case RCODE_NXRRSET:
+			return "NXRRSET";
+		case RCODE_NOTAUTH:
+			return "SERVER NOT AUTHORITATIVE FOR ZONE";
+		case RCODE_NOTZONE:
+			return "NOTZONE";
+		default:
+			return "UNKNOWN ERROR";
+	}
+	return NULL; /* ENOREACH */
 }
 
 void
 addr2str(
 #ifdef INET6
-        struct sockaddr_storage *addr
+	struct sockaddr_storage *addr
 #else
-        struct sockaddr_in *addr
+	struct sockaddr_in *addr
 #endif
 	, char* str, size_t len)
 {
