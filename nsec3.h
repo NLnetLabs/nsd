@@ -44,8 +44,8 @@ int nsec3_find_cover(struct zone* zone, uint8_t* hash, size_t hashlen,
  * add proof for wildcards that the name below the wildcard.parent
  * does not exist
  */
-void nsec3_answer_wildcard(struct query *query, struct answer *answer,
-        struct domain *wildcard, const struct dname *qname);
+void nsec3_answer_wildcard(struct query* query, struct answer* answer,
+        struct domain* wildcard, const struct dname* qname);
 
 /*
  * add NSEC3 to provide domain name but not rrset exists,

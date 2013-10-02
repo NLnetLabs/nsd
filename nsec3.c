@@ -19,6 +19,8 @@
 #include "udbzone.h"
 #include "options.h"
 
+#define NSEC3_RDATA_BITMAP 5
+
 /* compare nsec3 hashes in nsec3 tree */
 static int
 cmp_hash_tree(const void* x, const void* y)
@@ -105,7 +107,7 @@ nsec3_b32_create(region_type* region, zone_type* zone, unsigned char* hash)
 }
 
 void
-nsec3_hash_and_store(zone_type *zone, const dname_type *dname, uint8_t* store)
+nsec3_hash_and_store(zone_type* zone, const dname_type* dname, uint8_t* store)
 {
 	const unsigned char* nsec3_salt = NULL;
 	int nsec3_saltlength = 0;
@@ -152,11 +154,13 @@ nsec3_lookup_hash_ds(zone_type* zone, const dname_type* dname,
 static int
 nsec3_has_soa(rr_type* rr)
 {
-	if(rdata_atom_size(rr->rdatas[5]) >= 3 && /* has types in bitmap */
-	  rdata_atom_data(rr->rdatas[5])[0] == 0 && /* first window = 0, */
-	  /* [1]: windowlen must be >= 1 */
-	  rdata_atom_data(rr->rdatas[5])[2]&0x02)  /* SOA bit set */
-	  return 1;
+	if(rdata_atom_size(rr->rdatas[NSEC3_RDATA_BITMAP]) >= 3 && /* has types in bitmap */
+		rdata_atom_data(rr->rdatas[NSEC3_RDATA_BITMAP])[0] == 0 && /* first window = 0, */
+		/* [1]: bitmap length must be >= 1 */
+		/* [2]: bit[6] = SOA, thus mask first bitmap octet with 0x02 */
+		rdata_atom_data(rr->rdatas[NSEC3_RDATA_BITMAP])[2]&0x02) { /* SOA bit set */
+		return 1;
+	}
 	return 0;
 }
 
@@ -205,8 +209,8 @@ check_apex_soa(namedb_type* namedb, zone_type *zone)
 	return NULL;
 }
 
-static struct rr* udb_zone_find_nsec3param(udb_base* udb, udb_ptr* uz,
-        struct zone* z)
+static struct rr*
+udb_zone_find_nsec3param(udb_base* udb, udb_ptr* uz, struct zone* z)
 {
 	udb_ptr urr;
 	unsigned i;
@@ -239,7 +243,8 @@ static struct rr* udb_zone_find_nsec3param(udb_base* udb, udb_ptr* uz,
 	return NULL;
 }
 
-void nsec3_find_zone_param(struct namedb* db, struct zone* zone, udb_ptr* z)
+void
+nsec3_find_zone_param(struct namedb* db, struct zone* zone, udb_ptr* z)
 {
 	/* get nsec3param RR from udb */
 	zone->nsec3_param = udb_zone_find_nsec3param(db->udb, z, zone);
@@ -262,14 +267,16 @@ nsec3_rdata_params_ok(rdata_atom_type* prd, rdata_atom_type* rd)
 		== 0 );
 }
 
-int nsec3_rr_uses_params(rr_type* rr, zone_type* zone)
+int
+nsec3_rr_uses_params(rr_type* rr, zone_type* zone)
 {
 	if(!rr || rr->rdata_count < 4)
 		return 0;
 	return nsec3_rdata_params_ok(zone->nsec3_param->rdatas, rr->rdatas);
 }
 
-int nsec3_in_chain_count(domain_type* domain, zone_type* zone)
+int
+nsec3_in_chain_count(domain_type* domain, zone_type* zone)
 {
 	rrset_type* rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
 	unsigned i;
@@ -283,7 +290,8 @@ int nsec3_in_chain_count(domain_type* domain, zone_type* zone)
 	return count;
 }
 
-struct domain* nsec3_chain_find_prev(struct zone* zone, struct domain* domain)
+struct domain*
+nsec3_chain_find_prev(struct zone* zone, struct domain* domain)
 {
 	if(domain->nsec3 && domain->nsec3->nsec3_node.key) {
 		/* see if there is a prev */
@@ -299,9 +307,10 @@ struct domain* nsec3_chain_find_prev(struct zone* zone, struct domain* domain)
 	return NULL;
 }
 
-void nsec3_clear_precompile(struct namedb* db, zone_type* zone)
+void
+nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 {
-	domain_type *walk;
+	domain_type* walk;
 	/* clear prehash items (there must not be items for other zones) */
 	prehash_clear(db->domains);
 	/* clear trees */
@@ -310,6 +319,7 @@ void nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 	hash_tree_clear(zone->wchashtree);
 	hash_tree_clear(zone->dshashtree);
 	/* wipe hashes */
+
 	/* wipe precompile */
 	walk = zone->apex;
 	while(walk && domain_is_subdomain(walk, zone->apex)) {
@@ -366,7 +376,8 @@ nsec3_condition_dshash(domain_type* d, zone_type* z)
 		domain_find_rrset(d, z, TYPE_NS)) && d != z->apex;
 }
 
-zone_type* nsec3_tree_zone(namedb_type* db, domain_type* d)
+zone_type*
+nsec3_tree_zone(namedb_type* db, domain_type* d)
 {
 	/* see nsec3_domain_part_of_zone; domains part of zone that has
 	 * apex above them */
@@ -389,7 +400,8 @@ zone_type* nsec3_tree_zone(namedb_type* db, domain_type* d)
 	return NULL;
 }
 
-zone_type* nsec3_tree_dszone(namedb_type* db, domain_type* d)
+zone_type*
+nsec3_tree_dszone(namedb_type* db, domain_type* d)
 {
 	/* the DStree does not contain nodes with d==z->apex */
 	if(d->is_apex)
@@ -427,7 +439,8 @@ nsec3_find_cover(zone_type* zone, uint8_t* hash, size_t hashlen,
 	return exact;
 }
 
-void nsec3_precompile_domain(struct namedb* db, struct domain* domain,
+void
+nsec3_precompile_domain(struct namedb* db, struct domain* domain,
 	struct zone* zone, region_type* tmpregion)
 {
 	domain_type* result = 0;
@@ -457,7 +470,8 @@ void nsec3_precompile_domain(struct namedb* db, struct domain* domain,
 	domain->nsec3->nsec3_wcard_child_cover = result;
 }
 
-void nsec3_precompile_domain_ds(struct namedb* db, struct domain* domain,
+void
+nsec3_precompile_domain_ds(struct namedb* db, struct domain* domain,
 	struct zone* zone)
 {
 	domain_type* result = 0;
@@ -495,7 +509,8 @@ parse_nsec3_name(const dname_type* dname, uint8_t* hash, size_t buflen)
 	(void)b32_pton((char*)wire+1, hash, buflen);
 }
 
-void nsec3_precompile_nsec3rr(namedb_type* db, struct domain* domain,
+void
+nsec3_precompile_nsec3rr(namedb_type* db, struct domain* domain,
 	struct zone* zone)
 {
 	allocate_domain_nsec3(db->domains, domain);
@@ -508,7 +523,8 @@ void nsec3_precompile_nsec3rr(namedb_type* db, struct domain* domain,
 	}
 }
 
-void nsec3_precompile_newparam(namedb_type* db, zone_type* zone)
+void
+nsec3_precompile_newparam(namedb_type* db, zone_type* zone)
 {
 	region_type* tmpregion = region_create(xalloc, free);
 	domain_type* walk;
@@ -518,7 +534,7 @@ void nsec3_precompile_newparam(namedb_type* db, zone_type* zone)
 	/* add nsec3s of chain to nsec3tree */
 	for(walk=zone->apex; walk && domain_is_subdomain(walk, zone->apex);
 		walk = domain_next(walk)) {
-		n ++;
+		n++;
 		if(nsec3_in_chain_count(walk, zone) != 0) {
 			nsec3_precompile_nsec3rr(db, walk, zone);
 		}
@@ -599,7 +615,8 @@ process_first(rbtree_t* tree, uint8_t* hash, rbnode_t** p,
 		*p = rbtree_first(tree);
 	/* the inexact, smaller, match we found, does not itself need to
 	 * be edited */
-	else	*p = rbtree_next(*p); /* if this becomes NULL, nothing to do */
+	else
+		*p = rbtree_next(*p); /* if this becomes NULL, nothing to do */
 	return 0;
 }
 
@@ -749,7 +766,7 @@ void prehash_zone(struct namedb* db, struct zone* zone)
 
 /* add the NSEC3 rrset to the query answer at the given domain */
 static void
-nsec3_add_rrset(struct query *query, struct answer *answer,
+nsec3_add_rrset(struct query* query, struct answer* answer,
 	rr_section_type section, struct domain* domain)
 {
 	if(domain) {
@@ -761,12 +778,12 @@ nsec3_add_rrset(struct query *query, struct answer *answer,
 
 /* this routine does hashing at query-time. slow. */
 static void
-nsec3_add_nonexist_proof(struct query *query, struct answer *answer,
-        struct domain *encloser, const dname_type* qname)
+nsec3_add_nonexist_proof(struct query* query, struct answer* answer,
+        struct domain* encloser, const dname_type* qname)
 {
 	uint8_t hash[NSEC3_HASH_LEN];
-	const dname_type *to_prove;
-	domain_type *cover=0;
+	const dname_type* to_prove;
+	domain_type* cover=0;
 	assert(encloser);
 	/* if query=a.b.c.d encloser=c.d. then proof needed for b.c.d. */
 	/* if query=a.b.c.d encloser=*.c.d. then proof needed for b.c.d. */
@@ -792,8 +809,8 @@ nsec3_add_nonexist_proof(struct query *query, struct answer *answer,
 
 static void
 nsec3_add_closest_encloser_proof(
-	struct query *query, struct answer *answer,
-	struct domain *closest_encloser, const dname_type* qname)
+	struct query* query, struct answer* answer,
+	struct domain* closest_encloser, const dname_type* qname)
 {
 	if(!closest_encloser)
 		return;
@@ -861,12 +878,11 @@ nsec3_add_ds_proof(struct query *query, struct answer *answer,
 }
 
 void
-nsec3_answer_nodata(struct query *query, struct answer *answer,
-	struct domain *original)
+nsec3_answer_nodata(struct query* query, struct answer* answer,
+	struct domain* original)
 {
 	if(!query->zone->nsec3_param)
 		return;
-
 	/* nodata when asking for secure delegation */
 	if(query->qtype == TYPE_DS)
 	{
