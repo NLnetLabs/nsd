@@ -359,6 +359,11 @@ udb_base* udb_base_create_new(const char* fname, udb_walk_relptr_func walkfunc,
 
 /**
  * Create udb from (O_RDWR) fd.
+ * @param fname: file name.
+ * @param fd: file descriptor.
+ * @param walkfunc: function to walk through relptrs in chunk.
+ * @param arg: user argument to pass to walkfunc
+ * @return base structure or NULL on failure.
  */
 udb_base* udb_base_create_fd(const char* fname, int fd,
 	udb_walk_relptr_func walkfunc, void* arg);
@@ -376,7 +381,10 @@ void udb_base_close(udb_base* udb);
  */
 void udb_base_free(udb_base* udb);
 
-/** Free the udb, but keep mmap mapped for others */
+/**
+ * Free the udb, but keep mmap mapped for others.
+ * @param udb: the udb.
+ */
 void udb_base_free_keep_mmap(udb_base* udb);
 
 /**
@@ -438,15 +446,15 @@ void udb_base_unlink_ptr(udb_base* udb, udb_ptr* ptr);
 
 /* UDB ALLOC */
 /**
- * utility for alloc, find 2**x size that is bigger than the given size.
+ * Utility for alloc, find 2**x size that is bigger than the given size.
  * Does not work for amount==0.
  * @param amount: amount of memory.
- * return x; the exponent where 2**x >= amount.
+ * @return x; the exponent where 2**x >= amount.
  */
 int udb_exp_size(uint64_t amount);
 
 /**
- * utility for alloc, what is the size that the current offset supports
+ * Utility for alloc, what is the size that the current offset supports
  * as a maximum 2**x chunk.
  * Does not work for offset = 0 (result is infinite).
  * @param offset: the offset into the memory region.
@@ -455,7 +463,11 @@ int udb_exp_size(uint64_t amount);
  */
 int udb_exp_offset(uint64_t offset);
 
-/** convert pointer to the data part to a pointer to the base of the chunk */
+/**
+ * Convert pointer to the data part to a pointer to the base of the chunk.
+ * @param data: data part.
+ * @return pointer to the base of the chunk.
+ */
 udb_void chunk_from_dataptr_ext(udb_void data);
 
 /**
@@ -686,7 +698,10 @@ static inline int udb_ptr_is_null(udb_ptr* ptr) {
 	return (ptr->data == 0);
 }
 
-/** get the type of a udb_ptr chunk */
+/**
+ * Get the type of a udb_ptr chunk.
+ * @param ptr: udb pointer
+ * @return type of chunk */
 udb_chunk_type udb_ptr_get_type(udb_ptr* ptr);
 
 /** Ease of use, create new pointer to destination relptr
