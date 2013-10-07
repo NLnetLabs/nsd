@@ -1,5 +1,6 @@
 7 October 2013: Wouter
 	- Fix mini_event ev_once flag to be prettier (review comments Yuri).
+	- tag 4.0.0rc1 recreated.
 
 4 October 2013: Wouter
 	- Fix bug where if you do not have flex, and then install flex, it
