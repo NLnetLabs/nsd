@@ -250,7 +250,7 @@ int
 event_base_loop(struct event_base* base, int flags)
 {
 	struct timeval wait;
-	if(flags != EVLOOP_ONCE)
+	if(!(flags & EVLOOP_ONCE))
 		return event_base_dispatch(base);
 	/* see if timeouts need handling */
 	if(handle_timeouts(base, base->time_tv, &wait))

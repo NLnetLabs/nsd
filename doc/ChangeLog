@@ -1,3 +1,6 @@
+7 October 2013: Wouter
+	- Fix mini_event ev_once flag to be prettier (review comments Yuri).
+
 4 October 2013: Wouter
 	- Fix bug where if you do not have flex, and then install flex, it
 	  would not make without a re-untar of the source.
