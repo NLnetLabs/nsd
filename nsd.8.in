@@ -112,7 +112,7 @@ Read specified
 For format description see nsd.conf(5).
 .TP
 .B \-d
-Turn on debugging mode, do not fork, stay in the foreground.
+Do not fork, stay in the foreground.
 .TP
 .B \-f\fI database
 Use the specified

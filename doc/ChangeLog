@@ -1,3 +1,6 @@
+8 October 2013: Wouter
+	- Update documentation for nsd -d option.
+
 7 October 2013: Wouter
 	- Fix mini_event ev_once flag to be prettier (review comments Yuri).
 	- tag 4.0.0rc1 recreated.

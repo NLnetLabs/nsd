@@ -68,7 +68,7 @@ usage (void)
 		"  -a ip-address[@port] Listen to the specified incoming IP address (and port)\n"
 		"                       May be specified multiple times).\n"
 		"  -c configfile        Read specified configfile instead of %s.\n"
-		"  -d                   Enable debug mode (do not fork as a daemon process).\n"
+		"  -d                   do not fork as a daemon process.\n"
 #ifndef NDEBUG
 		"  -F facilities        Specify the debug facilities.\n"
 #endif /* NDEBUG */
