@@ -1,3 +1,6 @@
+9 October 2013: Wouter
+	- tsig errors on incoming tsig print key name and source IP of query.
+
 8 October 2013: Wouter
 	- Update documentation for nsd -d option.
 
