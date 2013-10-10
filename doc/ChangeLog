@@ -1,3 +1,6 @@
+20 August 2013: Matthijs
+	- tsig errors on incoming tsig print key name and source IP of query.
+
 20 August 2013: Wouter
 	- Fix time at 2038, uint32s changed to time_t, support 64bit time_t.
 
