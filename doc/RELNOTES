@@ -17,6 +17,8 @@ FEATURES:
 	- nsd-control reconfig for updates with no restart (zones, keys, ..)
 	- nsd-control-setup to create keys for nsd-control (enable nsd-control
 	  with remote-control: yes in nsd.conf).
+	- the NSD 3 feature of special zone stats are not ported to 4 yet,
+	  as it would entail a complete reimplementation of the feature.
 FEATURES (incremental from BETA5):
 	- configure --disable-recvmmsg for compat with older Linux kernels,
 	  by default it autodetects support in the kernel on the buildmachine.
