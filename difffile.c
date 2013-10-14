@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <ctype.h>
 #include "difffile.h"
 #include "util.h"
 #include "packet.h"
