@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <ctype.h>
 #include "difffile.h"
 #include "xfrd-disk.h"
 #include "util.h"
