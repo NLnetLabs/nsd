@@ -298,50 +298,113 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 }
 
 static int
-rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
+rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type,
+	int* rdnum, char** reason)
 {
 	int k;
 	for(k = 0; k < num; k++)
 	{
 		if(rdata_atom_is_domain(type, k)) {
 			if(dname_compare(domain_dname(a[k].domain),
-				domain_dname(b[k].domain))!=0)
+				domain_dname(b[k].domain))!=0) {
+				*rdnum = k;
+				*reason = "dname data";
 				return 0;
+			}
 		} else if(rdata_atom_is_literal_domain(type, k)) {
 			/* literal dname, but compare case insensitive */
-			if(a[k].data[0] != b[k].data[0])
+			if(a[k].data[0] != b[k].data[0]) {
+				*rdnum = k;
+				*reason = "literal dname len";
 				return 0; /* uncompressed len must be equal*/
-			return dname_equal_nocase((uint8_t*)a[k].data+1,
-				(uint8_t*)b[k].data+1, a[k].data[0]);
+			}
+			if(!dname_equal_nocase((uint8_t*)a[k].data+1,
+				(uint8_t*)b[k].data+1, a[k].data[0])) {
+				*rdnum = k;
+				*reason = "literal dname data";
+				return 0;
+			}
 		} else {
 			/* check length */
-			if(a[k].data[0] != b[k].data[0])
+			if(a[k].data[0] != b[k].data[0]) {
+				*rdnum = k;
+				*reason = "rdata len";
 				return 0;
+			}
 			/* check data */
-			if(memcmp(a[k].data+1, b[k].data+1, a[k].data[0])!=0)
+			if(memcmp(a[k].data+1, b[k].data+1, a[k].data[0])!=0) {
+				*rdnum = k;
+				*reason = "rdata data";
 				return 0;
+			}
 		}
 	}
 	return 1;
 }
 
-static int
-find_rr_num(rrset_type* rrset,
-	uint16_t type, uint16_t klass,
+static void
+debug_find_rr_num(rrset_type* rrset, uint16_t type, uint16_t klass,
 	rdata_atom_type *rdatas, ssize_t rdata_num)
 {
-	int i;
+	int i, rd;
+	char* reason = "";
+
+	for(i=0; i < rrset->rr_count; ++i) {
+		if (rrset->rrs[i].type != type) {
+			log_msg(LOG_WARNING, "diff: RR <%s, %s> does not match "
+				"RR num %d type %s",
+				dname_to_string(rrset->rrs[i].owner->dname,0),
+				rrtype_to_string(type),	i,
+				rrtype_to_string(rrset->rrs[i].type));
+		}
+		if (rrset->rrs[i].klass != klass) {
+			log_msg(LOG_WARNING, "diff: RR <%s, %s> class %d "
+				"does not match RR num %d class %d",
+				dname_to_string(rrset->rrs[i].owner->dname,0),
+				rrtype_to_string(type),
+				klass, i,
+				rrset->rrs[i].klass);
+		}
+		if (rrset->rrs[i].rdata_count != rdata_num) {
+			log_msg(LOG_WARNING, "diff: RR <%s, %s> rdlen %u "
+				"does not match RR num %d rdlen %d",
+				dname_to_string(rrset->rrs[i].owner->dname,0),
+				rrtype_to_string(type),
+				(unsigned) rdata_num, i,
+				(unsigned) rrset->rrs[i].rdata_count);
+		}
+		if (!rdatas_equal(rdatas, rrset->rrs[i].rdatas, rdata_num, type,
+			&rd, &reason)) {
+			log_msg(LOG_WARNING, "diff: RR <%s, %s> rdata element "
+				"%d differs from RR num %d rdata (%s)",
+				dname_to_string(rrset->rrs[i].owner->dname,0),
+				rrtype_to_string(type),
+				rd, i, reason);
+		}
+	}
+}
+
+static int
+find_rr_num(rrset_type* rrset, uint16_t type, uint16_t klass,
+	rdata_atom_type *rdatas, ssize_t rdata_num, int add)
+{
+	int i, rd;
+	char* reason;
 
 	for(i=0; i < rrset->rr_count; ++i) {
 		if(rrset->rrs[i].type == type &&
 		   rrset->rrs[i].klass == klass &&
 		   rrset->rrs[i].rdata_count == rdata_num &&
-		   rdatas_equal(rdatas, rrset->rrs[i].rdatas, rdata_num, type))
+		   rdatas_equal(rdatas, rrset->rrs[i].rdatas, rdata_num, type,
+			&rd, &reason))
 		{
 			return i;
 		}
 	}
-
+        /* this is odd. Log why rr cannot be found. */
+	if (!add) {
+		debug_find_rr_num(rrset, type, klass, rdatas, rdata_num);
+	}
 	return -1;
 }
 
@@ -578,7 +641,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 				dname_to_string(dname,0));
 			return 0;
 		}
-		rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num);
+		rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num, 0);
 		if(rrnum == -1) {
 			log_msg(LOG_WARNING, "diff: RR <%s, %s> does not exist",
 				dname_to_string(dname,0), rrtype_to_string(type));
@@ -690,7 +753,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 			dname_to_string(dname,0));
 		return 0;
 	}
-	rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num);
+	rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num, 1);
 	if(rrnum != -1) {
 		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR <%s, %s> already exists",
 			dname_to_string(dname,0), rrtype_to_string(type)));
