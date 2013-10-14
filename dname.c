@@ -574,3 +574,25 @@ dname_make_wildcard(struct region *region,
 }
 #endif
 
+int dname_equal_nocase(uint8_t* a, uint8_t* b, uint16_t len)
+{
+	uint8_t i, lablen;
+	while(len > 0) {
+		/* check labellen */
+		if(*a != *b)
+			return 0;
+		lablen = *a++;
+		b++;
+		len--;
+		/* malformed or compression ptr; we stop scanning */
+		if((lablen & 0xc0) || len < lablen)
+			return (memcmp(a, b, len) == 0);
+		/* check the label, lowercased */
+		for(i=0; i<lablen; i++) {
+			if(DNAME_NORMALIZE(*a++) != DNAME_NORMALIZE(*b++))
+				return 0;
+		}
+		len -= lablen;
+	}
+	return 1;
+}

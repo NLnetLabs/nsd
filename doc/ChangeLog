@@ -1,3 +1,7 @@
+14 October 2013: Wouter
+	- Fix for zone transfer that has different-cased RRSIG signer names
+	  or NSEC next-owner names.
+
 20 August 2013: Matthijs
 	- tsig errors on incoming tsig print key name and source IP of query.
 

@@ -398,4 +398,7 @@ int dname_make_wildcard(struct region *region,
 		    struct dname const **wildcard);
 #endif
 
+/** check if two uncompressed dnames of the same total length are equal */
+int dname_equal_nocase(uint8_t* a, uint8_t* b, uint16_t len);
+
 #endif /* _DNAME_H_ */
