@@ -295,6 +295,7 @@ struct namedb
 };
 
 static inline int rdata_atom_is_domain(uint16_t type, size_t index);
+static inline int rdata_atom_is_literal_domain(uint16_t type, size_t index);
 
 static inline domain_type *
 rdata_atom_domain(rdata_atom_type atom)
@@ -366,6 +367,15 @@ rdata_atom_is_domain(uint16_t type, size_t index)
 	return (index < descriptor->maximum
 		&& (descriptor->wireformat[index] == RDATA_WF_COMPRESSED_DNAME
 		    || descriptor->wireformat[index] == RDATA_WF_UNCOMPRESSED_DNAME));
+}
+
+static inline int
+rdata_atom_is_literal_domain(uint16_t type, size_t index)
+{
+	const rrtype_descriptor_type *descriptor
+		= rrtype_descriptor_by_type(type);
+	return (index < descriptor->maximum
+		&& (descriptor->wireformat[index] == RDATA_WF_LITERAL_DNAME));
 }
 
 static inline rdata_wireformat_type

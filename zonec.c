@@ -1236,6 +1236,14 @@ zrdatacmp(uint16_t type, rr_type *a, rr_type *b)
 			{
 				return 1;
 			}
+		} else if(rdata_atom_is_literal_domain(type, i)) {
+			if (rdata_atom_size(a->rdatas[i])
+			    != rdata_atom_size(b->rdatas[i]))
+				return 1;
+			if (!dname_equal_nocase(rdata_atom_data(a->rdatas[i]),
+				   rdata_atom_data(b->rdatas[i]),
+				   rdata_atom_size(a->rdatas[i])))
+				return 1;
 		} else {
 			if (rdata_atom_size(a->rdatas[i])
 			    != rdata_atom_size(b->rdatas[i]))

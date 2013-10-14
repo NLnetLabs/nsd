@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <ctype.h>
 #include "difffile.h"
 #include "xfrd-disk.h"
 #include "util.h"
@@ -306,6 +307,12 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 			if(dname_compare(domain_dname(a[k].domain),
 				domain_dname(b[k].domain))!=0)
 				return 0;
+		} else if(rdata_atom_is_literal_domain(type, k)) {
+			/* literal dname, but compare case insensitive */
+			if(a[k].data[0] != b[k].data[0])
+				return 0; /* uncompressed len must be equal*/
+			return dname_equal_nocase((uint8_t*)a[k].data+1,
+				(uint8_t*)b[k].data+1, a[k].data[0]);
 		} else {
 			/* check length */
 			if(a[k].data[0] != b[k].data[0])
