@@ -1393,6 +1393,9 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 	RBTREE_FOR(p, pattern_options_t*, newopt->patterns) {
 		pattern_options_t* origp = pattern_options_find(oldopt,
 			p->pname);
+		const dname_type* dname = parse_implicit_name(xfrd, p->pname);
+		xfrd_zone_t* xz = (xfrd_zone_t*)rbtree_search(xfrd->zones,
+			dname);
 		if(!origp) {
 			/* no zones can use it, no zone_interrupt needed */
 			add_pat(xfrd, p);
@@ -1402,6 +1405,13 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 			}
 		} else if(!pattern_options_equal(p, origp)) {
 			add_pat(xfrd, p);
+			if (!xz && p->request_xfr) {
+				zone_options_t* zopt = zone_options_find(newopt,
+					dname);
+				if (zopt) xfrd_init_slave_zone(xfrd, zopt);
+			} else if (xz && !p->request_xfr) {
+				xfrd_del_slave_zone(xfrd, dname);
+			}
 		}
 	}
 	repat_interrupt_notify_start(xfrd);
