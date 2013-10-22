@@ -756,6 +756,7 @@ pattern_options_create(region_type* region)
 	p->allow_axfr_fallback = 1;
 	p->allow_axfr_fallback_is_default = 1;
 	p->implicit = 0;
+	p->xfrd_flags = 0;
 #ifdef RATELIMIT
 	p->rrl_whitelist = 0;
 #endif

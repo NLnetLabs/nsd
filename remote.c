@@ -81,6 +81,10 @@
 /** number of seconds timeout on incoming remote control handshake */
 #define REMOTE_CONTROL_TCP_TIMEOUT 120
 
+/** repattern to master or slave */
+#define REPAT_SLAVE  1
+#define REPAT_MASTER 2
+
 /** if you want zero to be inhibited in stats output.
  * it omits zeroes for types that have no acronym and unused-rcodes */
 const int inhibit_zero = 1;
@@ -1402,19 +1406,20 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 				add_cfgzone(xfrd, p->pname);
 			}
 		} else if(!pattern_options_equal(p, origp)) {
-			int is_new_slave = 0;
-			int is_new_master = 0;
+			p->xfrd_flags = 0;
 			if (p->request_xfr && !origp->request_xfr) {
-				is_new_slave = 1;
+				log_msg(LOG_ERR, "remote: pattern %s repat slave", p->pname);
+				p->xfrd_flags = REPAT_SLAVE;
 			} else if (!p->request_xfr && origp->request_xfr) {
-				is_new_master = 1;
+				log_msg(LOG_ERR, "remote: pattern %s repat master", p->pname);
+				p->xfrd_flags = REPAT_MASTER;
 			}
 			add_pat(xfrd, p);
 			if (p->implicit) {
 				const dname_type* dname =
 					parse_implicit_name(xfrd, p->pname);
 				if (dname) {
-					if (is_new_slave) {
+					if (p->xfrd_flags == REPAT_SLAVE) {
 						zone_options_t* zopt =
 							zone_options_find(
 							newopt, dname);
@@ -1422,7 +1427,8 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 							xfrd_init_slave_zone(
 								xfrd, zopt);
 						}
-					} else if (is_new_master) {
+					} else if (p->xfrd_flags ==
+						REPAT_MASTER) {
 						xfrd_del_slave_zone(xfrd,
 							dname);
 					}
@@ -1436,29 +1442,27 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 			}
 		}
 	}
-/*
 	if (search_zones) {
 		zone_options_t* zone_opt;
 		log_msg(LOG_ERR, "remote: search zones");
 		RBTREE_FOR(zone_opt, zone_options_t*, newopt->zone_options) {
 			pattern_options_t* newp = zone_opt->pattern;
 			if (!newp->implicit) {
-				xfrd_zone_t* xz = (xfrd_zone_t*)rbtree_search(
-					xfrd->zones,
-					(const dname_type*)zone_opt->node.key);
-				if (!xz && newp->request_xfr) {
-log_msg(LOG_ERR, "remote: zone init slave: %s", zone_opt->name);
+				log_msg(LOG_ERR, "remote: pattern %s explicit", newp->pname);
+				if (newp->xfrd_flags == REPAT_SLAVE) {
+					log_msg(LOG_ERR, "remote: init slave %s", zone_opt->name);
 					xfrd_init_slave_zone(xfrd, zone_opt);
-				} else if (xz && !newp->request_xfr) {
-log_msg(LOG_ERR, "remote: zone del slave: %s", zone_opt->name);
+				} else if (newp->xfrd_flags == REPAT_MASTER) {
+					log_msg(LOG_ERR, "remote: del slave %s", zone_opt->name);
 					xfrd_del_slave_zone(xfrd,
 						(const dname_type*)
 						zone_opt->node.key);
 				}
+			} else {
+				log_msg(LOG_ERR, "remote: pattern %s implicit", newp->pname + strlen(PATTERN_IMPLICIT_MARKER));
 			}
 		}
 	}
-*/
 	repat_interrupt_notify_start(xfrd);
 }
 

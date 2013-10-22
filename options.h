@@ -137,6 +137,7 @@ struct pattern_options {
 	uint8_t notify_retry;
 	uint8_t notify_retry_is_default;
 	uint8_t implicit; /* pattern is implicit, part_of_config zone used */
+	uint8_t xfrd_flags;
 };
 
 #define PATTERN_IMPLICIT_MARKER "_implicit_"
