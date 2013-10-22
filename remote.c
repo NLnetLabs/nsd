@@ -1372,6 +1372,7 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 	 */
 	nsd_options_t* oldopt = xfrd->nsd->options;
 	pattern_options_t* p;
+	int search_zones = 0;
 
 	repat_interrupt_zones(xfrd, newopt);
 	/* find deleted patterns */
@@ -1393,9 +1394,6 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 	RBTREE_FOR(p, pattern_options_t*, newopt->patterns) {
 		pattern_options_t* origp = pattern_options_find(oldopt,
 			p->pname);
-		const dname_type* dname = parse_implicit_name(xfrd, p->pname);
-		xfrd_zone_t* xz = (xfrd_zone_t*)rbtree_search(xfrd->zones,
-			dname);
 		if(!origp) {
 			/* no zones can use it, no zone_interrupt needed */
 			add_pat(xfrd, p);
@@ -1404,16 +1402,63 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 				add_cfgzone(xfrd, p->pname);
 			}
 		} else if(!pattern_options_equal(p, origp)) {
+			int is_new_slave = 0;
+			int is_new_master = 0;
+			if (p->request_xfr && !origp->request_xfr) {
+				is_new_slave = 1;
+			} else if (!p->request_xfr && origp->request_xfr) {
+				is_new_master = 1;
+			}
 			add_pat(xfrd, p);
-			if (!xz && p->request_xfr) {
-				zone_options_t* zopt = zone_options_find(newopt,
-					dname);
-				if (zopt) xfrd_init_slave_zone(xfrd, zopt);
-			} else if (xz && !p->request_xfr) {
-				xfrd_del_slave_zone(xfrd, dname);
+			if (p->implicit) {
+				const dname_type* dname =
+					parse_implicit_name(xfrd, p->pname);
+				if (dname) {
+					if (is_new_slave) {
+						zone_options_t* zopt =
+							zone_options_find(
+							newopt, dname);
+						if (zopt) {
+							xfrd_init_slave_zone(
+								xfrd, zopt);
+						}
+					} else if (is_new_master) {
+						xfrd_del_slave_zone(xfrd,
+							dname);
+					}
+					region_recycle(xfrd->region,
+						(void*)dname,
+						dname_total_size(dname));
+				}
+			} else {
+				/* search all zones with this pattern */
+				search_zones = 1;
 			}
 		}
 	}
+/*
+	if (search_zones) {
+		zone_options_t* zone_opt;
+		log_msg(LOG_ERR, "remote: search zones");
+		RBTREE_FOR(zone_opt, zone_options_t*, newopt->zone_options) {
+			pattern_options_t* newp = zone_opt->pattern;
+			if (!newp->implicit) {
+				xfrd_zone_t* xz = (xfrd_zone_t*)rbtree_search(
+					xfrd->zones,
+					(const dname_type*)zone_opt->node.key);
+				if (!xz && newp->request_xfr) {
+log_msg(LOG_ERR, "remote: zone init slave: %s", zone_opt->name);
+					xfrd_init_slave_zone(xfrd, zone_opt);
+				} else if (xz && !newp->request_xfr) {
+log_msg(LOG_ERR, "remote: zone del slave: %s", zone_opt->name);
+					xfrd_del_slave_zone(xfrd,
+						(const dname_type*)
+						zone_opt->node.key);
+				}
+			}
+		}
+	}
+*/
 	repat_interrupt_notify_start(xfrd);
 }
 
