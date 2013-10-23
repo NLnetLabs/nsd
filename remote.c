@@ -1422,7 +1422,7 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 					if (p->xfrd_flags == REPAT_SLAVE) {
 						zone_options_t* zopt =
 							zone_options_find(
-							newopt, dname);
+							oldopt, dname);
 						if (zopt) {
 							xfrd_init_slave_zone(
 								xfrd, zopt);
@@ -1450,8 +1450,15 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 			if (!newp->implicit) {
 				log_msg(LOG_ERR, "remote: pattern %s explicit", newp->pname);
 				if (newp->xfrd_flags == REPAT_SLAVE) {
+					/* xfrd needs stable reference so get
+					 * it from the oldopt(modified) tree */
+					zone_options_t* zopt =
+						zone_options_find(oldopt,
+						(const dname_type*)zone_opt->
+						node.key);
 					log_msg(LOG_ERR, "remote: init slave %s", zone_opt->name);
-					xfrd_init_slave_zone(xfrd, zone_opt);
+					if(zopt)
+						xfrd_init_slave_zone(xfrd, zopt);
 				} else if (newp->xfrd_flags == REPAT_MASTER) {
 					log_msg(LOG_ERR, "remote: del slave %s", zone_opt->name);
 					xfrd_del_slave_zone(xfrd,
