@@ -1406,20 +1406,18 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 				add_cfgzone(xfrd, p->pname);
 			}
 		} else if(!pattern_options_equal(p, origp)) {
-			p->xfrd_flags = 0;
+			uint8_t newstate = 0;
 			if (p->request_xfr && !origp->request_xfr) {
-				log_msg(LOG_ERR, "remote: pattern %s repat slave", p->pname);
-				p->xfrd_flags = REPAT_SLAVE;
+				newstate = REPAT_SLAVE;
 			} else if (!p->request_xfr && origp->request_xfr) {
-				log_msg(LOG_ERR, "remote: pattern %s repat master", p->pname);
-				p->xfrd_flags = REPAT_MASTER;
+				newstate = REPAT_MASTER;
 			}
 			add_pat(xfrd, p);
-			if (p->implicit) {
+			if (p->implicit && newstate) {
 				const dname_type* dname =
 					parse_implicit_name(xfrd, p->pname);
 				if (dname) {
-					if (p->xfrd_flags == REPAT_SLAVE) {
+					if (newstate == REPAT_SLAVE) {
 						zone_options_t* zopt =
 							zone_options_find(
 							oldopt, dname);
@@ -1427,8 +1425,7 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 							xfrd_init_slave_zone(
 								xfrd, zopt);
 						}
-					} else if (p->xfrd_flags ==
-						REPAT_MASTER) {
+					} else if (newstate == REPAT_MASTER) {
 						xfrd_del_slave_zone(xfrd,
 							dname);
 					}
@@ -1436,37 +1433,30 @@ repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 						(void*)dname,
 						dname_total_size(dname));
 				}
-			} else {
+			} else if(!p->implicit && newstate) {
 				/* search all zones with this pattern */
 				search_zones = 1;
+				origp->xfrd_flags = newstate;
 			}
 		}
 	}
 	if (search_zones) {
 		zone_options_t* zone_opt;
-		log_msg(LOG_ERR, "remote: search zones");
-		RBTREE_FOR(zone_opt, zone_options_t*, newopt->zone_options) {
-			pattern_options_t* newp = zone_opt->pattern;
-			if (!newp->implicit) {
-				log_msg(LOG_ERR, "remote: pattern %s explicit", newp->pname);
-				if (newp->xfrd_flags == REPAT_SLAVE) {
+		/* search in oldopt because 1) it contains zonelist zones,
+		 * and 2) you need oldopt(existing) to call xfrd_init */
+		RBTREE_FOR(zone_opt, zone_options_t*, oldopt->zone_options) {
+			pattern_options_t* oldp = zone_opt->pattern;
+			if (!oldp->implicit) {
+				if (oldp->xfrd_flags == REPAT_SLAVE) {
 					/* xfrd needs stable reference so get
 					 * it from the oldopt(modified) tree */
-					zone_options_t* zopt =
-						zone_options_find(oldopt,
-						(const dname_type*)zone_opt->
-						node.key);
-					log_msg(LOG_ERR, "remote: init slave %s", zone_opt->name);
-					if(zopt)
-						xfrd_init_slave_zone(xfrd, zopt);
-				} else if (newp->xfrd_flags == REPAT_MASTER) {
-					log_msg(LOG_ERR, "remote: del slave %s", zone_opt->name);
+					xfrd_init_slave_zone(xfrd, zone_opt);
+				} else if (oldp->xfrd_flags == REPAT_MASTER) {
 					xfrd_del_slave_zone(xfrd,
 						(const dname_type*)
 						zone_opt->node.key);
 				}
-			} else {
-				log_msg(LOG_ERR, "remote: pattern %s implicit", newp->pname + strlen(PATTERN_IMPLICIT_MARKER));
+				oldp->xfrd_flags = 0;
 			}
 		}
 	}

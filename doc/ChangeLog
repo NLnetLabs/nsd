@@ -1,3 +1,6 @@
+24 October 2013: Wouter
+	- Fixup zone change code.
+
 21 October 2013: Matthijs
 	- Initialize xfrd zone when changing zone from master to slave
 	  and delete xfrd zone when changing zone from slave to master.
