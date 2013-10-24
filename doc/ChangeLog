@@ -1,5 +1,6 @@
 24 October 2013: Wouter
 	- Fixup zone change code.
+	- tag 4.0.0rc3.
 
 21 October 2013: Matthijs
 	- Initialize xfrd zone when changing zone from master to slave
