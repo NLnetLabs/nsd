@@ -317,8 +317,8 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type,
 				*reason = "literal dname len";
 				return 0; /* uncompressed len must be equal*/
 			}
-			if(!dname_equal_nocase((uint8_t*)a[k].data+1,
-				(uint8_t*)b[k].data+1, a[k].data[0])) {
+			if(!dname_equal_nocase((uint8_t*)(a[k].data+1),
+				(uint8_t*)(b[k].data+1), a[k].data[0])) {
 				*rdnum = k;
 				*reason = "literal dname data";
 				return 0;
