@@ -72,7 +72,7 @@
 	  and srandom are then not linked with the executable.
 
 16 Jul 2013: Wouter
-	- Fix segfault with no logfile and chroot.
+	- Fix segfault with no logfile and chroot (Thanks Patrik Lundin).
 
 15 Jul 2013: Wouter
 	- beta 5 tag.
