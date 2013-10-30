@@ -33,7 +33,7 @@ BUG FIXES (incremental from BETA5):
 	- Fixup errors from the stack code checker.
 	- Removed use of random when arc4random is available. Thus, random
 	  and srandom are then not linked with the executable.
-	- Fix segfault with no logfile and chroot.
+	- Fix segfault with no logfile and chroot (Thanks Patrik Lundin).
 
 4.0.0b5   BETA 5 release of NSD 4.0
 ==================================
