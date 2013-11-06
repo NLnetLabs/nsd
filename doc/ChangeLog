@@ -1,3 +1,7 @@
+5 November 2013: Wouter
+	- Accept interface: as an alternative for ip-address: for
+	  consistency with unbound.conf syntax.
+
 29 October 2013: Wouter
 	- tag for 4.0.0 release.
 	- trunk has 4.0.1 in development, for bug fixes.
