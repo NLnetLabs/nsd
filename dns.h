@@ -143,8 +143,8 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_L32        105     /* RFC 6742 */
 #define TYPE_L64        106     /* RFC 6742 */
 #define TYPE_LP         107     /* RFC 6742 */
-#define TYPE_EUI48      108     /* draft-jabley-dnsext-eui48-eui64-rrtypes */
-#define TYPE_EUI64      109     /* draft-jabley-dnsext-eui48-eui64-rrtypes */
+#define TYPE_EUI48      108     /* RFC 7043 */
+#define TYPE_EUI64      109     /* RFC 7043 */
 
 #define TYPE_TSIG	250
 #define TYPE_IXFR	251
