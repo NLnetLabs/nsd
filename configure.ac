@@ -789,15 +789,6 @@ case "$enable_minimal_responses" in
                 ;;
 esac
 
-AC_ARG_ENABLE(draft-rrtypes, AC_HELP_STRING([--enable-draft-rrtypes], [Enable draft RRtypes.]))
-case "$enable_draft_rrtypes" in
-        yes)
-		AC_DEFINE_UNQUOTED([DRAFT_RRTYPES], [], [Define this to enable draft RRtypes.])
-                ;;
-        no|*)
-		;;
-esac
-
 AC_ARG_ENABLE(mmap, AC_HELP_STRING([--enable-mmap], [Use mmap instead of malloc. Experimental.]))
 case "$enable_mmap" in
         yes)

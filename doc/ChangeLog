@@ -1,3 +1,6 @@
+11 November 2013: Matthijs
+	- EUI48 and EUI64 is now RFC 7043
+
 5 November 2013: Wouter
 	- Accept interface: as an alternative for ip-address: for
 	  consistency with unbound.conf syntax.
