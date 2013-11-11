@@ -863,8 +863,8 @@ RR records details.
   "L64"      106,   # RFC 6742
   "LP"       107,   # RFC 6742
 
-  "EUI48"    108,   # [draft-jabley-dnsext-eui48-eui64-rrtypes]
-  "EUI64"    109,   # [draft-jabley-dnsext-eui48-eui64-rrtypes]
+  "EUI48"    108,   # RFC 7043
+  "EUI64"    109,   # RFC 7043
 
   "TKEY"     249,   # RFC 2930
   "TSIG"     250,   # RFC 2845
