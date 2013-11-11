@@ -414,7 +414,6 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 	if(event_types & NETIO_EVENT_READ) {
 		/* busy in udp transaction */
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event udp read", zone->apex_str));
-		xfrd_set_refresh_now(zone);
 		xfrd_udp_read(zone);
 		return;
 	}
@@ -814,7 +813,15 @@ xfrd_udp_read(xfrd_zone_t* zone)
 {
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s read udp data", zone->apex_str));
 	if(!xfrd_udp_read_packet(xfrd->packet, zone->zone_handler.fd)) {
+		zone->master->bad_xfr_count++;
+		if (zone->master->bad_xfr_count > 2) {
+			zone->master->ixfr_disabled = time(NULL);
+			zone->master->bad_xfr_count = 0;
+		}
+		/* drop packet */
 		xfrd_udp_release(zone);
+		/* query next server */
+		xfrd_make_request(zone);
 		return;
 	}
 	switch(xfrd_handle_received_xfr_packet(zone, xfrd->packet)) {

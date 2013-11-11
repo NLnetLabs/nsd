@@ -1,3 +1,6 @@
+11 November 2013: Wouter
+	- Fix bug#534: IXFR query loop over UDP for zones that are unchanged.
+
 11 November 2013: Matthijs
 	- EUI48 and EUI64 is now RFC 7043
 
