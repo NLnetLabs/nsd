@@ -1,3 +1,6 @@
+18 November 2013: Matthijs
+	- Explain RRL false negatives with multiple processes.
+
 11 November 2013: Wouter
 	- Fix bug#534: IXFR query loop over UDP for zones that are unchanged.
 

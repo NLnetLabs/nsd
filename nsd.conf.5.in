@@ -249,7 +249,10 @@ The max qps allowed (from one query source). Default 200 qps. If set to 0
 then it is disabled (unlimited rate), also set the whilelist\-ratelimit
 to 0 to disable ratelimit processing.  If you set verbosity to 2 the
 blocked and unblocked subnets are logged.  Blocked queries are blocked
-and some receive TCP fallback replies.
+and some receive TCP fallback replies. Note that each NSD process has its
+own rrl hash bucket. This means that the rrl\-ratelimit is also set per
+process, meaning the processes may start blocking the query stream at 
+different times, thus increasing the number of false negatives.
 .TP
 .B rrl\-slip:\fR <numpackets>
 This option controls the number of packets discarded before we send back a SLIP response
