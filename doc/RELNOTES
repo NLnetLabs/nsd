@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+4.0.1
+================
+FEATURES:
+	- recognizes ip-address and interface as synonyms for convenience.
+
+
 4.0.0	NSD 4.0
 ===============
 FEATURES:
