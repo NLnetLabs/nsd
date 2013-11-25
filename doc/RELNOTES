@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- recognizes ip-address and interface as synonyms for convenience.
+BUG FIXES:
+	- (same as in 3.2.16): fix wildcard cname to nxdomain repeated rrset.
 
 
 4.0.0	NSD 4.0
