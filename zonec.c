@@ -241,7 +241,7 @@ zparser_conv_services(region_type *region, const char *protostr,
 	r = alloc_rdata(region, sizeof(uint8_t) + max_port / 8 + 1);
 	p = (uint8_t *) (r + 1);
 	*p = proto->p_proto;
-	memcpy(p + 1, bitmap, *r);
+	memcpy(p + 1, bitmap, *r-1);
 
 	return r;
 }

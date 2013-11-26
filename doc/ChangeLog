@@ -1,3 +1,6 @@
+26 November 2013: Wouter
+	- Fix zonec for read of rr type WKS.
+
 18 November 2013: Matthijs
 	- Explain RRL false negatives with multiple processes.
 
