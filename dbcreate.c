@@ -44,6 +44,8 @@ add_rdata(rr_type* rr, unsigned i, uint8_t* buf, size_t buflen)
 		default:
 			break;
 	}
+	if(rdata_atom_size(rr->rdatas[i]) > buflen)
+		return 0;
 	memmove(buf, rdata_atom_data(rr->rdatas[i]),
 		rdata_atom_size(rr->rdatas[i]));
 	return rdata_atom_size(rr->rdatas[i]);

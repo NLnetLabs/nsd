@@ -1,3 +1,6 @@
+26 November 2013: Wouter
+	- Fix segfaults after read of zones with rr type WKS from zonefile.
+
 25 November 2013: Wouter
 	- (same as in 3.2.16): fix wildcard cname to nxdomain repeated rrset.
 
