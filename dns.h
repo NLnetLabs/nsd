@@ -153,6 +153,8 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_MAILA	254	/* A request for mail agent RRs (Obsolete - see MX) */
 #define TYPE_ANY	255	/* any type (wildcard) */
 
+#define TYPE_CAA	257	/* RFC 6844 */
+
 #define TYPE_DLV	32769	/* RFC 4431 */
 #define PSEUDO_TYPE_DLV	RRTYPE_DESCRIPTORS_LENGTH
 
@@ -192,7 +194,8 @@ enum rdata_wireformat
 	RDATA_WF_IPSECGATEWAY,       /* IPSECKEY gateway ip4, ip6 or dname. */
 	RDATA_WF_ILNP64,             /* 64-bit uncompressed IPv6 address.  */
 	RDATA_WF_EUI48,	             /* 48-bit address.  */
-	RDATA_WF_EUI64               /* 64-bit address.  */
+	RDATA_WF_EUI64,              /* 64-bit address.  */
+	RDATA_WF_LONG_TEXT           /* Long (>255) text string. */
 };
 typedef enum rdata_wireformat rdata_wireformat_type;
 
@@ -229,6 +232,8 @@ enum rdata_zoneformat
 	RDATA_ZF_ILNP64,	/* 64-bit uncompressed IPv6 address.  */
 	RDATA_ZF_EUI48,		/* EUI48 address.  */
 	RDATA_ZF_EUI64,		/* EUI64 address.  */
+	RDATA_ZF_LONG_TEXT,	/* Long (>255) text string. */
+	RDATA_ZF_TAG,		/* Text string without quotes. */
 	RDATA_ZF_UNKNOWN	/* Unknown data.  */
 };
 typedef enum rdata_zoneformat rdata_zoneformat_type;
@@ -249,9 +254,9 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
  * Indexed by type.  The special type "0" can be used to get a
  * descriptor for unknown types (with one binary rdata).
  *
- * EUI64 + 1
+ * CAA + 1
  */
-#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_EUI64 + 1)
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_CAA + 1)
 rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 rrtype_descriptor_type *rrtype_descriptor_by_type(uint16_t type);
 

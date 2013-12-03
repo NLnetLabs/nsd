@@ -169,6 +169,45 @@ rdata_texts_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
+rdata_long_text_to_string(buffer_type *output, rdata_atom_type rdata,
+	rr_type* ATTR_UNUSED(rr))
+{
+	const uint8_t *data = rdata_atom_data(rdata);
+	uint16_t length = rdata_atom_size(rdata);
+	size_t i;
+
+	buffer_printf(output, "\"");
+	for (i = 0; i < length; ++i) {
+		char ch = (char) data[i];
+		if (isprint((int)ch)) {
+			if (ch == '"' || ch == '\\') {
+				buffer_printf(output, "\\");
+			}
+			buffer_printf(output, "%c", ch);
+		} else {
+			buffer_printf(output, "\\%03u", (unsigned) data[i]);
+		}
+	}
+	buffer_printf(output, "\"");
+	return 1;
+}
+
+static int
+rdata_tag_to_string(buffer_type *output, rdata_atom_type rdata,
+	rr_type* ATTR_UNUSED(rr))
+{
+	const uint8_t *data = rdata_atom_data(rdata);
+	uint8_t length = data[0];
+	size_t i;
+	for (i = 1; i <= length; ++i) {
+		char ch = (char) data[i];
+		/* isdigit((int)ch) || islower((int)ch) */
+		buffer_printf(output, "%c", ch);
+	}
+	return 1;
+}
+
+static int
 rdata_byte_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -631,6 +670,8 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_ilnp64_to_string,
 	rdata_eui48_to_string,
 	rdata_eui64_to_string,
+	rdata_long_text_to_string,
+	rdata_tag_to_string,
 	rdata_unknown_to_string
 };
 
@@ -690,6 +731,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			length = sizeof(uint32_t);
 			break;
 		case RDATA_WF_TEXTS:
+		case RDATA_WF_LONG_TEXT:
 			length = data_size;
 			break;
 		case RDATA_WF_TEXT:
