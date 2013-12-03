@@ -1,3 +1,7 @@
+3 December 2013: Matthijs
+	- Support for CAA RRtype (RFC 6844).
+	- Bugfix #509: USE_ZONE_STATS uses initialised memory for statistics data.
+
 26 November 2013: Wouter
 	- Fix zonec for read of rr type WKS.
 

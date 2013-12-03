@@ -9,8 +9,8 @@ FEATURES:
 	- Use IPV6 minimum MTU settings with TCP to reduce failures that
 	  are caused by delays in learning working PMTU when communicating
 	  through a tunnel.
-	- Bugfix #496: Support for EUI48 and EUI64 RR types. Experimental,
-	  turned off by default. Enable with --enable-draft-rrtypes.
+	- Bugfix #496: Support for EUI48 and EUI64 RR types.
+	- Support for CAA RR type (RFC6844).
 	- New config option "rrl-slip:" to set the average number of
 	  packets discarded before we send back a truncated response.
 	- New config option "rrl-ipv4-prefix-length:" and
@@ -26,6 +26,7 @@ BUG FIXES:
 	- Bugfix #491: pick program name (0th argument) as syslog identity.
 	- Bugfix #494: Exit with return code 1 if socket code fails.
 	- Bugfix #495: Wrong bufsize in dname_to_string for root.
+	- Bugfix #509: USE_ZONE_STATS uses initialised memory for statistics data.
 	- Fix outgoing-interface: Don't fail if family is IPv6 but
 	  only IPv4 outgoing-interface is set, or vice versa.
 	- RRtypes ASFDB, RP, RT should not compress dnames.

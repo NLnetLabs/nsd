@@ -351,6 +351,9 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 		zones[i]->nsec3_soa_rr = NULL;
 		zones[i]->nsec3_last = NULL;
 #endif
+#if defined(BIND8_STATS) && defined(USE_ZONE_STATS)
+		memset(&zones[i]->st, 0, sizeof(zones[i]->st));
+#endif /* defined(BIND8_STATS) && defined(USE_ZONE_STATS) */
 		zones[i]->opts = zone_options_find(opt, domain_dname(zones[i]->apex));
 		zones[i]->number = i + 1;
 		zones[i]->is_secure = 0;
