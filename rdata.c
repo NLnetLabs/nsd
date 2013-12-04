@@ -201,8 +201,9 @@ rdata_tag_to_string(buffer_type *output, rdata_atom_type rdata,
 	size_t i;
 	for (i = 1; i <= length; ++i) {
 		char ch = (char) data[i];
-		/* isdigit((int)ch) || islower((int)ch) */
-		buffer_printf(output, "%c", ch);
+		if (isdigit((int)ch) || islower((int)ch))
+			buffer_printf(output, "%c", ch);
+		else	return 0;
 	}
 	return 1;
 }
