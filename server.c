@@ -1540,7 +1540,11 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 				      (struct sockaddr *) &q->addr,
 				      q->addrlen);
 			if (sent == -1) {
-				log_msg(LOG_ERR, "sendto failed: %s", strerror(errno));
+				const char* es = strerror(errno);
+				char a[128];
+				if(addr2ip(q->addr, a, sizeof(a)))
+					strlcpy(a, "[unknown]", sizeof(a));
+				log_msg(LOG_ERR, "sendto %s failed: %s", a, es);
 				STATUP(data->nsd, txerr);
 
 #ifdef USE_ZONE_STATS
