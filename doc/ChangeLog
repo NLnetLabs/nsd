@@ -1,3 +1,6 @@
+2 January 2014: Wouter
+	- Log ip address for sendto and sendmmsg failures.
+
 26 November 2013: Wouter
 	- Fix segfaults after read of zones with rr type WKS from zonefile.
 	- Seed PRNG for openssl at start of daemon, fixes SSL connection issue.

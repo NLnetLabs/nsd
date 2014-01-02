@@ -1826,7 +1826,10 @@ handle_udp(int fd, short event, void* arg)
 	while(i<recvcount) {
 		sent = sendmmsg(fd, &msgs[i], recvcount-i, 0);
 		if(sent == -1) {
-			log_msg(LOG_ERR, "sendmmsg failed: %s", strerror(errno));
+			const char* es = strerror(errno);
+			char a[48];
+			addr2str(&queries[i]->addr, a, sizeof(a));
+			log_msg(LOG_ERR, "sendmmsg [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
 #ifdef BIND8_STATS
 			data->nsd->st.txerr += recvcount-i;
 #endif /* BIND8_STATS */
@@ -1937,7 +1940,10 @@ handle_udp(int fd, short event, void* arg)
 				      (struct sockaddr *) &q->addr,
 				      q->addrlen);
 			if (sent == -1) {
-				log_msg(LOG_ERR, "sendto failed: %s", strerror(errno));
+				const char* es = strerror(errno);
+				char a[48];
+				addr2str(&q->addr, a, sizeof(a));
+				log_msg(LOG_ERR, "sendto %s failed: %s", a, es);
 				STATUP(data->nsd, txerr);
 			} else if ((size_t) sent != buffer_remaining(q->packet)) {
 				log_msg(LOG_ERR, "sent %d in place of %d bytes", sent, (int) buffer_remaining(q->packet));
