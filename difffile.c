@@ -472,6 +472,7 @@ nsec3_rrsets_changed_remove_prehash(domain_type* domain, zone_type* zone)
 	}
 	if(domain != zone->apex && domain->nsec3 &&
 		domain->nsec3->dshash_node.key &&
+		(!domain->parent || nsec3_domain_part_of_zone(domain->parent, zone)) &&
 		!nsec3_condition_dshash(domain, zone)) {
 		/* remove precompile */
 		domain->nsec3->nsec3_ds_parent_cover = NULL;
