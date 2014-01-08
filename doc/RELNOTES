@@ -1,6 +1,20 @@
 NSD RELEASE NOTES
 
-3.2.16 (up next)
+3.2.17
+================
+FEATURES:
+	- Support for CAA RR type (RFC6844).
+	- EUI48 and EUI64 RR types (RFC7043) enabled by default.
+
+BUG FIXES:
+	- Bugfix #509: USE_ZONE_STATS used initialised memory for statistics data.
+	- Bugfix #510: USE_ZONE_STATS use a different zone stats file per process.
+	- Bugfix #542: Match RRSIG TTL with SOA TTL in negative response.
+	- Removed use of random when arc4random is available.  Thus, random
+	  and srandom are then not linked with the executable.
+
+
+3.2.16
 ================
 
 FEATURES:
@@ -9,8 +23,8 @@ FEATURES:
 	- Use IPV6 minimum MTU settings with TCP to reduce failures that
 	  are caused by delays in learning working PMTU when communicating
 	  through a tunnel.
-	- Bugfix #496: Support for EUI48 and EUI64 RR types.
-	- Support for CAA RR type (RFC6844).
+	- Bugfix #496: Support for EUI48 and EUI64 RR types. Experimental,
+	  turned off by default. Enable with --enable-draft-rrtypes.
 	- New config option "rrl-slip:" to set the average number of
 	  packets discarded before we send back a truncated response.
 	- New config option "rrl-ipv4-prefix-length:" and
@@ -26,17 +40,12 @@ BUG FIXES:
 	- Bugfix #491: pick program name (0th argument) as syslog identity.
 	- Bugfix #494: Exit with return code 1 if socket code fails.
 	- Bugfix #495: Wrong bufsize in dname_to_string for root.
-	- Bugfix #509: USE_ZONE_STATS used initialised memory for statistics data.
-	- Bugfix #510: USE_ZONE_STATS use a different zone stats file per process.
-	- Bugfix #542: Match RRSIG TTL with SOA TTL in negative response.
 	- Fix outgoing-interface: Don't fail if family is IPv6 but
 	  only IPv4 outgoing-interface is set, or vice versa.
 	- RRtypes ASFDB, RP, RT should not compress dnames.
 	- Check that zone directory is within chroot directory.
 	- Better XFR checking, fallback to AXFR (if allowed) if three
 	  malformed XFR packets have been seen.
-	- Removed use of random when arc4random is available.  Thus, random
-	  and srandom are then not linked with the executable.
 
 
 3.2.15
