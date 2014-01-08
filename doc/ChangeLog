@@ -1,6 +1,8 @@
 8 January 2014: Matthijs
 	- Bugfix #510: Use a different zone stats file per process.
 	- Bugfix #542: Match RRSIG TTL with SOA TTL in negative response.
+	- From trunk: 
+		- 2 January 2014: Wouter - Log ip address for sendto failures.
 
 2 January 2014: Wouter
 	- Log ip address for sendto failures.
