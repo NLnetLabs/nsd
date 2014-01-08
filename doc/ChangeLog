@@ -1,10 +1,16 @@
+8 January 2014: Matthijs
+	- Bugfix #542: Match RRSIG TTL with SOA TTL in negative response.
+
 7 January 2014: Wouter
 	- Fix xfrd when zone transfer TCP contains zero length packets.
-	- Fix for NSEC2 zones where parent zone is co-hosted, also NSEC3,
+	- Fix for NSEC3 zones where parent zone is co-hosted, also NSEC3,
 	  because AXFRs overwrote nsec3 administration in the child zone.
 
 2 January 2014: Wouter
 	- Log ip address for sendto and sendmmsg failures.
+
+4 December 2013: Matthijs
+	- Support for CAA RRtype (RFC 6844).
 
 26 November 2013: Wouter
 	- Fix segfaults after read of zones with rr type WKS from zonefile.

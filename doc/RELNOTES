@@ -4,8 +4,13 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- recognizes ip-address and interface as synonyms for convenience.
+	- Support for EUI48 and EUI64 RR types enabled by default (RFC 7043).
+	- Support for CAA RRtype (RFC 6844).
+	
 BUG FIXES:
 	- (same as in 3.2.16): fix wildcard cname to nxdomain repeated rrset.
+	- (same as in 3.2.16): Bugfix #542: Match RRSIG TTL with SOA TTL in
+	  negative response.
 
 
 4.0.0	NSD 4.0
@@ -33,7 +38,7 @@ FEATURES (incremental from BETA5):
 	- Fix time at 2038, uint32s changed to time_t, support 64bit time_t.
 	- Fix use of 32bit time, for 2038, thanks to Theo de Raadt for patch.
 BUG FIXES (incremental from BETA5):
-	- Bugfix#518 Incorrect RRL prefix length option names in nsd.conf
+	- Bugfix #518 Incorrect RRL prefix length option names in nsd.conf
 	  man page from Ville Mattila.
 	- Fix that xfrd, and nsd-control, does not stop responding when reload
 	  errors out. The pid is sent like it should by server_main.
