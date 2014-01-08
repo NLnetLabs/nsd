@@ -27,6 +27,7 @@ BUG FIXES:
 	- Bugfix #494: Exit with return code 1 if socket code fails.
 	- Bugfix #495: Wrong bufsize in dname_to_string for root.
 	- Bugfix #509: USE_ZONE_STATS uses initialised memory for statistics data.
+	- Bugfix #510: Use a different zone stats file per process.
 	- Fix outgoing-interface: Don't fail if family is IPv6 but
 	  only IPv4 outgoing-interface is set, or vice versa.
 	- RRtypes ASFDB, RP, RT should not compress dnames.

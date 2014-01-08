@@ -1,3 +1,6 @@
+8 January 2014: Matthijs
+	- Bugfix #510: Use a different zone stats file per process.
+
 2 January 2014: Wouter
 	- Log ip address for sendto failures.
 

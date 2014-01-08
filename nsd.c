@@ -325,26 +325,30 @@ sig_handler(int sig)
 #ifdef BIND8_STATS
 
 #ifdef USE_ZONE_STATS
+#define ZSTATSFLEN 1024
+
 static void
-fprintf_zone_stats(FILE* fd, zone_type* zone, time_t now)
+fprintf_zone_stats(int fd, zone_type* zone, time_t now)
 {
-	int i;
+	int i, t;
+	char buf[4096];
+	ssize_t writen;
 
 	/* NSTATS */
-	fprintf(fd, "NSTATS %s %lu",
-		dname_to_string(domain_dname(zone->apex),0),
+	t = snprintf(buf, sizeof(buf),
+		"NSTATS %s %lu", dname_to_string(domain_dname(zone->apex),0),
 		(unsigned long) now);
 
 	for (i = 0; i <= 255; i++) {
 		if (zone->st.qtype[i] != 0) {
-			fprintf(fd, " %s=%lu", rrtype_to_string(i),
+			t += snprintf(buf + t, sizeof(buf) - t, " %s=%lu", rrtype_to_string(i),
 				zone->st.qtype[i]);
 		}
 	}
-	fprintf(fd, "\n");
+	t += snprintf(buf + t, sizeof(buf) - t, "\n");
 
 	/* XSTATS */
-	fprintf(fd, "XSTATS %s %lu"
+	t += snprintf(buf + t, sizeof(buf) - t, "XSTATS %s %lu"
 		" RR=%lu RNXD=%lu RFwdR=%lu RDupR=%lu RFail=%lu RFErr=%lu RErr=%lu RAXFR=%lu"
 		" RLame=%lu ROpts=%lu SSysQ=%lu SAns=%lu SFwdQ=%lu SDupQ=%lu SErr=%lu RQ=%lu"
 		" RIQ=%lu RFwdQ=%lu RDupQ=%lu RTCP=%lu SFwdR=%lu SFail=%lu SFErr=%lu SNaAns=%lu"
@@ -374,6 +378,9 @@ fprintf_zone_stats(FILE* fd, zone_type* zone, time_t now)
 		(unsigned long)0, (unsigned long)0,
 		(unsigned long)0,
 		zone->st.opcode[OPCODE_UPDATE]);
+
+	writen = write(fd, buf, t);
+        return;
 }
 #endif
 
@@ -381,8 +388,9 @@ void
 bind8_stats (struct nsd *nsd)
 {
 #ifdef USE_ZONE_STATS
-	FILE* fd;
+	int fd;
 	zone_type* zone;
+	char file[ZSTATSFLEN];
 #endif
 	char buf[MAXSYSLOGMSGLEN];
 	char *msg, *t;
@@ -440,10 +448,25 @@ bind8_stats (struct nsd *nsd)
 
 #ifdef USE_ZONE_STATS
 	/* ZSTATS */
-	log_msg(LOG_INFO, "ZSTATS %s", nsd->zonestatsfile);
-	if ((fd = fopen(nsd->zonestatsfile, "a")) ==  NULL ) {
+	if (strlen(nsd->zonestatsfile) + 4 > ZSTATSFLEN) {
+		/* 4 should be enough space to append child no */
+		log_msg(LOG_ERR, "cannot open zone statsfile %s.%u: "
+			"filename too long", nsd->zonestatsfile,
+			(unsigned) nsd->child_no);
+		return;
+	}
+	len = snprintf(file, sizeof(file), "%s.%u", nsd->zonestatsfile,
+		(unsigned) nsd->child_no);
+	if (len < (int) strlen(nsd->zonestatsfile) + 2) {
+		log_msg(LOG_ERR, "cannot open zone statsfile %s.%u: "
+			"snprintf() failed", nsd->zonestatsfile,
+			(unsigned) nsd->child_no);
+		return;
+	}
+	log_msg(LOG_INFO, "ZSTATS %s", file);
+	if ((fd = open(file, O_WRONLY|O_APPEND|O_CREAT, 0644)) == -1) {
 		log_msg(LOG_ERR, "cannot open zone statsfile %s: %s",
-			nsd->zonestatsfile, strerror(errno));
+			file, strerror(errno));
 		return;
 	}
 	/* Write stats per zone */
@@ -452,7 +475,7 @@ bind8_stats (struct nsd *nsd)
 		fprintf_zone_stats(fd, zone, now);
 		zone = zone->next;
 	}
-	fclose(fd);
+	close(fd);
 #endif
 
 }
