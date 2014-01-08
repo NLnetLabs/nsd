@@ -380,7 +380,7 @@ fprintf_zone_stats(int fd, zone_type* zone, time_t now)
 		zone->st.opcode[OPCODE_UPDATE]);
 
 	writen = write(fd, buf, t);
-        return;
+	return;
 }
 #endif
 
