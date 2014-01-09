@@ -1314,14 +1314,6 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 				zone_buf);
 			snprintf(log_buf, sizeof(log_buf), "error reading log");
 		}
-		if(softfail && taskudb) {
-			log_msg(LOG_ERR, "Failed to apply IXFR cleanly "
-				"(deletes nonexistent RRs, adds existing RRs). "
-				"Zone %s contents is different from master, "
-				"starting AXFR. Transfer %s", zone_buf, log_buf);
-			/* add/del failures in IXFR, get an AXFR */
-			task_new_soainfo(taskudb, last_task, zonedb, 1);
-		}
 #ifdef NSEC3
 		if(zonedb) prehash_zone(nsd->db, zonedb);
 #endif /* NSEC3 */
@@ -1330,8 +1322,17 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 		ZONE(&z)->mtime = time_end_0;
 		udb_zone_set_log_str(nsd->db->udb, &z, log_buf);
 		udb_ptr_unlink(&z, nsd->db->udb);
-		if(taskudb && !softfail)
-			task_new_soainfo(taskudb, last_task, zonedb, 0);
+		if(softfail && taskudb && !is_axfr) {
+			log_msg(LOG_ERR, "Failed to apply IXFR cleanly "
+				"(deletes nonexistent RRs, adds existing RRs). "
+				"Zone %s contents is different from master, "
+				"starting AXFR. Transfer %s", zone_buf, log_buf);
+			/* add/del failures in IXFR, get an AXFR */
+			task_new_soainfo(taskudb, last_task, zonedb, 1);
+		} else {
+			if(taskudb)
+				task_new_soainfo(taskudb, last_task, zonedb, 0);
+		}
 
 		if(1 <= verbosity) {
 			double elapsed = (double)(time_end_0 - time_start_0)+
