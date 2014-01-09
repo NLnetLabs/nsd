@@ -8,10 +8,19 @@ FEATURES:
 	- Support for CAA RRtype (RFC 6844).
 	
 BUG FIXES:
+	- Fix xfrd when zone transfer TCP contains zero length packets.
+	- Fix for NSEC3 zones where parent zone is co-hosted, also NSEC3,
+	  because AXFRs overwrote nsec3 administration in the child zone.
+        - Fix that bad IXFR updates do not result in double SOA records,
+	  and that an AXFR is started (attempted) when the zone state seems
+	  to be inconsistent with the master's zone state.
+	- Log ip address for sendto and sendmmsg failures.
+	- Fix segfaults after read of zones with rr type WKS from zonefile.
+	- Seed PRNG for openssl at start of daemon, fixes SSL connection issue.
+	- Fix bug#534: IXFR query loop over UDP for zones that are unchanged.
 	- (same as in 3.2.16): fix wildcard cname to nxdomain repeated rrset.
 	- (same as in 3.2.16): Bugfix #542: Match RRSIG TTL with SOA TTL in
 	  negative response.
-
 
 4.0.0	NSD 4.0
 ===============
