@@ -671,6 +671,8 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_ilnp64_to_string,
 	rdata_eui48_to_string,
 	rdata_eui64_to_string,
+	rdata_long_text_to_string,
+	rdata_tag_to_string,
 	rdata_unknown_to_string
 };
 
