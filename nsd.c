@@ -332,7 +332,6 @@ fprintf_zone_stats(int fd, zone_type* zone, time_t now)
 {
 	int i, t;
 	char buf[4096];
-	ssize_t writen;
 
 	/* NSTATS */
 	t = snprintf(buf, sizeof(buf),
@@ -379,7 +378,7 @@ fprintf_zone_stats(int fd, zone_type* zone, time_t now)
 		(unsigned long)0,
 		zone->st.opcode[OPCODE_UPDATE]);
 
-	writen = write(fd, buf, t);
+	(void) write(fd, buf, t);
 	return;
 }
 #endif
