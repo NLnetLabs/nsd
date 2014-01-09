@@ -182,10 +182,6 @@ addition to standard configure options, one may use the following:
 
 	Enables ratelimiting, based on query name, type and source.
 
-  --enable-draft-rrtypes
-
-	Enables draft RRtypes.
-
   --with-configdir=dir
 
         Specified, NSD configuration directory, default /etc/nsd
