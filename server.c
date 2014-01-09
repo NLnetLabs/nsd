@@ -866,7 +866,7 @@ add_all_soa_to_task(struct nsd* nsd, struct udb_base* taskudb)
 	/* add all SOA INFO to mytask */
 	udb_ptr_init(&task_last, taskudb);
 	for(n=radix_first(nsd->db->zonetree); n; n=radix_next(n)) {
-		task_new_soainfo(taskudb, &task_last, (zone_type*)n->elem);
+		task_new_soainfo(taskudb, &task_last, (zone_type*)n->elem, 0);
 	}
 	udb_ptr_unlink(&task_last, taskudb);
 }

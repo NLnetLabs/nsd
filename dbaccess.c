@@ -488,7 +488,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 		} else
 			log_msg(LOG_ERR, "zonefile %s: %s",
 				fname, strerror(errno));
-		if(taskudb) task_new_soainfo(taskudb, last_task, zone);
+		if(taskudb) task_new_soainfo(taskudb, last_task, zone, 0);
 		return;
 	} else {
 		/* check the mtime */
@@ -531,7 +531,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 		if(!udb_zone_search(db->udb, &z, dname_name(domain_dname(
 			zone->apex)), domain_dname(zone->apex)->name_size)) {
 			/* tell that zone contents has been lost */
-			if(taskudb) task_new_soainfo(taskudb, last_task, zone);
+			if(taskudb) task_new_soainfo(taskudb, last_task, zone, 0);
 			return;
 		}
 		/* read from udb */
@@ -555,7 +555,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 				zone->opts->name));
 		}
 	}
-	if(taskudb) task_new_soainfo(taskudb, last_task, zone);
+	if(taskudb) task_new_soainfo(taskudb, last_task, zone, 0);
 #ifdef NSEC3
 	prehash_zone_complete(db, zone);
 #endif
