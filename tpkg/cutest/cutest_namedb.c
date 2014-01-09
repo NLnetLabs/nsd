@@ -600,6 +600,7 @@ add_str(namedb_type* db, zone_type* zone, udb_ptr* udbz, char* str)
 	uint8_t rdata[MAX_RDLENGTH];
 	size_t rdatalen;
 	buffer_type databuffer;
+	int softfail = 0;
 	rr_type* rr;
 	if(v) printf("add_str %s\n", str);
 	if(!parse_rr_str(temp, zone, str, &rr)) {
@@ -609,7 +610,7 @@ add_str(namedb_type* db, zone_type* zone, udb_ptr* udbz, char* str)
 	rdatalen = rr_marshal_rdata(rr, rdata, sizeof(rdata));
 	buffer_create_from(&databuffer, rdata, rdatalen);
 	if(!add_RR(db, domain_dname(rr->owner), rr->type, rr->klass, rr->ttl,
-		&databuffer, rdatalen, zone, udbz)) {
+		&databuffer, rdatalen, zone, udbz, &softfail)) {
 		printf("cannot add RR: %s\n", str);
 		exit(1);
 	}
@@ -624,6 +625,7 @@ del_str(namedb_type* db, zone_type* zone, udb_ptr* udbz, char* str)
 	uint8_t rdata[MAX_RDLENGTH];
 	size_t rdatalen;
 	buffer_type databuffer;
+	int softfail = 0;
 	rr_type* rr;
 	if(v) printf("del_str %s\n", str);
 	if(!parse_rr_str(temp, zone, str, &rr)) {
@@ -633,7 +635,7 @@ del_str(namedb_type* db, zone_type* zone, udb_ptr* udbz, char* str)
 	rdatalen = rr_marshal_rdata(rr, rdata, sizeof(rdata));
 	buffer_create_from(&databuffer, rdata, rdatalen);
 	if(!delete_RR(db, domain_dname(rr->owner), rr->type, rr->klass,
-		&databuffer, rdatalen, zone, temp, udbz)) {
+		&databuffer, rdatalen, zone, temp, udbz, &softfail)) {
 		printf("cannot delete RR: %s\n", str);
 		exit(1);
 	}
