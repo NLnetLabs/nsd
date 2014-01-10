@@ -1751,10 +1751,10 @@ task_process_checkzones(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		zone_options_t* zo = zone_options_find(nsd->options,
 			task->zname);
 		if(zo)
-			namedb_check_zonefile(nsd->db, udb, last_task, zo);
+			namedb_check_zonefile(nsd, udb, last_task, zo);
 	} else {
 		/* check all zones */
-		namedb_check_zonefiles(nsd->db, nsd->options, udb, last_task);
+		namedb_check_zonefiles(nsd, nsd->options, udb, last_task);
 	}
 }
 
@@ -1765,9 +1765,9 @@ task_process_writezones(struct nsd* nsd, struct task_list_d* task)
 		zone_options_t* zo = zone_options_find(nsd->options,
 			task->zname);
 		if(zo)
-			namedb_write_zonefile(nsd->db, zo);
+			namedb_write_zonefile(nsd, zo);
 	} else {
-		namedb_write_zonefiles(nsd->db, nsd->options);
+		namedb_write_zonefiles(nsd, nsd->options);
 	}
 }
 
@@ -1795,7 +1795,7 @@ task_process_add_zone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 	}
 	/* if zone is empty, attempt to read the zonefile from disk (if any) */
 	if(!z->soa_rrset && z->opts->pattern->zonefile) {
-		namedb_read_zonefile(nsd->db, z, udb, last_task);
+		namedb_read_zonefile(nsd, z, udb, last_task);
 	}
 }
 

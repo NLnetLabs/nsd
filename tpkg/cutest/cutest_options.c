@@ -16,6 +16,7 @@
 #include "options.h"
 #include "util.h"
 #include "dname.h"
+#include "nsd.h"
 
 static void acl_1(CuTest *tc);
 static void acl_2(CuTest *tc);
@@ -306,21 +307,24 @@ static void replace_1(CuTest *tc)
 
 static void replace_2(CuTest *tc)
 {
+	struct nsd nsd;
 	region_type* region = region_create(xalloc, free);
 	zone_options_t z;
 	pattern_options_t p;
+	memset(&nsd, 0, sizeof(nsd));
 	memset(&z, 0, sizeof(z));
 	memset(&p, 0, sizeof(p));
 	z.name = "example.com";
 	z.node.key = dname_parse(region, z.name);
 	z.pattern = &p;
 	p.zonefile = "%s";
-	CuAssertStrEquals(tc, "example.com", config_make_zonefile(&z));
+	CuAssertStrEquals(tc, "example.com", config_make_zonefile(&z, &nsd));
 	p.zonefile = "zones/%1/%2/%3/%s.zone";
 	CuAssertStrEquals(tc, "zones/e/x/a/example.com.zone",
-		config_make_zonefile(&z));
+		config_make_zonefile(&z, &nsd));
 	p.zonefile = "%z/%y/thezone";
-	CuAssertStrEquals(tc, "com/example/thezone", config_make_zonefile(&z));
+	CuAssertStrEquals(tc, "com/example/thezone",
+		config_make_zonefile(&z, &nsd));
 
 	region_destroy(region);
 }

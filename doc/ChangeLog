@@ -1,3 +1,6 @@
+10 January 2014: Wouter
+	- Fix that chroot is removed from zonefile names (for absolute names).
+
 9 January 2014: Wouter
 	- Fix that bad IXFR updates do not result in double SOA records,
 	  and that an AXFR is started (attempted) when the zone state seems

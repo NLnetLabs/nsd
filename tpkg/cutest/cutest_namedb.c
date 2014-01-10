@@ -21,6 +21,7 @@
 #include "udbzone.h"
 #include "difffile.h"
 #include "zonec.h"
+#include "nsd.h"
 
 static void namedb_1(CuTest *tc);
 static void namedb_2(CuTest *tc);
@@ -56,6 +57,7 @@ static struct namedb*
 create_and_read_db(CuTest* tc, region_type* region, const char* zonename,
 	const char* ztxt)
 {
+	struct nsd nsd;
 	nsd_options_t* opt;
 	zone_options_t* zone;
 	namedb_type* db;
@@ -83,12 +85,13 @@ create_and_read_db(CuTest* tc, region_type* region, const char* zonename,
 	}
 
 	/* read the db */
-	db = namedb_open(dbfile, opt);
+	memset(&nsd, 0, sizeof(nsd));
+	nsd.db = db = namedb_open(dbfile, opt);
 	if(!db) {
 		printf("failed to open %s: %s\n", dbfile, strerror(errno));
 		exit(1);
 	}
-	namedb_check_zonefiles(db, opt, NULL, NULL);
+	namedb_check_zonefiles(&nsd, opt, NULL, NULL);
 	unlink(zonefile);
 	free(dbfile);
 	free(zonefile);

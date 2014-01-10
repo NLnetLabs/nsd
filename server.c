@@ -674,7 +674,7 @@ server_prepare(struct nsd *nsd)
 	/* NULL for taskudb because we send soainfo in a moment, batched up,
 	 * for all zones */
 	if(nsd->options->zonefiles_check)
-		namedb_check_zonefiles(nsd->db, nsd->options, NULL, NULL);
+		namedb_check_zonefiles(nsd, nsd->options, NULL, NULL);
 
 	compression_table_capacity = 0;
 	initialize_dname_compression_tables(nsd);

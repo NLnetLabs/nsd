@@ -95,7 +95,7 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 			strerror(errno));
 		exit(1);
 	}
-	namedb_check_zonefiles(nsd->db, nsd->options, NULL, NULL);
+	namedb_check_zonefiles(nsd, nsd->options, NULL, NULL);
 
 	/* setup query */
 	compression_table_capacity = 0;
