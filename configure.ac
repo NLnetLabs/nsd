@@ -396,6 +396,12 @@ AC_SEARCH_LIBS(socket, [socket])
 
 AC_CHECK_STRPTIME_WORKS
 
+if test "$srcdir" != "."; then
+	if test -f $srcdir/config.h; then
+		AC_ERROR([$srcdir/config.h is in the way, please remove it])
+	fi
+fi
+
 dnl LIBGTOP_CHECK_TYPE
 dnl Stolen from Gnome's anjuta
 dnl Improved version of AC_CHECK_TYPE which takes into account

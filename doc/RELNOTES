@@ -12,6 +12,7 @@ BUG FIXES:
 	- Bugfix #542: Match RRSIG TTL with SOA TTL in negative response.
 	- Removed use of random when arc4random is available.  Thus, random
 	  and srandom are then not linked with the executable.
+	- Check if configure in srcdir collides with outofdir build.
 
 
 3.2.16
