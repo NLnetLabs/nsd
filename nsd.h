@@ -165,6 +165,7 @@ struct	nsd
 	int debug;
 
 	size_t child_count;
+	/* 0 is server_main, >0 are server_childs */
 	size_t child_no;
 	struct nsd_child *children;
 
