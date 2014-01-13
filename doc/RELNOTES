@@ -21,6 +21,7 @@ BUG FIXES:
 	- (same as in 3.2.16): fix wildcard cname to nxdomain repeated rrset.
 	- (same as in 3.2.16): Bugfix #542: Match RRSIG TTL with SOA TTL in
 	  negative response.
+	- Check if configure in srcdir collides with outofdir build.
 
 4.0.0	NSD 4.0
 ===============

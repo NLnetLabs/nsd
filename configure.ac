@@ -488,6 +488,9 @@ else
 fi
 if test "$srcdir" != "."; then
 	CPPFLAGS="$CPPFLAGS -I$srcdir"
+	if test -f $srcdir/config.h; then
+		AC_ERROR([$srcdir/config.h is in the way, please remove it])
+	fi
 fi
 
 dnl LIBGTOP_CHECK_TYPE
