@@ -32,7 +32,7 @@ spriority = @start_priority@
 kpriority = @kill_priority@
 
 CC		= @CC@
-CPPFLAGS	= @CPPFLAGS@ -I. -I$(srcdir)# @DEFS@ contains -DHAVE_CONFIG_H
+CPPFLAGS	= @CPPFLAGS@ -I$(srcdir)# @DEFS@ contains -DHAVE_CONFIG_H
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
