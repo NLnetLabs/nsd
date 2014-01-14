@@ -731,7 +731,7 @@ static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+1)] 
 	  { RDATA_WF_SHORT, RDATA_WF_TEXT, RDATA_WF_LONG_TEXT },
 	  { RDATA_ZF_SHORT, RDATA_ZF_TAG, RDATA_ZF_LONG_TEXT } },
 
-        /* 32768 - TA */
+	/* 32768 - TA */
 	/* 32769 */
 	{ TYPE_DLV, "DLV", T_DLV, 4, 4,
 	  { RDATA_WF_SHORT, RDATA_WF_BYTE, RDATA_WF_BYTE, RDATA_WF_BINARY },

@@ -874,6 +874,7 @@ RR records details.
   "MAILA"    254,   # RFC 1035 (obsolete - see MX)
   "ANY"      255,   # RFC 1035
 
+  "CAA"      257,   # RFC 6844
 
 ______________________________________________________________________
 
@@ -1004,7 +1005,9 @@ NSD Version 3.0. and above
 
    RFC 6742 (ILNP) support for NID, L32, L64, LP RR types.
 
-   draft-jabley-dnsext-eui48-eui64-rrtypes support for EUI48, EUI64 RR types.
+   RFC 6844 (CAA) support for CAA RR type.
+
+   RFC 7043 (EUI48+64) support for EUI48, EUI64 RR types.
 
 Not implemented:
 
@@ -1013,6 +1016,9 @@ Not implemented:
 
 
 Appendix D. Changes to this file.
+
+14 january 2014 (Matthijs Mekking)
+- Updated file with CAA RRtype support.
 
 18 june 2013 (Matthijs Mekking).
 - Updated file with EUI48 and EUI64 RRtype support.

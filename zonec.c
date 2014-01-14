@@ -599,7 +599,7 @@ zparser_conv_tag(region_type *region, const char *text, size_t len)
 	r = alloc_rdata(region, len + 1);
 	p = (uint8_t *) (r + 1);
 	*p = len;
-	memcpy(p + 1, text, len);
+	memmove(p + 1, text, len);
 	return r;
 }
 
