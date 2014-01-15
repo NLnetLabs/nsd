@@ -180,6 +180,7 @@ print_rrs(FILE* out, struct zone* zone)
 	/* first print the SOA record for the zone */
 	if(zone->soa_rrset) {
 		size_t i;
+		/* there sould only be one SOA record */
 		for(i=0; i < zone->soa_rrset->rr_count; i++) {
 			if(!print_rr(out, state, &zone->soa_rrset->rrs[i])){
 				log_msg(LOG_ERR, "There was an error "
@@ -190,7 +191,7 @@ print_rrs(FILE* out, struct zone* zone)
 			}
 		}
 	}
-        /* go through entire tree below the zone apex (incl subzones) */
+	/* go through entire tree below the zone apex (incl subzones) */
 	while(domain && domain_is_subdomain(domain, zone->apex))
 	{
 		for(rrset = domain->rrsets; rrset; rrset=rrset->next)

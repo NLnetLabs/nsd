@@ -426,11 +426,11 @@ namedb_open (const char *filename, nsd_options_t* opt)
 
 	if (gettimeofday(&(db->diff_timestamp), NULL) != 0) {
 		log_msg(LOG_ERR, "unable to load %s: cannot initialize"
-				 "timestamp", filename);
+			"timestamp", filename);
 		region_destroy(db_region);
 		close(fd);
 		return NULL;
-        }
+	}
 
 	/* attempt to read the file (if it exists) */
 	if(fd != -1) {

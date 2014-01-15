@@ -758,7 +758,7 @@ find_or_create_zone(namedb_type* db, const dname_type* zone_name,
 					"pattern %s", zstr, patname);
 			}
 		} else {
-			/* create zone : presumably already added to zonelist
+			/* create zone: presumably already added to zonelist
 			 * by xfrd, who wrote the AXFR or IXFR to disk, so we only
 			 * need to add it to our config.
 			 * This process does not need linesize and offset zonelist */
