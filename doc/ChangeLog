@@ -1,3 +1,6 @@
+15 January 2014: Matthijs
+	- Bump to 3.2.18
+
 13 January 2014: Wouter
 	- Check if configure in srcdir collides with outofdir build.
 
