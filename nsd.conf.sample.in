@@ -132,6 +132,28 @@ server:
 	# rrl-whitelist-ratelimit: 2000
 	# RRLend
 
+	# DNSTAPconfig
+	# Enable dnstap.
+	# dnstap-enable: no
+
+	# dnstap socket, NSD will send dnstap payloads to this socket.
+	# You will also need a capture tool listening on the other side 
+	# of the socket.
+	# dnstap-socket-path: "@dnstapsock@"
+
+	# Send identity to socket.
+	# dnstap-send-identity: no
+
+	# Send version to socket.
+	# dnstap-version: no
+
+	# Tap queries.
+	# dnstap-log-query: no
+
+	# Tap responses.
+	# dnstap-log-response: no
+	# DNSTAPend
+
 # key for zone 1
 key:
 	name: mskey

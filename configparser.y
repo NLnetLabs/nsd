@@ -62,6 +62,8 @@ static int server_settings_seen = 0;
 %token VAR_RRL_SIZE VAR_RRL_RATELIMIT VAR_RRL_SLIP 
 %token VAR_RRL_IPV4_PREFIX_LENGTH VAR_RRL_IPV6_PREFIX_LENGTH
 %token VAR_RRL_WHITELIST_RATELIMIT VAR_RRL_WHITELIST
+%token VAR_DNSTAP_ENABLE VAR_DNSTAP_SOCKET VAR_DNSTAP_IDENTITY
+%token VAR_DNSTAP_VERSION VAR_DNSTAP_QUERY VAR_DNSTAP_RESPONSE
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -87,7 +89,9 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
 	server_ipv6_edns_size | server_verbosity | server_hide_version |
 	server_rrl_size | server_rrl_ratelimit | server_rrl_slip | 
-	server_rrl_ipv4_prefix_length | server_rrl_ipv6_prefix_length | server_rrl_whitelist_ratelimit;
+	server_rrl_ipv4_prefix_length | server_rrl_ipv6_prefix_length | server_rrl_whitelist_ratelimit |
+	server_dnstap_enable | server_dnstap_socket | server_dnstap_identity |
+	server_dnstap_version | server_dnstap_query | server_dnstap_response;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -361,6 +365,70 @@ server_rrl_whitelist_ratelimit: VAR_RRL_WHITELIST_RATELIMIT STRING
 		OUTYY(("P(server_rrl_whitelist_ratelimit:%s)\n", $2)); 
 #ifdef RATELIMIT
 		cfg_parser->opt->rrl_whitelist_ratelimit = atoi($2);
+#endif
+	}
+	;
+
+server_dnstap_enable: VAR_DNSTAP_ENABLE STRING
+	{ 
+		OUTYY(("P(server_dnstap_enable:%s)\n", $2)); 
+#ifdef DNSTAP
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->dnstap_enable = (strcmp($2, "yes")==0);
+#endif
+	}
+	;
+
+server_dnstap_socket: VAR_DNSTAP_SOCKET STRING
+	{ 
+		OUTYY(("P(server_dnstap_socket:%s)\n", $2)); 
+#ifdef DNSTAP
+		cfg_parser->opt->dnstap_sockpath = region_strdup(cfg_parser->opt->region, $2);
+#endif
+	}
+	;
+
+server_dnstap_identity: VAR_DNSTAP_IDENTITY STRING
+	{ 
+		OUTYY(("P(server_dnstap_identity:%s)\n", $2)); 
+#ifdef DNSTAP
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->dnstap_identity = (strcmp($2, "yes")==0);
+#endif
+	}
+	;
+
+server_dnstap_version: VAR_DNSTAP_VERSION STRING
+	{ 
+		OUTYY(("P(server_dnstap_version:%s)\n", $2)); 
+#ifdef DNSTAP
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->dnstap_version = (strcmp($2, "yes")==0);
+#endif
+	}
+	;
+
+server_dnstap_query: VAR_DNSTAP_QUERY STRING
+	{ 
+		OUTYY(("P(server_dnstap_query:%s)\n", $2)); 
+#ifdef DNSTAP
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->dnstap_query = (strcmp($2, "yes")==0);
+#endif
+	}
+	;
+
+server_dnstap_response: VAR_DNSTAP_RESPONSE STRING
+	{ 
+		OUTYY(("P(server_dnstap_response:%s)\n", $2)); 
+#ifdef DNSTAP
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->dnstap_response = (strcmp($2, "yes")==0);
 #endif
 	}
 	;

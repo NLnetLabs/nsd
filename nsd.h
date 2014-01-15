@@ -160,11 +160,12 @@ struct	nsd
 	volatile sig_atomic_t signal_hint_stats;
 	volatile sig_atomic_t signal_hint_statsusr;
 	volatile sig_atomic_t quit_sync_done;
-	unsigned		server_kind;
+	unsigned server_kind;
 	struct namedb	*db;
-	int				debug;
+	int debug;
 
-	size_t            child_count;
+	size_t child_count;
+	size_t child_no;
 	struct nsd_child *children;
 
 	/* NULL if this is the parent process. */

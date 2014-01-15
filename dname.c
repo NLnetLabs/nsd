@@ -574,7 +574,8 @@ dname_make_wildcard(struct region *region,
 }
 #endif
 
-int dname_equal_nocase(uint8_t* a, uint8_t* b, uint16_t len)
+int
+dname_equal_nocase(uint8_t* a, uint8_t* b, uint16_t len)
 {
 	uint8_t i, lablen;
 	while(len > 0) {
@@ -584,7 +585,9 @@ int dname_equal_nocase(uint8_t* a, uint8_t* b, uint16_t len)
 		lablen = *a++;
 		b++;
 		len--;
-		/* malformed or compression ptr; we stop scanning */
+		/** Malformed or compression ptr; we stop scanning:
+		 *  undefined what to do, just return byte comparison.
+		 */
 		if((lablen & 0xc0) || len < lablen)
 			return (memcmp(a, b, len) == 0);
 		/* check the label, lowercased */

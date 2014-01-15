@@ -285,6 +285,7 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				nsd->children[i].handler->fd = nsd->children[i].child_fd;
 				break;
 			case 0: /* CHILD */
+				nsd->child_no = i+1;
 				nsd->pid = 0;
 				nsd->child_count = 0;
 				nsd->server_kind = nsd->children[i].kind;
@@ -1065,6 +1066,7 @@ server_main(struct nsd *nsd)
 
 	/* This_child MUST be 0, because this is the parent process */
 	assert(nsd->this_child == 0);
+	nsd->child_no = 0;
 
 	/* Run the server until we get a shutdown signal */
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {

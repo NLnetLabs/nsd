@@ -4,7 +4,7 @@ dnl
 
 sinclude(acx_nlnetlabs.m4)
 
-AC_INIT(NSD,3.2.16,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,3.2.17,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 AC_AIX
@@ -126,6 +126,13 @@ AC_ARG_WITH([xfrdfile], AC_HELP_STRING([--with-xfrdfile=path],
 	[Pathname to the NSD xfrd zone timer state file]), [xfrdfile=$withval])
 AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the NSD xfrd zone timer state file.])
 AC_SUBST(xfrdfile)
+
+# default dnstap socket location.
+dnstapsock=${dbdir}/dnstap.sock
+AC_ARG_WITH([dnstapsock], AC_HELP_STRING([--with-dnstap-socket=path], 
+	[Pathname to the NSD dnstap socket]), [dnstapsock=$withval])
+AC_DEFINE_UNQUOTED(DNSTAPSOCK, ["`eval echo $dnstapsock`"], [Pathname to the NSD dnstap socket.])
+AC_SUBST(dnstapsock)
 
 #
 # Determine default chroot directory
@@ -611,6 +618,19 @@ case "$enable_ratelimit" in
 		;;
 esac
 AC_SUBST(ratelimit)
+
+AC_ARG_ENABLE(dnstap, AC_HELP_STRING([--enable-dnstap], [Enable dnstap]))
+case "$enable_dnstap" in
+	yes)
+		AC_DEFINE_UNQUOTED([DNSTAP], [], [Define this to enable dnstap.])
+		dnl causes awk to not match the exclusion start marker.
+		dnstap="xx"
+		;;
+	no|*)
+		dnstap=""
+		;;
+esac
+AC_SUBST(dnstap)
 
 # we need SSL for TSIG (and maybe also for NSEC3).
 CHECK_SSL

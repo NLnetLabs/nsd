@@ -79,6 +79,15 @@ struct nsd_options {
 	size_t rrl_whitelist_ratelimit;
 #endif
 
+#ifdef DNSTAP
+	int dnstap_enable;
+	int dnstap_identity;
+	int dnstap_version;
+	int dnstap_query;
+	int dnstap_response;
+	const char* dnstap_sockpath;
+#endif
+
 	region_type* region;
 };
 

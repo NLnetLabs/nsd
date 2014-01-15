@@ -323,6 +323,15 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 		SERV_GET_INT(rrl_whitelist_ratelimit, o);
 #endif
 
+#ifdef DNSTAP
+		SERV_GET_BIN(dnstap_enable, o);
+		SERV_GET_STR(dnstap_sockpath, o);
+		SERV_GET_BIN(dnstap_identity, o);
+		SERV_GET_BIN(dnstap_version, o);
+		SERV_GET_BIN(dnstap_query, o);
+		SERV_GET_BIN(dnstap_response, o);
+#endif
+
 		if(strcasecmp(o, "zones") == 0) {
 			RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
 				quote(zone->name);
@@ -377,6 +386,15 @@ config_test_print_server(nsd_options_t* opt)
 	printf("\trrl-ipv4-prefix-length: %d\n", (int)opt->rrl_ipv4_prefix_length);
 	printf("\trrl-ipv6-prefix-length: %d\n", (int)opt->rrl_ipv6_prefix_length);
 	printf("\trrl-whitelist-ratelimit: %d\n", (int)opt->rrl_whitelist_ratelimit);
+#endif
+
+#ifdef DNSTAP
+	printf("\tdnstap-enable: %s\n", opt->dnstap_enable?"yes":"no");
+	printf("\tdnstap-socket-path: %s\n", opt->dnstap_sockpath);
+	printf("\tdnstap-send-identity: %s\n", opt->dnstap_identity?"yes":"no");
+	printf("\tdnstap-send-version: %s\n", opt->dnstap_version?"yes":"no");
+	printf("\tdnstap-log-query: %s\n", opt->dnstap_query?"yes":"no");
+	printf("\tdnstap-log-response: %s\n", opt->dnstap_response?"yes":"no");
 #endif
 
 	for(ip = opt->ip_addresses; ip; ip=ip->next)

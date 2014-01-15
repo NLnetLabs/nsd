@@ -271,6 +271,24 @@ whitelisted. Default 2000 qps. With the rrl\-whitelist option you can set
 specific queries to receive this qps limit instead of the normal limit.
 With the value 0 the rate is unlimited.
 .\" rrlend
+\" dnstapstart
+.TP
+.B dnstap\-enable:\fR <yes or no>
+Enables tapping of wire-format DNS messages. Default no.
+.TP
+.B dnstap\-socket\-path:\fR <filename>
+The path to the dnstap socket where NSD sends payloads to. Default is
+.IR @dnstapsock@ .
+.TP
+.B dnstap\-send\-identity:\fR <yes or no>
+Send identity to socket. Default no.
+.TP
+.B dnstap\-log\-query:\fR <yes or no>
+Tap queries. Default no.
+.TP
+.B dnstap\-log\-response:\fR <yes or no>
+Tap responses. Default no.
+.\" dnstapend
 .SS "Zone Options"
 .LP 
 For every zone the options need to be specified in one 

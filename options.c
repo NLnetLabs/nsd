@@ -73,6 +73,15 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->rrl_ipv6_prefix_length = RRL_IPV6_PREFIX_LENGTH;
 	opt->rrl_whitelist_ratelimit = RRL_WLIST_LIMIT/2;
 #endif
+
+#ifdef RATELIMIT
+	opt->dnstap_enable = 0;
+	opt->dnstap_sockpath = DNSTAPSOCK;
+	opt->dnstap_identity = 0;
+	opt->dnstap_version = 0;
+	opt->dnstap_query = 0;
+	opt->dnstap_response = 0;
+#endif
 	nsd_options = opt;
 	return opt;
 }
