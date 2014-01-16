@@ -21,7 +21,7 @@ test_tool_avail "drill"
 test_tool_avail "ldns-testns"
 test_tool_avail "ldns-notify"
 
-NEED_DIG9="bug009_soa_alone bug013_truncate bug034_any bug052_ent bug054_rd bug056_axfr  bug058_qn_246 bug072_parent bug090_000_txt bug095_screwy_wc bug103 copy_cd nx_dnssec tsig_badkey tsig_badsig tsig_query"
+NEED_DIG9="bug009_soa_alone bug013_truncate bug034_any bug052_ent bug054_rd bug056_axfr bug058_qn_246 bug072_parent bug090_000_txt bug095_screwy_wc bug103_nx_soa_ttl copy_cd nx_dnssec tsig_badkey tsig_badsig tsig_query"
 NEED_i386="xfr_1 xfr_2"
 NEED_NC="bug141_clear_formerr_flags tcp_underrun"
 NEED_PCAT="query_diff_root"
@@ -67,7 +67,7 @@ tpkg report
 
 do_long=yes
 if [ $do_long = yes ]; then
-	LONGTESTS="testplan_axfr.tpkg testplan_ixfr_pkts.tpkg testplan_mess.tpkg testplan_axfr_tsig.tpkg testplan_ixfr_remove.tpkg testplan_timeout.tpkg testplan_deadlock.tpkg testplan_ixfr.tpkg testplan_tsig_34.tpkg ixfr_rollback.tpkg reload_timeout.tpkg xfrd_connect_ip6.tpkg xfrd_tcp_overload.tpkg notify_interrupts_axfr.tpkg bug137.tpkg bug145_multiple_zone_xfr.tpkg ixfr_malformed.tpkg ixfr_remove_unknown.tpkg socket10kxfr.tpkg"
+	LONGTESTS="testplan_axfr.tpkg testplan_ixfr_pkts.tpkg testplan_mess.tpkg testplan_axfr_tsig.tpkg testplan_ixfr_remove.tpkg testplan_timeout.tpkg testplan_deadlock.tpkg testplan_ixfr.tpkg testplan_tsig_34.tpkg ixfr_rollback.tpkg reload_timeout.tpkg xfrd_connect_ip6.tpkg xfrd_tcp_overload.tpkg notify_interrupts_axfr.tpkg bug137_compile_outdir.tpkg bug145_multiple_zone_xfr.tpkg ixfr_malformed.tpkg ixfr_remove_unknown.tpkg socket10kxfr.tpkg"
 	cd long
 	for i in $LONGTESTS; do
 		echo ">>> next test $i at "`date`
