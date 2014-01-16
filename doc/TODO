@@ -115,4 +115,31 @@ TESTS
 - tpkg test for bug 164: chkconfig
 - Update tpkg long tests
 - tpkg test for bug 347: NSEC3 no data tests when requesting DS
+From tpkg/buzilla-bugs todo:
+!  - other ways to test this?
+! 3   "RCODE for dynamic updates" --- how to send dynamic updates?
+! 20   "256 questions per-se should generate form err"
+! 22   "trailing byte in queries (see also bug4)" ALLOW TESTING WITH TRACES
+! 31   "query section not included in 'NotImp' answers to updates"
+! 37   "invalid packet echoed on FormErr" - how to send stuff with tcp replay
+! 100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
+! 29   "NSD sends answer on notify"  - cannot send notify with DIG
+M  - Moet nog
+M 157   "return FORMERR if edns query is received with version=0 and rdlen>0"
+M 163   "..."
+M 164   "chkconfig"
+-  - too little information to write a testcase
+- 4   "Correctly handle queries with too much data"  to little info
+- 6   "different name encodiungs?"
+- 7   "sometimes label compression skip some parts"
+- 8   "do not exit on sendto buffer exhaustion"
+- 10   "Segmentation violation while trying to destroy the database on exit"
+- 11   "EDNS(0) spurious formerr"
+- 14   "Magic string alignment"
+- 15   "nsd hangs on some queries..."
+- 16   "zonec dumps core with HASH -z nl nl -c . examples/zones/root"
+- 18   "name compression not quite 100% yet"
+- 28   "Wrong additional section RRcount in case of EDNS."
+- 35   "sending wrong name errors (NXDOMAIN)"
+- 36   "we should not bounce on RR Type when doing a referral"
 
