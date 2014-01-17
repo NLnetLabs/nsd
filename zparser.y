@@ -1010,7 +1010,7 @@ rdata_eui64:	STR trail
 /* RFC 6844 */
 rdata_caa:	STR sp STR sp STR trail
     {
-	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* Flags */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* Flags */
 	    zadd_rdata_wireformat(zparser_conv_tag(parser->region, $3.str, $3.len)); /* Tag */
 	    zadd_rdata_wireformat(zparser_conv_long_text(parser->region, $5.str, $5.len)); /* Value */
     }
