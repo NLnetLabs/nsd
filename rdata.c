@@ -754,6 +754,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			break;
 		case RDATA_WF_EUI48:
 			length = EUI48ADDRLEN;
+			break;
 		case RDATA_WF_EUI64:
 			length = EUI64ADDRLEN;
 			break;
