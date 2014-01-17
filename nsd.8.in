@@ -139,7 +139,8 @@ when they are anycast). The default is the name returned by gethostname(3).
 Add the specified
 .I nsid
 to the EDNS section of the answer when queried with an NSID EDNS 
-enabled packet.
+enabled packet.  As a sequence of hex characters or with ascii_ prefix
+and then an ascii string.
 .TP
 .B \-l\fI logfile
 Log messages to the specified 

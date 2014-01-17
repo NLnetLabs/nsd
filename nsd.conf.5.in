@@ -156,7 +156,8 @@ commandline option
 .TP
 .B nsid:\fR <string>
 Add the specified nsid to the EDNS section of the answer when queried
-with an NSID EDNS enabled packet. Same as commandline option
+with an NSID EDNS enabled packet.  As a sequence of hex characters or
+with ascii_ prefix and then an ascii string.  Same as commandline option
 .BR \-I .
 .TP
 .B logfile:\fR <filename>
