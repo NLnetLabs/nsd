@@ -2,6 +2,7 @@
 	- Fix type CAA.
 	- Fix type EUI48.
 	- nsid can be set with "ascii_somestring" in ascii.
+	- Fix printout of high-chars in TXT on NetBSD.
 
 16 January 2014: Wouter
 	- Unit test for WKS failure.
