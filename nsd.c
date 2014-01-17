@@ -503,7 +503,7 @@ main(int argc, char *argv[])
 				/* can only be given once */
 				break;
 			}
-			if (strncmp(optarg, "ascii_", 6) == 0) {
+			if (strncasecmp(optarg, "ascii_", 6) == 0) {
 				nsd.nsid = xalloc(strlen(optarg+6));
 				nsd.nsid_len = strlen(optarg+6);
 				memmove(nsd.nsid, optarg+6, nsd.nsid_len);
