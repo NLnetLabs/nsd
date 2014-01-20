@@ -6,6 +6,7 @@ FEATURES:
 	- recognizes ip-address and interface as synonyms for convenience.
 	- Support for EUI48 and EUI64 RR types enabled by default (RFC 7043).
 	- Support for CAA RRtype (RFC 6844).
+	- NSID can be set with "ascii_somestring" in ascii.
 	
 BUG FIXES:
 	- Fix xfrd when zone transfer TCP contains zero length packets.
@@ -22,6 +23,8 @@ BUG FIXES:
 	- (same as in 3.2.16): Bugfix #542: Match RRSIG TTL with SOA TTL in
 	  negative response.
 	- Check if configure in srcdir collides with outofdir build.
+	- Fix #546:  output format errors in nsd_munin_ (Thanks Tom Hendrikx).
+	- Fix printout of high-chars in TXT on NetBSD.
 
 4.0.0	NSD 4.0
 ===============
