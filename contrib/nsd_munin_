@@ -384,8 +384,8 @@ memory)
 	else
 		vszval=0
 	fi
-	echo "size_vsz" $vszval
-	echo "size_rss" $rssval
+	echo "size_vsz.value" $vszval
+	echo "size_rss.value" $rssval
 	for x in size.db.mem size.xfrd.mem size.config.mem \
 		size.db.disk size.config.disk; do
 		print_value $x
@@ -420,7 +420,7 @@ zones)
 	nummas="$value"
 	get_value "zone.slave"
 	numsla="$value"
-	echo "zone_total" `expr $nummas + $numsla`
-	echo "zone_master" "$nummas"
-	echo "zone_slave" "$numsla"
+	echo "zone_total.value" `expr $nummas + $numsla`
+	echo "zone_master.value" "$nummas"
+	echo "zone_slave.value" "$numsla"
 esac
