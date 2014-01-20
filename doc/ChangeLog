@@ -1,3 +1,6 @@
+20 January 2014: Wouter
+	- Fix printout of high-chars in TXT on NetBSD.
+
 17 January 2014: Wouter
 	- Fix type CAA.
 	- Fix type EUI48.
