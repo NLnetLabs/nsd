@@ -1,3 +1,6 @@
+21 January 2014: Wouter
+	- tag 4.0.1rc2
+
 20 January 2014: Wouter
 	- Fix #546:  output format errors in nsd_munin_ (Thanks Tom Hendrikx).
 
