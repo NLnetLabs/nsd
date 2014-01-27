@@ -1148,7 +1148,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	q->zone = domain_find_zone(closest_encloser);
 	if (!q->zone) {
 		if(q->cname_count == 0)
-			RCODE_SET(q->packet, RCODE_SERVFAIL);
+			RCODE_SET(q->packet, RCODE_REFUSE);
 		return;
 	}
 

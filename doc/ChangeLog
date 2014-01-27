@@ -1,5 +1,8 @@
-27 January 2014: Wouter
+27 January 2014: Matthijs
 	- nsid can be set with "ascii_somestring" in ascii.
+
+27 January 2014: Wouter
+	- rcode REFUSED for queries to non-hosted zones.
 
 20 January 2014: Wouter
 	- Fix printout of high-chars in TXT on NetBSD.
