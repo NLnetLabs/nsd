@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- NSID can be set with "ascii_somestring" in ascii.
+        - Return REFUSED for queries to non-hosted zones.
 
 
 3.2.17
