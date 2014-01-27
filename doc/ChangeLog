@@ -3,6 +3,7 @@
 	- trunk is 4.0.2 in development.
 	- rcode REFUSED for queries to non-hosted zones.
 	- documented nsd-control zonestatus output in nsd-control manpage.
+	- remove mention of nsdc from nsd-checkconf manpage.
 
 21 January 2014: Wouter
 	- tag 4.0.1rc2
