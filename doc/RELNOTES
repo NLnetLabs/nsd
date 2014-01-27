@@ -2,6 +2,8 @@ NSD RELEASE NOTES
 
 3.2.18 -UPCOMING
 ================
+FEATURES:
+	- NSID can be set with "ascii_somestring" in ascii.
 
 
 3.2.17

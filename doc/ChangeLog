@@ -1,3 +1,6 @@
+27 January 2014: Wouter
+	- nsid can be set with "ascii_somestring" in ascii.
+
 20 January 2014: Wouter
 	- Fix printout of high-chars in TXT on NetBSD.
 
