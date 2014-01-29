@@ -145,7 +145,7 @@ server:
 	# dnstap-send-identity: no
 
 	# Send version to socket.
-	# dnstap-version: no
+	# dnstap-send-version: no
 
 	# Tap queries.
 	# dnstap-log-query: no

@@ -36,6 +36,7 @@
 #include "options.h"
 #include "nsec3.h"
 #include "tsig.h"
+#include "dnstap.h"
 
 /* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
  * This function determines if the final response packet needs the NS RRset
@@ -1303,6 +1304,11 @@ query_process(query_type *q, nsd_type *nsd)
 	STATUP2(nsd, opcode, q->opcode);
 	STATUP2(nsd, qtype, q->qtype);
 	STATUP2(nsd, qclass, q->qclass);
+
+	/* Send to dnstap */
+#ifdef DNSTAP
+	dnstap_process_query(q, nsd);
+#endif
 
 	if (q->opcode != OPCODE_QUERY) {
 		if (q->opcode == OPCODE_NOTIFY) {

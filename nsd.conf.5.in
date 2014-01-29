@@ -283,6 +283,9 @@ The path to the dnstap socket where NSD sends payloads to. Default is
 .B dnstap\-send\-identity:\fR <yes or no>
 Send identity to socket. Default no.
 .TP
+.B dnstap\-send\-version:\fR <yes or no>
+Send version to socket. Default no.
+.TP
 .B dnstap\-log\-query:\fR <yes or no>
 Tap queries. Default no.
 .TP

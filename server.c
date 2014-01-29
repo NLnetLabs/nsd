@@ -46,6 +46,7 @@
 #include "ipc.h"
 #include "lookup3.h"
 #include "rrl.h"
+#include "dnstap.h"
 
 /*
  * Data for the UDP handlers.
@@ -566,7 +567,6 @@ server_init(struct nsd *nsd)
 			return -1;
 		}
 	}
-
 	return 0;
 }
 
@@ -1292,7 +1292,13 @@ server_main(struct nsd *nsd)
 static query_state_type
 server_process_query(struct nsd *nsd, struct query *query)
 {
-	return query_process(query, nsd);
+	query_state_type s = query_process(query, nsd);
+#ifdef DNSTAP
+	if (s != QUERY_DISCARDED) {
+		dnstap_process_response(query, nsd);
+	}
+#endif
+	return s;
 }
 
 
@@ -1454,16 +1460,24 @@ server_child(struct nsd *nsd)
 static query_state_type
 server_process_query_udp(struct nsd *nsd, struct query *query)
 {
+	query_state_type s = query_process(query, nsd);
 #ifdef RATELIMIT
-	if(query_process(query, nsd) != QUERY_DISCARDED) {
-		if(rrl_process_query(query))
-			return rrl_slip(query);
-		else	return QUERY_PROCESSED;
+	if(s != QUERY_DISCARDED) {
+		if(rrl_process_query(query)) {
+			s = rrl_slip(query);
+		}
+		else	s = QUERY_PROCESSED;
 	}
 	return QUERY_DISCARDED;
-#else
-	return query_process(query, nsd);
 #endif
+
+#ifdef DNSTAP
+	if(s != QUERY_DISCARDED) {
+		dnstap_process_response(query, nsd);
+	}
+#endif
+	return s;
+
 }
 
 static void

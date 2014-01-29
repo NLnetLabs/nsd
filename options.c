@@ -74,7 +74,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->rrl_whitelist_ratelimit = RRL_WLIST_LIMIT/2;
 #endif
 
-#ifdef RATELIMIT
+#ifdef DNSTAP
 	opt->dnstap_enable = 0;
 	opt->dnstap_sockpath = DNSTAPSOCK;
 	opt->dnstap_identity = 0;

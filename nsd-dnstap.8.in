@@ -1,0 +1,39 @@
+.TH "nsd\-dnstap" "8" "@date@" "NLnet Labs" "nsd @version@"
+.\" Copyright (c) 2014, NLnet Labs. All rights reserved.
+.\" See LICENSE for the license.
+.SH "NAME"
+.LP 
+.B nsd\-dnstap
+\- program to capture dnstap payloads from nameservers.
+.SH "SYNOPSIS"
+.LP
+.B nsd\-dnstap
+.RB [ \-h ]
+.RB [ \-f
+.IR filename ]
+.SH "DESCRIPTION"
+.LP 
+.B Nsd\-dnstap
+is a simple program to capture dnstap payloads from nameservers.
+.B NSD 
+is a complete implementation of an authoritative DNS nameserver.
+.SH "OPTIONS"
+.TP
+.B \-h
+Print help information and exit.
+.TP 
+.B \-f\fI filename
+Specify the socket filename to capture from.
+.SH "EXAMPLES"
+.LP 
+To run this program the standard way type:
+.LP 
+.B # nsd\-dnstap \-f @dnstapsock@
+.SH "SEE ALSO"
+.LP 
+nsd(8), nsdc(8), nsd.conf(5), nsd\-checkconf(8),
+nsd\-patch(8), nsd\-xfer(8), zonec(8)
+.SH "AUTHORS"
+.B NSD
+was written by NLnet Labs and RIPE NCC joint team. Please see CREDITS
+file in the distribution for further details.
