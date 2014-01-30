@@ -201,7 +201,7 @@ dnstap_start(const char* filename, const char* username, int count)
 				fprintf(stdout, "nsd-dnstap: %s\n", buf);
 			}
 
-
+		        close(clifd);
                 }
 	}
 	/* shutdown */
