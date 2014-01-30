@@ -1185,7 +1185,7 @@ check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
 	zone_type* zone = 0;
 	domain = domain_table_find(db->domains, zone_name);
 	if(domain)
-		zone = domain_find_zone(domain);
+		zone = domain_find_zone(db, domain);
 	if(zone && zone->apex == domain && zone->soa_rrset && old_serial)
 	{
 		uint32_t memserial;

@@ -32,6 +32,7 @@ typedef struct rr rr_type;
 typedef struct domain_table domain_table_type;
 typedef struct domain domain_type;
 typedef struct zone zone_type;
+typedef struct namedb namedb_type;
 
 struct domain_table
 {
@@ -236,7 +237,7 @@ void domain_add_rrset(domain_type* domain, rrset_type* rrset);
 rrset_type* domain_find_rrset(domain_type* domain, zone_type* zone, uint16_t type);
 rrset_type* domain_find_any_rrset(domain_type* domain, zone_type* zone);
 
-zone_type* domain_find_zone(domain_type* domain);
+zone_type* domain_find_zone(namedb_type* db, domain_type* domain);
 zone_type* domain_find_parent_zone(zone_type* zone);
 
 domain_type* domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns);
@@ -281,7 +282,6 @@ static inline const char* domain_to_string(domain_type* domain)
  */
 uint16_t rr_rrsig_type_covered(rr_type* rr);
 
-typedef struct namedb namedb_type;
 struct namedb
 {
 	region_type*       region;

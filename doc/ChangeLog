@@ -1,3 +1,6 @@
+30 January 2014: Wouter
+	- Fix expired zones to give SERVFAIL, also when parent zone loaded.
+
 27 January 2014: Wouter
 	- tag 4.0.1.
 	- trunk is 4.0.2 in development.
