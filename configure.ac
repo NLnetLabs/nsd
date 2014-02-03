@@ -575,11 +575,9 @@ AC_CHECK_SIZEOF(off_t)
 AC_CHECK_FUNCS([arc4random arc4random_uniform])
 AC_CHECK_FUNCS([tzset alarm chroot dup2 endpwent gethostname memset memcpy pwrite socket strcasecmp strchr strdup strerror strncasecmp strtol writev getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime setusercontext initgroups setresuid setreuid setresgid setregid getpwnam mmap])
 
-AC_ARG_ENABLE(recvmmsg, AC_HELP_STRING([--disable-recvmmsg], [Disable recvmmsg and sendmmsg compilation for compatibility with more Linux kernel versions]))
+AC_ARG_ENABLE(recvmmsg, AC_HELP_STRING([--enable-recvmmsg], [Enable recvmmsg and sendmmsg compilation, faster but some kernel versions may have implementation problems]))
 case "$enable_recvmmsg" in
-        no)
-                ;;
-        yes|*)
+        yes)
 		AC_CHECK_FUNC([recvmmsg], [
 AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <sys/socket.h>
@@ -614,6 +612,8 @@ AC_DEFINE([HAVE_SENDMMSG], [1], [Define if sendmmsg exists])]
 )])
 
 		;;
+        no|*)
+                ;;
 esac
 
 # check if setreuid en setregid fail, on MacOSX10.4(darwin8).

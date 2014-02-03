@@ -1,3 +1,7 @@
+3 February 2014: Wouter
+	- Disabled recvmmsg and sendmmsg usage by default because kernel
+	  versions have implementation issues: ipv6 ignored, security issues.
+
 30 January 2014: Wouter
 	- Fix expired zones to give SERVFAIL, also when parent zone loaded.
 
