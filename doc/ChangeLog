@@ -1,6 +1,3 @@
-3 February 2014: Matthijs
-	- Fix default for LOC record.
-
 27 January 2014: Matthijs
 	- nsid can be set with "ascii_somestring" in ascii.
 

@@ -848,7 +848,7 @@ zparser_conv_loc(region_type *region, char *str)
 	int deg, min, secs;	/* Secs is stored times 1000.  */
 	uint32_t lat = 0, lon = 0, alt = 0;
 	/* encoded defaults: version=0 sz=1m hp=10000m vp=10m */
-	uint8_t vszhpvp[4] = {0, 0x12, 0x16, 0x12};
+	uint8_t vszhpvp[4] = {0, 0x12, 0x16, 0x13};
 	char *start;
 	double d;
 
