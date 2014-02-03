@@ -3,6 +3,7 @@
 	  versions have implementation issues: ipv6 ignored, security issues.
 	- Detect libevent2 install automatically by configure, and use
 	  event2 header files if necessary.
+	- Fixup link with lib/event2 subdir.
 
 30 January 2014: Wouter
 	- Fix expired zones to give SERVFAIL, also when parent zone loaded.
