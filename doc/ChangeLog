@@ -1,3 +1,7 @@
+7 February 2014: Wouter
+	- Fix #551: change Regent to Copyright holder in the LICENSE,
+	  to match the definition on opensource.org for the BSD License.
+
 3 February 2014: Wouter
 	- Disabled recvmmsg and sendmmsg usage by default because kernel
 	  versions have implementation issues: ipv6 ignored, security issues.
