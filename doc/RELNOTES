@@ -6,6 +6,14 @@ FEATURES:
 	- Return REFUSED for queries to non-hosted zones.
 
 BUG FIXES:
+	- rcode REFUSED for queries to non-hosted zones.
+	- Fix expired zones to give SERVFAIL, also when parent zone loaded.
+	- documented nsd-control zonestatus output in nsd-control manpage.
+	- remove mention of nsdc from nsd-checkconf manpage.
+	- Disabled recvmmsg and sendmmsg usage by default because kernel
+	  versions have implementation issues: ipv6 ignored, security issues.
+	- Detect libevent2 install automatically by configure, and use
+	  event2 header files if necessary.
 	- Fix #551: change Regent to Copyright holder in the LICENSE,
 	  to match the definition on opensource.org for the BSD License.
 
