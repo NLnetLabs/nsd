@@ -6,6 +6,10 @@ FEATURES:
 	- NSID can be set with "ascii_somestring" in ascii.
 	- Return REFUSED for queries to non-hosted zones.
 
+BUG FIXES:
+	- Fix #551: change Regent to Copyright holder in the LICENSE,
+	  to match the definition on opensource.org for the BSD License.
+
 
 3.2.17
 ================
