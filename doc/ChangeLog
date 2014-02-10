@@ -1,3 +1,7 @@
+10 February 2014: Wouter
+	- Fix #552: zonefile loads on nsd-control reconfig when the name
+	  of the file has changed.
+
 7 February 2014: Wouter
 	- Fix #551: change Regent to Copyright holder in the LICENSE,
 	  to match the definition on opensource.org for the BSD License.

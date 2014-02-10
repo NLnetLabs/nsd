@@ -331,7 +331,8 @@ void domain_table_deldomain(namedb_type* db, domain_type* domain);
 /** dbcreate.c */
 int udb_write_rr(struct udb_base* udb, struct udb_ptr* z, rr_type* rr);
 void udb_del_rr(struct udb_base* udb, struct udb_ptr* z, rr_type* rr);
-int write_zone_to_udb(struct udb_base* udb, zone_type* zone, time_t mtime);
+int write_zone_to_udb(struct udb_base* udb, zone_type* zone, time_t mtime,
+	const char* file_str);
 /** marshal rdata into buffer, must be MAX_RDLENGTH in size */
 size_t rr_marshal_rdata(rr_type* rr, uint8_t* rdata, size_t sz);
 /* dbaccess.c */

@@ -1321,6 +1321,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 		ZONE(&z)->is_changed = 1;
 		ZONE(&z)->mtime = time_end_0;
 		udb_zone_set_log_str(nsd->db->udb, &z, log_buf);
+		udb_zone_set_file_str(nsd->db->udb, &z, NULL);
 		udb_ptr_unlink(&z, nsd->db->udb);
 		if(softfail && taskudb && !is_axfr) {
 			log_msg(LOG_ERR, "Failed to apply IXFR cleanly "
