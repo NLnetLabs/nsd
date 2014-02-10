@@ -320,12 +320,14 @@ const char* udb_zone_get_file_str(udb_base* udb, const uint8_t* dname,
 	size_t dlen)
 {
 	udb_ptr z;
-	if(udb_zone_search(udb, &z, dname, dlen) && ZONE(&z)->file_str.data) {
+	if(udb_zone_search(udb, &z, dname, dlen)) {
 		const char* str;
-		udb_ptr s;
-		udb_ptr_new(&s, udb, &ZONE(&z)->file_str);
-		str = (const char*)udb_ptr_data(&s);
-		udb_ptr_unlink(&s, udb);
+		if(ZONE(&z)->file_str.data) {
+			udb_ptr s;
+			udb_ptr_new(&s, udb, &ZONE(&z)->file_str);
+			str = (const char*)udb_ptr_data(&s);
+			udb_ptr_unlink(&s, udb);
+		} else str = NULL;
 		udb_ptr_unlink(&z, udb);
 		return str;
 	}

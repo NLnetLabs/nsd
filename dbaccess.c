@@ -500,7 +500,7 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 		 * (regardless if this is a different file), because the
 		 * zone transfer is a different content source too */
 		if(!zone_fname && udb_zone_get_mtime(nsd->db->udb,
-			dname_name(domain_dname( zone->apex)), domain_dname(
+			dname_name(domain_dname(zone->apex)), domain_dname(
 			zone->apex)->name_size) >= (uint64_t)mtime) {
 			VERBOSITY(3, (LOG_INFO, "zonefile %s is older than "
 				"zone transfer in memory", fname));
