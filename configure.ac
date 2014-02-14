@@ -8,6 +8,9 @@ AC_INIT(NSD,4.0.2,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 AC_AIX
+if test "$ac_cv_header_minix_config_h" = "yes"; then
+	AC_DEFINE(_NETBSD_SOURCE,1, [Enable for compile on Minix])
+fi
 
 dnl
 dnl By default set $sysconfdir to /etc and $localstatedir to /var
