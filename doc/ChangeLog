@@ -1,5 +1,6 @@
 18 February 2014: Wouter
 	- Fix leak of zone name after zonefile read.
+	- Fix malloc too large that would be leaked in the radix tree.
 
 14 February 2014: Wouter
 	- configure change for easier compile on Minix.
