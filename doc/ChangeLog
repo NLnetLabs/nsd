@@ -1,3 +1,6 @@
+18 February 2014: Wouter
+	- Fix leak of zone name after zonefile read.
+
 14 February 2014: Wouter
 	- configure change for easier compile on Minix.
 
