@@ -1,3 +1,7 @@
+20 February 2014: Wouter
+	- Fix from 3.2: make SOA RDATA comparisons in XFR more lenient (only
+	check serial).
+
 18 February 2014: Wouter
 	- Fix leak of zone name after zonefile read.
 	- Fix malloc too large that would be leaked in the radix tree.
