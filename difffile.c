@@ -358,8 +358,14 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 static int
 rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 {
-	int k;
-	for(k = 0; k < num; k++)
+	int k, start, end;
+	start = 0;
+	end = num;
+	if (type == TYPE_SOA) {
+		start = 2;
+		end = 2;
+	}
+	for(k = start; k < end; k++)
 	{
 		if(rdata_atom_is_domain(type, k)) {
 			if(dname_compare(domain_dname(a[k].domain),
