@@ -1,3 +1,6 @@
+26 February 2014: Wouter
+	- Fix that NSD will delete and recreate not-clean-closed databases.
+
 20 February 2014: Wouter
 	- Fix from 3.2: make SOA RDATA comparisons in XFR more lenient (only
 	check serial).
