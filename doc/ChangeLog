@@ -1,3 +1,6 @@
+27 February 2014: Wouter
+	- tag 4.0.2rc1
+
 26 February 2014: Wouter
 	- Fix that NSD will delete and recreate not-clean-closed databases.
 
