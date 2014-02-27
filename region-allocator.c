@@ -25,6 +25,7 @@
 #define ALIGNMENT	(sizeof(void *))
 #endif
 /* #define CHECK_DOUBLE_FREE 0 */ /* set to 1 to perform expensive check for double recycle() */
+#define CHECK_DOUBLE_FREE 1
 
 typedef struct cleanup cleanup_type;
 struct cleanup
@@ -74,6 +75,7 @@ struct region
 	size_t		recycle_size;
 };
 
+void region_check_pointer(region_type* region, void* block, size_t size);
 
 static region_type *
 alloc_region_base(void *(*allocator)(size_t size),
@@ -133,6 +135,11 @@ region_create(void *(*allocator)(size_t size),
 	return result;
 }
 
+/* for debug, this denotes chunks in cleanup list */
+void chunk_deallocator(void* d)
+{
+	free(d);
+}
 
 region_type *region_create_custom(void *(*allocator)(size_t),
 				  void (*deallocator)(void *),
@@ -239,7 +246,7 @@ region_remove_cleanup(region_type *region, void (*action)(void *), void *data)
 }
 
 void *
-region_alloc(region_type *region, size_t size)
+region_alloc_XX(region_type *region, size_t size)
 {
 	size_t aligned_size;
 	void *result;
@@ -270,43 +277,56 @@ region_alloc(region_type *region, size_t size)
 		region->recycle_bin[aligned_size] = region->recycle_bin[aligned_size]->next;
 		region->recycle_size -= aligned_size;
 		region->unused_space += aligned_size - size;
+		*((int*)(result-8)) = size;
 		return result;
 	}
 
-	if (region->allocated + aligned_size > region->chunk_size) {
+	if (region->allocated + aligned_size + 8 > region->chunk_size) {
 		void *chunk = region->allocator(region->chunk_size);
 		size_t wasted;
 		if (!chunk)
 			return NULL;
 
 		wasted = (region->chunk_size - region->allocated) & (~(ALIGNMENT-1));
-		if(wasted >= ALIGNMENT) {
+		log_msg(6, "oversize aligned size %d wasted %d",
+			(int)aligned_size, (int)wasted);
+		log_msg(6, "curren chunk %p , pos %d, endpos %p",
+			region->data, (int)region->allocated, region->data+region->chunk_size);
+		if(wasted >= ALIGNMENT + 8) {
 			/* put wasted part in recycle bin for later use */
 			region->total_allocated += wasted;
 			++region->small_objects;
-			region_recycle(region, region->data+region->allocated, wasted);
+			*((int*)(region->data+region->allocated)) = wasted - 8;
+			region_recycle(region, region->data+region->allocated+8, wasted - 8);
 			region->allocated += wasted;
 		}
 		++region->chunk_count;
-		region->unused_space += region->chunk_size - region->allocated;
+		/*
+		if(!region->recycle_bin)
+			region->unused_space += region->chunk_size - region->allocated;
+			*/
 
-		if(!region_add_cleanup(region, region->deallocator, chunk)) {
+		if(!region_add_cleanup(region, chunk_deallocator, chunk)) {
 			region->deallocator(chunk);
 			region->chunk_count--;
-			region->unused_space -=
-                                region->chunk_size - region->allocated;
+			/*
+			if(!region->recycle_bin)
+				region->unused_space -=
+                                	region->chunk_size - region->allocated;
+					*/
 			return NULL;
 		}
 		region->allocated = 0;
 		region->data = (char *) chunk;
 	}
 
-	result = region->data + region->allocated;
-	region->allocated += aligned_size;
+	result = region->data + region->allocated + 8;
+	region->allocated += aligned_size + 8;
 
 	region->total_allocated += aligned_size;
 	region->unused_space += aligned_size - size;
 	++region->small_objects;
+	*((int*)(result-8)) = size;
 
 	return result;
 }
@@ -379,9 +399,10 @@ region_strdup(region_type *region, const char *string)
 }
 
 void
-region_recycle(region_type *region, void *block, size_t size)
+region_recycle_XX(region_type *region, void *block, size_t size)
 {
 	size_t aligned_size;
+	region_check_pointer(region, block, size);
 
 	if(!block || !region->recycle_bin)
 		return;
@@ -395,6 +416,10 @@ region_recycle(region_type *region, void *block, size_t size)
 		struct recycle_elem* elem = (struct recycle_elem*)block;
 		/* we rely on the fact that ALIGNMENT is void* so the next will fit */
 		assert(aligned_size >= sizeof(struct recycle_elem));
+
+		if(*((int*)(block-8)) != size) {
+			log_msg(6, "Failed recycle of wrong size");
+		}
 
 #ifdef CHECK_DOUBLE_FREE
 		if(CHECK_DOUBLE_FREE) {
@@ -513,3 +538,59 @@ region_log_stats(region_type *region)
 	}
 	log_msg(LOG_INFO, "memory: %s", buf);
 }
+
+void * region_alloc_log(region_type *region, size_t size, const char* file,
+	int line)
+{
+	void *p;
+	p = region_alloc_XX(region, size);
+	log_msg(LOG_INFO, "%s:%d region_alloc(%p, %d) = %p", file, line, region, (int)size, p);
+	return p;
+}
+
+void region_recycle_log(region_type *region, void* block, size_t size,
+	const char* file, int line)
+{
+	log_msg(LOG_INFO, "%s:%d region_recycle(%p, %p, %d)", file, line, region, block, (int)size);
+	region_recycle_XX(region, block, size);
+}
+
+/** check if pointer is really part of this region */
+void
+region_check_pointer(region_type* region, void* block, size_t size)
+{
+	size_t i;
+	struct large_elem* elem;
+	if(!block) return;
+	log_msg(LOG_INFO, "check ptr %p in region %p, firstchunk %p", block, region, region->initial_data);
+	if(block >= (void*)region->initial_data && block < (void*)region->initial_data+region->chunk_size) {
+		/* found it, okay */
+		if(block+size <= (void*)region->initial_data+region->chunk_size)
+			return;
+		log_msg(LOG_ERR, "block does not fit in firstchunk");
+		return;
+	}
+	for(i=0; i<region->cleanup_count; i++) {
+		if(region->cleanups[i].action != chunk_deallocator)
+			continue;
+		log_msg(LOG_INFO, "check ptr %p in chunk %p", block, region->cleanups[i].data);
+		if(block >= region->cleanups[i].data && block < region->cleanups[i].data+region->chunk_size) {
+			/* found it, okay */
+			if(block+size <= region->cleanups[i].data+region->chunk_size)
+				return;
+			log_msg(LOG_ERR, "block does not fit in chunk");
+			return;
+		}
+	}
+	for(elem=region->large_list; elem; elem=elem->next) {
+		log_msg(LOG_INFO, "large_list %p", elem);
+		if(block == (void*)elem + sizeof(struct large_elem)) {
+			/* found it, okay */
+			return;
+		}
+	}
+	log_msg(LOG_ERR, "block is not in chunks, region %p, block %p %d",
+		region, block, (int)size);
+}
+
+

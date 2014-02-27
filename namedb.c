@@ -214,6 +214,7 @@ prehash_del(domain_table_type* table, domain_type* domain)
 static void
 do_deldomain(namedb_type* db, domain_type* domain)
 {
+	log_msg(LOG_INFO, "do_deldomain start");
 	assert(domain && domain->parent); /* exists and not root */
 	/* first adjust the number list so that domain is the last one */
 	numlist_make_last(db->domains, domain);
@@ -256,6 +257,7 @@ do_deldomain(namedb_type* db, domain_type* domain)
 	region_recycle(db->domains->region, (dname_type*)domain->dname,
 		dname_total_size(domain->dname));
 	region_recycle(db->domains->region, domain, sizeof(domain_type));
+	log_msg(LOG_INFO, "do_deldomain end");
 }
 
 void
@@ -400,6 +402,7 @@ domain_table_insert(domain_table_type* table,
 	domain_type* closest_encloser;
 	domain_type* result;
 	int exact;
+	log_msg(LOG_INFO, "domain_table_insert start");
 
 	assert(table);
 	assert(dname);
@@ -439,6 +442,7 @@ domain_table_insert(domain_table_type* table,
 			closest_encloser = result;
 		} while (domain_dname(closest_encloser)->label_count < dname->label_count);
 	}
+	log_msg(LOG_INFO, "domain_table_insert end");
 
 	return result;
 }

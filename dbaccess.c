@@ -521,6 +521,7 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 
 	assert(parser);
 	/* wipe zone from memory */
+	log_msg(LOG_INFO, "memory wipe start");
 #ifdef NSEC3
 	nsec3_hash_tree_clear(zone);
 #endif
@@ -529,6 +530,7 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 	nsec3_clear_precompile(nsd->db, zone);
 	zone->nsec3_param = NULL;
 #endif /* NSEC3 */
+	log_msg(LOG_INFO, "memory wipe end");
 	errors = zonec_read(zone->opts->name, fname, zone);
 	if(errors > 0) {
 		region_type* dname_region;

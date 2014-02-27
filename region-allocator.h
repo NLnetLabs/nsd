@@ -86,7 +86,9 @@ void region_remove_cleanup(region_type *region,
  * Allocate SIZE bytes of memory inside REGION.  The memory is
  * deallocated when region_free_all is called for this region.
  */
-void *region_alloc(region_type *region, size_t size);
+//void *region_alloc(region_type *region, size_t size);
+void *region_alloc_log(region_type *region, size_t size, const char* f, int l);
+#define region_alloc(r, s) region_alloc_log(r, s, __FILE__, __LINE__)
 
 
 /*
@@ -120,7 +122,10 @@ char *region_strdup(region_type *region, const char *string);
  * Recycle an allocated memory block. Pass size used to alloc it.
  * Does nothing if recycling is not enabled for the region.
  */
-void region_recycle(region_type *region, void *block, size_t size);
+//void region_recycle(region_type *region, void *block, size_t size);
+void region_recycle_log(region_type *region, void *block, size_t size,
+	const char* f, int l);
+#define region_recycle(r, b, s) region_recycle_log(r, b, s, __FILE__, __LINE__)
 
 /*
  * Print some REGION statistics to OUT.
