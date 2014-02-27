@@ -6,7 +6,6 @@ FEATURES:
 	- Return REFUSED for queries to non-hosted zones.
 
 BUG FIXES:
-	- rcode REFUSED for queries to non-hosted zones.
 	- Fix expired zones to give SERVFAIL, also when parent zone loaded.
 	- documented nsd-control zonestatus output in nsd-control manpage.
 	- remove mention of nsdc from nsd-checkconf manpage.
@@ -16,6 +15,14 @@ BUG FIXES:
 	  event2 header files if necessary.
 	- Fix #551: change Regent to Copyright holder in the LICENSE,
 	  to match the definition on opensource.org for the BSD License.
+	- Fix #552: zonefile loads on nsd-control reconfig when the name
+	  of the file has changed.
+	- Fix leak of zone name after zonefile read and fix malloc too
+	  large that would be leaked in the radix tree.
+	- Fix from 3.2: make SOA RDATA comparisons in XFR more lenient (only
+	  check serial).
+	- Fix that NSD will delete and recreate not-clean-closed databases.
+
 
 4.0.1
 ================
