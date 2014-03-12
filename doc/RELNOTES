@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.0.2 (upcoming)
+4.0.2
 ================
 FEATURES:
 	- Return REFUSED for queries to non-hosted zones.
