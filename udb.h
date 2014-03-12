@@ -40,9 +40,12 @@
 typedef struct udb_base udb_base;
 typedef struct udb_alloc udb_alloc;
 
+/** these checks are very slow, disabled by default */
+#if 0
 /** perform extra checks (when --enable-checking is used) */
 #ifndef NDEBUG
 #define UDB_CHECK 1
+#endif
 #endif
 
 /** pointers are stored like this */
