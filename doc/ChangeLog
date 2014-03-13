@@ -1,3 +1,10 @@
+13 March 2014: Wouter
+	- Fix nsd.db unclean close check.  Previous databases are considered
+	  unclean by the code and are created anew.
+	- Adds nsd.db larger than 400Tb check for sanity. Also test if
+	  filesize as documented in the file is correct.
+	- nsd waits for tasks to complete on stop, prevents nsd.db corruption.
+
 12 March 2014: Wouter
 	- tag 4.0.2
 	- trunk has 4.0.3 in development.

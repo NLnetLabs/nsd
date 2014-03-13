@@ -79,6 +79,10 @@ inspect_initial(int fd)
 	fsz = (uint64_t)lseek(fd, (off_t)0, SEEK_END);
 	(void)lseek(fd, (off_t)0, SEEK_SET);
 	printf("mmap size/file size:	%llu / %llu\n", ULL sz, ULL fsz);
+	if(sz != fsz) {
+		printf("  bad mmap size in header, using file size\n");
+		return fsz;
+	}
 	return sz;
 }
 
@@ -103,7 +107,7 @@ inspect_glob_data(void* base)
 		printf("  header size is wrong\n");
 	printf("version:		%u\n", (unsigned)g->version);
 	printf("clean_close:		%u\n", (unsigned)g->clean_close);
-	if(g->clean_close != 0)
+	if(g->clean_close != 1)
 		printf("  file was not cleanly closed\n");
 	printf("dirty_alloc:		%u\n", (unsigned)g->dirty_alloc);
 	printf("userflags:		%u\n", (unsigned)g->userflags);

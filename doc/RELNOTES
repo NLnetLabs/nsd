@@ -4,6 +4,11 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix nsd.db unclean close check.  Previous databases are considered
+	  unclean by the code and are created anew.
+	- Adds nsd.db larger than 400Tb check for sanity. Also test if
+	  filesize as documented in the file is correct.
+	- nsd waits for tasks to complete on stop, prevents nsd.db corruption.
 
 4.0.2
 ================
