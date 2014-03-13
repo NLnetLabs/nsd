@@ -1522,7 +1522,6 @@ server_main(struct nsd *nsd)
 		close(nsd->xfrd_listener->fd);
 		(void)kill(nsd->pid, SIGTERM);
 	}
-	xfrd_del_tempdir(nsd);
 
 #if 0 /* OS collects memory pages */
 	region_destroy(server_region);

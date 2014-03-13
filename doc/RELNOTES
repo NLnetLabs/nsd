@@ -9,6 +9,7 @@ BUG FIXES:
 	- Adds nsd.db larger than 400Tb check for sanity. Also test if
 	  filesize as documented in the file is correct.
 	- nsd waits for tasks to complete on stop, prevents nsd.db corruption.
+	- fix to not delete tmpdir too early in shutdown process.
 
 4.0.2
 ================
