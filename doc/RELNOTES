@@ -1,8 +1,13 @@
 NSD RELEASE NOTES
 
-4.0.3 (upcoming)
+4.0.4 (upcoming)
 ================
 FEATURES:
+BUG FIXES:
+
+
+4.0.3
+================
 BUG FIXES:
 	- Fix nsd.db unclean close check.  Previous databases are considered
 	  unclean by the code and are created anew.
@@ -12,6 +17,7 @@ BUG FIXES:
 	- fix to not delete tmpdir too early in shutdown process.
 	- disabled udb checking functionality that made it very slow,
 	  this was enabled when enable-checking was turned on.
+
 
 4.0.2
 ================
