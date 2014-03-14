@@ -268,6 +268,9 @@ namedb_zone_create(namedb_type* db, const dname_type* dname,
 	zone->dshashtree = NULL;
 #endif
 	zone->opts = zo;
+	zone->filename = NULL;
+	zone->logstr = NULL;
+	zone->mtime = 0;
 	zone->is_secure = 0;
 	zone->is_changed = 0;
 	zone->is_ok = 1;
@@ -302,9 +305,16 @@ namedb_zone_delete(namedb_type* db, zone_type* zone)
 	hash_tree_delete(db->region, zone->wchashtree);
 	hash_tree_delete(db->region, zone->dshashtree);
 #endif
+	if(zone->filename)
+		region_recycle(db->region, zone->filename,
+			strlen(zone->filename)+1);
+	if(zone->logstr)
+		region_recycle(db->region, zone->logstr,
+			strlen(zone->logstr)+1);
 	region_recycle(db->region, zone, sizeof(zone_type));
 }
 
+#ifdef HAVE_MMAP
 /** read a zone */
 static void
 read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
@@ -334,7 +344,9 @@ read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 	prehash_zone_complete(db, zone);
 #endif
 }
+#endif /* HAVE_MMAP */
 
+#ifdef HAVE_MMAP
 /** read zones from nsd.db */
 static void
 read_zones(udb_base* udb, namedb_type* db, nsd_options_t* opt,
@@ -355,7 +367,9 @@ read_zones(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 	udb_ptr_unlink(&n, udb);
 	udb_ptr_unlink(&z, udb);
 }
+#endif /* HAVE_MMAP */
 
+#ifdef HAVE_MMAP
 /** try to read the udb file or fail */
 static int
 try_read_udb(namedb_type* db, int fd, const char* filename,
@@ -392,6 +406,7 @@ try_read_udb(namedb_type* db, int fd, const char* filename,
 	region_destroy(dname_region);
 	return 1;
 }
+#endif /* HAVE_MMAP */
 
 struct namedb *
 namedb_open (const char* filename, nsd_options_t* opt)
@@ -404,15 +419,6 @@ namedb_open (const char* filename, nsd_options_t* opt)
 	 */
 	region_type* db_region;
 	int fd;
-
-	/* attempt to open, if does not exist, create a new one */
-	fd = open(filename, O_RDWR);
-	if(fd == -1) {
-		if(errno != ENOENT) {
-			log_msg(LOG_ERR, "%s: %s", filename, strerror(errno));
-			return NULL;
-		}
-	}
 
 #ifdef USE_MMAP_ALLOC
 	db_region = region_create_custom(mmap_alloc, mmap_free, MMAP_ALLOC_CHUNK_SIZE,
@@ -427,15 +433,38 @@ namedb_open (const char* filename, nsd_options_t* opt)
 	db->zonetree = radix_tree_create(db->region);
 	db->diff_skip = 0;
 	db->diff_pos = 0;
+	zonec_setup_parser(db);
 
 	if (gettimeofday(&(db->diff_timestamp), NULL) != 0) {
 		log_msg(LOG_ERR, "unable to load %s: cannot initialize"
 				 "timestamp", filename);
 		region_destroy(db_region);
-		close(fd);
 		return NULL;
         }
 
+	/* in dbless mode there is no file to read or mmap */
+	if(filename == NULL || filename[0] == 0) {
+		db->udb = NULL;
+		return db;
+	}
+
+#ifndef HAVE_MMAP
+	/* no mmap() system call, use dbless mode */
+	VERBOSITY(1, (LOG_INFO, "no mmap(), ignoring database %s", filename));
+	db->udb = NULL;
+	(void)fd; (void)opt;
+	return db;
+#else /* HAVE_MMAP */
+
+	/* attempt to open, if does not exist, create a new one */
+	fd = open(filename, O_RDWR);
+	if(fd == -1) {
+		if(errno != ENOENT) {
+			log_msg(LOG_ERR, "%s: %s", filename, strerror(errno));
+			region_destroy(db_region);
+			return NULL;
+		}
+	}
 	/* attempt to read the file (if it exists) */
 	if(fd != -1) {
 		if(!try_read_udb(db, fd, filename, opt))
@@ -453,8 +482,8 @@ namedb_open (const char* filename, nsd_options_t* opt)
 			return NULL;
 		}
 	}
-	zonec_setup_parser(db);
 	return db;
+#endif /* HAVE_MMAP */
 }
 
 /** the the file mtime stat (or nonexist or error) */
@@ -480,7 +509,7 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 	int nonexist = 0;
 	unsigned int errors;
 	const char* fname;
-	if(!nsd->db || !nsd->db->udb || !zone || !zone->opts || !zone->opts->pattern->zonefile)
+	if(!nsd->db || !zone || !zone->opts || !zone->opts->pattern->zonefile)
 		return;
 	fname = config_make_zonefile(zone->opts, nsd);
 	if(!file_get_mtime(fname, &mtime, &nonexist)) {
@@ -493,16 +522,21 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 		if(taskudb) task_new_soainfo(taskudb, last_task, zone, 0);
 		return;
 	} else {
-		const char* zone_fname = udb_zone_get_file_str(nsd->db->udb,
-			dname_name(domain_dname(zone->apex)), domain_dname(
-			zone->apex)->name_size);
+		const char* zone_fname = zone->filename;
+		time_t zone_mtime = zone->mtime;
+		if(nsd->db->udb) {
+			zone_fname = udb_zone_get_file_str(nsd->db->udb,
+				dname_name(domain_dname(zone->apex)),
+				domain_dname(zone->apex)->name_size);
+			zone_mtime = (time_t)udb_zone_get_mtime(nsd->db->udb,
+				dname_name(domain_dname(zone->apex)),
+				domain_dname(zone->apex)->name_size);
+		}
 		/* if no zone_fname, then it was acquired in zone transfer,
 		 * see if the file is newer than the zone transfer
 		 * (regardless if this is a different file), because the
 		 * zone transfer is a different content source too */
-		if(!zone_fname && udb_zone_get_mtime(nsd->db->udb,
-			dname_name(domain_dname(zone->apex)), domain_dname(
-			zone->apex)->name_size) >= (uint64_t)mtime) {
+		if(!zone_fname && zone_mtime >= mtime) {
 			VERBOSITY(3, (LOG_INFO, "zonefile %s is older than "
 				"zone transfer in memory", fname));
 			return;
@@ -510,10 +544,7 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 		/* if zone_fname, then the file was acquired from reading it,
 		 * and see if filename changed or mtime newer to read it */
 		} else if(zone_fname && fname &&
-		   strcmp(zone_fname, fname) == 0 &&
-		   udb_zone_get_mtime(nsd->db->udb, dname_name(domain_dname(
-			zone->apex)), domain_dname(zone->apex)->name_size)
-			>= (uint64_t)mtime) {
+		   strcmp(zone_fname, fname) == 0 && zone_mtime >= mtime) {
 			VERBOSITY(3, (LOG_INFO, "zonefile %s is not modified",
 				fname));
 			return;
@@ -532,8 +563,6 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 #endif /* NSEC3 */
 	errors = zonec_read(zone->opts->name, fname, zone);
 	if(errors > 0) {
-		region_type* dname_region;
-		udb_ptr z;
 		log_msg(LOG_ERR, "zone %s file %s read with %u errors",
 			zone->opts->name, fname, errors);
 		/* wipe (partial) zone from memory */
@@ -546,32 +575,57 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 		nsec3_clear_precompile(nsd->db, zone);
 		zone->nsec3_param = NULL;
 #endif /* NSEC3 */
-		/* see if we can revert to the udb stored version */
-		if(!udb_zone_search(nsd->db->udb, &z, dname_name(domain_dname(
-			zone->apex)), domain_dname(zone->apex)->name_size)) {
-			/* tell that zone contents has been lost */
-			if(taskudb) task_new_soainfo(taskudb, last_task, zone, 0);
-			return;
+		if(nsd->db->udb) {
+			region_type* dname_region;
+			udb_ptr z;
+			/* see if we can revert to the udb stored version */
+			if(!udb_zone_search(nsd->db->udb, &z, dname_name(domain_dname(
+				zone->apex)), domain_dname(zone->apex)->name_size)) {
+				/* tell that zone contents has been lost */
+				if(taskudb) task_new_soainfo(taskudb, last_task, zone, 0);
+				return;
+			}
+			/* read from udb */
+			dname_region = region_create(xalloc, free);
+			udb_rrsets = 0;
+			udb_rrset_count = ZONE(&z)->rrset_count;
+			udb_time = time(NULL);
+			read_zone_data(nsd->db->udb, nsd->db, dname_region, &z, zone);
+			region_destroy(dname_region);
+			udb_ptr_unlink(&z, nsd->db->udb);
+		} else {
+			if(zone->filename)
+				region_recycle(nsd->db->region, zone->filename,
+					strlen(zone->filename)+1);
+			zone->filename = NULL;
+			if(zone->logstr)
+				region_recycle(nsd->db->region, zone->logstr,
+					strlen(zone->logstr)+1);
+			zone->logstr = NULL;
 		}
-		/* read from udb */
-		dname_region = region_create(xalloc, free);
-		udb_rrsets = 0;
-		udb_rrset_count = ZONE(&z)->rrset_count;
-		udb_time = time(NULL);
-		read_zone_data(nsd->db->udb, nsd->db, dname_region, &z, zone);
-		region_destroy(dname_region);
-		udb_ptr_unlink(&z, nsd->db->udb);
 	} else {
 		VERBOSITY(1, (LOG_INFO, "zone %s read with no errors",
 			zone->opts->name));
 		zone->is_ok = 1;
 		zone->is_changed = 0;
 		/* store zone into udb */
-		if(!write_zone_to_udb(nsd->db->udb, zone, mtime, fname)) {
-			log_msg(LOG_ERR, "failed to store zone in db");
+		if(nsd->db->udb) {
+			if(!write_zone_to_udb(nsd->db->udb, zone, mtime, fname)) {
+				log_msg(LOG_ERR, "failed to store zone in db");
+			} else {
+				VERBOSITY(2, (LOG_INFO, "zone %s written to db",
+					zone->opts->name));
+			}
 		} else {
-			VERBOSITY(2, (LOG_INFO, "zone %s written to db",
-				zone->opts->name));
+			zone->mtime = mtime;
+			if(zone->filename)
+				region_recycle(nsd->db->region, zone->filename,
+					strlen(zone->filename)+1);
+			zone->filename = region_strdup(nsd->db->region, fname);
+			if(zone->logstr)
+				region_recycle(nsd->db->region, zone->logstr,
+					strlen(zone->logstr)+1);
+			zone->logstr = NULL;
 		}
 	}
 	if(taskudb) task_new_soainfo(taskudb, last_task, zone, 0);

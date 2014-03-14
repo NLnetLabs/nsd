@@ -3,6 +3,8 @@ NSD RELEASE NOTES
 4.0.4 (upcoming)
 ================
 FEATURES:
+	- database: "" starts without mmap of database.  Less memory is used,
+	  zones are read from text zonefile.
 BUG FIXES:
 
 

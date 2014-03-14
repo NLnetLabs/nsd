@@ -65,9 +65,11 @@ int runalltests(void)
 	CuSuiteAddSuite(suite, reg_cutest_rbtree());
 	CuSuiteAddSuite(suite, reg_cutest_util());
 	CuSuiteAddSuite(suite, reg_cutest_iterated_hash());
+#ifdef HAVE_MMAP
 	CuSuiteAddSuite(suite, reg_cutest_udb());
 	CuSuiteAddSuite(suite, reg_cutest_udb_radtree());
 	CuSuiteAddSuite(suite, reg_cutest_namedb());
+#endif
 #ifdef RATELIMIT
 	CuSuiteAddSuite(suite, reg_cutest_rrl());
 #endif

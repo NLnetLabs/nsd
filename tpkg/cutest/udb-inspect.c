@@ -431,8 +431,13 @@ inspect_file(char* fname)
 		exit(1);
 	}
 	sz = inspect_initial(fd);
+#ifndef HAVE_MMAP
+	printf("do not have mmap\n");
+	exit(1);
+#else
 	base = mmap(NULL, (size_t)sz, (int)PROT_READ, (int)MAP_SHARED,
 		(int)fd, (off_t)0);
+#endif
 	if(base == MAP_FAILED) {
 		printf("mmap %s %u: %s\n", fname, (unsigned)sz,
 			strerror(errno));

@@ -1,6 +1,8 @@
 14 March 2014: Wouter
 	- tag 4.0.3
 	- trunk has 4.0.4 in development.
+	- database: "" starts without mmap of database.  Less memory is used,
+	  zones are read from text zonefile.
 
 13 March 2014: Wouter
 	- Fix nsd.db unclean close check.  Previous databases are considered

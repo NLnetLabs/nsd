@@ -1075,7 +1075,7 @@ reload_do_stats(int cmdfd, struct nsd* nsd, udb_ptr* last)
 		log_msg(LOG_ERR, "could not read stats from oldpar");
 		return;
 	}
-	s.db_disk = nsd->db->udb->base_size;
+	s.db_disk = (nsd->db->udb?nsd->db->udb->base_size:0);
 	s.db_mem = region_get_mem(nsd->db->region);
 	p = (stc_t*)task_new_stat_info(nsd->task[nsd->mytask], last, &s,
 		nsd->child_count);

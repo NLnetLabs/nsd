@@ -55,6 +55,7 @@ server:
 	# zonelistfile: "@zonelistfile@"
 
 	# the database to use
+	# if set to "" then no disk-database is used, less memory usage.
 	# database: "@dbfile@"
 
 	# log messages to file. Default to stderr and syslog (with

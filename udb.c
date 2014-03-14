@@ -168,11 +168,15 @@ udb_base_create_fd(const char* fname, int fd, udb_walk_relptr_func walkfunc,
 		goto fail;
 	}
 	udb->base_size = (size_t)g.fsize;
+#ifdef HAVE_MMAP
 	/* note the size_t casts must be there for portability, on some
 	 * systems the layout of memory is otherwise broken. */
 	udb->base = mmap(NULL, (size_t)udb->base_size,
 		(int)PROT_READ|PROT_WRITE, (int)MAP_SHARED,
 		(int)udb->fd, (off_t)0);
+#else
+	udb->base = MAP_FAILED; errno = ENOSYS;
+#endif
 	if(udb->base == MAP_FAILED) {
 		udb->base = NULL;
 		log_msg(LOG_ERR, "mmap(size %u) error: %s",
@@ -354,10 +358,15 @@ void udb_base_free_keep_mmap(udb_base* udb)
 
 void udb_base_sync(udb_base* udb, int wait)
 {
+	if(!udb) return;
+#ifdef HAVE_MMAP
 	if(msync(udb->base, udb->base_size, wait?MS_SYNC:MS_ASYNC) != 0) {
 		log_msg(LOG_ERR, "msync(%s) error %s",
 			udb->fname, strerror(errno));
 	}
+#else
+	(void)wait;
+#endif
 }
 
 /** hash a chunk pointer */
@@ -499,6 +508,7 @@ uint8_t udb_base_get_userflags(udb_base* udb)
 static void*
 udb_base_remap(udb_base* udb, udb_alloc* alloc, uint64_t nsize)
 {
+#ifdef HAVE_MMAP
 	void* nb;
 	/* for use with valgrind, do not use mremap, but the other version */
 #ifdef MREMAP_MAYMOVE
@@ -545,6 +555,10 @@ udb_base_remap(udb_base* udb, udb_alloc* alloc, uint64_t nsize)
 	}
 	udb->base_size = nsize;
 	return nb;
+#else /* HAVE_MMAP */
+	(void)udb; (void)alloc; (void)nsize;
+	return NULL;
+#endif /* HAVE_MMAP */
 }
 
 void

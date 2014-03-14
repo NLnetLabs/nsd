@@ -227,6 +227,7 @@ udb_zone_find_nsec3param(udb_base* udb, udb_ptr* uz, struct zone* z)
 	for(i=0; i<rrset->rr_count; i++) {
 		/* if this RR matches the udb RR then we are done */
 		rdata_atom_type* rd = rrset->rrs[i].rdatas;
+		if(rrset->rrs[i].rdata_count < 4) continue;
 		if(RR(&urr)->wire[0] == rdata_atom_data(rd[0])[0] && /*alg*/
 		   RR(&urr)->wire[1] == rdata_atom_data(rd[1])[0] && /*flg*/
 		   RR(&urr)->wire[2] == rdata_atom_data(rd[2])[0] && /*iter*/
@@ -243,11 +244,50 @@ udb_zone_find_nsec3param(udb_base* udb, udb_ptr* uz, struct zone* z)
 	return NULL;
 }
 
+static struct rr*
+db_find_nsec3param(struct zone* z)
+{
+	unsigned i;
+	rrset_type* rrset = domain_find_rrset(z->apex, z, TYPE_NSEC3PARAM);
+	if(!rrset) /* no NSEC3PARAM in mem */
+		return NULL;
+	/* find first nsec3param we can support (SHA1, no flags) */
+	for(i=0; i<rrset->rr_count; i++) {
+		rdata_atom_type* rd = rrset->rrs[i].rdatas;
+		if(rrset->rrs[i].rdata_count < 4) continue;
+		if(rdata_atom_data(rd[0])[0] == NSEC3_SHA1_HASH &&
+			rdata_atom_data(rd[1])[0] == 0) {
+			if(2 <= verbosity) {
+				char str[MAX_RDLENGTH*2+16];
+				char* p;
+				p = str+snprintf(str, sizeof(str), "%u %u %u ",
+					(unsigned)rdata_atom_data(rd[0])[0],
+					(unsigned)rdata_atom_data(rd[1])[0],
+					(unsigned)read_uint16(rdata_atom_data(rd[2])));
+				if(rdata_atom_data(rd[3])[0] == 0)
+					*p++ = '-';
+				else {
+					p += hex_ntop(rdata_atom_data(rd[3])+1,
+						rdata_atom_data(rd[3])[0], p,
+						sizeof(str)-strlen(str)-1);
+				}
+				*p = 0;
+				VERBOSITY(2, (LOG_INFO, "rehash of zone %s with parameters %s",
+					domain_to_string(z->apex), str));
+			}
+			return &rrset->rrs[i];
+		}
+	}
+	return NULL;
+}
+
 void
 nsec3_find_zone_param(struct namedb* db, struct zone* zone, udb_ptr* z)
 {
 	/* get nsec3param RR from udb */
-	zone->nsec3_param = udb_zone_find_nsec3param(db->udb, z, zone);
+	if(db->udb)
+		zone->nsec3_param = udb_zone_find_nsec3param(db->udb, z, zone);
+	else	zone->nsec3_param = db_find_nsec3param(zone);
 }
 
 /* check params ok for one RR */
@@ -567,18 +607,22 @@ prehash_zone_complete(struct namedb* db, struct zone* zone)
 	/* find zone settings */
 
 	assert(db && zone);
-	if(!udb_zone_search(db->udb, &udbz, dname_name(domain_dname(
-		zone->apex)), domain_dname(zone->apex)->name_size)) {
-		udb_ptr_init(&udbz, db->udb); /* zero the ptr */
+	if(db->udb) {
+		if(!udb_zone_search(db->udb, &udbz, dname_name(domain_dname(
+			zone->apex)), domain_dname(zone->apex)->name_size)) {
+			udb_ptr_init(&udbz, db->udb); /* zero the ptr */
+		}
 	}
 	nsec3_find_zone_param(db, zone, &udbz);
 	if(!zone->nsec3_param || !check_apex_soa(db, zone)) {
 		zone->nsec3_param = NULL;
 		zone->nsec3_last = NULL;
-		udb_ptr_unlink(&udbz, db->udb);
+		if(db->udb)
+			udb_ptr_unlink(&udbz, db->udb);
 		return;
 	}
-	udb_ptr_unlink(&udbz, db->udb);
+	if(db->udb)
+		udb_ptr_unlink(&udbz, db->udb);
 	nsec3_precompile_newparam(db, zone);
 }
 

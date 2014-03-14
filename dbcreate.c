@@ -241,11 +241,7 @@ static int
 write_to_zonefile(zone_type* zone, const char* filename, const char* logs)
 {
 	time_t now = time(0);
-	FILE *out;
-	VERBOSITY(1, (LOG_INFO, "writing zone %s to file %s",
-		zone->opts->name, filename));
-
-	out = fopen(filename, "w");
+	FILE *out = fopen(filename, "w");
 	if(!out) {
 		log_msg(LOG_ERR, "cannot write zone %s file %s: %s",
 			zone->opts->name, filename, strerror(errno));
@@ -261,7 +257,11 @@ write_to_zonefile(zone_type* zone, const char* filename, const char* logs)
 		fclose(out);
 		return 0;
 	}
-	fclose(out);
+	if(fclose(out) != 0) {
+		log_msg(LOG_ERR, "cannot write zone %s to file %s: fclose: %s",
+			zone->opts->name, filename, strerror(errno));
+		return 0;
+	}
 	return 1;
 }
 
@@ -328,7 +328,7 @@ namedb_write_zonefile(struct nsd* nsd, zone_options_t* zopt)
 	if(!zopt->pattern->zonefile)
 		return;
 	zone = namedb_find_zone(nsd->db, (const dname_type*)zopt->node.key);
-	if(!zone || !zone->apex)
+	if(!zone || !zone->apex || !zone->soa_rrset)
 		return;
 	/* write if file does not exist, or if changed */
 	/* so, determine filename, create directory components, check exist*/
@@ -344,33 +344,55 @@ namedb_write_zonefile(struct nsd* nsd, zone_options_t* zopt)
 		char logs[4096];
 		char bakfile[4096];
 		udb_ptr zudb;
-		if(!udb_zone_search(nsd->db->udb, &zudb,
-			dname_name(domain_dname(zone->apex)),
-			domain_dname(zone->apex)->name_size))
-			return; /* zone does not exist in db */
+		if(nsd->db->udb) {
+			if(!udb_zone_search(nsd->db->udb, &zudb,
+				dname_name(domain_dname(zone->apex)),
+				domain_dname(zone->apex)->name_size))
+				return; /* zone does not exist in db */
+		}
 		/* write to zfile~ first, then rename if that works */
 		snprintf(bakfile, sizeof(bakfile), "%s~", zfile);
-		if(ZONE(&zudb)->log_str.data) {
+		if(nsd->db->udb && ZONE(&zudb)->log_str.data) {
 			udb_ptr s;
 			udb_ptr_new(&s, nsd->db->udb, &ZONE(&zudb)->log_str);
 			strlcpy(logs, (char*)udb_ptr_data(&s), sizeof(logs));
 			udb_ptr_unlink(&s, nsd->db->udb);
+		} else if(zone->logstr) {
+			strlcpy(logs, zone->logstr, sizeof(logs));
 		} else logs[0] = 0;
+		VERBOSITY(1, (LOG_INFO, "writing zone %s to file %s",
+			zone->opts->name, zfile));
 		if(!write_to_zonefile(zone, bakfile, logs)) {
-			udb_ptr_unlink(&zudb, nsd->db->udb);
+			if(nsd->db->udb)
+				udb_ptr_unlink(&zudb, nsd->db->udb);
+			(void)unlink(bakfile); /* delete failed file */
 			return; /* error already printed */
 		}
 		if(rename(bakfile, zfile) == -1) {
 			log_msg(LOG_ERR, "rename(%s to %s) failed: %s",
 				bakfile, zfile, strerror(errno));
-			udb_ptr_unlink(&zudb, nsd->db->udb);
+			if(nsd->db->udb)
+				udb_ptr_unlink(&zudb, nsd->db->udb);
+			(void)unlink(bakfile); /* delete failed file */
 			return;
 		}
 		zone->is_changed = 0;
-		ZONE(&zudb)->mtime = (uint64_t)time(0);
-		ZONE(&zudb)->is_changed = 0;
-		udb_zone_set_log_str(nsd->db->udb, &zudb, NULL);
-		udb_ptr_unlink(&zudb, nsd->db->udb);
+		if(nsd->db->udb) {
+			ZONE(&zudb)->mtime = (uint64_t)time(0);
+			ZONE(&zudb)->is_changed = 0;
+			udb_zone_set_log_str(nsd->db->udb, &zudb, NULL);
+			udb_ptr_unlink(&zudb, nsd->db->udb);
+		} else {
+			zone->mtime = time(0);
+			if(zone->filename)
+				region_recycle(nsd->db->region, zone->filename,
+					strlen(zone->filename)+1);
+			zone->filename = region_strdup(nsd->db->region, zfile);
+			if(zone->logstr)
+				region_recycle(nsd->db->region, zone->logstr,
+					strlen(zone->logstr)+1);
+			zone->logstr = NULL;
+		}
 	}
 }
 

@@ -660,7 +660,8 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			return 1; /* not fatal error */
 		}
 		/* delete the normalized RR from the udb */
-		udb_del_rr(db->udb, udbz, &rrset->rrs[rrnum]);
+		if(db->udb)
+			udb_del_rr(db->udb, udbz, &rrset->rrs[rrnum]);
 #ifdef NSEC3
 		/* process triggers for RR deletions */
 		nsec3_delete_rr_trigger(db, &rrset->rrs[rrnum], zone, udbz);
@@ -812,9 +813,11 @@ add_RR(namedb_type* db, const dname_type* dname,
 	}
 
 	/* write the just-normalized RR to the udb */
-	if(!udb_write_rr(db->udb, udbz, &rrset->rrs[rrset->rr_count - 1])) {
-		log_msg(LOG_ERR, "could not add RR to nsd.db, disk-space?");
-		return 0;
+	if(db->udb) {
+		if(!udb_write_rr(db->udb, udbz, &rrset->rrs[rrset->rr_count - 1])) {
+			log_msg(LOG_ERR, "could not add RR to nsd.db, disk-space?");
+			return 0;
+		}
 	}
 #ifdef NSEC3
 	if(rrset_added) {
@@ -1087,7 +1090,8 @@ apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
 			nsec3_hash_tree_clear(zone_db);
 #endif
 			delete_zone_rrs(db, zone_db);
-			udb_zone_clear(db->udb, udbz);
+			if(db->udb)
+				udb_zone_clear(db->udb, udbz);
 #ifdef NSEC3
 			nsec3_clear_precompile(db, zone_db);
 			zone_db->nsec3_param = NULL;
@@ -1117,7 +1121,8 @@ apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
 				nsec3_hash_tree_clear(zone_db);
 #endif
 				delete_zone_rrs(db, zone_db);
-				udb_zone_clear(db->udb, udbz);
+				if(db->udb)
+					udb_zone_clear(db->udb, udbz);
 #ifdef NSEC3
 				nsec3_clear_precompile(db, zone_db);
 				zone_db->nsec3_param = NULL;
@@ -1277,32 +1282,35 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 		udb_ptr z;
 
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s", zone_buf));
-		if(udb_base_get_userflags(nsd->db->udb) != 0) {
-			log_msg(LOG_ERR, "database corrupted, cannot update");
-			xfrd_unlink_xfrfile(nsd, xfrfilenr);
-			exit(1);
-		}
-		/* all parts were checked by xfrd before commit */
-		if(!udb_zone_search(nsd->db->udb, &z, dname_name(apex),
-			apex->name_size)) {
-			/* create it */
-			if(!udb_zone_create(nsd->db->udb, &z, dname_name(apex),
-				apex->name_size)) {
-				/* out of disk space perhaps */
-				log_msg(LOG_ERR, "could not udb_create_zone "
-					"%s, disk space full?", log_buf);
-				return 0;
+		if(nsd->db->udb) {
+			if(udb_base_get_userflags(nsd->db->udb) != 0) {
+				log_msg(LOG_ERR, "database corrupted, cannot update");
+				xfrd_unlink_xfrfile(nsd, xfrfilenr);
+				exit(1);
 			}
+			/* all parts were checked by xfrd before commit */
+			if(!udb_zone_search(nsd->db->udb, &z, dname_name(apex),
+				apex->name_size)) {
+				/* create it */
+				if(!udb_zone_create(nsd->db->udb, &z, dname_name(apex),
+					apex->name_size)) {
+					/* out of disk space perhaps */
+					log_msg(LOG_ERR, "could not udb_create_zone "
+						"%s, disk space full?", log_buf);
+					return 0;
+				}
+			}
+			/* set the udb dirty until we are finished applying changes */
+			udb_base_set_userflags(nsd->db->udb, 1);
 		}
-		/* set the udb dirty until we are finished applying changes */
-		udb_base_set_userflags(nsd->db->udb, 1);
 		/* read and apply all of the parts */
 		for(i=0; i<num_parts; i++) {
 			int ret;
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));
 			ret = apply_ixfr(nsd->db, in, zone_buf, new_serial, opt,
 				i, num_parts, &is_axfr, &delete_mode,
-				&rr_count, &z, &zonedb, patname_buf, &num_bytes,
+				&rr_count, (nsd->db->udb?&z:NULL), &zonedb,
+				patname_buf, &num_bytes,
 				&softfail);
 			if(ret == 0) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d in diff file for %s", (int)i, zone_buf);
@@ -1313,7 +1321,8 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 				break;
 			}
 		}
-		udb_base_set_userflags(nsd->db->udb, 0);
+		if(nsd->db->udb)
+			udb_base_set_userflags(nsd->db->udb, 0);
 		/* read the final log_str: but do not fail on it */
 		if(!diff_read_str(in, log_buf, sizeof(log_buf))) {
 			log_msg(LOG_ERR, "could not read log for transfer %s",
@@ -1324,11 +1333,23 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 		if(zonedb) prehash_zone(nsd->db, zonedb);
 #endif /* NSEC3 */
 		zonedb->is_changed = 1;
-		ZONE(&z)->is_changed = 1;
-		ZONE(&z)->mtime = time_end_0;
-		udb_zone_set_log_str(nsd->db->udb, &z, log_buf);
-		udb_zone_set_file_str(nsd->db->udb, &z, NULL);
-		udb_ptr_unlink(&z, nsd->db->udb);
+		if(nsd->db->udb) {
+			ZONE(&z)->is_changed = 1;
+			ZONE(&z)->mtime = time_end_0;
+			udb_zone_set_log_str(nsd->db->udb, &z, log_buf);
+			udb_zone_set_file_str(nsd->db->udb, &z, NULL);
+			udb_ptr_unlink(&z, nsd->db->udb);
+		} else {
+			zonedb->mtime = time_end_0;
+			if(zonedb->logstr)
+				region_recycle(nsd->db->region, zonedb->logstr,
+					strlen(zonedb->logstr)+1);
+			zonedb->logstr = region_strdup(nsd->db->region, log_buf);
+			if(zonedb->filename)
+				region_recycle(nsd->db->region, zonedb->filename,
+					strlen(zonedb->filename)+1);
+			zonedb->filename = NULL;
+		}
 		if(softfail && taskudb && !is_axfr) {
 			log_msg(LOG_ERR, "Failed to apply IXFR cleanly "
 				"(deletes nonexistent RRs, adds existing RRs). "
@@ -1809,7 +1830,6 @@ task_process_add_zone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 static void
 task_process_del_zone(struct nsd* nsd, struct task_list_d* task)
 {
-	udb_ptr udbz;
 	zone_type* zone;
 	zone_options_t* zopt;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "delzone task %s", dname_to_string(
@@ -1822,10 +1842,13 @@ task_process_del_zone(struct nsd* nsd, struct task_list_d* task)
 	nsec3_hash_tree_clear(zone);
 #endif
 	delete_zone_rrs(nsd->db, zone);
-	if(udb_zone_search(nsd->db->udb, &udbz, dname_name(task->zname),
-		task->zname->name_size)) {
-		udb_zone_delete(nsd->db->udb, &udbz);
-		udb_ptr_unlink(&udbz, nsd->db->udb);
+	if(nsd->db->udb) {
+		udb_ptr udbz;
+		if(udb_zone_search(nsd->db->udb, &udbz, dname_name(task->zname),
+			task->zname->name_size)) {
+			udb_zone_delete(nsd->db->udb, &udbz);
+			udb_ptr_unlink(&udbz, nsd->db->udb);
+		}
 	}
 #ifdef NSEC3
 	nsec3_clear_precompile(nsd->db, zone);
