@@ -10,7 +10,7 @@
 	- tag 4.0.2
 	- trunk has 4.0.3 in development.
 	- disabled udb checking functionality that made it very slow,
-	  this enabled when enable-checking was turned on.
+	  this was enabled when enable-checking was turned on.
 
 27 February 2014: Wouter
 	- tag 4.0.2rc1

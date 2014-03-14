@@ -10,6 +10,8 @@ BUG FIXES:
 	  filesize as documented in the file is correct.
 	- nsd waits for tasks to complete on stop, prevents nsd.db corruption.
 	- fix to not delete tmpdir too early in shutdown process.
+	- disabled udb checking functionality that made it very slow,
+	  this was enabled when enable-checking was turned on.
 
 4.0.2
 ================
