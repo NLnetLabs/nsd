@@ -1,3 +1,6 @@
+14 March 2014: Wouter
+	- tag 4.0.3
+
 13 March 2014: Wouter
 	- Fix nsd.db unclean close check.  Previous databases are considered
 	  unclean by the code and are created anew.
