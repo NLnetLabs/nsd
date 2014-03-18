@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 	- NSID can be set with "ascii_somestring" in ascii.
 	- Return REFUSED for queries to non-hosted zones.
+	- optimised zone file parse code and zonefile write code.
 
 BUG FIXES:
 	- Fix #551: change Regent to Copyright holder in the LICENSE,

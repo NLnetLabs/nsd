@@ -1,3 +1,6 @@
+18 March 2014: Wouter
+	- (from NSD4): optimised zone read code.
+
 7 February 2014: Wouter
 	- Fix #551: change Regent to Copyright holder in the LICENSE,
 	  to match the definition on opensource.org for the BSD License.
