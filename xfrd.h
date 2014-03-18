@@ -74,6 +74,11 @@ struct xfrd_state {
 	uint8_t can_send_reload;
 	pid_t reload_pid;
 
+	/* timeout event for zonefiles_write events */
+	struct event write_timer;
+	/* set to 1 if zones have received xfrs since the last write_timer */
+	int write_zonefile_needed;
+
 	/* communication channel with server_main */
 	struct event ipc_handler;
 	int ipc_handler_flags;

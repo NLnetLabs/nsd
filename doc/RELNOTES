@@ -6,6 +6,8 @@ FEATURES:
 	- database: "" starts without mmap of database.  Less memory is used,
 	  zones are read from text zonefile.
 	- optimised zonefile parse code and zonefile write code.
+	- zonefiles-write option in nsd.conf, enabled when database is "".
+	  The server writes changed zonefiles to disk every hour.
 BUG FIXES:
 
 

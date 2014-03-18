@@ -346,6 +346,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		SERV_GET_INT(rrl_ipv6_prefix_length, o);
 		SERV_GET_INT(rrl_whitelist_ratelimit, o);
 #endif
+		SERV_GET_INT(zonefiles_write, o);
 		/* remote control */
 		SERV_GET_BIN(control_enable, o);
 		SERV_GET_IP(control_interface, control_interface, o);
@@ -441,6 +442,7 @@ config_test_print_server(nsd_options_t* opt)
 	printf("\trrl-whitelist-ratelimit: %d\n", (int)opt->rrl_whitelist_ratelimit);
 #endif
 	printf("\tzonefiles-check: %s\n", opt->zonefiles_check?"yes":"no");
+	printf("\tzonefiles-write: %d\n", opt->zonefiles_write);
 
 	printf("\nremote-control:\n");
 	printf("\tcontrol-enable: %s\n", opt->control_enable?"yes":"no");

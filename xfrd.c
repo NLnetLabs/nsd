@@ -44,9 +44,9 @@
 xfrd_state_t* xfrd = 0;
 
 /* main xfrd loop */
-static void xfrd_main();
+static void xfrd_main(void);
 /* shut down xfrd, close sockets. */
-static void xfrd_shutdown();
+static void xfrd_shutdown(void);
 /* delete pending task xfr files in tmp */
 static void xfrd_clean_pending_tasks(struct nsd* nsd, udb_base* u);
 /* create zone rbtree at start */
@@ -67,7 +67,7 @@ static void xfrd_set_timer_retry(xfrd_zone_t* zone);
 static void xfrd_set_timer_refresh(xfrd_zone_t* zone);
 
 /* set reload timeout */
-static void xfrd_set_reload_timeout();
+static void xfrd_set_reload_timeout(void);
 /* handle reload timeout */
 static void xfrd_handle_reload(int fd, short event, void* arg);
 
@@ -83,6 +83,9 @@ static void xfrd_udp_read(xfrd_zone_t* zone);
 
 /* find master by notify number */
 static int find_same_master_notify(xfrd_zone_t* zone, int acl_num_nfy);
+
+/* set the write timer to activate */
+static void xfrd_write_timer_set(void);
 
 static void
 xfrd_signal_callback(int sig, short event, void* ATTR_UNUSED(arg))
@@ -169,6 +172,10 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 	xfrd->need_to_send_reload = 0;
 	xfrd->need_to_send_shutdown = 0;
 	xfrd->need_to_send_stats = 0;
+
+	xfrd->write_zonefile_needed = 0;
+	if(nsd->options->zonefiles_write)
+		xfrd_write_timer_set();
 
 	xfrd->notify_waiting_first = NULL;
 	xfrd->notify_waiting_last = NULL;
@@ -287,6 +294,9 @@ xfrd_shutdown()
 	if(xfrd->reload_added) {
 		event_del(&xfrd->reload_handler);
 		xfrd->reload_added = 0;
+	}
+	if(xfrd->nsd->options->zonefiles_write) {
+		event_del(&xfrd->write_timer);
 	}
 #ifdef HAVE_SSL
 	daemon_remote_close(xfrd->nsd->rc); /* close sockets of rc */
@@ -1041,6 +1051,7 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 			(unsigned)ntohl(soa->serial));
 		zone->soa_nsd = zone->soa_disk;
 		zone->soa_nsd_acquired = zone->soa_disk_acquired;
+		xfrd->write_zonefile_needed = 1;
 		if(xfrd_time() - zone->soa_disk_acquired
 			< (time_t)ntohl(zone->soa_disk.refresh))
 		{
@@ -2287,4 +2298,41 @@ void xfrd_set_reload_now(xfrd_state_t* xfrd)
 	if(!(xfrd->ipc_handler_flags&EV_WRITE)) {
 		ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ|EV_WRITE);
 	}
+}
+
+static void
+xfrd_handle_write_timer(int ATTR_UNUSED(fd), short event, void* ATTR_UNUSED(arg))
+{
+	/* timeout for write events */
+	assert(event & EV_TIMEOUT);
+	(void)event;
+	if(xfrd->nsd->options->zonefiles_write == 0)
+		return;
+	/* call reload to write changed zonefiles */
+	if(!xfrd->write_zonefile_needed) {
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "zonefiles write timer (nothing)"));
+		xfrd_write_timer_set();
+		return;
+	}
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "zonefiles write timer"));
+	task_new_write_zonefiles(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task, NULL);
+	xfrd_set_reload_now(xfrd);
+	xfrd->write_zonefile_needed = 0;
+	xfrd_write_timer_set();
+}
+
+static void xfrd_write_timer_set()
+{
+	struct timeval tv;
+	if(xfrd->nsd->options->zonefiles_write == 0)
+		return;
+	tv.tv_sec = xfrd->nsd->options->zonefiles_write;
+	tv.tv_usec = 0;
+	event_set(&xfrd->write_timer, -1, EV_TIMEOUT,
+		xfrd_handle_write_timer, xfrd);
+	if(event_base_set(xfrd->event_base, &xfrd->write_timer) != 0)
+		log_msg(LOG_ERR, "xfrd write timer: event_base_set failed");
+	if(event_add(&xfrd->write_timer, &tv) != 0)
+		log_msg(LOG_ERR, "xfrd write timer: event_add failed");
 }

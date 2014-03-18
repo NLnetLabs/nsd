@@ -67,7 +67,7 @@ server:
 
 	# The file where secondary zone refresh and expire timeouts are kept.
 	# If you delete this file, all secondary zones are forced to be 
-	# 'refreshing' (as if nsd got a notify).
+	# 'refreshing' (as if nsd got a notify).  Unused if database is "".
 	# xfrdfile: "@xfrdfile@"
 
 	# The directory where zone transfers are stored, in a subdir of it.
@@ -106,6 +106,10 @@ server:
 
 	# check mtime of all zone files on start and sighup
 	# zonefiles-check: yes
+	
+	# write changed zonefiles to disk, every N seconds.
+	# default is 0(disabled) or 3600(if database is "").
+	# zonefiles-write: 3600
 
 	# RRLconfig
 	# Response Rate Limiting, size of the hashtable. Default 1000000.

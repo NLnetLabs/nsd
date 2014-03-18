@@ -235,11 +235,12 @@ is used.
 Ignored, for compatibility with NSD3 config files. 
 .TP
 .B xfrdfile:\fR <filename>
-The soa timeout and zone transfer daemon in NSD will save its state 
-to this file. State is read back after a restart. The state file can 
-be deleted without too much harm, but timestamps of zones will be 
-gone. For more details see the section on zone expiry behavior of 
-NSD. Default is
+The soa timeout and zone transfer daemon in NSD will save its state to
+this file. State is read back after a restart. The state file can be
+deleted without too much harm, but timestamps of zones will be gone.
+If the database is configured as "", the state file is not used, all
+slave zones are checked for updates upon startup.  For more details see
+the section on zone expiry behavior of NSD. Default is
 .IR @xfrdfile@ .
 .TP
 .B xfrdir:\fR <directory>
@@ -268,6 +269,15 @@ Make NSD check the mtime of zone files on start and sighup.  If you
 disable it it starts faster (less disk activity in case of a lot of zones).
 The default is enabled.  The nsd\-control reload command reloads zone files
 regardless of this option.
+.TP
+.B zonefiles\-write\fR <seconds>
+Write changed secondary zones to their zonefile every N seconds.  If the
+zone (pattern) configuration has "" zonefile, it is not written.  Zones that
+have received zone transfer updates are written to their zonefile.
+Default is 0 (disabled) when there is a database, and 3600 (1 hour) when
+database is "".  The database also commits zone transfer contents.
+You can configure it away from the default by putting the config statement
+for zonefiles\-write: after the database: statement in the config file.
 .\" rrlstart
 .TP
 .B rrl\-size:\fR <numbuckets>

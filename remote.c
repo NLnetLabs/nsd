@@ -869,6 +869,7 @@ force_transfer_zone(xfrd_zone_t* zone)
 	/* pretend we not longer have it and force any
 	 * zone to be downloaded (even same serial, w AXFR) */
 	zone->soa_disk_acquired = 0;
+	zone->soa_nsd_acquired = 0;
 	xfrd_handle_notify_and_start_xfr(zone, NULL);
 }
 
