@@ -908,59 +908,59 @@ set_previous_owner(struct state_pretty_rr *state, const dname_type *dname)
 int
 print_rr(FILE *out,
          struct state_pretty_rr *state,
-         rr_type *record)
+         rr_type *record,
+	 region_type* rr_region,
+	 buffer_type* output)
 {
-	region_type *region = region_create(xalloc, free);
-        buffer_type *output = buffer_create(region, MAX_RDLENGTH);
         rrtype_descriptor_type *descriptor
                 = rrtype_descriptor_by_type(record->type);
         int result;
         const dname_type *owner = domain_dname(record->owner);
-        const dname_type *owner_origin
-                = dname_origin(region, owner);
+	buffer_clear(output);
         if (state) {
-			if (!state->previous_owner
-				|| dname_compare(state->previous_owner, owner) != 0) {
-				int origin_changed = (!state->previous_owner_origin
-					|| dname_compare(state->previous_owner_origin,
-					   owner_origin) != 0);
-				if (origin_changed) {
-					buffer_printf(output, "$ORIGIN %s\n",
-						dname_to_string(owner_origin, NULL));
-				}
-
-				set_previous_owner(state, owner);
-				buffer_printf(output, "%s",
-					dname_to_string(owner,
-						state->previous_owner_origin));
+		if (!state->previous_owner
+			|| dname_compare(state->previous_owner, owner) != 0) {
+			const dname_type *owner_origin
+				= dname_origin(rr_region, owner);
+			int origin_changed = (!state->previous_owner_origin
+				|| dname_compare(state->previous_owner_origin,
+				   owner_origin) != 0);
+			if (origin_changed) {
+				buffer_printf(output, "$ORIGIN %s\n",
+					dname_to_string(owner_origin, NULL));
 			}
-		} else {
-			buffer_printf(output, "%s", dname_to_string(owner, NULL));
+
+			set_previous_owner(state, owner);
+			buffer_printf(output, "%s",
+				dname_to_string(owner,
+					state->previous_owner_origin));
+			region_free_all(rr_region);
 		}
-
-		buffer_printf(output, "\t%lu\t%s\t%s",
-			(unsigned long) record->ttl,
-			rrclass_to_string(record->klass),
-			rrtype_to_string(record->type));
-
-		result = print_rdata(output, descriptor, record);
-		if (!result) {
-			/*
-			 * Some RDATA failed to print, so print the record's
-			 * RDATA in unknown format.
-			 */
-			result = rdata_atoms_to_unknown_string(output,
-				descriptor, record->rdata_count, record->rdatas);
-		}
-
-		if (result) {
-			buffer_printf(output, "\n");
-			buffer_flip(output);
-			result = write_data(out, buffer_current(output),
-			buffer_remaining(output));
+	} else {
+		buffer_printf(output, "%s", dname_to_string(owner, NULL));
 	}
 
-	region_destroy(region);
+	buffer_printf(output, "\t%lu\t%s\t%s",
+		(unsigned long) record->ttl,
+		rrclass_to_string(record->klass),
+		rrtype_to_string(record->type));
+
+	result = print_rdata(output, descriptor, record);
+	if (!result) {
+		/*
+		 * Some RDATA failed to print, so print the record's
+		 * RDATA in unknown format.
+		 */
+		result = rdata_atoms_to_unknown_string(output,
+			descriptor, record->rdata_count, record->rdatas);
+	}
+
+	if (result) {
+		buffer_printf(output, "\n");
+		buffer_flip(output);
+		result = write_data(out, buffer_current(output),
+		buffer_remaining(output));
+	}
 	return result;
 }
 

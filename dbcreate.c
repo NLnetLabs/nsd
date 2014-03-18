@@ -185,16 +185,20 @@ print_rrs(FILE* out, struct zone* zone)
 	rrset_type *rrset;
 	domain_type *domain = zone->apex;
 	region_type* region = region_create(xalloc, free);
+	region_type* rr_region = region_create(xalloc, free);
+	buffer_type* rr_buffer = buffer_create(region, MAX_RDLENGTH);
 	struct state_pretty_rr* state = create_pretty_rr(region);
 	/* first print the SOA record for the zone */
 	if(zone->soa_rrset) {
 		size_t i;
 		for(i=0; i < zone->soa_rrset->rr_count; i++) {
-			if(!print_rr(out, state, &zone->soa_rrset->rrs[i])){
+			if(!print_rr(out, state, &zone->soa_rrset->rrs[i],
+				rr_region, rr_buffer)){
 				log_msg(LOG_ERR, "There was an error "
 				   "printing SOARR to zone %s",
 				   zone->opts->name);
 				region_destroy(region);
+				region_destroy(rr_region);
 				return 0;
 			}
 		}
@@ -208,11 +212,13 @@ print_rrs(FILE* out, struct zone* zone)
 			if(rrset->zone != zone || rrset == zone->soa_rrset)
 				continue;
 			for(i=0; i < rrset->rr_count; i++) {
-				if(!print_rr(out, state, &rrset->rrs[i])){
+				if(!print_rr(out, state, &rrset->rrs[i],
+					rr_region, rr_buffer)){
 					log_msg(LOG_ERR, "There was an error "
 					   "printing RR to zone %s",
 					   zone->opts->name);
 					region_destroy(region);
+					region_destroy(rr_region);
 					return 0;
 				}
 			}
@@ -220,6 +226,7 @@ print_rrs(FILE* out, struct zone* zone)
 		domain = domain_next(domain);
 	}
 	region_destroy(region);
+	region_destroy(rr_region);
 	return 1;
 }
 

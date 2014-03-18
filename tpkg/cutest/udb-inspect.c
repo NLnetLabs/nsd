@@ -491,6 +491,8 @@ print_udb_rr(uint8_t* name, udb_ptr* urr)
 {
 	buffer_type buffer;
 	region_type* region = region_create(xalloc, free);
+	region_type* tmpregion = region_create(xalloc, free);
+	buffer_type* tmpbuffer = buffer_create(region, MAX_RDLENGTH);
 	rr_type rr;
 	ssize_t c;
 	domain_table_type* owners;
@@ -512,9 +514,10 @@ print_udb_rr(uint8_t* name, udb_ptr* urr)
 	}
 	rr.rdata_count = c;
 
-	print_rr(stdout, NULL, &rr);
+	print_rr(stdout, NULL, &rr, tmpregion, tmpbuffer);
 
 	region_destroy(region);
+	region_destroy(tmpregion);
 }
 
 /** list rrs */

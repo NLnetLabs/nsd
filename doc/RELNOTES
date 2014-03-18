@@ -5,7 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 	- database: "" starts without mmap of database.  Less memory is used,
 	  zones are read from text zonefile.
-	- optimised zone parse code.
+	- optimised zonefile parse code and zonefile write code.
 BUG FIXES:
 
 
