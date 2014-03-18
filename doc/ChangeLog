@@ -3,6 +3,9 @@
 	- Speed up zone write (.nl zonefile 30% faster).
 	  The memory alloc-dealloc in print_rr has been moved to print_rrs.
 	- (from 3.2), fix for #553 and for other TXT string syntax.
+	- in nodb mode, xfrd.state is not written out, because the zones
+	  are refreshed upon next startup anyway, so keeping timers and state
+	  is unnecessary.
 
 17 March 2014: Wouter
 	- Speed up zone parsing (.nl reads 40% faster).
