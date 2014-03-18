@@ -83,6 +83,22 @@ alloc_rdata_init(region_type *region, const void *data, size_t size)
 	return result;
 }
 
+
+static void
+zparser_strrm(char *hex, char c)
+{
+	int i = 0;
+	while (*(hex+i)) {
+		if (*(hex+i) == c) {
+			i++;
+			continue;
+		}
+		if (i) *hex = *(hex+i);
+		hex++;
+	}
+	*hex = '\0';
+}
+
 /*
  * These are parser function for generic zone file stuff.
  */
@@ -165,6 +181,17 @@ zparser_conv_hex_length(region_type *region, const char *hex, size_t len)
 	}
 	return r;
 }
+
+/* convert hex with dots in it */
+uint16_t *
+zparser_conv_nsap(region_type *region, const char *hex, size_t len)
+{
+	/* convert a hex value to wireformat */
+	char* dup = region_strdup(region, hex);
+	zparser_strrm(dup, '.');
+	return zparser_conv_hex(region, dup, len);
+}
+
 
 uint16_t *
 zparser_conv_time(region_type *region, const char *time)
@@ -554,7 +581,9 @@ zparser_conv_text(region_type *region, const char *text, size_t len)
 
 	if (len > 255) {
 		zc_error_prev_line("text string is longer than 255 characters,"
-				   " try splitting it into multiple parts");
+				   " try splitting it into multiple parts (length=%u)",
+				(unsigned)len);
+		zc_error_prev_line("too long string is: %s", text);
 		len = 255;
 	}
 	r = alloc_rdata(region, len + 1);
