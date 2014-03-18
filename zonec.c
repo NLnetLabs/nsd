@@ -84,21 +84,6 @@ alloc_rdata_init(region_type *region, const void *data, size_t size)
 }
 
 
-static void
-zparser_strrm(char *hex, char c)
-{
-	int i = 0;
-	while (*(hex+i)) {
-		if (*(hex+i) == c) {
-			i++;
-			continue;
-		}
-		if (i) *hex = *(hex+i);
-		hex++;
-	}
-	*hex = '\0';
-}
-
 /*
  * These are parser function for generic zone file stuff.
  */
@@ -181,17 +166,6 @@ zparser_conv_hex_length(region_type *region, const char *hex, size_t len)
 	}
 	return r;
 }
-
-/* convert hex with dots in it */
-uint16_t *
-zparser_conv_nsap(region_type *region, const char *hex, size_t len)
-{
-	/* convert a hex value to wireformat */
-	char* dup = region_strdup(region, hex);
-	zparser_strrm(dup, '.');
-	return zparser_conv_hex(region, dup, len);
-}
-
 
 uint16_t *
 zparser_conv_time(region_type *region, const char *time)
