@@ -1,5 +1,5 @@
 18 March 2014: Wouter
-	- (from NSD4): optimised zone read code.
+	- (from NSD4): optimised zone read code, and zone write code.
 
 7 February 2014: Wouter
 	- Fix #551: change Regent to Copyright holder in the LICENSE,

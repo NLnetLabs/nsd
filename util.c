@@ -893,20 +893,21 @@ set_previous_owner(struct state_pretty_rr *state, const dname_type *dname)
 int
 print_rr(FILE *out,
          struct state_pretty_rr *state,
-         rr_type *record)
+         rr_type *record,
+	 region_type* region,
+	 buffer_type* output)
 {
-	region_type *region = region_create(xalloc, free);
-        buffer_type *output = buffer_create(region, MAX_RDLENGTH);
         rrtype_descriptor_type *descriptor
                 = rrtype_descriptor_by_type(record->type);
         int result;
         const dname_type *owner = domain_dname(record->owner);
-        const dname_type *owner_origin
-                = dname_origin(region, owner);
         int owner_changed
                 = (!state->previous_owner
                    || dname_compare(state->previous_owner, owner) != 0);
+	buffer_clear(output);
         if (owner_changed) {
+        	const dname_type *owner_origin
+                	= dname_origin(region, owner);
                 int origin_changed = (!state->previous_owner_origin
                                       || dname_compare(
                                               state->previous_owner_origin,
@@ -923,6 +924,7 @@ print_rr(FILE *out,
                               "%s",
                               dname_to_string(owner,
                                               state->previous_owner_origin));
+		region_free_all(region);
         }
 
         buffer_printf(output,
@@ -950,7 +952,6 @@ print_rr(FILE *out,
 /*              fflush(out); */
         }
 
-	region_destroy(region);
         return result;
 }
 

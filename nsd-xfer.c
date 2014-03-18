@@ -349,11 +349,13 @@ parse_response(FILE *out, axfr_state_type *state)
 	size_t rr_count;
 	size_t qdcount = QDCOUNT(state->q->packet);
 	size_t ancount = ANCOUNT(state->q->packet);
+	region_type* tmpregion = region_create(xalloc, free);
 
 	/* Skip question section.  */
 	for (rr_count = 0; rr_count < qdcount; ++rr_count) {
 		if (!packet_skip_rr(state->q->packet, 1)) {
 			error("bad RR in question section");
+			region_destroy(tmpregion);
 			return 0;
 		}
 	}
@@ -362,10 +364,13 @@ parse_response(FILE *out, axfr_state_type *state)
 	for (rr_count = 0; rr_count < ancount; ++rr_count) {
 		domain_table_type *owners
 			= domain_table_create(state->rr_region);
+		buffer_type* tmpbuffer = buffer_create(state->rr_region,
+			MAX_RDLENGTH);
 		rr_type *record = packet_read_rr(
 			state->rr_region, owners, state->q->packet, 0);
 		if (!record) {
 			error("bad RR in answer section");
+			region_destroy(tmpregion);
 			return 0;
 		}
 
@@ -374,24 +379,29 @@ parse_response(FILE *out, axfr_state_type *state)
 		{
 			error("First RR must be the SOA record, but is a %s record",
 			      rrtype_to_string(record->type));
+			region_destroy(tmpregion);
 			return 0;
 		} else if (state->rr_count > 0
 			   && record->type == TYPE_SOA
 			   && record->klass == CLASS_IN)
 		{
 			state->done = 1;
+			region_destroy(tmpregion);
 			return 1;
 		}
 
 		++state->rr_count;
 
-		if (!print_rr(out, state->pretty_rr, record)) {
+		if (!print_rr(out, state->pretty_rr, record, tmpregion,
+			tmpbuffer)) {
+			region_destroy(tmpregion);
 			return 0;
 		}
 
 		region_free_all(state->rr_region);
 	}
 
+	region_destroy(tmpregion);
 	return 1;
 }
 
