@@ -1,3 +1,6 @@
+18 March 2014: Wouter
+	- unit test for nodb mode.
+
 17 March 2014: Wouter
 	- Speed up zone parsing (.nl reads 40% faster).
 	  The rrtype_from_string routine is called often, optimised it.
