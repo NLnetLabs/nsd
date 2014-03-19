@@ -13,6 +13,7 @@ FEATURES:
 BUG FIXES:
 	- Fixed shutdown message sporadically not printed on exit.
 	- Documented zonefile %s syntax in nsd.conf man page.
+	- Fix manpage to put colon after zonefiles check and write.
 
 
 4.0.3

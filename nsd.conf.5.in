@@ -264,13 +264,13 @@ zone transfers. 2 lists soft warnings that are encountered.
 Prevent NSD from replying with the version string on CHAOS class 
 queries.
 .TP
-.B zonefiles\-check\fR <yes or no>
+.B zonefiles\-check:\fR <yes or no>
 Make NSD check the mtime of zone files on start and sighup.  If you
 disable it it starts faster (less disk activity in case of a lot of zones).
 The default is enabled.  The nsd\-control reload command reloads zone files
 regardless of this option.
 .TP
-.B zonefiles\-write\fR <seconds>
+.B zonefiles\-write:\fR <seconds>
 Write changed secondary zones to their zonefile every N seconds.  If the
 zone (pattern) configuration has "" zonefile, it is not written.  Zones that
 have received zone transfer updates are written to their zonefile.
