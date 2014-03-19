@@ -1045,7 +1045,7 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 	if(zone->soa_disk_acquired && soa->serial == zone->soa_disk.serial)
 	{
 		/* soa in disk has been loaded in memory */
-		log_msg(LOG_INFO, "Zone %s serial %u is updated to %u.",
+		log_msg(LOG_INFO, "zone %s serial %u is updated to %u.",
 			zone->apex_str, (unsigned)ntohl(zone->soa_nsd.serial),
 			(unsigned)ntohl(soa->serial));
 		zone->soa_nsd = zone->soa_disk;
