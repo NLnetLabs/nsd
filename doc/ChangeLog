@@ -6,6 +6,7 @@
 	  xfrdfile: "" in config.  Does not check slave zone if state is
 	  same as last time on startup.
 	- Fixed shutdown message sporadically not printed on exit.
+	- Documented zonefile %s syntax in nsd.conf man page.
 
 18 March 2014: Wouter
 	- unit test for nodb mode.
