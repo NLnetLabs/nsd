@@ -238,9 +238,9 @@ Ignored, for compatibility with NSD3 config files.
 The soa timeout and zone transfer daemon in NSD will save its state to
 this file. State is read back after a restart. The state file can be
 deleted without too much harm, but timestamps of zones will be gone.
-If the database is configured as "", the state file is not used, all
-slave zones are checked for updates upon startup.  For more details see
-the section on zone expiry behavior of NSD. Default is
+If it is configured as "", the state file is not used, all slave zones
+are checked for updates upon startup.  For more details see the section
+on zone expiry behavior of NSD. Default is
 .IR @xfrdfile@ .
 .TP
 .B xfrdir:\fR <directory>

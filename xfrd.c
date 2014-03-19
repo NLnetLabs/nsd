@@ -194,8 +194,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
 	xfrd_init_zones();
 	xfrd_receive_soa(socket, shortsoa);
-	/* in nodb mode, we need not use state because we refresh anyway */
-	if(nsd->options->database != NULL && nsd->options->database[0]!=0)
+	if(nsd->options->xfrdfile != NULL && nsd->options->xfrdfile[0]!=0)
 		xfrd_read_state(xfrd);
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd startup"));
@@ -289,7 +288,7 @@ xfrd_shutdown()
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown"));
 	event_del(&xfrd->ipc_handler);
 	close(xfrd->ipc_handler.ev_fd); /* notifies parent we stop */
-	if(xfrd->nsd->options->database != NULL && xfrd->nsd->options->database[0]!=0)
+	if(xfrd->nsd->options->xfrdfile != NULL && xfrd->nsd->options->xfrdfile[0]!=0)
 		xfrd_write_state(xfrd);
 	if(xfrd->reload_added) {
 		event_del(&xfrd->reload_handler);
@@ -1092,7 +1091,7 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 
 	/* user must have manually provided zone data */
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-		"xfrd: zone %s serial %u from unknown source. refreshing",
+		"xfrd: zone %s serial %u from zonefile. refreshing",
 		zone->apex_str, (unsigned)ntohl(soa->serial)));
 	zone->soa_nsd = *soa;
 	zone->soa_disk = *soa;

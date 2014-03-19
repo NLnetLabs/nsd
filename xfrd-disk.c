@@ -275,6 +275,14 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		{
 			zone->state = xfrd_zone_expired;
 			xfrd_set_refresh_now(zone);
+		} 
+
+		/* there is a zone read and it matches what we had before */
+		if(zone->soa_nsd_acquired && zone->state != xfrd_zone_expired
+			&& zone->soa_nsd.serial == soa_nsd_read.serial) {
+			xfrd_deactivate_zone(zone);
+			zone->state = state;
+			xfrd_set_timer(zone, timeout);
 		}
 
 		/* handle as an incoming SOA. */
