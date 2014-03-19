@@ -11,6 +11,7 @@ FEATURES:
 	- xfrdfile: "" disables xfrd.state.  If enabled, zones that are
 	  same as before are not checked for a serial update at server start.
 BUG FIXES:
+	- Fixed shutdown message sporadically not printed on exit.
 
 
 4.0.3

@@ -5,6 +5,7 @@
 	- Write xfrd.state for nodb mode again.  Disable xfrd.state with
 	  xfrdfile: "" in config.  Does not check slave zone if state is
 	  same as last time on startup.
+	- Fixed shutdown message sporadically not printed on exit.
 
 18 March 2014: Wouter
 	- unit test for nodb mode.

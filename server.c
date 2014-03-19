@@ -1456,7 +1456,6 @@ server_main(struct nsd *nsd)
 			/* ENOTREACH */
 			break;
 		case NSD_SHUTDOWN:
-			log_msg(LOG_WARNING, "signal received, shutting down...");
 			break;
 		case NSD_REAP_CHILDREN:
 			/* continue; wait for child in run loop */
@@ -1474,6 +1473,7 @@ server_main(struct nsd *nsd)
 			break;
 		}
 	}
+	log_msg(LOG_WARNING, "signal received, shutting down...");
 
 	/* close opened ports to avoid race with restart of nsd */
 	server_close_all_sockets(nsd->udp, nsd->ifs);
