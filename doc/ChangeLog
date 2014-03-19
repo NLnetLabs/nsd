@@ -1,3 +1,7 @@
+19 March 2014: Wouter
+	- made database: "" set the 3600 default for zonefileswrite only
+	  if it is also at its default, so that user settings override.
+
 18 March 2014: Wouter
 	- unit test for nodb mode.
 	- Speed up zone write (.nl zonefile 30% faster).
