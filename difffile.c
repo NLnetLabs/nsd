@@ -1933,6 +1933,7 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	if(!zone) {
 		/* assume the zone has been deleted and a zone transfer was
 		 * still waiting to be processed */
+		xfrd_unlink_xfrfile(nsd, TASKLIST(task)->yesno);
 		return;
 	}
 	/* apply the XFR */
@@ -1942,6 +1943,7 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		/* could not open file to update */
 		/* there is no reply to xfrd failed-update,
 		 * because xfrd has a scan for apply-failures. */
+		xfrd_unlink_xfrfile(nsd, TASKLIST(task)->yesno);
 		return;
 	}
 	/* read and apply zone transfer */
