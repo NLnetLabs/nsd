@@ -16,6 +16,7 @@ BUG FIXES:
 	- Fix manpage to put colon after zonefiles check and write.
 	- Change from 'Zone" to "zone" with ".. serial .. is updated" log
 	  message.
+	- Changed maxbackoff for no-content secondary zones from 4h to 24h.
 
 
 4.0.3
