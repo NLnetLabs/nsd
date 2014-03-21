@@ -1,6 +1,8 @@
 21 March 2014: Wouter
 	- Fix bug in nodatabase mode with ixfrs that change nsec3param.
 	- Changed maxbackoff for no-content secondary zones from 4h to 24h.
+	- nocontent zones are checked on startup, but continue backoff
+	  from stored xfrd.state values.
 
 19 March 2014: Wouter
 	- made database: "" set the 3600 default for zonefileswrite only

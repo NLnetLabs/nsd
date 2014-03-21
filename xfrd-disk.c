@@ -283,6 +283,11 @@ xfrd_read_state(struct xfrd_state* xfrd)
 			xfrd_deactivate_zone(zone);
 			zone->state = state;
 			xfrd_set_timer(zone, timeout);
+		}	
+		if(zone->soa_nsd_acquired == 0 && soa_nsd_acquired_read == 0 &&
+			soa_disk_acquired_read == 0) {
+			/* continue expon backoff where we were + check now */
+			zone->fresh_xfr_timeout = timeout;
 		}
 
 		/* handle as an incoming SOA. */
