@@ -447,8 +447,8 @@ nsec3_delete_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 	else if(rr->type == TYPE_NSEC3PARAM && rr == zone->nsec3_param) {
 		/* clear trees, wipe hashes, wipe precompile */
 		nsec3_clear_precompile(db, zone);
-		/* pick up new nsec3param from udb */
-		nsec3_find_zone_param(db, zone, udbz);
+		/* pick up new nsec3param (from udb, or avoid deleted rr) */
+		nsec3_find_zone_param(db, zone, udbz, rr);
 		/* if no more NSEC3, done */
 		if(!zone->nsec3_param)
 			return;
@@ -550,7 +550,7 @@ nsec3_add_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 		prehash_add(db->domains, rr->owner);
 	} else if(!zone->nsec3_param && rr->type == TYPE_NSEC3PARAM) {
 		/* see if this means NSEC3 chain can be used */
-		nsec3_find_zone_param(db, zone, udbz);
+		nsec3_find_zone_param(db, zone, udbz, NULL);
 		if(!zone->nsec3_param)
 			return;
 		nsec3_zone_trees_create(db->region, zone);
@@ -1310,8 +1310,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 			ret = apply_ixfr(nsd->db, in, zone_buf, new_serial, opt,
 				i, num_parts, &is_axfr, &delete_mode,
 				&rr_count, (nsd->db->udb?&z:NULL), &zonedb,
-				patname_buf, &num_bytes,
-				&softfail);
+				patname_buf, &num_bytes, &softfail);
 			if(ret == 0) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d in diff file for %s", (int)i, zone_buf);
 				xfrd_unlink_xfrfile(nsd, xfrfilenr);

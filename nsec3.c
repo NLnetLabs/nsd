@@ -245,7 +245,7 @@ udb_zone_find_nsec3param(udb_base* udb, udb_ptr* uz, struct zone* z)
 }
 
 static struct rr*
-db_find_nsec3param(struct zone* z)
+db_find_nsec3param(struct zone* z, struct rr* avoid_rr)
 {
 	unsigned i;
 	rrset_type* rrset = domain_find_rrset(z->apex, z, TYPE_NSEC3PARAM);
@@ -254,6 +254,8 @@ db_find_nsec3param(struct zone* z)
 	/* find first nsec3param we can support (SHA1, no flags) */
 	for(i=0; i<rrset->rr_count; i++) {
 		rdata_atom_type* rd = rrset->rrs[i].rdatas;
+		/* do not use the RR that is going to be deleted (in IXFR) */
+		if(&rrset->rrs[i] == avoid_rr) continue;
 		if(rrset->rrs[i].rdata_count < 4) continue;
 		if(rdata_atom_data(rd[0])[0] == NSEC3_SHA1_HASH &&
 			rdata_atom_data(rd[1])[0] == 0) {
@@ -282,12 +284,15 @@ db_find_nsec3param(struct zone* z)
 }
 
 void
-nsec3_find_zone_param(struct namedb* db, struct zone* zone, udb_ptr* z)
+nsec3_find_zone_param(struct namedb* db, struct zone* zone, udb_ptr* z,
+	struct rr* avoid_rr)
 {
 	/* get nsec3param RR from udb */
 	if(db->udb)
 		zone->nsec3_param = udb_zone_find_nsec3param(db->udb, z, zone);
-	else	zone->nsec3_param = db_find_nsec3param(zone);
+	/* no db, get from memory, avoid using the rr that is going to be
+	 * deleted, avoid_rr */
+	else	zone->nsec3_param = db_find_nsec3param(zone, avoid_rr);
 }
 
 /* check params ok for one RR */
@@ -613,7 +618,7 @@ prehash_zone_complete(struct namedb* db, struct zone* zone)
 			udb_ptr_init(&udbz, db->udb); /* zero the ptr */
 		}
 	}
-	nsec3_find_zone_param(db, zone, &udbz);
+	nsec3_find_zone_param(db, zone, &udbz, NULL);
 	if(!zone->nsec3_param || !check_apex_soa(db, zone)) {
 		zone->nsec3_param = NULL;
 		zone->nsec3_last = NULL;
