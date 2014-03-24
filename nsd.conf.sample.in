@@ -8,7 +8,7 @@
 
 # This is a comment.
 # Sample configuration file
-# include: "file" # include that file's text over here.
+# include: "file" # include that file's text over here.  Globbed, "*.conf"
 
 # options for the nsd server
 server:

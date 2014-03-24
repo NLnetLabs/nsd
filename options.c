@@ -131,7 +131,7 @@ parse_options_file(nsd_options_t* opt, const char* file,
 	}
 	cfg_parser->err = err;
 	cfg_parser->err_arg = err_arg;
-	cfg_parser->filename = file;
+	cfg_parser->filename = (char*)file;
 	cfg_parser->line = 1;
 	cfg_parser->errors = 0;
 	cfg_parser->server_settings_seen = 0;
@@ -241,12 +241,12 @@ parse_options_file(nsd_options_t* opt, const char* file,
 		if(err) {
 			char m[MAXSYSLOGMSGLEN];
 			snprintf(m, sizeof(m), "read %s failed: %d errors in "
-				"configuration file\n", cfg_parser->filename,
+				"configuration file\n", file,
 				cfg_parser->errors);
 			err(err_arg, m);
 		} else {
 			fprintf(stderr, "read %s failed: %d errors in "
-				"configuration file\n", cfg_parser->filename,
+				"configuration file\n", file,
 				cfg_parser->errors);
 		}
 		return 0;

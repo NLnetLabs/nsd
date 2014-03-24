@@ -100,7 +100,10 @@ argument. Processing continues as if the text from the included file
 was copied into the config file at that point.  If a chroot is used
 an absolute filename is needed (with the chroot prepended), so that
 the include can be parsed before and after application of the chroot (and
-the knowledge of what that chroot is).
+the knowledge of what that chroot is).  You can use '*' to include a
+wildcard match of files, eg. "foo/nsd.d/*.conf".  Also '?', '{}', '[]',
+and '~' work, see \fBglob\fR(7).  If no files match the pattern, this
+is not an error.
 .SS "Server Options"
 .LP
 The global options (if not overridden from the NSD commandline) are 

@@ -10,6 +10,7 @@ FEATURES:
 	  The server writes changed zonefiles to disk every hour.
 	- xfrdfile: "" disables xfrd.state.  If enabled, zones that are
 	  same as before are not checked for a serial update at server start.
+	- include: "foo/nsd.d/*.conf" works, wildcard glob on includes.
 BUG FIXES:
 	- Fixed shutdown message sporadically not printed on exit
 	  (Thanks Anand Buddhdev).
@@ -18,6 +19,7 @@ BUG FIXES:
 	- Change from 'Zone" to "zone" with ".. serial .. is updated" log
 	  message.
 	- Changed maxbackoff for no-content secondary zones from 4h to 24h.
+	- Fix print filename of encompassing config file on read failure.
 
 
 4.0.3

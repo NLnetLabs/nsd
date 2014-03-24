@@ -234,7 +234,7 @@ struct zonelist_bucket {
  * Used during options parsing
  */
 struct config_parser_state {
-	const char* filename;
+	char* filename;
 	const char* chroot;
 	int line;
 	int errors;

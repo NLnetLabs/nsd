@@ -1,3 +1,7 @@
+24 March 2014: Wouter
+	- include: "foo/nsd.d/*.conf" works, wildcard glob on includes.
+	- Fix print filename of encompassing config file on read failure.
+
 21 March 2014: Wouter
 	- Fix bug in nodatabase mode with ixfrs that change nsec3param
 	  (Thanks Anand Buddhdev).
