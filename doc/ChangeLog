@@ -1,5 +1,6 @@
 25 March 2014: Wouter
 	- nsd shuts down during init process if given signal.
+	- shorter logging for zone transfer fail rcodes.
 
 24 March 2014: Wouter
 	- include: "foo/nsd.d/*.conf" works, wildcard glob on includes.
