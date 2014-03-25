@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include "tpkg/cutest/cutest.h"
 #include "tpkg/cutest/qtest.h"
+#include "nsd.h"
 
 CuSuite * reg_cutest_radtree(void);
 CuSuite * reg_cutest_rbtree(void);
@@ -28,7 +29,7 @@ CuSuite * reg_cutest_rrl(void);
 #endif
 
 /* dummy functions to link */
-struct nsd;
+struct nsd nsd;
 int writepid(struct nsd * ATTR_UNUSED(nsd))
 {
 	return 0;

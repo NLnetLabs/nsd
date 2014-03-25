@@ -11,6 +11,7 @@ FEATURES:
 	- xfrdfile: "" disables xfrd.state.  If enabled, zones that are
 	  same as before are not checked for a serial update at server start.
 	- include: "foo/nsd.d/*.conf" works, wildcard glob on includes.
+	- nsd shuts down during init process if given signal.
 BUG FIXES:
 	- Fixed shutdown message sporadically not printed on exit
 	  (Thanks Anand Buddhdev).

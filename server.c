@@ -678,7 +678,8 @@ server_prepare(struct nsd *nsd)
 	/* check if zone files have been modified */
 	/* NULL for taskudb because we send soainfo in a moment, batched up,
 	 * for all zones */
-	if(nsd->options->zonefiles_check)
+	if(nsd->options->zonefiles_check || (nsd->options->database == NULL ||
+		nsd->options->database[0] == 0))
 		namedb_check_zonefiles(nsd, nsd->options, NULL, NULL);
 
 	compression_table_capacity = 0;
@@ -841,7 +842,7 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		/* use other task than I am using, since if xfrd died and is
 		 * restarted, the reload is using nsd->mytask */
 		nsd->mytask = 1 - nsd->mytask;
-		xfrd_init(sockets[1], nsd, del_db, reload_active);
+		xfrd_init(sockets[1], nsd, del_db, reload_active, pid);
 		/* ENOTREACH */
 		break;
 	case 0:
@@ -888,12 +889,30 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 	 *   (xfrd will wait for current running reload to finish if any).
 	 */
 	sig_atomic_t cmd = 0;
-#ifdef BIND8_STATS
 	pid_t mypid;
-#endif
 	int xfrd_sock = nsd->xfrd_listener->fd;
 	struct udb_base* taskudb = nsd->task[nsd->mytask];
 	udb_ptr t;
+	if(!shortsoa) {
+		if(nsd->signal_hint_shutdown) {
+		shutdown:
+			log_msg(LOG_WARNING, "signal received, shutting down...");
+			server_close_all_sockets(nsd->udp, nsd->ifs);
+			server_close_all_sockets(nsd->tcp, nsd->ifs);
+#ifdef HAVE_SSL
+			daemon_remote_close(nsd->rc);
+#endif
+			/* Unlink it if possible... */
+			unlinkpid(nsd->pidfile);
+			unlink(nsd->task[0]->fname);
+			unlink(nsd->task[1]->fname);
+			/* write the nsd.db to disk, wait for it to complete */
+			udb_base_sync(nsd->db->udb, 1);
+			udb_base_close(nsd->db->udb);
+			server_shutdown(nsd);
+			exit(0);
+		}
+	}
 	if(shortsoa) {
 		/* put SOA in xfrd task because mytask may be in use */
 		taskudb = nsd->task[1-nsd->mytask];
@@ -907,6 +926,9 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 			log_msg(LOG_ERR, "did not get start signal from xfrd");
 			exit(1);
 		} 
+		if(nsd->signal_hint_shutdown) {
+			goto shutdown;
+		}
 	}
 	/* give xfrd our task, signal it with RELOAD_DONE */
 	task_process_sync(taskudb);
@@ -915,13 +937,11 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
-#ifdef BIND8_STATS
 	mypid = getpid();
 	if(!write_socket(nsd->xfrd_listener->fd, &mypid,  sizeof(mypid))) {
 		log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
 			strerror(errno));
 	}
-#endif
 
 	if(!shortsoa) {
 		/* process the xfrd task works (expiry data) */
@@ -1095,9 +1115,7 @@ static void
 server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int cmdsocket)
 {
-#ifdef BIND8_STATS
 	pid_t mypid;
-#endif
 	sig_atomic_t cmd = NSD_QUIT_SYNC;
 	int ret;
 	udb_ptr last_task;
@@ -1179,13 +1197,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "problems sending reload_done xfrd: %s",
 			strerror(errno));
 	}
-#ifdef BIND8_STATS
 	mypid = getpid();
 	if(!write_socket(nsd->xfrd_listener->fd, &mypid,  sizeof(mypid))) {
 		log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
 			strerror(errno));
 	}
-#endif
 
 	/* try to reopen file */
 	if (nsd->file_rotation_ok)
@@ -1292,9 +1308,7 @@ server_main(struct nsd *nsd)
 						&nsd->xfrd_listener->fd);
 				} else if (child_pid == reload_pid) {
 					sig_atomic_t cmd = NSD_RELOAD_DONE;
-#ifdef BIND8_STATS
 					pid_t mypid;
-#endif
 					log_msg(LOG_WARNING,
 					       "Reload process %d failed with status %d, continuing with old database",
 					       (int) child_pid, status);
@@ -1310,13 +1324,11 @@ server_main(struct nsd *nsd)
 						  "sending SOAEND to xfrd: %s",
 						  strerror(errno));
 					}
-#ifdef BIND8_STATS
 					mypid = getpid();
 					if(!write_socket(nsd->xfrd_listener->fd, &mypid,  sizeof(mypid))) {
 						log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
 							strerror(errno));
 					}
-#endif
 				} else {
 					log_msg(LOG_WARNING,
 					       "Unknown child %d terminated with status %d",

@@ -189,6 +189,12 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		xfrd_soa_t incoming_soa;
 		time_t incoming_acquired;
 
+		if(nsd.signal_hint_shutdown) {
+			fclose(in);
+			region_destroy(tempregion);
+			return;
+		}
+
 		memset(&soa_nsd_read, 0, sizeof(soa_nsd_read));
 		memset(&soa_disk_read, 0, sizeof(soa_disk_read));
 		memset(&soa_notified_read, 0, sizeof(soa_notified_read));

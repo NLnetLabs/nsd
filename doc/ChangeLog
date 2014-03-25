@@ -1,3 +1,6 @@
+25 March 2014: Wouter
+	- nsd shuts down during init process if given signal.
+
 24 March 2014: Wouter
 	- include: "foo/nsd.d/*.conf" works, wildcard glob on includes.
 	- Fix print filename of encompassing config file on read failure.

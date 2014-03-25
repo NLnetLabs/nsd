@@ -224,6 +224,8 @@ struct	nsd
 	struct nsd_options* options;
 };
 
+extern struct nsd nsd;
+
 /* nsd.c */
 pid_t readpid(const char *file);
 int writepid(struct nsd *nsd);

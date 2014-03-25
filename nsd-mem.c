@@ -26,6 +26,7 @@
 #include "util.h"
 
 static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
+struct nsd nsd;
 
 /*
  * Print the help text.

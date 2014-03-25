@@ -50,7 +50,7 @@ static void xfrd_shutdown(void);
 /* delete pending task xfr files in tmp */
 static void xfrd_clean_pending_tasks(struct nsd* nsd, udb_base* u);
 /* create zone rbtree at start */
-static void xfrd_init_zones();
+static void xfrd_init_zones(void);
 /* initial handshake with SOAINFO from main and send expire to main */
 static void xfrd_receive_soa(int socket, int shortsoa);
 
@@ -110,7 +110,8 @@ xfrd_sigsetup(int sig)
 }
 
 void
-xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
+xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
+	pid_t nsd_pid)
 {
 	region_type* region;
 
@@ -130,14 +131,6 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 		exit(1);
 	}
 	xfrd->nsd = nsd;
-	xfrd_sigsetup(SIGHUP);
-	xfrd_sigsetup(SIGTERM);
-	xfrd_sigsetup(SIGQUIT);
-	xfrd_sigsetup(SIGCHLD);
-	xfrd_sigsetup(SIGALRM);
-	xfrd_sigsetup(SIGILL);
-	xfrd_sigsetup(SIGUSR1);
-	xfrd_sigsetup(SIGINT);
 	xfrd->packet = buffer_create(xfrd->region, QIOBUFSZ);
 	xfrd->udp_waiting_first = NULL;
 	xfrd->udp_waiting_last = NULL;
@@ -155,7 +148,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 	xfrd->reload_timeout.tv_sec = 0;
 	xfrd->reload_cmd_last_sent = xfrd->xfrd_start_time;
 	xfrd->can_send_reload = !reload_active;
-	xfrd->reload_pid = -1;
+	xfrd->reload_pid = nsd_pid;
 
 	xfrd->ipc_send_blocked = 0;
 	event_set(&xfrd->ipc_handler, socket, EV_PERSIST|EV_READ,
@@ -196,6 +189,25 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 	xfrd_receive_soa(socket, shortsoa);
 	if(nsd->options->xfrdfile != NULL && nsd->options->xfrdfile[0]!=0)
 		xfrd_read_state(xfrd);
+	
+	/* did we get killed before startup was successful? */
+	if(nsd->signal_hint_shutdown) {
+		kill(nsd_pid, SIGTERM);
+		xfrd_shutdown();
+		return;
+	}
+
+	/* init libevent signals now, so that in the previous init scripts
+	 * the normal sighandler is called, and can set nsd->signal_hint..
+	 * these are also looked at in sig_process before we run the main loop*/
+	xfrd_sigsetup(SIGHUP);
+	xfrd_sigsetup(SIGTERM);
+	xfrd_sigsetup(SIGQUIT);
+	xfrd_sigsetup(SIGCHLD);
+	xfrd_sigsetup(SIGALRM);
+	xfrd_sigsetup(SIGILL);
+	xfrd_sigsetup(SIGUSR1);
+	xfrd_sigsetup(SIGINT);
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd startup"));
 	xfrd_main();
@@ -497,7 +509,7 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 	xfrd_handle_incoming_soa(zone, soa_ptr, xfrd_time());
 }
 
-void
+static void
 xfrd_receive_soa(int socket, int shortsoa)
 {
 	sig_atomic_t cmd;
@@ -525,17 +537,17 @@ xfrd_receive_soa(int socket, int shortsoa)
 	}
 
 	/* receive RELOAD_DONE to get SOAINFO tasklist */
-	if(block_read(NULL, socket, &cmd, sizeof(cmd), -1) != sizeof(cmd) ||
+	if(block_read(&nsd, socket, &cmd, sizeof(cmd), -1) != sizeof(cmd) ||
 		cmd != NSD_RELOAD_DONE) {
+		if(nsd.signal_hint_shutdown)
+			return;
 		log_msg(LOG_ERR, "did not get start signal from main");
 		exit(1);
 	}
-#ifdef BIND8_STATS
 	if(block_read(NULL, socket, &xfrd->reload_pid, sizeof(pid_t), -1)
 		!= sizeof(pid_t)) {
 		log_msg(LOG_ERR, "xfrd cannot get reload_pid");
 	}
-#endif /* BIND8_STATS */
 
 	/* process tasklist (SOAINFO data) */
 	udb_ptr_unlink(xfrd->last_task, xtask);
@@ -685,6 +697,8 @@ xfrd_set_timer_retry(xfrd_zone_t* zone)
 	/* set timer for next retry or expire timeout if earlier. */
 	if(zone->soa_disk_acquired == 0) {
 		/* if no information, use reasonable timeout */
+		if(zone->fresh_xfr_timeout == 0)
+			zone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_START;
 #ifdef HAVE_ARC4RANDOM
 		xfrd_set_timer(zone, zone->fresh_xfr_timeout
 			+ arc4random()%zone->fresh_xfr_timeout);

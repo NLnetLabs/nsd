@@ -362,6 +362,7 @@ read_zones(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 		udb_radix_next(udb, &n); /* store in case n is deleted */
 		read_zone(udb, db, opt, dname_region, &z);
 		udb_ptr_zero(&z, udb);
+		if(nsd.signal_hint_shutdown) break;
 	}
 	udb_ptr_unlink(&ztree, udb);
 	udb_ptr_unlink(&n, udb);
@@ -654,5 +655,6 @@ void namedb_check_zonefiles(struct nsd* nsd, nsd_options_t* opt,
 	/* check all zones in opt, create if not exist in main db */
 	RBTREE_FOR(zo, zone_options_t*, opt->zone_options) {
 		namedb_check_zonefile(nsd, taskudb, last_task, zo);
+		if(nsd->signal_hint_shutdown) break;
 	}
 }
