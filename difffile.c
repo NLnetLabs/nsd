@@ -235,6 +235,28 @@ has_data_below(domain_type* top)
 	return 0;
 }
 
+/** check if domain with 0 rrsets has become empty (nonexist) */
+static void
+rrset_zero_nonexist_check(domain_type* domain)
+{
+	/* is the node now an empty node (completely deleted) */
+	if(domain->rrsets == 0) {
+		/* if there is no data below it, it becomes non existing.
+		   also empty nonterminals above it become nonexisting */
+		/* check for data below this node. */
+		if(!has_data_below(domain)) {
+			/* nonexist this domain and all parent empty nonterminals */
+			domain_type* p = domain;
+			while(p != NULL && p->rrsets == 0) {
+				if(has_data_below(p))
+					break;
+				p->is_existing = 0;
+				p = p->parent;
+			}
+		}
+	}
+}
+
 /** remove rrset.  Adjusts zone params.  Does not remove domain */
 static void
 rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
@@ -277,23 +299,6 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 		sizeof(rr_type) * rrset->rr_count);
 	rrset->rr_count = 0;
 	region_recycle(db->region, rrset, sizeof(rrset_type));
-
-	/* is the node now an empty node (completely deleted) */
-	if(domain->rrsets == 0) {
-		/* if there is no data below it, it becomes non existing.
-		   also empty nonterminals above it become nonexisting */
-		/* check for data below this node. */
-		if(!has_data_below(domain)) {
-			/* nonexist this domain and all parent empty nonterminals */
-			domain_type* p = domain;
-			while(p != NULL && p->rrsets == 0) {
-				if(has_data_below(p))
-					break;
-				p->is_existing = 0;
-				p = p->parent;
-			}
-		}
-	}
 }
 
 static int
@@ -672,6 +677,8 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
 			rrset_delete(db, domain, rrset);
+			/* check if domain is now nonexisting (or parents) */
+			rrset_zero_nonexist_check(domain);
 #ifdef NSEC3
 			/* cleanup nsec3 */
 			nsec3_delete_rrset_trigger(db, domain, zone, type);
@@ -879,6 +886,7 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 {
 	rrset_type *rrset;
 	domain_type *domain = zone->apex, *next;
+	int nonexist_check = 0;
 	/* go through entire tree below the zone apex (incl subzones) */
 	while(domain && domain_is_subdomain(domain, zone->apex))
 	{
@@ -890,6 +898,9 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 			rrset_lower_usage(db, rrset);
 			/* rrset del does not delete our domain(yet) */
 			rrset_delete(db, domain, rrset);
+			/* no rrset_zero_nonexist_check, do that later */
+			if(domain->rrsets == 0)
+				nonexist_check = 1;
 		}
 		/* the delete upcoming could delete parents, but nothing next
 		 * or after the domain so store next ptr */
@@ -897,6 +908,23 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 		/* see if the domain can be deleted (and inspect parents) */
 		domain_table_deldomain(db, domain);
 		domain = next;
+	}
+
+	/* check if data deleteions have created nonexisting domain entries,
+	 * but after deleting domains so the checks are faster */
+	if(nonexist_check) {
+		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "axfrdel: zero rrset check"));
+		domain = zone->apex;
+		while(domain && domain_is_subdomain(domain, zone->apex))
+		{
+			/* the interesting domains should be existing==1
+			 * and rrsets==0, speeding up out processing of
+			 * sub-zones, since we only spuriously check empty
+			 * nonterminals */
+			if(domain->is_existing)
+				rrset_zero_nonexist_check(domain);
+			domain = domain_next(domain);
+		}
 	}
 
 	DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "axfrdel: recyclebin holds %lu bytes",

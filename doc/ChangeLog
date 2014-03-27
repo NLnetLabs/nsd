@@ -1,6 +1,8 @@
 27 March 2014: Wouter
 	- Fix delete or rename of a lot of zones and make it take a
 	  non-enormous time.  Database compaction is deferred.
+	- Speed up deletion of zone contents a lot, (56s to 1s), speeds up
+	  delete, rename and AXFR for zones.  Defer emptynonterminal checks.
 
 25 March 2014: Wouter
 	- nsd shuts down during init process if given signal.

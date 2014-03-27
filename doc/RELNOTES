@@ -23,6 +23,8 @@ BUG FIXES:
 	- Fix print filename of encompassing config file on read failure.
 	- Fix delete or rename of a lot of zones and make it take a
 	  non-enormous time.
+	- Speed up deletion of zone contents a lot, (56s to 1s), speeds up
+	  delete, rename and AXFR for zones.
 
 
 4.0.3
