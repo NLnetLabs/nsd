@@ -1123,7 +1123,10 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* see what tasks we got from xfrd */
 	task_remap(nsd->task[nsd->mytask]);
 	udb_ptr_init(&last_task, nsd->task[nsd->mytask]);
+	udb_compact_inhibited(nsd->db->udb, 1);
 	reload_process_tasks(nsd, &last_task, cmdsocket);
+	udb_compact_inhibited(nsd->db->udb, 0);
+	udb_compact(nsd->db->udb);
 
 #ifndef NDEBUG
 	if(nsd_debug_level >= 1)

@@ -21,6 +21,8 @@ BUG FIXES:
 	  message.
 	- Changed maxbackoff for no-content secondary zones from 4h to 24h.
 	- Fix print filename of encompassing config file on read failure.
+	- Fix delete or rename of a lot of zones and make it take a
+	  non-enormous time.
 
 
 4.0.3

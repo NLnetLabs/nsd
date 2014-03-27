@@ -902,7 +902,7 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 	DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "axfrdel: recyclebin holds %lu bytes",
 		(unsigned long) region_get_recycle_size(db->region)));
 #ifndef NDEBUG
-	if(nsd_debug_level >= 1)
+	if(nsd_debug_level >= 2)
 		region_log_stats(db->region);
 #endif
 

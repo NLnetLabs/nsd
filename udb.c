@@ -1545,7 +1545,7 @@ coagulate_and_push(void* base, udb_alloc* alloc, udb_void last, int exp,
 }
 
 /** attempt to compact the data and move free space to the end */
-static int
+int
 udb_alloc_compact(void* base, udb_alloc* alloc)
 {
 	udb_void last;
@@ -1554,6 +1554,9 @@ udb_alloc_compact(void* base, udb_alloc* alloc)
 	uint64_t at = alloc->disk->nextgrow;
 	udb_void xl_start = 0;
 	uint64_t xl_sz = 0;
+	if(alloc->udb->inhibit_compact)
+		return 1;
+	alloc->udb->useful_compact = 0;
 	while(at > alloc->udb->glob_data->hsize) {
 		/* grab last entry */
 		exp = (int)*((uint8_t*)UDB_REL(base, at-1));
@@ -1671,6 +1674,21 @@ udb_alloc_compact(void* base, udb_alloc* alloc)
 	return 1;
 }
 
+int
+udb_compact(udb_base* udb)
+{
+	if(!udb) return 1;
+	if(!udb->useful_compact) return 1;
+	DEBUG(DEBUG_DBACCESS, 1, (LOG_INFO, "Compacting database..."));
+	return udb_alloc_compact(udb->base, udb->alloc);
+}
+
+void udb_compact_inhibited(udb_base* udb, int inhibit)
+{
+	if(!udb) return;
+	udb->inhibit_compact = inhibit;
+}
+
 #ifdef UDB_CHECK
 /** check that rptrs are really zero before free */
 void udb_check_rptr_zero(void* base, udb_rel_ptr* p, void* arg)
@@ -1747,6 +1765,10 @@ int udb_alloc_free(udb_alloc* alloc, udb_void r, size_t sz)
 	if(fp->exp == UDB_EXP_XL) {
 		udb_free_xl(base, alloc, f, (udb_xl_chunk_d*)fp, sz);
 		/* compact */
+		if(alloc->udb->inhibit_compact) {
+			alloc->udb->useful_compact = 1;
+			return 1;
+		}
 		return udb_alloc_compact(base, alloc);
 	}
 	/* it is a regular chunk of 2**exp size */
@@ -1790,6 +1812,10 @@ int udb_alloc_free(udb_alloc* alloc, udb_void r, size_t sz)
 	}
 	alloc->udb->glob_data->dirty_alloc = udb_dirty_clean;
 	/* compact */
+	if(alloc->udb->inhibit_compact) {
+		alloc->udb->useful_compact = 1;
+		return 1;
+	}
 	return udb_alloc_compact(base, alloc);
 }
 
