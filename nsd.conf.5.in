@@ -15,7 +15,8 @@ values. Some attributes have attributes inside them. The notation
 is: attribute: value. 
 .PP
 Comments start with # and last to the end of line. Empty lines are
-ignored as is whitespace at the beginning of a line.
+ignored as is whitespace at the beginning of a line. Quotes can be used,
+for names with spaces, eg. "file name.zone".
 .PP
 .B Nsd.conf
 specifies options for the nsd server, zone files, primaries and 
@@ -31,7 +32,10 @@ An example of a short nsd.conf file is below.
 .TP
 server:
 .RS 5
-database: "@dbfile@"
+server-count: 1 # use this number of cpu cores
+.RE
+.RS 5
+database: ""  # or use "@dbfile@"
 .RE
 .RS 5
 zonelistfile: "@zonelistfile@"
@@ -54,11 +58,45 @@ zone:
 name: example.com
 .RE
 .RS 5
-# note that quotes are optional on the value
-.RE
-.RS 5
 zonefile: @configdir@/example.com.zone 
 .RE
+.TP
+zone:
+.RS 5
+# this server is master, 192.0.2.1 is the secondary.
+.RE
+.RS 5
+name: masterzone.com
+.RE
+.RS 5
+zonefile: @configdir@/masterzone.com.zone 
+.RE
+.RS 5
+notify: 192.0.2.1 NOKEY
+.RE
+.RS 5
+provide-xfr: 192.0.2.1 NOKEY
+.RE
+.TP
+zone:
+.RS 5
+# this server is secondary, 192.0.2.2 is master.
+.RE
+.RS 5
+name: secondzone.com
+.RE
+.RS 5
+zonefile: @configdir@/secondzone.com.zone 
+.RE
+.RS 5
+allow-notify: 192.0.2.2 NOKEY
+.RE
+.RS 5
+request-xfr: 192.0.2.2 NOKEY
+.RE
+.LP
+Then, use kill \-HUP to reload changes from master zone files.
+And use kill \-TERM to stop the server.
 .SH "FILE FORMAT"
 There must be whitespace between keywords. Attribute keywords end 
 with a colon ':'. An attribute is followed by its containing 

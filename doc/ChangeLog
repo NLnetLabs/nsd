@@ -3,6 +3,7 @@
 	  non-enormous time.  Database compaction is deferred.
 	- Speed up deletion of zone contents a lot, (56s to 1s), speeds up
 	  delete, rename and AXFR for zones.  Defer emptynonterminal checks.
+	- Better example config in nsd.conf manual page.
 
 25 March 2014: Wouter
 	- nsd shuts down during init process if given signal.
