@@ -66,7 +66,7 @@ extern config_parser_state_t* cfg_parser;
 %token VAR_RRL_SIZE VAR_RRL_RATELIMIT VAR_RRL_SLIP 
 %token VAR_RRL_IPV4_PREFIX_LENGTH VAR_RRL_IPV6_PREFIX_LENGTH
 %token VAR_RRL_WHITELIST_RATELIMIT VAR_RRL_WHITELIST
-%token VAR_ZONEFILES_CHECK VAR_ZONEFILES_WRITE
+%token VAR_ZONEFILES_CHECK VAR_ZONEFILES_WRITE VAR_LOG_TIME_ASCII
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -95,7 +95,7 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_rrl_size | server_rrl_ratelimit | server_rrl_slip | 
 	server_rrl_ipv4_prefix_length | server_rrl_ipv6_prefix_length | server_rrl_whitelist_ratelimit |
 	server_zonefiles_check | server_do_ip4 | server_do_ip6 |
-	server_zonefiles_write;
+	server_zonefiles_write | server_log_time_ascii;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -233,6 +233,17 @@ server_logfile: VAR_LOGFILE STRING
 	{ 
 		OUTYY(("P(server_logfile:%s)\n", $2)); 
 		cfg_parser->opt->logfile = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+server_log_time_ascii: VAR_LOG_TIME_ASCII STRING 
+	{ 
+		OUTYY(("P(server_log_time_ascii:%s)\n", $2)); 
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else {
+			cfg_parser->opt->log_time_ascii = (strcmp($2, "yes")==0);
+			log_time_asc = cfg_parser->opt->log_time_ascii;
+		}
 	}
 	;
 server_server_count: VAR_SERVER_COUNT STRING

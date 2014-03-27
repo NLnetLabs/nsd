@@ -4,6 +4,7 @@
 	- Speed up deletion of zone contents a lot, (56s to 1s), speeds up
 	  delete, rename and AXFR for zones.  Defer emptynonterminal checks.
 	- Better example config in nsd.conf manual page.
+	- log-time-ascii option, default yes, with readable timestamp in log.
 
 25 March 2014: Wouter
 	- nsd shuts down during init process if given signal.

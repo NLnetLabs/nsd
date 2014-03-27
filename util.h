@@ -249,6 +249,8 @@ extern int nsd_debug_level;
 	} while (0)
 #endif
 
+/* set to true to log time prettyprinted, or false to print epoch */
+extern int log_time_asc;
 
 /*
  * Timespec functions.

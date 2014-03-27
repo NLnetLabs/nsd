@@ -53,6 +53,7 @@ nsd_options_create(region_type* region)
 	opt->identity = 0;
 	opt->nsid = 0;
 	opt->logfile = 0;
+	opt->log_time_ascii = 1;
 	opt->server_count = 1;
 	opt->tcp_count = 100;
 	opt->tcp_query_count = 0;

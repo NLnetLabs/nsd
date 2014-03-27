@@ -51,6 +51,7 @@ int verbosity = 0;
 static const char *global_ident = NULL;
 static log_function_type *current_log_function = log_file;
 static FILE *current_log_file = NULL;
+int log_time_asc = 1;
 
 void
 log_init(const char *ident)
@@ -135,7 +136,24 @@ log_file(int priority, const char *message)
 	}
 
 	/* Bug #104, add time_t timestamp */
-	fprintf(current_log_file, "[%d] %s[%d]: %s: %s",
+#if defined(HAVE_STRFTIME) && defined(HAVE_LOCALTIME_R)
+	if(log_time_asc) {
+		struct timeval tv;
+		char tmbuf[32];
+		tmbuf[0]=0;
+		tv.tv_usec = 0;
+		if(gettimeofday(&tv, NULL) == 0) {
+			struct tm tm;
+			time_t now = (time_t)tv.tv_sec;
+			strftime(tmbuf, sizeof(tmbuf), "%Y-%m-%d %H:%M:%S",
+				localtime_r(&now, &tm));
+		}
+		fprintf(current_log_file, "[%s.%3.3d] %s[%d]: %s: %s",
+			tmbuf, (int)tv.tv_usec/1000,
+			global_ident, (int) getpid(), priority_text, message);
+ 	} else
+#endif /* have time functions */
+		fprintf(current_log_file, "[%d] %s[%d]: %s: %s",
 		(int)time(NULL), global_ident, (int) getpid(), priority_text, message);
 	length = strlen(message);
 	if (length == 0 || message[length - 1] != '\n') {

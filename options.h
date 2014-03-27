@@ -81,6 +81,7 @@ struct nsd_options {
 	int xfrd_reload_timeout;
 	int zonefiles_check;
 	int zonefiles_write;
+	int log_time_ascii;
 
         /** remote control section. enable toggle. */
 	int control_enable;

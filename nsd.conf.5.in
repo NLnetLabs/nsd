@@ -307,6 +307,11 @@ zone transfers. 2 lists soft warnings that are encountered.
 Prevent NSD from replying with the version string on CHAOS class 
 queries.
 .TP
+.B log\-time\-ascii:\fR <yes or no>
+Log time in ascii, if "no" then in seconds epoch.  Default is yes.
+This chooses the format when logging to file.  The printout via syslog
+has a timestamp formatted by syslog.
+.TP
 .B zonefiles\-check:\fR <yes or no>
 Make NSD check the mtime of zone files on start and sighup.  If you
 disable it it starts faster (less disk activity in case of a lot of zones).
