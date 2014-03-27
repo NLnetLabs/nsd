@@ -161,7 +161,9 @@ If none are given NSD listens to the wildcard interface. Same as commandline opt
 Same as ip\-address (for easy of compatibility with unbound.conf).
 .TP
 .B ip\-transparent:\fR <yes or no>
-Allows NSD to bind to non local addresses. Default is no.
+Allows NSD to bind to non local addresses. This is useful to have NSD
+listen to IP addresses that are not (yet) added to the network interface, so
+that it can answer immediately when the address is added. Default is no.
 .TP
 .B debug\-mode:\fR <yes or no>
 Turns on debugging mode for nsd, does not fork a daemon process. 
