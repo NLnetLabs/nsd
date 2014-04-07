@@ -26,6 +26,8 @@ BUG FIXES:
 	  non-enormous time.
 	- Speed up deletion of zone contents a lot, (56s to 1s), speeds up
 	  delete, rename and AXFR for zones.
+	- Fix #571: unused variable and incompatible pointer warnings when
+	  compiled on a system without INET6.
 
 
 4.0.3

@@ -161,6 +161,8 @@ static const char* rrlsource2str(uint64_t s, uint16_t c2)
 		}
 		return buf;
 	}
+#else
+	(void)c2;
 #endif
 	/* ipv4 */
 	a4.s_addr = (uint32_t)s;

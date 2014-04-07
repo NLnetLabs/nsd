@@ -512,7 +512,11 @@ static void
 remote_accept_callback(int fd, short event, void* arg)
 {
 	struct daemon_remote *rc = (struct daemon_remote*)arg;
+#ifdef INET6
 	struct sockaddr_storage addr;
+#else
+	struct sockaddr_in addr;
+#endif
 	socklen_t addrlen;
 	int newfd;
 	struct rc_state* n;
