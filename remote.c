@@ -1085,6 +1085,7 @@ do_stats(struct daemon_remote* rc, int peek, struct rc_state* rs)
 static void
 do_addzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 {
+	const dname_type* dname;
 	zone_options_t* zopt;
 	char* arg2 = NULL;
 	if(!find_arg2(ssl, arg, &arg2))
@@ -1100,9 +1101,27 @@ do_addzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 
 	/* check that the pattern exists */
 	if(!rbtree_search(xfrd->nsd->options->patterns, arg2)) {
-		(void)ssl_printf(ssl, "error pattern does not exist\n");
+		(void)ssl_printf(ssl, "error pattern %s does not exist\n",
+			arg2);
 		return;
 	}
+
+	dname = dname_parse(xfrd->region, arg);
+	if(!dname) {
+		(void)ssl_printf(ssl, "error cannot parse zone name\n");
+		return;
+	}
+
+	/* see if zone is a duplicate */
+	if( (zopt=zone_options_find(xfrd->nsd->options, dname)) ) {
+		region_recycle(xfrd->region, (void*)dname,
+			dname_total_size(dname));
+		(void)ssl_printf(ssl, "zone %s already exists\n", arg);
+		send_ok(ssl); /* a nop operation */
+		return;
+	}
+	region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
+	dname = NULL;
 
 	/* add to zonelist and adds to config in memory */
 	zopt = zone_list_add(xfrd->nsd->options, arg, arg2);

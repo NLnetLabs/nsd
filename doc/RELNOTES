@@ -13,6 +13,7 @@ FEATURES:
 	- include: "foo/nsd.d/*.conf" works, wildcard glob on includes.
 	- nsd shuts down during init process if given signal.
 	- log-time-ascii option, default yes, with readable timestamp in log.
+	- nsd-control addzone reports if zone already exists.
 BUG FIXES:
 	- Fixed shutdown message sporadically not printed on exit
 	  (Thanks Anand Buddhdev).
