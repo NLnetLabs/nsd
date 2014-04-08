@@ -420,7 +420,7 @@ server_init(struct nsd *nsd)
 #  endif /* SO_RCVBUFFORCE */
 		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUF, (void*)&rcv,
 			 (socklen_t)sizeof(rcv)) < 0) {
-			if(errno != ENOBUFS) {
+			if(errno != ENOBUFS && errno != ENOSYS) {
 				log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, "
                                         "...) failed: %s", strerror(errno));
 				return -1;
@@ -443,7 +443,7 @@ server_init(struct nsd *nsd)
 #  endif /* SO_SNDBUFFORCE */
 		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUF, (void*)&snd,
 			 (socklen_t)sizeof(snd)) < 0) {
-			if(errno != ENOBUFS) {
+			if(errno != ENOBUFS && errno != ENOSYS) {
 				log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUF, "
                                         "...) failed: %s", strerror(errno));
 				return -1;
