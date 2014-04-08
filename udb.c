@@ -301,7 +301,9 @@ udb_base_shrink(udb_base* udb, uint64_t nsize)
 	udb->glob_data->fsize = nsize;
 	/* sync, does not *seem* to be required on Linux, but it is
 	   certainly required on OpenBSD.  Otherwise changed data is lost. */
+#ifdef HAVE_MMAP
 	msync(udb->base, udb->base_size, MS_ASYNC);
+#endif
 	if(ftruncate(udb->fd, (off_t)nsize) != 0) {
 		log_msg(LOG_ERR, "%s: ftruncate(%u) %s", udb->fname,
 			(unsigned)nsize, strerror(errno));
@@ -324,9 +326,11 @@ void udb_base_close(udb_base* udb)
 		udb->fd = -1;
 	}
 	if(udb->base) {
+#ifdef HAVE_MMAP
 		if(munmap(udb->base, udb->base_size) == -1) {
 			log_msg(LOG_ERR, "munmap: %s", strerror(errno));
 		}
+#endif
 		udb->base = NULL;
 	}
 }
