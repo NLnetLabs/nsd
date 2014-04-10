@@ -1,3 +1,6 @@
+10 April 2014: Wouter
+	- Fix write_socket return value check in server.c (Thanks Brad Smith).
+
 8 April 2014: Wouter
 	- nsd-control addzone reports if zone already exists.
 

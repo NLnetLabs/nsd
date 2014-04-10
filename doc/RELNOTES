@@ -29,6 +29,7 @@ BUG FIXES:
 	  delete, rename and AXFR for zones.
 	- Fix #571: unused variable and incompatible pointer warnings when
 	  compiled on a system without INET6.
+	- Fix write_socket return value check in server.c (Thanks Brad Smith).
 
 
 4.0.3
