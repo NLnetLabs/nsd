@@ -574,7 +574,7 @@ nsec3_precompile_newparam(namedb_type* db, zone_type* zone)
 	region_type* tmpregion = region_create(xalloc, free);
 	domain_type* walk;
 	time_t s = time(NULL);
-	unsigned n = 0, c = 0;
+	unsigned long n = 0, c = 0;
 
 	/* add nsec3s of chain to nsec3tree */
 	for(walk=zone->apex; walk && domain_is_subdomain(walk, zone->apex);
@@ -596,7 +596,8 @@ nsec3_precompile_newparam(namedb_type* db, zone_type* zone)
 		if(++c % ZONEC_PCT_COUNT == 0 && time(NULL) > s + ZONEC_PCT_TIME) {
 			s = time(NULL);
 			VERBOSITY(1, (LOG_INFO, "nsec3 %s %d %%",
-				zone->opts->name, c*100/n));
+				zone->opts->name,
+				(int)(c*((unsigned long)100)/n)));
 		}
 	}
 	region_destroy(tmpregion);

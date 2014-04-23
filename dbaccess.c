@@ -32,8 +32,8 @@
 #include "nsd.h"
 
 static time_t udb_time = 0;
-static unsigned udb_rrsets = 0;
-static unsigned udb_rrset_count = 0;
+static unsigned long udb_rrsets = 0;
+static unsigned long udb_rrset_count = 0;
 
 void
 namedb_close(struct namedb* db)
@@ -193,7 +193,8 @@ static void read_node_elem(udb_base* udb, namedb_type* db,
 		if(++udb_rrsets % ZONEC_PCT_COUNT == 0 && time(NULL) > udb_time + ZONEC_PCT_TIME) {
 			udb_time = time(NULL);
 			VERBOSITY(1, (LOG_INFO, "read %s %d %%",
-				zone->opts->name, udb_rrsets*100/udb_rrset_count));
+				zone->opts->name,
+				(int)(udb_rrsets*((unsigned long)100)/udb_rrset_count)));
 		}
 	}
 	region_free_all(dname_region);

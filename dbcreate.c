@@ -116,7 +116,7 @@ write_zone(udb_base* udb, udb_ptr* z, zone_type* zone)
 	/* write all domains in the zone */
 	domain_type* walk;
 	rrset_type* rrset;
-	int n = 0, c = 0;
+	unsigned long n = 0, c = 0;
 	time_t t = time(NULL);
 
 	/* count domains: for pct logging */
@@ -138,7 +138,7 @@ write_zone(udb_base* udb, udb_ptr* z, zone_type* zone)
 		if(++c % ZONEC_PCT_COUNT == 0 && time(NULL) > t + ZONEC_PCT_TIME) {
 			t = time(NULL);
 			VERBOSITY(1, (LOG_INFO, "write %s %d %%",
-				zone->opts->name, c*100/n));
+				zone->opts->name, (int)(c*((unsigned long)100)/n)));
 		}
 	}
 	return 1;

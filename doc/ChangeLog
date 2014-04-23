@@ -1,3 +1,6 @@
+23 April 2014: Wouter
+	- Fix progress printout for very large zones (numeric overflow).
+
 10 April 2014: Wouter
 	- Fix write_socket return value check in server.c (Thanks Brad Smith,
 	  Mark Kettenis).
