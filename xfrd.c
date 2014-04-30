@@ -234,6 +234,9 @@ xfrd_process_activated(void)
 static void
 xfrd_sig_process(void)
 {
+	int status;
+	pid_t child_pid;
+
 	if(xfrd->nsd->signal_hint_quit || xfrd->nsd->signal_hint_shutdown) {
 		xfrd->nsd->signal_hint_quit = 0;
 		xfrd->nsd->signal_hint_shutdown = 0;
@@ -255,15 +258,14 @@ xfrd_sig_process(void)
 		if(!(xfrd->ipc_handler_flags&EV_WRITE)) {
 			ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ|EV_WRITE);
 		}
-	} else if(xfrd->nsd->signal_hint_child) {
-		int status;
-		pid_t child_pid;
-		xfrd->nsd->signal_hint_child = 0;
-		while((child_pid = waitpid(0, &status, WNOHANG)) != -1 && child_pid != 0) {
-			if(status != 0) {
-				log_msg(LOG_ERR, "process serverparent %d exited with status %d",
-					(int)child_pid, status);
-			}
+	} 
+
+	/* collect children that exited. */
+	xfrd->nsd->signal_hint_child = 0;
+	while((child_pid = waitpid(0, &status, WNOHANG)) != -1 && child_pid != 0) {
+		if(status != 0) {
+			log_msg(LOG_ERR, "process serverparent %d exited with status %d",
+				(int)child_pid, status);
 		}
 	}
 }

@@ -1,3 +1,8 @@
+30 April 2014: Wouter
+	- Fix that xfrd reaps all children on every eventloop, because some
+	  exited reloads may attach here and need reaping, also if the signal
+	  is lost.
+
 23 April 2014: Wouter
 	- Fix progress printout for very large zones (numeric overflow).
 
