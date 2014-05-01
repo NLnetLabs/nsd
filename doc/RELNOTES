@@ -31,6 +31,9 @@ BUG FIXES:
 	  compiled on a system without INET6.
 	- Fix write_socket return value check in server.c (Thanks Brad Smith,
 	  Mark Kettenis).
+	- Fix that xfrd reaps all children on every eventloop, because some
+	  exited reloads may attach here and need reaping, also if the signal
+	  is lost.
 
 
 4.0.3
