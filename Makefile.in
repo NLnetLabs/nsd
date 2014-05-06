@@ -42,6 +42,7 @@ INSTALL		= $(srcdir)/install-sh -c
 INSTALL_PROGRAM	= $(INSTALL)
 INSTALL_DATA	= $(INSTALL) -m 644
 
+PROTOC_C	= @PROTOC_C@
 YACC		= @YACC@
 LEX		= @LEX@
 
@@ -81,6 +82,7 @@ ALL_OBJECTS	=			\
 	dname.o				\
 	dns.o				\
 	dnstap.o			\
+	dnstap.pb-c.o			\
 	edns.o				\
 	ipc.o				\
 	iterated_hash.o			\
@@ -124,6 +126,7 @@ NSD_OBJECTS	=				\
 	dname.o					\
 	dns.o					\
 	dnstap.o				\
+	dnstap.pb-c.o				\
 	edns.o					\
 	ipc.o					\
 	iterated_hash.o				\
@@ -159,6 +162,7 @@ ZONEC_OBJECTS	=				\
 	dname.o					\
 	dns.o					\
 	dnstap.o				\
+	dnstap.pb-c.o				\
 	edns.o					\
 	iterated_hash.o				\
 	lookup3.o				\
@@ -188,6 +192,7 @@ NSD_NOTIFY_OBJECTS	=			\
 	dname.o					\
 	dns.o					\
 	dnstap.o				\
+	dnstap.pb-c.o				\
 	edns.o					\
 	iterated_hash.o				\
 	lookup3.o				\
@@ -215,6 +220,7 @@ NSD_DNSTAP_OBJECTS	=			\
 	dname.o					\
 	dns.o					\
 	dnstap.o				\
+	dnstap.pb-c.o				\
 	edns.o					\
 	iterated_hash.o				\
 	lookup3.o				\
@@ -242,6 +248,7 @@ NSD_XFER_OBJECTS	=			\
 	dname.o					\
 	dns.o					\
 	dnstap.o				\
+	dnstap.pb-c.o				\
 	edns.o					\
 	iterated_hash.o				\
 	lookup3.o				\
@@ -269,6 +276,7 @@ NSD_CHECKCONF_OBJECTS	=			\
 	dname.o                                 \
 	dns.o                                   \
 	dnstap.o				\
+	dnstap.pb-c.o				\
 	edns.o					\
 	iterated_hash.o				\
 	lookup3.o				\
@@ -298,6 +306,7 @@ NSD_PATCH_OBJECTS	=			\
 	dname.o                                 \
 	dns.o                                   \
 	dnstap.o				\
+	dnstap.pb-c.o				\
 	edns.o					\
 	iterated_hash.o				\
 	lookup3.o				\
@@ -328,6 +337,7 @@ CUTEST_OBJECTS		=			\
 	dname.o					\
 	dns.o					\
 	dnstap.o				\
+	dnstap.pb-c.o				\
 	edns.o					\
 	ipc.o					\
 	iterated_hash.o				\
@@ -576,6 +586,11 @@ zlexer.c:	$(srcdir)/zlexer.lex
 zparser.c zparser.h: $(srcdir)/zparser.y
 	$(YACC) -d -o zparser.c $(srcdir)/zparser.y
 
+dnstap.pb-c.c dnstap.pb-c.h: $(srcdir)/dnstap.proto
+	$(PROTOC_C) --c_out=. $(srcdir)/dnstap.proto
+
+dnstap.pb-c.o: $(srcdir)/dnstap.pb-c.c $(srcdir)/dnstap.pb-c.h
+
 configlexer.c:	$(srcdir)/configlexer.lex
 	rm -f $@
 	echo '#include "configyyrename.h"' > $@
@@ -668,7 +683,7 @@ nsd-xfer.o: $(srcdir)/nsd-xfer.c config.h $(srcdir)/dname.h $(srcdir)/buffer.h $
  $(srcdir)/util.h config.h $(srcdir)/dns.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/rbtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h \
  $(srcdir)/tsig.h $(srcdir)/tsig-openssl.h
 nsd-dnstap.o: $(srcdir)/nsd-dnstap.c config.h $(srcdir)/util.h $(srcdir)/dname.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dns.h $(srcdir)/rbtree.h \
- $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/nsd.h $(srcdir)/buffer.h $(srcdir)/packet.h
+ $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/nsd.h $(srcdir)/buffer.h $(srcdir)/packet.h $(srcdir)/dnstap.pb-c.c $(srcdir)/dnstap.pb-c.h
 nsec3.o: $(srcdir)/nsec3.c config.h $(srcdir)/nsec3.h $(srcdir)/iterated_hash.h $(srcdir)/namedb.h \
  $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h \
  $(srcdir)/answer.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/tsig.h
@@ -691,8 +706,8 @@ rrl.o: $(srcdir)/rrl.c config.h $(srcdir)/rrl.h $(srcdir)/query.h $(srcdir)/name
 rrl-orig.o: $(srcdir)/rrl-orig.c config.h $(srcdir)/rrl.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h \
  $(srcdir)/lookup3.h $(srcdir)/options.h
-dnstap.o: $(srcdir)/dnstap.c config.h $(srcdir)/dnstap.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/util.h \
- $(srcdir)/lookup3.h $(srcdir)/options.h
+dnstap.o: $(srcdir)/dnstap.c config.h $(srcdir)/dnstap.h $(srcdir)/dnstap.pb-c.c $(srcdir)/dnstap.pb-c.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/util.h \
+ $(srcdir)/lookup3.h $(srcdir)/options.h $(srcdir)/dnstap.pb-c.c $(srcdir)/dnstap.pb-c.h
 server.o: $(srcdir)/server.c config.h $(srcdir)/axfr.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/rbtree.h $(srcdir)/packet.h \
  $(srcdir)/tsig.h $(srcdir)/netio.h $(srcdir)/xfrd.h $(srcdir)/options.h $(srcdir)/xfrd-tcp.h $(srcdir)/difffile.h $(srcdir)/nsec3.h config.h \

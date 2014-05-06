@@ -3,6 +3,8 @@ dnl Some global settings
 dnl
 
 sinclude(acx_nlnetlabs.m4)
+sinclude(acx_pkg.m4)
+sinclude(acx_dnstap.m4)
 
 AC_INIT(NSD,3.2.17,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
@@ -128,11 +130,11 @@ AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the NSD xfr
 AC_SUBST(xfrdfile)
 
 # default dnstap socket location.
-dnstapsock=${dbdir}/dnstap.sock
-AC_ARG_WITH([dnstapsock], AC_HELP_STRING([--with-dnstap-socket=path], 
-	[Pathname to the NSD dnstap socket]), [dnstapsock=$withval])
-AC_DEFINE_UNQUOTED(DNSTAPSOCK, ["`eval echo $dnstapsock`"], [Pathname to the NSD dnstap socket.])
-AC_SUBST(dnstapsock)
+#dnstapsock=${dbdir}/dnstap.sock
+#AC_ARG_WITH([dnstapsock], AC_HELP_STRING([--with-dnstap-socket=path], 
+#	[Pathname to the NSD dnstap socket]), [dnstapsock=$withval])
+#AC_DEFINE_UNQUOTED(DNSTAPSOCK, ["`eval echo $dnstapsock`"], [Pathname to the NSD dnstap socket.])
+#AC_SUBST(dnstapsock)
 
 #
 # Determine default chroot directory
@@ -619,17 +621,38 @@ case "$enable_ratelimit" in
 esac
 AC_SUBST(ratelimit)
 
-AC_ARG_ENABLE(dnstap, AC_HELP_STRING([--enable-dnstap], [Enable dnstap]))
-case "$enable_dnstap" in
-	yes)
-		AC_DEFINE_UNQUOTED([DNSTAP], [], [Define this to enable dnstap.])
-		dnl causes awk to not match the exclusion start marker.
-		dnstap="xx"
-		;;
-	no|*)
-		dnstap=""
-		;;
-esac
+
+# check for dnstap if requested
+dt_DNSTAP([$UNBOUND_RUN_DIR/dnstap.sock],
+    [
+        LIBS="$LIBS $DNSTAP_LIBS"
+        CFLAGS="$CFLAGS $DNSTAP_CFLAGS"
+        AC_DEFINE([DNSTAP], [1], [Define to 1 to enable dnstap support])
+        AC_SUBST([ENABLE_DNSTAP], [1])
+
+        AC_SUBST([opt_dnstap_socket_path])
+        ACX_ESCAPE_BACKSLASH($opt_dnstap_socket_path, hdr_dnstap_socket_path)
+        AC_DEFINE_UNQUOTED(DNSTAP_SOCKET_PATH,
+            ["$hdr_dnstap_socket_path"], [default dnstap socket path])
+    ],
+    [
+        AC_SUBST([ENABLE_DNSTAP], [0])
+    ]
+)
+
+
+#AC_ARG_ENABLE(dnstap, AC_HELP_STRING([--enable-dnstap], [Enable dnstap]))
+#case "$enable_dnstap" in
+#	yes)
+#		AC_DEFINE_UNQUOTED([DNSTAP], [], [Define this to enable dnstap.])
+#		dnl causes awk to not match the exclusion start marker.
+#		dnstap="xx"
+#		;;
+#	no|*)
+#		dnstap=""
+#		;;
+#esac
+
 AC_SUBST(dnstap)
 
 # we need SSL for TSIG (and maybe also for NSEC3).
