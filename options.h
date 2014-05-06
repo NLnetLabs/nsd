@@ -80,12 +80,14 @@ struct nsd_options {
 #endif
 
 #ifdef DNSTAP
-	int dnstap_enable;
-	int dnstap_identity;
-	int dnstap_version;
-	int dnstap_query;
-	int dnstap_response;
 	const char* dnstap_sockpath;
+	const char* dnstap_identity;
+	const char* dnstap_version;
+	int dnstap_enable;
+	int dnstap_send_ident;
+	int dnstap_send_version;
+	int dnstap_send_query;
+	int dnstap_send_response;
 #endif
 
 	region_type* region;

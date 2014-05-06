@@ -326,10 +326,12 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 #ifdef DNSTAP
 		SERV_GET_BIN(dnstap_enable, o);
 		SERV_GET_STR(dnstap_sockpath, o);
-		SERV_GET_BIN(dnstap_identity, o);
-		SERV_GET_BIN(dnstap_version, o);
-		SERV_GET_BIN(dnstap_query, o);
-		SERV_GET_BIN(dnstap_response, o);
+		SERV_GET_STR(dnstap_identity, o);
+		SERV_GET_STR(dnstap_version, o);
+		SERV_GET_BIN(dnstap_send_ident, o);
+		SERV_GET_BIN(dnstap_send_version, o);
+		SERV_GET_BIN(dnstap_send_query, o);
+		SERV_GET_BIN(dnstap_send_response, o);
 #endif
 
 		if(strcasecmp(o, "zones") == 0) {
@@ -391,10 +393,12 @@ config_test_print_server(nsd_options_t* opt)
 #ifdef DNSTAP
 	printf("\tdnstap-enable: %s\n", opt->dnstap_enable?"yes":"no");
 	printf("\tdnstap-socket-path: %s\n", opt->dnstap_sockpath);
-	printf("\tdnstap-send-identity: %s\n", opt->dnstap_identity?"yes":"no");
-	printf("\tdnstap-send-version: %s\n", opt->dnstap_version?"yes":"no");
-	printf("\tdnstap-log-query: %s\n", opt->dnstap_query?"yes":"no");
-	printf("\tdnstap-log-response: %s\n", opt->dnstap_response?"yes":"no");
+	printf("\tdnstap-identity: %s\n", opt->dnstap_identity);
+	printf("\tdnstap-version: %s\n", opt->dnstap_version);
+	printf("\tdnstap-send-identity: %s\n", opt->dnstap_send_ident?"yes":"no");
+	printf("\tdnstap-send-version: %s\n", opt->dnstap_send_version?"yes":"no");
+	printf("\tdnstap-log-query: %s\n", opt->dnstap_send_query?"yes":"no");
+	printf("\tdnstap-log-response: %s\n", opt->dnstap_send_response?"yes":"no");
 #endif
 
 	for(ip = opt->ip_addresses; ip; ip=ip->next)

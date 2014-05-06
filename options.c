@@ -76,11 +76,13 @@ nsd_options_t* nsd_options_create(region_type* region)
 
 #ifdef DNSTAP
 	opt->dnstap_enable = 0;
-	opt->dnstap_sockpath = DNSTAPSOCK;
-	opt->dnstap_identity = 0;
-	opt->dnstap_version = 0;
-	opt->dnstap_query = 0;
-	opt->dnstap_response = 0;
+	opt->dnstap_sockpath = DNSTAP_SOCKET_PATH;
+	opt->dnstap_identity = NULL;
+	opt->dnstap_version = NULL;
+	opt->dnstap_send_ident = 0;
+	opt->dnstap_send_version = 0;
+	opt->dnstap_send_query = 0;
+	opt->dnstap_send_response = 0;
 #endif
 	nsd_options = opt;
 	return opt;

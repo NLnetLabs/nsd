@@ -148,8 +148,10 @@ rrl-whitelist-ratelimit{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_WHIT
 rrl-whitelist{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_WHITELIST;}
 dnstap-enable{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_ENABLE;}
 dnstap-socket-path{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_SOCKET;}
-dnstap-send-identity{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_IDENTITY;}
-dnstap-send-version{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_VERSION;}
+dnstap-identity{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_IDENTITY;}
+dnstap-version{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_VERSION;}
+dnstap-send-identity{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_SEND_IDENT;}
+dnstap-send-version{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_SEND_VERSION;}
 dnstap-log-response{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_RESPONSE;}
 dnstap-log-query{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_QUERY;}
 {NEWLINE}		{ LEXOUT(("NL\n")); cfg_parser->line++;}
