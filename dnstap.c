@@ -287,7 +287,7 @@ dnstap_send_auth_query(struct dnstap_env* env, buffer_type* msg)
 	struct dt_msg dm;
 	struct timeval mtime;
 	fstrm_res res;
-	if (!env)
+	if (!env || !env->send_auth_query)
 		return;
 	gettimeofday(&mtime, NULL);
 	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__AUTH_QUERY);
@@ -315,7 +315,7 @@ dnstap_send_auth_response(struct dnstap_env* env, buffer_type* msg)
 	struct dt_msg dm;
 	struct timeval mtime;
 	fstrm_res res;
-	if (!env)
+	if (!env || !env->send_auth_response)
 		return;
 	gettimeofday(&mtime, NULL);
 	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__AUTH_RESPONSE);
