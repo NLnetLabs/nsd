@@ -1,65 +1,100 @@
 /*
  * dnstap.h - dnstap for NSD.
  *
- * By Matthijs Mekking.
- * Copyright (c) 2014, NLnet Labs. All rights reserved.
+ * Copyright (c) 2013-2014, Farsight Security, Inc.
+ * Copyright (c) 2014, NLnet Labs.
+ * All rights reserved.
  *
- * See LICENSE for the license.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
+ * 1. Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef DNSTAP_H
 #define DNSTAP_H
 
-#include "nsd.h"
-#include "query.h"
+#include "config.h"
+
+#ifdef DNSTAP
+
 #include "buffer.h"
 
-#define AUTH_QUERY 1
-#define AUTH_RESPONSE 2
+/** dnstap environment. */
+struct dnstap_env {
+	/** dnstap I/O socket */
+	struct fstrm_io *fio;
+	/** dnstap I/O queue */
+	struct fstrm_queue *fq;
+	/** dnstap file */
+	struct fstrm_writer *fw;
 
-struct dnstap_message {
-	int type;
-	int socket_family;
-	int socket_protocol;
-#ifdef INET6
-	struct sockaddr_storage query_address;
-	struct sockaddr_storage response_address;
-#else
-	struct sockaddr_in query_address;
-	struct sockaddr_in response_address;
-#endif
-	socklen_t query_address_len;
-	socklen_t response_address_len;
-	uint32_t query_port;
-	uint32_t response_port;
-	time_t query_time_sec;
-	uint32_t query_time_nsec;
-	buffer_type query_message;
-	time_t response_time_sec;
-	uint32_t response_time_nsec;
-	buffer_type response_message;
-	zone_type zone;
+	/** identity field, NULL if disabled */
+	char *identity;
+	/** version field, NULL if disabled */
+	char *version;
+	/** length of identity field */
+	unsigned len_identity;
+	/** length of version field */
+	unsigned len_version;
+	/** whether to log AUTH_QUERY */
+	unsigned send_auth_query : 1;
+	/** whether to log AUTH_RESPONSE */
+	unsigned send_auth_response : 1;
 };
 
-struct dnstap_struct {
-	const char* nsid;
-	const char* version;
-	const char* extra;
-	struct dnstap_message* message;
-};
-
-
 /**
- * Process query.
+ * Create dnstap environment object.
  *
  */
-void dnstap_process_query(query_type* query, struct nsd* nsd);
+struct dnstap_env* dnstap_create(const char* sockpath);
 
 /**
- * Process response.
+ * Initialize per-worker state in dnstap environment object.
  *
  */
-void dnstap_process_response(query_type* query, struct nsd* nsd);
+int dnstap_init(struct dnstap_env* env);
+
+/**
+ * Delete dnstap environment object.
+ *
+ */
+void dnstap_delete(struct dnstap_env* env);
+
+/**
+ * Create and send a new dnstap "Message" event of type AUTH_QUERY.
+ *
+ */
+void dnstap_send_auth_query(struct dnstap_env* env, buffer_type* msg);
+
+/**
+ * Create and send a new dnstap "Message" event of type AUTH_RESPONSE.
+ *
+ */
+void dnstap_send_auth_response(struct dnstap_env* env, buffer_type* msg);
+
+#endif /* DNSTAP */
 
 #endif /* DNSTAP_H */
