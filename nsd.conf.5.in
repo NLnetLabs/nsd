@@ -280,6 +280,12 @@ Enables tapping of wire-format DNS messages. Default no.
 The path to the dnstap socket where NSD sends payloads to. Default is
 .IR @dnstapsock@ .
 .TP
+.B dnstap\-identity:\fR <string>
+The identity of the dnstap.
+.TP
+.B dnstap\-version:\fR <string>
+The version of the dnstap.
+.TP
 .B dnstap\-send\-identity:\fR <yes or no>
 Send identity to socket. Default no.
 .TP

@@ -18,6 +18,10 @@
 struct netio_handler;
 struct nsd_options;
 
+#ifdef DNSTAP
+struct dnstap_env;
+#endif
+
 /* The NSD runtime states and NSD ipc command values */
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1
@@ -149,6 +153,12 @@ struct	nsd
 	 * Global region that is not deallocated until NSD shuts down.
 	 */
 	region_type    *region;
+#ifdef DNSTAP
+	/*
+	 * The dnstap parent enviroment.
+	 */
+	struct dnstap_env* dnstap;
+#endif
 
 	/* Run-time variables */
 	pid_t		pid;

@@ -1293,11 +1293,13 @@ static query_state_type
 server_process_query(struct nsd *nsd, struct query *query)
 {
 	query_state_type s = query_process(query, nsd);
+/*
 #ifdef DNSTAP
 	if (s != QUERY_DISCARDED) {
 		dnstap_process_response(query, nsd);
 	}
 #endif
+*/
 	return s;
 }
 
@@ -1471,11 +1473,13 @@ server_process_query_udp(struct nsd *nsd, struct query *query)
 	return QUERY_DISCARDED;
 #endif
 
+/*
 #ifdef DNSTAP
 	if(s != QUERY_DISCARDED) {
 		dnstap_process_response(query, nsd);
 	}
 #endif
+*/
 	return s;
 
 }

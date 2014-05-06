@@ -1307,7 +1307,7 @@ query_process(query_type *q, nsd_type *nsd)
 
 	/* Send to dnstap */
 #ifdef DNSTAP
-	dnstap_process_query(q, nsd);
+	dnstap_send_auth_query(nsd->dnstap, q->packet);
 #endif
 
 	if (q->opcode != OPCODE_QUERY) {

@@ -141,6 +141,12 @@ server:
 	# of the socket.
 	# dnstap-socket-path: "@dnstapsock@"
 
+	# dnstap identity.
+	# dnstap-identity: ""
+
+	# dnstap version.
+	# dnstap-version: ""
+
 	# Send identity to socket.
 	# dnstap-send-identity: no
 

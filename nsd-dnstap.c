@@ -48,7 +48,7 @@ usage(void)
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	fprintf(stderr, "  -f           Unlink socket file before creating a new.\n");
 	fprintf(stderr, "  -h           Print this help.\n");
-	fprintf(stderr, "  -f filename  The filename of dnstap socket.\n");
+	fprintf(stderr, "  -s filename  The filename of dnstap socket.\n");
 	fprintf(stderr, "  -u username  Drop privileges to user.\n");
 	exit(1);
 }
@@ -214,7 +214,7 @@ int
 main(int argc, char *argv[])
 {
 	int c, force = 0;
-	const char *filename = DNSTAPSOCK;
+	const char *filename = DNSTAP_SOCKET_PATH;
 	const char *username = NULL;
 
 	log_init("nsd-dnstap");

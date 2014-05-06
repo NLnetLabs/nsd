@@ -40,6 +40,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifdef DNSTAP
+#include "dnstap.h"
+#endif
 #include "nsd.h"
 #include "namedb.h"
 #include "options.h"
@@ -512,6 +515,9 @@ main(int argc, char *argv[])
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
 	nsd.region      = region_create(xalloc, free);
+#ifdef DNSTAP
+	nsd.dnstap	= NULL;
+#endif
 	nsd.dbfile	= 0;
 	nsd.pidfile	= 0;
 	nsd.server_kind = NSD_SERVER_MAIN;
@@ -911,6 +917,22 @@ main(int argc, char *argv[])
 				r==EAI_SYSTEM?strerror(errno):"");
 		}
 	}
+
+	/* Create dnstap environment */
+#ifdef DNSTAP
+	if (nsd.options->dnstap_enable) {
+		nsd.dnstap = dnstap_create(nsd.options->dnstap_sockpath);
+		if (!nsd.dnstap)
+			error("cannot create dnstap environment to socket %s",
+				nsd.options->dnstap_sockpath);
+		nsd.dnstap->identity = (char*) (nsd.options->dnstap_send_ident?nsd.options->dnstap_identity:NULL);
+		nsd.dnstap->version = (char*) (nsd.options->dnstap_send_version?nsd.options->dnstap_version:NULL);
+		nsd.dnstap->len_identity = strlen(nsd.dnstap->identity);
+		nsd.dnstap->len_version = strlen(nsd.dnstap->version);
+		nsd.dnstap->send_auth_query = nsd.options->dnstap_send_query;
+		nsd.dnstap->send_auth_response = nsd.options->dnstap_send_response;
+	}
+#endif
 
 	/* Parse the username into uid and gid */
 	nsd.gid = getgid();
