@@ -34,6 +34,7 @@ BUG FIXES:
 	- Fix that xfrd reaps all children on every eventloop, because some
 	  exited reloads may attach here and need reaping, also if the signal
 	  is lost.
+	- Fix #577: makefile incorrectly installed manpages from srcdir.
 
 
 4.0.3

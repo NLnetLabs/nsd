@@ -121,10 +121,10 @@ install: all
 	$(INSTALL) nsd-control-setup.sh $(DESTDIR)$(sbindir)/nsd-control-setup
 	$(INSTALL) nsd-checkconf $(DESTDIR)$(sbindir)/nsd-checkconf
 	$(INSTALL) nsd-control $(DESTDIR)$(sbindir)/nsd-control
-	$(INSTALL_DATA) $(srcdir)/nsd.8 $(DESTDIR)$(mandir)/man8
-	$(INSTALL_DATA) $(srcdir)/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkconf.8
-	$(INSTALL_DATA) $(srcdir)/nsd-control.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
-	$(INSTALL_DATA) $(srcdir)/nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
+	$(INSTALL_DATA) nsd.8 $(DESTDIR)$(mandir)/man8
+	$(INSTALL_DATA) nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkconf.8
+	$(INSTALL_DATA) nsd-control.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
+	$(INSTALL_DATA) nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	$(INSTALL_DATA) nsd.conf.sample $(DESTDIR)$(nsdconfigfile).sample
 
 uninstall:
