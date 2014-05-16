@@ -270,6 +270,10 @@ xfrd_sig_process(void)
 		if(status != 0) {
 			log_msg(LOG_ERR, "process %d exited with status %d",
 				(int)child_pid, status);
+			if(child_pid == xfrd->reload_pid) {
+				VERBOSITY(2, (LOG_INFO, "serverparent died, shutting down"));
+				xfrd->shutdown = 1;
+			}
 		}
 	}
 	if(!xfrd->child_timer_added) {
