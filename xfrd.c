@@ -2380,5 +2380,4 @@ static void xfrd_handle_child_timer(int ATTR_UNUSED(fd), short event,
 	/* only used to wakeup the process to reap children, note the
 	 * event is no longer registered */
 	xfrd->child_timer_added = 0;
-	log_msg(LOG_INFO, "child timer");
 }
