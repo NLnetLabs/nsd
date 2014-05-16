@@ -73,6 +73,9 @@ struct xfrd_state {
 	time_t reload_cmd_last_sent;
 	uint8_t can_send_reload;
 	pid_t reload_pid;
+	/* timeout for lost sigchild and reaping children */
+	struct event child_timer;
+	int child_timer_added;
 
 	/* timeout event for zonefiles_write events */
 	struct event write_timer;

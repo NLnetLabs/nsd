@@ -39,6 +39,9 @@
 #define XFRD_MAX_ROUNDS 3 /* max number of rounds along the masters */
 #define XFRD_TSIG_MAX_UNSIGNED 103 /* max number of packets without tsig in a tcp stream. */
 			/* rfc recommends 100, +3 for offbyone errors/interoperability. */
+#define XFRD_CHILD_REAP_TIMEOUT 60 /* seconds to wakeup and reap lost children */
+		/* these are reload processes that SIGCHILDed but the signal
+		 * was lost, and need waitpid to remove their process entry. */
 
 /* the daemon state */
 xfrd_state_t* xfrd = 0;
@@ -70,6 +73,8 @@ static void xfrd_set_timer_refresh(xfrd_zone_t* zone);
 static void xfrd_set_reload_timeout(void);
 /* handle reload timeout */
 static void xfrd_handle_reload(int fd, short event, void* arg);
+/* handle child timeout */
+static void xfrd_handle_child_timer(int fd, short event, void* arg);
 
 /* send expiry notifications to nsd */
 static void xfrd_send_expire_notification(xfrd_zone_t* zone);
@@ -149,14 +154,13 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	xfrd->reload_cmd_last_sent = xfrd->xfrd_start_time;
 	xfrd->can_send_reload = !reload_active;
 	xfrd->reload_pid = nsd_pid;
+	xfrd->child_timer_added = 0;
 
 	xfrd->ipc_send_blocked = 0;
 	event_set(&xfrd->ipc_handler, socket, EV_PERSIST|EV_READ,
 		xfrd_handle_ipc, xfrd);
 	if(event_base_set(xfrd->event_base, &xfrd->ipc_handler) != 0)
 		log_msg(LOG_ERR, "xfrd ipc handler: event_base_set failed");
-	if(event_add(&xfrd->ipc_handler, NULL) != 0)
-		log_msg(LOG_ERR, "xfrd ipc handler: event_add failed");
 	xfrd->ipc_handler_flags = EV_PERSIST|EV_READ;
 	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region, QIOBUFSZ);
 	/* not reading using ipc_conn yet */
@@ -268,6 +272,18 @@ xfrd_sig_process(void)
 				(int)child_pid, status);
 		}
 	}
+	if(!xfrd->child_timer_added) {
+		struct timeval tv;
+		tv.tv_sec = XFRD_CHILD_REAP_TIMEOUT;
+		tv.tv_usec = 0;
+		event_set(&xfrd->child_timer, -1, EV_TIMEOUT,
+			xfrd_handle_child_timer, xfrd);
+		if(event_base_set(xfrd->event_base, &xfrd->child_timer) != 0)
+			log_msg(LOG_ERR, "xfrd child timer: event_base_set failed");
+		if(event_add(&xfrd->child_timer, &tv) != 0)
+			log_msg(LOG_ERR, "xfrd child timer: event_add failed");
+		xfrd->child_timer_added = 1;
+	}
 }
 
 static void
@@ -307,6 +323,10 @@ xfrd_shutdown()
 	if(xfrd->reload_added) {
 		event_del(&xfrd->reload_handler);
 		xfrd->reload_added = 0;
+	}
+	if(xfrd->child_timer_added) {
+		event_del(&xfrd->child_timer);
+		xfrd->child_timer_added = 0;
 	}
 	if(xfrd->nsd->options->zonefiles_write) {
 		event_del(&xfrd->write_timer);
@@ -2350,4 +2370,15 @@ static void xfrd_write_timer_set()
 		log_msg(LOG_ERR, "xfrd write timer: event_base_set failed");
 	if(event_add(&xfrd->write_timer, &tv) != 0)
 		log_msg(LOG_ERR, "xfrd write timer: event_add failed");
+}
+
+static void xfrd_handle_child_timer(int ATTR_UNUSED(fd), short event,
+	void* ATTR_UNUSED(arg))
+{
+	assert(event & EV_TIMEOUT);
+	(void)event;
+	/* only used to wakeup the process to reap children, note the
+	 * event is no longer registered */
+	xfrd->child_timer_added = 0;
+	log_msg(LOG_INFO, "child timer");
 }

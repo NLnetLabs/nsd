@@ -1,3 +1,6 @@
+16 May 2014: Wouter
+	- xfrd reaps children on a timer as well, similar to server_parent.
+
 8 May 2014: Wouter
 	- Fix #564: nsd-checkzone tool to check zonefile correctness.
 
