@@ -161,6 +161,8 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 		xfrd_handle_ipc, xfrd);
 	if(event_base_set(xfrd->event_base, &xfrd->ipc_handler) != 0)
 		log_msg(LOG_ERR, "xfrd ipc handler: event_base_set failed");
+	if(event_add(&xfrd->ipc_handler, NULL) != 0)
+		log_msg(LOG_ERR, "xfrd ipc handler: event_add failed");
 	xfrd->ipc_handler_flags = EV_PERSIST|EV_READ;
 	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region, QIOBUFSZ);
 	/* not reading using ipc_conn yet */
