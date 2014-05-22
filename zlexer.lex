@@ -108,7 +108,7 @@ SPACE   [ \t]
 LETTER  [a-zA-Z]
 NEWLINE [\n\r]
 ZONESTR [^ \t\n\r();.\"\$]|\\.|\\\n
-CHARSTR [^ \t\n\r().]|\\.|\\\n
+CHARSTR [^ \t\n\r();.]|\\.|\\\n
 QUOTE   \"
 DOLLAR  \$
 COMMENT ;
