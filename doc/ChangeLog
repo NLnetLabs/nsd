@@ -1,3 +1,6 @@
+22 May 2014: Wouter
+	- Fix zonefile parse with no whitespace before semicolon comments.
+
 18 March 2014: Wouter
 	- (from NSD4): optimised zone read code, and zone write code.
 
