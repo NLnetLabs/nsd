@@ -130,13 +130,29 @@ packet_encode_rrset(query_type *query,
 				section == AUTHORITY_SECTION ||
 				section == OPTIONAL_AUTHORITY_SECTION);
 #endif
+	static int round_robin_off = 0;
+	int round_robin = (section == ANSWER_SECTION &&
+		query->qtype != TYPE_AXFR && query->qtype != TYPE_IXFR);
+	uint16_t start;
 	rrset_type *rrsig;
 
 	assert(rrset->rr_count > 0);
 
 	truncation_mark = buffer_position(query->packet);
 
-	for (i = 0; i < rrset->rr_count; ++i) {
+	if(round_robin && rrset->rr_count)
+		start = (uint16_t)(round_robin_off++ % rrset->rr_count);
+	else	start = 0;
+	for (i = start; i < rrset->rr_count; ++i) {
+		if (packet_encode_rr(query, owner, &rrset->rrs[i],
+			rrset->rrs[i].ttl)) {
+			++added;
+		} else {
+			all_added = 0;
+			break;
+		}
+	}
+	for (i = 0; i < start; ++i) {
 		if (packet_encode_rr(query, owner, &rrset->rrs[i],
 			rrset->rrs[i].ttl)) {
 			++added;

@@ -1,5 +1,6 @@
 28 May 2014: Wouter
 	- Fix #585: yylex_destroy missing, cannot compile on RHEL 5.x.
+	- Fix #584: Round-robin for records in the Answer section.
 
 22 May 2014: Wouter
 	- Fix zonefile parse with no whitespace before semicolon comments.
