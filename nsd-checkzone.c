@@ -141,7 +141,7 @@ main(int argc, char *argv[])
 
 	check_zone(&nsd, argv[0], argv[1]);
 	region_destroy(nsd.options->region);
-	yylex_destroy();
+	/* yylex_destroy(); but, not available in all versions of flex */
 
 	exit(0);
 }
