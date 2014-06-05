@@ -82,6 +82,7 @@ struct nsd_options {
 	int zonefiles_check;
 	int zonefiles_write;
 	int log_time_ascii;
+	int round_robin;
 
         /** remote control section. enable toggle. */
 	int control_enable;

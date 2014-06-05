@@ -15,6 +15,8 @@
 #include "query.h"
 #include "rdata.h"
 
+int round_robin = 0;
+
 static void
 encode_dname(query_type *q, domain_type *domain)
 {
@@ -131,7 +133,7 @@ packet_encode_rrset(query_type *query,
 				section == OPTIONAL_AUTHORITY_SECTION);
 #endif
 	static int round_robin_off = 0;
-	int round_robin = (section == ANSWER_SECTION &&
+	int do_robin = (round_robin && section == ANSWER_SECTION &&
 		query->qtype != TYPE_AXFR && query->qtype != TYPE_IXFR);
 	uint16_t start;
 	rrset_type *rrsig;
@@ -140,7 +142,7 @@ packet_encode_rrset(query_type *query,
 
 	truncation_mark = buffer_position(query->packet);
 
-	if(round_robin && rrset->rr_count)
+	if(do_robin && rrset->rr_count)
 		start = (uint16_t)(round_robin_off++ % rrset->rr_count);
 	else	start = 0;
 	for (i = start; i < rrset->rr_count; ++i) {

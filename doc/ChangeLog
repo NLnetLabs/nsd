@@ -1,5 +1,6 @@
 5 Jun 2014: Wouter
 	- Fix roundrobin cornercase for truncated packets.
+	- round-robin: yesno in nsd.conf enabled round robin rotation.
 
 28 May 2014: Wouter
 	- Fix #585: yylex_destroy missing, cannot compile on RHEL 5.x.

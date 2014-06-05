@@ -316,6 +316,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		SERV_GET_BIN(hide_version, o);
 		SERV_GET_BIN(zonefiles_check, o);
 		SERV_GET_BIN(log_time_ascii, o);
+		SERV_GET_BIN(round_robin, o);
 		/* str */
 		SERV_GET_STR(database, o);
 		SERV_GET_STR(identity, o);
@@ -430,6 +431,7 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("xfrdir:", opt->xfrdir);
 	printf("\txfrd_reload_timeout: %d\n", opt->xfrd_reload_timeout);
 	printf("\tlog-time-ascii: %s\n", opt->log_time_ascii?"yes":"no");
+	printf("\tround-robin: %s\n", opt->round_robin?"yes":"no");
 	printf("\tverbosity: %d\n", opt->verbosity);
 	for(ip = opt->ip_addresses; ip; ip=ip->next)
 	{

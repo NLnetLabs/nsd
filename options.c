@@ -54,6 +54,7 @@ nsd_options_create(region_type* region)
 	opt->nsid = 0;
 	opt->logfile = 0;
 	opt->log_time_ascii = 1;
+	opt->round_robin = 0; /* also packet.h::round_robin */
 	opt->server_count = 1;
 	opt->tcp_count = 100;
 	opt->tcp_query_count = 0;

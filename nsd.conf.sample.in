@@ -107,6 +107,9 @@ server:
 	# log timestamp in ascii (y-m-d h:m:s.msec), yes is default.
 	# log-time-ascii: yes
 
+	# round robin rotation of records in the answer.
+	# round-robin: no
+
 	# check mtime of all zone files on start and sighup
 	# zonefiles-check: yes
 	
