@@ -149,6 +149,7 @@ packet_encode_rrset(query_type *query,
 			++added;
 		} else {
 			all_added = 0;
+			start = 0;
 			break;
 		}
 	}

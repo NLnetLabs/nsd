@@ -1,3 +1,6 @@
+5 Jun 2014: Wouter
+	- Fix roundrobin cornercase for truncated packets.
+
 28 May 2014: Wouter
 	- Fix #585: yylex_destroy missing, cannot compile on RHEL 5.x.
 	- Fix #583: Round-robin for records in the Answer section.
