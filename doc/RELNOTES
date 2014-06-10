@@ -8,8 +8,9 @@ FEATURES:
 	- optimised zone file parse code and zonefile write code.
 
 BUG FIXES:
-	- Fix #551: change Regent to Copyright holder in the LICENSE,
+	- Fix #551: Change Regent to Copyright holder in the LICENSE,
 	  to match the definition on opensource.org for the BSD License.
+	- Fix #587: Fix default value for statistics period to 3600.
 
 
 3.2.17
