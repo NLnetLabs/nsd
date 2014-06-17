@@ -1,6 +1,7 @@
 16 June 2014: Matthijs
 	- Fix #587: Default statistics period is 0, fix doc.
 	- Fix #553: Fix the shift/reduce conflicts.
+	- Fix #580: Create zonedirs when nsd-patch runs.
 
 10 June 2014: Matthijs
 	- Fix #587: Default statistics period should be 3600.
