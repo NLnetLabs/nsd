@@ -99,6 +99,7 @@ server:
 	# ipv6-edns-size: 4096
 
 	# statistics are produced every number of seconds. Prints to log.
+	# Default is 0, meaning no statistics are produced.
 	# statistics: 3600
 
 	# Number of seconds between reloads triggered by xfrd.
