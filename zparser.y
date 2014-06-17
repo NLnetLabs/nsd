@@ -338,14 +338,6 @@ str_seq:	dotted_str
     {
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $1.str, $1.len), 1);
     }
-/*
- * This causes conflicts: 4 shift/reduce
- *
- */
-    |	str_seq dotted_str
-    {
-	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $2.str, $2.len), 0);
-    }
     |	str_seq sp dotted_str
     {
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $3.str, $3.len), 0);
