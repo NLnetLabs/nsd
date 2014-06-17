@@ -12,10 +12,15 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "options.h"
 #include "difffile.h"
 #include "namedb.h"
 #include "util.h"
+
+/* pathname directory separator character */
+#define PATHSEP '/'
 
 extern char *optarg;
 extern int optind;
@@ -242,11 +247,64 @@ print_commit_log(FILE* out, const dname_type* zone, struct diff_log* commit_log)
 	region_destroy(region);
 }
 
+/** create directories above this file, .../dir/dir/dir/file */
+int
+create_dirs(const char* path)
+{
+	char dir[4096];
+	char* p;
+	strlcpy(dir, path, sizeof(dir));
+	/* if we start with / then do not try to create '' */
+	if(dir[0] == PATHSEP)
+		p = strchr(dir+1, PATHSEP);
+	else    p = strchr(dir, PATHSEP);
+	/* create each directory component from the left */
+	while(p) {
+		assert(*p == PATHSEP);
+		*p = 0; /* end the directory name here */
+		if(mkdir(dir
+#ifndef MKDIR_HAS_ONE_ARG
+			, 0750
+#endif
+			) == -1) {
+			if(errno != EEXIST) {
+                                fprintf(stderr, "create dir %s: %s",
+					dir, strerror(errno));
+				return 0;
+			}
+			/* it already exists, OK, continue */
+		}
+		*p = PATHSEP;
+		p = strchr(p+1, PATHSEP);
+	}
+	return 1;
+}
+
+/** create pathname components and check if file exists */
+static int
+create_path_components(const char* path, int* notexist)
+{
+	/* stat the file, to see if it exists, and if its directories exist */
+	struct stat s;
+	if(stat(path, &s) != 0) {
+		if(errno == ENOENT) {
+			*notexist = 1;
+			/* see if we need to create pathname components */
+			return create_dirs(path);
+		}
+		fprintf(stderr, "cannot stat %s: %s", path, strerror(errno));
+		return 0;
+	}
+	*notexist = 0;
+	return 1;
+}
+
 static void
 write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 {
 	const char* filename = zone->opts->zonefile;
 	time_t now = time(0);
+	int notexist = 0;
 	FILE *out;
 
 	fprintf(stdout, "writing zone %s to file %s\n", zone->opts->name,
@@ -256,6 +314,12 @@ write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 		fprintf(stderr, "zone %s has no apex, no data.\n", filename);
 		return;
 	}
+        if(!create_path_components(filename, &notexist)) {
+                log_msg(LOG_ERR, "could not write zone %s to file %s because "
+                        "the path could not be created", zone->opts->name, filename);
+                return;
+        }
+
 
 	out = fopen(filename, "w");
 	if(!out) {
