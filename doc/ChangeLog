@@ -1,6 +1,9 @@
+16 June 2014: Matthijs
+	- Fix #587: Default statistics period is 0, fix doc.
+
 10 June 2014: Matthijs
 	- Fix #587: Default statistics period should be 3600.
-
+ 
 22 May 2014: Wouter
 	- Fix zonefile parse with no whitespace before semicolon comments.
 

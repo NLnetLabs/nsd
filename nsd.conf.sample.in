@@ -70,6 +70,7 @@ server:
 	# port: 53
 
 	# statistics are produced every number of seconds.
+	# Default is 0, meaning no statistics are produced.
 	# statistics: 3600
 
 	# if per zone statistics is enabled, file to store statistics.
