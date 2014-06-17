@@ -395,6 +395,7 @@ AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
 
 AC_CHECK_STRPTIME_WORKS
+ACX_MKDIR_ONE_ARG
 
 if test "$srcdir" != "."; then
 	if test -f $srcdir/config.h; then
