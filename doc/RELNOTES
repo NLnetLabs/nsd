@@ -17,6 +17,7 @@ BUG FIXES:
         - Fix RCODE when secondary NSD got transfer that includes
           deleted wildcard record. After deletion, NSD would serve
           NODATA, should be NXDOMAIN (thanks Michał Kępień).
+	- Fix #590: rrl log does not print wildcard as a star but escaped.
 
 
 3.2.17
