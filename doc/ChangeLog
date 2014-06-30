@@ -1,5 +1,7 @@
 30 Jun 2014: Wouter
 	- Fix #590: rrl log does not print wildcard as a star but escaped.
+	- Fix #591: rrl log messages at verbosity level 1.
+	  (If that does not work for everyone, we need rrl-log: yesno option).
 
 27 Jun 2014: Wouter
 	- Fixup rr-test test so that it does not fail on the #553 string.
