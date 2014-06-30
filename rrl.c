@@ -353,7 +353,7 @@ rrl_msg(query_type* query, const char* str)
 	size_t d_len;
 	uint64_t s;
 	char address[128];
-	if(verbosity < 2) return;
+	if(verbosity < 1) return;
 	if (addr2ip(query->addr, address, sizeof(address))) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "addr2ip failed"));
 		strlcpy(address, "[unknown]", sizeof(address));
@@ -389,7 +389,7 @@ uint32_t rrl_update(query_type* query, uint32_t hash, uint64_t source,
 	if(b->source != source || b->flags != flags || b->hash != hash) {
 		/* initialise */
 		/* potentially the wrong limit here, used lower nonwhitelim */
-		if(verbosity >=2 &&
+		if(verbosity >= 1 &&
 			used_to_block(b->rate, b->counter, rrl_ratelimit)) {
 			char address[128];
 			if (addr2ip(query->addr, address, sizeof(address))) {
