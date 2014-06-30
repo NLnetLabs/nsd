@@ -331,6 +331,11 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 			}
 		}
 	}
+	if(domain->rrsets == 0 &&
+		label_is_wildcard(dname_name(domain_dname(domain)))) {
+		domain->parent->wildcard_child_closest_match = domain->parent;
+	}
+
 
 #ifdef NSEC3
 #ifndef FULL_PREHASH
