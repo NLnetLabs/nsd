@@ -366,9 +366,13 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 	int k, start, end;
 	start = 0;
 	end = num;
+	/**
+         * SOA RDATA comparisons in XFR are more lenient,
+         * only serial rdata is checked.
+         **/
 	if (type == TYPE_SOA) {
 		start = 2;
-		end = 2;
+		end = 3;
 	}
 	for(k = start; k < end; k++)
 	{
