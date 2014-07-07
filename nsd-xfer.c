@@ -350,6 +350,7 @@ parse_response(FILE *out, axfr_state_type *state)
 	size_t qdcount = QDCOUNT(state->q->packet);
 	size_t ancount = ANCOUNT(state->q->packet);
 	region_type* tmpregion = region_create(xalloc, free);
+	buffer_type* tmpbuffer = buffer_create(state->rr_region, MAX_RDLENGTH);
 
 	/* Skip question section.  */
 	for (rr_count = 0; rr_count < qdcount; ++rr_count) {
@@ -364,8 +365,6 @@ parse_response(FILE *out, axfr_state_type *state)
 	for (rr_count = 0; rr_count < ancount; ++rr_count) {
 		domain_table_type *owners
 			= domain_table_create(state->rr_region);
-		buffer_type* tmpbuffer = buffer_create(state->rr_region,
-			MAX_RDLENGTH);
 		rr_type *record = packet_read_rr(
 			state->rr_region, owners, state->q->packet, 0);
 		if (!record) {
@@ -397,10 +396,9 @@ parse_response(FILE *out, axfr_state_type *state)
 			region_destroy(tmpregion);
 			return 0;
 		}
-
-		region_free_all(state->rr_region);
 	}
 
+	region_free_all(state->rr_region);
 	region_destroy(tmpregion);
 	return 1;
 }
