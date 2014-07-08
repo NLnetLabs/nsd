@@ -1297,7 +1297,7 @@ server_main(struct nsd *nsd)
 		switch (mode) {
 		case NSD_RUN:
 			/* see if any child processes terminated */
-			while((child_pid = waitpid(0, &status, WNOHANG)) != -1 && child_pid != 0) {
+			while((child_pid = waitpid(-1, &status, WNOHANG)) != -1 && child_pid != 0) {
 				int is_child = delete_child_pid(nsd, child_pid);
 				if (is_child != -1 && nsd->children[is_child].need_to_exit) {
 					if(nsd->children[is_child].child_fd == -1)
@@ -1737,7 +1737,7 @@ server_child(struct nsd *nsd)
 						(int) nsd->this_child->pid, strerror(errno));
 				}
 			} else /* no parent, so reap 'em */
-				while (waitpid(0, NULL, WNOHANG) > 0) ;
+				while (waitpid(-1, NULL, WNOHANG) > 0) ;
 			nsd->mode = NSD_RUN;
 		}
 		else if(mode == NSD_RUN) {

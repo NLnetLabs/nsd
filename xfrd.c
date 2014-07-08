@@ -268,7 +268,7 @@ xfrd_sig_process(void)
 
 	/* collect children that exited. */
 	xfrd->nsd->signal_hint_child = 0;
-	while((child_pid = waitpid(0, &status, WNOHANG)) != -1 && child_pid != 0) {
+	while((child_pid = waitpid(-1, &status, WNOHANG)) != -1 && child_pid != 0) {
 		if(status != 0) {
 			log_msg(LOG_ERR, "process %d exited with status %d",
 				(int)child_pid, status);
