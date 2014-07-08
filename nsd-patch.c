@@ -268,7 +268,7 @@ create_dirs(const char* path)
 #endif
 			) == -1) {
 			if(errno != EEXIST) {
-                                fprintf(stderr, "create dir %s: %s",
+				fprintf(stderr, "create dir %s: %s",
 					dir, strerror(errno));
 				return 0;
 			}
@@ -314,12 +314,11 @@ write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 		fprintf(stderr, "zone %s has no apex, no data.\n", filename);
 		return;
 	}
-        if(!create_path_components(filename, &notexist)) {
-                log_msg(LOG_ERR, "could not write zone %s to file %s because "
-                        "the path could not be created", zone->opts->name, filename);
-                return;
-        }
-
+	if(!create_path_components(filename, &notexist)) {
+		log_msg(LOG_ERR, "could not write zone %s to file %s because "
+			"the path could not be created", zone->opts->name, filename);
+		return;
+	}
 
 	out = fopen(filename, "w");
 	if(!out) {
