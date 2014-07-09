@@ -873,9 +873,8 @@ compare_serial(uint32_t a, uint32_t b)
 uint16_t
 qid_generate(void)
 {
-#ifdef HAVE_ARC4RANDOM_UNIFORM
-    return (uint16_t) arc4random_uniform(65536);
-#elif HAVE_ARC4RANDOM
+    /* arc4random_uniform not needed because range is a power of 2 */
+#ifdef HAVE_ARC4RANDOM
     return (uint16_t) arc4random();
 #else
     return (uint16_t) random();

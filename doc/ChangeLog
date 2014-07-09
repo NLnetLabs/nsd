@@ -1,3 +1,6 @@
+9 July 2014: Wouter
+	- removed unnecessary arc4random_uniform.
+
 8 July 2014: Matthijs
 	- fake-rfc2553 patch (thanks Benjamin Baier).
 
