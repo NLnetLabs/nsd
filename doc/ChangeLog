@@ -1,8 +1,12 @@
+7 July 2014: Matthijs
+	- fake-rfc2553 patch (thanks Benjamin Baier).
+
 30 June 2014: Matthijs
 	- Fix RCODE when secondary NSD got transfer that includes
 	  deleted wildcard record. After deletion, NSD would serve
-	  NODATA, should be NXDOMAIN (thanks Michał Kępień).	
-	Wouter:
+	  NODATA, should be NXDOMAIN (thanks Michał Kępień).
+
+30 June 2014: Wouter
 	- Fix #590: rrl log did not print wildcard as star.
 	- Fix #591: rrl log messages at verbosity level 1.
 

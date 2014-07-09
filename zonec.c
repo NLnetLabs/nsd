@@ -83,7 +83,6 @@ alloc_rdata_init(region_type *region, const void *data, size_t size)
 	return result;
 }
 
-
 /*
  * These are parser function for generic zone file stuff.
  */

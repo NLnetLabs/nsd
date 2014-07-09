@@ -892,67 +892,67 @@ set_previous_owner(struct state_pretty_rr *state, const dname_type *dname)
 
 int
 print_rr(FILE *out,
-         struct state_pretty_rr *state,
-         rr_type *record,
-	 region_type* region,
-	 buffer_type* output)
+	struct state_pretty_rr *state,
+	rr_type *record,
+	region_type* region,
+	buffer_type* output)
 {
-        rrtype_descriptor_type *descriptor
-                = rrtype_descriptor_by_type(record->type);
-        int result;
-        const dname_type *owner = domain_dname(record->owner);
-        int owner_changed
-                = (!state->previous_owner
-                   || dname_compare(state->previous_owner, owner) != 0);
+	rrtype_descriptor_type *descriptor
+		= rrtype_descriptor_by_type(record->type);
+	int result;
+	const dname_type *owner = domain_dname(record->owner);
+	int owner_changed
+		= (!state->previous_owner
+		|| dname_compare(state->previous_owner, owner) != 0);
 	buffer_clear(output);
-        if (owner_changed) {
-        	const dname_type *owner_origin
-                	= dname_origin(region, owner);
-                int origin_changed = (!state->previous_owner_origin
-                                      || dname_compare(
-                                              state->previous_owner_origin,
-                                              owner_origin) != 0);
-                if (origin_changed) {
-                        buffer_printf(
-                                output,
-                                "$ORIGIN %s\n",
-                                dname_to_string(owner_origin, NULL));
-                }
+	if (owner_changed) {
+		const dname_type *owner_origin
+			= dname_origin(region, owner);
+		int origin_changed = (!state->previous_owner_origin
+			|| dname_compare(
+				state->previous_owner_origin,
+				owner_origin) != 0);
+		if (origin_changed) {
+			buffer_printf(
+				output,
+				"$ORIGIN %s\n",
+				dname_to_string(owner_origin, NULL));
+		}
 
-                set_previous_owner(state, owner);
-                buffer_printf(output,
-                              "%s",
-                              dname_to_string(owner,
-                                              state->previous_owner_origin));
+		set_previous_owner(state, owner);
+		buffer_printf(output,
+			"%s",
+			dname_to_string(owner,
+			state->previous_owner_origin));
 		region_free_all(region);
-        }
+	}
 
-        buffer_printf(output,
-                      "\t%lu\t%s\t%s",
-                      (unsigned long) record->ttl,
-                      rrclass_to_string(record->klass),
-                      rrtype_to_string(record->type));
+	buffer_printf(output,
+		"\t%lu\t%s\t%s",
+		(unsigned long) record->ttl,
+		rrclass_to_string(record->klass),
+		rrtype_to_string(record->type));
 
-        result = print_rdata(output, descriptor, record);
-        if (!result) {
-                /*
-                 * Some RDATA failed to print, so print the record's
-                 * RDATA in unknown format.
-                 */
-                result = rdata_atoms_to_unknown_string(output,
-                                                       descriptor,
-                                                       record->rdata_count,
-                                                       record->rdatas);
-        }
+	result = print_rdata(output, descriptor, record);
+	if (!result) {
+		/*
+		 * Some RDATA failed to print, so print the record's
+		 * RDATA in unknown format.
+		 */
+		result = rdata_atoms_to_unknown_string(output,
+			descriptor,
+			record->rdata_count,
+			record->rdatas);
+	}
 
-        if (result) {
-                buffer_printf(output, "\n");
-                buffer_flip(output);
+	if (result) {
+		buffer_printf(output, "\n");
+		buffer_flip(output);
 		(void)write_data(out, buffer_current(output), buffer_remaining(output));
-/*              fflush(out); */
-        }
+/*		fflush(out); */
+	}
 
-        return result;
+	return result;
 }
 
 const char*
