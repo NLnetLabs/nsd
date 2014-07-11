@@ -1,3 +1,6 @@
+11 July 2014: Wouter
+	- fix strptime implicit declaration error on OpenBSD.
+
 9 July 2014: Wouter
 	- removed unnecessary arc4random_uniform.
 

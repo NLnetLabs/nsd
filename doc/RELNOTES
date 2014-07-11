@@ -40,6 +40,7 @@ BUG FIXES:
 	- Fix #553: Improve TXT parsing.
 	- Fix #590: rrl log does not print wildcard as a star but escaped.
 	- Fix #591: rrl log messages at verbosity level 1.
+	- fix strptime implicit declaration error on OpenBSD.
 
 
 4.0.3

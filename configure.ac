@@ -465,7 +465,7 @@ AC_DEFUN([AC_CHECK_STRPTIME_WORKS],
 AC_MSG_CHECKING(whether strptime works)
 if test c${cross_compiling} = cno; then
 AC_RUN_IFELSE([AC_LANG_SOURCE([[
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE 600
 #include <time.h>
 int main(void) { struct tm tm; char *res; 
 res = strptime("20070207111842", "%Y%m%d%H%M%S", &tm);
