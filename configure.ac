@@ -7,6 +7,7 @@ sinclude(acx_nlnetlabs.m4)
 AC_INIT(NSD,4.0.4,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
+CFLAGS="$CFLAGS"
 AC_AIX
 if test "$ac_cv_header_minix_config_h" = "yes"; then
 	AC_DEFINE(_NETBSD_SOURCE,1, [Enable for compile on Minix])
@@ -258,9 +259,13 @@ fi
 ])dnl
 
 # Checks for typedefs, structures, and compiler characteristics.
-# we do not use O3 because it causes miscompilations.
-CHECK_COMPILER_FLAG(O2, [], [ CFLAGS=`echo $CFLAGS | sed -e "s/-O2//g"` ])
-ACX_CHECK_FLTO
+# allow user to override the -g -O2 flags.
+if test "x$CFLAGS" = "x" ; then
+	ACX_CHECK_COMPILER_FLAG(g, [CFLAGS="$CFLAGS -g"])
+	# we do not use O3 because it causes miscompilations.
+	ACX_CHECK_COMPILER_FLAG(O2, [CFLAGS="$CFLAGS -O2"])
+	ACX_CHECK_FLTO
+fi
 AC_C_CONST
 AC_C_INLINE
 AC_TYPE_UID_T

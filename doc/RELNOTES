@@ -42,6 +42,7 @@ BUG FIXES:
 	- Fix #591: rrl log messages at verbosity level 1.
 	- fix strptime implicit declaration error on OpenBSD.
 	- Fix -O3 compile flag to -O2 to avoid miscompilations.
+	- Allow user to override the -g -O2 CFLAGS in ./configure.
 
 
 4.0.3
