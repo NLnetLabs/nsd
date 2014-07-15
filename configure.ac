@@ -258,16 +258,8 @@ fi
 ])dnl
 
 # Checks for typedefs, structures, and compiler characteristics.
-# if cflags not set by user, check O3, then O2, else elide O2 flag
-if test "x$ac_cv_env_CFLAGS_set" = "x"; then
-  CHECK_COMPILER_FLAG(O3, [
-    CFLAGS=`echo $CFLAGS | sed -e "s/-O2//g"`" -O3"
-    dnl remove double spaces
-    CFLAGS=`echo $CFLAGS`
-  ], [
-    CHECK_COMPILER_FLAG(O2, [], [ CFLAGS=`echo $CFLAGS | sed -e "s/-O2//g"` ])
-  ])
-fi
+# we do not use O3 because it causes miscompilations.
+CHECK_COMPILER_FLAG(O2, [], [ CFLAGS=`echo $CFLAGS | sed -e "s/-O2//g"` ])
 ACX_CHECK_FLTO
 AC_C_CONST
 AC_C_INLINE
