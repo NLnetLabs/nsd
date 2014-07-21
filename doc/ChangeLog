@@ -1,3 +1,6 @@
+21 July 2014: Wouter
+	- Fix endian.h include for OpenBSD.
+
 7 July 2014: Matthijs
 	- fake-rfc2553 patch (thanks Benjamin Baier).
 

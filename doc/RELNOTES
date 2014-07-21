@@ -19,6 +19,7 @@ BUG FIXES:
 	- Fix RCODE when secondary NSD got transfer that includes
 	  deleted wildcard record. After deletion, NSD would serve
 	  NODATA, should be NXDOMAIN (thanks Michał Kępień).
+	- Fix endian.h include for OpenBSD.
 
 
 3.2.17
