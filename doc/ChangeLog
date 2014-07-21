@@ -1,3 +1,6 @@
+20 July 2014: Wouter
+	- Fix endian.h include for OpenBSD.
+
 15 July 2014: Wouter
 	- Fix -O3 compile flag to -O2 to avoid miscompilations.
 	- Allow user to override the -g -O2 CFLAGS in ./configure.

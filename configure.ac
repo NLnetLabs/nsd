@@ -398,7 +398,7 @@ fi
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([time.h arpa/inet.h signal.h string.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h glob.h grp.h])
+AC_CHECK_HEADERS([time.h arpa/inet.h signal.h string.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h glob.h grp.h endian.h])
 
 AC_DEFUN([CHECK_VALIST_DEF],
 [

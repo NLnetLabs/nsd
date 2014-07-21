@@ -43,6 +43,7 @@ BUG FIXES:
 	- fix strptime implicit declaration error on OpenBSD.
 	- Fix -O3 compile flag to -O2 to avoid miscompilations.
 	- Allow user to override the -g -O2 CFLAGS in ./configure.
+	- Fix endian.h include for OpenBSD.
 
 
 4.0.3
