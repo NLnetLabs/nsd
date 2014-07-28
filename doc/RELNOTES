@@ -1,6 +1,12 @@
 NSD RELEASE NOTES
 
-3.2.18 -UPCOMING
+3.2.19-UPCOMING
+================
+BUG FIXES:
+	- Fix endian.h include for OpenBSD.
+
+
+3.2.18
 ================
 FEATURES:
 	- NSID can be set with "ascii_somestring" in ascii.

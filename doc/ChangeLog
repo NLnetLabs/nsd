@@ -1,3 +1,6 @@
+28 July 2014: Matthijs
+	- Bump to 3.2.19
+
 21 July 2014: Wouter
 	- Fix endian.h include for OpenBSD.
 
