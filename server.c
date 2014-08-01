@@ -1119,6 +1119,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	sig_atomic_t cmd = NSD_QUIT_SYNC;
 	int ret;
 	udb_ptr last_task;
+#ifdef HAVE_SETPGID
+	pid_t old_pgid;
+#endif
 
 	/* see what tasks we got from xfrd */
 	task_remap(nsd->task[nsd->mytask]);
@@ -1134,6 +1137,14 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #endif /* NDEBUG */
 	/* sync to disk (if needed) */
 	udb_base_sync(nsd->db->udb, 0);
+
+#ifdef HAVE_SETPGID
+	old_pgid = getpgid(0);
+	/* reload has a new process group, because it becomes the new
+	 * server_main, and signals end up here and processes can be killed */
+	if(setpgid(0,0) < 0)
+		log_msg(LOG_ERR, "setpgid: %s", strerror(errno));
+#endif
 
 	initialize_dname_compression_tables(nsd);
 
@@ -1192,6 +1203,13 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #endif
 	udb_ptr_unlink(&last_task, nsd->task[nsd->mytask]);
 	task_process_sync(nsd->task[nsd->mytask]);
+
+#ifdef HAVE_SETPGID
+	/* kill everything in the old process group, to be sure they exit */
+	if(old_pgid != -1 && old_pgid != 0)
+		if(kill(-old_pgid, SIGTERM) < 0)
+			log_msg(LOG_ERR, "kill(procgrp): %s", strerror(errno));
+#endif
 
 	/* send soainfo to the xfrd process, signal it that reload is done,
 	 * it picks up the taskudb */
@@ -1272,6 +1290,13 @@ server_main(struct nsd *nsd)
 
 	/* Ensure we are the main process */
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
+
+#ifdef HAVE_SETPGID
+	/* set our own process group, so signals end up here and we can
+	 * kill all of the child processes easily and for certain */
+	if(setpgid(0,0) < 0)
+		log_msg(LOG_ERR, "setpgid: %s", strerror(errno));
+#endif
 
 	/* Add listener for the XFRD process */
 	netio_add_handler(netio, nsd->xfrd_listener);

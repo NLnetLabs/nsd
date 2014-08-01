@@ -1,3 +1,7 @@
+1 Aug 2014: Wouter
+	- Set program group on main process and its child processes, and
+	  kill them on a reload.
+
 20 July 2014: Wouter
 	- Fix endian.h include for OpenBSD.
 
