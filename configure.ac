@@ -957,6 +957,7 @@ char *strptime(const char *s, const char *format, struct tm *tm);
 #endif
 #ifndef STRPTIME_WORKS
 #define STRPTIME_WORKS 1
+char *nsd_strptime(const char *s, const char *format, struct tm *tm); 
 #define strptime(a,b,c) nsd_strptime((a),(b),(c))
 #endif
 ])
