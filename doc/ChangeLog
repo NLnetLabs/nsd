@@ -1,5 +1,6 @@
 5 Aug 2014: Wouter
 	- Fix #600: document that provide-xfr provides AXFR and not IXFR.
+	- remove program group fix, because it is not needed.
 
 1 Aug 2014: Wouter
 	- Set program group on main process and its child processes, and
