@@ -1,6 +1,13 @@
 5 Aug 2014: Wouter
 	- Fix #600: document that provide-xfr provides AXFR and not IXFR.
 	- remove program group fix, because it is not needed.
+	- Fix rising-load-average or memory-leaks in OSes (Linux since 2.6),
+	  that keep track of all past process parents, or leak memory
+	  for them.  Fix makes it so there is no very deep string of
+	  process parents.
+	  The reload process is now the process parent of servermain.  That
+	  makes signals for children arrive at the reload, and servermain
+	  has to use closed pipes to detect that children have exited.
 
 1 Aug 2014: Wouter
 	- Set program group on main process and its child processes, and

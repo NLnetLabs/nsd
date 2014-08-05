@@ -1332,9 +1332,14 @@ server_main(struct nsd *nsd)
 						log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
 							strerror(errno));
 					}
-				} else {
+				} else if(status != 0) {
+					/* check for status, because we get
+					 * the old-servermain because reload
+					 * is the process-parent of old-main,
+					 * and we get older server-processes
+					 * that are exiting after a reload */
 					log_msg(LOG_WARNING,
-					       "Unknown child %d terminated with status %d",
+					       "process %d terminated with status %d",
 					       (int) child_pid, status);
 				}
 			}
@@ -1342,7 +1347,8 @@ server_main(struct nsd *nsd)
 				if (errno == EINTR) {
 					continue;
 				}
-				log_msg(LOG_WARNING, "wait failed: %s", strerror(errno));
+				if (errno != ECHILD)
+					log_msg(LOG_WARNING, "wait failed: %s", strerror(errno));
 			}
 			if (nsd->mode != NSD_RUN)
 				break;
@@ -1356,6 +1362,11 @@ server_main(struct nsd *nsd)
 				if (errno != EINTR) {
 					log_msg(LOG_ERR, "netio_dispatch failed: %s", strerror(errno));
 				}
+			}
+			if(nsd->restart_children) {
+				restart_child_servers(nsd, server_region, netio,
+					&nsd->xfrd_listener->fd);
+				nsd->restart_children = 0;
 			}
 
 			break;
@@ -1395,8 +1406,8 @@ server_main(struct nsd *nsd)
 			case -1:
 				log_msg(LOG_ERR, "fork failed: %s", strerror(errno));
 				break;
-			case 0:
-				/* CHILD */
+			default:
+				/* PARENT */
 				close(reload_sockets[0]);
 				server_reload(nsd, server_region, netio,
 					reload_sockets[1]);
@@ -1412,10 +1423,10 @@ server_main(struct nsd *nsd)
 				reload_listener.event_types = NETIO_EVENT_NONE;
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload resetup; run"));
 				break;
-			default:
-				/* PARENT, keep running until NSD_QUIT_SYNC
-				 * received from CHILD.
-				 */
+			case 0:
+				/* CHILD */
+				/* server_main keep running until NSD_QUIT_SYNC
+				 * received from CHILD. */
 				close(reload_sockets[1]);
 				reload_listener.fd = reload_sockets[0];
 				reload_listener.timeout = NULL;
@@ -1423,6 +1434,7 @@ server_main(struct nsd *nsd)
 				reload_listener.event_types = NETIO_EVENT_READ;
 				reload_listener.event_handler = parent_handle_reload_command; /* listens to Quit */
 				netio_add_handler(netio, &reload_listener);
+				reload_pid = getppid();
 				break;
 			}
 			break;

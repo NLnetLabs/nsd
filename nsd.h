@@ -158,6 +158,7 @@ struct	nsd
 
 	size_t            child_count;
 	struct nsd_child *children;
+	int	restart_children;
 
 	/* NULL if this is the parent process. */
 	struct nsd_child *this_child;
