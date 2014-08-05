@@ -541,6 +541,8 @@ address. The specified key is used during AXFR. For unlisted or
 BLOCKED addresses no data is provided, requests are discarded.
 BLOCKED supersedes other entries, other entries are scanned for a match
 in the order of the statements.
+NSD provides AXFR for its secondaries, but IXFR is not implemented (IXFR
+is implemented for request\-xfr, but not for provide\-xfr).
 .P
 .RS
 The ip\-spec is either a plain IP address (IPv4 or IPv6), or can be 
