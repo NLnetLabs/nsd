@@ -44,6 +44,7 @@ BUG FIXES:
 	- Fix -O3 compile flag to -O2 to avoid miscompilations.
 	- Allow user to override the -g -O2 CFLAGS in ./configure.
 	- Fix endian.h include for OpenBSD.
+	- Fix #600: document that provide-xfr provides AXFR and not IXFR.
 
 
 4.0.3
