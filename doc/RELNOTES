@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.0.4 (upcoming)
+4.1.0 (upcoming)
 ================
 FEATURES:
 	- database: "" starts without mmap of database.  Less memory is used,
@@ -45,6 +45,10 @@ BUG FIXES:
 	- Allow user to override the -g -O2 CFLAGS in ./configure.
 	- Fix endian.h include for OpenBSD.
 	- Fix #600: document that provide-xfr provides AXFR and not IXFR.
+	- Fix rising-load-average or memory-leaks in OSes (Linux since 2.6),
+	  that keep track of all past process parents, or leak memory
+	  for them.  Fix makes it so there is no very deep string of
+	  process parents.
 
 
 4.0.3

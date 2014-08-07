@@ -3,6 +3,7 @@
 	  pipe is acted on, and reload fail not cause nsd to shutdown, also
 	  ignore sigchlds from the servermain in reload, that would cause
 	  EINTR to break file reads.
+	- trunk has version 4.1.
 
 5 Aug 2014: Wouter
 	- Fix #600: document that provide-xfr provides AXFR and not IXFR.
