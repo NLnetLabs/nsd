@@ -1,3 +1,9 @@
+7 Aug 2014: Wouter
+	- Fix for process swap of main and reload, reload failure from the
+	  pipe is acted on, and reload fail not cause nsd to shutdown, also
+	  ignore sigchlds from the servermain in reload, that would cause
+	  EINTR to break file reads.
+
 5 Aug 2014: Wouter
 	- Fix #600: document that provide-xfr provides AXFR and not IXFR.
 	- remove program group fix, because it is not needed.

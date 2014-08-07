@@ -493,6 +493,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 			handler->fd = -1;
 		}
 		log_msg(LOG_ERR, "handle_reload_cmd: reload closed cmd channel");
+		nsd->reload_failed = 1;
 		return;
 	}
 	switch (mode) {

@@ -28,6 +28,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <netdb.h>
 #ifndef SHUT_WR
@@ -1119,6 +1120,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	sig_atomic_t cmd = NSD_QUIT_SYNC;
 	int ret;
 	udb_ptr last_task;
+	struct sigaction old_sigchld, ign_sigchld;
+	/* ignore SIGCHLD from the previous server_main that used this pid */
+	memset(&ign_sigchld, 0, sizeof(ign_sigchld));
+	ign_sigchld.sa_handler = SIG_IGN;
+	sigaction(SIGCHLD, &ign_sigchld, &old_sigchld);
 
 	/* see what tasks we got from xfrd */
 	task_remap(nsd->task[nsd->mytask]);
@@ -1143,6 +1149,8 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	set_bind8_alarm(nsd);
 #endif
 
+	/* listen for the signals of failed children again */
+	sigaction(SIGCHLD, &old_sigchld, NULL);
 	/* Start new child processes */
 	if (server_start_children(nsd, server_region, netio, &nsd->
 		xfrd_listener->fd) != 0) {
@@ -1367,6 +1375,31 @@ server_main(struct nsd *nsd)
 				restart_child_servers(nsd, server_region, netio,
 					&nsd->xfrd_listener->fd);
 				nsd->restart_children = 0;
+			}
+			if(nsd->reload_failed) {
+				sig_atomic_t cmd = NSD_RELOAD_DONE;
+				pid_t mypid;
+				nsd->reload_failed = 0;
+				log_msg(LOG_WARNING,
+				       "Reload process %d failed, continuing with old database",
+				       (int) reload_pid);
+				reload_pid = -1;
+				if(reload_listener.fd != -1) close(reload_listener.fd);
+				reload_listener.fd = -1;
+				reload_listener.event_types = NETIO_EVENT_NONE;
+				task_process_sync(nsd->task[nsd->mytask]);
+				/* inform xfrd reload attempt ended */
+				if(!write_socket(nsd->xfrd_listener->fd,
+					&cmd, sizeof(cmd))) {
+					log_msg(LOG_ERR, "problems "
+					  "sending SOAEND to xfrd: %s",
+					  strerror(errno));
+				}
+				mypid = getpid();
+				if(!write_socket(nsd->xfrd_listener->fd, &mypid,  sizeof(mypid))) {
+					log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
+						strerror(errno));
+				}
 			}
 
 			break;
