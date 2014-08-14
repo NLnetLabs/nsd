@@ -1459,7 +1459,7 @@ server_main(struct nsd *nsd)
 			case 0:
 				/* CHILD */
 				/* server_main keep running until NSD_QUIT_SYNC
-				 * received from CHILD. */
+				 * received from reload. */
 				close(reload_sockets[1]);
 				reload_listener.fd = reload_sockets[0];
 				reload_listener.timeout = NULL;
