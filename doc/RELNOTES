@@ -47,6 +47,7 @@ BUG FIXES:
 	  that keep track of all past process parents, or leak memory
 	  for them.  Fix makes it so there is no very deep string of
 	  process parents.
+	- Remove .LP after .SH in man pages.
 
 
 4.0.3

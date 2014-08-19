@@ -1,3 +1,6 @@
+19 Aug 2014: Wouter
+	- Remove .LP after .SH in man pages.
+
 7 Aug 2014: Wouter
 	- Fix for process swap of main and reload, reload failure from the
 	  pipe is acted on, and reload fail not cause nsd to shutdown, also

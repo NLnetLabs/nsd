@@ -2,11 +2,9 @@
 .\" Copyright (c) 2001\-2008, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
-.LP
 .B nsd.conf
 \- NSD configuration file
 .SH "SYNOPSIS"
-.LP
 .B nsd.conf
 .SH "DESCRIPTION"
 .B Nsd.conf
@@ -22,7 +20,6 @@ for names with spaces, eg. "file name.zone".
 specifies options for the nsd server, zone files, primaries and 
 secondaries.
 .SH "EXAMPLE"
-.LP
 An example of a short nsd.conf file is below.
 .LP
 # Example.com nsd.conf file
@@ -758,15 +755,12 @@ default
 .B NSD
 configuration file
 .SH "SEE ALSO" 
-.LP
 \fInsd\fR(8), \fInsd\-checkconf\fR(8), \fInsd\-control\fR(8)
 .SH "AUTHORS"
-.LP
 .B NSD
 was written by NLnet Labs and RIPE NCC joint team. Please see 
 CREDITS file in the distribution for further details.
 .SH "BUGS"
-.LP
 .B nsd.conf
 is parsed by a primitive parser, error messages may not be to the 
 point.
