@@ -688,7 +688,7 @@ AC_DEFINE_UNQUOTED([FACILITY], $facility, [Define to the default facility for sy
 dnl
 dnl Determine the maximum number of ip-addresses that are allowed
 dnl
-max_ips=8
+max_ips=16
 AC_ARG_WITH([max_ips],
 	AC_HELP_STRING([--with-max-ips=number], [Limit on the number of ip-addresses that may be specified]),
 	[max_ips=$withval])
