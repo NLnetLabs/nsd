@@ -1,3 +1,6 @@
+28 Aug 2014: Wouter
+	- Tag 4.1.0rc1
+
 25 Aug 2014: Wouter
 	- Increased default --with-max-ips from 8 to 16, this increases the
 	  number of interfaces you can specify in nsd.conf to listen to.
