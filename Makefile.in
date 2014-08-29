@@ -128,6 +128,7 @@ install: all
 	$(INSTALL) nsd-checkzone $(DESTDIR)$(sbindir)/nsd-checkzone
 	$(INSTALL) nsd-control $(DESTDIR)$(sbindir)/nsd-control
 	$(INSTALL_DATA) nsd.8 $(DESTDIR)$(mandir)/man8
+	$(INSTALL_DATA) nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkconf.8
 	$(INSTALL_DATA) nsd-checkzone.8 $(DESTDIR)$(mandir)/man8/nsd-checkzone.8
 	$(INSTALL_DATA) nsd-control.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
 	$(INSTALL_DATA) nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
