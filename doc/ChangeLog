@@ -1,5 +1,7 @@
 4 Sep 2014: Wouter
 	- Tag 4.1.0.
+	- trunk is 4.1.1 in development.
+	- fix manpage for nsd-checkzone to have version and date.
 
 29 Aug 2014: Wouter
 	- Fix install of the nsd-checkconf man page.

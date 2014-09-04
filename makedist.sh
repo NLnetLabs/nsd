@@ -168,6 +168,7 @@ replace_all doc/README
 replace_all nsd.8.in
 replace_all nsd-control.8.in
 replace_all nsd-checkconf.8.in
+replace_all nsd-checkzone.8.in
 replace_all nsd.conf.5.in
 
 info "Renaming NSD directory to nsd-$version."
