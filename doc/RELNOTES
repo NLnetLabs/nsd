@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.0 (upcoming)
+4.1.0
 ================
 FEATURES:
 	- database: "" starts without mmap of database.  Less memory is used,
