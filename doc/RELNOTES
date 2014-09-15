@@ -2,6 +2,8 @@ NSD RELEASE NOTES
 
 4.1.1 (upcoming)
 ================
+FEATURES:
+	- RFC 7344: CDS and CDNSKEY (read in).
 
 4.1.0
 ================
