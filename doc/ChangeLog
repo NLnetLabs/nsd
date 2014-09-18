@@ -1,3 +1,6 @@
+18 Sep 2014: Wouter
+	- Fix that expired zones stay expired after a server restart.
+
 15 Sep 2014: Wouter
 	- RFC 7344: CDS and CDNSKEY (read in).
 

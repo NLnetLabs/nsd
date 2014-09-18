@@ -4,6 +4,9 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- RFC 7344: CDS and CDNSKEY (read in).
+BUG FIXES:
+	- Fix that expired zones stay expired after a server restart.
+
 
 4.1.0
 ================
