@@ -1237,7 +1237,7 @@ answer_query(struct nsd *nsd, struct query *q)
 	if (q->zone) {
 		ZTATUP2(q->zone, opcode, q->opcode);
 		ZTATUP2(q->zone, qtype, q->qtype);
-		ZTATUP2(q->zone, opcode, q->qclass);
+		ZTATUP2(q->zone, qclass, q->qclass);
 	}
 #endif
 
