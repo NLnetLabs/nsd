@@ -1,3 +1,7 @@
+8 Oct 2014: Wouter
+	- Fix "xfrd_handle_ipc: bad mode" log errors when compiled 
+	  with --disable-bind8-stats.
+
 18 Sep 2014: Wouter
 	- Fix that expired zones stay expired after a server restart.
 

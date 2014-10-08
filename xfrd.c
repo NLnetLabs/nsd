@@ -2294,6 +2294,9 @@ xfrd_process_stat_info_task(xfrd_state_t* xfrd, struct task_list_d* task)
 static void
 xfrd_handle_taskresult(xfrd_state_t* xfrd, struct task_list_d* task)
 {
+#ifndef BIND8_STATS
+	(void)xfrd;
+#endif
 	switch(task->task_type) {
 	case task_soa_info:
 		xfrd_process_soa_info_task(task);

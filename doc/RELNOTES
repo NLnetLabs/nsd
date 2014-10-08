@@ -6,6 +6,8 @@ FEATURES:
 	- RFC 7344: CDS and CDNSKEY (read in).
 BUG FIXES:
 	- Fix that expired zones stay expired after a server restart.
+	- Fix "xfrd_handle_ipc: bad mode" log errors when compiled 
+	  with --disable-bind8-stats.
 
 
 4.1.0
