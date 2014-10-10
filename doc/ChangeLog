@@ -1,5 +1,6 @@
 10 Oct 2014: Wouter
 	- Fix #616: retry xfer for zones with no content after command.
+	- Fix char used as array index warnings on NetBSD.
 
 8 Oct 2014: Wouter
 	- Fix "xfrd_handle_ipc: bad mode" log errors when compiled 

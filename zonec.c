@@ -590,7 +590,7 @@ zparser_conv_tag(region_type *region, const char *text, size_t len)
 		return NULL;
 	}
 	for (ptr = text; *ptr; ptr++) {
-		if (!isdigit(*ptr) && !islower(*ptr)) {
+		if (!isdigit((unsigned char)*ptr) && !islower((unsigned char)*ptr)) {
 			zc_error_prev_line("invalid tag %s: contains invalid char %c",
 				text, *ptr);
 			return NULL;
