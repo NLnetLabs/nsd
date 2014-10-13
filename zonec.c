@@ -103,7 +103,7 @@ zparser_conv_hex(region_type *region, const char *hex, size_t len)
 		while (*hex) {
 			*t = 0;
 			for (i = 16; i >= 1; i -= 15) {
-				if (isxdigit((int)*hex)) {
+				if (isxdigit((unsigned char)*hex)) {
 					*t += hexdigit_to_int(*hex) * i;
 				} else {
 					zc_error_prev_line(
@@ -144,7 +144,7 @@ zparser_conv_hex_length(region_type *region, const char *hex, size_t len)
 		while (*hex) {
 			*t = 0;
 			for (i = 16; i >= 1; i -= 15) {
-				if (isxdigit((int)*hex)) {
+				if (isxdigit((unsigned char)*hex)) {
 					*t += hexdigit_to_int(*hex) * i;
 				} else {
 					zc_error_prev_line(
@@ -416,7 +416,7 @@ zparser_conv_ilnp64(region_type *region, const char *text)
 			/* Our grammar is stricter than the one accepted by
 			 * strtol. */
 			c = (int) *ch;
-			if (!isxdigit(c)) {
+			if (!isxdigit((unsigned char)c)) {
 				zc_error_prev_line("ilnp64: invalid "
 					"(non-hexadecimal) character %c", c);
 				return NULL;
@@ -513,7 +513,7 @@ zparser_conv_eui(region_type *region, const char *text, size_t len)
 		int c = (int) *ch;
 		if (*ch == '-') {
 			num++;
-		} else if (!isxdigit(c)) {
+		} else if (!isxdigit((unsigned char)c)) {
 			zc_error_prev_line("eui%u: invalid (non-hexadecimal) "
 				"character %c", (unsigned) len, c);
 			return NULL;
@@ -786,14 +786,14 @@ precsize_aton (char *cp, char **endptr)
 	int exponent;
 	int mantissa;
 
-	while (isdigit((int)*cp))
+	while (isdigit((unsigned char)*cp))
 		mval = mval * 10 + hexdigit_to_int(*cp++);
 
 	if (*cp == '.') {	/* centimeters */
 		cp++;
-		if (isdigit((int)*cp)) {
+		if (isdigit((unsigned char)*cp)) {
 			cmval = hexdigit_to_int(*cp++) * 10;
-			if (isdigit((int)*cp)) {
+			if (isdigit((unsigned char)*cp)) {
 				cmval += hexdigit_to_int(*cp++);
 			}
 		}
@@ -858,17 +858,17 @@ zparser_conv_loc(region_type *region, char *str)
 
 		if (!parse_int(str, &str, &deg, "degrees", 0, 180))
 			return NULL;
-		if (!isspace((int)*str)) {
+		if (!isspace((unsigned char)*str)) {
 			zc_error_prev_line("space expected after degrees");
 			return NULL;
 		}
 		++str;
 
 		/* Minutes? */
-		if (isdigit((int)*str)) {
+		if (isdigit((unsigned char)*str)) {
 			if (!parse_int(str, &str, &min, "minutes", 0, 60))
 				return NULL;
-			if (!isspace((int)*str)) {
+			if (!isspace((unsigned char)*str)) {
 				zc_error_prev_line("space expected after minutes");
 				return NULL;
 			}
@@ -876,7 +876,7 @@ zparser_conv_loc(region_type *region, char *str)
 		}
 
 		/* Seconds? */
-		if (isdigit((int)*str)) {
+		if (isdigit((unsigned char)*str)) {
 			start = str;
 			if (!parse_int(str, &str, &i, "seconds", 0, 60)) {
 				return NULL;
@@ -886,7 +886,7 @@ zparser_conv_loc(region_type *region, char *str)
 				return NULL;
 			}
 
-			if (!isspace((int)*str)) {
+			if (!isspace((unsigned char)*str)) {
 				zc_error_prev_line("space expected after seconds");
 				return NULL;
 			}
@@ -929,7 +929,7 @@ zparser_conv_loc(region_type *region, char *str)
 		if (lat != 0 && lon != 0)
 			break;
 
-		if (!isspace((int)*str)) {
+		if (!isspace((unsigned char)*str)) {
 			zc_error_prev_line("space expected after latitude/longitude");
 			return NULL;
 		}
@@ -942,7 +942,7 @@ zparser_conv_loc(region_type *region, char *str)
 		return NULL;
 	}
 
-	if (!isspace((int)*str)) {
+	if (!isspace((unsigned char)*str)) {
 		zc_error_prev_line("space expected before altitude");
 		return NULL;
 	}
@@ -966,7 +966,7 @@ zparser_conv_loc(region_type *region, char *str)
 		if (!parse_int(str + 1, &str, &i, "altitude fraction", 0, 99)) {
 			return NULL;
 		}
-		if (!isspace((int)*str) && *str != '\0' && *str != 'm') {
+		if (!isspace((unsigned char)*str) && *str != '\0' && *str != 'm') {
 			zc_error_prev_line("altitude fraction must be a number");
 			return NULL;
 		}
@@ -975,7 +975,7 @@ zparser_conv_loc(region_type *region, char *str)
 		zc_error_prev_line("altitude must be expressed in meters");
 		return NULL;
 	}
-	if (!isspace((int)*str) && *str != '\0')
+	if (!isspace((unsigned char)*str) && *str != '\0')
 		++str;
 
 	if (sscanf(start, "%lf", &d) != 1) {
@@ -984,16 +984,16 @@ zparser_conv_loc(region_type *region, char *str)
 
 	alt = (uint32_t) (10000000.0 + d * 100 + 0.5);
 
-	if (!isspace((int)*str) && *str != '\0') {
+	if (!isspace((unsigned char)*str) && *str != '\0') {
 		zc_error_prev_line("unexpected character after altitude");
 		return NULL;
 	}
 
 	/* Now parse size, horizontal precision and vertical precision if any */
-	for(i = 1; isspace((int)*str) && i <= 3; i++) {
+	for(i = 1; isspace((unsigned char)*str) && i <= 3; i++) {
 		vszhpvp[i] = precsize_aton(str + 1, &str);
 
-		if (!isspace((int)*str) && *str != '\0') {
+		if (!isspace((unsigned char)*str) && *str != '\0') {
 			zc_error_prev_line("invalid size or precision");
 			return NULL;
 		}

@@ -91,7 +91,7 @@ str2int(const char **buf, int max)
 {
 	int ret=0, count=0;
 
-	while (*buf[0] != '\0' && isdigit(*buf[0]) && count<max) {
+	while (*buf[0] != '\0' && isdigit((unsigned char)*buf[0]) && count<max) {
 		ret = ret*10 + (*buf[0] - '0');
 		(*buf)++;
 		count++;
@@ -115,11 +115,11 @@ nsd_strptime(const char *s, const char *format, struct tm *tm)
 		alt_format = 0;
 
 		/* whitespace, literal or format */
-		if (isspace(c)) { /* whitespace */
+		if (isspace((unsigned char)c)) { /* whitespace */
 			/** whitespace matches zero or more whitespace characters in the
 			  * input string.
 			 **/
-			while (isspace(*s))
+			while (isspace((unsigned char)*s))
 				s++;
 		}
 		else if (c == '%') { /* format */
@@ -225,7 +225,7 @@ nsd_strptime(const char *s, const char *format, struct tm *tm)
 					break;
 				case 'n': /* arbitrary whitespace */
 				case 't':
-					while (isspace(*s))
+					while (isspace((unsigned char)*s))
 						s++;
 					break;
 				case 'p': /* am pm */
