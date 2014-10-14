@@ -724,13 +724,23 @@ case "$enable_ipv6" in
 		;;
 esac
 
-AC_ARG_ENABLE(bind8-stats, AC_HELP_STRING([--enable-bind8-stats], [Enables BIND8 like NSTATS & XSTATS]))
+AC_ARG_ENABLE(bind8-stats, AC_HELP_STRING([--enable-bind8-stats], [Enables BIND8 like NSTATS & XSTATS and statistics in nsd-control]))
 
 case "$enable_bind8_stats" in
 	yes|'')
 		AC_DEFINE_UNQUOTED([BIND8_STATS], [], [Define this to enable BIND8 like NSTATS & XSTATS.])
 		;;
 	no|*)
+		;;
+esac
+
+AC_ARG_ENABLE(zone-stats, AC_HELP_STRING([--enable-zone-stats], [Enable per-zone statistics gathering (needs --enable-bind8-stats)]))
+case "$enable_zone_stats" in
+	yes)
+		AC_DEFINE_UNQUOTED([USE_ZONE_STATS], [], [Define this to enable per-zone statistics gathering.])
+		AC_DEFINE_UNQUOTED([BIND8_STATS], [], [Define this to enable BIND8 like NSTATS & XSTATS.])
+		;;
+	no|''|*)
 		;;
 esac
 

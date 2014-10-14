@@ -65,6 +65,9 @@ struct xfrd_state {
 	/* counter for xfr file numbers */
 	uint64_t xfrfilenumber;
 
+	/* the zonestat array size that we last saw and is safe to use */
+	unsigned zonestat_safe;
+
 	/* timer for NSD reload */
 	struct timeval reload_timeout;
 	struct event reload_handler;

@@ -1106,6 +1106,10 @@ main(int argc, char *argv[])
 			nsd.username));
 	}
 #endif /* HAVE_GETPWNAM */
+#ifdef USE_ZONE_STATS
+	options_zonestatnames_create(nsd.options);
+	server_zonestat_alloc(&nsd);
+#endif /* USE_ZONE_STATS */
 
 	if(nsd.server_kind == NSD_SERVER_MAIN) {
 		server_prepare_xfrd(&nsd);
