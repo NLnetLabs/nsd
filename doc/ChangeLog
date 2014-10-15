@@ -1,3 +1,6 @@
+15 Oct 2014: Wouter
+	- Fix that queries for noname CH TXT are REFUSED instead of nodata.
+
 14 Oct 2014: Wouter
 	- per zone statistics with --enable-zone-stats, configure with
 	  zonestats: "zonestatidentifier", zones with the same id are added.

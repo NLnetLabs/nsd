@@ -12,6 +12,7 @@ BUG FIXES:
 	  with --disable-bind8-stats.
 	- Fix #616: retry xfer for zones with no content after command.
 	- Fix char used as array index warnings on NetBSD.
+	- Fix that queries for noname CH TXT are REFUSED instead of nodata.
 
 
 4.1.0
