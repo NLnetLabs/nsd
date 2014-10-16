@@ -1760,6 +1760,8 @@ void task_new_zonestat_inc(udb_base* udb, udb_ptr* last, unsigned sz)
 {
 	udb_ptr e;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task zonestat_inc"));
+	if(sz == 0)
+		return; /* no need to decrease to 0 */
 	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d),
 		NULL)) {
 		log_msg(LOG_ERR, "tasklist: out of space, cannot add z_i");
@@ -1977,7 +1979,7 @@ static void
 task_process_zonestat_inc(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	struct task_list_d* task)
 {
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "zonestat_inc task"));
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "zonestat_inc task %u", (unsigned)task->oldserial));
 	nsd->zonestatdesired = (unsigned)task->oldserial;
 	/* send echo to xfrd to increment on its end */
 	task_new_zonestat_inc(udb, last_task, nsd->zonestatdesired);
