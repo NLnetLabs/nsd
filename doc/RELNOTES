@@ -13,6 +13,7 @@ BUG FIXES:
 	- Fix #616: retry xfer for zones with no content after command.
 	- Fix char used as array index warnings on NetBSD.
 	- Fix that queries for noname CH TXT are REFUSED instead of nodata.
+	- Fixes for wildcard addition and deletion, speedup for some cases.
 
 
 4.1.0

@@ -1,3 +1,6 @@
+16 Oct 2014: Wouter
+	- Fixes for wildcard addition and deletion, speedup for some cases.
+
 15 Oct 2014: Wouter
 	- Fix that queries for noname CH TXT are REFUSED instead of nodata.
 
