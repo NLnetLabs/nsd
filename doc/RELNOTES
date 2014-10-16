@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 BUG FIXES:
 	- Fix endian.h include for OpenBSD.
 	- Fix per-zone query class statistics.
+	- Fixes for wildcard addition and deletion.
 
 
 3.2.18

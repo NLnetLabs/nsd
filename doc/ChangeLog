@@ -1,3 +1,6 @@
+16 October 2014: Wouter
+	- Fixes for wildcard addition and deletion.
+
 7 October 2014: Wouter
 	- Fix per-zone query class statistics.
 

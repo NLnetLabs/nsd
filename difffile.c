@@ -287,6 +287,10 @@ rrset_delete_empty_terminals(domain_type* domain, domain_type* ce)
 				if(p == ce || has_data_below(p))
 					return p;
 				p->is_existing = 0;
+				/* fixup wildcard child of parent */
+				if(p->parent &&
+					p->parent->wildcard_child_closest_match == p)
+					p->parent->wildcard_child_closest_match = domain_previous_existing_child(p);
 				p = p->parent;
 			}
 		}
@@ -330,10 +334,6 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 				break;
 			}
 		}
-	}
-	if(domain->rrsets == 0 &&
-		label_is_wildcard(dname_name(domain_dname(domain)))) {
-		domain->parent->wildcard_child_closest_match = domain->parent;
 	}
 
 
