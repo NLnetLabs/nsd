@@ -1,3 +1,6 @@
+27 Oct 2014: Wouter
+	- Disabled use of SSLv3 in nsd-control.
+
 22 Oct 2014: Wouter
 	- Test for wildcard fix (from 3.2).
 

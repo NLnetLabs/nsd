@@ -6,6 +6,7 @@ FEATURES:
 	- RFC 7344: CDS and CDNSKEY (read record types).
 	- per zone statistics with --enable-zone-stats, configure with
 	  zonestats: "zonestatidentifier", zones with the same id are added.
+	- Disabled use of SSLv3 in nsd-control.
 BUG FIXES:
 	- Fix that expired zones stay expired after a server restart.
 	- Fix "xfrd_handle_ipc: bad mode" log errors when compiled 
