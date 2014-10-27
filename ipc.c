@@ -277,6 +277,34 @@ stats_add(struct nsdst* total, struct nsdst* s)
 	total->db_mem = s->db_mem;
 }
 
+/** subtract stats from total */
+void
+stats_subtract(struct nsdst* total, struct nsdst* s)
+{
+	unsigned i;
+	for(i=0; i<sizeof(total->qtype)/sizeof(stc_t); i++)
+		total->qtype[i] -= s->qtype[i];
+	for(i=0; i<sizeof(total->qclass)/sizeof(stc_t); i++)
+		total->qclass[i] -= s->qclass[i];
+	total->qudp -= s->qudp;
+	total->qudp6 -= s->qudp6;
+	total->ctcp -= s->ctcp;
+	total->ctcp6 -= s->ctcp6;
+	for(i=0; i<sizeof(total->rcode)/sizeof(stc_t); i++)
+		total->rcode[i] -= s->rcode[i];
+	for(i=0; i<sizeof(total->opcode)/sizeof(stc_t); i++)
+		total->opcode[i] -= s->opcode[i];
+	total->dropped -= s->dropped;
+	total->truncated -= s->truncated;
+	total->wrongzone -= s->wrongzone;
+	total->txerr -= s->txerr;
+	total->rxerr -= s->rxerr;
+	total->edns -= s->edns;
+	total->ednserr -= s->ednserr;
+	total->raxfr -= s->raxfr;
+	total->nona -= s->nona;
+}
+
 #define FINAL_STATS_TIMEOUT 10 /* seconds */
 static void
 read_child_stats(struct nsd* nsd, struct nsd_child* child, int fd)

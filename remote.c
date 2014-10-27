@@ -1930,7 +1930,19 @@ print_stat_block(SSL* ssl, char* n, char* d, struct nsdst* st)
 
 #ifdef USE_ZONE_STATS
 static void
-zonestat_print(SSL* ssl, xfrd_state_t* xfrd)
+resize_zonestat(xfrd_state_t* xfrd, size_t num)
+{
+	struct nsdst** a = xalloc_zero(num * sizeof(struct nsdst*));
+	if(xfrd->zonestat_clear_num != 0)
+		memcpy(a, xfrd->zonestat_clear, xfrd->zonestat_clear_num
+			* sizeof(struct nsdst*));
+	free(xfrd->zonestat_clear);
+	xfrd->zonestat_clear = a;
+	xfrd->zonestat_clear_num = num;
+}
+
+static void
+zonestat_print(SSL* ssl, xfrd_state_t* xfrd, int clear)
 {
 	struct zonestatname* n;
 	struct nsdst stat0, stat1;
@@ -1948,6 +1960,30 @@ zonestat_print(SSL* ssl, xfrd_state_t* xfrd)
 		memcpy(&stat0, &xfrd->nsd->zonestat[0][n->id], sizeof(stat0));
 		memcpy(&stat1, &xfrd->nsd->zonestat[1][n->id], sizeof(stat1));
 		stats_add(&stat0, &stat1);
+		
+		/* save a copy of current (cumulative) stats in stat1 */
+		memcpy(&stat1, &stat0, sizeof(stat1));
+		/* subtract last total of stats that was 'cleared' */
+		if(n->id < xfrd->zonestat_clear_num &&
+			xfrd->zonestat_clear[n->id])
+			stats_subtract(&stat0, xfrd->zonestat_clear[n->id]);
+		if(clear) {
+			/* extend storage array if needed */
+			if(n->id >= xfrd->zonestat_clear_num) {
+				if(n->id+1 < xfrd->nsd->options->zonestatnames->count)
+					resize_zonestat(xfrd, xfrd->nsd->options->zonestatnames->count);
+				else
+					resize_zonestat(xfrd, n->id+1);
+			}
+			if(!xfrd->zonestat_clear[n->id])
+				xfrd->zonestat_clear[n->id] = xalloc(
+					sizeof(struct nsdst));
+			/* store last total of stats */
+			memcpy(xfrd->zonestat_clear[n->id], &stat1,
+				sizeof(struct nsdst));
+		}
+
+		/* stat0 contains the details that we want to print */
 		if(!ssl_printf(ssl, "%s%snum.queries=%u\n", name, ".",
 			(unsigned)(stat0.qudp + stat0.qudp6 + stat0.ctcp +
 				stat0.ctcp6)))
@@ -1958,7 +1994,7 @@ zonestat_print(SSL* ssl, xfrd_state_t* xfrd)
 #endif /* USE_ZONE_STATS */
 
 static void
-print_stats(SSL* ssl, xfrd_state_t* xfrd, struct timeval* now)
+print_stats(SSL* ssl, xfrd_state_t* xfrd, struct timeval* now, int clear)
 {
 	size_t i;
 	stc_t total = 0;
@@ -2006,7 +2042,9 @@ print_stats(SSL* ssl, xfrd_state_t* xfrd, struct timeval* now)
 	if(!ssl_printf(ssl, "zone.slave=%u\n", (unsigned)xfrd->zones->count))
 		return;
 #ifdef USE_ZONE_STATS
-	zonestat_print(ssl, xfrd); /* per-zone statistics */
+	zonestat_print(ssl, xfrd, clear); /* per-zone statistics */
+#else
+	(void)clear;
 #endif
 }
 
@@ -2020,13 +2058,9 @@ clear_stats(xfrd_state_t* xfrd)
 		xfrd->nsd->children[i].query_count = 0;
 	}
 	memset(&xfrd->nsd->st, 0, sizeof(struct nsdst));
-	/* If we clear the stats here we lose the queries between printout
-	 * and now
-	memset(xfrd->nsd->zonestat[0], 0, sizeof(struct nsdst)*
-		xfrd->nsd->zonestatsize[0]);
-	memset(xfrd->nsd->zonestat[1], 0, sizeof(struct nsdst)*
-		xfrd->nsd->zonestatsize[1]);
-	*/
+	/* zonestats are cleared by storing the cumulative value that
+	 * was last printed in the zonestat_clear array, and subtracting
+	 * that before the next stats printout */
 	xfrd->nsd->st.db_disk = dbd;
 	xfrd->nsd->st.db_mem = dbm;
 }
@@ -2042,7 +2076,7 @@ daemon_remote_process_stats(struct daemon_remote* rc)
 	/* pop one and give it stats */
 	while((s = rc->stats_list)) {
 		assert(s->in_stats_list);
-		print_stats(s->ssl, rc->xfrd, &now);
+		print_stats(s->ssl, rc->xfrd, &now, (s->in_stats_list == 1));
 		if(s->in_stats_list == 1) {
 			clear_stats(rc->xfrd);
 			rc->stats_time = now;

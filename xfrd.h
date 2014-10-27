@@ -67,6 +67,10 @@ struct xfrd_state {
 
 	/* the zonestat array size that we last saw and is safe to use */
 	unsigned zonestat_safe;
+	/* size currently of the clear array */
+	size_t zonestat_clear_num;
+	/* array of malloced entries with cumulative cleared stat values */
+	struct nsdst** zonestat_clear;
 
 	/* timer for NSD reload */
 	struct timeval reload_timeout;

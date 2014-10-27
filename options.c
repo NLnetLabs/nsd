@@ -263,6 +263,19 @@ parse_options_file(nsd_options_t* opt, const char* file,
 void options_zonestatnames_create(nsd_options_t* opt)
 {
 	zone_options_t* zopt;
+	/* allocate "" as zonestat 0, for zones without a zonestat */
+	if(!rbtree_search(opt->zonestatnames, "")) {
+		struct zonestatname* n;
+		n = (struct zonestatname*)xalloc(sizeof(*n));
+		memset(n, 0, sizeof(*n));
+		n->node.key = strdup("");
+		if(!n->node.key) {
+			log_msg(LOG_ERR, "malloc failed: %s", strerror(errno));
+			exit(1);
+		}
+		n->id = (unsigned)(opt->zonestatnames->count);
+		rbtree_insert(opt->zonestatnames, (rbnode_t*)n);
+	}
 	RBTREE_FOR(zopt, zone_options_t*, opt->zone_options) {
 		/* insert into tree, so that when read in later id exists */
 		(void)getzonestatid(opt, zopt);
