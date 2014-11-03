@@ -1,3 +1,6 @@
+3 Nov 2014: Wouter
+	- Fix that failure to add tcp to tcp base does not leak the socket.
+
 27 Oct 2014: Wouter
 	- Disabled use of SSLv3 in nsd-control.
 	- zonestats are cleared (or not, with stats_noreset).

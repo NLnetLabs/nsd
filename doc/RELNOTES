@@ -15,6 +15,7 @@ BUG FIXES:
 	- Fix char used as array index warnings on NetBSD.
 	- Fix that queries for noname CH TXT are REFUSED instead of nodata.
 	- Fixes for wildcard addition and deletion, speedup for some cases.
+	- Fix that failure to add tcp to tcp base does not leak the socket.
 
 
 4.1.0
