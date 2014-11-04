@@ -4,8 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- RFC 7344: CDS and CDNSKEY (read record types).
-	- per zone statistics with --enable-zone-stats, configure with
-	  zonestats: "zonestatidentifier", zones with the same id are added.
+	- per zone statistics with --enable-zone-stats, config zone with
+	  zonestats: "name", zones configured with the same string are added.
 	- Disabled use of SSLv3 in nsd-control.
 BUG FIXES:
 	- Fix that expired zones stay expired after a server restart.

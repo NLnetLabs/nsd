@@ -1,3 +1,6 @@
+4 Nov 2014: Wouter
+	- Document zonestat config, and nsd-checkconf access.
+
 3 Nov 2014: Wouter
 	- Fix that failure to add tcp to tcp base does not leak the socket.
 

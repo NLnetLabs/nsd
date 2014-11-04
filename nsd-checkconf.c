@@ -275,6 +275,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		ZONE_GET_ACL(allow_notify, o, zone->pattern);
 		ZONE_GET_ACL(notify, o, zone->pattern);
 		ZONE_GET_BIN(notify_retry, o, zone->pattern);
+		ZONE_GET_STR(zonestats, o, zone->pattern);
 		ZONE_GET_OUTGOING(outgoing_interface, o, zone->pattern);
 		ZONE_GET_BIN(allow_axfr_fallback, o, zone->pattern);
 #ifdef RATELIMIT
@@ -298,6 +299,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		ZONE_GET_ACL(allow_notify, o, p);
 		ZONE_GET_ACL(notify, o, p);
 		ZONE_GET_BIN(notify_retry, o, p);
+		ZONE_GET_STR(zonestats, o, p);
 		ZONE_GET_OUTGOING(outgoing_interface, o, p);
 		ZONE_GET_BIN(allow_axfr_fallback, o, p);
 #ifdef RATELIMIT
@@ -389,6 +391,8 @@ static void print_zone_content_elems(pattern_options_t* pat)
 		printf("\tnotify-retry: %d\n", pat->notify_retry);
 	print_acl("notify:", pat->notify);
 	print_acl("provide-xfr:", pat->provide_xfr);
+	if(pat->zonestats)
+		print_string_var("zonestats:", pat->zonestats);
 	print_acl_ips("outgoing-interface:", pat->outgoing_interface);
 	if(!pat->allow_axfr_fallback_is_default)
 		printf("\tallow-axfr-fallback: %s\n",
