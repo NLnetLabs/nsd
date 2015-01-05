@@ -1,3 +1,6 @@
+5 January 2015: Wouter
+	- Patch nsd_munin_ from Philip Paeps to use type ABSOLUTE.
+
 4 Nov 2014: Wouter
 	- Document zonestat config, and nsd-checkconf access.
 

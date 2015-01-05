@@ -199,6 +199,7 @@ exist_config ( ) {
 	if grep '^'$1'=' $state >/dev/null 2>&1; then
 		echo "$mn.label $2"
 		echo "$mn.min 0"
+		echo "$mn.type ABSOLUTE"
 	fi
 }
 
@@ -207,6 +208,7 @@ p_config ( ) {
 	mn=`echo $1 | sed $ABBREV | tr . _`
 	echo $mn.label "$2"
 	echo $mn.min 0
+	echo $mn.type $3
 }
 
 if test "$1" = "config" ; then
@@ -217,7 +219,8 @@ if test "$1" = "config" ; then
 	hits)
 		echo "graph_title NSD traffic"
 		echo "graph_args --base 1000 -l 0"
-		echo "graph_vlabel queries / second"
+		echo "graph_vlabel queries / \${graph_period}"
+		echo "graph_scale no"
 		echo "graph_category DNS"
 		for x in server0.queries server1.queries server2.queries \
 			server3.queries server4.queries server5.queries \
@@ -227,19 +230,19 @@ if test "$1" = "config" ; then
 			server15.queries ; do
 			exist_config $x "queries handled by `basename $x .queries`"
 		done
-		p_config "num.queries" "total queries"
-		p_config "num.udp" "UDP ip4 queries"
-		p_config "num.udp6" "UDP ip6 queries"
-		p_config "num.tcp" "TCP ip4 queries"
-		p_config "num.tcp6" "TCP ip6 queries"
-		p_config "num.edns" "queries with EDNS OPT"
-		p_config "num.ednserr" "queries failed EDNS parse"
-		p_config "num.answer_wo_aa" "nonauthor. queries (referrals)"
-		p_config "num.rxerr" "receive failed"
-		p_config "num.txerr" "transmit failed"
-		p_config "num.truncated" "truncated replies with TC"
-		p_config "num.raxfr" "AXFR from allowed client"
-		p_config "num.dropped" "dropped due to sanity check"
+		p_config "num.queries" "total queries" "ABSOLUTE"
+		p_config "num.udp" "UDP ip4 queries" "ABSOLUTE"
+		p_config "num.udp6" "UDP ip6 queries" "ABSOLUTE"
+		p_config "num.tcp" "TCP ip4 queries" "ABSOLUTE"
+		p_config "num.tcp6" "TCP ip6 queries" "ABSOLUTE"
+		p_config "num.edns" "queries with EDNS OPT" "ABSOLUTE"
+		p_config "num.ednserr" "queries failed EDNS parse" "ABSOLUTE"
+		p_config "num.answer_wo_aa" "nonauthor. queries (referrals)" "ABSOLUTE"
+		p_config "num.rxerr" "receive failed" "ABSOLUTE"
+		p_config "num.txerr" "transmit failed" "ABSOLUTE"
+		p_config "num.truncated" "truncated replies with TC" "ABSOLUTE"
+		p_config "num.raxfr" "AXFR from allowed client" "ABSOLUTE"
+		p_config "num.dropped" "dropped due to sanity check" "ABSOLUTE"
 		echo "graph_info DNS queries."
 		;;
 	memory)
@@ -247,60 +250,64 @@ if test "$1" = "config" ; then
 		echo "graph_args --base 1024 -l 0"
 		echo "graph_vlabel memory used in bytes"
 		echo "graph_category DNS"
-		p_config "size.vsz" "Total virtual memory (VSZ)"
-		p_config "size.rss" "Total resident memory (RSS)"
-		p_config "size.db.mem" "data in memory"
-		p_config "size.xfrd.mem" "xfr and notify memory"
-		p_config "size.config.mem" "config memory"
-		p_config "size.db.disk" "mmap of nsd.db file"
-		p_config "size.config.disk" "config zonelist on disk"
+		p_config "size.vsz" "Total virtual memory (VSZ)" "GAUGE"
+		p_config "size.rss" "Total resident memory (RSS)" "GAUGE"
+		p_config "size.db.mem" "data in memory" "GAUGE"
+		p_config "size.xfrd.mem" "xfr and notify memory" "GAUGE"
+		p_config "size.config.mem" "config memory" "GAUGE"
+		p_config "size.db.disk" "mmap of nsd.db file" "GAUGE"
+		p_config "size.config.disk" "config zonelist on disk" "GAUGE"
 		echo "graph_info The memory used by NSD, xfrd and config. Disk size of nsd.db and zonelist."
 		;;
 	by_type)
 		echo "graph_title NSD queries by type"
 		echo "graph_args --base 1000 -l 0"
-		echo "graph_vlabel queries / second"
+		echo "graph_vlabel queries / \${graph_period}"
+		echo "graph_scale no"
 		echo "graph_category DNS"
 		for x in `grep "^num.type" $state`; do
 			nm=`echo $x | sed -e 's/=.*$//'`
 			tp=`echo $nm | sed -e s/num.type.//`
-			p_config "$nm" "$tp"
+			p_config "$nm" "$tp" "ABSOLUTE"
 		done
 		echo "graph_info queries by DNS RR type queried for"
 		;;
 	by_class)
 		echo "graph_title NSD queries by class"
 		echo "graph_args --base 1000 -l 0"
-		echo "graph_vlabel queries / second"
+		echo "graph_vlabel queries / \${graph_period}"
+		echo "graph_scale no"
 		echo "graph_category DNS"
 		for x in `grep "^num.class" $state`; do
 			nm=`echo $x | sed -e 's/=.*$//'`
 			tp=`echo $nm | sed -e s/num.class.//`
-			p_config "$nm" "$tp"
+			p_config "$nm" "$tp" "ABSOLUTE"
 		done
 		echo "graph_info queries by DNS RR class queried for."
 		;;
 	by_opcode)
 		echo "graph_title NSD queries by opcode"
 		echo "graph_args --base 1000 -l 0"
-		echo "graph_vlabel queries / second"
+		echo "graph_vlabel queries / \${graph_period}"
+		echo "graph_scale no"
 		echo "graph_category DNS"
 		for x in `grep "^num.opcode" $state`; do
 			nm=`echo $x | sed -e 's/=.*$//'`
 			tp=`echo $nm | sed -e s/num.opcode.//`
-			p_config "$nm" "$tp"
+			p_config "$nm" "$tp" "ABSOLUTE"
 		done
 		echo "graph_info queries by opcode in the query packet."
 		;;
 	by_rcode)
 		echo "graph_title NSD answers by return code"
 		echo "graph_args --base 1000 -l 0"
-		echo "graph_vlabel answer packets / second"
+		echo "graph_vlabel answer packets / \${graph_period}"
+		echo "graph_scale no"
 		echo "graph_category DNS"
 		for x in `grep "^num.rcode" $state`; do
 			nm=`echo $x | sed -e 's/=.*$//'`
 			tp=`echo $nm | sed -e s/num.rcode.//`
-			p_config "$nm" "$tp"
+			p_config "$nm" "$tp" "ABSOLUTE"
 		done
 		echo "graph_info answers split out by return value."
 		;;
@@ -309,9 +316,9 @@ if test "$1" = "config" ; then
 		echo "graph_args --base 1000 -l 0"
 		echo "graph_vlabel zone count"
 		echo "graph_category DNS"
-		p_config "zone.total" "total zones"
-		p_config "zone.master" "master zones"
-		p_config "zone.slave" "slave zones"
+		p_config "zone.total" "total zones" "GAUGE"
+		p_config "zone.master" "master zones" "GAUGE"
+		p_config "zone.slave" "slave zones" "GAUGE"
 		echo "graph_info number of zones served by NSD."
 		;;
 	esac
@@ -330,26 +337,20 @@ if test $value = 0 || test $value = "0.000000"; then
 fi
 elapsed="$value"
 
-# print value for $1 / elapsed
-print_qps ( ) {
-	mn=`echo $1 | sed $ABBREV | tr . _`
-	get_value $1
-	echo "$mn.value" `echo scale=6';' $value / $elapsed | bc `
-}
-
-# print qps if line already found in $2
-print_qps_line ( ) {
-	mn=`echo $1 | sed $ABBREV | tr . _`
-	value="`echo $2 | sed -e 's/^.*=//'`"
-	echo "$mn.value" `echo scale=6';' $value / $elapsed | bc `
-}
-
 # print value for $1
 print_value ( ) {
 	mn=`echo $1 | sed $ABBREV | tr . _`
 	get_value $1
 	echo "$mn.value" $value
 }
+
+# print value if line already found in $2
+print_value_line ( ) {
+	mn=`echo $1 | sed $ABBREV | tr . _`
+	value="`echo $2 | sed -e 's/^.*=//'`"
+	echo "$mn.value" $value
+}
+
 
 case $id in
 hits)
@@ -363,7 +364,7 @@ hits)
 		num.edns num.ednserr num.answer_wo_aa num.rxerr num.txerr \
 		num.truncated num.raxfr num.dropped ; do
 		if grep "^"$x"=" $state >/dev/null 2>&1; then
-			print_qps $x
+			print_value $x
 		fi
 	done
 	;;
@@ -394,25 +395,25 @@ memory)
 by_type)
 	for x in `grep "^num.type" $state`; do
 		nm=`echo $x | sed -e 's/=.*$//'`
-		print_qps_line $nm $x
+		print_value_line $nm $x
 	done
 	;;
 by_class)
 	for x in `grep "^num.class" $state`; do
 		nm=`echo $x | sed -e 's/=.*$//'`
-		print_qps_line $nm $x
+		print_value_line $nm $x
 	done
 	;;
 by_opcode)
 	for x in `grep "^num.opcode" $state`; do
 		nm=`echo $x | sed -e 's/=.*$//'`
-		print_qps_line $nm $x
+		print_value_line $nm $x
 	done
 	;;
 by_rcode)
 	for x in `grep "^num.rcode" $state`; do
 		nm=`echo $x | sed -e 's/=.*$//'`
-		print_qps_line $nm $x
+		print_value_line $nm $x
 	done
 	;;
 zones)
