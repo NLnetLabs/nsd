@@ -1,6 +1,6 @@
 6 January 2015: Wouter
 	- Fix spinning NSD with lots of failing transfers, due to pointer
-	  comparison using void pointer subtraction.
+	  comparison using void pointer subtraction (from Otto Moerbeek).
 
 5 January 2015: Wouter
 	- Patch nsd_munin_ from Philip Paeps to use type ABSOLUTE.
