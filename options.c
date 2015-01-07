@@ -286,6 +286,8 @@ void options_zonestatnames_create(nsd_options_t* opt)
 static int
 comp_zonebucket(const void* a, const void* b)
 {
+	/* the line size is much smaller than max-int, and positive,
+	 * so the subtraction works */
 	return *(const int*)b - *(const int*)a;
 }
 

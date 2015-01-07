@@ -328,6 +328,8 @@ dname_compare(const dname_type *left, const dname_type *right)
 	}
 
 	/* Dname with the fewest labels is "first".  */
+	/* the subtraction works because the size of int is much larger than
+	 * the label count and the values won't wrap around */
 	return (int) left->label_count - (int) right->label_count;
 }
 
@@ -354,6 +356,8 @@ label_compare(const uint8_t *left, const uint8_t *right)
 	if (result) {
 		return result;
 	} else {
+		/* the subtraction works because the size of int is much
+		 * larger than the lengths and the values won't wrap around */
 		return (int) left_length - (int) right_length;
 	}
 }
