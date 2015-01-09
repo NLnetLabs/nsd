@@ -155,14 +155,14 @@ struct inspect_totals {
 	/** number of chunks */
 	uint64_t num_chunks;
 	/** count per size */
-	uint64_t exp_num[UDB_ALLOC_CHUNKS_MAX];
+	uint64_t exp_num[UDB_ALLOC_CHUNKS_MAX+1];
 	/** numfree per size */
-	uint64_t exp_free[UDB_ALLOC_CHUNKS_MAX];
+	uint64_t exp_free[UDB_ALLOC_CHUNKS_MAX+1];
 
 	/** count per type */
 	uint64_t type_num[NUM_UDB_TYPES];
 	/** count per size per type */
-	uint64_t type_exp_num[NUM_UDB_TYPES][UDB_ALLOC_CHUNKS_MAX];
+	uint64_t type_exp_num[NUM_UDB_TYPES][UDB_ALLOC_CHUNKS_MAX+1];
 };
 
 /** convert chunk type to string */
@@ -381,7 +381,7 @@ print_totals(struct inspect_totals* t)
 {
 	int i, tp;
 	printf("*** total num chunks:	%llu\n", ULL t->num_chunks);
-	for(i=0; i<UDB_ALLOC_CHUNKS_MAX; i++) {
+	for(i=0; i<=UDB_ALLOC_CHUNKS_MAX; i++) {
 		if(t->exp_num[i] != 0 || t->exp_free[i] != 0)
 			printf("exp %d chunks: free %llu alloc %llu "
 				"total %llu\n", i, ULL t->exp_free[i],
@@ -393,7 +393,7 @@ print_totals(struct inspect_totals* t)
 			continue;
 		printf("type %s num chunks:	%llu\n",
 			chunk_type2str(tp), ULL t->type_num[tp]);
-		for(i=0; i<UDB_ALLOC_CHUNKS_MAX; i++) {
+		for(i=0; i<=UDB_ALLOC_CHUNKS_MAX; i++) {
 			if(t->type_exp_num[tp][i] != 0)
 				printf("type %s exp %d chunks:	%llu\n",
 					chunk_type2str(tp), i,
