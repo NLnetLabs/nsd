@@ -1,3 +1,6 @@
+12 January 2015: Wouter
+	- Fix casts for ctype functions (from Todd Miller).
+
 9 January 2015: Wouter
 	- Fix bug#637: fix that nsd.db grows limitlessly, an off by one
 	  on one megabyte free chunks, created during AXFRs of large zones,
