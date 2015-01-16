@@ -1,5 +1,6 @@
 12 January 2015: Wouter
 	- Fix casts for ctype functions (from Todd Miller).
+	- nsd-checkconf -f prints out full name of pidfile (with dir).
 
 9 January 2015: Wouter
 	- Fix bug#637: fix that nsd.db grows limitlessly, an off by one

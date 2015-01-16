@@ -7,6 +7,7 @@
 .SH "SYNOPSIS"
 .B nsd\-checkconf
 .RB [ \-v ]
+.RB [ \-f ]
 .RB [ \-h ]
 .RB [ \-o
 .IR option ]
@@ -33,6 +34,10 @@ access the nsd config file, using the \-o and \-z options.
 After reading print the options to standard output in configfile 
 format. Without this option, only success or parse errors are 
 reported.
+.TP
+.B \-f
+Print full pathname when used with files, like with -o pidfile.
+This includes the chroot in the way it is applied to the pidfile.
 .TP
 .B \-h
 Print usage help information and exit.
