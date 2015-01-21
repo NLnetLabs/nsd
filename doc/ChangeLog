@@ -1,3 +1,6 @@
+21 January 2015: Wouter
+	- Synthesize CNAMEs with same TTL as DNAME.
+
 12 January 2015: Wouter
 	- Fix casts for ctype functions (from Todd Miller).
 	- nsd-checkconf -f prints out full name of pidfile (with dir).
