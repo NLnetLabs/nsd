@@ -7,6 +7,8 @@ FEATURES:
 	- per zone statistics with --enable-zone-stats, config zone with
 	  zonestats: "name", zones configured with the same string are added.
 	- Disabled use of SSLv3 in nsd-control.
+	- nsd-checkconf -f prints out full name of pidfile (with dir).
+	- Synthesize CNAMEs with same TTL as DNAME.
 BUG FIXES:
 	- Fix that expired zones stay expired after a server restart.
 	- Fix "xfrd_handle_ipc: bad mode" log errors when compiled 
@@ -16,6 +18,13 @@ BUG FIXES:
 	- Fix that queries for noname CH TXT are REFUSED instead of nodata.
 	- Fixes for wildcard addition and deletion, speedup for some cases.
 	- Fix that failure to add tcp to tcp base does not leak the socket.
+	- Patch nsd_munin_ from Philip Paeps to use type ABSOLUTE.
+	- Fix spinning NSD with lots of failing transfers, due to pointer
+	  comparison using void pointer subtraction (from Otto Moerbeek).
+	- Fix bug#637: fix that nsd.db grows limitlessly, an off by one
+	  on one megabyte free chunks, created during AXFRs of large zones,
+	  that caused the one megabyte chunk to be leaked.
+	- Fix casts for ctype functions (from Todd Miller).
 
 
 4.1.0
