@@ -36,7 +36,7 @@ format. Without this option, only success or parse errors are
 reported.
 .TP
 .B \-f
-Print full pathname when used with files, like with -o pidfile.
+Print full pathname when used with files, like with \-o pidfile.
 This includes the chroot in the way it is applied to the pidfile.
 .TP
 .B \-h

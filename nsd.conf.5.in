@@ -562,7 +562,7 @@ A port number can be added using a suffix of @number, for example
 .RE
 .TP
 .B zonestats:\fR <name>
-When compiled with --enable-zone-stats NSD can collect statistics per zone.
+When compiled with \-\-enable\-zone\-stats NSD can collect statistics per zone.
 This name gives the group where statistics are added to.  The groups are
 output from nsd\-control stats and stats_noreset.  Default is "".
 You can use "%s" to use the name of the zone to track its statistics.

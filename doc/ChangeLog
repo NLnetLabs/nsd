@@ -1,3 +1,7 @@
+28 January 2015: Wouter
+	- correct some hyphen-used-as-minus-sign (from Andreas Schulze) in
+	  man pages.
+
 27 January 2015: Wouter
 	- Tag 4.1.1rc1
 
