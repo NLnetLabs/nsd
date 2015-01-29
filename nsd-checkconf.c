@@ -600,7 +600,7 @@ additional_checks(nsd_options_t* opt, const char* filename)
 		/* zonesdir must be absolute and within chroot,
 		 * all other pathnames may be relative to zonesdir */
 		if (strncmp(opt->zonesdir, opt->chroot, strlen(opt->chroot)) != 0) {
-			fprintf(stderr, "%s: zonesdir %s is not relative to chroot %s.\n",
+			fprintf(stderr, "%s: zonesdir %s has to be an absolute path that starts with the chroot path %s\n",
 				filename, opt->zonesdir, opt->chroot);
 			errors ++;
                 }

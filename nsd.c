@@ -872,7 +872,7 @@ main(int argc, char *argv[])
 		/* zonesdir must be absolute and within chroot,
 		 * all other pathnames may be relative to zonesdir */
 		if (strncmp(nsd.options->zonesdir, nsd.chrootdir, strlen(nsd.chrootdir)) != 0) {
-			error("zonesdir %s is not relative to %s: chroot not possible",
+			error("zonesdir %s has to be an absolute path that starts with the chroot path %s",
 				nsd.options->zonesdir, nsd.chrootdir);
 		} else if (!file_inside_chroot(nsd.pidfile, nsd.chrootdir)) {
 			error("pidfile %s is not relative to %s: chroot not possible",
