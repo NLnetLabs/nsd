@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Remove some duplicate header includes (from Brad Smith).
 
 
 4.1.1
