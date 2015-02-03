@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.1 (upcoming)
+4.1.1
 ================
 FEATURES:
 	- RFC 7344: CDS and CDNSKEY (read record types).
@@ -25,6 +25,9 @@ BUG FIXES:
 	  on one megabyte free chunks, created during AXFRs of large zones,
 	  that caused the one megabyte chunk to be leaked.
 	- Fix casts for ctype functions (from Todd Miller).
+	- correct some hyphen-used-as-minus-sign (from Andreas Schulze) in
+	  man pages.
+	- Fix zonesdir chroot error message.
 
 
 4.1.0
