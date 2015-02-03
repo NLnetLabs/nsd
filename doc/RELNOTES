@@ -5,6 +5,8 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Remove some duplicate header includes (from Brad Smith).
+	- Fix tcp waiting list for zone transfers where the bind and connect
+	  calls fail.
 
 
 4.1.1

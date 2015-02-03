@@ -2,6 +2,8 @@
 	- Tag 4.1.1 release
 	- Trunk is 4.1.2 in development.
 	- Remove some duplicate header includes (from Brad Smith).
+	- Fix tcp waiting list for zone transfers where the bind and connect
+	  calls fail.
 
 29 January 2015: Wouter
 	- Fix zonesdir chroot error message.
