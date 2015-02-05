@@ -1,3 +1,7 @@
+5 February 2015: Wouter
+	- Fix #642: Change 'zone read with no errors' to '.. with success'.
+	  Patch from Benedikt Heine.
+
 3 February 2015: Wouter
 	- Tag 4.1.1 release
 	- Trunk is 4.1.2 in development.

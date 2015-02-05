@@ -607,7 +607,7 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 			zone->logstr = NULL;
 		}
 	} else {
-		VERBOSITY(1, (LOG_INFO, "zone %s read with no errors",
+		VERBOSITY(1, (LOG_INFO, "zone %s read with success",
 			zone->opts->name));
 		zone->is_ok = 1;
 		zone->is_changed = 0;
