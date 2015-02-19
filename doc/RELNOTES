@@ -7,6 +7,7 @@ BUG FIXES:
 	- Remove some duplicate header includes (from Brad Smith).
 	- Fix tcp waiting list for zone transfers where the bind and connect
 	  calls fail.
+	- Fix segfault in zone reader on invalid input.
 
 
 4.1.1

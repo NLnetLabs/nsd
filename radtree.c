@@ -953,6 +953,7 @@ struct radnode* radix_last(struct radtree* rt)
 
 struct radnode* radix_next(struct radnode* n)
 {
+	if(!n) return NULL;
 	if(n->len) {
 		/* go down */
 		struct radnode* s = radnode_first_in_subtree(n);
@@ -982,6 +983,7 @@ struct radnode* radix_next(struct radnode* n)
 
 struct radnode* radix_prev(struct radnode* n)
 {
+	if(!n) return NULL;
 	/* must go up, since all array nodes are after this node */
 	while(n->parent) {
 		uint8_t idx = n->pidx;

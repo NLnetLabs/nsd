@@ -1585,7 +1585,8 @@ zonec_read(const char* name, const char* zonefile, zone_type* zone)
 	yyparse();
 
 	/* remove origin if it was unused */
-	domain_table_deldomain(parser->db, parser->origin);
+	if(parser->origin != error_domain)
+		domain_table_deldomain(parser->db, parser->origin);
 	/* rr_region has been emptied by now */
 	dname = dname_parse(parser->rr_region, name);
 
@@ -1691,7 +1692,8 @@ zonec_parse_string(region_type* region, domain_table_type* domains,
 		*parsed = NULL;
 	else	*parsed = parser->prev_dname;
 	/* remove origin if it was not used during the parse */
-	domain_table_deldomain(parser->db, parser->origin);
+	if(parser->origin != error_domain)
+		domain_table_deldomain(parser->db, parser->origin);
 	zonec_desetup_string_parser();
 	return errors;
 }
