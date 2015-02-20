@@ -8,6 +8,8 @@ BUG FIXES:
 	- Fix tcp waiting list for zone transfers where the bind and connect
 	  calls fail.
 	- Fix segfault in zone reader on invalid input.
+	- Fix segfault on double origin in zone reader (thanks John Van de
+	  Meulebrouck Brendgard).
 
 
 4.1.1

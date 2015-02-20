@@ -1,3 +1,7 @@
+20 February 2015: Wouter
+	- Fix segfault on double origin in zone reader (thanks John Van de
+	  Meulebrouck Brendgard).
+
 19 February 2015: Wouter
 	- Remove dead code domain_table_iterate.
 	- Fix segfault in zone reader on invalid input.
