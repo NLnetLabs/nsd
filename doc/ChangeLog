@@ -1,3 +1,6 @@
+2 March 2015: Wouter
+	- Fix b64pton out of bounds error on invalid zonefile input.
+
 20 February 2015: Wouter
 	- Fix segfault on double origin in zone reader (thanks John Van de
 	  Meulebrouck Brendgard).
