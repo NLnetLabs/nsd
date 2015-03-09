@@ -148,8 +148,12 @@ ttl_directive:	DOLLAR_TTL sp STR trail
 origin_directive:	DOLLAR_ORIGIN sp abs_dname trail
     {
 	    /* if previous origin is unused, remove it, do not leak it */
-	    if(parser->origin != error_domain && parser->origin != $3)
+	    if(parser->origin != error_domain && parser->origin != $3) {
+		/* protect $3 from deletion, because deldomain walks up */
+		$3->usage ++;
 	    	domain_table_deldomain(parser->db, parser->origin);
+		$3->usage --;
+	    }
 	    parser->origin = $3;
     }
     |	DOLLAR_ORIGIN sp rel_dname trail

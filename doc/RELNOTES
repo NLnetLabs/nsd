@@ -10,6 +10,9 @@ BUG FIXES:
 	- Fix segfault in zone reader on invalid input.
 	- Fix segfault on double origin in zone reader (thanks John Van de
 	  Meulebrouck Brendgard).
+	- Fix b64pton out of bounds error on invalid zonefile input.
+	- Fix origin directive from unused old value and subdomain parser
+	  failure, reported by John Van de Meulebrouck Brendgard (NORDUnet).
 
 
 4.1.1
