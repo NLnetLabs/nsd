@@ -7,12 +7,14 @@ BUG FIXES:
 	- Remove some duplicate header includes (from Brad Smith).
 	- Fix tcp waiting list for zone transfers where the bind and connect
 	  calls fail.
-	- Fix segfault in zone reader on invalid input.
+	- Fix segfault in zone reader on invalid input. (thanks John Van de
+	  Meulebrouck Brendgard)
 	- Fix segfault on double origin in zone reader (thanks John Van de
 	  Meulebrouck Brendgard).
 	- Fix b64pton out of bounds error on invalid zonefile input.
+	  (thanks John Van de Meulebrouck Brendgard)
 	- Fix origin directive from unused old value and subdomain parser
-	  failure, reported by John Van de Meulebrouck Brendgard (NORDUnet).
+	  failure, reported by John Van de Meulebrouck Brendgard.
 
 
 4.1.1
