@@ -1,6 +1,8 @@
 10 March 2015: Wouter
 	- Fix use after free after zonefile syntax error followed by ttl
 	  or origin directive, reported by John Van de Meulebrouck Brendgard.
+	- Fix syntax error followed by too many TXT elements parse crash
+	  reported by John Van de Meulebrouck Brendgard.
 
 9 March 2015: Wouter
 	- Fix origin directive from unused old value and subdomain parser

@@ -17,6 +17,8 @@ BUG FIXES:
 	  failure, reported by John Van de Meulebrouck Brendgard.
 	- Fix use after free after zonefile syntax error followed by ttl
 	  or origin directive, reported by John Van de Meulebrouck Brendgard.
+	- Fix syntax error followed by too many TXT elements parse crash
+	  reported by John Van de Meulebrouck Brendgard.
 
 
 4.1.1

@@ -1150,6 +1150,10 @@ void
 zadd_rdata_txt_wireformat(uint16_t *data, int first)
 {
 	rdata_atom_type *rd;
+	if (parser->current_rr.rdata_count >= MAXRDATALEN) {
+		zc_error_prev_line("too many rdata txt elements");
+		return;
+	}
 	
 	/* First STR in str_seq, allocate 65K in first unused rdata
 	 * else find last used rdata */
@@ -1183,6 +1187,8 @@ zadd_rdata_txt_clean_wireformat()
 {
 	uint16_t *tmp_data;
 	rdata_atom_type *rd = &parser->current_rr.rdatas[parser->current_rr.rdata_count-1];
+	if(!rd || !rd->data)
+		return; /* previous syntax failure */
 	if ((tmp_data = (uint16_t *) region_alloc(parser->region, 
 		rd->data[0] + 2)) != NULL) {
 		memcpy(tmp_data, rd->data, rd->data[0] + 2);
