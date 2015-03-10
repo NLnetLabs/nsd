@@ -97,10 +97,18 @@ line:	NL
     |	PREV NL		{}    /* Lines containing only whitespace.  */
     |	ttl_directive
 	{
+	    region_free_all(parser->rr_region);
+	    parser->current_rr.type = 0;
+	    parser->current_rr.rdata_count = 0;
+	    parser->current_rr.rdatas = parser->temporary_rdatas;
 	    parser->error_occurred = 0;
     }
     |	origin_directive
 	{
+	    region_free_all(parser->rr_region);
+	    parser->current_rr.type = 0;
+	    parser->current_rr.rdata_count = 0;
+	    parser->current_rr.rdatas = parser->temporary_rdatas;
 	    parser->error_occurred = 0;
     }
     |	rr
