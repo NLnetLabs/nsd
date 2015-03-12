@@ -1,3 +1,6 @@
+12 March 2015: Wouter
+	- Updated default keylength in nsd-control-setup to 3k.
+
 10 March 2015: Wouter
 	- Fix use after free after zonefile syntax error followed by ttl
 	  or origin directive, reported by John Van de Meulebrouck Brendgard.
