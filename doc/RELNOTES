@@ -19,6 +19,8 @@ BUG FIXES:
 	  or origin directive, reported by John Van de Meulebrouck Brendgard.
 	- Fix syntax error followed by too many TXT elements parse crash
 	  reported by John Van de Meulebrouck Brendgard.
+	- Fix buffer overflow in config parse of domain name,
+	  reported by John Van de Meulebrouck Brendgard.
 
 
 4.1.1

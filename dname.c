@@ -244,6 +244,9 @@ int dname_parse_wire(uint8_t* dname, const char* name)
 	}
 
 	/* Add root label.  */
+	if (h - dname >= MAXDOMAINLEN) {
+		return 0;
+	}
 	*h = 0;
 
 	return p-dname;

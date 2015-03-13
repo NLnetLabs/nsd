@@ -1,3 +1,7 @@
+13 March 2015: Wouter
+	- Fix buffer overflow in config parse of domain name,
+	  reported by John Van de Meulebrouck Brendgard.
+
 12 March 2015: Wouter
 	- Updated default keylength in nsd-control-setup to 3k.
 
@@ -12,7 +16,8 @@
 	  failure, reported by John Van de Meulebrouck Brendgard.
 
 2 March 2015: Wouter
-	- Fix b64pton out of bounds error on invalid zonefile input.
+	- Fix b64pton out of bounds error on invalid zonefile input
+	  reported by John Van de Meulebrouck Brendgard.
 
 20 February 2015: Wouter
 	- Fix segfault on double origin in zone reader (thanks John Van de
@@ -20,7 +25,8 @@
 
 19 February 2015: Wouter
 	- Remove dead code domain_table_iterate.
-	- Fix segfault in zone reader on invalid input.
+	- Fix segfault in zone reader on invalid input
+	  reported by John Van de Meulebrouck Brendgard.
 
 5 February 2015: Wouter
 	- Fix #642: Change 'zone read with no errors' to '.. with success'.
