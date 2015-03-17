@@ -535,8 +535,8 @@ initialize_dname_compression_tables(struct nsd *nsd)
 				compressed_dname_offsets);
 			free(compressed_dname_offsets);
 		}
-		compressed_dname_offsets = (uint16_t *) xalloc(
-			needed * sizeof(uint16_t));
+		compressed_dname_offsets = (uint16_t *) xmallocarray(
+			needed, sizeof(uint16_t));
 		region_add_cleanup(nsd->db->region, cleanup_dname_compression_tables,
 			compressed_dname_offsets);
 		compression_table_capacity = needed;

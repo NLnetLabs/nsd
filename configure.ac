@@ -642,6 +642,7 @@ AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
 AC_REPLACE_FUNCS(pselect)
 AC_REPLACE_FUNCS(memmove)
+AC_REPLACE_FUNCS(reallocarray)
 
 AC_MSG_CHECKING(for pselect prototype in sys/select.h)
 AC_EGREP_HEADER([[^a-zA-Z_]*pselect[^a-zA-Z_]], sys/select.h, AC_DEFINE(HAVE_PSELECT_PROTO, 1, 
@@ -957,6 +958,9 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 #ifndef HAVE_STRLCPY
 size_t strlcpy(char *dst, const char *src, size_t siz);
+#endif
+#ifndef HAVE_REALLOCARRAY
+void* reallocarray(void *ptr, size_t nmemb, size_t size);
 #endif
 #ifndef HAVE_GETADDRINFO
 #include "compat/fake-rfc2553.h"

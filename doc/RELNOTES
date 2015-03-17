@@ -21,6 +21,8 @@ BUG FIXES:
 	  reported by John Van de Meulebrouck Brendgard.
 	- Fix buffer overflow in config parse of domain name,
 	  reported by John Van de Meulebrouck Brendgard.
+	- Use reallocarray for integer overflow protection, patch submitted
+	  by Loganaden Velvindron.
 
 
 4.1.1

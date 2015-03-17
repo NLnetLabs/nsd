@@ -226,6 +226,9 @@ malloc.o:	$(srcdir)/compat/malloc.c
 pselect.o:	$(srcdir)/compat/pselect.c
 	$(COMPILE) -c $(srcdir)/compat/pselect.c
 
+reallocarray.o:	$(srcdir)/compat/reallocarray.c
+	$(COMPILE) -c $(srcdir)/compat/reallocarray.c
+
 fake-rfc2553.o:	$(srcdir)/compat/fake-rfc2553.c
 	$(COMPILE) -c $(srcdir)/compat/fake-rfc2553.c
 
@@ -457,6 +460,7 @@ pselect.o: $(srcdir)/compat/pselect.c config.h
 snprintf.o: $(srcdir)/compat/snprintf.c config.h
 strlcat.o: $(srcdir)/compat/strlcat.c config.h
 strlcpy.o: $(srcdir)/compat/strlcpy.c config.h
+reallocarray.o: $(srcdir)/compat/reallocarray.c config.h
 strptime.o: $(srcdir)/compat/strptime.c
 cutest.o: $(srcdir)/tpkg/cutest/cutest.c config.h $(srcdir)/tpkg/cutest/cutest.h
 cutest_dname.o: $(srcdir)/tpkg/cutest/cutest_dname.c config.h $(srcdir)/tpkg/cutest/cutest.h \
