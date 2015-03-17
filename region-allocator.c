@@ -337,10 +337,8 @@ void *
 region_alloc_array_init(region_type *region, const void *init, size_t num,
 	size_t size)
 {
-	/* in reality, some cases of num*size are not overflows but are
-	 * disallowed by this calculation.  We do not need to allocate such
-	 * large arrays in NSD */
-	if(num >= REGION_NO_OVERFLOW || size >= REGION_NO_OVERFLOW) {
+	if((num >= REGION_NO_OVERFLOW || size >= REGION_NO_OVERFLOW) &&
+		num > 0 && SIZE_MAX / num < size) {
 		log_msg(LOG_ERR, "region_alloc_array_init failed because of integer overflow");
 		exit(1);
 	}
@@ -350,7 +348,8 @@ region_alloc_array_init(region_type *region, const void *init, size_t num,
 void *
 region_alloc_array_zero(region_type *region, size_t num, size_t size)
 {
-	if(num >= REGION_NO_OVERFLOW || size >= REGION_NO_OVERFLOW) {
+	if((num >= REGION_NO_OVERFLOW || size >= REGION_NO_OVERFLOW) &&
+		num > 0 && SIZE_MAX / num < size) {
 		log_msg(LOG_ERR, "region_alloc_array_zero failed because of integer overflow");
 		exit(1);
 	}
@@ -360,7 +359,8 @@ region_alloc_array_zero(region_type *region, size_t num, size_t size)
 void *
 region_alloc_array(region_type *region, size_t num, size_t size)
 {
-	if(num >= REGION_NO_OVERFLOW || size >= REGION_NO_OVERFLOW) {
+	if((num >= REGION_NO_OVERFLOW || size >= REGION_NO_OVERFLOW) &&
+		num > 0 && SIZE_MAX / num < size) {
 		log_msg(LOG_ERR, "region_alloc_array failed because of integer overflow");
 		exit(1);
 	}
