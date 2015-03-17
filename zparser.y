@@ -115,11 +115,11 @@ line:	NL
     {	/* rr should be fully parsed */
 	    if (!parser->error_occurred) {
 			    parser->current_rr.rdatas
-				    = (rdata_atom_type *) region_alloc_init(
+				    =(rdata_atom_type *)region_alloc_array_init(
 					    parser->region,
 					    parser->current_rr.rdatas,
-					    (parser->current_rr.rdata_count
-					     * sizeof(rdata_atom_type)));
+					    parser->current_rr.rdata_count,
+					    sizeof(rdata_atom_type));
 
 			    process_rr();
 	    }
@@ -1073,8 +1073,8 @@ zparser_create(region_type *region, region_type *rr_region, namedb_type *db)
 	result->prev_dname = NULL;
 	result->default_apex = NULL;
 
-	result->temporary_rdatas = (rdata_atom_type *) region_alloc(
-		result->region, MAXRDATALEN * sizeof(rdata_atom_type));
+	result->temporary_rdatas = (rdata_atom_type *) region_alloc_array(
+		result->region, MAXRDATALEN, sizeof(rdata_atom_type));
 
 	return result;
 }

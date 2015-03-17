@@ -1937,7 +1937,7 @@ print_stat_block(SSL* ssl, char* n, char* d, struct nsdst* st)
 static void
 resize_zonestat(xfrd_state_t* xfrd, size_t num)
 {
-	struct nsdst** a = xalloc_zero(num * sizeof(struct nsdst*));
+	struct nsdst** a = xalloc_array_zero(num, sizeof(struct nsdst*));
 	if(xfrd->zonestat_clear_num != 0)
 		memcpy(a, xfrd->zonestat_clear, xfrd->zonestat_clear_num
 			* sizeof(struct nsdst*));

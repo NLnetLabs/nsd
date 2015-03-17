@@ -1,6 +1,7 @@
 17 March 2015: Wouter
 	- Use reallocarray for integer overflow protection, patch submitted
 	  by Loganaden Velvindron.
+	- Fix allocation integer overflow checks.
 
 13 March 2015: Wouter
 	- Fix buffer overflow in config parse of domain name,

@@ -1929,8 +1929,9 @@ server_child(struct nsd *nsd)
 	 * connections.
 	 */
 	tcp_accept_handler_count = nsd->ifs;
-	tcp_accept_handlers = (struct tcp_accept_handler_data*) region_alloc(
-		server_region, nsd->ifs * sizeof(*tcp_accept_handlers));
+	tcp_accept_handlers = (struct tcp_accept_handler_data*)
+		region_alloc_array(server_region,
+		nsd->ifs, sizeof(*tcp_accept_handlers));
 	if (nsd->server_kind & NSD_SERVER_TCP) {
 		for (i = 0; i < nsd->ifs; ++i) {
 			struct event *handler = &tcp_accept_handlers[i].event;

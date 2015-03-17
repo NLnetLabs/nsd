@@ -132,7 +132,7 @@ static void
 append_trailing_slash(const char** dirname, region_type* region)
 {
 	int l = strlen(*dirname);
-	if (l>0 && (*dirname)[l-1] != '/') {
+	if (l>0 && (*dirname)[l-1] != '/' && l < 0xffffff) {
 		char *dirname_slash = region_alloc(region, l+2);
 		memcpy(dirname_slash, *dirname, l+1);
 		strlcat(dirname_slash, "/", l+2);
@@ -742,8 +742,8 @@ main(int argc, char *argv[])
 #endif /* defined(INET6) */
 
 	/* Number of child servers to fork.  */
-	nsd.children = (struct nsd_child *) region_alloc(
-		nsd.region, nsd.child_count * sizeof(struct nsd_child));
+	nsd.children = (struct nsd_child *) region_alloc_array(
+		nsd.region, nsd.child_count, sizeof(struct nsd_child));
 	for (i = 0; i < nsd.child_count; ++i) {
 		nsd.children[i].kind = NSD_SERVER_BOTH;
 		nsd.children[i].pid = -1;

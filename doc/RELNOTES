@@ -23,6 +23,7 @@ BUG FIXES:
 	  reported by John Van de Meulebrouck Brendgard.
 	- Use reallocarray for integer overflow protection, patch submitted
 	  by Loganaden Velvindron.
+	- Fix allocation integer overflow checks.
 
 
 4.1.1

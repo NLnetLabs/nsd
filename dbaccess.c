@@ -156,8 +156,8 @@ read_rrset(udb_base* udb, namedb_type* db, zone_type* zone,
 	rrset = (rrset_type *) region_alloc(db->region, sizeof(rrset_type));
 	rrset->zone = zone;
 	rrset->rr_count = calculate_rr_count(udb, urrset);
-	rrset->rrs = (rr_type *) region_alloc(
-		db->region, rrset->rr_count * sizeof(rr_type));
+	rrset->rrs = (rr_type *) region_alloc_array(
+		db->region, rrset->rr_count, sizeof(rr_type));
 	/* add the RRs */
 	udb_ptr_new(&urr, udb, &RRSET(urrset)->rrs);
 	for(i=0; i<rrset->rr_count; i++) {

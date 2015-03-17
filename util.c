@@ -282,6 +282,17 @@ xalloc_zero(size_t size)
 }
 
 void *
+xalloc_array_zero(size_t num, size_t size)
+{
+	void *result = calloc(num, size);
+	if (!result) {
+		log_msg(LOG_ERR, "calloc failed: %s", strerror(errno));
+		exit(1);
+	}
+	return result;
+}
+
+void *
 xrealloc(void *ptr, size_t size)
 {
 	ptr = realloc(ptr, size);

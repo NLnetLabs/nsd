@@ -110,7 +110,8 @@ void rrl_set_limit(size_t lm, size_t wlm, size_t sm)
 void rrl_init(size_t ch)
 {
 	if(!rrl_maps || ch >= rrl_maps_num)
-	    rrl_array = xalloc_zero(sizeof(struct rrl_bucket)*rrl_array_size);
+	    rrl_array = xalloc_array_zero(sizeof(struct rrl_bucket),
+	    	rrl_array_size);
 #ifdef HAVE_MMAP
 	else rrl_array = (struct rrl_bucket*)rrl_maps[ch];
 #endif
