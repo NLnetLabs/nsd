@@ -454,6 +454,18 @@ answer_notify(struct nsd* nsd, struct query *query)
 				strerror(errno));
 			return query_error(query, NSD_RC_SERVFAIL);
 		}
+		if(verbosity >= 1) {
+			uint32_t serial = 0;
+			char address[128];
+			addr2str(&query->addr, address, sizeof(address));
+			if(packet_find_notify_serial(query->packet, &serial))
+			  VERBOSITY(1, (LOG_INFO, "notify for %s from %s serial %u",
+				dname_to_string(query->qname, NULL), address,
+				(unsigned)serial));
+			else
+			  VERBOSITY(1, (LOG_INFO, "notify for %s from %s",
+				dname_to_string(query->qname, NULL), address));
+		}
 
 		/* create notify reply - keep same query contents */
 		QR_SET(query->packet);         /* This is an answer.  */
@@ -466,12 +478,6 @@ answer_notify(struct nsd* nsd, struct query *query)
 		pos = buffer_position(query->packet);
 		buffer_clear(query->packet);
 		buffer_set_position(query->packet, pos);
-		if(verbosity >= 1) {
-			char address[128];
-			addr2str(&query->addr, address, sizeof(address));
-			VERBOSITY(1, (LOG_INFO, "notify for %s from %s",
-				dname_to_string(query->qname, NULL), address));
-		}
 		/* tsig is added in add_additional later (if needed) */
 		return QUERY_PROCESSED;
 	}

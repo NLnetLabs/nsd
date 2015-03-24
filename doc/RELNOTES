@@ -3,6 +3,7 @@ NSD RELEASE NOTES
 4.1.2 (upcoming)
 ================
 FEATURES:
+	- Incoming notifies have serial number logged (at verbosity 1).
 BUG FIXES:
 	- Remove some duplicate header includes (from Brad Smith).
 	- Fix tcp waiting list for zone transfers where the bind and connect
