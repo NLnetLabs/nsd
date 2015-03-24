@@ -1,3 +1,6 @@
+24 March 2015: Wouter
+	- Fix #654: Fix contradiction in notify logging verbosity level.
+
 17 March 2015: Wouter
 	- Use reallocarray for integer overflow protection, patch submitted
 	  by Loganaden Velvindron.

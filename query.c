@@ -469,7 +469,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 		if(verbosity >= 1) {
 			char address[128];
 			addr2str(&query->addr, address, sizeof(address));
-			VERBOSITY(2, (LOG_INFO, "notify for %s from %s",
+			VERBOSITY(1, (LOG_INFO, "notify for %s from %s",
 				dname_to_string(query->qname, NULL), address));
 		}
 		/* tsig is added in add_additional later (if needed) */
