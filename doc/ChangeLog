@@ -1,6 +1,7 @@
 24 March 2015: Wouter
 	- Fix #654: Fix contradiction in notify logging verbosity level.
 	- Incoming notifies have serial number logged (at verbosity 1).
+	- Fix #655: Fix contradiction in verbosity for zone transfers.
 
 17 March 2015: Wouter
 	- Use reallocarray for integer overflow protection, patch submitted

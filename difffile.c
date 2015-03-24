@@ -1408,7 +1408,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 			double elapsed = (double)(time_end_0 - time_start_0)+
 				(double)((double)time_end_1
 				-(double)time_start_1) / 1000000.0;
-			VERBOSITY(2, (LOG_INFO, "zone %s %s of %d bytes in %g seconds",
+			VERBOSITY(1, (LOG_INFO, "zone %s %s of %d bytes in %g seconds",
 				zone_buf, log_buf, num_bytes, elapsed));
 		}
 	}

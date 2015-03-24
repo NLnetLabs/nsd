@@ -26,6 +26,7 @@ BUG FIXES:
 	  by Loganaden Velvindron.
 	- Fix allocation integer overflow checks.
 	- Fix #654: Fix contradiction in notify logging verbosity level.
+	- Fix #655: Fix contradiction in verbosity for zone transfers.
 
 
 4.1.1
