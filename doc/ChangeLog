@@ -1,3 +1,6 @@
+31 March 2015: Wouter
+	- Tag 4.1.2rc1.
+
 24 March 2015: Wouter
 	- Fix #654: Fix contradiction in notify logging verbosity level.
 	- Incoming notifies have serial number logged (at verbosity 1).

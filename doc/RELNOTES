@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.2 (upcoming)
+4.1.2
 ================
 FEATURES:
 	- Incoming notifies have serial number logged (at verbosity 1).
