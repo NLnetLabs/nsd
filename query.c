@@ -454,16 +454,16 @@ answer_notify(struct nsd* nsd, struct query *query)
 				strerror(errno));
 			return query_error(query, NSD_RC_SERVFAIL);
 		}
-		if(verbosity >= 1) {
+		if(verbosity >= 2) {
 			uint32_t serial = 0;
 			char address[128];
 			addr2str(&query->addr, address, sizeof(address));
 			if(packet_find_notify_serial(query->packet, &serial))
-			  VERBOSITY(1, (LOG_INFO, "notify for %s from %s serial %u",
+			  VERBOSITY(2, (LOG_INFO, "notify for %s from %s serial %u",
 				dname_to_string(query->qname, NULL), address,
 				(unsigned)serial));
 			else
-			  VERBOSITY(1, (LOG_INFO, "notify for %s from %s",
+			  VERBOSITY(2, (LOG_INFO, "notify for %s from %s",
 				dname_to_string(query->qname, NULL), address));
 		}
 
@@ -482,10 +482,10 @@ answer_notify(struct nsd* nsd, struct query *query)
 		return QUERY_PROCESSED;
 	}
 
-	if (verbosity >= 1) {
+	if (verbosity >= 2) {
 		char address[128];
 		addr2str(&query->addr, address, sizeof(address));
-		VERBOSITY(1, (LOG_INFO, "notify for zone %s from client %s refused, %s%s",
+		VERBOSITY(2, (LOG_INFO, "notify for %s from %s refused, %s%s",
 			dname_to_string(query->qname, NULL),
 			address,
 			why?why->key_name:"no acl matches",

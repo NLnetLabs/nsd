@@ -1,6 +1,8 @@
 2 April 2015: Wouter
 	- Made log message more consistent, changed 'axfr refused' log message
-	  to be more consistent with other messages.
+	  to be more consistent with other messages.  Also notify refused.
+	- verbosity 2 logs axfr refused, notify accepted and notify refused.
+	  verbosity 1 contains less log messages.
 
 31 March 2015: Wouter
 	- Tag 4.1.2rc1.

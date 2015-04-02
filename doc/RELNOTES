@@ -5,7 +5,9 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Made log message more consistent, changed 'axfr refused' log message
-	  to be more consistent with other messages.
+	  to be more consistent with other messages.  Also notify refused.
+	- verbosity 2 logs axfr refused, notify accepted and notify refused.
+	  verbosity 1 contains less log messages.
 
 
 4.1.2
