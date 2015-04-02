@@ -1,5 +1,13 @@
 NSD RELEASE NOTES
 
+4.1.3 (upcoming)
+================
+FEATURES:
+BUG FIXES:
+	- Made log message more consistent, changed 'axfr refused' log message
+	  to be more consistent with other messages.
+
+
 4.1.2
 ================
 FEATURES:

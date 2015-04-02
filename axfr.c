@@ -179,7 +179,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 				if (verbosity > 0) {
 					char a[128];
 					addr2str(&q->addr, a, sizeof(a));
-					VERBOSITY(1, (LOG_INFO, "axfr for zone %s from client %s refused, %s",
+					VERBOSITY(1, (LOG_INFO, "axfr for %s from %s refused, %s",
 						dname_to_string(q->qname, NULL), a, acl?"blocked":"no acl matches"));
 				}
 				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr refused, %s",

@@ -1,3 +1,7 @@
+2 April 2015: Wouter
+	- Made log message more consistent, changed 'axfr refused' log message
+	  to be more consistent with other messages.
+
 31 March 2015: Wouter
 	- Tag 4.1.2rc1.
 
