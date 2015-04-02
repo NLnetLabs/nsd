@@ -454,16 +454,16 @@ answer_notify(struct nsd* nsd, struct query *query)
 				strerror(errno));
 			return query_error(query, NSD_RC_SERVFAIL);
 		}
-		if(verbosity >= 2) {
+		if(verbosity >= 1) {
 			uint32_t serial = 0;
 			char address[128];
 			addr2str(&query->addr, address, sizeof(address));
 			if(packet_find_notify_serial(query->packet, &serial))
-			  VERBOSITY(2, (LOG_INFO, "notify for %s from %s serial %u",
+			  VERBOSITY(1, (LOG_INFO, "notify for %s from %s serial %u",
 				dname_to_string(query->qname, NULL), address,
 				(unsigned)serial));
 			else
-			  VERBOSITY(2, (LOG_INFO, "notify for %s from %s",
+			  VERBOSITY(1, (LOG_INFO, "notify for %s from %s",
 				dname_to_string(query->qname, NULL), address));
 		}
 
