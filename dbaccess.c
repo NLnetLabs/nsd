@@ -288,6 +288,7 @@ namedb_zone_delete(namedb_type* db, zone_type* zone)
 	/* see if apex can be deleted */
 	if(zone->apex) {
 		zone->apex->usage --;
+		zone->apex->is_apex = 0;
 		if(zone->apex->usage == 0) {
 			/* delete the apex, possibly */
 			domain_table_deldomain(db, zone->apex);
