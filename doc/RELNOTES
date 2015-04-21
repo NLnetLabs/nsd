@@ -3,6 +3,7 @@ NSD RELEASE NOTES
 4.1.3 (upcoming)
 ================
 FEATURES:
+	- nsd-control addzones and delzones read list of zones from stdin.
 BUG FIXES:
 	- Fix #665: when removing subdomain, nsd does not reparse parent zone.
 
