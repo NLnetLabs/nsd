@@ -365,11 +365,11 @@ server_zonestat_alloc(struct nsd* nsd)
 	/* file names */
 	nsd->zonestatfname[0] = 0;
 	nsd->zonestatfname[1] = 0;
-	snprintf(tmpfile, sizeof(tmpfile), "%snsd.%u.zstat.0",
-		nsd->options->xfrdir, (unsigned)getpid());
+	snprintf(tmpfile, sizeof(tmpfile), "%snsd-xfr-%d/nsd.%u.zstat.0",
+		nsd->options->xfrdir, (int)getpid(), (unsigned)getpid());
 	nsd->zonestatfname[0] = region_strdup(nsd->region, tmpfile);
-	snprintf(tmpfile, sizeof(tmpfile), "%snsd.%u.zstat.1",
-		nsd->options->xfrdir, (unsigned)getpid());
+	snprintf(tmpfile, sizeof(tmpfile), "%snsd-xfr-%d/nsd.%u.zstat.1",
+		nsd->options->xfrdir, (int)getpid(), (unsigned)getpid());
 	nsd->zonestatfname[1] = region_strdup(nsd->region, tmpfile);
 
 	/* file descriptors */
@@ -956,16 +956,27 @@ server_prepare_xfrd(struct nsd* nsd)
 	char tmpfile[256];
 	/* create task mmaps */
 	nsd->mytask = 0;
-	snprintf(tmpfile, sizeof(tmpfile), "%snsd.%u.task.0",
-		nsd->options->xfrdir, (unsigned)getpid());
+	snprintf(tmpfile, sizeof(tmpfile), "%snsd-xfr-%d/nsd.%u.task.0",
+		nsd->options->xfrdir, (int)getpid(), (unsigned)getpid());
 	nsd->task[0] = task_file_create(tmpfile);
-	if(!nsd->task[0])
+	if(!nsd->task[0]) {
+#ifdef USE_ZONE_STATS
+		unlink(nsd->zonestatfname[0]);
+		unlink(nsd->zonestatfname[1]);
+#endif
+		xfrd_del_tempdir(nsd);
 		exit(1);
-	snprintf(tmpfile, sizeof(tmpfile), "%snsd.%u.task.1",
-		nsd->options->xfrdir, (unsigned)getpid());
+	}
+	snprintf(tmpfile, sizeof(tmpfile), "%snsd-xfr-%d/nsd.%u.task.1",
+		nsd->options->xfrdir, (int)getpid(), (unsigned)getpid());
 	nsd->task[1] = task_file_create(tmpfile);
 	if(!nsd->task[1]) {
 		unlink(nsd->task[0]->fname);
+#ifdef USE_ZONE_STATS
+		unlink(nsd->zonestatfname[0]);
+		unlink(nsd->zonestatfname[1]);
+#endif
+		xfrd_del_tempdir(nsd);
 		exit(1);
 	}
 	assert(udb_base_get_userdata(nsd->task[0])->data == 0);

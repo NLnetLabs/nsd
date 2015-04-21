@@ -44,6 +44,7 @@
 #include "options.h"
 #include "tsig.h"
 #include "remote.h"
+#include "xfrd-disk.h"
 
 /* The server handler... */
 struct nsd nsd;
@@ -1106,6 +1107,7 @@ main(int argc, char *argv[])
 			nsd.username));
 	}
 #endif /* HAVE_GETPWNAM */
+	xfrd_make_tempdir(&nsd);
 #ifdef USE_ZONE_STATS
 	options_zonestatnames_create(nsd.options);
 	server_zonestat_alloc(&nsd);
