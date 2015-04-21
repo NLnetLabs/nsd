@@ -7,7 +7,7 @@ FEATURES:
 BUG FIXES:
 	- Fix #665: when removing subdomain, nsd does not reparse parent zone.
 	- Fix task and zonestat files to be stored in a subdirectory in tmp
-	  to stop priviledge elevation.
+	  to stop privilege elevation.
 
 
 4.1.2

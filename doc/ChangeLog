@@ -1,7 +1,7 @@
 21 April 2015: Wouter
 	- nsd-control addzones and delzones read list of zones from stdin.
 	- Fix task and zonestat files to be stored in a subdirectory in tmp
-	  to stop priviledge elevation.
+	  to stop privilege elevation.
 	- printout names for successful addition and removal with bulk command.
 
 20 April 2015: Wouter
