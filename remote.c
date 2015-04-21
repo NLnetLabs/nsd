@@ -1250,6 +1250,8 @@ do_addzones(SSL* ssl, xfrd_state_t* xfrd)
 				buf))
 				return;
 		} else {
+			if(!ssl_printf(ssl, "added: %s\n", buf))
+				return;
 			num++;
 		}
 	}
@@ -1270,6 +1272,8 @@ do_delzones(SSL* ssl, xfrd_state_t* xfrd)
 				buf))
 				return;
 		} else {
+			if(!ssl_printf(ssl, "removed: %s\n", buf))
+				return;
 			num++;
 		}
 	}

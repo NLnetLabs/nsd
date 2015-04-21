@@ -2,6 +2,7 @@
 	- nsd-control addzones and delzones read list of zones from stdin.
 	- Fix task and zonestat files to be stored in a subdirectory in tmp
 	  to stop priviledge elevation.
+	- printout names for successful addition and removal with bulk command.
 
 20 April 2015: Wouter
 	- Fix #665: when removing subdomain, nsd does not reparse parent zone.
