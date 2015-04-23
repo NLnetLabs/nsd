@@ -1,6 +1,6 @@
 23 April 2015: Wouter
 	- Fix crash in zone parser for relative dname after error in origin.
-	- Test for zone parser failures.
+	- Test for zone parser failures
 
 21 April 2015: Wouter
 	- nsd-control addzones and delzones read list of zones from stdin.
