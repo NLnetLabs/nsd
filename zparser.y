@@ -220,6 +220,9 @@ dname:	abs_dname
     {
 	    if ($1 == error_dname) {
 		    $$ = error_domain;
+	    } else if(parser->origin == error_domain) {
+		    zc_error("cannot concatenate origin to domain name, because origin failed to parse");
+		    $$ = error_domain;
 	    } else if ($1->name_size + domain_dname(parser->origin)->name_size - 1 > MAXDOMAINLEN) {
 		    zc_error("domain name exceeds %d character limit", MAXDOMAINLEN);
 		    $$ = error_domain;
@@ -962,9 +965,14 @@ rdata_ipsec_base: STR sp STR sp STR sp dotted_str
 				zc_error_prev_line("IPSECKEY must specify gateway name");
 			if(!(name = dname_parse(parser->region, $7.str)))
 				zc_error_prev_line("IPSECKEY bad gateway dname %s", $7.str);
-			if($7.str[strlen($7.str)-1] != '.')
+			if($7.str[strlen($7.str)-1] != '.') {
+				if(parser->origin == error_domain) {
+		    			zc_error("cannot concatenate origin to domain name, because origin failed to parse");
+					break;
+				}
 				name = dname_concatenate(parser->rr_region, name, 
 					domain_dname(parser->origin));
+			}
 			zadd_rdata_wireformat(alloc_rdata_init(parser->region,
 				dname_name(name), name->name_size));
 			break;

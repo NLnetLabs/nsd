@@ -8,6 +8,7 @@ BUG FIXES:
 	- Fix #665: when removing subdomain, nsd does not reparse parent zone.
 	- Fix task and zonestat files to be stored in a subdirectory in tmp
 	  to stop privilege elevation.
+	- Fix crash in zone parser for relative dname after error in origin.
 
 
 4.1.2
