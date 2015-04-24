@@ -2,6 +2,7 @@
 	- Fixes to zonec origin and b64 read (like in NSD 4.1.2).
 	- Fix tcp waiting list for zone transfers where the bind and connect
 	  calls fail. (like in NSD 4.1.2)
+	- RFC 7344: CDS and CDNSKEY (read in).
 
 20 January 2015: Wouter
 	- Synthesize CNAMEs with same TTL as DNAME.

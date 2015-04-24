@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- Synthesize CNAMEs with same TTL as DNAME.
+	- RFC 7344: CDS and CDNSKEY (read in).
 BUG FIXES:
 	- Fix endian.h include for OpenBSD.
 	- Fix per-zone query class statistics.
