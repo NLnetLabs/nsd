@@ -2,6 +2,8 @@ NSD RELEASE NOTES
 
 3.2.19-UPCOMING
 ================
+FEATURES:
+	- Synthesize CNAMEs with same TTL as DNAME.
 BUG FIXES:
 	- Fix endian.h include for OpenBSD.
 	- Fix per-zone query class statistics.
