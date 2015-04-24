@@ -6,6 +6,7 @@ BUG FIXES:
 	- Fix endian.h include for OpenBSD.
 	- Fix per-zone query class statistics.
 	- Fixes for wildcard addition and deletion.
+	- Fixes to zonec origin and b64 read (like in NSD 4.1.2).
 
 
 3.2.18

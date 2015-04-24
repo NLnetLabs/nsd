@@ -1,3 +1,6 @@
+24 April 2015: Wouter
+	- Fixes to zonec origin and b64 read (like in NSD 4.1.2).
+
 20 January 2015: Wouter
 	- Synthesize CNAMEs with same TTL as DNAME.
 
