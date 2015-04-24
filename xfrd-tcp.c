@@ -560,7 +560,9 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	set->tcp_state[conn]->fd = -1;
 
-	if(set->tcp_count == XFRD_MAX_TCP && set->tcp_waiting_first) {
+	/* if that zone fails to set-up or connect, we try to start the next
+	 * waiting zone in the list */
+	while(set->tcp_count == XFRD_MAX_TCP && set->tcp_waiting_first) {
 		/* pop first waiting process */
 		zone = set->tcp_waiting_first;
 		if(set->tcp_waiting_last == zone)
@@ -577,13 +579,14 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 			xfrd_udp_release(zone);
 
 		if(!xfrd_tcp_open(set, zone))
-			return;
+			continue;
 
 		xfrd_tcp_xfr(set, zone);
+		/* started a task, no need for cleanups, so return */
+		return;
 	}
-	else {
-		assert(!set->tcp_waiting_first);
-		set->tcp_count --;
-		assert(set->tcp_count >= 0);
-	}
+	/* no task to start, cleanup */
+	assert(!set->tcp_waiting_first);
+	set->tcp_count --;
+	assert(set->tcp_count >= 0);
 }
