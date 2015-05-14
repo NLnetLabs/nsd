@@ -1,3 +1,6 @@
+14 May 2015: Wouter
+	- hmac sha224, sha384 and sha512 support, patch from David Gwynne.
+
 23 April 2015: Wouter
 	- Fix crash in zone parser for relative dname after error in origin.
 	- Test for zone parser failures
