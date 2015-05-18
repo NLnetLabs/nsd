@@ -1,6 +1,7 @@
 18 May 2015: Wouter
 	- Remove compiler warning from unit test program.
 	- Removed compiler warnings from lex about unput and input functions.
+	- hmac sha224, sha384 and sha512 support, patch from David Gwynne.
 
 24 April 2015: Wouter
 	- Fixes to zonec origin and b64 read (like in NSD 4.1.2).

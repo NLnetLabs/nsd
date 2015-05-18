@@ -301,7 +301,6 @@ AC_DEFUN([CHECK_SSL], [
             AC_CHECK_LIB(crypto, HMAC_CTX_init,, [
                     AC_MSG_ERROR([OpenSSL found in $ssldir, but version 0.9.7 or higher is required])
                 ])
-		AC_CHECK_FUNCS([EVP_sha1 EVP_sha256])
         fi
         AC_SUBST(HAVE_SSL)
     fi

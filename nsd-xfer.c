@@ -173,16 +173,23 @@ connection, including optional source port.\n"
 static tsig_algorithm_type *
 tsig_get_algorithm_by_id(uint8_t alg)
 {
+	/* if the algorithm is not available, tsig_get_algorithm returns NULL*/
 	if (alg == TSIG_HMAC_MD5)
 		return tsig_get_algorithm_by_name("hmac-md5");
-#ifdef HAVE_EVP_SHA1
 	if (alg == TSIG_HMAC_SHA1)
 		return tsig_get_algorithm_by_name("hmac-sha1");
-#endif /* HAVE_EVP_SHA1 */
-#ifdef HAVE_EVP_SHA256
 	if (alg == TSIG_HMAC_SHA256)
 		return tsig_get_algorithm_by_name("hmac-sha256");
-#endif /* HAVE_EVP_SHA256 */
+	if (alg == 161) /* not official for HMACSHA1 */
+		return tsig_get_algorithm_by_name("hmac-sha1");
+	if (alg == 162) /* not official for HMACSHA224 */
+		return tsig_get_algorithm_by_name("hmac-sha224");
+	if (alg == 163) /* not official for HMACSHA256 */
+		return tsig_get_algorithm_by_name("hmac-sha256");
+	if (alg == 164) /* not official for HMACSHA384 */
+		return tsig_get_algorithm_by_name("hmac-sha384");
+	if (alg == 165) /* not official for HMACSHA512 */
+		return tsig_get_algorithm_by_name("hmac-sha512");
 
         return NULL;
 }
