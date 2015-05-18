@@ -862,7 +862,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	/* if the parent has quit, we must quit too, poll the fd for cmds */
 	if(block_read(nsd, cmdsocket, &cmd, sizeof(cmd), 0) == sizeof(cmd)) {
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc command from main %d", cmd));
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc command from main %d", (int)cmd));
 		if(cmd == NSD_QUIT) {
 			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: quit to follow nsd"));
 			send_children_quit(nsd); /* no wait required */
@@ -1244,7 +1244,7 @@ server_main(struct nsd *nsd)
 			nsd->mode = NSD_RUN;
 			break;
 		default:
-			log_msg(LOG_WARNING, "NSD main server mode invalid: %d", nsd->mode);
+			log_msg(LOG_WARNING, "NSD main server mode invalid: %d", (int)nsd->mode);
 			nsd->mode = NSD_RUN;
 			break;
 		}
@@ -1437,7 +1437,7 @@ server_child(struct nsd *nsd)
 			/* ignore here, quit */
 		} else {
 			log_msg(LOG_ERR, "mode bad value %d, back to service.",
-				mode);
+				(int)mode);
 			nsd->mode = NSD_RUN;
 		}
 	}
