@@ -1,3 +1,7 @@
+18 May 2015: Wouter
+	- removed unused defines for unofficial tsig-hmac algorithm codes.
+	  The TSIG algorithm is identified by name in the config file.
+
 14 May 2015: Wouter
 	- hmac sha224, sha384 and sha512 support, patch from David Gwynne.
 
