@@ -24,6 +24,7 @@ typedef struct
 
 void CuStringInit(CuString* str);
 CuString* CuStringNew(void);
+void CuStringFree(CuString* str);
 void CuStringRead(CuString* str, const char* path);
 void CuStringAppend(CuString* str, const char* text);
 void CuStringAppendChar(CuString* str, char ch);
@@ -39,16 +40,17 @@ typedef void (*TestFunction)(CuTest *);
 
 struct CuTest
 {
-	const char* name;
+	char* name;
 	TestFunction function;
 	int failed;
 	int ran;
-	const char* message;
+	char* message;
 	jmp_buf *jumpBuf;
 };
 
 void CuTestInit(CuTest* t, const char* name, TestFunction function);
 CuTest* CuTestNew(const char* name, TestFunction function);
+void CuTestFree(CuTest* tc);
 void CuTestRun(CuTest* tc);
 
 /* Internal versions of assert functions -- use the public versions */
@@ -69,9 +71,9 @@ void CuAssertPtrEquals_LineMsg(CuTest* tc,
 
 /* public assert functions */
 
-#define CuFail(tc, ms)                        CuFail_Line(  (tc), __FILE__, __LINE__, NULL, (ms))
-#define CuAssert(tc, ms, cond)                CuAssert_Line((tc), __FILE__, __LINE__, (ms), (cond))
-#define CuAssertTrue(tc, cond)                CuAssert_Line((tc), __FILE__, __LINE__, "assert failed", (cond))
+#define CuFail(tc, ms)                        CuFail_Line(  (tc), __FILE__, __LINE__, NULL, (int)(ms))
+#define CuAssert(tc, ms, cond)                CuAssert_Line((tc), __FILE__, __LINE__, (ms), (int)(cond))
+#define CuAssertTrue(tc, cond)                CuAssert_Line((tc), __FILE__, __LINE__, "assert failed", (int)(cond))
 
 #define CuAssertStrEquals(tc,ex,ac)           CuAssertStrEquals_LineMsg((tc),__FILE__,__LINE__,NULL,(ex),(ac))
 #define CuAssertStrEquals_Msg(tc,ms,ex,ac)    CuAssertStrEquals_LineMsg((tc),__FILE__,__LINE__,(ms),(ex),(ac))
@@ -102,6 +104,7 @@ typedef struct
 
 void CuSuiteInit(CuSuite* testSuite);
 CuSuite* CuSuiteNew(void);
+void CuSuiteFree(CuSuite* testSuite);
 void CuSuiteAdd(CuSuite* testSuite, CuTest *testCase);
 void CuSuiteAddSuite(CuSuite* testSuite, CuSuite* testSuite2);
 void CuSuiteRun(CuSuite* testSuite);
