@@ -1,3 +1,4 @@
+#include "config.h"
 #include <assert.h>
 #include <setjmp.h>
 #include <stdlib.h>
@@ -21,7 +22,7 @@ char* CuStrCopy(const char* old)
 {
 	int len = strlen(old);
 	char* newStr = CuStrAlloc(len + 1);
-	strcpy(newStr, old);
+	strlcpy(newStr, old, len+1);
 	return newStr;
 }
 
@@ -81,7 +82,7 @@ void CuStringAppendFormat(CuString* str, const char* format, ...)
 	va_list argp;
 	char buf[HUGE_STRING_LEN];
 	va_start(argp, format);
-	vsprintf(buf, format, argp);
+	vsnprintf(buf, sizeof(buf), format, argp);
 	va_end(argp);
 	CuStringAppend(str, buf);
 }
