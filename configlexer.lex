@@ -20,8 +20,6 @@
 #include "configparser.h"
 void c_error(const char *message);
 
-#define YY_NO_UNPUT
-
 #if 0
 #define LEXOUT(s)  printf s /* used ONLY when debugging */
 #else
