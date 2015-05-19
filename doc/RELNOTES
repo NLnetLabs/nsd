@@ -6,6 +6,7 @@ FEATURES:
 	- Synthesize CNAMEs with same TTL as DNAME.
 	- RFC 7344: CDS and CDNSKEY (read in).
 	- hmac sha224, sha384 and sha512 support, patch from David Gwynne.
+	- max-interfaces raised to 32.
 BUG FIXES:
 	- Fix endian.h include for OpenBSD.
 	- Fix per-zone query class statistics.

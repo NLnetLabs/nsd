@@ -1,5 +1,6 @@
 19 May 2015: Wouter
 	- Fixup array subscript type warnings on NetBSD.
+	- max-interfaces raised to 32.
 
 18 May 2015: Wouter
 	- Remove compiler warning from unit test program.
