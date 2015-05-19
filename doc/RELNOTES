@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 	- nsd-control addzones and delzones read list of zones from stdin.
 	- hmac sha224, sha384 and sha512 support, patch from David Gwynne.
+	- max-interfaces raised to 32.
 BUG FIXES:
 	- Fix #665: when removing subdomain, nsd does not reparse parent zone.
 	- Fix task and zonestat files to be stored in a subdirectory in tmp

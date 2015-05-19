@@ -1,3 +1,6 @@
+19 May 2015: Wouter
+	- max-interfaces raised to 32.
+
 18 May 2015: Wouter
 	- removed unused defines for unofficial tsig-hmac algorithm codes.
 	  The TSIG algorithm is identified by name in the config file.
