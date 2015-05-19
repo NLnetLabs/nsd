@@ -152,7 +152,7 @@ b64_initialize_rmap ()
 	for (i = 1; i < 256; ++i) {
 		ch = (char)i;
 		/* Whitespaces */
-		if (isspace(ch))
+		if (isspace((unsigned char)ch))
 			b64rmap[i] = b64rmap_space;
 		/* Padding: stop parsing */
 		else if (ch == Pad64)

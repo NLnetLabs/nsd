@@ -1,3 +1,6 @@
+19 May 2015: Wouter
+	- Fixup array subscript type warnings on NetBSD.
+
 18 May 2015: Wouter
 	- Remove compiler warning from unit test program.
 	- Removed compiler warnings from lex about unput and input functions.
