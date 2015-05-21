@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-3.2.19-UPCOMING
+3.2.19
 ================
 FEATURES:
 	- Synthesize CNAMEs with same TTL as DNAME.

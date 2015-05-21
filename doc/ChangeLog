@@ -1,3 +1,6 @@
+21 May 2015: Wouter
+	- release candidate 1 for 3.2.19.
+
 19 May 2015: Wouter
 	- Fixup array subscript type warnings on NetBSD.
 	- max-interfaces raised to 32.
