@@ -11,6 +11,7 @@ BUG FIXES:
 	- Fix task and zonestat files to be stored in a subdirectory in tmp
 	  to stop privilege elevation.
 	- Fix crash in zone parser for relative dname after error in origin.
+	- Fix that formerrors are ratelimited.
 
 
 4.1.2
