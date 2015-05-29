@@ -214,6 +214,10 @@ struct	nsd
 #ifdef	BIND8_STATS
 	struct nsdst st;
 #endif /* BIND8_STATS */
+	/* ratelimit for errors, time value */
+	time_t err_limit_time;
+	/* ratelimit for errors, packet count */
+	unsigned int err_limit_count;
 
 	struct nsd_options* options;
 };
@@ -234,5 +238,7 @@ void server_shutdown(struct nsd *nsd);
 void server_close_all_sockets(struct nsd_socket sockets[], size_t n);
 /* extra domain numbers for temporary domains */
 #define EXTRA_DOMAIN_NUMBERS 1024
+/* ratelimit for error responses */
+#define ERROR_RATELIMIT 100 /* qps */
 
 #endif	/* _NSD_H_ */
