@@ -1,3 +1,6 @@
+2 June 2015: Wouter
+	- Fix redefined macro lex warning on 32bit flex.
+
 29 May 2015: Wouter
 	- Fix that formerrors are ratelimited.
 

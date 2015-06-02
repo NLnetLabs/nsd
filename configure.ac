@@ -168,6 +168,23 @@ AC_PROG_INSTALL
 AC_PROG_LEX
 AC_PROG_YACC
 
+if test "$LEX" != ":" -a "$LEX" != ""; then
+  # Check if lex defines yy_current_buffer, because 2.4.6 and older use it,
+  # but later could define it as a macro and then we should not redefine it.
+  AC_MSG_CHECKING(if lex defines yy_current_buffer)
+  cat <<EOF >conftest.lex
+%%
+EOF
+  $LEX -i -t conftest.lex >> conftest.c
+  if grep "^#define yy_current_buffer" conftest.c >/dev/null; then
+	  AC_DEFINE_UNQUOTED(LEX_DEFINES_YY_CURRENT_BUFFER, 1, [If flex defines yy_current_buffer as a macro])
+	AC_MSG_RESULT(yes)
+  else
+	AC_MSG_RESULT(no)
+  fi
+  rm -f conftest.lex conftest.c
+fi
+
 AC_DEFUN([AC_CHECK_FORMAT_ATTRIBUTE],
 [AC_REQUIRE([AC_PROG_CC])
 AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "format" attribute)
