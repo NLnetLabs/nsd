@@ -1,6 +1,7 @@
 4 June 2015: Wouter
 	- Tag 4.1.3rc1
 	- improve nsd-control usage text.
+	- RFC7553 RR Type URI support.
 
 2 June 2015: Wouter
 	- Fix redefined macro lex warning for freebsd flex.

@@ -873,7 +873,7 @@ RR records details.
   "MAILB"    253,   # RFC 1035 (MB, MG, MR)
   "MAILA"    254,   # RFC 1035 (obsolete - see MX)
   "ANY"      255,   # RFC 1035
-
+  "URI"      256,   # RFC 7553
   "CAA"      257,   # RFC 6844
 
 ______________________________________________________________________
@@ -1008,6 +1008,8 @@ NSD Version 3.0. and above
    RFC 6844 (CAA) support for CAA RR type.
 
    RFC 7043 (EUI48+64) support for EUI48, EUI64 RR types.
+
+   RFC 7553 support for URI RR type.
 
 Not implemented:
 
