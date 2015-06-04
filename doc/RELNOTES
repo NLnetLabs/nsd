@@ -3,6 +3,7 @@ NSD RELEASE NOTES
 3.2.20 (upcoming)
 ================
 FEATURES:
+	- RFC7553 RR Type URI support.
 BUG FIXES:
 	- Fix that formerrors are ratelimited (like in NSD 4.1.3).
 
