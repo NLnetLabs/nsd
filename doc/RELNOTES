@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.3 (upcoming)
+4.1.3
 ================
 FEATURES:
 	- nsd-control addzones and delzones read list of zones from stdin.
