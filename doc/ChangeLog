@@ -1,6 +1,9 @@
+23 June 2015: Wouter
+	- Trunk contains 4.1.4 in development.
+
 4 June 2015: Wouter
 	- Tag 4.1.3rc1
-	- improve nsd-control usage text.
+	- improve nsd-control usage text. (23 june - added to 4.1.3)
 	- RFC7553 RR Type URI support.
 
 2 June 2015: Wouter
