@@ -1,3 +1,6 @@
+2 July 2015: Wouter
+	- Fix NSID response for short edns sizes.
+
 23 June 2015: Wouter
 	- Trunk contains 4.1.4 in development.
 

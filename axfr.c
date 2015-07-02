@@ -91,7 +91,7 @@ query_axfr(struct nsd *nsd, struct query *query)
 		query->edns.status = EDNS_NOT_PRESENT;
 		buffer_set_limit(query->packet, QHEADERSZ);
 		QDCOUNT_SET(query->packet, 0);
-		query_prepare_response(query);
+		query_prepare_response(query, nsd);
 	}
 
 	/* Add zone RRs until answer is full.  */
