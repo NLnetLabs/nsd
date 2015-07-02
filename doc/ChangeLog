@@ -1,3 +1,6 @@
+2 July 2015: Wouter
+	- Fix NSID response for short edns sizes.
+
 4 June 2015: Wouter
 	- RFC7553 RR Type URI support.
 

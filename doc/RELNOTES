@@ -6,6 +6,7 @@ FEATURES:
 	- RFC7553 RR Type URI support.
 BUG FIXES:
 	- Fix that formerrors are ratelimited (like in NSD 4.1.3).
+	- Fix NSID response for short edns sizes (same as NSD 4.1.4).
 
 
 3.2.19
