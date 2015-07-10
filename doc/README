@@ -240,7 +240,9 @@ addition to standard configure options, one may use the following:
   --disable-minimal-responses
 
   	Disable minimal responses. If disabled, responses are more likely
-	to get truncated, resulting in TCP fallback.
+	to get truncated, resulting in TCP fallback.  When enabled (by default)
+	NSD will leave out RRsets to make responses fit inside one datagram,
+	but for shorter reponses the full normal response is carried.
 
   --disable-largefile
 

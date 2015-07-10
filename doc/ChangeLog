@@ -1,6 +1,8 @@
 10 July 2015: Wouter
 	- Fix that for expired zones NSD performs an AXFR and accepts newer
 	  and older serial numbers.
+	- Document that minimal responses only minimizes responses to fit
+	  in one datagram.  It does not minimize smaller responses.
 
 2 July 2015: Wouter
 	- Fix NSID response for short edns sizes.
