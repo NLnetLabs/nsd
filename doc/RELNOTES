@@ -6,6 +6,8 @@ FEATURES:
 	- RFC7553 RR Type URI support.
 BUG FIXES:
 	- Fix NSID response for short edns sizes.
+	- Fix that for expired zones NSD performs an AXFR and accepts newer
+	  and older serial numbers.
 
 
 4.1.3
