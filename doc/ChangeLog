@@ -1,5 +1,9 @@
+10 July 2015: Wouter
+	- Fix that for expired zones NSD performs an AXFR and accepts newer
+	  and older serial numbers (like in NSD 4.1.4).
+
 2 July 2015: Wouter
-	- Fix NSID response for short edns sizes.
+	- Fix NSID response for short edns sizes (like in NSD 4.1.4).
 
 4 June 2015: Wouter
 	- RFC7553 RR Type URI support.
