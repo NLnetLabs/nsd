@@ -10,6 +10,9 @@ BUG FIXES:
 	  and older serial numbers.
 	- Document that minimal responses only minimizes responses to fit
 	  in one datagram.  It does not minimize smaller responses.
+	- Fix #618: documented need to list ip-addresses seperately in
+	  nsd.conf if there are multiple, because the source address of
+	  replies can otherwise go wrong.
 
 
 4.1.3
