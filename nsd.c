@@ -666,6 +666,11 @@ main(int argc, char *argv[])
 	if(nsd.child_count == 0) {
 		nsd.child_count = nsd.options->server_count;
 	}
+#ifdef SO_REUSEPORT
+	if(nsd.child_count > 1) {
+		nsd.reuseport = nsd.child_count;
+	}
+#endif /* SO_REUSEPORT */
 	if(nsd.maximum_tcp_count == 0) {
 		nsd.maximum_tcp_count = nsd.options->tcp_count;
 	}

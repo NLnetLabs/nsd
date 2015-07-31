@@ -1,5 +1,6 @@
 31 July 2015: Wouter
 	- removed hardcoded interface limit, --with-max-ips removed.
+	- SO_REUSEPORT support.
 
 16 July 2015: Wouter
 	- Fix #618: documented need to list ip-addresses seperately in
