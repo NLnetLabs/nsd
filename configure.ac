@@ -703,15 +703,6 @@ AC_ARG_WITH([facility],
 AC_DEFINE_UNQUOTED([FACILITY], $facility, [Define to the default facility for syslog.])
 
 dnl
-dnl Determine the maximum number of ip-addresses that are allowed
-dnl
-max_ips=32
-AC_ARG_WITH([max_ips],
-	AC_HELP_STRING([--with-max-ips=number], [Limit on the number of ip-addresses that may be specified]),
-	[max_ips=$withval])
-AC_DEFINE_UNQUOTED([MAX_INTERFACES], $max_ips, [Define to the maximum ip-addresses to serve.])
-
-dnl
 dnl Determine the default tcp timeout
 dnl
 tcp_timeout=120

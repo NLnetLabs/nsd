@@ -539,18 +539,8 @@ file_inside_chroot(const char* fname, const char* chr)
 static int
 additional_checks(nsd_options_t* opt, const char* filename)
 {
-	ip_address_option_t* ip = opt->ip_addresses;
 	zone_options_t* zone;
-	int num = 0;
 	int errors = 0;
-	while(ip) {
-		num++;
-		ip = ip->next;
-	}
-	if(num > MAX_INTERFACES) {
-		fprintf(stderr, "%s: too many interfaces (ip-address:) specified.\n", filename);
-		errors ++;
-	}
 
 	RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
 	{

@@ -198,15 +198,15 @@ struct	nsd
 	unsigned char   *nsid;
 	uint8_t 		file_rotation_ok;
 
-	/* number of interfaces, ifs < MAX_INTERFACES */
+	/* number of interfaces */
 	size_t	ifs;
 	uint8_t grab_ip6_optional;
 
-	/* TCP specific configuration */
-	struct nsd_socket tcp[MAX_INTERFACES];
+	/* TCP specific configuration (array size ifs) */
+	struct nsd_socket* tcp;
 
-	/* UDP specific configuration */
-	struct nsd_socket udp[MAX_INTERFACES];
+	/* UDP specific configuration (array size ifs) */
+	struct nsd_socket* udp;
 
 	edns_data_type edns_ipv4;
 #if defined(INET6)
