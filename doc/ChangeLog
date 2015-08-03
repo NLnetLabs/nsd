@@ -1,3 +1,6 @@
+3 August 2015: Wouter
+	- squelch SO_REUSEPORT failure on verbosity less than 3.
+
 31 July 2015: Wouter
 	- removed hardcoded interface limit, --with-max-ips removed.
 	- SO_REUSEPORT support.

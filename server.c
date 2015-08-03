@@ -584,7 +584,12 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 		if(nsd->reuseport && *reuseport_works &&
 			setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_REUSEPORT,
 			(void*)&on, (socklen_t)sizeof(on)) < 0) {
-			log_msg(LOG_ERR, "setsockopt(..., SO_REUSEPORT, "
+			if(verbosity >= 3
+#ifdef ENOPROTOOPT
+				|| errno != ENOPROTOOPT
+#endif
+				)
+			    log_msg(LOG_ERR, "setsockopt(..., SO_REUSEPORT, "
 				"...) failed: %s", strerror(errno));
 			*reuseport_works = 0;
 		}
@@ -762,7 +767,12 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 		if(nsd->reuseport && *reuseport_works &&
 			setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_REUSEPORT,
 			(void*)&on, (socklen_t)sizeof(on)) < 0) {
-			log_msg(LOG_ERR, "setsockopt(..., SO_REUSEPORT, "
+			if(verbosity >= 3
+#ifdef ENOPROTOOPT
+				|| errno != ENOPROTOOPT
+#endif
+				)
+			    log_msg(LOG_ERR, "setsockopt(..., SO_REUSEPORT, "
 				"...) failed: %s", strerror(errno));
 			*reuseport_works = 0;
 		}
