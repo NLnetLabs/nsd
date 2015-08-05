@@ -15,6 +15,7 @@ BUG FIXES:
 	- Fix #618: documented need to list ip-addresses seperately in
 	  nsd.conf if there are multiple, because the source address of
 	  replies can otherwise go wrong.
+	- Fix that notify from nsd-control contains soa serial.
 
 
 4.1.3

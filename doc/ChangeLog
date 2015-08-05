@@ -1,3 +1,6 @@
+5 August 2015: Wouter
+	- Fix that notify from nsd-control contains soa serial.
+
 3 August 2015: Wouter
 	- squelch SO_REUSEPORT failure on verbosity less than 3.
 
