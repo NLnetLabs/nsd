@@ -68,6 +68,11 @@ nsd_options_create(region_type* region)
 	opt->pidfile = PIDFILE;
 	opt->port = UDP_PORT;
 /* deprecated?	opt->port = TCP_PORT; */
+#ifdef REUSEPORT_BY_DEFAULT
+	opt->reuseport = 1;
+#else
+	opt->reuseport = 0;
+#endif
 	opt->statistics = 0;
 	opt->chroot = 0;
 	opt->username = USER;

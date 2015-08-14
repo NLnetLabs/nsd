@@ -27,6 +27,10 @@ server:
 	# Allow binding to non local addresses. Default no.
 	# ip-transparent: no
 
+	# use the reuseport socket option for performance.
+	# The default is yes on linux, no for others.
+	# reuseport: no
+
 	# enable debug mode, does not fork daemon process into the background.
 	# debug-mode: no
 

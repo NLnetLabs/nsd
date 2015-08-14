@@ -169,6 +169,16 @@ Allows NSD to bind to non local addresses. This is useful to have NSD
 listen to IP addresses that are not (yet) added to the network interface, so
 that it can answer immediately when the address is added. Default is no.
 .TP
+.B reuseport:\fR <yes or no>
+Use the SO_REUSEPORT socket option, and create file descriptors for every
+server in the server\-count.  This improves performance of the network
+stack.  Only really useful if you also configure a server\-count higher
+than 1 (such as, equal to the number of cpus).  The default is yes on
+Linux (where it works, and has been (backported) to 2.6 and 3.x kernels).
+On FreeBSD it is known to fail (default is no), but you can enable it
+if you think it is fixed.  And a cautious default of no is used for
+other systems.
+.TP
 .B debug\-mode:\fR <yes or no>
 Turns on debugging mode for nsd, does not fork a daemon process. 
 Default is no. Same as commandline option 
