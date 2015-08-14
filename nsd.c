@@ -667,7 +667,7 @@ main(int argc, char *argv[])
 		nsd.child_count = nsd.options->server_count;
 	}
 #ifdef SO_REUSEPORT
-	if(nsd.child_count > 1) {
+	if(nsd.options->reuseport && nsd.child_count > 1) {
 		nsd.reuseport = nsd.child_count;
 	}
 #endif /* SO_REUSEPORT */
