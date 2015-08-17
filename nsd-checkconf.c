@@ -441,6 +441,7 @@ config_test_print_server(nsd_options_t* opt)
 	printf("server:\n");
 	printf("\tdebug-mode: %s\n", opt->debug_mode?"yes":"no");
 	printf("\tip-transparent: %s\n", opt->ip_transparent?"yes":"no");
+	printf("\treuseport: %s\n", opt->reuseport?"yes":"no");
 	printf("\tdo-ip4: %s\n", opt->do_ip4?"yes":"no");
 	printf("\tdo-ip6: %s\n", opt->do_ip6?"yes":"no");
 	printf("\thide-version: %s\n", opt->hide_version?"yes":"no");
@@ -456,7 +457,6 @@ config_test_print_server(nsd_options_t* opt)
 	printf("\tipv6-edns-size: %d\n", (int) opt->ipv6_edns_size);
 	print_string_var("pidfile:", opt->pidfile);
 	print_string_var("port:", opt->port);
-	printf("\treuseport: %s\n", opt->reuseport?"yes":"no");
 	printf("\tstatistics: %d\n", opt->statistics);
 	print_string_var("chroot:", opt->chroot);
 	print_string_var("username:", opt->username);
