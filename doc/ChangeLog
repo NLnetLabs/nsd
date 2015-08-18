@@ -1,3 +1,6 @@
+18 August 2015: Wouter
+	- Admitted axfrs are logged at verbosity 1.  Refused at verbosity 2.
+
 17 August 2015: Wouter
 	- Fixed checkconf test for reuseport setting.
 
