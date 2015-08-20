@@ -593,6 +593,8 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 				"...) failed: %s", strerror(errno));
 			*reuseport_works = 0;
 		}
+#else
+		(void)reuseport_works;
 #endif /* SO_REUSEPORT */
 #if defined(SO_RCVBUF) || defined(SO_SNDBUF)
 	if(1) {
