@@ -1,5 +1,6 @@
 28 August 2015: Wouter
 	- Fix #698 formatting errors and typos in nsd.8.in.
+	- Add --enable-pie and --enable-relro-now options.
 
 18 August 2015: Wouter
 	- Admitted axfrs are logged at verbosity 1.  Refused at verbosity 2.

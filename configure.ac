@@ -282,6 +282,8 @@ if test "x$CFLAGS" = "x" ; then
 	# we do not use O3 because it causes miscompilations.
 	ACX_CHECK_COMPILER_FLAG(O2, [CFLAGS="$CFLAGS -O2"])
 	ACX_CHECK_FLTO
+	ACX_CHECK_PIE
+	ACX_CHECK_RELRO_NOW
 fi
 AC_C_CONST
 AC_C_INLINE
