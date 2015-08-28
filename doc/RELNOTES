@@ -7,6 +7,7 @@ FEATURES:
 	- removed hardcoded interface limit, --with-max-ips removed.
 	- SO_REUSEPORT support, by default on Linux, or with reuseport: yes.
 	- Admitted axfrs are logged at verbosity 1.  Refused at verbosity 2.
+	- --enable-pie and --enable-relro-now options for a safer executable.
 BUG FIXES:
 	- Fix NSID response for short edns sizes.
 	- Fix that for expired zones NSD performs an AXFR and accepts newer
