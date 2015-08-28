@@ -17,6 +17,7 @@ BUG FIXES:
 	  nsd.conf if there are multiple, because the source address of
 	  replies can otherwise go wrong.
 	- Fix that notify from nsd-control contains soa serial.
+	- Fix #698 formatting errors and typos in nsd.8.in.
 
 
 4.1.3

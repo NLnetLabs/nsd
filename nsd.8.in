@@ -103,7 +103,8 @@ listens to the wildcard interface.
 .TP
 .B \-c\fI configfile
 Read specified 
-.I configfile instead of the default
+.I configfile
+instead of the default
 .IR @nsdconfigfile@ .
 For format description see nsd.conf(5).
 .TP
@@ -236,6 +237,7 @@ default
 .B NSD
 configuration file
 .SH "DIAGNOSTICS"
+.B NSD
 will log all the problems via the standard syslog(8)
 .I daemon
 facility, unless the
