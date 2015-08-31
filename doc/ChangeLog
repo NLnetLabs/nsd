@@ -1,3 +1,6 @@
+31 August 2015: Wouter
+	- 4.1.4rc1 tag created.
+
 28 August 2015: Wouter
 	- Fix #698 formatting errors and typos in nsd.8.in.
 	- Add --enable-pie and --enable-relro-now options.
