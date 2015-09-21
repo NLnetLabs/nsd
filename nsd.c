@@ -447,6 +447,8 @@ main(int argc, char *argv[])
 	memset(&hints, 0, sizeof(*hints)*2);
 	hints[0].ai_family = DEFAULT_AI_FAMILY;
 	hints[0].ai_flags = AI_PASSIVE;
+	hints[1].ai_family = DEFAULT_AI_FAMILY;
+	hints[1].ai_flags = AI_PASSIVE;
 	nsd.identity	= 0;
 	nsd.version	= VERSION;
 	nsd.username	= 0;

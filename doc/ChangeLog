@@ -1,3 +1,7 @@
+21 September 2015: Wouter
+	- Fix #706: default port 53 not opened on ip4 because of getaddrinfo
+	  hints initialisation failure.
+
 9 September 2015: Wouter
 	- 4.1.4 release tag created.
 	- trunk contains 4.1.5 in development.
