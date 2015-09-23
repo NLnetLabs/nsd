@@ -9,6 +9,8 @@ BUG FIXES:
 	- Fix NSID response for short edns sizes (same as NSD 4.1.4).
 	- Fix that for expired zones NSD performs an AXFR and accepts newer
 	  and older serial numbers (like in NSD 4.1.4).
+	- Fix assertion failure and fail to start when loading a zone with
+	  a spurious DS record at the apex.
 
 
 3.2.19

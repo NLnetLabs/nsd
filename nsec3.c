@@ -619,11 +619,10 @@ prehash_zone(struct namedb* db, struct zone* zone)
 			region_free_all(temp_region);
 		}
 		/* prehash the DS (parent zone) */
-		if(domain_find_rrset(walk, zone, TYPE_DS) ||
-			(domain_find_rrset(walk, zone, TYPE_NS) &&
-			 walk != zone->apex))
+		if((domain_find_rrset(walk, zone, TYPE_DS) ||
+			domain_find_rrset(walk, zone, TYPE_NS)) &&
+			walk != zone->apex)
 		{
-			assert(walk != zone->apex /* DS must be above zone cut */);
 			prehash_ds(db, zone, walk, temp_region);
 			region_free_all(temp_region);
 		}
