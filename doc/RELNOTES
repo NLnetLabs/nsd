@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix #701: Fix that AD=1 set in a BADVERS response.
+
 
 4.1.5
 ================

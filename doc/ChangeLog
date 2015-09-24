@@ -1,3 +1,6 @@
+24 September 2015: Wouter
+	- Fix #701: Fix that AD=1 set in a BADVERS response.
+
 21 September 2015: Wouter
 	- Fix #706: default port 53 not opened on ip4 because of getaddrinfo
 	  hints initialisation failure.
