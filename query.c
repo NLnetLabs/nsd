@@ -135,6 +135,7 @@ query_error (struct query *q, nsd_rc_type rcode)
 	buffer_clear(q->packet);
 
 	QR_SET(q->packet);	   /* This is an answer.  */
+	AD_CLR(q->packet);
 	RCODE_SET(q->packet, (int) rcode); /* Error code.  */
 
 	/* Truncate the question as well... */

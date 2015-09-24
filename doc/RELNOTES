@@ -11,6 +11,7 @@ BUG FIXES:
 	  and older serial numbers (like in NSD 4.1.4).
 	- Fix assertion failure and fail to start when loading a zone with
 	  a spurious DS record at the apex.
+	- Fix #701: Fix that AD=1 set in a BADVERS response (like NSD 4.1.6).
 
 
 3.2.19

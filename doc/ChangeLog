@@ -1,3 +1,6 @@
+24 September 2015: Wouter
+	- Fix #701: Fix that AD=1 set in a BADVERS response.
+
 23 September 2015: Wouter
 	- Fix assertion failure and fail to start when loading a zone with
 	  a spurious DS record at the apex.
