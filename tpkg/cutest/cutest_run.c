@@ -139,7 +139,7 @@ int main(int argc, char* argv[])
 			printf("-c config: specify nsd.conf file\n");
 			printf("-t test inet_ntop for string comparisons.\n");
 			printf("-v verbose, -vv, -vvv\n");
-			printf("-h: show help\n");
+			printf("-h show help\n");
 			return 1;
 		}
 	}
