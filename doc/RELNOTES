@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix #701: Fix that AD=1 set in a BADVERS response.
+	- Fix typo in zonec.c inside error message.
 
 
 4.1.5

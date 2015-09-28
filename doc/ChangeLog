@@ -1,3 +1,6 @@
+28 September 2015: Wouter
+	- Fix typo in zonec.c inside error message.
+
 24 September 2015: Wouter
 	- Fix #701: Fix that AD=1 set in a BADVERS response.
 
