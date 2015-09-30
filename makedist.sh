@@ -206,6 +206,8 @@ case $OSTYPE in
 esac
 echo $sha > nsd-$version.tar.gz.sha1
 
+echo "create nsd-$version.tar.gz.asc with:"
+echo "    gpg --armor --detach-sign nsd-$version.tar.gz"
 info "NSD distribution created successfully."
 info "SHA1sum: $sha"
 
