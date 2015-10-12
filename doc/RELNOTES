@@ -6,6 +6,8 @@ FEATURES:
 BUG FIXES:
 	- Fix #701: Fix that AD=1 set in a BADVERS response.
 	- Fix typo in zonec.c inside error message.
+	- Document that debug-mode yes is used for staying attached to
+	  the supervisor console.
 
 
 4.1.5

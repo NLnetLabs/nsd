@@ -181,8 +181,11 @@ other systems.
 .TP
 .B debug\-mode:\fR <yes or no>
 Turns on debugging mode for nsd, does not fork a daemon process. 
-Default is no. Same as commandline option 
+Default is no. Same as commandline option
 .BR \-d.
+If set to yes it does not fork and stays in the foreground, which can
+be helpful for commandline debugging, but is also used by certain
+server supervisor processes to ascertain that the server is running.
 .TP
 .B do\-ip4:\fR <yes or no>
 If yes, NSD listens to IPv4 connections.  Default yes.
