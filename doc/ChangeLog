@@ -1,6 +1,7 @@
 12 October 2015: Wouter
 	- Fix #711: Document that debug-mode yes is used for staying
 	  attached to the supervisor console.
+	- Document verbosity 3 prints more information.
 
 30 September 2015: Wouter
 	- makedist.sh print on pgp signature creation.
