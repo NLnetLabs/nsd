@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <netdb.h>
+#include <poll.h>
 #ifndef SHUT_WR
 #define SHUT_WR 1
 #endif
@@ -1241,16 +1242,14 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 {
 	uint8_t* buf = (uint8_t*) p;
 	ssize_t total = 0;
-	fd_set rfds;
-	struct timeval tv;
-	FD_ZERO(&rfds);
-
+	struct pollfd fd;
+	memset(&fd, 0, sizeof(fd));
+	fd.fd = s;
+	fd.events = POLLIN;
+	
 	while( total < sz) {
 		ssize_t ret;
-		FD_SET(s, &rfds);
-		tv.tv_sec = timeout;
-		tv.tv_usec = 0;
-		ret = select(s+1, &rfds, NULL, NULL, timeout==-1?NULL:&tv);
+		ret = poll(&fd, 1, timeout*1000);
 		if(ret == -1) {
 			if(errno == EAGAIN)
 				/* blocking read */

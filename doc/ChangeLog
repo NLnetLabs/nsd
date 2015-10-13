@@ -1,5 +1,6 @@
 13 October 2015: Wouter
 	- nsd-checkconf warns for master zones with no zonefile statement.
+	- Fix start failure when many file descriptors are in use.
 
 12 October 2015: Wouter
 	- Fix #711: Document that debug-mode yes is used for staying

@@ -10,6 +10,7 @@ BUG FIXES:
 	  attached to the supervisor console.
 	- Document verbosity 3 prints more information.
 	- nsd-checkconf warns for master zones with no zonefile statement.
+	- Fix start failure when many file descriptors are in use.
 
 
 4.1.5
