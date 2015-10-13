@@ -24,6 +24,7 @@ int c_parse(void);
 int c_lex(void);
 int c_wrap(void);
 void c_error(const char *message);
+char* c_get_text(void);
 
 static int
 rbtree_strcmp(const void* p1, const void* p2)
@@ -691,19 +692,30 @@ zone_list_close(nsd_options_t* opt)
 void
 c_error_va_list(const char* fmt, va_list args)
 {
+	char* at = NULL;
 	cfg_parser->errors++;
+	if((strcmp(fmt, "syntax error") == 0 || strcmp(fmt, "parse error")==0)
+		&& c_get_text() && c_get_text()[0]!=0) {
+		at = c_get_text();
+	}
 	if(cfg_parser->err) {
 		char m[MAXSYSLOGMSGLEN];
-		snprintf(m, sizeof(m), "%s:%d: error: ", cfg_parser->filename,
+		snprintf(m, sizeof(m), "%s:%d: ", cfg_parser->filename,
 			cfg_parser->line);
 		(*cfg_parser->err)(cfg_parser->err_arg, m);
+		if(at) {
+			snprintf(m, sizeof(m), "at '%s': ", at);
+			(*cfg_parser->err)(cfg_parser->err_arg, m);
+		}
+		(*cfg_parser->err)(cfg_parser->err_arg, "error: ");
 		vsnprintf(m, sizeof(m), fmt, args);
 		(*cfg_parser->err)(cfg_parser->err_arg, m);
 		(*cfg_parser->err)(cfg_parser->err_arg, "\n");
 		return;
 	}
-        fprintf(stderr, "%s:%d: error: ", cfg_parser->filename,
-		cfg_parser->line);
+        fprintf(stderr, "%s:%d: ", cfg_parser->filename, cfg_parser->line);
+	if(at) fprintf(stderr, "at '%s': ", at);
+	fprintf(stderr, "error: ");
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 }
@@ -720,7 +732,9 @@ c_error_msg(const char* fmt, ...)
 void
 c_error(const char* str)
 {
-	c_error_msg("%s", str);
+	if(!strchr(str, '%'))
+		c_error_msg(str); /* so that c_error_va_list can test str */
+	else	c_error_msg("%s", str);
 }
 
 int

@@ -12,6 +12,7 @@ BUG FIXES:
 	- nsd-checkconf warns for master zones with no zonefile statement.
 	- Fix start failure when many file descriptors are in use.
 	- The servfail rcode is not printed with a space in the middle.
+	- print failed token for config syntax error or parse error.
 
 
 4.1.5
