@@ -557,6 +557,13 @@ additional_checks(nsd_options_t* opt, const char* filename)
 				"is received?\n", filename, zone->name);
 			errors ++;
 		}
+		if(!zone_is_slave(zone) && (!zone->pattern->zonefile ||
+			zone->pattern->zonefile[0] == 0)) {
+			fprintf(stderr, "%s: zone %s is a master zone but has "
+				"no zonefile. Where can the data come from?\n",
+				filename, zone->name);
+			errors ++;
+		}
 	}
 
 #ifndef BIND8_STATS
