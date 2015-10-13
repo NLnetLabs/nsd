@@ -1249,7 +1249,7 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 	
 	while( total < sz) {
 		ssize_t ret;
-		ret = poll(&fd, 1, timeout*1000);
+		ret = poll(&fd, 1, (timeout==-1)?-1:timeout*1000);
 		if(ret == -1) {
 			if(errno == EAGAIN)
 				/* blocking read */

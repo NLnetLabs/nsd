@@ -2,6 +2,7 @@
 	- nsd-checkconf warns for master zones with no zonefile statement.
 	- Fix start failure when many file descriptors are in use.
 	- The servfail rcode is not printed with a space in the middle.
+	- fixup file descriptor fixup nicer.
 
 12 October 2015: Wouter
 	- Fix #711: Document that debug-mode yes is used for staying
