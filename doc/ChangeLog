@@ -1,3 +1,6 @@
+15 October 2015: Wouter
+	- 4.1.6rc1 tag created.
+
 13 October 2015: Wouter
 	- nsd-checkconf warns for master zones with no zonefile statement.
 	- Fix start failure when many file descriptors are in use.
