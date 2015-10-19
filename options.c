@@ -24,7 +24,7 @@ int c_parse(void);
 int c_lex(void);
 int c_wrap(void);
 void c_error(const char *message);
-char* c_get_text(void);
+extern char* c_text;
 
 static int
 rbtree_strcmp(const void* p1, const void* p2)
@@ -688,15 +688,13 @@ zone_list_close(nsd_options_t* opt)
 	opt->zonelist = NULL;
 }
 
-
 void
-c_error_va_list(const char* fmt, va_list args)
+c_error_va_list_pos(int showpos, const char* fmt, va_list args)
 {
 	char* at = NULL;
 	cfg_parser->errors++;
-	if((strcmp(fmt, "syntax error") == 0 || strcmp(fmt, "parse error")==0)
-		&& c_get_text() && c_get_text()[0]!=0) {
-		at = c_get_text();
+	if(showpos && c_text && c_text[0]!=0) {
+		at = c_text;
 	}
 	if(cfg_parser->err) {
 		char m[MAXSYSLOGMSGLEN];
@@ -721,19 +719,28 @@ c_error_va_list(const char* fmt, va_list args)
 }
 
 void
+c_error_msg_pos(int showpos, const char* fmt, ...)
+{
+        va_list args;
+        va_start(args, fmt);
+        c_error_va_list_pos(showpos, fmt, args);
+        va_end(args);
+}
+
+void
 c_error_msg(const char* fmt, ...)
 {
         va_list args;
         va_start(args, fmt);
-        c_error_va_list(fmt, args);
+        c_error_va_list_pos(0, fmt, args);
         va_end(args);
 }
 
 void
 c_error(const char* str)
 {
-	if(!strchr(str, '%'))
-		c_error_msg(str); /* so that c_error_va_list can test str */
+	if((strcmp(str, "syntax error")==0 || strcmp(str, "parse error")==0))
+		c_error_msg_pos(1, "%s", str);
 	else	c_error_msg("%s", str);
 }
 

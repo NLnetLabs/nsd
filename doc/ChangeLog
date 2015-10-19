@@ -1,3 +1,6 @@
+19 October 2015: Wouter
+	- Fix compile of zonec error message on FreeBSD.
+
 15 October 2015: Wouter
 	- 4.1.6rc1 tag created.
 
