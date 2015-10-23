@@ -1,3 +1,6 @@
+23 October 2015: Wouter
+	- Fix many interfaces and zones updates from nsd parent event loop.
+
 22 October 2015: Wouter
 	- 4.1.6 release tag.
 	- trunk contain 4.1.7 in development.
