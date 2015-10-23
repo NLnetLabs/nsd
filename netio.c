@@ -191,7 +191,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 #ifdef HAVE_PPOLL
 	rc = ppoll(fds, numfd, (have_timeout?&minimum_timeout:NULL), sigmask);
 #else
-	sigprocmask(SIG_SETMASK, &sigmask, &origmask);
+	sigprocmask(SIG_SETMASK, sigmask, &origmask);
 	rc = poll(fds, numfd, (have_timeout?minimum_timeout.tv_sec*1000+
 		minimum_timeout.tv_nsec/1000000:-1));
 	sigprocmask(SIG_SETMASK, &origmask, NULL);
