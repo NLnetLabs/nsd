@@ -60,6 +60,7 @@ netio_add_handler(netio_type *netio, netio_handler_type *handler)
 
 	elt->next = netio->handlers;
 	elt->handler = handler;
+	elt->handler->pfd = -1;
 	netio->handlers = elt;
 }
 
