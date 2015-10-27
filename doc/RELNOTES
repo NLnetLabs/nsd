@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix many interfaces and zones updates from nsd parent event loop.
+	- portability fixes.
 
 
 4.1.6

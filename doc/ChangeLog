@@ -1,3 +1,6 @@
+27 October 2015: Wouter
+	- portability fixes.
+
 26 October 2015: Wouter
 	- Init pfd for handlers added during handler-event-walk.
 
