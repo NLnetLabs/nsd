@@ -24,8 +24,9 @@ consult the REQUIREMENTS document which is a part of this distribution.
 %setup -q -n %{name}-%{version}
 
 %build
-%configure --enable-bind8-stats --enable-ratelimit --enable-plugins --enable-checking \
-                   --enable-mmap --with-ssl --enable-nsec3 --enable-nsid \
+%configure --enable-pie --enable-relro-now --enable-ratelimit \
+           --enable-bind8-stats --enable-plugins --enable-checking \
+           --enable-mmap --with-ssl --enable-nsec3 --enable-nsid \
            --with-pidfile=%{_localstatedir}/run/%{name}/%{name}.pid --with-ssl \
            --with-user=nsd --with-xfrdfile=%{_localstatedir}/lib/%{name}/ixfr.state
 
