@@ -7,6 +7,7 @@ BUG FIXES:
 	- Fix many interfaces and zones updates from nsd parent event loop.
 	- portability fixes.
 	- patch from Doug Hogan for SSL_OP_NO_SSLvx options.
+	- updated contrib/nsd.spec, from Bálint Szigeti.
 
 
 4.1.6

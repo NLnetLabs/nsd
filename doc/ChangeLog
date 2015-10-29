@@ -1,5 +1,6 @@
 29 October 2015: Wouter
 	- patch from Doug Hogan for SSL_OP_NO_SSLvx options.
+	- updated contrib/nsd.spec, from Bálint Szigeti.
 
 27 October 2015: Wouter
 	- portability fixes.
