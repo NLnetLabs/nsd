@@ -1,6 +1,8 @@
 29 October 2015: Wouter
 	- patch from Doug Hogan for SSL_OP_NO_SSLvx options.
 	- updated contrib/nsd.spec, from Bálint Szigeti.
+	- support configure --with-dbfile="" for nodb mode by default, where
+	  there is no binary database, but nsd reads and writes zonefiles.
 
 27 October 2015: Wouter
 	- portability fixes.

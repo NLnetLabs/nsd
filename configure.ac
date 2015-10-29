@@ -91,7 +91,9 @@ AC_ARG_WITH([dbfile],
 AC_SUBST(dbfile)
 AC_DEFINE_UNQUOTED(DBFILE, ["`eval echo $dbfile`"], [Pathname to the NSD database])
 
-dbdir=`dirname $dbfile`
+if test -n "$dbfile"; then
+	dbdir=`dirname $dbfile`
+fi
 AC_SUBST(dbdir)
 
 piddir=`dirname $pidfile`

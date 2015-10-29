@@ -3,6 +3,8 @@ NSD RELEASE NOTES
 4.1.7 (upcoming)
 ================
 FEATURES:
+	- support configure --with-dbfile="" for nodb mode by default, where
+	  there is no binary database, but nsd reads and writes zonefiles.
 BUG FIXES:
 	- Fix many interfaces and zones updates from nsd parent event loop.
 	- portability fixes.
