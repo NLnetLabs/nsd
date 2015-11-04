@@ -1,3 +1,6 @@
+5 November 2015: Wouter
+	- newer acx_nlnetlabs.m4, does not needlessly link with -ldl.
+
 30 October 2015: Wouter
 	- Fix tpkg tests for portability.
 
