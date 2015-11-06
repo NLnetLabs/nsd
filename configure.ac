@@ -338,9 +338,6 @@ AC_DEFUN([CHECK_SSL], [
 	    if test x_$ssldir = x_/usr/sfw; then
 		LDFLAGS="$LDFLAGS -R$ssldir/lib";
 	    fi
-            AC_CHECK_LIB(crypto, HMAC_CTX_init,, [
-                    AC_MSG_ERROR([OpenSSL found in $ssldir, but version 0.9.7 or higher is required])
-                ])
         fi
         AC_SUBST(HAVE_SSL)
     fi
@@ -792,6 +789,11 @@ AC_SUBST(ratelimit)
 CHECK_SSL
 if test x$HAVE_SSL = x"yes"; then
 	ACX_LIB_SSL
+	if test -n "$ssldir"; then 
+            AC_CHECK_LIB(crypto, HMAC_CTX_init,, [
+                    AC_MSG_ERROR([OpenSSL found in $ssldir, but version 0.9.7 or higher is required])
+                ])
+	fi
 	SSL_LIBS="-lssl"
 	AC_SUBST(SSL_LIBS)
 	AC_CHECK_HEADERS([openssl/ssl.h],,, [AC_INCLUDES_DEFAULT])

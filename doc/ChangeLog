@@ -1,3 +1,7 @@
+6 November 2015: Wouter
+	- Fixup for newer acx_nlnetlabs.m4, test for openssl version after
+	  testing for libdl need.
+
 5 November 2015: Wouter
 	- newer acx_nlnetlabs.m4, does not needlessly link with -ldl.
 
