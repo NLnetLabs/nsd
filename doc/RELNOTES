@@ -10,6 +10,7 @@ BUG FIXES:
 	- portability fixes.
 	- patch from Doug Hogan for SSL_OP_NO_SSLvx options.
 	- updated contrib/nsd.spec, from Bálint Szigeti.
+	- Allocate less memory for TSIG digest.
 
 
 4.1.6
