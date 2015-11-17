@@ -12,6 +12,8 @@ BUG FIXES:
 	- Fix assertion failure and fail to start when loading a zone with
 	  a spurious DS record at the apex.
 	- Fix #701: Fix that AD=1 set in a BADVERS response (like NSD 4.1.6).
+	- Fix #721: Fix wrong error code (FORMERR) returned for unknown
+	  opcode.  NOTIMP expected. (like NSD 4.1.7)
 
 
 3.2.19
