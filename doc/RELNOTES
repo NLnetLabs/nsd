@@ -11,6 +11,8 @@ BUG FIXES:
 	- patch from Doug Hogan for SSL_OP_NO_SSLvx options.
 	- updated contrib/nsd.spec, from Bálint Szigeti.
 	- Allocate less memory for TSIG digest.
+	- Fix #721: Fix wrong error code (FORMERR) returned for unknown
+	  opcode.  NOTIMP expected.
 
 
 4.1.6

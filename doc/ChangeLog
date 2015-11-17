@@ -1,3 +1,7 @@
+17 November 2015: Wouter
+	- Fix #721: Fix wrong error code (FORMERR) returned for unknown
+	  opcode.  NOTIMP expected.
+
 16 November 2015: Wouter
 	- Allocate less memory for TSIG digest.
 
