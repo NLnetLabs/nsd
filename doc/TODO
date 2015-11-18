@@ -42,7 +42,7 @@ SERVER
 - xfrd NOTIFY timeouts exponential backoff.
 - query SOA before getting AXFR and then cutting it off, it causes an errlog
   on the master. 
-- when verbose, print the ip adresses that cause network errors to the log.
+- when verbose, print the ip addresses that cause network errors to the log.
 - the server reaps children every minute, this is bad for powersaving laptops.
 - Implement AXFR clarify, RFC 5936.
 
@@ -51,7 +51,7 @@ SECURITY
 PURITY
 - some data is in network order some in host order, make it clear with prefixes
   prettier?
-- brush up the fuction and identifiers names
+- brush up the function and identifiers names
 - The XFRD zone state can be split up in expired/service-possible and 
   in idle/zone-transfer-busy state flags. Is this more beautiful?
 - no more #ifdefs, remove them all, but keep configure options.
@@ -60,12 +60,12 @@ PURITY
 - conformance to RFC: NSD accepts TSIG before OPT in additional, but this
   is not legal, only TSIG after OPT is allowed.
 - Allow for username: uid:gid, next to uid.gid.
-- Log error when serial in xfrd.state is incosistent with that from nsd.db.
+- Log error when serial in xfrd.state is inconsistent with that from nsd.db.
 
 NSD PATCH
 - -q(?) option: no output when no patch necessary
 - cleaner output on normal operation (don't mention memory)
-- patch on demand after a xfrd reload has occured (including checks for disk 
+- patch on demand after a xfrd reload has occurred (including checks for disk 
   memory and a reload timeout (no more often than 15 minutes or so)?).
 
 CLEANUP
@@ -93,7 +93,7 @@ OPTIMISATIONS
 - Look for special purpose memory allocators for NSD.
 - compress dnames in ixfr queries (write_soa_buffer) (zone 2x, mname, rname).
   small gain, nasty code.
-- compress dnames in tsig records, keyname, algorithname.
+- compress dnames in tsig records, keyname, algorithmname.
 - compress names in packets by pointing to uncompressed_dname entries.
   After each DNAME(with uncompressed target) follows a CNAME that can be
   compressed in this way.
@@ -115,7 +115,7 @@ TESTS
 - tpkg test for bug 164: chkconfig
 - Update tpkg long tests
 - tpkg test for bug 347: NSEC3 no data tests when requesting DS
-From tpkg/buzilla-bugs todo:
+From tpkg/bugzilla-bugs todo:
 !  - other ways to test this?
 ! 3   "RCODE for dynamic updates" --- how to send dynamic updates?
 ! 20   "256 questions per-se should generate form err"
@@ -130,7 +130,7 @@ M 163   "..."
 M 164   "chkconfig"
 -  - too little information to write a testcase
 - 4   "Correctly handle queries with too much data"  to little info
-- 6   "different name encodiungs?"
+- 6   "different name encodings?"
 - 7   "sometimes label compression skip some parts"
 - 8   "do not exit on sendto buffer exhaustion"
 - 10   "Segmentation violation while trying to destroy the database on exit"

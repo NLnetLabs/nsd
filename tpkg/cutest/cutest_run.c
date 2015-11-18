@@ -87,7 +87,7 @@ int runalltests(void)
 	return fail;
 }
 
-/** check if inet_ntop works as expected for string comparisions */
+/** check if inet_ntop works as expected for string comparisons */
 static int
 check_inet_ntop(void)
 {

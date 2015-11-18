@@ -367,7 +367,7 @@ use more memory, and reduce the chance of hash collisions.
 .TP
 .B rrl\-ratelimit:\fR <qps>
 The max qps allowed (from one query source). Default 200 qps. If set to 0
-then it is disabled (unlimited rate), also set the whilelist\-ratelimit
+then it is disabled (unlimited rate), also set the whitelist\-ratelimit
 to 0 to disable ratelimit processing.  If you set verbosity to 2 the
 blocked and unblocked subnets are logged.  Blocked queries are blocked
 and some receive TCP fallback replies.

@@ -130,7 +130,7 @@ def cp_files(analyze):
 
    #-- scp the entire tmp directory
    if conf.getValue('DEMO-MODE'):
-      report_info('** scp would go here, but cp -r for demonstration puposes')
+      report_info('** scp would go here, but cp -r for demonstration purposes')
       cmd = 'cp -r ' + tmpdir + '* ' + conf.getValue('destdir')
       run_cmd(cmd, 'using cp to transfer to demo system...')
    else:

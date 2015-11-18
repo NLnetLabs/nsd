@@ -53,7 +53,7 @@ BUG FIXES:
 	  and older serial numbers.
 	- Document that minimal responses only minimizes responses to fit
 	  in one datagram.  It does not minimize smaller responses.
-	- Fix #618: documented need to list ip-addresses seperately in
+	- Fix #618: documented need to list ip-addresses separately in
 	  nsd.conf if there are multiple, because the source address of
 	  replies can otherwise go wrong.
 	- Fix that notify from nsd-control contains soa serial.
@@ -725,7 +725,7 @@ BUG FIXES:
 	- Bug #218: shared UDP query for all interfaces.
 	- Bug #222: Remove bashism from nsdc script.
 	- Nicer check for SHA-256 functionality.
-	- Fixed some minor memory leaks that occured on reload.
+	- Fixed some minor memory leaks that occurred on reload.
 	- nsdc: check if a lockfile has not gone stale, when lock failed.
 	- Bugfix strptime compatibility function
 
@@ -1283,17 +1283,17 @@ BUG FIXES:
         - Bug #60: Zonec runs out of file descriptors with many zones.
         - Bug #61: nsdc uses /bin/sh hardwired (and should not).
         - Bug #62: NSD is not able to log to a file.
-        - Bug #63: nsdc update and zonec are too tallkative.
+        - Bug #63: nsdc update and zonec are too talkative.
         - Bug #64: Answer for request of a host resolved by a
           wildcard-resource-record is not understandable by dig.
 
 1.2.1
 =============
 BUG FIXES:
-        - AXFR terminates early if a zone containa a CNAME pointing
+        - AXFR terminates early if a zone contains a CNAME pointing
           the the zone's domain name (SOA record) (bug #56).
         - During an AXFR memory above the top of the stack was
-          accessed.  This could lead to occassional AXFR errors (bad
+          accessed.  This could lead to occasional AXFR errors (bad
           packets).
         - NSD now prints its version number and exits when invoked
           with the -v flag (bug #57).
@@ -1395,7 +1395,7 @@ FEATURES:
         - ``cache'' zones are no longer allowed
         - ID.Server & Version.Server compile time options
         - AXFR implemented (with tcpwrapper for access control)
-        - nsdc update and nsdc notify functinality
+        - nsdc update and nsdc notify functionality
         - using named-xfer with TSIG for inbound axfr
 
 

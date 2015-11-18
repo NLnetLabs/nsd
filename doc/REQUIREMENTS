@@ -837,7 +837,7 @@ RR records details.
 
   "NSEC"     47,    # RFC 4033, 4034, 4035.  RFC 3755.
   		    Signed next ownername, to disprove rrset types and 
-		    domain name existance. Uncompressed dnames.
+		    domain name existence. Uncompressed dnames.
 
   "DNSKEY"   48,    # RFC 4033, 4034, 4035.  RFC 3755.
   		    Key for zone signing or key signing. Public key part.

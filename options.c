@@ -1507,7 +1507,7 @@ acl_key_matches(acl_options_t* acl, struct query* q)
 	}
 	if(!acl->key_options->tsig_key) {
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "keymatch fail no config"));
-		return 0; /* key not properly configged */
+		return 0; /* key not properly configured */
 	}
 	if(dname_compare(q->tsig.key_name,
 		acl->key_options->tsig_key->name) != 0) {

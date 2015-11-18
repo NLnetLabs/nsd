@@ -158,7 +158,7 @@ key:
 zone:
 	name: "example.com"
 	zonefile: "key23.example.com."
-	# the allow-tranfer and server statements from BIND rolled into one.
+	# the allow-transfer and server statements from BIND rolled into one.
 	provide-xfr: 168.192.0.15 key23.example.com.
 	#
 	# since NSD does not send notifies to the servers listed in the NS rrs,

@@ -97,7 +97,7 @@ Tests 3.1.1 can be one tpkg.
 - axfr an empty zone - only the SOA 	(soa=2)
 - axfr a zone with only little data. 	(soa=3)
   some NS, MX, A, AAAA records.
-[NOTE: apparantly, due to the linked list mgt in domains (of rrset*)
+[NOTE: apparently, due to the linked list mgt in domains (of rrset*)
  the ordering of rrtypes for a domain is reversed after a zone transfer
  for NSD, i.e. for query type=any. Ordering within an rrset is preserved.
  Created fix to ordering, but is slow for many rr types... ]
@@ -210,8 +210,8 @@ This test also falls over from udp to tcp for ixfr.
 	- test delet domain and wildcard replies.
 - Tested, it works, fix for IXFR that makes empty nonterminals.
 
-3.3. Timouts
-------------
+3.3. Timeouts
+-------------
 Get zone to expire. Check it does not answer.
 	Start only a secondary server, no master. Set expire timeout short.
 	Timers set as refresh=1 retry=1 expire=10 minimum=10
@@ -299,7 +299,7 @@ Perhaps also include never respond entries (fake address) in acls.
 	- delete xfrd.status
 	- delete ixfr and xfrd files.
 - run nsdc patch on a server.
-- pretend an intemediary was offline for a long time
+- pretend an intermediary was offline for a long time
   with old zone files and old ixfr.db and xfrd.state(!!) files.
   and see what happens :-)
   It should refresh/expire and so based on timers in xfrd.state.
@@ -365,7 +365,7 @@ for each test, run our "test-suite"
 
 8.2. patch file remove
 ----------------------
-rm patch file, check xfrd's behavoir. Refetches zones
+rm patch file, check xfrd's behavior. Refetches zones
 Checked in section transfer_axfr.
 
 8.3. 64 bit

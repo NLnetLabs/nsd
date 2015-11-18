@@ -178,7 +178,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 
 	if (have_timeout && minimum_timeout.tv_sec < 0) {
 		/*
-		 * On negative timeout for a handler, immediatly
+		 * On negative timeout for a handler, immediately
 		 * dispatch the timeout event without checking for
 		 * other events.
 		 */
