@@ -1,5 +1,6 @@
 18 November 2015: Wouter
 	- newer acx_nlnetlabs.m4.
+	- Spelling fix in nsd.conf man page.
 
 17 November 2015: Wouter
 	- Fix #721: Fix wrong error code (FORMERR) returned for unknown
