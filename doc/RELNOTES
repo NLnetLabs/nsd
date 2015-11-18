@@ -6,10 +6,13 @@ FEATURES:
 	- support configure --with-dbfile="" for nodb mode by default, where
 	  there is no binary database, but nsd reads and writes zonefiles.
 BUG FIXES:
-	- Fix many interfaces and zones updates from nsd parent event loop.
+	- Fix zones updates from nsd parent event loop when there are a lot
+	  of interfaces.
 	- portability fixes.
-	- patch from Doug Hogan for SSL_OP_NO_SSLvx options.
-	- updated contrib/nsd.spec, from Bálint Szigeti.
+	- patch from Doug Hogan for SSL_OP_NO_SSLvx options, for the new
+	  defaults in the ssl libraries.
+	- updated contrib/nsd.spec, from Bálint Szigeti, with new configure
+	  options.
 	- Allocate less memory for TSIG digest.
 	- Fix #721: Fix wrong error code (FORMERR) returned for unknown
 	  opcode.  NOTIMP expected.
