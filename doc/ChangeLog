@@ -1,3 +1,6 @@
+24 November 2015: Wouter
+	- Fix zonec ttl mismatch printout to include more information.
+
 18 November 2015: Wouter
 	- RELNOTES more descriptive.
 	- newer acx_nlnetlabs.m4.

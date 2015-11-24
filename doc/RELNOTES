@@ -16,6 +16,7 @@ BUG FIXES:
 	- Allocate less memory for TSIG digest.
 	- Fix #721: Fix wrong error code (FORMERR) returned for unknown
 	  opcode.  NOTIMP expected.
+	- Fix zonec ttl mismatch printout to include more information.
 
 
 4.1.6
