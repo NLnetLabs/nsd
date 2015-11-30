@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 	- support configure --with-dbfile="" for nodb mode by default, where
 	  there is no binary database, but nsd reads and writes zonefiles.
+	- reuseport: no is the default, because the feature is not troublefree.
 BUG FIXES:
 	- Fix zones updates from nsd parent event loop when there are a lot
 	  of interfaces.

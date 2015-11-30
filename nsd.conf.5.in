@@ -173,11 +173,9 @@ that it can answer immediately when the address is added. Default is no.
 Use the SO_REUSEPORT socket option, and create file descriptors for every
 server in the server\-count.  This improves performance of the network
 stack.  Only really useful if you also configure a server\-count higher
-than 1 (such as, equal to the number of cpus).  The default is yes on
-Linux (where it works, and has been (backported) to 2.6 and 3.x kernels).
-On FreeBSD it is known to fail (default is no), but you can enable it
-if you think it is fixed.  And a cautious default of no is used for
-other systems.
+than 1 (such as, equal to the number of cpus).  The default is no. 
+It works on Linux, but does not work on FreeBSD, and likely does not
+work on other systems.
 .TP
 .B debug\-mode:\fR <yes or no>
 Turns on debugging mode for nsd, does not fork a daemon process. 

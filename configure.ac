@@ -503,12 +503,6 @@ AC_CHECK_STRPTIME_WORKS
 ACX_CHECK_NONBLOCKING_BROKEN
 ACX_MKDIR_ONE_ARG
 
-# see if reuseport is enabled by default (also a config option).
-# freebsd can compile the option, but it does not work, it works on Linux.
-if test "`uname`" = "Linux"; then
-	AC_DEFINE([REUSEPORT_BY_DEFAULT], 1, [enable reuseport option by default.])
-fi
-
 # set -I. and -Isrcdir
 if test -n "$CPPFLAGS"; then
 	CPPFLAGS="$CPPFLAGS -I."
