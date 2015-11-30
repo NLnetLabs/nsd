@@ -1,6 +1,7 @@
 30 November 2015: Wouter
 	- Fix TCP responses when REUSEPORT is in use by turning it off.
 	- reuseport: no is the default, because the feature is not troublefree.
+	- Document default in manpage for rrl-slip, ip4 and 6 prefixlength.
 
 24 November 2015: Wouter
 	- Fix zonec ttl mismatch printout to include more information.

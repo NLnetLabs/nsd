@@ -373,13 +373,14 @@ and some receive TCP fallback replies.
 .B rrl\-slip:\fR <numpackets>
 This option controls the number of packets discarded before we send back a SLIP response
 (a response with "truncated" bit set to one). 0 disables the sending of SLIP packets, 
-1 means every query will get a SLIP response.
+1 means every query will get a SLIP response.  Default is 2, cuts traffic in
+half and legit users have a fair chance to get a +TC response.
 .TP
 .B rrl\-ipv4\-prefix\-length:\fR <subnet>
-IPv4 prefix length. Addresses are grouped by netblock.
+IPv4 prefix length. Addresses are grouped by netblock.  Default 24.
 .TP
 .B rrl\-ipv6\-prefix\-length:\fR <subnet>
-IPv6 prefix length. Addresses are grouped by netblock.
+IPv6 prefix length. Addresses are grouped by netblock.  Default 64.
 .TP
 .B rrl\-whitelist\-ratelimit:\fR <qps>
 The max qps for query sorts for a source, which have been

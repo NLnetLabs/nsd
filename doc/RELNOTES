@@ -19,6 +19,7 @@ BUG FIXES:
 	  opcode.  NOTIMP expected.
 	- Fix zonec ttl mismatch printout to include more information.
 	- Fix TCP responses when REUSEPORT is in use by turning it off.
+	- Document default in manpage for rrl-slip, ip4 and 6 prefixlength.
 
 
 4.1.6
