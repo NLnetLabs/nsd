@@ -17,6 +17,7 @@ BUG FIXES:
 	- Fix #721: Fix wrong error code (FORMERR) returned for unknown
 	  opcode.  NOTIMP expected.
 	- Fix zonec ttl mismatch printout to include more information.
+	- Fix TCP responses when REUSEPORT is in use by turning it off.
 
 
 4.1.6

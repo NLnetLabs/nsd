@@ -1,3 +1,6 @@
+30 November 2015: Wouter
+	- Fix TCP responses when REUSEPORT is in use by turning it off.
+
 24 November 2015: Wouter
 	- Fix zonec ttl mismatch printout to include more information.
 
