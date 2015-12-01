@@ -138,7 +138,8 @@ server:
 	# resolver to retry with TCP). Default is 2 (one half of the
 	# queries will receive a SLIP response, 0 disables SLIP (all
 	# packets are discarded), 1 means every request will get a
-	# SLIP response.
+	# SLIP response.  When the ratelimit is hit the traffic is
+	# divided by the rrl-slip value.
 	# rrl-slip: 2
 
 	# Response Rate Limiting, IPv4 prefix length. Addresses are
