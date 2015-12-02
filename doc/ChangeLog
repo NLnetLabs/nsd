@@ -1,3 +1,8 @@
+2 December 2015: Wouter
+	- configure --enable-ratelimit-default-is-off with --enable-ratelimit
+	  to set the default ratelimit to disabled but available in nsd.conf.
+	- Document that ratelimit qps and slip are updated in reconfig.
+
 1 December 2015: Wouter
 	- Explain rrl-slip better in documentation.
 

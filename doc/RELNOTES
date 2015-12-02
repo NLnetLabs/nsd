@@ -6,6 +6,8 @@ FEATURES:
 	- support configure --with-dbfile="" for nodb mode by default, where
 	  there is no binary database, but nsd reads and writes zonefiles.
 	- reuseport: no is the default, because the feature is not troublefree.
+	- configure --enable-ratelimit-default-is-off with --enable-ratelimit
+	  to set the default ratelimit to disabled but available in nsd.conf.
 BUG FIXES:
 	- Fix zones updates from nsd parent event loop when there are a lot
 	  of interfaces.
@@ -21,6 +23,7 @@ BUG FIXES:
 	- Fix TCP responses when REUSEPORT is in use by turning it off.
 	- Document default in manpage for rrl-slip, ip4 and 6 prefixlength.
 	- Explain rrl-slip better in documentation.
+	- Document that ratelimit qps and slip are updated in reconfig.
 
 
 4.1.6

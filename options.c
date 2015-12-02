@@ -79,11 +79,16 @@ nsd_options_create(region_type* region)
 	opt->zonelistfile = ZONELISTFILE;
 #ifdef RATELIMIT
 	opt->rrl_size = RRL_BUCKETS;
-	opt->rrl_ratelimit = RRL_LIMIT/2;
 	opt->rrl_slip = RRL_SLIP;
 	opt->rrl_ipv4_prefix_length = RRL_IPV4_PREFIX_LENGTH;
 	opt->rrl_ipv6_prefix_length = RRL_IPV6_PREFIX_LENGTH;
+#  ifdef RATELIMIT_DEFAULT_OFF
+	opt->rrl_ratelimit = 0;
+	opt->rrl_whitelist_ratelimit = 0;
+#  else
+	opt->rrl_ratelimit = RRL_LIMIT/2;
 	opt->rrl_whitelist_ratelimit = RRL_WLIST_LIMIT/2;
+#  endif
 #endif
 	opt->zonefiles_check = 1;
 	if(opt->database == NULL || opt->database[0] == 0)

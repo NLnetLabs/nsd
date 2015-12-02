@@ -779,6 +779,19 @@ case "$enable_ratelimit" in
 esac
 AC_SUBST(ratelimit)
 
+AC_ARG_ENABLE(ratelimit-default-is-off, AC_HELP_STRING([--enable-ratelimit-default-is-off], [Enable this to set default of ratelimit to off (enable in nsd.conf), otherwise ratelimit is enabled by default if --enable-ratelimit is enabled]))
+case "$enable_ratelimit_default_is_off" in
+	yes)
+		AC_DEFINE_UNQUOTED([RATELIMIT_DEFAULT_OFF], [], [Define this to set ratelimit to off by default.])
+		ratelimit_default="off"
+		;;
+	no|*)
+		ratelimit_default="on"
+		;;
+esac
+AC_SUBST(ratelimit_default)
+
+
 # we need SSL for TSIG (and maybe also for NSEC3).
 CHECK_SSL
 if test x$HAVE_SSL = x"yes"; then
