@@ -82,6 +82,10 @@ server:
 	# don't answer VERSION.BIND and VERSION.SERVER CHAOS class queries
 	# hide-version: no
 
+	# version string the server responds with for chaos queries.
+	# default is 'NSD x.y.z' with the server's version number.
+	# version: "NSD"
+
 	# identify the server (CH TXT ID.SERVER entry).
 	# identity: "unidentified server"
 

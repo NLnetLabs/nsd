@@ -56,6 +56,7 @@ nsd_options_create(region_type* region)
 	opt->do_ip6 = 1;
 	opt->database = DBFILE;
 	opt->identity = 0;
+	opt->version = 0;
 	opt->nsid = 0;
 	opt->logfile = 0;
 	opt->log_time_ascii = 1;

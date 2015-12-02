@@ -8,6 +8,7 @@ FEATURES:
 	- reuseport: no is the default, because the feature is not troublefree.
 	- configure --enable-ratelimit-default-is-off with --enable-ratelimit
 	  to set the default ratelimit to disabled but available in nsd.conf.
+	- version: "string" option to set chaos version query reply string.
 BUG FIXES:
 	- Fix zones updates from nsd parent event loop when there are a lot
 	  of interfaces.
