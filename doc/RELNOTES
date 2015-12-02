@@ -25,6 +25,7 @@ BUG FIXES:
 	- Document default in manpage for rrl-slip, ip4 and 6 prefixlength.
 	- Explain rrl-slip better in documentation.
 	- Document that ratelimit qps and slip are updated in reconfig.
+	- Fix up defaults in manpage.
 
 
 4.1.6

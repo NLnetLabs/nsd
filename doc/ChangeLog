@@ -3,6 +3,7 @@
 	  to set the default ratelimit to disabled but available in nsd.conf.
 	- Document that ratelimit qps and slip are updated in reconfig.
 	- version: "string" option to set chaos version query reply string.
+	- Fix up defaults in manpage.
 
 1 December 2015: Wouter
 	- Explain rrl-slip better in documentation.
