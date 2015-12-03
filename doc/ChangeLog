@@ -1,3 +1,6 @@
+3 December 2015: Wouter
+	- tag for 4.1.7rc1 prerelease.
+
 2 December 2015: Wouter
 	- configure --enable-ratelimit-default-is-off with --enable-ratelimit
 	  to set the default ratelimit to disabled but available in nsd.conf.
