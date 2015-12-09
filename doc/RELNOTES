@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.7 (upcoming)
+4.1.7
 ================
 FEATURES:
 	- support configure --with-dbfile="" for nodb mode by default, where
