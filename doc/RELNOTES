@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- take advantage of arc4random_uniform if available, patch from
+	  Loganaden Velvindron.
 
 
 4.1.7

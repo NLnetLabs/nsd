@@ -1,6 +1,8 @@
 10 December 2015: Wouter
 	- 4.1.7 release
 	- trunk has 4.1.8 in development.
+	- take advantage of arc4random_uniform if available, patch from
+	  Loganaden Velvindron.
 
 3 December 2015: Wouter
 	- tag for 4.1.7rc1 prerelease.
