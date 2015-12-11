@@ -1,3 +1,6 @@
+11 December 2015: Wouter
+	- Fix flto check for OSX clang.
+
 10 December 2015: Wouter
 	- 4.1.7 release
 	- trunk has 4.1.8 in development.

@@ -6,6 +6,7 @@ FEATURES:
 BUG FIXES:
 	- take advantage of arc4random_uniform if available, patch from
 	  Loganaden Velvindron.
+	- Fix flto check for OSX clang.
 
 
 4.1.7
