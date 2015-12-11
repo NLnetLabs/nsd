@@ -1,3 +1,6 @@
+11 December 2015: Wouter
+	- newer acx_nlnetlabs.m4 (but that part is unused for NSD 3).
+
 10 December 2015: Wouter
 	- 3.2.20 release
 	- branches/NSD_3_2 has 3.2.21 in development.
