@@ -7,6 +7,8 @@ BUG FIXES:
 	- take advantage of arc4random_uniform if available, patch from
 	  Loganaden Velvindron.
 	- Fix flto check for OSX clang.
+	- Define DEFAULT_SOURCE together with BSD_SOURCE when that is defined,
+	  for Linux glibc 2.20.
 
 
 4.1.7
