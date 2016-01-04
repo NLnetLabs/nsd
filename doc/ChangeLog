@@ -1,6 +1,5 @@
 04 January 2016: Wouter
-	- Define DEFAULT_SOURCE together with BSD_SOURCE when that is defined,
-	  for Linux glibc 2.20.
+	- Updated acx_nlnetlabs to version 32.
 
 11 December 2015: Wouter
 	- Fix flto check for OSX clang.
