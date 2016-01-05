@@ -247,6 +247,23 @@ Default is 0, meaning there is no maximum.
 .B tcp\-timeout:\fR <number>
 Overrides the default TCP timeout. This also affects zone transfers over TCP.
 .TP
+.B tcp-mss:\fR <number>
+Maximum segment size (MSS) of TCP socket on which the server responds
+to queries. Value lower than common MSS on Ethernet 
+(1220 for example) will address path MTU problem.
+Note that not all platform supports socket option to set MSS (TCP_MAXSEG).
+Default is system default MSS determined by interface MTU and
+negotiation between server and client.
+.TP
+.B outgoing\-tcp\-mss:\fR <number>
+Maximum segment size (MSS) of TCP socket for outgoing XFR request
+to other namesevers. Value lower than
+common MSS on Ethernet (1220 for example) will
+address path MTU problem.
+Note that not all platform supports socket option to set MSS (TCP_MAXSEG).
+Default is system default MSS determined by interface MTU and
+negotiation between NSD and other servers.
+.TP
 .B ipv4\-edns\-size:\fR <number>
 Preferred EDNS buffer size for IPv4.  Default 4096.
 .TP

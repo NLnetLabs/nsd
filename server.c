@@ -826,6 +826,21 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 # endif
 		}
 #endif
+		/* set maximum segment size to tcp socket */
+		if(nsd->tcp_mss > 0) {
+#if defined(IPPROTO_TCP) && defined(TCP_MAXSEG)
+			if(setsockopt(nsd->tcp[i].s, IPPROTO_TCP, TCP_MAXSEG,
+					(void*)&nsd->tcp_mss,
+					sizeof(nsd->tcp_mss)) < 0) {
+				log_msg(LOG_ERR,
+					"setsockopt(...,TCP_MAXSEG,...)"
+					" failed for tcp: %s", strerror(errno));
+			}
+#else
+			log_msg(LOG_ERR, "setsockopt(TCP_MAXSEG) unsupported");
+#endif /* defined(IPPROTO_TCP) && defined(TCP_MAXSEG) */
+		}
+
 		/* set it nonblocking */
 		/* (StevensUNP p463), if tcp listening socket is blocking, then
 		   it may block in accept, even if select() says readable. */

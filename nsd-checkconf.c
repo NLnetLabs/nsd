@@ -368,6 +368,8 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		SERV_GET_INT(tcp_count, o);
 		SERV_GET_INT(tcp_query_count, o);
 		SERV_GET_INT(tcp_timeout, o);
+		SERV_GET_INT(tcp_mss, o);
+		SERV_GET_INT(outgoing_tcp_mss, o);
 		SERV_GET_INT(ipv4_edns_size, o);
 		SERV_GET_INT(ipv6_edns_size, o);
 		SERV_GET_INT(statistics, o);
@@ -451,10 +453,12 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("version:", opt->version);
 	print_string_var("nsid:", opt->nsid);
 	print_string_var("logfile:", opt->logfile);
-	printf("\tserver_count: %d\n", opt->server_count);
-	printf("\ttcp_count: %d\n", opt->tcp_count);
-	printf("\ttcp_query_count: %d\n", opt->tcp_query_count);
-	printf("\ttcp_timeout: %d\n", opt->tcp_timeout);
+	printf("\tserver-count: %d\n", opt->server_count);
+	printf("\ttcp-count: %d\n", opt->tcp_count);
+	printf("\ttcp-query-count: %d\n", opt->tcp_query_count);
+	printf("\ttcp-timeout: %d\n", opt->tcp_timeout);
+	printf("\ttcp-mss: %d\n", opt->tcp_mss);
+	printf("\toutgoing-tcp-mss: %d\n", opt->outgoing_tcp_mss);
 	printf("\tipv4-edns-size: %d\n", (int) opt->ipv4_edns_size);
 	printf("\tipv6-edns-size: %d\n", (int) opt->ipv6_edns_size);
 	print_string_var("pidfile:", opt->pidfile);
@@ -466,7 +470,7 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("xfrdfile:", opt->xfrdfile);
 	print_string_var("zonelistfile:", opt->zonelistfile);
 	print_string_var("xfrdir:", opt->xfrdir);
-	printf("\txfrd_reload_timeout: %d\n", opt->xfrd_reload_timeout);
+	printf("\txfrd-reload-timeout: %d\n", opt->xfrd_reload_timeout);
 	printf("\tlog-time-ascii: %s\n", opt->log_time_ascii?"yes":"no");
 	printf("\tround-robin: %s\n", opt->round_robin?"yes":"no");
 	printf("\tverbosity: %d\n", opt->verbosity);

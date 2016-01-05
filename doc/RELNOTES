@@ -3,6 +3,8 @@ NSD RELEASE NOTES
 4.1.8 (upcoming)
 ================
 FEATURES:
+	- #732: tcp-mss, outgoing-tcp-mss options for nsd.conf, patch
+	  from Daisuke Higashi.
 BUG FIXES:
 	- take advantage of arc4random_uniform if available, patch from
 	  Loganaden Velvindron.
