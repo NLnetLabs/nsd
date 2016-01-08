@@ -1,3 +1,6 @@
+08 January 2016: Wouter
+	- Define _DEFAULT_SOURCE with _BSD_SOURCE for recent Linuxes.
+
 04 January 2016: Wouter
 	- newer acx_nlnetlabs.m4 (but that part is unused for NSD 3).
 

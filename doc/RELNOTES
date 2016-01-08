@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Define _DEFAULT_SOURCE with _BSD_SOURCE for recent Linuxes.
+	  (Same as NSD 4.1.8).
 
 
 3.2.20
