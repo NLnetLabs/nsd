@@ -9,6 +9,7 @@ BUG FIXES:
 	- take advantage of arc4random_uniform if available, patch from
 	  Loganaden Velvindron.
 	- Fix flto check for OSX clang.
+	- Define _DEFAULT_SOURCE with _BSD_SOURCE for recent Linuxes.
 
 
 4.1.7
