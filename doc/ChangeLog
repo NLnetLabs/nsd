@@ -1,3 +1,6 @@
+19 January 2016: Wouter
+	- Fix #736: segfault during zone transfer.
+
 08 January 2016: Wouter
 	- Define _DEFAULT_SOURCE with _BSD_SOURCE for recent Linuxes.
 
