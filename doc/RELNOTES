@@ -6,6 +6,7 @@ FEATURES:
 BUG FIXES:
 	- Define _DEFAULT_SOURCE with _BSD_SOURCE for recent Linuxes.
 	  (Same as NSD 4.1.8).
+	- Fix #736: segfault during zone transfer. (Same as NSD 4.1.8).
 
 
 3.2.20

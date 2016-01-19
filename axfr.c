@@ -91,9 +91,11 @@ query_axfr(struct nsd *nsd, struct query *query)
 	}
 
 	/* Add zone RRs until answer is full.  */
-	assert(query->axfr_current_domain);
-
-	do {
+	while ((rbnode_t *) query->axfr_current_domain != RBTREE_NULL
+			&& dname_is_subdomain(
+				domain_dname(query->axfr_current_domain),
+				domain_dname(query->axfr_zone->apex)))
+	{
 		if (!query->axfr_current_rrset) {
 			query->axfr_current_rrset = domain_find_any_rrset(
 				query->axfr_current_domain,
@@ -124,10 +126,6 @@ query_axfr(struct nsd *nsd, struct query *query)
 		query->axfr_current_domain
 			= (domain_type *) rbtree_next((rbnode_t *) query->axfr_current_domain);
 	}
-	while ((rbnode_t *) query->axfr_current_domain != RBTREE_NULL
-			&& dname_is_subdomain(
-				domain_dname(query->axfr_current_domain),
-				domain_dname(query->axfr_zone->apex)));
 
 	/* Add terminating SOA RR.  */
 	assert(query->axfr_zone->soa_rrset->rr_count == 1);
