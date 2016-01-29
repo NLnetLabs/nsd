@@ -127,7 +127,7 @@ struct zone
 	struct zone_options* opts;
 	char*        filename; /* set if read from file, which file */
 	char*        logstr; /* set for zone xfer, the log string */
-	time_t       mtime; /* time of last modification */
+	struct timespec mtime; /* time of last modification */
 	unsigned     zonestatid; /* array index for zone stats */
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
 	unsigned     is_ok : 1; /* zone has not expired. */
@@ -326,8 +326,8 @@ void domain_table_deldomain(namedb_type* db, domain_type* domain);
 /** dbcreate.c */
 int udb_write_rr(struct udb_base* udb, struct udb_ptr* z, rr_type* rr);
 void udb_del_rr(struct udb_base* udb, struct udb_ptr* z, rr_type* rr);
-int write_zone_to_udb(struct udb_base* udb, zone_type* zone, time_t mtime,
-	const char* file_str);
+int write_zone_to_udb(struct udb_base* udb, zone_type* zone,
+	struct timespec* mtime, const char* file_str);
 /** marshal rdata into buffer, must be MAX_RDLENGTH in size */
 size_t rr_marshal_rdata(rr_type* rr, uint8_t* rdata, size_t sz);
 /* dbaccess.c */
@@ -354,6 +354,7 @@ void namedb_zone_delete(namedb_type* db, zone_type* zone);
 void namedb_write_zonefile(struct nsd* nsd, struct zone_options* zopt);
 void namedb_write_zonefiles(struct nsd* nsd, struct nsd_options* options);
 int create_dirs(const char* path);
+int file_get_mtime(const char* file, struct timespec* mtime, int* nonexist);
 void allocate_domain_nsec3(domain_table_type *table, domain_type *result);
 
 static inline int

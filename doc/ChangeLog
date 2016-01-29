@@ -1,3 +1,7 @@
+29 January 2016: Wouter
+	- #739: zonefile changes when mtime is small are detected on reload,
+	  if filesystem supports precision mtime values.
+
 19 January 2016: Wouter
 	- Fix #736: segfault during zone transfer.
 

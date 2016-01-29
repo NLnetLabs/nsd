@@ -5,6 +5,8 @@ NSD RELEASE NOTES
 FEATURES:
 	- #732: tcp-mss, outgoing-tcp-mss options for nsd.conf, patch
 	  from Daisuke Higashi.
+	- #739: zonefile changes when mtime is small are detected on reload,
+	  if filesystem supports precision mtime values.
 BUG FIXES:
 	- take advantage of arc4random_uniform if available, patch from
 	  Loganaden Velvindron.

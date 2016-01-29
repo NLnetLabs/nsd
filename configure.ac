@@ -585,6 +585,7 @@ AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], 
 # include <netinet/in.h>
 #endif])
 ACX_CHECK_SS_FAMILY
+AC_CHECK_MEMBERS([struct stat.st_mtimensec, struct stat.st_mtim.tv_nsec])
 
 # Checks for library functions.
 AC_FUNC_CHOWN
@@ -596,7 +597,7 @@ AC_SYS_LARGEFILE
 AC_CHECK_SIZEOF(void*)
 AC_CHECK_SIZEOF(off_t)
 AC_CHECK_FUNCS([arc4random arc4random_uniform])
-AC_CHECK_FUNCS([tzset alarm chroot dup2 endpwent gethostname memset memcpy pwrite socket strcasecmp strchr strdup strerror strncasecmp strtol writev getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime strftime localtime_r setusercontext glob initgroups setresuid setreuid setresgid setregid getpwnam mmap ppoll])
+AC_CHECK_FUNCS([tzset alarm chroot dup2 endpwent gethostname memset memcpy pwrite socket strcasecmp strchr strdup strerror strncasecmp strtol writev getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime strftime localtime_r setusercontext glob initgroups setresuid setreuid setresgid setregid getpwnam mmap ppoll clock_gettime])
 
 AC_ARG_ENABLE(recvmmsg, AC_HELP_STRING([--enable-recvmmsg], [Enable recvmmsg and sendmmsg compilation, faster but some kernel versions may have implementation problems]))
 case "$enable_recvmmsg" in
