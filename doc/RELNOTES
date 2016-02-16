@@ -12,7 +12,7 @@ BUG FIXES:
 	- take advantage of arc4random_uniform if available, patch from
 	  Loganaden Velvindron.
 	- Fix flto check for OSX clang.
-	- Define _DEFAULT_SOURCE with _BSD_SOURCE for recent Linuxes.
+	- Define _DEFAULT_SOURCE with _BSD_SOURCE for glibc 2.20 on Linux.
 	- Fix #736: segfault during zone transfer.
 
 
