@@ -7,6 +7,7 @@ FEATURES:
 	  from Daisuke Higashi.
 	- #739: zonefile changes when mtime is small are detected on reload,
 	  if filesystem supports precision mtime values.
+	- RR type CSYNC (RFC7477) syntax is supported.
 BUG FIXES:
 	- take advantage of arc4random_uniform if available, patch from
 	  Loganaden Velvindron.

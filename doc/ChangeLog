@@ -1,3 +1,6 @@
+16 February 2016: Wouter
+	- RR type CSYNC (RFC7477) syntax is supported.
+
 29 January 2016: Wouter
 	- #739: zonefile changes when mtime is small are detected on reload,
 	  if filesystem supports precision mtime values.
