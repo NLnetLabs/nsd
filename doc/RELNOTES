@@ -4,7 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
-	- Define _DEFAULT_SOURCE with _BSD_SOURCE for recent Linuxes.
+	- Define _DEFAULT_SOURCE with _BSD_SOURCE for glibc 2.20 on Linux.
 	  (Same as NSD 4.1.8).
 	- Fix #736: segfault during zone transfer. (Same as NSD 4.1.8).
 
