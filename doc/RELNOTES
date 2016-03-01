@@ -14,6 +14,8 @@ BUG FIXES:
 	- Fix flto check for OSX clang.
 	- Define _DEFAULT_SOURCE with _BSD_SOURCE for glibc 2.20 on Linux.
 	- Fix #736: segfault during zone transfer.
+	- Fix #744: Fix that NSD replies for configured but unloaded zone
+	  with SERVFAIL, not REFUSED.
 
 
 4.1.7

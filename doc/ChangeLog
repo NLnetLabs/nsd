@@ -1,3 +1,7 @@
+1 March 2016: Wouter
+	- #744: Fix that NSD replies for configured but unloaded zone
+	  with SERVFAIL, not REFUSED.
+
 16 February 2016: Wouter
 	- RR type CSYNC (RFC7477) syntax is supported.
 

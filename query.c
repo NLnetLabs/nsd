@@ -960,9 +960,6 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 			zone_type* origzone = q->zone;
 			++q->cname_count;
 
-			while (!closest_encloser->is_existing)
-				closest_encloser = closest_encloser->parent;
-
 			answer_lookup_zone(nsd, q, answer, closest_match->number,
 					     closest_match == closest_encloser,
 					     closest_match, closest_encloser,
@@ -1053,8 +1050,6 @@ answer_authoritative(struct nsd   *nsd,
 				return;
 			}
 
-			while (closest_encloser && !closest_encloser->is_existing)
-				closest_encloser = closest_encloser->parent;
 			answer_lookup_zone(nsd, q, answer, newnum,
 				closest_match == closest_encloser,
 				closest_match, closest_encloser, newname);
@@ -1176,6 +1171,11 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			RCODE_SET(q->packet, RCODE_SERVFAIL);
 		return;
 	}
+	/* now move up the closest encloser until it exists, previous
+	 * (possibly empty) closest encloser was useful to finding the zone
+	 * (for empty zones too), but now we want actual data nodes */
+	while (closest_encloser != NULL && !closest_encloser->is_existing)
+		closest_encloser = closest_encloser->parent;
 
 	/*
 	 * See RFC 4035 (DNSSEC protocol) section 3.1.4.1 Responding
@@ -1246,12 +1246,6 @@ answer_query(struct nsd *nsd, struct query *q)
 	exact = namedb_lookup(nsd->db, q->qname, &closest_match, &closest_encloser);
 	if (!closest_encloser->is_existing) {
 		exact = 0;
-		while (closest_encloser != NULL && !closest_encloser->is_existing)
-			closest_encloser = closest_encloser->parent;
-	}
-	if(!closest_encloser) {
-		RCODE_SET(q->packet, RCODE_SERVFAIL);
-		return;
 	}
 
 	answer_lookup_zone(nsd, q, &answer, 0, exact, closest_match,
