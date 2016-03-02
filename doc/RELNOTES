@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.8 (upcoming)
+4.1.8
 ================
 FEATURES:
 	- #732: tcp-mss, outgoing-tcp-mss options for nsd.conf, patch
