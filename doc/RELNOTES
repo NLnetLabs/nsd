@@ -1,8 +1,13 @@
 NSD RELEASE NOTES
 
-3.2.21
+3.2.22 (Upcoming)
 ================
 FEATURES:
+BUG FIXES:
+
+
+3.2.21
+================
 BUG FIXES:
 	- Define _DEFAULT_SOURCE with _BSD_SOURCE for glibc 2.20 on Linux.
 	  (Same as NSD 4.1.8).
