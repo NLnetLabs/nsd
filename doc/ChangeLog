@@ -2,6 +2,8 @@
 	- ip-freebind: yesno option in nsd.conf sets IP_FREEBIND socket option
 	  for Linux, binds to interfaces and addresses that are down.
 	- Change the nsd.db file version because of nanosecond precision fix.
+	- 4.1.9 release with the nsd.db file version fix (but not freebind),
+	  trunk contains 4.1.10 in development.
 
 10 March 2016: Wouter
 	- Tag 4.1.8
