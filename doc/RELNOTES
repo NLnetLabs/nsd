@@ -6,6 +6,7 @@ FEATURES:
 	- ip-freebind: yesno option in nsd.conf sets IP_FREEBIND socket option
 	  for Linux, binds to interfaces and addresses that are down.
 BUG FIXES:
+	- Change the nsd.db file version because of nanosecond precision fix.
 
 
 4.1.8
