@@ -60,6 +60,7 @@ struct nsd_options {
 	ip_address_option_t* ip_addresses;
 
 	int ip_transparent;
+	int ip_freebind;
 	int debug_mode;
 	int verbosity;
 	int hide_version;

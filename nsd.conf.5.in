@@ -169,6 +169,10 @@ Allows NSD to bind to non local addresses. This is useful to have NSD
 listen to IP addresses that are not (yet) added to the network interface, so
 that it can answer immediately when the address is added. Default is no.
 .TP
+.B ip\-freebind:\fR <yes or no>
+Set the IP_FREEBIND option to bind to nonlocal addresses and interfaces
+that are down.  Similar to ip\-transparent.  Default is no.
+.TP
 .B reuseport:\fR <yes or no>
 Use the SO_REUSEPORT socket option, and create file descriptors for every
 server in the server\-count.  This improves performance of the network

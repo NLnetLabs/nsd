@@ -27,6 +27,9 @@ server:
 	# Allow binding to non local addresses. Default no.
 	# ip-transparent: no
 
+	# Allow binding to addresses that are down.  Default no.
+	# ip-freebind: no
+
 	# use the reuseport socket option for performance. Default no.
 	# reuseport: no
 

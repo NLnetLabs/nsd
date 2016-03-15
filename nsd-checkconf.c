@@ -341,6 +341,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		SERV_GET_IP(ip_address, ip_addresses, o);
 		/* bin */
 		SERV_GET_BIN(ip_transparent, o);
+		SERV_GET_BIN(ip_freebind, o);
 		SERV_GET_BIN(debug_mode, o);
 		SERV_GET_BIN(do_ip4, o);
 		SERV_GET_BIN(do_ip6, o);
@@ -444,6 +445,7 @@ config_test_print_server(nsd_options_t* opt)
 	printf("server:\n");
 	printf("\tdebug-mode: %s\n", opt->debug_mode?"yes":"no");
 	printf("\tip-transparent: %s\n", opt->ip_transparent?"yes":"no");
+	printf("\tip-freebind: %s\n", opt->ip_freebind?"yes":"no");
 	printf("\treuseport: %s\n", opt->reuseport?"yes":"no");
 	printf("\tdo-ip4: %s\n", opt->do_ip4?"yes":"no");
 	printf("\tdo-ip6: %s\n", opt->do_ip6?"yes":"no");
