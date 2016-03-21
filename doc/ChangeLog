@@ -1,3 +1,6 @@
+21 March 2016: Wouter
+	- Update acx_nlnetlabs.m4 to version 33 with HMAC_Update test.
+
 10 March 2016: Wouter
 	- Tag 3.2.21
 	- branches/NSD_3_2 contains 3.2.22 in development.
