@@ -1,3 +1,6 @@
+21 March 2016: Wouter
+	- Update acx_nlnetlabs.m4 to version 33 with HMAC_Update test.
+
 15 March 2016: Wouter
 	- ip-freebind: yesno option in nsd.conf sets IP_FREEBIND socket option
 	  for Linux, binds to interfaces and addresses that are down.
