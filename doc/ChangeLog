@@ -1,5 +1,6 @@
 21 March 2016: Wouter
 	- Update acx_nlnetlabs.m4 to version 33 with HMAC_Update test.
+	- acx_nlnetlabs.m4 to v34, with -ldl -pthread test for libcrypto.
 
 15 March 2016: Wouter
 	- ip-freebind: yesno option in nsd.conf sets IP_FREEBIND socket option
