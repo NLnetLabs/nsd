@@ -83,12 +83,12 @@ static void
 cleanup_context(void *data)
 {
 	HMAC_CTX *context = (HMAC_CTX *) data;
-#ifdef HAVE_HMAC_CTX_RESET
-	HMAC_CTX_reset(context);
+#ifdef HAVE_HMAC_CTX_NEW
+	HMAC_CTX_free(context);
 #else
 	HMAC_CTX_cleanup(context);
-#endif
 	free(context);
+#endif
 }
 
 static void *
