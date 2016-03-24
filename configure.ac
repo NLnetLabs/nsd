@@ -298,10 +298,53 @@ AC_DEFUN([CHECK_SSL], [
 	    if test x_$ssldir = x_/usr/sfw; then
 		LDFLAGS="$LDFLAGS -R$ssldir/lib";
 	    fi
-            AC_CHECK_LIB(crypto, HMAC_CTX_init,, [
+
+	    # Check for -ldl
+	    BAKLIBS="$LIBS"
+	    LIBS="-lcrypto $LIBS"
+	    AC_TRY_LINK([], [
+		    int HMAC_Update(void);
+		    (void)HMAC_Update();
+	    ], [],[
+		    dnl so link fails for HMAC_Update, try with -ldl.
+		    LIBS="-ldl $LIBS"
+		    AC_MSG_CHECKING([if libcrypto needs -ldl])
+		    AC_TRY_LINK_FUNC([HMAC_Update], [
+			    AC_MSG_RESULT([yes])
+			    BAKLIBS="-ldl $BAKLIBS"
+		    ] , [
+			    AC_MSG_RESULT([no])
+		    ])
+	    ])
+	    LIBS="$BAKLIBS"
+    
+	    # Check for -ldl -pthread
+	    BAKLIBS="$LIBS"
+	    LIBS="-lcrypto $LIBS"
+	    AC_TRY_LINK([], [
+		    int HMAC_Update(void);
+		    (void)HMAC_Update();
+	    ], [],[
+		    dnl so link fails for HMAC_Update, try with -ldl -pthread.
+		    BAKCFLAGS="$CFLAGS"
+		    CFLAGS="$CFLAGS -pthread"
+		    LIBS="-ldl $LIBS"
+		    AC_MSG_CHECKING([if libcrypto needs -ldl -pthread])
+		    AC_TRY_LINK_FUNC([HMAC_Update], [
+			    AC_MSG_RESULT([yes])
+			    BAKLIBS="-ldl $BAKLIBS"
+		    ] , [
+			    AC_MSG_RESULT([no])
+			    CFLAGS="$BAKCFLAGS"
+		    ])
+	    ])
+	    LIBS="$BAKLIBS"
+    
+            AC_CHECK_LIB(crypto, HMAC_Update,, [
                     AC_MSG_ERROR([OpenSSL found in $ssldir, but version 0.9.7 or higher is required])
                 ])
         fi
+	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new])
         AC_SUBST(HAVE_SSL)
     fi
 ])dnl
