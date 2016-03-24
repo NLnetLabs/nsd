@@ -797,8 +797,30 @@ AC_SUBST(ratelimit_default)
 CHECK_SSL
 if test x$HAVE_SSL = x"yes"; then
 	ACX_LIB_SSL
+
+	# Check for -pthread
+	BAKLIBS="$LIBS"
+	LIBS="-lcrypto $LIBS"
+	AC_TRY_LINK([], [
+		int HMAC_Update(void);
+		(void)HMAC_Update();
+	], [],[
+		dnl so link fails for HMAC_Update, try with -pthread.
+		BAKCFLAGS="$CFLAGS"
+		CFLAGS="$CFLAGS -pthread"
+		AC_MSG_CHECKING([if libcrypto needs -pthread])
+		AC_TRY_LINK_FUNC([HMAC_Update], [
+			AC_MSG_RESULT([yes])
+		] , [
+			AC_MSG_RESULT([no])
+			dnl restore the nonpthread value
+			CFLAGS="$BAKCFLAGS"
+		])
+	])
+	LIBS="$BAKLIBS"
+
 	if test -n "$ssldir"; then 
-            AC_CHECK_LIB(crypto, HMAC_CTX_init,, [
+            AC_CHECK_LIB(crypto, HMAC_Update,, [
                     AC_MSG_ERROR([OpenSSL found in $ssldir, but version 0.9.7 or higher is required])
                 ])
 	fi
@@ -807,6 +829,7 @@ if test x$HAVE_SSL = x"yes"; then
 	AC_CHECK_HEADERS([openssl/ssl.h],,, [AC_INCLUDES_DEFAULT])
 	AC_CHECK_HEADERS([openssl/err.h],,, [AC_INCLUDES_DEFAULT])
 	AC_CHECK_HEADERS([openssl/rand.h],,, [AC_INCLUDES_DEFAULT])
+	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new])
 else
 	AC_MSG_WARN([No SSL, therefore remote-control is disabled])
 fi

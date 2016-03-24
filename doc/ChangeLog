@@ -1,3 +1,6 @@
+24 March 2016: Wouter
+	- Fix for openssl 1.1.0, HMAC_CTX size not exported from openssl.
+
 21 March 2016: Wouter
 	- Update acx_nlnetlabs.m4 to version 33 with HMAC_Update test.
 	- acx_nlnetlabs.m4 to v34, with -ldl -pthread test for libcrypto.
