@@ -7,6 +7,7 @@ FEATURES:
 	  for Linux, binds to interfaces and addresses that are down.
 BUG FIXES:
 	- Fix for openssl 1.1.0, HMAC_CTX size not exported from openssl.
+	- Fix #751: NSD fails to occlude names below a DNAME.
 
 
 4.1.9

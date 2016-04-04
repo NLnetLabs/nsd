@@ -1,3 +1,6 @@
+4 April 2016: Wouter
+	- Fix #751: NSD fails to occlude names below a DNAME.
+
 24 March 2016: Wouter
 	- Fix for openssl 1.1.0, HMAC_CTX size not exported from openssl.
 

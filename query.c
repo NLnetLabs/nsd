@@ -1000,6 +1000,7 @@ answer_authoritative(struct nsd   *nsd,
 {
 	domain_type *match;
 	domain_type *original = closest_match;
+	domain_type *dname_ce;
 	rrset_type *rrset;
 
 #ifdef NSEC3
@@ -1009,6 +1010,11 @@ answer_authoritative(struct nsd   *nsd,
 			closest_encloser = closest_encloser->parent;
 	}
 #endif /* NSEC3 */
+	if((dname_ce = find_dname_above(closest_encloser, q->zone)) != NULL) {
+		/* occlude the found data, the DNAME is closest_encloser */
+		closest_encloser = dname_ce;
+		exact = 0;
+	}
 
 	if (exact) {
 		match = closest_match;
@@ -1217,6 +1223,9 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	} else {
 		q->delegation_domain = domain_find_ns_rrsets(
 			closest_encloser, q->zone, &q->delegation_rrset);
+		if(q->delegation_domain && find_dname_above(q->delegation_domain, q->zone)) {
+			q->delegation_domain = NULL; /* use higher DNAME */
+		}
 
 		if (!q->delegation_domain
 		    || (exact && q->qtype == TYPE_DS && closest_encloser == q->delegation_domain))

@@ -235,6 +235,8 @@ zone_type* domain_find_zone(namedb_type* db, domain_type* domain);
 zone_type* domain_find_parent_zone(zone_type* zone);
 
 domain_type* domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns);
+/* find DNAME rrset in domain->parent or higher and return that domain */
+domain_type * find_dname_above(domain_type* domain, zone_type* zone);
 
 int domain_is_glue(domain_type* domain, zone_type* zone);
 
