@@ -197,7 +197,7 @@ If yes, NSD listens to IPv6 connections.  Default yes.
 .TP
 .B database:\fR <filename>
 By default 
-.I @dbfile@
+.I '@dbfile@'
 is used. The specified file is used to store the compiled 
 zone information. Same as commandline option 
 .BR \-f.
@@ -816,7 +816,7 @@ also function as a resolver or cache. The configuration options that
 BIND9 has for the resolver or caching thus have no equivalents for NSD.
 .SH "FILES"
 .TP
-@dbfile@
+"@dbfile@"
 default
 .B NSD
 database

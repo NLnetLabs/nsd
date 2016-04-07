@@ -115,7 +115,7 @@ Do not fork, stay in the foreground.
 Use the specified
 .I database
 instead of the default of
-.IR @dbfile@ .
+.IR '@dbfile@' .
 If a 
 .B zonesdir: 
 is specified in the config file this path can be relative to that 
@@ -224,7 +224,7 @@ SIGUSR1
 Dump BIND8\-style statistics into the log. Ignored otherwise.
 .SH "FILES"
 .TP
-@dbfile@
+"@dbfile@"
 default
 .B NSD
 database
