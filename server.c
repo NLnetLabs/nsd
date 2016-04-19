@@ -2422,7 +2422,10 @@ cleanup_tcp_handler(struct tcp_handler_data* data)
 	 */
 	if (slowaccept || data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
 		configure_handler_event_types(EV_READ|EV_PERSIST);
-		slowaccept = 0;
+		if(slowaccept) {
+			event_del(&slowaccept_event);
+			slowaccept = 0;
+		}
 	}
 	--data->nsd->current_tcp_count;
 	assert(data->nsd->current_tcp_count >= 0);

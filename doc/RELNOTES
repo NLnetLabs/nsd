@@ -9,6 +9,7 @@ BUG FIXES:
 	- Fix for openssl 1.1.0, HMAC_CTX size not exported from openssl.
 	- Fix #751: NSD fails to occlude names below a DNAME.
 	- If set without nsd.db print "" as the default in the man pages.
+	- Fix #755: NSD spins after a zone update and a lot of TCP queries.
 
 
 4.1.9

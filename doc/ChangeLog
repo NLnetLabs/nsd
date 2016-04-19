@@ -1,3 +1,6 @@
+19 April 2016: Wouter
+	- Fix #755: NSD spins after a zone update and a lot of TCP queries.
+
 7 April 2016: Wouter
 	- If set without nsd.db print "" as the default in the man pages.
 
