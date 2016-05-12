@@ -609,6 +609,12 @@ struct additional_rr_types default_additional_rr_types[] = {
 	{ 0, (rr_section_type) 0 }
 };
 
+struct additional_rr_types swap_aaaa_additional_rr_types[] = {
+	{ TYPE_AAAA, ADDITIONAL_A_SECTION },
+	{ TYPE_A, ADDITIONAL_AAAA_SECTION },
+	{ 0, (rr_section_type) 0 }
+};
+
 struct additional_rr_types rt_additional_rr_types[] = {
 	{ TYPE_A, ADDITIONAL_A_SECTION },
 	{ TYPE_AAAA, ADDITIONAL_AAAA_SECTION },
@@ -698,8 +704,11 @@ add_rrset(struct query   *query,
 	result = answer_add_rrset(answer, section, owner, rrset);
 	switch (rrset_rrtype(rrset)) {
 	case TYPE_NS:
+		/* if query over IPv6, swap A and AAAA; put AAAA first */
 		add_additional_rrsets(query, answer, rrset, 0, 1,
-				      default_additional_rr_types);
+			(query->addr.ss_family == AF_INET6)?
+			swap_aaaa_additional_rr_types:
+			default_additional_rr_types);
 		break;
 	case TYPE_MB:
 		add_additional_rrsets(query, answer, rrset, 0, 0,

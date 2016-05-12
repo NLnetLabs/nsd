@@ -5,6 +5,9 @@ NSD RELEASE NOTES
 FEATURES:
 	- ip-freebind: yesno option in nsd.conf sets IP_FREEBIND socket option
 	  for Linux, binds to interfaces and addresses that are down.
+	- NSD includes AAAA before A for queries over IPV6 (in delegations).
+	  And TC is set if no glue can be provided with a delegation because
+	  of packet size.
 BUG FIXES:
 	- Fix for openssl 1.1.0, HMAC_CTX size not exported from openssl.
 	- Fix #751: NSD fails to occlude names below a DNAME.
