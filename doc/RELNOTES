@@ -6,6 +6,7 @@ FEATURES:
 BUG FIXES:
 	- Fix for openssl 1.1.0, HMAC_CTX size not exported from openssl.
 	  (Same as 4.1.10).
+	- Fix empty nonterminal nsec3 cover answers. (Same as 4.1.10).
 
 
 3.2.21

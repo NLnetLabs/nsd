@@ -1,3 +1,6 @@
+19 May 2016: Wouter
+	- Fix empty nonterminal nsec3 cover answers.
+
 24 March 2016: Wouter
 	- Fix for openssl 1.1.0, HMAC_CTX size not exported from openssl.
 	(same as 4.1.10).
