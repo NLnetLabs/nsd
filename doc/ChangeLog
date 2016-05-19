@@ -1,3 +1,6 @@
+19 May 2016: Wouter
+	- Fix empty nonterminal nsec3 cover answers.
+
 12 May 2016: Wouter
 	- NSD includes AAAA before A for queries over IPV6 (in delegations).
 	  And TC is set if no glue can be provided with a delegation because

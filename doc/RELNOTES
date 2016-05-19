@@ -13,6 +13,7 @@ BUG FIXES:
 	- Fix #751: NSD fails to occlude names below a DNAME.
 	- If set without nsd.db print "" as the default in the man pages.
 	- Fix #755: NSD spins after a zone update and a lot of TCP queries.
+	- Fix empty nonterminal nsec3 cover answers.
 
 
 4.1.9

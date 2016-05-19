@@ -1041,7 +1041,8 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 #if 0
 		query->qtype != TYPE_NSEC3 &&
 #endif
-		domain_has_only_NSEC3(*match, query->zone))
+		(domain_has_only_NSEC3(*match, query->zone) ||
+		!domain_find_any_rrset(*match, query->zone)))
 	{
 		/* this looks like a NSEC3 domain, but is actually an empty non-terminal. */
 		nsec3_answer_nodata(query, answer, *match);
