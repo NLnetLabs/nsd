@@ -1,3 +1,6 @@
+20 May 2016: Wouter
+	- Updated fix for nonterminal nsec3 answers.
+
 19 May 2016: Wouter
 	- Fix empty nonterminal nsec3 cover answers.
 

@@ -931,7 +931,7 @@ nsec3_answer_nodata(struct query *query, struct answer *answer,
 	}
 	else { /* add nsec3 to prove rrset does not exist */
 #ifdef FULL_PREHASH
-		if(original->nsec3_is_exact)
+		if(original)
 #else
 		if (original->nsec3_cover != NULL)
 #endif
