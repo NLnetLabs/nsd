@@ -965,7 +965,7 @@ nsec3_answer_nodata(struct query* query, struct answer* answer,
 				original->nsec3->nsec3_cover);
 	}
 	else {	/* add nsec3 to prove rrset does not exist */
-		if(original->nsec3 && original->nsec3->nsec3_is_exact) {
+		if(original->nsec3) {
 			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 				original->nsec3->nsec3_cover);
 		}
