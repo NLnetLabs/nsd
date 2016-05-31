@@ -911,6 +911,7 @@ main(int argc, char *argv[])
 			VERBOSITY(2, (LOG_WARNING, "chown %s failed: %s",
 				nsd.log_filename, strerror(errno)));
 	}
+	log_msg(LOG_NOTICE, "%s starting (%s)", argv0, PACKAGE_STRING);
 
 	/* Do we have a running nsd? */
 	if ((oldpid = readpid(nsd.pidfile)) == -1) {
