@@ -968,6 +968,9 @@ nsec3_answer_nodata(struct query* query, struct answer* answer,
 		if(original->nsec3) {
 			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 				original->nsec3->nsec3_cover);
+			if(!original->nsec3->nsec3_is_exact && original->nsec3->nsec3_wcard_child_cover)
+				nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
+					original->nsec3->nsec3_wcard_child_cover);
 		}
 	}
 }
