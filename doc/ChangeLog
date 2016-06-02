@@ -1,7 +1,10 @@
-31 May 2016: Wouter
-	- print notice that nsd is starting before taking off.
+2 June 2016: Wouter
 	- Fix for NSEC3 with zone signed without exact match for empty
 	  nonterminals, the answer for that domain gets wildcard denial.
+	- #772 Document that recvmmsg has IPv6 problems on some linux kernels.
+
+31 May 2016: Wouter
+	- print notice that nsd is starting before taking off.
 
 20 May 2016: Wouter
 	- Updated fix for nonterminal nsec3 answers.
