@@ -7,7 +7,7 @@ BUG FIXES:
 	- Fix for openssl 1.1.0, HMAC_CTX size not exported from openssl.
 	  (Same as 4.1.10).
 	- Fix for NSEC3 with zone signed without exact match for empty
-	  nonterminals, the answer for that domain gets wildcard denial
+	  nonterminals, the answer for that domain gets closest encloser. 
 	  (Same as 4.1.10).
 
 
