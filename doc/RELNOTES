@@ -15,7 +15,7 @@ BUG FIXES:
 	- If set without nsd.db print "" as the default in the man pages.
 	- Fix #755: NSD spins after a zone update and a lot of TCP queries.
 	- Fix for NSEC3 with zone signed without exact match for empty
-	  nonterminals, the answer for that domain gets wildcard denial.
+	  nonterminals, the answer for that domain gets closest encloser.
 	- #772 Document that recvmmsg has IPv6 problems on some linux kernels.
 
 

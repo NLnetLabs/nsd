@@ -1,3 +1,6 @@
+7 June 2016: Wouter
+	- Fix NSEC3 ent fix to use closest encloser, not wildcard denial.
+
 2 June 2016: Wouter
 	- Fix for NSEC3 with zone signed without exact match for empty
 	  nonterminals, the answer for that domain gets wildcard denial.

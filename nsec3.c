@@ -966,11 +966,19 @@ nsec3_answer_nodata(struct query* query, struct answer* answer,
 	}
 	else {	/* add nsec3 to prove rrset does not exist */
 		if(original->nsec3) {
+			if(!original->nsec3->nsec3_is_exact) {
+				/* go up to an existing parent */
+				while(original->parent && original->parent->nsec3 && !original->parent->nsec3->nsec3_is_exact)
+					original = original->parent;
+			}
 			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 				original->nsec3->nsec3_cover);
-			if(!original->nsec3->nsec3_is_exact && original->nsec3->nsec3_wcard_child_cover)
-				nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
-					original->nsec3->nsec3_wcard_child_cover);
+			if(!original->nsec3->nsec3_is_exact) {
+				if(original->parent && original->parent->nsec3 && original->parent->nsec3->nsec3_is_exact)
+				    nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
+					original->parent->nsec3->nsec3_cover);
+
+			}
 		}
 	}
 }
