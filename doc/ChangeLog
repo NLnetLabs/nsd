@@ -1,3 +1,7 @@
+14 June 2016: Wouter
+	- release 4.1.10 and tag for that.
+	- trunk has 4.1.11 in development.
+
 7 June 2016: Wouter
 	- Fix NSEC3 ent fix to use closest encloser, not wildcard denial.
 
