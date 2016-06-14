@@ -1,8 +1,13 @@
 NSD RELEASE NOTES
 
-3.2.22
+3.2.23
 ================
 FEATURES:
+BUG FIXES:
+
+
+3.2.22
+================
 BUG FIXES:
 	- Fix for openssl 1.1.0, HMAC_CTX size not exported from openssl.
 	  (Same as 4.1.10).

@@ -1,3 +1,7 @@
+14 June 2016: Wouter
+	- release 3.2.22 and tag for that.
+	- this branch has number 3.2.23 (for clarity, support has ended).
+
 7 June 2016: Wouter
 	- Updated fix for nonterminal nsec3 answers.
 
