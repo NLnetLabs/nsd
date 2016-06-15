@@ -704,11 +704,16 @@ add_rrset(struct query   *query,
 	result = answer_add_rrset(answer, section, owner, rrset);
 	switch (rrset_rrtype(rrset)) {
 	case TYPE_NS:
+#if defined(INET6)
 		/* if query over IPv6, swap A and AAAA; put AAAA first */
 		add_additional_rrsets(query, answer, rrset, 0, 1,
 			(query->addr.ss_family == AF_INET6)?
 			swap_aaaa_additional_rr_types:
 			default_additional_rr_types);
+#else
+		add_additional_rrsets(query, answer, rrset, 0, 1,
+				      default_additional_rr_types);
+#endif
 		break;
 	case TYPE_MB:
 		add_additional_rrsets(query, answer, rrset, 0, 0,

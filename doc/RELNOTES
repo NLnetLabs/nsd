@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix build without IPv6, patch from Zdenek Kaspar.
 
 
 4.1.10

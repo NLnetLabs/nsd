@@ -1,3 +1,6 @@
+15 June 2016: Wouter
+	- Fix build without IPv6, patch from Zdenek Kaspar.
+
 14 June 2016: Wouter
 	- release 4.1.10 and tag for that.
 	- trunk has 4.1.11 in development.
