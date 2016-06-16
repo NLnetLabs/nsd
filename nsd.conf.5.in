@@ -624,6 +624,22 @@ A port number can be added using a suffix of @number, for example
 1.2.3.4@5300.
 .RE
 .TP
+.B max\-refresh\-time:\fR <seconds>
+Limit refresh time for secondary zones.  This is the timer which checks to see
+if the zone has to be refetched when it expires.  Normally the value from the
+SOA record is used, but this option restricts that value.
+.TP
+.B min\-refresh\-time:\fR <seconds>
+Limit refresh time for secondary zones.
+.TP
+.B max\-retry\-time:\fR <seconds>
+Limit retry time for secondary zones.  This is the timeout after a failed
+fetch attempt for the zone.  Normally the value from the SOA record is used,
+but this option restricts that value.
+.TP
+.B min\-retry\-time:\fR <seconds>
+Limit retry time for secondary zones.
+.TP
 .B zonestats:\fR <name>
 When compiled with \-\-enable\-zone\-stats NSD can collect statistics per zone.
 This name gives the group where statistics are added to.  The groups are
