@@ -160,6 +160,11 @@ struct tcp_handler_data
 	 * The number of queries handled by this specific TCP connection.
 	 */
 	int					query_count;
+	
+	/*
+	 * The timeout in msec for this tcp connection
+	 */
+	int	tcp_timeout;
 };
 
 /*
@@ -2624,8 +2629,8 @@ handle_tcp_reading(int fd, short event, void* arg)
 	data->query->tcplen = buffer_remaining(data->query->packet);
 	data->bytes_transmitted = 0;
 
-	timeout.tv_sec = data->nsd->tcp_timeout;
-	timeout.tv_usec = 0L;
+	timeout.tv_sec = data->tcp_timeout / 1000;
+	timeout.tv_usec = (data->tcp_timeout % 1000)*1000;
 
 	ev_base = data->event.ev_base;
 	event_del(&data->event);
@@ -2757,8 +2762,8 @@ handle_tcp_writing(int fd, short event, void* arg)
 			q->tcplen = buffer_remaining(q->packet);
 			data->bytes_transmitted = 0;
 			/* Reset timeout.  */
-			timeout.tv_sec = data->nsd->tcp_timeout;
-			timeout.tv_usec = 0L;
+			timeout.tv_sec = data->tcp_timeout / 1000;
+			timeout.tv_usec = (data->tcp_timeout % 1000)*1000;
 			ev_base = data->event.ev_base;
 			event_del(&data->event);
 			event_set(&data->event, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT,
@@ -2788,8 +2793,8 @@ handle_tcp_writing(int fd, short event, void* arg)
 
 	data->bytes_transmitted = 0;
 
-	timeout.tv_sec = data->nsd->tcp_timeout;
-	timeout.tv_usec = 0L;
+	timeout.tv_sec = data->tcp_timeout / 1000;
+	timeout.tv_usec = (data->tcp_timeout % 1000)*1000;
 	ev_base = data->event.ev_base;
 	event_del(&data->event);
 	event_set(&data->event, fd, EV_PERSIST | EV_READ | EV_TIMEOUT,
@@ -2903,13 +2908,13 @@ handle_tcp_accept(int fd, short event, void* arg)
 	memcpy(&tcp_data->query->addr, &addr, addrlen);
 	tcp_data->query->addrlen = addrlen;
 
-	timeout.tv_sec = data->nsd->tcp_timeout;
-	timeout.tv_usec = 0;
+	tcp_data->tcp_timeout = data->nsd->tcp_timeout * 1000;
 	if (data->nsd->current_tcp_count > data->nsd->maximum_tcp_count/2) {
 		/* very busy, give smaller timeout */
-		timeout.tv_sec = 0;
-		timeout.tv_usec = 200000;
+		tcp_data->tcp_timeout = 200;
 	}
+	timeout.tv_sec = tcp_data->tcp_timeout / 1000;
+	timeout.tv_usec = (tcp_data->tcp_timeout % 1000)*1000;
 
 	event_set(&tcp_data->event, s, EV_PERSIST | EV_READ | EV_TIMEOUT,
 		handle_tcp_reading, tcp_data);
