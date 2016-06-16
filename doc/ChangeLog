@@ -1,3 +1,6 @@
+16 June 2016: Wouter
+	- When tcp is more than half full, use short timeout for tcp session.
+
 15 June 2016: Wouter
 	- Fix build without IPv6, patch from Zdenek Kaspar.
 

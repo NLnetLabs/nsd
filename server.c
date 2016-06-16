@@ -2905,6 +2905,11 @@ handle_tcp_accept(int fd, short event, void* arg)
 
 	timeout.tv_sec = data->nsd->tcp_timeout;
 	timeout.tv_usec = 0;
+	if (data->nsd->current_tcp_count > data->nsd->maximum_tcp_count/2) {
+		/* very busy, give smaller timeout */
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 200000;
+	}
 
 	event_set(&tcp_data->event, s, EV_PERSIST | EV_READ | EV_TIMEOUT,
 		handle_tcp_reading, tcp_data);
