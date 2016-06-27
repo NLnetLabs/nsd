@@ -581,6 +581,13 @@ additional_checks(nsd_options_t* opt, const char* filename)
 			fprintf(stderr, "%s: cannot parse zone name syntax for zone %s.\n", filename, zone->name);
 			errors ++;
 		}
+#ifndef ROOT_SERVER
+		/* Is it a root zone? Are we a root server then? Idiot proof. */
+		if(dname->label_count == 1) {
+			fprintf(stderr, "%s: not configured as a root server.\n", filename);
+			errors ++;
+		}
+#endif
 		if(zone->pattern->allow_notify && !zone->pattern->request_xfr) {
 			fprintf(stderr, "%s: zone %s has allow-notify but no request-xfr"
 				" items. Where can it get a zone transfer when a notify "

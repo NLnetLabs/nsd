@@ -1,6 +1,8 @@
 27 June 2016: Wouter
 	- Set default for min-refresh-time and min-retry-time to 0.  Behaves
 	  just like before, but has a configurable option in nsd.conf.
+	- Fix #783: Trying to run a root server without having configured it
+	  silently gives wrong answers.
 
 16 June 2016: Wouter
 	- When tcp is more than half full, use short timeout for tcp session.

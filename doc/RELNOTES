@@ -7,6 +7,8 @@ FEATURES:
 	- Patch for {max,min}-{refresh,retry}-time from YAMAGUCHI Takanori.
 BUG FIXES:
 	- Fix build without IPv6, patch from Zdenek Kaspar.
+	- Fix #783: Trying to run a root server without having configured it
+	  silently gives wrong answers.
 
 
 4.1.10
