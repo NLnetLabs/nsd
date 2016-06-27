@@ -824,11 +824,11 @@ pattern_options_create(region_type* region)
 	p->xfrd_flags = 0;
 	p->max_refresh_time = 2419200;	/* 4 weeks */
 	p->max_refresh_time_is_default = 1;
-	p->min_refresh_time = 300;
+	p->min_refresh_time = 0;
 	p->min_refresh_time_is_default = 1;
 	p->max_retry_time = 1209600;	/* 2 weeks */
 	p->max_retry_time_is_default = 1;
-	p->min_retry_time = 500;
+	p->min_retry_time = 0;
 	p->min_retry_time_is_default = 1;
 #ifdef RATELIMIT
 	p->rrl_whitelist = 0;
