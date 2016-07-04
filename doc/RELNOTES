@@ -9,6 +9,7 @@ BUG FIXES:
 	- Fix build without IPv6, patch from Zdenek Kaspar.
 	- Fix #783: Trying to run a root server without having configured it
 	  silently gives wrong answers.
+	- Fix #782: Serve DS record but parent zone has no NS record.
 
 
 4.1.10

@@ -1210,7 +1210,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 		 * parent zone to generate the answer if we are
 		 * authoritative for the parent zone.
 		 */
-		zone_type *zone = domain_find_parent_zone(q->zone);
+		zone_type *zone = domain_find_parent_zone(nsd->db, q->zone);
 		if (zone)
 			q->zone = zone;
 	}
