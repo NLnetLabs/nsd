@@ -1928,6 +1928,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 {
 	xfrd_soa_t soa;
 	enum xfrd_packet_result res;
+        uint64_t xfrfile_size;
 
 	/* parse and check the packet - see if it ends the xfr */
 	switch((res=xfrd_parse_received_xfr_packet(zone, packet, &soa)))
@@ -1985,6 +1986,15 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 		"disk", zone->apex_str, zone->master->ip_address_spec,
 		(int)zone->msg_new_serial));
 	zone->msg_seq_nr++;
+
+        xfrfile_size = xfrd_get_xfrfile_size(xfrd->nsd, zone->xfrfilenumber);
+	if( zone->zone_options->pattern->size_limit_xfr != 0 &&
+	    xfrfile_size > zone->zone_options->pattern->size_limit_xfr ) {
+            /*	    xfrd_unlink_xfrfile(xfrd->nsd, zone->xfrfilenumber);
+                    xfrd_set_reload_timeout(); */
+            log_msg(LOG_INFO, "xfrd : transfered zone data was too large %llu", (long long unsigned)xfrfile_size);
+	    return xfrd_packet_bad;
+	}
 	if(res == xfrd_packet_more) {
 		/* wait for more */
 		return xfrd_packet_more;

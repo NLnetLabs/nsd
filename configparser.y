@@ -54,7 +54,7 @@ extern config_parser_state_t* cfg_parser;
 %token VAR_TCP_MSS VAR_OUTGOING_TCP_MSS VAR_IP_FREEBIND
 %token VAR_ZONEFILE 
 %token VAR_ZONE
-%token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR 
+%token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR VAR_SIZE_LIMIT_XFR 
 %token VAR_NOTIFY_RETRY VAR_OUTGOING_INTERFACE VAR_ALLOW_AXFR_FALLBACK
 %token VAR_KEY
 %token VAR_ALGORITHM VAR_SECRET
@@ -601,7 +601,8 @@ zone_config_item: zone_zonefile | zone_allow_notify | zone_request_xfr |
 	zone_notify | zone_notify_retry | zone_provide_xfr | 
 	zone_outgoing_interface | zone_allow_axfr_fallback | include_pattern |
 	zone_rrl_whitelist | zone_zonestats | zone_max_refresh_time |
-	zone_min_refresh_time | zone_max_retry_time | zone_min_retry_time;
+	zone_min_refresh_time | zone_max_retry_time | zone_min_retry_time |
+	zone_size_limit_xfr;
 pattern_name: VAR_NAME STRING
 	{ 
 		OUTYY(("P(pattern_name:%s)\n", $2)); 
@@ -715,6 +716,14 @@ zone_allow_notify: VAR_ALLOW_NOTIFY STRING STRING
 	;
 zone_request_xfr: VAR_REQUEST_XFR zone_request_xfr_data
 	{
+	}
+	;
+zone_size_limit_xfr: VAR_SIZE_LIMIT_XFR STRING
+	{ 
+		OUTYY(("P(size_limit_xfrt:%s)\n", $2)); 
+		if(atoll($2) < 0)
+			yyerror("number >= 0 expected");
+		else cfg_parser->current_pattern->size_limit_xfr = atoll($2);
 	}
 	;
 zone_request_xfr_data: STRING STRING

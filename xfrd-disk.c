@@ -570,3 +570,17 @@ xfrd_unlink_xfrfile(struct nsd* nsd, uint64_t number)
 			strerror(errno));
 	}
 }
+
+uint64_t
+xfrd_get_xfrfile_size(struct nsd* nsd, uint64_t number )
+{
+	char fname[1024];
+	struct stat tempxfr_stat;
+	tempxfrname(fname, sizeof(fname), nsd, number);
+	if( stat( fname, &tempxfr_stat ) < 0 ) {
+	    log_msg(LOG_WARNING, "could not get file size %s: %s", fname,
+		    strerror(errno));
+	    return 0;
+	}
+	return (uint64_t)tempxfr_stat.st_size;
+}

@@ -264,6 +264,10 @@ remote-control:
 	#max-retry-time: 1209600
 	#min-retry-time: 0
 
+	# limit the zone transfer size (in bytes), stops very large transfers
+	# 0 is no limits enforced.
+	# size-limit-xfr: 0
+
 	# if compiled with --enable-zone-stats, give name of stat block for
 	# this zone (or group of zones).  Output from nsd-control stats.
 	# zonestats: "%s"

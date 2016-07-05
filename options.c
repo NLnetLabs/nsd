@@ -813,6 +813,7 @@ pattern_options_create(region_type* region)
 	p->zonestats = 0;
 	p->allow_notify = 0;
 	p->request_xfr = 0;
+	p->size_limit_xfr = 0;
 	p->notify = 0;
 	p->provide_xfr = 0;
 	p->outgoing_interface = 0;
@@ -1048,6 +1049,7 @@ pattern_options_equal(pattern_options_t* p, pattern_options_t* q)
 #ifdef RATELIMIT
 	if(p->rrl_whitelist != q->rrl_whitelist) return 0;
 #endif
+	if(p->size_limit_xfr != q->size_limit_xfr) return 0;
 	return 1;
 }
 
@@ -1062,6 +1064,19 @@ static uint8_t
 unmarshal_u8(struct buffer* b)
 {
 	return buffer_read_u8(b);
+}
+
+static void
+marshal_u64(struct buffer* b, uint64_t v)
+{
+	buffer_reserve(b, 8);
+	buffer_write_u64(b, v);
+}
+
+static uint64_t
+unmarshal_u64(struct buffer* b)
+{
+	return buffer_read_u64(b);
 }
 
 #ifdef RATELIMIT
@@ -1179,6 +1194,7 @@ pattern_options_marshal(struct buffer* b, pattern_options_t* p)
 	marshal_u8(b, p->notify_retry);
 	marshal_u8(b, p->notify_retry_is_default);
 	marshal_u8(b, p->implicit);
+	marshal_u64(b, p->size_limit_xfr);
 	marshal_acl_list(b, p->allow_notify);
 	marshal_acl_list(b, p->request_xfr);
 	marshal_acl_list(b, p->notify);
@@ -1209,6 +1225,7 @@ pattern_options_unmarshal(region_type* r, struct buffer* b)
 	p->notify_retry = unmarshal_u8(b);
 	p->notify_retry_is_default = unmarshal_u8(b);
 	p->implicit = unmarshal_u8(b);
+	p->size_limit_xfr = unmarshal_u64(b);
 	p->allow_notify = unmarshal_acl_list(r, b);
 	p->request_xfr = unmarshal_acl_list(r, b);
 	p->notify = unmarshal_acl_list(r, b);
@@ -1948,6 +1965,7 @@ config_apply_pattern(const char* name)
 		a->min_retry_time = pat->min_retry_time;
 		a->min_retry_time_is_default = 0;
 	}
+	a->size_limit_xfr = pat->size_limit_xfr;
 #ifdef RATELIMIT
 	a->rrl_whitelist |= pat->rrl_whitelist;
 #endif

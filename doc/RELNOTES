@@ -10,6 +10,8 @@ BUG FIXES:
 	- Fix #783: Trying to run a root server without having configured it
 	  silently gives wrong answers.
 	- Fix #782: Serve DS record but parent zone has no NS record.
+	- Fix #790: size-limit-xfr can stop NSD from downloading infinite zone
+	  transfer data size, from Toshifumi Sakaguchi.
 
 
 4.1.10

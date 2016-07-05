@@ -316,6 +316,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		ZONE_GET_INT(min_refresh_time, o, zone->pattern);
 		ZONE_GET_INT(max_retry_time, o, zone->pattern);
 		ZONE_GET_INT(min_retry_time, o, zone->pattern);
+		ZONE_GET_INT(size_limit_xfr, o, zone->pattern);
 #ifdef RATELIMIT
 		ZONE_GET_RRL(rrl_whitelist, o, zone->pattern);
 #endif
@@ -345,6 +346,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		ZONE_GET_INT(min_refresh_time, o, p);
 		ZONE_GET_INT(max_retry_time, o, p);
 		ZONE_GET_INT(min_retry_time, o, p);
+		ZONE_GET_INT(size_limit_xfr, o, p);
 #ifdef RATELIMIT
 		ZONE_GET_RRL(rrl_whitelist, o, p);
 #endif
@@ -453,6 +455,9 @@ static void print_zone_content_elems(pattern_options_t* pat)
 		printf("\tmax-retry-time: %d\n", pat->max_retry_time);
 	if(!pat->min_retry_time_is_default)
 		printf("\tmin-retry-time: %d\n", pat->min_retry_time);
+	if(pat->size_limit_xfr != 0)
+		printf("\tsize-limit-xfr: %llu\n",
+			(long long unsigned)pat->size_limit_xfr);
 }
 
 void
