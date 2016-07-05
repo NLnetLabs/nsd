@@ -720,7 +720,7 @@ zone_request_xfr: VAR_REQUEST_XFR zone_request_xfr_data
 	;
 zone_size_limit_xfr: VAR_SIZE_LIMIT_XFR STRING
 	{ 
-		OUTYY(("P(size_limit_xfrt:%s)\n", $2)); 
+		OUTYY(("P(size_limit_xfr:%s)\n", $2)); 
 		if(atoll($2) < 0)
 			yyerror("number >= 0 expected");
 		else cfg_parser->current_pattern->size_limit_xfr = atoll($2);
