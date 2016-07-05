@@ -1,6 +1,6 @@
 5 July 2016: Wouter
 	- Fix #790: size-limit-xfr can stop NSD from downloading infinite zone
-	  transfer data size, from Toshifumi Sakaguchi.
+	  transfer data size, from Toshifumi Sakaguchi. 
 
 27 June 2016: Wouter
 	- Set default for min-refresh-time and min-retry-time to 0.  Behaves
