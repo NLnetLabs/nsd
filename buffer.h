@@ -387,7 +387,7 @@ buffer_read_u32(buffer_type *buffer)
 	return result;
 }
 
-static inline uint32_t
+static inline uint64_t
 buffer_read_u64_at(buffer_type *buffer, size_t at)
 {
 	assert(buffer_available_at(buffer, at, sizeof(uint64_t)));
