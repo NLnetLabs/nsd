@@ -11,7 +11,7 @@ BUG FIXES:
 	  silently gives wrong answers.
 	- Fix #782: Serve DS record but parent zone has no NS record.
 	- Fix #790: size-limit-xfr can stop NSD from downloading infinite zone
-	  transfer data size, from Toshifumi Sakaguchi.
+	  transfer data size, from Toshifumi Sakaguchi.  Fixes CVE-2016-6173.
 
 
 4.1.10
