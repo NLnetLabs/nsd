@@ -1,3 +1,6 @@
+8 July 2016: Wouter
+	- Note down tracking numbers for issue JVN#63359718 JPCERT#91251865.
+
 5 July 2016: Wouter
 	- Fix #790: size-limit-xfr can stop NSD from downloading infinite zone
 	  transfer data size, from Toshifumi Sakaguchi.
