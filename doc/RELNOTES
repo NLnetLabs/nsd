@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.11 (upcoming)
+4.1.11
 ================
 FEATURES:
 	- When tcp is more than half full, use short timeout for tcp session.
