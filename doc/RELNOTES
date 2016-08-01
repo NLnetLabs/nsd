@@ -13,6 +13,7 @@ BUG FIXES:
 	- Fix #783: Trying to run a root server without having configured it
 	  silently gives wrong answers.
 	- Fix #782: Serve DS record but parent zone has no NS record.
+	- Fix nsec3 missing for nsec3 signed parent and child for DS at zonecut.
 
 
 4.1.10
