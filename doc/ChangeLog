@@ -1,6 +1,7 @@
 1 August 2016: Wouter
 	- Tag 4.1.11rc1.
 	- Fix nsec3 missing for nsec3 signed parent and child for DS at zonecut.
+	- Tag 4.1.11rc2.
 
 8 July 2016: Wouter
 	- Note down tracking numbers for issue JVN#63359718 JPCERT#91251865.
