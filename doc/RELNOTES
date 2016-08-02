@@ -1,5 +1,12 @@
 NSD RELEASE NOTES
 
+4.1.12 (upcoming)
+================
+FEATURES:
+BUG FIXES:
+	- Fix unused result warnings from write and strtol.
+
+
 4.1.11
 ================
 FEATURES:

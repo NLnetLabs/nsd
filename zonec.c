@@ -953,7 +953,10 @@ zparser_conv_loc(region_type *region, char *str)
 	}
 
 	/* Meters of altitude... */
-	(void) strtol(str, &str, 10);
+	if(strtol(str, &str, 10) == LONG_MAX) {
+		zc_error_prev_line("altitude too large, number overflow");
+		return NULL;
+	}
 	switch(*str) {
 	case ' ':
 	case '\0':
