@@ -1,3 +1,6 @@
+2 August 2016: Wouter
+	- Fix unused result warnings from write and strtol.
+
 1 August 2016: Wouter
 	- Tag 4.1.11rc1.
 	- Fix nsec3 missing for nsec3 signed parent and child for DS at zonecut.
