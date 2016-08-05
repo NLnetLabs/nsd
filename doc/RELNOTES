@@ -8,6 +8,7 @@ FEATURES:
 	  from Manabu Sonoda.
 BUG FIXES:
 	- Fix unused result warnings from write and strtol.
+	- Fix #812: make depend fails after distribution.
 
 
 4.1.11

@@ -3,6 +3,7 @@
 	  last version, using the higher version from the configured masters,
 	  from Manabu Sonoda.
 	- small fixups on patch.  And fix spacing and remove configure flag.
+	- Fix #812: make depend fails after distribution.
 
 2 August 2016: Wouter
 	- Fix unused result warnings from write and strtol.
