@@ -873,14 +873,12 @@ zone_min_retry_time: VAR_MIN_RETRY_TIME STRING
 	}
 };
 zone_multi_master_check: VAR_MULTI_MASTER_CHECK STRING
-       {
-               OUTYY(("P(zone_multi_master_check:%s)\n", $2));
-#ifdef MULTI_MASTER_CHECK
-               if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
-                       yyerror("expected yes or no.");
-               else cfg_parser->current_pattern->multi_master_check = (strcmp($2, "yes")==0);
-#endif
-       }
+	{
+		OUTYY(("P(zone_multi_master_check:%s)\n", $2));
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->current_pattern->multi_master_check = (strcmp($2, "yes")==0);
+	}
 
 /* key: declaration */
 keystart: VAR_KEY

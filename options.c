@@ -834,9 +834,7 @@ pattern_options_create(region_type* region)
 #ifdef RATELIMIT
 	p->rrl_whitelist = 0;
 #endif
-#ifdef MULTI_MASTER_CHECK
-       p->multi_master_check = 0;
-#endif
+	p->multi_master_check = 0;
 	return p;
 }
 
@@ -967,9 +965,7 @@ copy_pat_fixed(region_type* region, pattern_options_t* orig,
 #ifdef RATELIMIT
 	orig->rrl_whitelist = p->rrl_whitelist;
 #endif
-#ifdef MULTI_MASTER_CHECK
-       orig->multi_master_check = p->multi_master_check;
-#endif
+	orig->multi_master_check = p->multi_master_check;
 }
 
 void
@@ -1055,9 +1051,7 @@ pattern_options_equal(pattern_options_t* p, pattern_options_t* q)
 #ifdef RATELIMIT
 	if(p->rrl_whitelist != q->rrl_whitelist) return 0;
 #endif
-#ifdef MULTI_MASTER_CHECK
-       if(!booleq(p->multi_master_check,q->multi_master_check)) return 0;
-#endif
+	if(!booleq(p->multi_master_check,q->multi_master_check)) return 0;
 	if(p->size_limit_xfr != q->size_limit_xfr) return 0;
 	return 1;
 }
@@ -1217,9 +1211,7 @@ pattern_options_marshal(struct buffer* b, pattern_options_t* p)
 	marshal_u8(b, p->max_retry_time_is_default);
 	marshal_u32(b, p->min_retry_time);
 	marshal_u8(b, p->min_retry_time_is_default);
-#ifdef MULTI_MASTER_CHECK
-       marshal_u8(b, p->multi_master_check);
-#endif
+	marshal_u8(b, p->multi_master_check);
 }
 
 pattern_options_t*
@@ -1251,9 +1243,7 @@ pattern_options_unmarshal(region_type* r, struct buffer* b)
 	p->max_retry_time_is_default = unmarshal_u8(b);
 	p->min_retry_time = unmarshal_u32(b);
 	p->min_retry_time_is_default = unmarshal_u8(b);
-#ifdef MULTI_MASTER_CHECK
-       p->multi_master_check = unmarshal_u8(b);
-#endif
+	p->multi_master_check = unmarshal_u8(b);
 	return p;
 }
 
@@ -1994,10 +1984,8 @@ config_apply_pattern(const char* name)
 		pat->provide_xfr);
 	append_acl(&a->outgoing_interface, &cfg_parser->
 		current_outgoing_interface, pat->outgoing_interface);
-#ifdef MULTI_MASTER_CHECK
-       if(pat->multi_master_check)
-               a->multi_master_check = pat->multi_master_check;
-#endif
+	if(pat->multi_master_check)
+		a->multi_master_check = pat->multi_master_check;
 }
 
 void

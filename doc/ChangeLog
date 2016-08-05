@@ -2,7 +2,7 @@
 	- multi-master-check: yes can be used to check all masters for the
 	  last version, using the higher version from the configured masters,
 	  from Manabu Sonoda.
-	- small fixups on patch.
+	- small fixups on patch.  And fix spacing and remove configure flag.
 
 2 August 2016: Wouter
 	- Fix unused result warnings from write and strtol.
