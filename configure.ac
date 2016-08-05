@@ -792,6 +792,15 @@ case "$enable_ratelimit_default_is_off" in
 esac
 AC_SUBST(ratelimit_default)
 
+AC_ARG_ENABLE(multi_master_check, AC_HELP_STRING([--enable-multi-master-check], [Enable multi master xfr check]))
+case "$enable_ratelimit" in
+       yes)
+               AC_DEFINE_UNQUOTED([MULTI_MASTER_CHECK], [], [Define this to enable multi master check.])
+               ;;
+       *)
+               ;;
+esac
+AC_SUBST(multi_master_check)
 
 # we need SSL for TSIG (and maybe also for NSEC3).
 CHECK_SSL

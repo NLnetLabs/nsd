@@ -3,6 +3,9 @@ NSD RELEASE NOTES
 4.1.12 (upcoming)
 ================
 FEATURES:
+	- multi-master-check: yes can be used to check all masters for the
+	  last version, using the higher version from the configured masters,
+	  from Manabu Sonoda.
 BUG FIXES:
 	- Fix unused result warnings from write and strtol.
 
