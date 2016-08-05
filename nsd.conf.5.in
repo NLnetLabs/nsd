@@ -666,6 +666,11 @@ are logged in the loglines when a subnet is blocked (in verbosity 2).
 The RRL classification types are: nxdomain, error, referral, any, rrsig,
 wildcard, nodata, dnskey, positive, all.
 .\" rrlend
+.TP
+.B multi\-master\-check:\fR <yes or no>
+Default no.  If enabled, checks all masters for the last version.  It uses
+the higher version of all the configured masters.  Useful if you have multiple
+masters that have different version numbers served.
 .SS "Key Declarations"
 The 
 .B key: 

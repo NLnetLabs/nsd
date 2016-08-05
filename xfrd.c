@@ -890,7 +890,7 @@ xfrd_make_request(xfrd_zone_t* zone)
                if(zone->multi_master_first_master == zone->master_num && zone->round_num > 0) {
                        /* tried all servers and update zone */
                        if(zone->multi_master_update_check >= 0) {
-                               VERBOSITY(2, (LOG_INFO, "xfrd: multi master check: zone %s complite transfers",zone->apex_str));
+                               VERBOSITY(2, (LOG_INFO, "xfrd: multi master check: zone %s completed transfers",zone->apex_str));
                        }
                        zone->round_num = -1; /* next try start anew */
                        zone->multi_master_first_master = -1;
@@ -1872,9 +1872,8 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
                                region_destroy(tempregion);
                                return xfrd_packet_drop;
                        }
-#else
-			xfrd_set_zone_state(zone, xfrd_zone_ok);
 #endif
+			xfrd_set_zone_state(zone, xfrd_zone_ok);
  			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s is ok",
 				zone->apex_str));
 			if(zone->soa_notified_acquired == 0) {
