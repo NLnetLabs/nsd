@@ -1,3 +1,9 @@
+5 August 2016: Wouter
+	- multi-master-check: yes can be used to check all masters for the
+	  last version, using the higher version from the configured masters,
+	  from Manabu Sonoda.
+	- small fixups on patch.
+
 2 August 2016: Wouter
 	- Fix unused result warnings from write and strtol.
 
@@ -5,6 +11,7 @@
 	- Tag 4.1.11rc1.
 	- Fix nsec3 missing for nsec3 signed parent and child for DS at zonecut.
 	- Tag 4.1.11rc2.
+	- trunk is 4.1.12 in development.
 
 8 July 2016: Wouter
 	- Note down tracking numbers for issue JVN#63359718 JPCERT#91251865.
