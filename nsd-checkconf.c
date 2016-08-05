@@ -439,7 +439,8 @@ static void print_zone_content_elems(pattern_options_t* pat)
 #endif
 	print_acl("allow-notify:", pat->allow_notify);
 	print_acl("request-xfr:", pat->request_xfr);
-	printf("\tmulti-master-check: %s\n", pat->multi_master_check?"yes":"no");
+	if(pat->multi_master_check)
+		printf("\tmulti-master-check: %s\n", pat->multi_master_check?"yes":"no");
 	if(!pat->notify_retry_is_default)
 		printf("\tnotify-retry: %d\n", pat->notify_retry);
 	print_acl("notify:", pat->notify);
