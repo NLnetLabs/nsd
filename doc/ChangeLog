@@ -1,3 +1,6 @@
+8 August 2016: Wouter
+	- Support syntax of RR type OPENPGPKEY from RFC 7929.
+
 5 August 2016: Wouter
 	- multi-master-check: yes can be used to check all masters for the
 	  last version, using the higher version from the configured masters,
