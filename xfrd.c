@@ -2022,7 +2022,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	    xfrfile_size > zone->zone_options->pattern->size_limit_xfr ) {
             /*	    xfrd_unlink_xfrfile(xfrd->nsd, zone->xfrfilenumber);
                     xfrd_set_reload_timeout(); */
-            log_msg(LOG_INFO, "xfrd : transfered zone data was too large %llu", (long long unsigned)xfrfile_size);
+            log_msg(LOG_INFO, "xfrd : transferred zone data was too large %llu", (long long unsigned)xfrfile_size);
 	    return xfrd_packet_bad;
 	}
 	if(res == xfrd_packet_more) {
