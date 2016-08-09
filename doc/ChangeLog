@@ -2,6 +2,7 @@
 	- Can config key algorithms with the digest name, eg. 'sha256'.
 	- default tsig algorithm is sha256.
 	- Fix typo in log output, 'transfered' -> 'transferred'.
+	- Fix compile warnings about signcompare in minmax retrytime.
 
 8 August 2016: Wouter
 	- Support syntax of RR type OPENPGPKEY from RFC 7929.

@@ -705,9 +705,9 @@ xfrd_set_timer_refresh(xfrd_zone_t* zone)
 	}
 	/* refresh or expire timeout, whichever is earlier */
 	set_refresh = ntohl(zone->soa_disk.refresh);
-	if (set_refresh > zone->zone_options->pattern->max_refresh_time)
+	if (set_refresh > (time_t)zone->zone_options->pattern->max_refresh_time)
 		set_refresh = zone->zone_options->pattern->max_refresh_time;
-	else if (set_refresh < zone->zone_options->pattern->min_refresh_time)
+	else if (set_refresh < (time_t)zone->zone_options->pattern->min_refresh_time)
 		set_refresh = zone->zone_options->pattern->min_refresh_time;
 	set_refresh += zone->soa_disk_acquired;
 	set_expire = zone->soa_disk_acquired + ntohl(zone->soa_disk.expire);
@@ -752,9 +752,9 @@ xfrd_set_timer_retry(xfrd_zone_t* zone)
 		zone->soa_disk_acquired + (time_t)ntohl(zone->soa_disk.expire))
 	{
 		set_retry = ntohl(zone->soa_disk.retry);
-		if(set_retry > zone->zone_options->pattern->max_retry_time)
+		if(set_retry > (time_t)zone->zone_options->pattern->max_retry_time)
 			set_retry = zone->zone_options->pattern->max_retry_time;
-		else if(set_retry < zone->zone_options->pattern->min_retry_time)
+		else if(set_retry < (time_t)zone->zone_options->pattern->min_retry_time)
 			set_retry = zone->zone_options->pattern->min_retry_time;
 		if(set_retry < XFRD_LOWERBOUND_RETRY)
 			set_retry =  XFRD_LOWERBOUND_RETRY;
