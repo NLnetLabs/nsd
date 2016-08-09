@@ -1599,7 +1599,10 @@ acl_key_matches(acl_options_t* acl, struct query* q)
 		return 0; /* wrong key name */
 	}
 	if(tsig_strlowercmp(q->tsig.algorithm->short_name,
-		acl->key_options->algorithm) != 0) {
+		acl->key_options->algorithm) != 0 && (
+		strncmp("hmac-", q->tsig.algorithm->short_name, 5) != 0 ||
+		tsig_strlowercmp(q->tsig.algorithm->short_name+5,
+		acl->key_options->algorithm) != 0) ) {
 		DEBUG(DEBUG_XFRD,2, (LOG_ERR, "query tsig wrong algorithm"));
 		return 0; /* no such algo */
 	}
