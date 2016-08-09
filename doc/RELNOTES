@@ -7,6 +7,7 @@ FEATURES:
 	  last version, using the higher version from the configured masters,
 	  from Manabu Sonoda.
 	- Support RR type OPENPGPKEY from RFC 7929.
+	- Can config key algorithms with the digest name, eg. 'sha256'.
 BUG FIXES:
 	- Fix unused result warnings from write and strtol.
 	- Fix #812: make depend fails after distribution.
