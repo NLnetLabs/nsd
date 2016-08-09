@@ -204,7 +204,7 @@ remote-control:
 # key:
 	# The key name is sent to the other party, it must be the same
 	#name: "keyname"
-	# algorithm hmac-md5, or hmac-sha1, or hmac-sha256 (if compiled in)
+	# algorithm hmac-md5, or sha1, sha256, sha224, sha384, sha512
 	#algorithm: hmac-sha256
 	# secret material, must be the same as the other party uses.
 	# base64 encoded random number.

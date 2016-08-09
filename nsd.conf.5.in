@@ -685,7 +685,7 @@ This is because the key name is output on the wire.
 .B algorithm:\fR <string>
 Authentication algorithm for this key.  Such as hmac\-md5, hmac\-sha1,
 hmac\-sha224, hmac\-sha256, hmac\-sha384 and hmac\-sha512.  Can also be
-abbreviated as 'sha1', 'sha256'.
+abbreviated as 'sha1', 'sha256'.  Default is sha256.
 Algorithms are only available when they were compiled in (available in the
 crypto library).
 .TP

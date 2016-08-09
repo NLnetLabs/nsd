@@ -891,6 +891,7 @@ keystart: VAR_KEY
 			key_options_insert(cfg_parser->opt, cfg_parser->current_key);
 		}
 		cfg_parser->current_key = key_options_create(cfg_parser->opt->region);
+		cfg_parser->current_key->algorithm = region_strdup(cfg_parser->opt->region, "sha256");
 	}
 	;
 contents_key: contents_key content_key | content_key;
@@ -915,6 +916,8 @@ key_algorithm: VAR_ALGORITHM STRING
 #ifndef NDEBUG
 		assert(cfg_parser->current_key);
 #endif
+		if(cfg_parser->current_key->algorithm)
+			region_recycle(cfg_parser->opt->region, cfg_parser->current_key->algorithm, strlen(cfg_parser->current_key->algorithm)+1);
 		cfg_parser->current_key->algorithm = region_strdup(cfg_parser->opt->region, $2);
 		if(tsig_get_algorithm_by_name($2) == NULL)
 			c_error_msg("Bad tsig algorithm %s", $2);

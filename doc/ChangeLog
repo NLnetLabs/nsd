@@ -1,5 +1,6 @@
 9 August 2016: Wouter
 	- Can config key algorithms with the digest name, eg. 'sha256'.
+	- default tsig algorithm is sha256.
 
 8 August 2016: Wouter
 	- Support syntax of RR type OPENPGPKEY from RFC 7929.
