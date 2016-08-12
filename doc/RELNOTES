@@ -12,6 +12,7 @@ BUG FIXES:
 	- Fix compile warnings about unused result from write and strtol.
 	  and signcompare in minmax retrytime.
 	- Fix #812: fix that make depend fails after distribution.
+	- Fix #817: xfrd update failed loop.
 
 
 4.1.11

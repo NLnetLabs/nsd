@@ -2291,8 +2291,17 @@ xfrd_check_failed_updates()
 						 		 "transfer (notified zone)",
 					zone->apex_str, (unsigned)ntohl(zone->soa_disk.serial));
 				/* revert the soa; it has not been acquired properly */
-				zone->soa_disk_acquired = zone->soa_nsd_acquired;
-				zone->soa_disk = zone->soa_nsd;
+				if(zone->soa_disk_acquired == zone->soa_nsd_acquired) {
+					/* this was the same as served,
+					 * perform force_axfr , re-download
+					 * same serial from master */
+					zone->soa_disk_acquired = 0;
+					zone->soa_nsd_acquired = 0;
+				} else {
+					/* revert soa to the one in server */
+					zone->soa_disk_acquired = zone->soa_nsd_acquired;
+					zone->soa_disk = zone->soa_nsd;
+				}
 				/* pretend we are notified with disk soa.
 				   This will cause a refetch of the data, and reload. */
 				xfrd_handle_incoming_notify(zone, &dumped_soa);
