@@ -468,7 +468,7 @@ check_numlist(CuTest* tc, domain_table_type* table)
 		prevd = d;
 		d = d->numlist_next;
 	}
-	CuAssertTrue(tc, table->numlist_last->number == table->nametree->count);
+	CuAssertTrue(tc, table->numlist_last->number == domain_table_count(table));
 }
 
 /* walk domains and check them */
@@ -476,8 +476,8 @@ static void
 check_walkdomains(CuTest* tc, namedb_type* db)
 {
 	domain_type* d;
-	uint8_t* numbers = xalloc_zero(db->domains->nametree->count+10);
-	size_t* usage = xalloc_zero((db->domains->nametree->count+10)*
+	uint8_t* numbers = xalloc_zero(domain_table_count(db->domains)+10);
+	size_t* usage = xalloc_zero((domain_table_count(db->domains)+10)*
 		sizeof(size_t));
 	for(d=db->domains->root; d; d=domain_next(d)) {
 		if(v) printf("at domain %s\n", dname_to_string(domain_dname(d),
@@ -501,7 +501,7 @@ check_walkdomains(CuTest* tc, namedb_type* db)
 		check_nsec3(tc, db, d);
 		/* check number, and numberlist */
 		CuAssertTrue(tc, d->number != 0);
-		CuAssertTrue(tc, d->number <= db->domains->nametree->count);
+		CuAssertTrue(tc, d->number <= domain_table_count(db->domains));
 		CuAssertTrue(tc, numbers[d->number] == 0);
 		numbers[d->number] = 1;
 		/* check is_existing (has_data, DNAME, NS above) */
@@ -835,7 +835,7 @@ test_add_del_2(CuTest *tc, namedb_type* db)
 	del_str(db, zone, &udbz, "example.org. IN NS ns2.example.com.\n");
 	check_namedb(tc, db);
 	/* the root has not been deleted */
-	CuAssertTrue(tc, db->domains->nametree->count != 0);
+	CuAssertTrue(tc, domain_table_count(db->domains) != 0);
 	CuAssertTrue(tc, db->domains->root && db->domains->root->number);
 
 	udb_ptr_unlink(&udbz, db->udb);

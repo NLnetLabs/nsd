@@ -870,6 +870,15 @@ case "$enable_mmap" in
                 ;;
 esac
 
+AC_ARG_ENABLE(radix-tree, AC_HELP_STRING([--disable-radix-tree], [You can disable the radix tree and use the red-black tree for the main lookups, the red-black tree uses less memory.]))
+case "$enable_radix_tree" in
+        no)
+	;;
+	yes|*)
+	AC_DEFINE_UNQUOTED([USE_RADIX_TREE], [], [Define this to configure to use the radix tree.])
+	;;
+esac
+
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
 #if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \

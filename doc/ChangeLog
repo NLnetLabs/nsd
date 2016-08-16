@@ -1,3 +1,6 @@
+16 August 2016: Wouter
+	- configure --disable-radix-tree for about 15% lower memory usage.
+
 12 August 2016: Wouter
 	- Fix #817: xfrd update failed loop.
 

@@ -8,6 +8,7 @@ FEATURES:
 	  from Manabu Sonoda.
 	- Support RR type OPENPGPKEY from RFC 7929.
 	- Can config key algorithms with the digest name, eg. 'sha256'.
+	- configure --disable-radix-tree for about 15% lower memory usage.
 BUG FIXES:
 	- Fix compile warnings about unused result from write and strtol.
 	  and signcompare in minmax retrytime.
