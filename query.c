@@ -665,6 +665,7 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 			temp->dname = additional->dname;
 #else
 			memcpy(&temp->node, &additional->node, sizeof(rbnode_t));
+			temp->node.parent = NULL;
 #endif
 			temp->number = additional->number;
 			temp->parent = match;
@@ -1109,6 +1110,7 @@ answer_authoritative(struct nsd   *nsd,
 		match->dname = wildcard_child->dname;
 #else
 		memcpy(&match->node, &wildcard_child->node, sizeof(rbnode_t));
+		match->node.parent = NULL;
 #endif
 		match->parent = closest_encloser;
 		match->wildcard_child_closest_match = match;
