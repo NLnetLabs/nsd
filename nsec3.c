@@ -27,6 +27,8 @@ cmp_hash_tree(const void* x, const void* y)
 {
 	const domain_type* a = (const domain_type*)x;
 	const domain_type* b = (const domain_type*)y;
+	if(!a->nsec3) return (b->nsec3?-1:0);
+	if(!b->nsec3) return 1;
 	return memcmp(a->nsec3->nsec3_hash, b->nsec3->nsec3_hash,
 		NSEC3_HASH_LEN);
 }
@@ -37,6 +39,8 @@ cmp_wchash_tree(const void* x, const void* y)
 {
 	const domain_type* a = (const domain_type*)x;
 	const domain_type* b = (const domain_type*)y;
+	if(!a->nsec3) return (b->nsec3?-1:0);
+	if(!b->nsec3) return 1;
 	return memcmp(a->nsec3->nsec3_wc_hash, b->nsec3->nsec3_wc_hash,
 		NSEC3_HASH_LEN);
 }
@@ -47,6 +51,8 @@ cmp_dshash_tree(const void* x, const void* y)
 {
 	const domain_type* a = (const domain_type*)x;
 	const domain_type* b = (const domain_type*)y;
+	if(!a->nsec3) return (b->nsec3?-1:0);
+	if(!b->nsec3) return 1;
 	return memcmp(a->nsec3->nsec3_ds_parent_hash,
 		b->nsec3->nsec3_ds_parent_hash, NSEC3_HASH_LEN);
 }
