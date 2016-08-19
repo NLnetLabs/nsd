@@ -737,6 +737,10 @@ add_rrset(struct query   *query,
 		add_additional_rrsets(query, answer, rrset, 1, 0,
 				      rt_additional_rr_types);
 		break;
+	case TYPE_SRV:
+		add_additional_rrsets(query, answer, rrset, 3, 0,
+				      default_additional_rr_types);
+		break;
 	default:
 		break;
 	}
