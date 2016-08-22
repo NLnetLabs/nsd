@@ -1,3 +1,6 @@
+22 August 2016: Wouter
+	- Fix README spelling error of BSD license (reported by Joerg Jung).
+
 19 August 2016: Wouter
 	- for type SRV add A/AAAA to the additional section (if possible),
 	  just like we already do for type MX.

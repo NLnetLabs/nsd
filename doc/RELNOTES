@@ -17,6 +17,7 @@ BUG FIXES:
 	- Fix #812: fix that make depend fails after distribution.
 	- Fix #817: xfrd update failed loop.
 	- Add robustness against unallocated data in nsec3 trees.
+	- Fix README spelling error of BSD license (reported by Joerg Jung).
 
 
 4.1.11
