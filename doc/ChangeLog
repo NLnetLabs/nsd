@@ -1,5 +1,6 @@
 25 August 2016: Wouter
 	- Fix multimaster for not tried full zone transfer for a expired zone.
+	- Explain --disable-radix tree uses some more CPU.
 
 22 August 2016: Wouter
 	- Fix README spelling error of BSD license (reported by Joerg Jung).

@@ -870,7 +870,7 @@ case "$enable_mmap" in
                 ;;
 esac
 
-AC_ARG_ENABLE(radix-tree, AC_HELP_STRING([--disable-radix-tree], [You can disable the radix tree and use the red-black tree for the main lookups, the red-black tree uses less memory.]))
+AC_ARG_ENABLE(radix-tree, AC_HELP_STRING([--disable-radix-tree], [You can disable the radix tree and use the red-black tree for the main lookups, the red-black tree uses less memory, but uses some more CPU.]))
 case "$enable_radix_tree" in
         no)
 	;;
