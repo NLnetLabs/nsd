@@ -18,6 +18,7 @@ BUG FIXES:
 	- Fix #817: xfrd update failed loop.
 	- Add robustness against unallocated data in nsec3 trees.
 	- Fix README spelling error of BSD license (reported by Joerg Jung).
+	- Fix multimaster for not tried full zone transfer for a expired zone.
 
 
 4.1.11

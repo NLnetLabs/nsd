@@ -884,7 +884,7 @@ xfrd_make_request(xfrd_zone_t* zone)
 
 	/* multi-master-check */
 	if(zone->zone_options->pattern->multi_master_check) {
-		if(zone->multi_master_first_master == zone->master_num && zone->round_num > 0) {
+		if(zone->multi_master_first_master == zone->master_num && zone->round_num > 0 && zone->state != xfrd_zone_expired) {
 			/* tried all servers and update zone */
 			if(zone->multi_master_update_check >= 0) {
 				VERBOSITY(2, (LOG_INFO, "xfrd: multi master check: zone %s completed transfers",zone->apex_str));
