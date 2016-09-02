@@ -19,6 +19,7 @@ BUG FIXES:
 	- Add robustness against unallocated data in nsec3 trees.
 	- Fix README spelling error of BSD license (reported by Joerg Jung).
 	- Fix multimaster for not tried full zone transfer for a expired zone.
+	- Fix #827: fix compile with openssl 1.1.0 with api=1.1.0.
 
 
 4.1.12

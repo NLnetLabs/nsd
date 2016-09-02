@@ -2,6 +2,7 @@
 	- Release of 4.1.12; trunk is 4.1.13 and the patch for 4.1.12 (that
 	  does not contain the other changes to the trunk) is folded into
 	  the trunk.
+	- Fix #827: fix compile with openssl 1.1.0 with api=1.1.0.
 
 25 August 2016: Wouter
 	- Fix multimaster for not tried full zone transfer for a expired zone.
