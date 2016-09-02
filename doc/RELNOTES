@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix malformed edns query assertion failure, reported by
+	  Michal Kepien (NASK).
 
 
 3.2.22
