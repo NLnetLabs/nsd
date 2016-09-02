@@ -828,7 +828,7 @@ if test x$HAVE_SSL = x"yes"; then
 	AC_CHECK_HEADERS([openssl/ssl.h],,, [AC_INCLUDES_DEFAULT])
 	AC_CHECK_HEADERS([openssl/err.h],,, [AC_INCLUDES_DEFAULT])
 	AC_CHECK_HEADERS([openssl/rand.h],,, [AC_INCLUDES_DEFAULT])
-	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new OpenSSL_add_all_digests EVP_cleanup ERR_load_crypto_strings OpenSSL_add_all_algorithms SSL_library_init])
+	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new OpenSSL_add_all_digests EVP_cleanup ERR_load_crypto_strings])
 else
 	AC_MSG_WARN([No SSL, therefore remote-control is disabled])
 fi
