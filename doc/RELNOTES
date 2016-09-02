@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.12 (upcoming)
+4.1.13 (upcoming)
 ================
 FEATURES:
 	- multi-master-check: yes can be used to check all masters for the
@@ -19,6 +19,13 @@ BUG FIXES:
 	- Add robustness against unallocated data in nsec3 trees.
 	- Fix README spelling error of BSD license (reported by Joerg Jung).
 	- Fix multimaster for not tried full zone transfer for a expired zone.
+
+
+4.1.12
+================
+BUG FIXES:
+	- Fix malformed edns query assertion failure, reported by
+	  Michal Kepien (NASK).
 
 
 4.1.11
