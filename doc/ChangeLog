@@ -1,3 +1,6 @@
+8 September 2016: Wouter
+	- more extensible edns option handling.
+
 2 September 2016: Wouter
 	- Release of 4.1.12; trunk is 4.1.13 and the patch for 4.1.12 (that
 	  does not contain the other changes to the trunk) is folded into

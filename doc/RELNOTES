@@ -11,6 +11,7 @@ FEATURES:
 	- configure --disable-radix-tree for about 15% lower memory usage.
 	- for type SRV add A/AAAA to the additional section (if possible),
 	  just like we already do for type MX.
+	- more extensible edns option handling.
 BUG FIXES:
 	- Fix compile warnings about unused result from write and strtol.
 	  and signcompare in minmax retrytime.
