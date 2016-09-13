@@ -269,7 +269,7 @@ domain_dname(domain_type* domain)
 #endif
 }
 
-static inline const const dname_type *
+static inline const dname_type *
 domain_dname_const(const domain_type* domain)
 {
 #ifdef USE_RADIX_TREE
