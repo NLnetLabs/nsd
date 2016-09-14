@@ -61,7 +61,7 @@ int
 tsig_openssl_init(region_type *region)
 {
 	int count = 0;
-#ifdef HAVE_OPENSSL_ADD_ALL_DIGESTS
+#if OPENSSL_VERSION_NUMBER < 0x10100000
 	OpenSSL_add_all_digests();
 #else
 	OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);

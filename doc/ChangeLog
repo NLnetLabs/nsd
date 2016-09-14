@@ -1,3 +1,6 @@
+14 September 2016: Ralph
+	- Fix OPENSSL_INIT_ADD_ALL_DIGESTS compatibility check
+
 13 September 2016: Wouter
 	- Fix double const in dname_const() function.
 	- Silenced flex-generated sign-unsigned warning print with gcc
