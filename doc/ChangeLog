@@ -1,3 +1,6 @@
+15 September 2016: Wouter
+	- Test for openssl init_crypto and init_ssl functions.
+
 14 September 2016: Ralph
 	- Fix OPENSSL_INIT_ADD_ALL_DIGESTS compatibility check
 
