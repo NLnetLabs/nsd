@@ -1,3 +1,6 @@
+16 September 2016: Wouter
+	- NSD 4.1.13rc1 tag.
+
 15 September 2016: Wouter
 	- Test for openssl init_crypto and init_ssl functions.
 

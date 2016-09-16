@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.13 (upcoming)
+4.1.13
 ================
 FEATURES:
 	- multi-master-check: yes can be used to check all masters for the
