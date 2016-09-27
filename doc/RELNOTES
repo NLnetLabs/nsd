@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix null memcpy for radixtree with single link element.
 
 
 4.1.13

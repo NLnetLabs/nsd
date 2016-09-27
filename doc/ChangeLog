@@ -1,6 +1,7 @@
 27 September 2016: Wouter
 	- NSD 4.1.13 tag.
 	- trunk has 4.1.14 in development.
+	- Fix null memcpy for radixtree with single link element.
 
 19 September 2016: Wouter
 	- Review comments Ralph: wrapped long lines and nicer example conf.
