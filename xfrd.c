@@ -412,7 +412,7 @@ xfrd_init_slave_zone(xfrd_state_t* xfrd, zone_options_t* zone_opt)
 	xzone->state = xfrd_zone_refreshing;
 	xzone->zone_options = zone_opt;
 	/* first retry will use first master */
-	xzone->master = 0;
+	xzone->master = xzone->zone_options->pattern->request_xfr;
 	xzone->master_num = 0;
 	xzone->next_master = 0;
 	xzone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_START;
