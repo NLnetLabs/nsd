@@ -1,3 +1,6 @@
+18 October 2016: Wouter
+	- Robust fix against missing master in tcp_open for xfrd.
+
 27 September 2016: Wouter
 	- NSD 4.1.13 tag.
 	- trunk has 4.1.14 in development.

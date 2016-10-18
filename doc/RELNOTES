@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix null memcpy for radixtree with single link element.
+	- Robust fix against missing master in tcp_open for xfrd.
 
 
 4.1.13
