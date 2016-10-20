@@ -7,6 +7,7 @@ BUG FIXES:
 	- Fix null memcpy for radixtree with single link element.
 	- Robust fix against missing master in tcp_open for xfrd.
 	- Fix wildcards in include: config statements with chroot enabled.
+	- suppress compile warning in lex files.
 
 
 4.1.13

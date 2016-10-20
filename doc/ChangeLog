@@ -1,3 +1,6 @@
+20 October 2016: Wouter
+	- suppress compile warning in lex files.
+
 18 October 2016: Wouter
 	- Robust fix against missing master in tcp_open for xfrd.
 	- More in depth fix for the previous.
