@@ -308,7 +308,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		}	
 		if((zone->soa_nsd_acquired == 0 && soa_nsd_acquired_read == 0 &&
 			soa_disk_acquired_read == 0) ||
-			(zone->state != xfrd_zone_ok && zone->soa_nsd_acquired == 0)) {
+			(zone->state != xfrd_zone_ok && timeout != 0)) {
 			/* but don't check now, because that would mean a
 			 * storm of attempts on some master servers */
 			xfrd_deactivate_zone(zone);
@@ -332,7 +332,8 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		{
 			xfrd_send_expire_notification(zone);
 		}
-		xfrd_handle_incoming_soa(zone, &incoming_soa, incoming_acquired);
+		if(incoming_acquired != 0)
+			xfrd_handle_incoming_soa(zone, &incoming_soa, incoming_acquired);
 	}
 
 	if(!xfrd_read_check_str(in, XFRD_FILE_MAGIC)) {
