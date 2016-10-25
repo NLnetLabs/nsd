@@ -727,11 +727,24 @@ static void
 xfrd_set_timer_retry(xfrd_zone_t* zone)
 {
 	time_t set_retry;
+	int mult;
+	/* perform exponential backoff in all the cases */
+	if(zone->fresh_xfr_timeout == 0)
+		zone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_START;
+	else {
+		/* exponential backoff - some master data in zones is paid-for
+		   but non-working, and will not get fixed. */
+		zone->fresh_xfr_timeout *= 2;
+		if(zone->fresh_xfr_timeout > XFRD_TRANSFER_TIMEOUT_MAX)
+			zone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_MAX;
+	}
+	/* exponential backoff multiplier, starts at 1, backs off */
+	mult = zone->fresh_xfr_timeout / XFRD_TRANSFER_TIMEOUT_START;
+	if(mult == 0) mult = 1;
+
 	/* set timer for next retry or expire timeout if earlier. */
 	if(zone->soa_disk_acquired == 0) {
 		/* if no information, use reasonable timeout */
-		if(zone->fresh_xfr_timeout == 0)
-			zone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_START;
 #ifdef HAVE_ARC4RANDOM_UNIFORM
 		xfrd_set_timer(zone, zone->fresh_xfr_timeout
 			+ arc4random_uniform(zone->fresh_xfr_timeout));
@@ -742,16 +755,12 @@ xfrd_set_timer_retry(xfrd_zone_t* zone)
 		xfrd_set_timer(zone, zone->fresh_xfr_timeout
 			+ random()%zone->fresh_xfr_timeout);
 #endif
-		/* exponential backoff - some master data in zones is paid-for
-		   but non-working, and will not get fixed. */
-		zone->fresh_xfr_timeout *= 2;
-		if(zone->fresh_xfr_timeout > XFRD_TRANSFER_TIMEOUT_MAX)
-			zone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_MAX;
 	} else if(zone->state == xfrd_zone_expired ||
-		xfrd_time() + (time_t)ntohl(zone->soa_disk.retry) <
+		xfrd_time() + (time_t)ntohl(zone->soa_disk.retry)*mult <
 		zone->soa_disk_acquired + (time_t)ntohl(zone->soa_disk.expire))
 	{
 		set_retry = ntohl(zone->soa_disk.retry);
+		set_retry *= mult;
 		if(set_retry > (time_t)zone->zone_options->pattern->max_retry_time)
 			set_retry = zone->zone_options->pattern->max_retry_time;
 		else if(set_retry < (time_t)zone->zone_options->pattern->min_retry_time)
@@ -760,13 +769,14 @@ xfrd_set_timer_retry(xfrd_zone_t* zone)
 			set_retry =  XFRD_LOWERBOUND_RETRY;
 		xfrd_set_timer(zone, set_retry);
 	} else {
-		if(ntohl(zone->soa_disk.expire) < XFRD_LOWERBOUND_RETRY)
+		set_retry = ntohl(zone->soa_disk.expire);
+		if(set_retry < XFRD_LOWERBOUND_RETRY)
 			xfrd_set_timer(zone, XFRD_LOWERBOUND_RETRY);
 		else {
-			if(zone->soa_disk_acquired + (time_t)ntohl(zone->soa_disk.expire) < xfrd_time())
+			if(zone->soa_disk_acquired + set_retry < xfrd_time())
 				xfrd_set_timer(zone, XFRD_LOWERBOUND_RETRY);
 			else xfrd_set_timer(zone, zone->soa_disk_acquired +
-				ntohl(zone->soa_disk.expire) - xfrd_time());
+				set_retry - xfrd_time());
 		}
 	}
 }
@@ -1130,6 +1140,8 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 		zone->soa_nsd = zone->soa_disk;
 		zone->soa_nsd_acquired = zone->soa_disk_acquired;
 		xfrd->write_zonefile_needed = 1;
+		/* reset exponential backoff, we got a normal timer now */
+		zone->fresh_xfr_timeout = 0;
 		if(xfrd_time() - zone->soa_disk_acquired
 			< (time_t)ntohl(zone->soa_disk.refresh))
 		{

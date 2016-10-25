@@ -1,3 +1,7 @@
+25 October 2016: Wouter
+	- Fix #1132 for SERVFAIL zones perform backoff, and remembers the
+	  timeout on next startup.
+
 20 October 2016: Wouter
 	- suppress compile warning in lex files.
 

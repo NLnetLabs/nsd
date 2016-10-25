@@ -3,6 +3,8 @@ NSD RELEASE NOTES
 4.1.14 (upcoming)
 ================
 FEATURES:
+	- Fix #1132 for SERVFAIL zones perform backoff, and remembers the
+	  timeout on next startup.
 BUG FIXES:
 	- Fix null memcpy for radixtree with single link element.
 	- Robust fix against missing master in tcp_open for xfrd.

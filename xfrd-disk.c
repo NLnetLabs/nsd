@@ -296,10 +296,16 @@ xfrd_read_state(struct xfrd_state* xfrd)
 			zone->state = state;
 			xfrd_set_timer(zone, timeout);
 		}	
-		if(zone->soa_nsd_acquired == 0 && soa_nsd_acquired_read == 0 &&
-			soa_disk_acquired_read == 0) {
-			/* continue expon backoff where we were + check now */
+		if((zone->soa_nsd_acquired == 0 && soa_nsd_acquired_read == 0 &&
+			soa_disk_acquired_read == 0)
+			|| zone->state != xfrd_zone_ok) {
+			/* continue expon backoff where we were */
 			zone->fresh_xfr_timeout = timeout;
+			/* but don't check now, because that would mean a
+			 * storm of attempts on some master servers */
+			xfrd_deactivate_zone(zone);
+			zone->state = state;
+			xfrd_set_timer(zone, timeout);
 		}
 
 		/* handle as an incoming SOA. */
