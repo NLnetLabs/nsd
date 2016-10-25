@@ -1287,6 +1287,7 @@ xfrd_disable_ixfr(xfrd_zone_t* zone)
 		(zone->master->ixfr_disabled + XFRD_NO_IXFR_CACHE) <= time(NULL))) {
 		/* start new round, with IXFR disabled */
 		zone->round_num = 0;
+		zone->next_master = zone->master_num;
 	}
 	zone->master->ixfr_disabled = time(NULL);
 }
