@@ -244,6 +244,9 @@ enum xfrd_packet_result {
 #define XFRD_MAX_UDP 64 /* max number of UDP sockets at a time for IXFR */
 #define XFRD_MAX_UDP_NOTIFY 64 /* max concurrent UDP sockets for NOTIFY */
 
+#define XFRD_TRANSFER_TIMEOUT_START 10 /* empty zone timeout is between x and 2*x seconds */
+#define XFRD_TRANSFER_TIMEOUT_MAX 86400 /* empty zone timeout max expbackoff */
+
 extern xfrd_state_t* xfrd;
 
 /* start xfrd, new start. Pass socket to server_main. */

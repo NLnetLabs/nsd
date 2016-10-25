@@ -1,6 +1,9 @@
 25 October 2016: Wouter
 	- Fix #1132 for SERVFAIL zones perform backoff, and remembers the
 	  timeout on next startup.
+	- Save backoff timeout into xfrd.state file, this file has a higher
+	  version number now.  Old files are skipped silently (causes
+	  refresh) and created as new files upon exit.
 
 20 October 2016: Wouter
 	- suppress compile warning in lex files.
