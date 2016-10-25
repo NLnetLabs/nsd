@@ -34,7 +34,7 @@
 #define XFRD_NO_IXFR_CACHE 172800 /* 48h before retrying ixfr's after notimpl */
 #define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
 #define XFRD_LOWERBOUND_RETRY 1 /* seconds, smallest retry timeout */
-#define XFRD_MAX_ROUNDS 3 /* max number of rounds along the masters */
+#define XFRD_MAX_ROUNDS 1 /* max number of rounds along the masters */
 #define XFRD_TSIG_MAX_UNSIGNED 103 /* max number of packets without tsig in a tcp stream. */
 			/* rfc recommends 100, +3 for offbyone errors/interoperability. */
 #define XFRD_CHILD_REAP_TIMEOUT 60 /* seconds to wakeup and reap lost children */
