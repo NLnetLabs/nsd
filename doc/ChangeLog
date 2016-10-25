@@ -6,6 +6,7 @@
 	  refresh) and created as new files upon exit.
 	- Set number of rounds to 1; NSD will try every master once, then
 	  wait for timeout or notify.
+	- Fix axfr fallback for rounds to 1.
 
 20 October 2016: Wouter
 	- suppress compile warning in lex files.

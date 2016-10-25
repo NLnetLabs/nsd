@@ -1279,6 +1279,18 @@ xfrd_udp_release(xfrd_zone_t* zone)
 		xfrd->udp_use_num--;
 }
 
+/** disable ixfr for master */
+void
+xfrd_disable_ixfr(xfrd_zone_t* zone)
+{
+	if(!(zone->master->ixfr_disabled &&
+		(zone->master->ixfr_disabled + XFRD_NO_IXFR_CACHE) <= time(NULL))) {
+		/* start new round, with IXFR disabled */
+		zone->round_num = -1;
+	}
+	zone->master->ixfr_disabled = time(NULL);
+}
+
 static void
 xfrd_udp_read(xfrd_zone_t* zone)
 {
@@ -1286,7 +1298,7 @@ xfrd_udp_read(xfrd_zone_t* zone)
 	if(!xfrd_udp_read_packet(xfrd->packet, zone->zone_handler.ev_fd)) {
 		zone->master->bad_xfr_count++;
 		if (zone->master->bad_xfr_count > 2) {
-			zone->master->ixfr_disabled = time(NULL);
+			xfrd_disable_ixfr(zone);
 			zone->master->bad_xfr_count = 0;
 		}
 		/* drop packet */
@@ -1313,7 +1325,7 @@ xfrd_udp_read(xfrd_zone_t* zone)
 			xfrd_udp_release(zone);
 			break;
 		case xfrd_packet_notimpl:
-			zone->master->ixfr_disabled = time(NULL);
+			xfrd_disable_ixfr(zone);
 			/* drop packet */
 			xfrd_udp_release(zone);
 			/* query next server */
@@ -1330,7 +1342,7 @@ xfrd_udp_read(xfrd_zone_t* zone)
 		default:
 			zone->master->bad_xfr_count++;
 			if (zone->master->bad_xfr_count > 2) {
-				zone->master->ixfr_disabled = time(NULL);
+				xfrd_disable_ixfr(zone);
 				zone->master->bad_xfr_count = 0;
 			}
 			/* drop packet */

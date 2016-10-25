@@ -887,7 +887,7 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 			assert(zone->round_num == -1);
 			break;
 		case xfrd_packet_notimpl:
-			zone->master->ixfr_disabled = time(NULL);
+			xfrd_disable_ixfr(zone);
 			xfrd_tcp_release(xfrd->tcp_set, zone);
 			/* query next server */
 			xfrd_make_request(zone);

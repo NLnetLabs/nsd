@@ -259,6 +259,9 @@ void xfrd_init_slave_zone(xfrd_state_t* xfrd, zone_options_t* zone_opt);
 /* delete slave zone */
 void xfrd_del_slave_zone(xfrd_state_t* xfrd, const dname_type* dname);
 
+/* disable ixfr for a while for zone->master */
+void xfrd_disable_ixfr(xfrd_zone_t* zone);
+
 /* get the current time epoch. Cached for speed. */
 time_t xfrd_time(void);
 
