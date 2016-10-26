@@ -10,8 +10,7 @@ BUG FIXES:
 	- Robust fix against missing master in tcp_open for xfrd.
 	- Fix wildcards in include: config statements with chroot enabled.
 	- suppress compile warning in lex files.
-	- Set number of rounds to 1; NSD will try every master once, then
-	  wait for timeout or notify.
+	- Fix to try every master once, then wait for timeout or notify.
 	- Save backoff timeout into xfrd.state file, this file has a higher
 	  version number now.  Old files are skipped silently (causes
 	  refresh) and created as new files upon exit.
