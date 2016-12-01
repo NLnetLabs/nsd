@@ -14,6 +14,7 @@ BUG FIXES:
 	- Save backoff timeout into xfrd.state file, this file has a higher
 	  version number now.  Old files are skipped silently (causes
 	  refresh) and created as new files upon exit.
+	- Fix restart of zone transfers when new config becomes available.
 
 
 4.1.13

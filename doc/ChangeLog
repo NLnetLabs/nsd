@@ -1,3 +1,6 @@
+1 December 2016: Wouter
+	- Fix restart of zone transfers when new config becomes available.
+
 25 October 2016: Wouter
 	- Fix #1132 for SERVFAIL zones perform backoff, and remembers the
 	  timeout on next startup.
