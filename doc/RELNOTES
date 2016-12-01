@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.14 (upcoming)
+4.1.14
 ================
 FEATURES:
 	- Fix #1132 for SERVFAIL zones perform backoff, and remembers the
