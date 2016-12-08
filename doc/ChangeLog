@@ -1,3 +1,7 @@
+8 December 2016: Wouter
+	- tag 4.1.14
+	- trunk contains 4.1.15 in development.
+
 1 December 2016: Wouter
 	- Fix restart of zone transfers when new config becomes available.
 	- tag 4.1.14rc1
