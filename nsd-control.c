@@ -156,9 +156,13 @@ contact_server(const char* svr, nsd_options_t* cfg, int statuscmd)
 	int port = cfg->control_port;
 	/* use svr or a config entry */
 	if(!svr) {
-		if(cfg->control_interface)
+		if(cfg->control_interface) {
 			svr = cfg->control_interface->address;
-		else	svr = "127.0.0.1";
+		} else if(cfg->do_ip4) {
+			svr = "127.0.0.1";
+		} else {
+			svr = "::1";
+		}
 		/* config 0 addr (everything), means ask localhost */
 		if(strcmp(svr, "0.0.0.0") == 0)
 			svr = "127.0.0.1";

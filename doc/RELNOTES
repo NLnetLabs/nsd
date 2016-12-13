@@ -1,5 +1,13 @@
 NSD RELEASE NOTES
 
+4.1.15 (upcoming)
+================
+FEATURES:
+
+BUG FIXES:
+	- Fix nsd-control and ipv6 only.
+
+
 4.1.14
 ================
 FEATURES:
