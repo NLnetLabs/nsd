@@ -1,3 +1,7 @@
+14 December 2016: Wouter
+	- Squelch zone transfer error address family not supported by protocol
+	  at low verbosity levels.
+
 13 December 2016: Wouter
 	- Fix nsd-control and ipv6 only.
 

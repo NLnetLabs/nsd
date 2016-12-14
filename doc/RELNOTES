@@ -6,6 +6,8 @@ FEATURES:
 
 BUG FIXES:
 	- Fix nsd-control and ipv6 only.
+	- Squelch zone transfer error address family not supported by protocol
+	  at low verbosity levels.
 
 
 4.1.14

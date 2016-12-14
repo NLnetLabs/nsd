@@ -521,7 +521,10 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, struct xfrd_tcp_pipeline* tp,
 	}
 	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	if(fd == -1) {
-		log_msg(LOG_ERR, "xfrd: %s cannot create tcp socket: %s",
+		/* squelch 'Address family not supported by protocol' at low
+		 * verbosity levels */
+		if(errno != EAFNOSUPPORT || verbosity > 2)
+		    log_msg(LOG_ERR, "xfrd: %s cannot create tcp socket: %s",
 			zone->master->ip_address_spec, strerror(errno));
 		xfrd_set_refresh_now(zone);
 		return 0;
