@@ -1,3 +1,6 @@
+3 January 2016: Wouter
+	- Fix #1195: Fix so that NSD fails on non-compliant values for Serial.
+
 14 December 2016: Wouter
 	- Squelch zone transfer error address family not supported by protocol
 	  at low verbosity levels.
