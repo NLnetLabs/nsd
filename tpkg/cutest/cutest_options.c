@@ -203,7 +203,7 @@ static void acl_6(CuTest *tc)
 {
 	/* acl_same_host */
 	region_type* region = region_create(xalloc, free);
-	acl_options_t *x=0, *y=0;
+	acl_options_type *x=0, *y=0;
 
 	x = parse_acl_info(region, "10.20.30.40", "NOKEY");
 	y = parse_acl_info(region, "10.20.30.40", "NOKEY");
@@ -309,8 +309,8 @@ static void replace_2(CuTest *tc)
 {
 	struct nsd nsd;
 	region_type* region = region_create(xalloc, free);
-	zone_options_t z;
-	pattern_options_t p;
+	struct zone_options z;
+	struct pattern_options p;
 	memset(&nsd, 0, sizeof(nsd));
 	memset(&z, 0, sizeof(z));
 	memset(&p, 0, sizeof(p));
@@ -341,7 +341,7 @@ has_free_elem(struct zonelist_free* e, off_t off)
 }
 
 static size_t
-count_free(CuTest* tc, nsd_options_t* opt)
+count_free(CuTest* tc, struct nsd_options* opt)
 {
 	struct zonelist_free* e;
 	struct zonelist_bucket* b;
@@ -355,7 +355,7 @@ count_free(CuTest* tc, nsd_options_t* opt)
 }
 
 static void
-check_zonelist_file(CuTest *tc, nsd_options_t* opt, const char* s)
+check_zonelist_file(CuTest *tc, struct nsd_options* opt, const char* s)
 {
 	char buf[1024];
 	FILE* in;
@@ -395,13 +395,13 @@ check_zonelist_file(CuTest *tc, nsd_options_t* opt, const char* s)
 
 static void zonelist_1(CuTest *tc)
 {
-	zone_options_t* z1, *z2, *z3;
-	pattern_options_t* p1, *p2;
+	struct zone_options* z1, *z2, *z3;
+	struct pattern_options* p1, *p2;
 	char zname[1024];
 	region_type* region = region_create_custom(xalloc, free,
 		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE,
 		DEFAULT_INITIAL_CLEANUP_SIZE, 1);
-	nsd_options_t* opt = nsd_options_create(region);
+	struct nsd_options* opt = nsd_options_create(region);
 	opt->region = region;
 	snprintf(zname, sizeof(zname), "/tmp/unitzlist%u.cfg",
 		(unsigned)getpid());
@@ -490,7 +490,7 @@ static void zonelist_1(CuTest *tc)
 
 	/* delete more zones, compact and see that it has truncated */
 	while(opt->zone_options->count)
-		zone_list_del(opt, (zone_options_t*)opt->zone_options->root);
+		zone_list_del(opt, (zone_options_type*)opt->zone_options->root);
 	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n");
 	zone_list_compact(opt);
 	/* check contents of zonelist file */

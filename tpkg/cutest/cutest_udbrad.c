@@ -61,15 +61,15 @@ static udb_base* base_A = NULL;
 /** test data for radix tree tests */
 struct teststr {
 	udb_rel_ptr mynode;
-	udb_radstrlen_t mylen;
+	udb_radstrlen_type mylen;
 	uint8_t mystr[256];
 };
 
 /** max strlen in an array */
-static udb_radstrlen_t udb_radarray_max_len(udb_ptr* n)
+static udb_radstrlen_type udb_radarray_max_len(udb_ptr* n)
 {
 	unsigned i;
-	udb_radstrlen_t maxlen = 0;
+	udb_radstrlen_type maxlen = 0;
 	for(i=0; i<lookup(n)->len; i++) {
 		if(lookup(n)->array[i].node.data &&
 			lookup(n)->array[i].len > maxlen)
@@ -97,7 +97,7 @@ static size_t test_check_invariants(udb_base* udb, udb_ptr* n)
 		CuAssert(tc, "invariant empty offset", RADNODE(n)->offset == 0);
 	} else {
 		unsigned idx;
-		udb_radstrlen_t maxlen;
+		udb_radstrlen_type maxlen;
 		CuAssert(tc, "invariant nonempty cap",
 			lookup(n)->capacity != 0);
 		CuAssert(tc, "invariant len>cap/2",
@@ -135,7 +135,7 @@ static size_t test_check_invariants(udb_base* udb, udb_ptr* n)
 static void
 test_check_list_keys(udb_base* udb, udb_ptr* n, struct teststr** all,
 	size_t* all_idx, size_t all_num, uint8_t* fullkey,
-	udb_radstrlen_t fullkey_len, udb_radstrlen_t fullkey_max)
+	udb_radstrlen_type fullkey_len, udb_radstrlen_type fullkey_max)
 {
 	unsigned idx;
 	if(udb_ptr_is_null(n)) return;
@@ -155,7 +155,7 @@ test_check_list_keys(udb_base* udb, udb_ptr* n, struct teststr** all,
 	for(idx=0; idx<lookup(n)->len; idx++) {
 		udb_ptr s;
 		struct udb_radsel_d* r = &lookup(n)->array[idx];
-		udb_radstrlen_t newlen = fullkey_len;
+		udb_radstrlen_type newlen = fullkey_len;
 		if(!r->node.data)
 			continue;
 		/* lengthen fullkey with the character and r->str */
@@ -174,8 +174,8 @@ test_check_list_keys(udb_base* udb, udb_ptr* n, struct teststr** all,
 }
 
 /** compare byte strings like the tree does */
-static int bstr_cmp(uint8_t* x, udb_radstrlen_t lenx, uint8_t* y,
-	udb_radstrlen_t leny)
+static int bstr_cmp(uint8_t* x, udb_radstrlen_type lenx, uint8_t* y,
+	udb_radstrlen_type leny)
 {
 	size_t m = (lenx<leny)?lenx:leny;
 	if(m != 0 && memcmp(x, y, m) != 0)
@@ -293,9 +293,9 @@ get_ran_val(unsigned max)
 
 /** generate random string and length */
 static void
-gen_ran_str_len(uint8_t* buf, udb_radstrlen_t* len, udb_radstrlen_t max)
+gen_ran_str_len(uint8_t* buf, udb_radstrlen_type* len, udb_radstrlen_type max)
 {
-	udb_radstrlen_t i;
+	udb_radstrlen_type i;
 	*len = get_ran_val(5);
 	CuAssert(tc, "ranstrlen", *len < max);
 	buf[*len] = 0; /* zero terminate for easy debug */
@@ -309,7 +309,7 @@ gen_ran_str_len(uint8_t* buf, udb_radstrlen_t* len, udb_radstrlen_t max)
 static void test_check_closest_match_inexact(udb_base* udb, udb_ptr* rt)
 {
 	uint8_t buf[1024];
-	udb_radstrlen_t len;
+	udb_radstrlen_type len;
 	udb_ptr n, t;
 	int i = 0, num=1000;
 	udb_ptr_init(&n, udb);
@@ -452,9 +452,9 @@ static void test_checks(udb_base* udb, udb_ptr* rt)
 }
 
 
-static void test_print_str(uint8_t* str, udb_radstrlen_t len)
+static void test_print_str(uint8_t* str, udb_radstrlen_type len)
 {
-	udb_radstrlen_t x;
+	udb_radstrlen_type x;
 	for(x=0; x<len; x++) {
 		char c = ((char*)str)[x];
 		if(c == 0) fprintf(stderr, ".");
@@ -673,7 +673,7 @@ test_ran_add_del(udb_base* udb, udb_ptr* rt)
 		if(  (RADTREE(rt)->count < target && ran%4 != 0)
 			|| (ran%2 == 0)) {
 			uint8_t key[1024];
-			udb_radstrlen_t len;
+			udb_radstrlen_type len;
 			/* new string key */
 			gen_ran_str_len(key, &len, sizeof(key));
 			if(!udb_radix_search(rt, key, len)) {

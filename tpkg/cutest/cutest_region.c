@@ -50,7 +50,7 @@ struct blocklist {
 };
 /* rbtree node for a size */
 struct sizenode {
-	rbnode_t node;
+	rbnode_type node;
 	size_t size;
 	size_t numblocks;
 	size_t numalloced;
@@ -81,7 +81,7 @@ int GetRandom(int min, int max) {
 
 /* true if ptr exists in tree */
 static int
-CheckExist(rbtree_t* tree, void *block, struct blocklist** listitem,
+CheckExist(rbtree_type* tree, void *block, struct blocklist** listitem,
 	struct sizenode** treeitem)
 {
 	struct sizenode* p;
@@ -109,7 +109,7 @@ CheckExist(rbtree_t* tree, void *block, struct blocklist** listitem,
 }
 
 static struct sizenode*
-add_size_tree(rbtree_t* tree, size_t sz)
+add_size_tree(rbtree_type* tree, size_t sz)
 {
 	struct sizenode *p=0;
 	p = (struct sizenode*)rbtree_search(tree, (void*)&sz);
@@ -121,13 +121,13 @@ add_size_tree(rbtree_t* tree, size_t sz)
 		p->numblocks = 0;
 		p->numalloced = 0;
 		p->list = NULL;
-		rbtree_insert(tree, (rbnode_t*)p);
+		rbtree_insert(tree, (rbnode_type*)p);
 	}
 	return p;
 }
 
 static void
-test_alloc(CuTest *tc, rbtree_t* tree, region_type* region)
+test_alloc(CuTest *tc, rbtree_type* tree, region_type* region)
 {
 	size_t sz = 0;
 	void *block = 0;
@@ -187,7 +187,7 @@ test_alloc(CuTest *tc, rbtree_t* tree, region_type* region)
 }
 
 static void
-delete_item(rbtree_t* tree, struct sizenode* p, struct blocklist* bl)
+delete_item(rbtree_type* tree, struct sizenode* p, struct blocklist* bl)
 {
 	struct blocklist** prevp = &p->list;
 	/* first delete from blocklist */
@@ -206,7 +206,7 @@ delete_item(rbtree_t* tree, struct sizenode* p, struct blocklist* bl)
 }
 
 int
-get_block_count(rbtree_t* tree)
+get_block_count(rbtree_type* tree)
 {
 	int total = 0;
 	struct sizenode *p = 0;
@@ -217,7 +217,7 @@ get_block_count(rbtree_t* tree)
 }
 
 void
-get_block_num(rbtree_t* tree, int num, 
+get_block_num(rbtree_type* tree, int num, 
 	struct sizenode **p, struct blocklist** bl)
 {
 	int i = 0;
@@ -246,7 +246,7 @@ get_block_num(rbtree_t* tree, int num,
 }
 
 static void
-test_dealloc(CuTest *ATTR_UNUSED(tc), rbtree_t* tree, region_type* region)
+test_dealloc(CuTest *ATTR_UNUSED(tc), rbtree_type* tree, region_type* region)
 {
 	/* pick one to dealloc */
 	int num, total;
@@ -279,7 +279,7 @@ static void
 region_1(CuTest *tc)
 {
 	region_type* tree_region = region_create(xalloc, free);
-	rbtree_t* tree = rbtree_create(tree_region, comparef);
+	rbtree_type* tree = rbtree_create(tree_region, comparef);
 	region_type* region = 0;
 	int i;
 	int max = 10000;

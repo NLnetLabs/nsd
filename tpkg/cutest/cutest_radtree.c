@@ -41,7 +41,7 @@ static int verb = 0;
 struct teststr {
 	struct radnode* mynode;
 	uint8_t* mystr;
-	radstrlen_t mylen;
+	radstrlen_type mylen;
 	/* if a domain name, the domain name in original format */
 	uint8_t* dname;
 	size_t dname_len;
@@ -87,8 +87,8 @@ static size_t test_check_invariants(struct radnode* n)
  * lookup structure matches the one in the element */
 static void
 test_check_list_keys(struct radnode* n, struct teststr** all, size_t* all_idx,
-	size_t all_num, uint8_t* fullkey, radstrlen_t fullkey_len,
-	radstrlen_t fullkey_max)
+	size_t all_num, uint8_t* fullkey, radstrlen_type fullkey_len,
+	radstrlen_type fullkey_max)
 {
 	unsigned idx;
 	if(!n) return;
@@ -104,7 +104,7 @@ test_check_list_keys(struct radnode* n, struct teststr** all, size_t* all_idx,
 	}
 	for(idx=0; idx<n->len; idx++) {
 		struct radsel* r = &n->array[idx];
-		radstrlen_t newlen = fullkey_len;
+		radstrlen_type newlen = fullkey_len;
 		if(!r->node)
 			continue;
 		/* lengthen fullkey with the character and r->str */
@@ -121,7 +121,8 @@ test_check_list_keys(struct radnode* n, struct teststr** all, size_t* all_idx,
 }
 
 /** compare byte strings like the tree does */
-static int bstr_cmp(uint8_t* x, radstrlen_t lenx, uint8_t* y, radstrlen_t leny)
+static int bstr_cmp(uint8_t* x, radstrlen_type lenx, uint8_t* y,
+	radstrlen_type leny)
 {
 	size_t m = (lenx<leny)?lenx:leny;
 	if(m != 0 && memcmp(x, y, m) != 0)
@@ -227,9 +228,9 @@ get_ran_val(unsigned max)
 
 /** generate random string and length */
 static void
-gen_ran_str_len(uint8_t* buf, radstrlen_t* len, radstrlen_t max)
+gen_ran_str_len(uint8_t* buf, radstrlen_type* len, radstrlen_type max)
 {
-	radstrlen_t i;
+	radstrlen_type i;
 	*len = get_ran_val(5);
 	CuAssert(tc, "ranstrlen", *len < max);
 	buf[*len] = 0; /* zero terminate for easy debug */
@@ -241,10 +242,10 @@ gen_ran_str_len(uint8_t* buf, radstrlen_t* len, radstrlen_t max)
 
 /** generate random domain name and length */
 static void
-gen_ran_dname(uint8_t* buf, radstrlen_t* len, radstrlen_t max)
+gen_ran_dname(uint8_t* buf, radstrlen_type* len, radstrlen_type max)
 {
 	int numlabs, labs;
-	radstrlen_t i, lablen, pos;
+	radstrlen_type i, lablen, pos;
 
 	/* number nonzero labels */
 	labs = get_ran_val(1000);
@@ -274,7 +275,7 @@ gen_ran_dname(uint8_t* buf, radstrlen_t* len, radstrlen_t max)
 static void test_check_closest_match_inexact(struct radtree* rt)
 {
 	uint8_t buf[1024];
-	radstrlen_t len;
+	radstrlen_type len;
 	struct radnode* n;
 	struct teststr* t;
 	int i = 0, num=1000;
@@ -390,9 +391,9 @@ static void test_check_dname_closest_exact(struct radtree* rt)
 static void test_check_dname_closest_inexact(struct radtree* rt)
 {
 	uint8_t dname[1024];
-	radstrlen_t dlen;
+	radstrlen_type dlen;
 	uint8_t radname[1024];
-	radstrlen_t rlen;
+	radstrlen_type rlen;
 	struct radnode* n;
 	struct teststr* t;
 	int i = 0, num=1000;
@@ -452,9 +453,9 @@ static void test_checks_dname(struct radtree* rt)
 	test_check_dname_closest_inexact(rt);
 }
 
-static void test_print_str(uint8_t* str, radstrlen_t len)
+static void test_print_str(uint8_t* str, radstrlen_type len)
 {
-	radstrlen_t x;
+	radstrlen_type x;
 	for(x=0; x<len; x++) {
 		char c = ((char*)str)[x];
 		if(c == 0) fprintf(stderr, ".");
@@ -665,7 +666,7 @@ test_ran_add_del(struct radtree* rt)
 		if(  (rt->count < target && ran%4 != 0)
 			|| (ran%2 == 0)) {
 			uint8_t key[1024];
-			radstrlen_t len;
+			radstrlen_type len;
 			/* new string key */
 			gen_ran_str_len(key, &len, sizeof(key));
 			if(!radix_search(rt, key, len)) {
@@ -696,7 +697,7 @@ test_dname_add_del(struct radtree* rt)
 		if(  (rt->count < target && ran%4 != 0)
 			|| (ran%2 == 0)) {
 			uint8_t key[1024];
-			radstrlen_t len;
+			radstrlen_type len;
 			/* new string key */
 			gen_ran_dname(key, &len, sizeof(key));
 			test_insert_dname(rt, key, len);
@@ -721,7 +722,7 @@ static void test_radname(void)
 	uint8_t d[1024];
 	size_t dlen;
 	uint8_t r[1024];
-	radstrlen_t rlen;
+	radstrlen_type rlen;
 	
 	dlen = 1;
 	rlen = sizeof(r);

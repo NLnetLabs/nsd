@@ -1,3 +1,6 @@
+19 January 2016: Wouter
+	- Fix to rename _t typedefs because POSIX reserves them.
+
 3 January 2016: Wouter
 	- Fix #1195: Fix so that NSD fails on non-compliant values for Serial.
 

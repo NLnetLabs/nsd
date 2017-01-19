@@ -9,6 +9,7 @@ BUG FIXES:
 	- Squelch zone transfer error address family not supported by protocol
 	  at low verbosity levels.
 	- Fix #1195: Fix so that NSD fails on non-compliant values for Serial.
+	- Fix to rename _t typedefs because POSIX reserves them.
 
 
 4.1.14

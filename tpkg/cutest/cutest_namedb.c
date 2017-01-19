@@ -58,8 +58,8 @@ create_and_read_db(CuTest* tc, region_type* region, const char* zonename,
 	const char* ztxt)
 {
 	struct nsd nsd;
-	nsd_options_t* opt;
-	zone_options_t* zone;
+	struct nsd_options* opt;
+	struct zone_options* zone;
 	namedb_type* db;
 	char* dbfile = udbtest_get_temp_file("namedb.udb");
 	char* zonefile = udbtest_get_temp_file("namedb.zone");

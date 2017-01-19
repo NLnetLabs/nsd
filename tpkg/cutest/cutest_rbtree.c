@@ -52,12 +52,12 @@ CuSuite* reg_cutest_rbtree(void)
 
 /* we will test an int tree */
 struct testnode {
-	rbnode_t	node;
+	rbnode_type	node;
 	int		x;
 };
 
 static region_type* reg = 0;
-static rbtree_t* tree = 0; /* tree of struct testnode */
+static rbtree_type* tree = 0; /* tree of struct testnode */
 
 /* init rbtree tests */
 static int init_rbtree(void)
@@ -96,7 +96,7 @@ static int tree_print_sub(struct testnode* tree, int depth, char* sink,
 		sink += len;
 		*sinklen -= len;
 	}
-	if((rbnode_t*)tree == RBTREE_NULL) {
+	if((rbnode_type*)tree == RBTREE_NULL) {
 		len=snprintf(sink, *sinklen, "**\n");
 		sink += len;
 		*sinklen -= len;
@@ -133,7 +133,7 @@ static int tree_print_sub(struct testnode* tree, int depth, char* sink,
 	return sink - oldsink;
 }
 
-void tree_print(CuTest *tc, rbtree_t* tree)
+void tree_print(CuTest *tc, rbtree_type* tree)
 {
 	char buf[1024000];
 	char prefixbuf[10240];
@@ -153,7 +153,7 @@ void tree_print(CuTest *tc, rbtree_t* tree)
 
 static void tree_print_safe_sub(struct testnode* node)
 {
-	if((rbnode_t*)node == RBTREE_NULL) {
+	if((rbnode_type*)node == RBTREE_NULL) {
 		return;
 	}
 	printf("Tree node (%p): ", node);
@@ -166,7 +166,7 @@ static void tree_print_safe_sub(struct testnode* node)
 }
 
 /* make sure that pointers are OK. Also check that key != 0. */
-static void test_tree_pointers_sub(CuTest *tc, rbnode_t *node)
+static void test_tree_pointers_sub(CuTest *tc, rbnode_type *node)
 {
 	CuAssert(tc, "node != 0", (node != 0));
 	CuAssert(tc, "node->key != 0", (node->key != 0));
@@ -185,7 +185,7 @@ static void test_tree_pointers_sub(CuTest *tc, rbnode_t *node)
 }
 
 /* make sure pointers are consistent */
-static void test_tree_pointers(CuTest *tc, rbtree_t* tree)
+static void test_tree_pointers(CuTest *tc, rbtree_type* tree)
 {
 	CuAssert(tc, "tree != 0", (tree != 0));
 
@@ -201,14 +201,14 @@ static void test_tree_pointers(CuTest *tc, rbtree_t* tree)
 }
 
 /* count non-null nodes in the tree */
-static size_t test_tree_count_sub(rbnode_t* node)
+static size_t test_tree_count_sub(rbnode_type* node)
 {
 	if(node == RBTREE_NULL) return 0;
 	return test_tree_count_sub(node->left) + test_tree_count_sub(node->right) + 1;
 }
 
 
-static void test_tree_count(CuTest *tc, rbtree_t* tree)
+static void test_tree_count(CuTest *tc, rbtree_type* tree)
 {
 	size_t mycount = test_tree_count_sub(tree->root);
 	CuAssert(tc, "mycount == tree->count", (mycount == tree->count));
@@ -216,7 +216,7 @@ static void test_tree_count(CuTest *tc, rbtree_t* tree)
 
 /* see if the tree is properly sorted */
 /* values are only allowed min < val < max */
-static void test_tree_sorting_sub(CuTest *tc, rbnode_t* node, int* min, int* max)
+static void test_tree_sorting_sub(CuTest *tc, rbnode_type* node, int* min, int* max)
 {
 	int value = ((struct testnode*)node)->x;
 	if(min) 
@@ -233,7 +233,7 @@ static void test_tree_sorting_sub(CuTest *tc, rbnode_t* node, int* min, int* max
 }
 
 
-static void test_tree_sorting(CuTest *tc, rbtree_t* tree)
+static void test_tree_sorting(CuTest *tc, rbtree_type* tree)
 {
 	if(tree->count > 0)
 		test_tree_sorting_sub(tc, tree->root, 0, 0);
@@ -241,7 +241,7 @@ static void test_tree_sorting(CuTest *tc, rbtree_t* tree)
 
 /* test that values are 0(Black) and 1(Red), and that all paths have 
    the rbtree invariant. */
-static void test_tree_RBvalues_countB(rbnode_t *node, int Bcount, int *min, int *max)
+static void test_tree_RBvalues_countB(rbnode_type *node, int Bcount, int *min, int *max)
 {
 	if(node == RBTREE_NULL)
 	{
@@ -255,7 +255,7 @@ static void test_tree_RBvalues_countB(rbnode_t *node, int Bcount, int *min, int 
 	test_tree_RBvalues_countB(node->right, Bcount, min, max);
 }
 
-static void test_tree_RBvalues_sub1(CuTest *tc, rbnode_t* node)
+static void test_tree_RBvalues_sub1(CuTest *tc, rbnode_type* node)
 {
 	int min_black_nodes, max_black_nodes;
 	CuAssert(tc, "node->color == 0 || node->color == 1)", (node->color == 0 || node->color == 1));
@@ -280,7 +280,7 @@ static void test_tree_RBvalues_sub1(CuTest *tc, rbnode_t* node)
 }
 
 
-static void test_tree_RBvalues(CuTest *tc, rbtree_t* tree)
+static void test_tree_RBvalues(CuTest *tc, rbtree_type* tree)
 {
 	/* the root must be black */
 	CuAssert(tc, "tree->root->color == BLACK?", (tree->root->color == 0));
@@ -288,7 +288,7 @@ static void test_tree_RBvalues(CuTest *tc, rbtree_t* tree)
 }
 
 
-static void test_tree_integrity(CuTest *tc, rbtree_t* tree)
+static void test_tree_integrity(CuTest *tc, rbtree_type* tree)
 {
 	test_tree_pointers(tc, tree);
 	test_tree_count(tc, tree);
@@ -297,7 +297,7 @@ static void test_tree_integrity(CuTest *tc, rbtree_t* tree)
 }
 
 /* very very safe version of tree print */
-void tree_print_safe(rbtree_t* tree)
+void tree_print_safe(rbtree_type* tree)
 {
 	printf("Rbtree (at %p)", tree);
 	printf(" region=%p root=%p count=%d current=%p cmp=%p\n",
@@ -315,7 +315,7 @@ static int GetTestValue(double max)
 	return (int)(max*rand() / (RAND_MAX+1.0));
 }
 
-static int AddRandomElement(CuTest *tc, rbtree_t* tree, int maxval)
+static int AddRandomElement(CuTest *tc, rbtree_type* tree, int maxval)
 {	
 	struct testnode *t;
 
@@ -323,12 +323,12 @@ static int AddRandomElement(CuTest *tc, rbtree_t* tree, int maxval)
 	t->node = *RBTREE_NULL;
 	t->x = GetTestValue(maxval);
 	t->node.key = &t->x;
-	rbtree_insert((rbtree_t*)tree, (rbnode_t*)t);
-	CuAssert(tc, "rbtree_insert((rbtree_t*)tree, (rbnode_t*)t) == 0", (rbtree_insert((rbtree_t*)tree, (rbnode_t*)t) == 0));
+	rbtree_insert((rbtree_type*)tree, (rbnode_type*)t);
+	CuAssert(tc, "rbtree_insert((rbtree_type*)tree, (rbnode_type*)t) == 0", (rbtree_insert((rbtree_type*)tree, (rbnode_type*)t) == 0));
 	return t->x;
 }
 
-static int test6_in_tree(rbnode_t* node, int val)
+static int test6_in_tree(rbnode_type* node, int val)
 {
 	if(node == RBTREE_NULL) return 0;
 	if(*(int*)node->key == val) return 1;
@@ -337,23 +337,23 @@ static int test6_in_tree(rbnode_t* node, int val)
 	return 0;
 }
 
-static rbnode_t* findsmallest(rbnode_t *node)
+static rbnode_type* findsmallest(rbnode_type *node)
 {
 	if(node == RBTREE_NULL) return 0;
 	if(node->left == RBTREE_NULL) return node;
 	return findsmallest(node->left);
 }
 
-static rbnode_t* findlargest(rbnode_t *node)
+static rbnode_type* findlargest(rbnode_type *node)
 {
 	if(node == RBTREE_NULL) return 0;
 	if(node->right == RBTREE_NULL) return node;
 	return findlargest(node->right);
 }
 
-static void test6_check_le(CuTest *tc, rbtree_t *tree, int val)
+static void test6_check_le(CuTest *tc, rbtree_type *tree, int val)
 {
-	rbnode_t *node = 0;
+	rbnode_type *node = 0;
 	if(rbtree_find_less_equal(tree, &val, &node))
 	{
 		CuAssert(tc, "test6_in_tree(tree->root, val)", test6_in_tree(tree->root, val));
@@ -373,7 +373,7 @@ static void test6_check_le(CuTest *tc, rbtree_t *tree, int val)
 		}
 		else
 		{
-			rbnode_t* smallest = findsmallest(tree->root);
+			rbnode_type* smallest = findsmallest(tree->root);
 			if(smallest) 
 				CuAssert(tc, "val < *(int*)smallest->key", (val < *(int*)smallest->key));
 		}
@@ -389,8 +389,8 @@ static void test6_check_le(CuTest *tc, rbtree_t *tree, int val)
 static void rbtree_1(CuTest *tc)
 {
 	/* tree should be empty on start. */
-	CuAssert(tc, "empty tree?", (rbtree_first((rbtree_t*)tree) == &rbtree_null_node));
-	CuAssert(tc, "empty tree?", (rbtree_last((rbtree_t*)tree) == &rbtree_null_node));
+	CuAssert(tc, "empty tree?", (rbtree_first((rbtree_type*)tree) == &rbtree_null_node));
+	CuAssert(tc, "empty tree?", (rbtree_last((rbtree_type*)tree) == &rbtree_null_node));
 	test_tree_integrity(tc, tree);
 }
 
@@ -404,8 +404,8 @@ static void rbtree_2(CuTest *tc)
 	memset(t, 0x23, sizeof(struct testnode));
 	t->x = 4;
 	t->node.key = &t->x;
-	CuAssert(tc, "rbtree_insert((rbtree_t*)tree, (rbnode_t*)t) != 0", (rbtree_insert((rbtree_t*)tree, (rbnode_t*)t) != 0));
-	CuAssert(tc, "rbtree_insert((rbtree_t*)tree, (rbnode_t*)t) == 0", (rbtree_insert((rbtree_t*)tree, (rbnode_t*)t) == 0));
+	CuAssert(tc, "rbtree_insert((rbtree_type*)tree, (rbnode_type*)t) != 0", (rbtree_insert((rbtree_type*)tree, (rbnode_type*)t) != 0));
+	CuAssert(tc, "rbtree_insert((rbtree_type*)tree, (rbnode_type*)t) == 0", (rbtree_insert((rbtree_type*)tree, (rbnode_type*)t) == 0));
 
 	CuAssert(tc, "tree->count == 1", (tree->count == 1));
 	CuAssert(tc, "tree->root->parent == RBTREE_NULL", (tree->root->parent == RBTREE_NULL));
@@ -494,7 +494,7 @@ static void rbtree_8(CuTest *tc)
 {
 	const void *key, *data;
 	int lastkey = -1;
-	rbnode_t* node;
+	rbnode_type* node;
 	size_t count = 0;
 
 	/* test next */
@@ -522,7 +522,7 @@ static void rbtree_8(CuTest *tc)
 	CuAssert(tc, "count == tree->count", (count == tree->count));
 }
 
-static void test_add_remove(CuTest *tc, rbtree_t* tree, const int* insert, const int* remove)
+static void test_add_remove(CuTest *tc, rbtree_type* tree, const int* insert, const int* remove)
 {
 	size_t num_added = 0;
 	const int* p = insert;
@@ -546,7 +546,7 @@ static void test_add_remove(CuTest *tc, rbtree_t* tree, const int* insert, const
 		t->node = *RBTREE_NULL;
 		t->x = *p;
 		t->node.key = &t->x;
-		rbtree_insert((rbtree_t*)tree, (rbnode_t*)t);
+		rbtree_insert((rbtree_type*)tree, (rbnode_type*)t);
 		test_tree_integrity(tc, tree);
 		num_added ++;
 		CuAssert(tc, "num_added < 20", (num_added < 20));
@@ -631,7 +631,7 @@ static size_t makepermutations(CuTest *tc, int d, int ***perm)
 
 static void rbtree_9(CuTest *tc)
 {
-	rbtree_t* t;
+	rbtree_type* t;
 	int val;
 
 	srand(43);

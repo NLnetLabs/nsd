@@ -411,10 +411,10 @@ static query_state_type
 answer_notify(struct nsd* nsd, struct query *query)
 {
 	int acl_num, acl_num_xfr;
-	acl_options_t *why;
+	struct acl_options *why;
 	nsd_rc_type rc;
 
-	zone_options_t* zone_opt;
+	struct zone_options* zone_opt;
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "got notify %s processing acl",
 		dname_to_string(query->qname, NULL)));
 
