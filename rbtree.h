@@ -19,11 +19,11 @@
  */
 typedef struct rbnode rbnode_type;
 struct rbnode {
-	rbnode_type   *parent;
-	rbnode_type   *left;
-	rbnode_type   *right;
-	const void *key;
-	uint8_t	    color;
+	rbnode_type  *parent;
+	rbnode_type  *left;
+	rbnode_type  *right;
+	const void   *key;
+	uint8_t	      color;
 };
 
 #define	RBTREE_NULL &rbtree_null_node
