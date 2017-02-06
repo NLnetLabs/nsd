@@ -10,6 +10,7 @@ BUG FIXES:
 	  at low verbosity levels.
 	- Fix #1195: Fix so that NSD fails on non-compliant values for Serial.
 	- Fix to rename _t typedefs because POSIX reserves them.
+	- Fix that nsec3 hash collisions only reported on verbosity level 2.
 
 
 4.1.14
