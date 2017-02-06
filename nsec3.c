@@ -855,7 +855,7 @@ nsec3_add_nonexist_proof(struct query* query, struct answer* answer,
 	{
 		/* exact match, hash collision */
 		/* the hashed name of the query corresponds to an existing name. */
-		VERBOSITY(2, (LOG_ERR, "nsec3 hash collision for name=%s",
+		VERBOSITY(3, (LOG_ERR, "nsec3 hash collision for name=%s",
 			dname_to_string(to_prove, NULL)));
 		RCODE_SET(query->packet, RCODE_SERVFAIL);
 		return;
