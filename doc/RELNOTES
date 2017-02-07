@@ -1,9 +1,7 @@
 NSD RELEASE NOTES
 
-4.1.15 (upcoming)
+4.1.15
 ================
-FEATURES:
-
 BUG FIXES:
 	- Fix nsd-control and ipv6 only.
 	- Squelch zone transfer error address family not supported by protocol

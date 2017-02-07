@@ -1,3 +1,6 @@
+7 February 2016: Wouter
+	- tag for 4.1.15 rc1.
+
 19 January 2016: Wouter
 	- Fix to rename _t typedefs because POSIX reserves them.
 
