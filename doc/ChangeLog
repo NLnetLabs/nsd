@@ -1,3 +1,7 @@
+13 February 2016: Wouter
+	- Calculate new udb index after growing the array, fix from
+	  Chaofeng Liu.
+
 7 February 2016: Wouter
 	- tag for 4.1.15 rc1.
 
