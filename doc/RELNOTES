@@ -1,5 +1,14 @@
 NSD RELEASE NOTES
 
+4.1.16 (upcoming)
+================
+FEATURES:
+	- zone parser can parse acronyms for algorithms ED25519 and ED448.
+BUG FIXES:
+	- Calculate new udb index after growing the array, fix from
+	  Chaofeng Liu.
+
+
 4.1.15
 ================
 BUG FIXES:

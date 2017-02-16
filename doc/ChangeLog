@@ -6,7 +6,7 @@
 	  Chaofeng Liu.
 
 7 February 2016: Wouter
-	- tag for 4.1.15 rc1.
+	- tag for 4.1.15 rc1.  Which became 4.1.15 on 16 Feb.  Trunk 4.1.16.
 
 19 January 2016: Wouter
 	- Fix to rename _t typedefs because POSIX reserves them.
