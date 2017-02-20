@@ -1,3 +1,6 @@
+20 February 2016: Wouter
+	- Fix missing _t to _type conversion for disable-radix-tree option.
+
 15 February 2016: Wouter
 	- zone parser can parse acronyms for algorithms ED25519 and ED448.
 

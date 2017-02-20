@@ -7,6 +7,7 @@ FEATURES:
 BUG FIXES:
 	- Calculate new udb index after growing the array, fix from
 	  Chaofeng Liu.
+	- Fix missing _t to _type conversion for disable-radix-tree option.
 
 
 4.1.15
