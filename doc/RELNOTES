@@ -8,6 +8,7 @@ BUG FIXES:
 	- Calculate new udb index after growing the array, fix from
 	  Chaofeng Liu.
 	- Fix missing _t to _type conversion for disable-radix-tree option.
+	- Printout serial error with hint it may be too big.
 
 
 4.1.15
