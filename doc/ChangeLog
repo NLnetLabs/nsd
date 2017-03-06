@@ -1,3 +1,6 @@
+6 March 2016: Wouter
+	- Fix 1228: OpenSSL include is not guarded with HAVE_SSL
+
 28 February 2016: Wouter
 	- Printout serial error with hint it may be too big.
 
