@@ -1,3 +1,7 @@
+27 March 2016: Wouter
+	- Fix 1243: Option to make NSD emit really minimal responses,
+	  minimal-responses: yes in nsd.conf.
+
 6 March 2016: Wouter
 	- Fix 1228: OpenSSL include is not guarded with HAVE_SSL
 
