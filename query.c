@@ -711,7 +711,8 @@ add_rrset(struct query   *query,
 	assert(rrset_rrclass(rrset) == CLASS_IN);
 
 	result = answer_add_rrset(answer, section, owner, rrset);
-	if(minimal_responses && section != AUTHORITY_SECTION)
+	if(minimal_responses && section != AUTHORITY_SECTION &&
+		query->qtype != TYPE_NS)
 		return result;
 	switch (rrset_rrtype(rrset)) {
 	case TYPE_NS:
