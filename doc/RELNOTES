@@ -12,6 +12,8 @@ BUG FIXES:
 	- Fix missing _t to _type conversion for disable-radix-tree option.
 	- Printout serial error with hint it may be too big.
 	- Fix 1228: OpenSSL include is not guarded with HAVE_SSL
+	- Patch for expire state in multi-master when masters includes
+	  broken master, from Manabu Sonoda.
 
 
 4.1.15
