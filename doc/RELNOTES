@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.16 (upcoming)
+4.1.16
 ================
 FEATURES:
 	- zone parser can parse acronyms for algorithms ED25519 and ED448.
