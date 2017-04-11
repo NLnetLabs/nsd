@@ -1,5 +1,6 @@
 11 April 2016: Wouter
 	- 4.1.16 rc1 tag for release.
+	- minor manpage fix.
 
 5 April 2016: Wouter
 	- Patch for expire state in multi-master when masters includes

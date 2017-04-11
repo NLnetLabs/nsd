@@ -372,7 +372,7 @@ The default is no.
 .B minimal\-responses:\fR <yes or no>
 Enable minimal responses for smaller answers.  This makes packets smaller.
 Extra data is only added for referrals, when it is really necessary.
-This is different from the --enable-minimal-responses configure time option,
+This is different from the \-\-enable-minimal-responses configure time option,
 that reduces packets, but exactly to the fragmentation length, the nsd.conf
 option reduces packets as small as possible.
 The default is no.
