@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+4.1.17 (upcoming)
+================
+FEATURES:
+BUG FIXES:
+
+
 4.1.16
 ================
 FEATURES:
@@ -14,6 +20,7 @@ BUG FIXES:
 	- Fix 1228: OpenSSL include is not guarded with HAVE_SSL
 	- Patch for expire state in multi-master when masters includes
 	  broken master, from Manabu Sonoda.
+	- minor manpage fix.
 
 
 4.1.15
