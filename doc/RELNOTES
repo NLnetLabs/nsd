@@ -3,6 +3,7 @@ NSD RELEASE NOTES
 4.1.17 (upcoming)
 ================
 FEATURES:
+	- zone parser parses type AVC (it has TXT format).
 BUG FIXES:
 
 

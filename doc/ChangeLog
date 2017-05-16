@@ -1,3 +1,6 @@
+16 May 2016: Wouter
+	- zone parser parses type AVC (it has TXT format).
+
 25 April 2016: Wouter
 	- 4.1.16 release tag.
 	- trunk contains 4.1.17 in development.
