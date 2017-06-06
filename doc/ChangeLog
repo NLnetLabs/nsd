@@ -1,3 +1,7 @@
+6 June 2016: Wouter
+	- Fix #1272: use writev to put tcp length field with data for outgoing
+	  zone transfer requests.
+
 16 May 2016: Wouter
 	- zone parser parses type AVC (it has TXT format).
 

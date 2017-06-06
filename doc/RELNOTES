@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- zone parser parses type AVC (it has TXT format).
+	- Fix #1272: use writev to put tcp length field with data for outgoing
+	  zone transfer requests.
 BUG FIXES:
 
 
