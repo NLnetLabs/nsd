@@ -1,3 +1,6 @@
+15 June 2016: Wouter
+	- xfr-inspect debug tool prints out xfr contents of files in tmp.
+
 6 June 2016: Wouter
 	- Fix #1272: use writev to put tcp length field with data for outgoing
 	  zone transfer requests.

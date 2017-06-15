@@ -167,8 +167,11 @@ cutest:	$(CUTEST_OBJ) $(LIBOBJS)
 udb-inspect:	udb-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ udb-inspect.o $(COMMON_OBJ) $(LIBOBJS) $(LIBS)
 
+xfr-inspect:	xfr-inspect.o $(COMMON_OBJ) $(LIBOBJS)
+	$(LINK) -o $@ xfr-inspect.o $(COMMON_OBJ) $(LIBOBJS) $(LIBS)
+
 clean:
-	rm -f *.o $(TARGETS) $(MANUALS) cutest udb-inspect nsd-mem
+	rm -f *.o $(TARGETS) $(MANUALS) cutest udb-inspect xfr-inspect nsd-mem
 
 realclean: clean
 	rm -f Makefile config.h config.log config.status
@@ -280,6 +283,9 @@ qtest.o:	$(srcdir)/tpkg/cutest/qtest.c
 
 udb-inspect.o:	$(srcdir)/tpkg/cutest/udb-inspect.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/udb-inspect.c
+
+xfr-inspect.o:	$(srcdir)/tpkg/cutest/xfr-inspect.c
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/xfr-inspect.c
 
 zlexer.c:	$(srcdir)/zlexer.lex
 	if test "$(LEX)" != ":"; then rm -f $@ ;\
