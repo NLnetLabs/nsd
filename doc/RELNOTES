@@ -7,6 +7,7 @@ FEATURES:
 	- Fix #1272: use writev to put tcp length field with data for outgoing
 	  zone transfer requests.
 BUG FIXES:
+	- Fix potential null pointer in nsec3 adjustment tree.
 
 
 4.1.16

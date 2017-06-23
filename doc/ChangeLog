@@ -1,3 +1,6 @@
+23 June 2016: Wouter
+	- Fix potential null pointer in nsec3 adjustment tree.
+
 15 June 2016: Wouter
 	- xfr-inspect debug tool prints out xfr contents of files in tmp.
 
