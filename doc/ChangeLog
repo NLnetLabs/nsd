@@ -1,3 +1,7 @@
+26 June 2016: Wouter
+	- Fix text format of deletes for CDS and CDNSKEY, single 0 to represent
+	  empty base64 or hex string.
+
 23 June 2016: Wouter
 	- Fix potential null pointer in nsec3 adjustment tree.
 

@@ -8,6 +8,8 @@ FEATURES:
 	  zone transfer requests.
 BUG FIXES:
 	- Fix potential null pointer in nsec3 adjustment tree.
+	- Fix text format of deletes for CDS and CDNSKEY, single 0 to represent
+	  empty base64 or hex string.
 
 
 4.1.16
