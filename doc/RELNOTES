@@ -1,6 +1,14 @@
 NSD RELEASE NOTES
 
-4.1.17 (upcoming)
+4.1.18 (upcoming)
+================
+FEATURES:
+	- xfr-inspect, it is not installed, it prints xfr files from /tmp
+	  made with 'make xfr-inspect' in the source dir.
+BUG FIXES:
+
+
+4.1.17
 ================
 FEATURES:
 	- zone parser parses type AVC (it has TXT format).

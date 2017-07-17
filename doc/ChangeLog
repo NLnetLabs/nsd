@@ -1,3 +1,8 @@
+17 July 2016: Wouter
+	- Trunk has 4.1.18
+	- xfr-inspect is part of source dir, but not made or installed by
+	  default.
+
 13 July 2016: Wouter
 	- tag 4.1.17rc1
 
