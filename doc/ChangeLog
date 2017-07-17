@@ -2,6 +2,7 @@
 	- Trunk has 4.1.18
 	- xfr-inspect is part of source dir, but not made or installed by
 	  default.
+	- retry timeout between sending notifies dropped from 15 to 3 sec.
 
 13 July 2016: Wouter
 	- tag 4.1.17rc1

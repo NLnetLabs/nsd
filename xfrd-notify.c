@@ -17,7 +17,7 @@
 #include "xfrd-tcp.h"
 #include "packet.h"
 
-#define XFRD_NOTIFY_RETRY_TIMOUT 15 /* seconds between retries sending NOTIFY */
+#define XFRD_NOTIFY_RETRY_TIMOUT 3 /* seconds between retries sending NOTIFY */
 
 /* start sending notifies */
 static void notify_enable(struct notify_zone* zone,

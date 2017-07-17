@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 	- xfr-inspect, it is not installed, it prints xfr files from /tmp
 	  made with 'make xfr-inspect' in the source dir.
+	- retry timeout between sending notifies dropped from 15 to 3 sec.
 BUG FIXES:
 
 
