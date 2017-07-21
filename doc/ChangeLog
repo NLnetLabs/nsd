@@ -5,7 +5,7 @@
 	- retry timeout between sending notifies dropped from 15 to 3 sec.
 
 13 July 2016: Wouter
-	- tag 4.1.17rc1
+	- tag 4.1.17rc1, and that became the 4.1.17 release on 21 July 2017.
 
 29 June 2016: Wouter
 	- make depend.
