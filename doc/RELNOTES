@@ -7,6 +7,7 @@ FEATURES:
 	  made with 'make xfr-inspect' in the source dir.
 	- retry timeout between sending notifies dropped from 15 to 3 sec.
 BUG FIXES:
+	- Fix gcc 7.1.1 warnings.
 
 
 4.1.17

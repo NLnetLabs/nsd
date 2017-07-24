@@ -1323,6 +1323,7 @@ xfrd_udp_read(xfrd_zone_type* zone)
 				xfrd_make_request(zone);
 				break;
 			}
+			/* fallthrough */
 		case xfrd_packet_newlease:
 			/* nothing more to do */
 			assert(zone->round_num == -1);

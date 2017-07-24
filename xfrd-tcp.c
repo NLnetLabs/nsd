@@ -898,6 +898,7 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 			tp->id[zone->query_id] = TCP_NULL_SKIP;
 			tp->num_skip++;
 			/* fall through to remove zone from tp */
+			/* fallthrough */
 		case xfrd_packet_transfer:
 			if(zone->zone_options->pattern->multi_master_check) {
 				xfrd_tcp_release(xfrd->tcp_set, zone);

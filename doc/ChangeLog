@@ -1,3 +1,6 @@
+24 July 2016: Wouter
+	- Fix gcc 7.1.1 warnings.
+
 17 July 2016: Wouter
 	- Trunk has 4.1.18
 	- xfr-inspect is part of source dir, but not made or installed by
