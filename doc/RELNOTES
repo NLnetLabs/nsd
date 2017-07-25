@@ -6,6 +6,8 @@ FEATURES:
 	- xfr-inspect, it is not installed, it prints xfr files from /tmp
 	  made with 'make xfr-inspect' in the source dir.
 	- retry timeout between sending notifies dropped from 15 to 3 sec.
+	- NSD sends up to 16 notifies simultaneously for up to 64 zones,
+	  to increase rate of notification for large master configurations.
 BUG FIXES:
 	- Fix gcc 7.1.1 warnings.
 

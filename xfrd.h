@@ -300,7 +300,8 @@ int xfrd_send_udp(struct acl_options* acl, buffer_type* packet,
 /*
  * read from udp port packet into buffer, returns 0 on failure
  */
-int xfrd_udp_read_packet(buffer_type* packet, int fd);
+int xfrd_udp_read_packet(buffer_type* packet, int fd, struct sockaddr* src,
+	socklen_t* srclen);
 
 /*
  * Release udp socket that a zone is using

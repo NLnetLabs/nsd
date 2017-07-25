@@ -1210,14 +1210,15 @@ xfrd_send_expire_notification(xfrd_zone_type* zone)
 }
 
 int
-xfrd_udp_read_packet(buffer_type* packet, int fd)
+xfrd_udp_read_packet(buffer_type* packet, int fd, struct sockaddr* src,
+	socklen_t* srclen)
 {
 	ssize_t received;
 
 	/* read the data */
 	buffer_clear(packet);
 	received = recvfrom(fd, buffer_begin(packet), buffer_remaining(packet),
-		0, NULL, NULL);
+		0, src, srclen);
 	if(received == -1) {
 		log_msg(LOG_ERR, "xfrd: recvfrom failed: %s",
 			strerror(errno));
@@ -1299,7 +1300,8 @@ static void
 xfrd_udp_read(xfrd_zone_type* zone)
 {
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s read udp data", zone->apex_str));
-	if(!xfrd_udp_read_packet(xfrd->packet, zone->zone_handler.ev_fd)) {
+	if(!xfrd_udp_read_packet(xfrd->packet, zone->zone_handler.ev_fd,
+		NULL, NULL)) {
 		zone->master->bad_xfr_count++;
 		if (zone->master->bad_xfr_count > 2) {
 			xfrd_disable_ixfr(zone);
