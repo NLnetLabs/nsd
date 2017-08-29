@@ -23,12 +23,17 @@
 #ifdef ALIGNMENT
 #undef ALIGNMENT
 #endif
+#ifndef PACKED_STRUCTS
 #define REGION_ALIGN_UP(x, s)     (((x) + s - 1) & (~(s - 1)))
 #if SIZEOF_OFF_T > SIZEOF_VOIDP
 #define ALIGNMENT	(sizeof(off_t))
 #else
 #define ALIGNMENT	(sizeof(void *))
 #endif
+#else
+#define REGION_ALIGN_UP(x, s) ((x)<SIZEOF_VOIDP?SIZEOF_VOIDP:(x))
+#define ALIGNMENT 1
+#endif /* PACKED_STRUCTS */
 /* #define CHECK_DOUBLE_FREE 0 */ /* set to 1 to perform expensive check for double recycle() */
 
 typedef struct cleanup cleanup_type;

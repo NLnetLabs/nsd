@@ -885,6 +885,15 @@ case "$enable_radix_tree" in
 	;;
 esac
 
+AC_ARG_ENABLE(packed, AC_HELP_STRING([--enable-packed], [Enable packed structure alignment, uses less memory, but unaligned reads.]))
+case "$enable_packed" in
+	yes)
+	AC_DEFINE_UNQUOTED([PACKED_STRUCTS], [], [Define this to use packed structure alignment.])
+	;;
+	no|*)
+	;;
+esac
+
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
 #if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
@@ -1065,6 +1074,10 @@ AH_BOTTOM([
 #endif /* !__timespec_defined */
 #endif /* !HAVE_STRUCT_TIMESPEC */
 #endif /* !CONFIG_DEFINES */
+
+#ifdef PACKED_STRUCTS
+#pragma pack(1)
+#endif
 ])
 
 # big fat warning

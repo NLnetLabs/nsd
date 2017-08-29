@@ -7,6 +7,8 @@ FEATURES:
 	  made with 'make xfr-inspect' in the source dir.
 	- retry timeout between sending notifies dropped from 15 to 3 sec.
 	- NSD sends 16 notifies simultaneously.
+	- configure --enable-packed reduces memory usage, at expense of
+	  unaligned reads.
 BUG FIXES:
 	- Fix gcc 7.1.1 warnings.
 

@@ -1,3 +1,6 @@
+29 August 2016: Wouter
+	- With --enable-packed save memory, at expense of unaligned reads.
+
 25 July 2016: Wouter
 	- NSD sends up to 16 notifies simultaneously for up to 64 zones,
 	  to increase rate of notification for large master configurations.
