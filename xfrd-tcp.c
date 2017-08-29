@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/uio.h>
 #include "nsd.h"
 #include "xfrd-tcp.h"
 #include "buffer.h"
