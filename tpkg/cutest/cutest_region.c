@@ -14,11 +14,15 @@
 #include "region-allocator.h"
 #include "util.h"
 #include "rbtree.h"
+#ifndef PACKED_STRUCTS
 #if SIZEOF_OFF_T > SIZEOF_VOIDP
 #define ALIGNMENT (sizeof(off_t))
 #else
 #define ALIGNMENT (sizeof(void *))
 #endif
+#else
+#define ALIGNMENT 1
+#endif /* PACKED_STRUCTS */
 
 static void region_1(CuTest *tc);
 
@@ -33,7 +37,11 @@ size_t
 align_size(size_t x)
 {
 	if(x == 0) x = 1;
+#ifndef PACKED_STRUCTS
 	x = ALIGN_UP(x, ALIGNMENT);
+#else
+	if(x < SIZEOF_VOIDP) x = SIZEOF_VOIDP;
+#endif
 	return x;
 }
 
