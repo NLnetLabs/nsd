@@ -1076,7 +1076,9 @@ AH_BOTTOM([
 #endif /* !CONFIG_DEFINES */
 
 #ifdef PACKED_STRUCTS
-#pragma pack(1)
+#define ATTR_PACKED __attribute__((packed))
+#else
+#define ATTR_PACKED
 #endif
 ])
 

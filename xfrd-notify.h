@@ -72,7 +72,7 @@ struct notify_zone {
 	/* the double linked waiting list for the udp sockets */
 	struct notify_zone* waiting_next;
 	struct notify_zone* waiting_prev;
-};
+} ATTR_PACKED;
 
 /* initialise outgoing notifies */
 void init_notify_send(rbtree_type* tree, region_type* region,

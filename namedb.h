@@ -85,7 +85,7 @@ struct nsec3_domain_data {
 	unsigned     nsec3_is_exact : 1;
 	/* same but on parent side */
 	unsigned     nsec3_ds_parent_is_exact : 1;
-};
+} ATTR_PACKED;
 #endif /* NSEC3 */
 
 struct domain
@@ -114,7 +114,7 @@ struct domain
 	 */
 	unsigned     is_existing : 1;
 	unsigned     is_apex : 1;
-};
+} ATTR_PACKED;
 
 struct zone
 {
@@ -140,7 +140,7 @@ struct zone
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
 	unsigned     is_ok : 1; /* zone has not expired. */
 	unsigned     is_changed : 1; /* zone was changed by AXFR */
-};
+} ATTR_PACKED;
 
 /* a RR in DNS */
 struct rr {
@@ -150,7 +150,7 @@ struct rr {
 	uint16_t         type;
 	uint16_t         klass;
 	uint16_t         rdata_count;
-};
+} ATTR_PACKED;
 
 /*
  * An RRset consists of at least one RR.  All RRs are from the same
@@ -162,7 +162,7 @@ struct rrset
 	zone_type*  zone;
 	rr_type*    rrs;
 	uint16_t    rr_count;
-};
+} ATTR_PACKED;
 
 /*
  * The field used is based on the wireformat the atom is stored in.

@@ -136,7 +136,7 @@ struct xfrd_soa {
 	uint32_t retry;
 	uint32_t expire;
 	uint32_t minimum;
-};
+} ATTR_PACKED;
 
 
 /*
@@ -219,7 +219,7 @@ struct xfrd_zone {
 				valid if msg_seq_nr nonzero */
 	int multi_master_first_master; /* >0: first check master_num */
 	int multi_master_update_check; /* -1: not update >0: last update master_num */
-};
+} ATTR_PACKED;
 
 enum xfrd_packet_result {
 	xfrd_packet_bad, /* drop the packet/connection */
