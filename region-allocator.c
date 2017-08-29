@@ -290,7 +290,13 @@ region_alloc(region_type *region, size_t size)
 			return NULL;
 
 		wasted = (region->chunk_size - region->allocated) & (~(ALIGNMENT-1));
-		if(wasted >= ALIGNMENT) {
+		if(
+#ifndef PACKED_STRUCTS
+			wasted >= ALIGNMENT
+#else
+			wasted >= SIZEOF_VOIDP
+#endif
+			) {
 			/* put wasted part in recycle bin for later use */
 			region->total_allocated += wasted;
 			++region->small_objects;
