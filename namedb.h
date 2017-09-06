@@ -53,6 +53,20 @@ struct domain_table
 };
 
 #ifdef NSEC3
+typedef struct nsec3_hash_node nsec3_hash_node_type;
+struct nsec3_hash_node {
+	/* hash value */
+	uint8_t hash[NSEC3_HASH_LEN];
+	/* entry in the hashtree */
+	rbnode_type node;
+} ATTR_PACKED;
+
+typedef struct nsec3_hash_wc_node nsec3_hash_wc_node_type;
+struct nsec3_hash_wc_node {
+	nsec3_hash_node_type hash;
+	nsec3_hash_node_type wc;
+};
+
 struct nsec3_domain_data {
 	/* (if nsec3 chain complete) always the covering nsec3 record */
 	domain_type* nsec3_cover;
@@ -64,23 +78,13 @@ struct nsec3_domain_data {
 	domain_type* prehash_prev, *prehash_next;
 	/* entry in the nsec3tree (for NSEC3s in the chain in use) */
 	rbnode_type nsec3_node;
-	/* entry in the hashtree (for precompiled domains) */
-	rbnode_type hash_node;
-	/* entry in the wchashtree (the wildcard precompile) */
-	rbnode_type wchash_node;
-	/* entry in the dshashtree (the parent ds precompile) */
-	rbnode_type dshash_node;
 
-	/* nsec3 hash */
-	uint8_t nsec3_hash[NSEC3_HASH_LEN];
-	/* nsec3 hash of wildcard before this name */
-	uint8_t nsec3_wc_hash[NSEC3_HASH_LEN];
-	/* parent-side DS hash */
-	uint8_t nsec3_ds_parent_hash[NSEC3_HASH_LEN];
-	/* if the nsec3 has is available */
-	unsigned  have_nsec3_hash : 1;
-	unsigned  have_nsec3_wc_hash : 1;
-	unsigned  have_nsec3_ds_parent_hash : 1;
+	/* node for the precompiled domain and the precompiled wildcard */
+	nsec3_hash_wc_node_type* hash_wc;
+
+	/* node for the precompiled parent ds */
+	nsec3_hash_node_type* ds_parent_hash;
+
 	/* if the domain has an NSEC3 for it, use cover ptr to get it. */
 	unsigned     nsec3_is_exact : 1;
 	/* same but on parent side */

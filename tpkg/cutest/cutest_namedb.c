@@ -330,8 +330,10 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 	} else {
 		const dname_type* h, *wch, *wild;
 		uint8_t hash[NSEC3_HASH_LEN], wchash[NSEC3_HASH_LEN];
-		CuAssertTrue(tc, domain->nsec3->have_nsec3_hash);
-		CuAssertTrue(tc, domain->nsec3->have_nsec3_wc_hash);
+		CuAssertTrue(tc, domain->nsec3->hash_wc
+		              && domain->nsec3->hash_wc->hash.node.key);
+		CuAssertTrue(tc, domain->nsec3->hash_wc
+		              && domain->nsec3->hash_wc->wc.node.key);
 		nsec3_hash_and_store(zone, domain_dname(domain), hash);
 		h = nsec3_b32_create(region, zone, hash);
 		wild = dname_parse(region, "*");
@@ -339,9 +341,9 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 		nsec3_hash_and_store(zone, wild, wchash);
 		wch = nsec3_b32_create(region, zone, wchash);
 
-		CuAssertTrue(tc, memcmp(domain->nsec3->nsec3_hash, hash,
+		CuAssertTrue(tc, memcmp(domain->nsec3->hash_wc->hash.hash, hash,
 			NSEC3_HASH_LEN) == 0);
-		CuAssertTrue(tc, memcmp(domain->nsec3->nsec3_wc_hash, wchash,
+		CuAssertTrue(tc, memcmp(domain->nsec3->hash_wc->wc.hash, wchash,
 			NSEC3_HASH_LEN) == 0);
 
 		/* check nsec3_cover, nsec3_is_exact */
@@ -363,10 +365,11 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 	    if(pz->nsec3_param && domain->is_existing) {
 		const dname_type* h;
 		uint8_t hash[NSEC3_HASH_LEN];
-		CuAssertTrue(tc, domain->nsec3->have_nsec3_ds_parent_hash);
+		CuAssertTrue(tc, domain->nsec3->ds_parent_hash
+		              && domain->nsec3->ds_parent_hash->node.key);
 		nsec3_hash_and_store(pz, domain_dname(domain), hash);
 		h = nsec3_b32_create(region, pz, hash);
-		CuAssertTrue(tc, memcmp(domain->nsec3->nsec3_ds_parent_hash,
+		CuAssertTrue(tc, memcmp(domain->nsec3->ds_parent_hash->hash,
 			hash, NSEC3_HASH_LEN) == 0);
 
 		/* check nsec3_ds_parent_cover, nsec3_ds_parent_is_exact */
@@ -379,7 +382,7 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 			CuAssertTrue(tc, !domain->nsec3->nsec3_ds_parent_is_exact);
 		}
 	    } else {
-		CuAssertTrue(tc, !domain->nsec3->have_nsec3_ds_parent_hash);
+		CuAssertTrue(tc, !domain->nsec3->ds_parent_hash);
 		CuAssertTrue(tc, !domain->nsec3->nsec3_ds_parent_cover);
 		CuAssertTrue(tc, !domain->nsec3->nsec3_ds_parent_is_exact);
 	    }
