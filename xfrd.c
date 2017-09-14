@@ -767,7 +767,7 @@ xfrd_set_timer_retry(xfrd_zone_type* zone)
 		else if(set_retry < (time_t)zone->zone_options->pattern->min_retry_time)
 			set_retry = zone->zone_options->pattern->min_retry_time;
 		if(set_retry < XFRD_LOWERBOUND_RETRY)
-			set_retry =  XFRD_LOWERBOUND_RETRY;
+			set_retry = XFRD_LOWERBOUND_RETRY;
 		xfrd_set_timer(zone, set_retry);
 	} else {
 		set_retry = ntohl(zone->soa_disk.expire);
