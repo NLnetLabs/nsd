@@ -1,5 +1,5 @@
 14 September 2016: Wouter
-	- Fix layout in xfrd.c
+	- Fix layout in xfrd.c.
 
 29 August 2016: Wouter
 	- With --enable-packed save memory, at expense of unaligned reads.
