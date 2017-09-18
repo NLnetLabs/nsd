@@ -12,6 +12,7 @@ FEATURES:
 BUG FIXES:
 	- Fix gcc 7.1.1 warnings.
 	- Fix writev compile warning on FreeBSD.
+	- Fix #1446: A corrupted zone file "propagates" to good ones.
 
 
 4.1.17

@@ -1,3 +1,6 @@
+18 September 2016: Wouter
+	- Fix #1446: A corrupted zone file "propagates" to good ones.
+
 14 September 2016: Wouter
 	- Fix layout in xfrd.c.
 
