@@ -4,6 +4,9 @@
 14 September 2016: Wouter
 	- Fix layout in xfrd.c.
 
+6 September 2017: Willem
+	- Save memory by selectively allocate precompiled nsec3 hashes
+
 29 August 2016: Wouter
 	- With --enable-packed save memory, at expense of unaligned reads.
 	- Fix writev compile warning on FreeBSD.
