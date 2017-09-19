@@ -1,3 +1,6 @@
+19 September 2016: Wouter
+	- merges feature branch branches/alloced_prehashes into trunk.
+
 18 September 2016: Wouter
 	- Fix #1446: A corrupted zone file "propagates" to good ones.
 
