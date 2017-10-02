@@ -15,6 +15,8 @@ BUG FIXES:
 	- Fix gcc 7.1.1 warnings.
 	- Fix writev compile warning on FreeBSD.
 	- Fix #1446: A corrupted zone file "propagates" to good ones.
+	- nsd-control zonestatus prints wait time between attempts, for zones
+	  that are in that waiting time.
 
 
 4.1.17

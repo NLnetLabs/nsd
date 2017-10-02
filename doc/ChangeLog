@@ -1,3 +1,7 @@
+2 October 2016: Wouter
+	- nsd-control zonestatus prints wait time between attempts, for zones
+	  that are in that waiting time.
+
 19 September 2016: Wouter
 	- merges feature branch branches/alloced_prehashes into trunk.
 

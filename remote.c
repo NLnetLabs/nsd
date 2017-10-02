@@ -992,6 +992,10 @@ print_zonestatus(SSL* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 		if(!print_soa_status(ssl, "notified-serial", &xz->soa_notified,
 			xz->soa_notified_acquired))
 			return 0;
+	} else if(xz->event_added) {
+		if(!ssl_printf(ssl, "\twait: \"%u sec between attempts\"\n",
+			(unsigned)xz->timeout.tv_sec))
+			return 0;
 	}
 
 	/* UDP */
