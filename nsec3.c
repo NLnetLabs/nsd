@@ -897,14 +897,14 @@ nsec3_add_nonexist_proof(struct query* query, struct answer* answer,
 			if(walk->nsec3 && walk->nsec3->nsec3_cover == cover) {
 				snprintf(reversebuf, sizeof(reversebuf),
 					"%s %s", domain_to_string(walk),
-					walk->nsec3->nsec3_is_exact?"exact":"cover");
+					walk->nsec3->nsec3_is_exact?"exact":"no_exact_hash_match");
 				if(walk->nsec3->nsec3_is_exact)
 					break;
 			}
 			if(walk->nsec3 && walk->nsec3->nsec3_ds_parent_cover == cover) {
 				snprintf(reversebuf, sizeof(reversebuf),
 					"%s %s", domain_to_string(walk),
-					walk->nsec3->nsec3_ds_parent_is_exact?"exact":"cover");
+					walk->nsec3->nsec3_ds_parent_is_exact?"exact":"no_exact_hash_match");
 				if(walk->nsec3->nsec3_ds_parent_is_exact)
 					break;
 			}
