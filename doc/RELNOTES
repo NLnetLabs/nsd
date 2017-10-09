@@ -17,6 +17,7 @@ BUG FIXES:
 	- Fix #1446: A corrupted zone file "propagates" to good ones.
 	- nsd-control zonestatus prints wait time between attempts, for zones
 	  that are in that waiting time.
+	- Fix collision printout of nsec3 to print name, hash and reverse.
 
 
 4.1.17

@@ -884,12 +884,35 @@ nsec3_add_nonexist_proof(struct query* query, struct answer* answer,
 		dname_label_match_count(qname, domain_dname(encloser))+1);
 	/* generate proof that one label below closest encloser does not exist */
 	nsec3_hash_and_store(query->zone, to_prove, hash);
-	if(nsec3_find_cover(query->zone, hash, sizeof(hash), &cover))
+	if(nsec3_find_cover(query->zone, hash, sizeof(hash), &cover) || 1)
 	{
 		/* exact match, hash collision */
+		domain_type* walk;
+		char hashbuf[512];
+		char reversebuf[512];
+		(void)b32_ntop(hash, sizeof(hash), hashbuf, sizeof(hashbuf));
+		snprintf(reversebuf, sizeof(reversebuf), "(no name in the zone hashes to this nsec3 record)");
+		walk = query->zone->apex;
+		while(walk) {
+			if(walk->nsec3 && walk->nsec3->nsec3_cover == cover) {
+				snprintf(reversebuf, sizeof(reversebuf),
+					"%s %s", domain_to_string(walk),
+					walk->nsec3->nsec3_is_exact?"exact":"cover");
+				break;
+			}
+			if(walk->nsec3 && walk->nsec3->nsec3_ds_parent_cover == cover) {
+				snprintf(reversebuf, sizeof(reversebuf),
+					"%s %s", domain_to_string(walk),
+					walk->nsec3->nsec3_ds_parent_is_exact?"exact":"cover");
+				break;
+			}
+			walk = domain_next(walk);
+		}
+
+
 		/* the hashed name of the query corresponds to an existing name. */
-		VERBOSITY(3, (LOG_ERR, "nsec3 hash collision for name=%s",
-			dname_to_string(to_prove, NULL)));
+		VERBOSITY(3, (LOG_ERR, "nsec3 hash collision for name=%s hash=%s reverse=%s",
+			dname_to_string(to_prove, NULL), hashbuf, reversebuf));
 		RCODE_SET(query->packet, RCODE_SERVFAIL);
 		return;
 	}

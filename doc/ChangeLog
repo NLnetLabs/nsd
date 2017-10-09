@@ -1,3 +1,6 @@
+9 October 2016: Wouter
+	- Fix collision printout of nsec3 to print name, hash and reverse.
+
 2 October 2016: Wouter
 	- nsd-control zonestatus prints wait time between attempts, for zones
 	  that are in that waiting time.
