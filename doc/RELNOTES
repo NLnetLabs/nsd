@@ -18,6 +18,8 @@ BUG FIXES:
 	- nsd-control zonestatus prints wait time between attempts, for zones
 	  that are in that waiting time.
 	- Fix collision printout of nsec3 to print name, hash and reverse.
+	- Fix #1567: Change crit to err log level for gettimeofday failure.
+	  Add defines for compile without syslog.
 
 
 4.1.17
