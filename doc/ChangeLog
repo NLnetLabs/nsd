@@ -1,3 +1,6 @@
+11 October 2016: Wouter
+	- Fix #1567: Change crit to err log level for gettimeofday failure.
+
 9 October 2016: Wouter
 	- Fix collision printout of nsec3 to print name, hash and reverse.
 
