@@ -11,6 +11,7 @@ FEATURES:
 	  unaligned reads.  Saves about 17%.
 	- Save memory by selectively allocate precompiled nsec3 hashes,
 	  saves about 16% memory.
+	- make ip-transparent option work on OpenBSD.
 BUG FIXES:
 	- Fix gcc 7.1.1 warnings.
 	- Fix writev compile warning on FreeBSD.
