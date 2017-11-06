@@ -85,7 +85,7 @@ allocate_domain_nsec3(domain_table_type* table, domain_type* result)
 static void
 numlist_make_last(domain_table_type* table, domain_type* domain)
 {
-	size_t sw;
+	uint32_t sw;
 	domain_type* last = table->numlist_last;
 	if(domain == last)
 		return;
