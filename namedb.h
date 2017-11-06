@@ -108,8 +108,8 @@ struct domain
 #endif
 	/* double-linked list sorted by domain.number */
 	domain_type* numlist_prev, *numlist_next;
-	size_t     number; /* Unique domain name number.  */
-	size_t     usage; /* number of ptrs to this from RRs(in rdata) and
+	uint32_t     number; /* Unique domain name number.  */
+	uint32_t     usage; /* number of ptrs to this from RRs(in rdata) and
 			     from zone-apex pointers, also the root has one
 			     more to make sure it cannot be deleted. */
 

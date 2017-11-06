@@ -12,6 +12,7 @@ FEATURES:
 	- Save memory by selectively allocate precompiled nsec3 hashes,
 	  saves about 16% memory.
 	- make ip-transparent option work on OpenBSD.
+	- Save about 2% memory by changing usage count size in name tree.
 BUG FIXES:
 	- Fix gcc 7.1.1 warnings.
 	- Fix writev compile warning on FreeBSD.
