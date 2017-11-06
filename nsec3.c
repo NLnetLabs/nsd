@@ -884,7 +884,7 @@ nsec3_add_nonexist_proof(struct query* query, struct answer* answer,
 		dname_label_match_count(qname, domain_dname(encloser))+1);
 	/* generate proof that one label below closest encloser does not exist */
 	nsec3_hash_and_store(query->zone, to_prove, hash);
-	if(nsec3_find_cover(query->zone, hash, sizeof(hash), &cover) || 1)
+	if(nsec3_find_cover(query->zone, hash, sizeof(hash), &cover))
 	{
 		/* exact match, hash collision */
 		domain_type* walk;
