@@ -13,6 +13,7 @@ FEATURES:
 	  saves about 16% memory.
 	- make ip-transparent option work on OpenBSD.
 	- Save about 2% memory by changing usage count size in name tree.
+	- Fix #2871: Increase number of sockets for xfrd transfers.
 BUG FIXES:
 	- Fix gcc 7.1.1 warnings.
 	- Fix writev compile warning on FreeBSD.
