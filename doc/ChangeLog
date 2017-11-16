@@ -1,3 +1,6 @@
+16 November 2017: Wouter
+	- tag for 4.1.18rc1.
+
 14 November 2017: Wouter
 	- Fix #2871: Increase number of sockets for xfrd transfers.
 
