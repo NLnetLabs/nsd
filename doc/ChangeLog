@@ -1,6 +1,7 @@
 27 November 2017: Wouter
 	- Fix crash for DS query when parent and child zones both configured
 	  in nsd.conf and parent zone has not loaded properly.
+	- tag for 4.1.18rc2.
 
 16 November 2017: Wouter
 	- tag for 4.1.18rc1.
