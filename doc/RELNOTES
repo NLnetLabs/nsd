@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.18 (upcoming)
+4.1.18
 ================
 FEATURES:
 	- xfr-inspect, it is not installed, it prints xfr files from /tmp
@@ -23,6 +23,8 @@ BUG FIXES:
 	- Fix collision printout of nsec3 to print name, hash and reverse.
 	- Fix #1567: Change crit to err log level for gettimeofday failure.
 	  Add defines for compile without syslog.
+	- Fix crash for DS query when parent and child zones both configured
+	  in nsd.conf and parent zone has not loaded properly.
 
 
 4.1.17
