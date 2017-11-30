@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- ignore fallthrough compiler warning in flex EOF rule.
 
 
 4.1.18

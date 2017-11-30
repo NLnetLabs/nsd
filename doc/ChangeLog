@@ -1,6 +1,7 @@
 30 November 2017: Wouter
 	- tag for 4.1.18 release.
 	- trunk has 4.1.19 in development.
+	- ignore fallthrough compiler warning in flex EOF rule.
 
 27 November 2017: Wouter
 	- Fix crash for DS query when parent and child zones both configured

@@ -143,9 +143,13 @@ ANY     [^\"\n\\]|\\.
 	 */
 ^{DOLLAR}INCLUDE        {
 	BEGIN(incl);
+	/* ignore case statement fallthrough on incl<EOF> flex rule */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 }
-<incl>\n 		|
+<incl>\n	|
 <incl><<EOF>>		{
+#pragma GCC diagnostic pop
 	int error_occurred = parser->error_occurred;
 	BEGIN(INITIAL);
 	zc_error("missing file name in $INCLUDE directive");
