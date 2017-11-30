@@ -147,7 +147,7 @@ ANY     [^\"\n\\]|\\.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 }
-<incl>\n	|
+<incl>\n		|
 <incl><<EOF>>		{
 #pragma GCC diagnostic pop
 	int error_occurred = parser->error_occurred;
