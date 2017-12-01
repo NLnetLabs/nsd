@@ -5,6 +5,9 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- ignore fallthrough compiler warning in flex EOF rule.
+	- Fix warnings emitted by clang for --enable-packed.  Alignment is not
+	  a problem for x86_64, don't enable packed when the platform
+	  requires aligned access.
 
 
 4.1.18

@@ -1,3 +1,8 @@
+1 December 2017: Wouter
+	- Fix warnings emitted by clang for --enable-packed.  Alignment is not
+	  a problem for x86_64, don't enable packed when the platform
+	  requires aligned access.
+
 30 November 2017: Wouter
 	- tag for 4.1.18 release.
 	- trunk has 4.1.19 in development.
