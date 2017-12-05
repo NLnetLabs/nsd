@@ -1,3 +1,6 @@
+5 December 2017: Wouter
+	- Fix spelling error in xfr-inspect.
+
 1 December 2017: Wouter
 	- Fix warnings emitted by clang for --enable-packed.  Alignment is not
 	  a problem for x86_64, don't enable packed when the platform

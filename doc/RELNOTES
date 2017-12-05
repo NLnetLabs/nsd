@@ -8,6 +8,7 @@ BUG FIXES:
 	- Fix warnings emitted by clang for --enable-packed.  Alignment is not
 	  a problem for x86_64, don't enable packed when the platform
 	  requires aligned access.
+	- Fix spelling error in xfr-inspect.
 
 
 4.1.18
