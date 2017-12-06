@@ -41,6 +41,17 @@ notify_send_disable(struct notify_zone* zone)
 	}
 }
 
+static void
+notify_send6_disable(struct notify_zone* zone)
+{
+	zone->notify_send6_enable = 0;
+	event_del(&zone->notify_send6_handler);
+	if(zone->notify_send6_handler.ev_fd != -1) {
+		close(zone->notify_send6_handler.ev_fd);
+		zone->notify_send6_handler.ev_fd = -1;
+	}
+}
+
 void
 notify_disable(struct notify_zone* zone)
 {
@@ -48,6 +59,9 @@ notify_disable(struct notify_zone* zone)
 	/* if added, then remove */
 	if(zone->notify_send_enable) {
 		notify_send_disable(zone);
+	}
+	if(zone->notify_send6_enable) {
+		notify_send6_disable(zone);
 	}
 
 	if(xfrd->notify_udp_num == XFRD_MAX_UDP_NOTIFY) {
@@ -93,9 +107,11 @@ init_notify_send(rbtree_type* tree, region_type* region,
 	memset(not->current_soa, 0, sizeof(struct xfrd_soa));
 
 	not->notify_send_handler.ev_fd = -1;
+	not->notify_send6_handler.ev_fd = -1;
 	not->is_waiting = 0;
 
 	not->notify_send_enable = 0;
+	not->notify_send6_enable = 0;
 	tsig_create_record_custom(&not->notify_tsig, NULL, 0, 0, 4);
 	not->notify_current = 0;
 	rbtree_insert(tree, (rbnode_type*)not);
@@ -122,7 +138,7 @@ xfrd_del_notify(xfrd_state_type* xfrd, const dname_type* dname)
 	}
 
 	/* event */
-	if(not->notify_send_enable) {
+	if(not->notify_send_enable || not->notify_send6_enable) {
 		notify_disable(not);
 	}
 
@@ -276,7 +292,10 @@ xfrd_notify_send_udp(struct notify_zone* zone, int index)
 	}
 	buffer_flip(packet);
 
-	if(zone->notify_send_handler.ev_fd == -1) {
+	if((zone->pkts[index].dest->is_ipv6
+		&& zone->notify_send6_handler.ev_fd == -1) ||
+		(!zone->pkts[index].dest->is_ipv6
+		&& zone->notify_send_handler.ev_fd == -1)) {
 		/* open fd */
 		int fd = xfrd_send_udp(zone->pkts[index].dest, packet,
 			zone->options->pattern->outgoing_interface);
@@ -286,7 +305,9 @@ xfrd_notify_send_udp(struct notify_zone* zone, int index)
 				zone->pkts[index].dest->ip_address_spec);
 			return 0;
 		}
-		zone->notify_send_handler.ev_fd = fd;
+		if(zone->pkts[index].dest->is_ipv6)
+			zone->notify_send6_handler.ev_fd = fd;
+		else	zone->notify_send_handler.ev_fd = fd;
 	} else {
 		/* send on existing fd */
 #ifdef INET6
@@ -294,9 +315,13 @@ xfrd_notify_send_udp(struct notify_zone* zone, int index)
 #else
         	struct sockaddr_in to;
 #endif /* INET6 */
+		int fd;
 		socklen_t to_len = xfrd_acl_sockaddr_to(
 			zone->pkts[index].dest, &to);
-		if(sendto(zone->notify_send_handler.ev_fd,
+		if(zone->pkts[index].dest->is_ipv6)
+			fd = zone->notify_send6_handler.ev_fd;
+		else	fd = zone->notify_send_handler.ev_fd;
+		if(sendto(fd,
 			buffer_current(packet), buffer_remaining(packet), 0,
 			(struct sockaddr*)&to, to_len) == -1) {
 			log_msg(LOG_ERR, "xfrd notify: sendto %s failed %s",
@@ -351,18 +376,34 @@ notify_start_pkts(struct notify_zone* zone)
 static void
 notify_setup_event(struct notify_zone* zone)
 {
-	int fd = zone->notify_send_handler.ev_fd;
-	if(zone->notify_send_enable) {
-		event_del(&zone->notify_send_handler);
+	if(zone->notify_send_handler.ev_fd != -1) {
+		int fd = zone->notify_send_handler.ev_fd;
+		if(zone->notify_send_enable) {
+			event_del(&zone->notify_send_handler);
+		}
+		zone->notify_timeout.tv_sec = XFRD_NOTIFY_RETRY_TIMOUT;
+		event_set(&zone->notify_send_handler, fd, EV_READ | EV_TIMEOUT,
+			xfrd_handle_notify_send, zone);
+		if(event_base_set(xfrd->event_base, &zone->notify_send_handler) != 0)
+			log_msg(LOG_ERR, "notify_send: event_base_set failed");
+		if(event_add(&zone->notify_send_handler, &zone->notify_timeout) != 0)
+			log_msg(LOG_ERR, "notify_send: event_add failed");
+		zone->notify_send_enable = 1;
 	}
-	zone->notify_timeout.tv_sec = XFRD_NOTIFY_RETRY_TIMOUT;
-	event_set(&zone->notify_send_handler, fd, EV_READ | EV_TIMEOUT,
-		xfrd_handle_notify_send, zone);
-	if(event_base_set(xfrd->event_base, &zone->notify_send_handler) != 0)
-		log_msg(LOG_ERR, "notify_send: event_base_set failed");
-	if(event_add(&zone->notify_send_handler, &zone->notify_timeout) != 0)
-		log_msg(LOG_ERR, "notify_send: event_add failed");
-	zone->notify_send_enable = 1;
+	if(zone->notify_send6_handler.ev_fd != -1) {
+		int fd = zone->notify_send6_handler.ev_fd;
+		if(zone->notify_send6_enable) {
+			event_del(&zone->notify_send6_handler);
+		}
+		zone->notify_timeout.tv_sec = XFRD_NOTIFY_RETRY_TIMOUT;
+		event_set(&zone->notify_send6_handler, fd, EV_READ | EV_TIMEOUT,
+			xfrd_handle_notify_send, zone);
+		if(event_base_set(xfrd->event_base, &zone->notify_send6_handler) != 0)
+			log_msg(LOG_ERR, "notify_send: event_base_set failed");
+		if(event_add(&zone->notify_send6_handler, &zone->notify_timeout) != 0)
+			log_msg(LOG_ERR, "notify_send: event_add failed");
+		zone->notify_send6_enable = 1;
+	}
 }
 
 static void
@@ -471,7 +512,8 @@ void
 xfrd_notify_start(struct notify_zone* zone, struct xfrd_state* xfrd)
 {
 	xfrd_zone_type* xz;
-	if(zone->is_waiting || zone->notify_send_enable)
+	if(zone->is_waiting || zone->notify_send_enable ||
+		zone->notify_send6_enable)
 		return;
 	xz = (xfrd_zone_type*)rbtree_search(xfrd->zones, zone->apex);
 	if(xz && xz->soa_nsd_acquired)
@@ -486,7 +528,7 @@ xfrd_send_notify(rbtree_type* tree, const dname_type* apex, struct xfrd_soa* new
 	struct notify_zone* zone = (struct notify_zone*)
 		rbtree_search(tree, apex);
 	assert(zone);
-	if(zone->notify_send_enable)
+	if(zone->notify_send_enable || zone->notify_send6_enable)
 		notify_disable(zone);
 
 	notify_enable(zone, new_soa);
@@ -505,7 +547,7 @@ notify_handle_master_zone_soainfo(rbtree_type* tree,
 	if( (new_soa == NULL && zone->current_soa->serial == 0) ||
 		(new_soa && new_soa->serial == zone->current_soa->serial))
 		return;
-	if(zone->notify_send_enable)
+	if(zone->notify_send_enable || zone->notify_send6_enable)
 		notify_disable(zone);
 	notify_enable(zone, new_soa);
 }
@@ -516,7 +558,7 @@ close_notify_fds(rbtree_type* tree)
 	struct notify_zone* zone;
 	RBTREE_FOR(zone, struct notify_zone*, tree)
 	{
-		if(zone->notify_send_enable)
+		if(zone->notify_send_enable || zone->notify_send6_enable)
 			notify_send_disable(zone);
 	}
 }

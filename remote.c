@@ -958,7 +958,7 @@ print_zonestatus(SSL* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 		if(nz->is_waiting) {
 			if(!ssl_printf(ssl, "	notify: \"waiting-for-fd\"\n"))
 				return 0;
-		} else if(nz->notify_send_enable) {
+		} else if(nz->notify_send_enable || nz->notify_send6_enable) {
 			int i;
 			if(!ssl_printf(ssl, "	notify: \"send"))
 				return 0;

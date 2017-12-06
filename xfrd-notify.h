@@ -61,6 +61,8 @@ struct notify_zone {
 	/* Not saved on disk (i.e. kill of daemon stops notifies) */
 	int notify_send_enable;
 	struct event notify_send_handler;
+	int notify_send6_enable;
+	struct event notify_send6_handler;
 	struct timeval notify_timeout;
 	struct acl_options* notify_current; /* current slave to notify */
 	uint8_t notify_restart; /* restart notify after repattern */

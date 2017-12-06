@@ -1,3 +1,7 @@
+6 December 2017: Wouter
+	- Fix 3392: Fix regression in 4.1.18 for notify lists with ip4
+	  and ip6 targets.
+
 5 December 2017: Wouter
 	- Fix spelling error in xfr-inspect.
 

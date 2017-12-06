@@ -9,6 +9,8 @@ BUG FIXES:
 	  a problem for x86_64, don't enable packed when the platform
 	  requires aligned access.
 	- Fix spelling error in xfr-inspect.
+	- Fix 3392: Fix regression in 4.1.18 for notify lists with ip4
+	  and ip6 targets.
 
 
 4.1.18
