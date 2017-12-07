@@ -11,6 +11,10 @@
 #if defined(__clang__)||(defined(__GNUC__)&&((__GNUC__ >4)||(defined(__GNUC_MINOR__)&&(__GNUC__ ==4)&&(__GNUC_MINOR__ >=2))))
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
+/* ignore fallthrough warnings in the generated parse code case statements */
+#if defined(__clang__)||(defined(__GNUC__)&&(__GNUC__ >7))
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
 
 #include "config.h"
 
@@ -144,12 +148,9 @@ ANY     [^\"\n\\]|\\.
 ^{DOLLAR}INCLUDE        {
 	BEGIN(incl);
 	/* ignore case statement fallthrough on incl<EOF> flex rule */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 }
 <incl>\n		|
 <incl><<EOF>>		{
-#pragma GCC diagnostic pop
 	int error_occurred = parser->error_occurred;
 	BEGIN(INITIAL);
 	zc_error("missing file name in $INCLUDE directive");

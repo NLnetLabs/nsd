@@ -1,3 +1,6 @@
+7 December 2017: Wouter
+	- Fixup lexer warning for gcc 4.2.
+
 6 December 2017: Wouter
 	- Fix 3392: Fix regression in 4.1.18 for notify lists with ip4
 	  and ip6 targets.
