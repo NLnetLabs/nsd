@@ -12,7 +12,7 @@
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 /* ignore fallthrough warnings in the generated parse code case statements */
-#if defined(__clang__)||(defined(__GNUC__)&&(__GNUC__ >7))
+#if defined(__clang__)||(defined(__GNUC__)&&(__GNUC__ >=7))
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
 
