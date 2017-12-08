@@ -1,8 +1,7 @@
 NSD RELEASE NOTES
 
-4.1.19 (upcoming)
+4.1.19
 ================
-FEATURES:
 BUG FIXES:
 	- ignore fallthrough compiler warning in flex EOF rule.
 	- Fix warnings emitted by clang for --enable-packed.  Alignment is not
