@@ -1,6 +1,7 @@
 11 December 2017: Wouter
 	- Add test for support of -Wno-address-of-packed-member for
 	  --enable-packed.
+	- tag for release 4.1.19
 
 8 December 2017: Wouter
 	- tag for 4.1.19rc1
