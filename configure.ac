@@ -889,7 +889,7 @@ AC_ARG_ENABLE(packed, AC_HELP_STRING([--enable-packed], [Enable packed structure
 case "$enable_packed" in
 	yes)
 	AC_DEFINE_UNQUOTED([PACKED_STRUCTS], [], [Define this to use packed structure alignment.])
-	CFLAGS="$CFLAGS -Wno-address-of-packed-member"
+	ACX_CHECK_COMPILER_FLAG(Wno-address-of-packed-member, [CFLAGS="$CFLAGS -Wno-address-of-packed-member"])
 	;;
 	no|*)
 	;;

@@ -10,6 +10,8 @@ BUG FIXES:
 	- Fix spelling error in xfr-inspect.
 	- Fix 3392: Fix regression in 4.1.18 for notify lists with ip4
 	  and ip6 targets.
+	- Add test for support of -Wno-address-of-packed-member for
+	  --enable-packed.
 
 
 4.1.18
