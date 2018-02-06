@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix memory leak in zone file read of unknown rr formatted RRs.
 
 
 4.1.19
