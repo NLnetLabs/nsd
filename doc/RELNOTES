@@ -5,6 +5,8 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix memory leak in zone file read of unknown rr formatted RRs.
+	- Fix memory leak when rehashing nsec3 after axfr or zonefile read,
+	  in the selectively allocated precompiled nsec3 hashes.
 
 
 4.1.19
