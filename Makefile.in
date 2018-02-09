@@ -444,6 +444,9 @@ xfrd-notify.o: $(srcdir)/xfrd-notify.c config.h $(srcdir)/xfrd-notify.h $(srcdir
 xfrd-tcp.o: $(srcdir)/xfrd-tcp.c config.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/xfrd-tcp.h $(srcdir)/xfrd.h $(srcdir)/rbtree.h $(srcdir)/namedb.h $(srcdir)/dname.h \
  $(srcdir)/radtree.h $(srcdir)/options.h $(srcdir)/tsig.h $(srcdir)/packet.h $(srcdir)/xfrd-disk.h
+xfr-inspect.o: $(srcdir)/xfr-inspect.c config.h $(srcdir)/udbzone.h $(srcdir)/udb.h $(srcdir)/dns.h $(srcdir)/udbradtree.h \
+ $(srcdir)/util.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/radtree.h \
+ $(srcdir)/rbtree.h $(srcdir)/rdata.h $(srcdir)/difffile.h $(srcdir)/options.h
 zlexer.o: zlexer.c config.h $(srcdir)/zonec.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/rbtree.h zparser.h
 zonec.o: $(srcdir)/zonec.c config.h $(srcdir)/zonec.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
@@ -511,7 +514,3 @@ udb-inspect.o: $(srcdir)/tpkg/cutest/udb-inspect.c config.h $(srcdir)/udb.h $(sr
  $(srcdir)/udb.h $(srcdir)/udbzone.h $(srcdir)/dns.h $(srcdir)/udbradtree.h $(srcdir)/util.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
  $(srcdir)/util.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/radtree.h $(srcdir)/rbtree.h $(srcdir)/rdata.h \
  $(srcdir)/namedb.h $(srcdir)/difffile.h $(srcdir)/options.h config.h
-xfr-inspect.o: $(srcdir)/xfr-inspect.c config.h $(srcdir)/udbzone.h $(srcdir)/udb.h $(srcdir)/dns.h \
- $(srcdir)/udbradtree.h $(srcdir)/util.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/packet.h $(srcdir)/namedb.h \
- $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/radtree.h $(srcdir)/rbtree.h $(srcdir)/rdata.h $(srcdir)/namedb.h $(srcdir)/difffile.h \
- $(srcdir)/options.h config.h

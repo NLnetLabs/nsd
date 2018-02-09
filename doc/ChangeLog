@@ -1,3 +1,6 @@
+9 February 2017: Wouter
+	- make depend: updated the make dependencies in the Makefile.
+
 8 February 2017: Wouter
 	- Fix memory leak when rehashing nsec3 after axfr or zonefile read,
 	  in the selectively allocated precompiled nsec3 hashes.
