@@ -1,8 +1,7 @@
 NSD RELEASE NOTES
 
-4.1.20 (upcoming)
+4.1.20
 ================
-FEATURES:
 BUG FIXES:
 	- Fix memory leak in zone file read of unknown rr formatted RRs.
 	- Fix memory leak when rehashing nsec3 after axfr or zonefile read,
