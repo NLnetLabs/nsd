@@ -767,6 +767,10 @@ case "$enable_checking" in
                 ;;
 esac
 
+AC_ARG_ENABLE(memclean, AC_HELP_STRING([--enable-memclean], [Cleanup memory (at exit) for eg. valgrind, memcheck]))
+if test "$enable_memclean" = "yes"; then AC_DEFINE_UNQUOTED([MEMCLEAN], [1], [Define this to cleanup memory at exit (eg. for valgrind, etc.)])
+fi
+
 AC_ARG_ENABLE(ratelimit, AC_HELP_STRING([--enable-ratelimit], [Enable rate limiting]))
 case "$enable_ratelimit" in
 	yes)

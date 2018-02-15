@@ -69,5 +69,7 @@ static void rrl_1(CuTest *tc)
 	CuAssert(tc, "rrl time check", rate/2+1 == rrl_update(&q, hash, source, c, now, m));
 	now += 1;
 	CuAssert(tc, "rrl time check", rate/4+1 == rrl_update(&q, hash, source, c, now, m));
+
+	rrl_deinit(0);
 }
 #endif /* RATELIMIT */

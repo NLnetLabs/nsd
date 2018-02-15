@@ -1,5 +1,13 @@
 NSD RELEASE NOTES
 
+4.1.21 (upcoming)
+================
+FEATURES:
+	- --enable-memclean cleans up memory for use with memory checkers,
+	  eg. valgrind.
+BUG FIXES:
+
+
 4.1.20
 ================
 BUG FIXES:

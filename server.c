@@ -308,6 +308,9 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				/* the child need not be able to access the
 				 * nsd.db file */
 				namedb_close_udb(nsd->db);
+#ifdef MEMCLEAN /* OS collects memory pages */
+				region_destroy(region);
+#endif
 				nsd->pid = 0;
 				nsd->child_count = 0;
 				nsd->server_kind = nsd->children[i].kind;
@@ -1073,7 +1076,13 @@ server_shutdown(struct nsd *nsd)
 	daemon_remote_delete(nsd->rc); /* ssl-delete secret keys */
 #endif
 
-#if 0 /* OS collects memory pages */
+#ifdef MEMCLEAN /* OS collects memory pages */
+#ifdef RATELIMIT
+	rrl_mmap_deinit();
+#endif
+	udb_base_free(nsd->task[0]);
+	udb_base_free(nsd->task[1]);
+	namedb_close(nsd->db);
 	nsd_options_destroy(nsd->options);
 	region_destroy(nsd->region);
 #endif
@@ -1841,7 +1850,7 @@ server_main(struct nsd *nsd)
 			/* only quit children after xfrd has acked */
 			send_children_quit(nsd);
 
-#if 0 /* OS collects memory pages */
+#ifdef MEMCLEAN /* OS collects memory pages */
 			region_destroy(server_region);
 #endif
 			server_shutdown(nsd);
@@ -1920,7 +1929,7 @@ server_main(struct nsd *nsd)
 		(void)kill(nsd->pid, SIGTERM);
 	}
 
-#if 0 /* OS collects memory pages */
+#ifdef MEMCLEAN /* OS collects memory pages */
 	region_destroy(server_region);
 #endif
 	/* write the nsd.db to disk, wait for it to complete */
@@ -1990,6 +1999,8 @@ server_child(struct nsd *nsd)
 		log_msg(LOG_ERR, "nsd server could not create event base");
 		exit(1);
 	}
+	nsd->event_base = event_base;
+	nsd->server_region = server_region;
 
 #ifdef RATELIMIT
 	rrl_init(nsd->this_child->child_num);
@@ -2156,7 +2167,10 @@ server_child(struct nsd *nsd)
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
-#if 0 /* OS collects memory pages */
+#ifdef MEMCLEAN /* OS collects memory pages */
+#ifdef RATELIMIT
+	rrl_deinit(nsd->this_child->child_num);
+#endif
 	event_base_free(event_base);
 	region_destroy(server_region);
 #endif

@@ -1670,6 +1670,9 @@ zonec_desetup_parser(void)
 		 * region_recycle(parser->region, (void*)error_domain, 1); */
 		/* clear memory for exit, but this is not portable to
 		 * other versions of lex. yylex_destroy(); */
+#ifdef MEMCLEAN /* OS collects memory pages */
+		yylex_destroy();
+#endif
 	}
 }
 
