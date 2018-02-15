@@ -113,6 +113,14 @@ void rrl_mmap_deinit(void)
 #endif
 }
 
+void rrl_mmap_deinit_keep_mmap(void)
+{
+#ifdef HAVE_MMAP
+	free(rrl_maps);
+	rrl_maps = NULL;
+#endif
+}
+
 void rrl_set_limit(size_t lm, size_t wlm, size_t sm)
 {
 	rrl_ratelimit = lm*2;

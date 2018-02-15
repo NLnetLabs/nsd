@@ -1078,10 +1078,11 @@ server_shutdown(struct nsd *nsd)
 
 #ifdef MEMCLEAN /* OS collects memory pages */
 #ifdef RATELIMIT
-	rrl_mmap_deinit();
+	rrl_mmap_deinit_keep_mmap();
 #endif
-	udb_base_free(nsd->task[0]);
-	udb_base_free(nsd->task[1]);
+	udb_base_free_keep_mmap(nsd->task[0]);
+	udb_base_free_keep_mmap(nsd->task[1]);
+	namedb_close_udb(nsd->db); /* keeps mmap */
 	namedb_close(nsd->db);
 	nsd_options_destroy(nsd->options);
 	region_destroy(nsd->region);
