@@ -6,6 +6,7 @@ FEATURES:
 	- --enable-memclean cleans up memory for use with memory checkers,
 	  eg. valgrind.
 BUG FIXES:
+	- Fix unused variable warnings from clang analyzer.
 
 
 4.1.20

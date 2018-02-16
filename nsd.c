@@ -601,7 +601,7 @@ main(int argc, char *argv[])
 		}
 	}
 	argc -= optind;
-	argv += optind;
+	/* argv += optind; */
 
 	/* Commandline parse error */
 	if (argc != 0) {

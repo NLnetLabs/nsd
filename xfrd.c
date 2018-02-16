@@ -567,7 +567,7 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 		memmove(&soa.expire, p, sizeof(uint32_t));
 		p += sizeof(uint32_t);
 		memmove(&soa.minimum, p, sizeof(uint32_t));
-		p += sizeof(uint32_t);
+		/* p += sizeof(uint32_t); if we wanted to read further */
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s %u",
 			dname_to_string(task->zname,0),
 			(unsigned)ntohl(soa.serial)));
