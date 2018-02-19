@@ -808,6 +808,7 @@ main(int argc, char *argv[])
 	}
 
 	/* Set up the address info structures with real interface/port data */
+	assert(nodes);
 	for (i = 0; i < nsd.ifs; ++i) {
 		int r;
 		const char* node = NULL;

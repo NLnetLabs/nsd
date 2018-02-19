@@ -1,3 +1,6 @@
+19 February 2017: Wouter
+	- Fix for clang analysis complaints.
+
 15 February 2017: Wouter
 	- --enable-memclean cleans up memory for use with memory checkers,
 	  eg. valgrind.

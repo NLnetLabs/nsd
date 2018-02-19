@@ -1890,11 +1890,15 @@ parse_acl_info(region_type* region, char* ip, const char* key)
 #ifdef INET6
 		if(inet_pton(AF_INET6, ip, &acl->addr.addr6) != 1)
 			c_error_msg("Bad ip6 address '%s'", ip);
-		if(acl->rangetype==acl_range_mask || acl->rangetype==acl_range_minmax)
+		if(acl->rangetype==acl_range_mask || acl->rangetype==acl_range_minmax) {
+			assert(p);
 			if(inet_pton(AF_INET6, p, &acl->range_mask.addr6) != 1)
 				c_error_msg("Bad ip6 address mask '%s'", p);
-		if(acl->rangetype==acl_range_subnet)
+		}
+		if(acl->rangetype==acl_range_subnet) {
+			assert(p);
 			parse_acl_range_subnet(p, &acl->range_mask.addr6, 128);
+		}
 #else
 		c_error_msg("encountered IPv6 address '%s'.", ip);
 #endif /* INET6 */
@@ -1902,11 +1906,15 @@ parse_acl_info(region_type* region, char* ip, const char* key)
 		acl->is_ipv6 = 0;
 		if(inet_pton(AF_INET, ip, &acl->addr.addr) != 1)
 			c_error_msg("Bad ip4 address '%s'", ip);
-		if(acl->rangetype==acl_range_mask || acl->rangetype==acl_range_minmax)
+		if(acl->rangetype==acl_range_mask || acl->rangetype==acl_range_minmax) {
+			assert(p);
 			if(inet_pton(AF_INET, p, &acl->range_mask.addr) != 1)
 				c_error_msg("Bad ip4 address mask '%s'", p);
-		if(acl->rangetype==acl_range_subnet)
+		}
+		if(acl->rangetype==acl_range_subnet) {
+			assert(p);
 			parse_acl_range_subnet(p, &acl->range_mask.addr, 32);
+		}
 	}
 
 	/* key */
