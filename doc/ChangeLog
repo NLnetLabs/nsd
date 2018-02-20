@@ -8,7 +8,8 @@
 
 14 February 2017: Wouter
 	- updated RELNOTES for upcoming release.
-	- tag 4.1.20rc1
+	- tag 4.1.20rc1, became release on 20 feb, trunk has 4.1.21 in
+	  development.
 
 9 February 2017: Wouter
 	- make depend: updated the make dependencies in the Makefile.
