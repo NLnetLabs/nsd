@@ -143,8 +143,8 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 	}
-	argc -= optind;
-	argv += optind;
+	/* argc -= optind;
+	   argv += optind; move along argc, argv, for positional args */
 	if(qfile)
 		return runqtest(config, qfile, verb);
 

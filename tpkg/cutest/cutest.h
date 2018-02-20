@@ -70,10 +70,15 @@ void CuAssertPtrEquals_LineMsg(CuTest* tc,
 	void* expected, void* actual);
 
 /* public assert functions */
-
+#ifdef __clang_analyzer__
+#define CuFail(tc, ms) exit(1)
+#define CuAssert(tc, ms, cond) assert(cond)
+#define CuAssertTrue(tc, cond) assert(cond)
+#else
 #define CuFail(tc, ms)                        CuFail_Line(  (tc), __FILE__, __LINE__, NULL, (int)(ms))
 #define CuAssert(tc, ms, cond)                CuAssert_Line((tc), __FILE__, __LINE__, (ms), (int)(cond))
 #define CuAssertTrue(tc, cond)                CuAssert_Line((tc), __FILE__, __LINE__, "assert failed", (int)(cond))
+#endif
 
 #define CuAssertStrEquals(tc,ex,ac)           CuAssertStrEquals_LineMsg((tc),__FILE__,__LINE__,NULL,(ex),(ac))
 #define CuAssertStrEquals_Msg(tc,ms,ex,ac)    CuAssertStrEquals_LineMsg((tc),__FILE__,__LINE__,(ms),(ex),(ac))

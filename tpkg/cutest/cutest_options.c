@@ -448,6 +448,7 @@ static void zonelist_1(CuTest *tc)
 	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
 		"add example.com master\n" "add bar.nl slave\n");
 	z3 = zone_list_add(opt, "zoink.com", "slave");
+	(void)z3;
 	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
 		"add example.com master\n" "add bar.nl slave\n" 
 		"add zoink.com slave\n");
