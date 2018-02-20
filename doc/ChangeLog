@@ -1,3 +1,7 @@
+20 February 2017: Wouter
+	- For more clang warnings
+	- Fix spelling error in xfr-inspect.
+
 19 February 2017: Wouter
 	- Fix for clang analysis complaints.
 

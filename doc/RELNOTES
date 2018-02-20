@@ -7,6 +7,7 @@ FEATURES:
 	  eg. valgrind.
 BUG FIXES:
 	- Fix unused variable warnings from clang analyzer.
+	- Fix spelling error in xfr-inspect.
 
 
 4.1.20
