@@ -1215,6 +1215,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			RCODE_SET(q->packet, RCODE_REFUSE);
 		return;
 	}
+	assert(closest_encloser); /* otherwise, no q->zone would be found */
 	if(!q->zone->apex || !q->zone->soa_rrset) {
 		/* zone is configured but not loaded */
 		if(q->cname_count == 0)
