@@ -9,6 +9,7 @@ BUG FIXES:
 	- Fix unused variable warnings and uninit variable in statistics
 	  printout from clang analyzer.
 	- Fix spelling error in xfr-inspect.
+	- Fix #3562: explain build error when flex missing.
 
 
 4.1.20

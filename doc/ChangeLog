@@ -1,3 +1,6 @@
+5 March 2017: Wouter
+	- Fix #3562: explain build error when flex missing.
+
 20 February 2017: Wouter
 	- For more clang warnings
 	- Fix spelling error in xfr-inspect.
