@@ -1,3 +1,6 @@
+3 April 2017: Wouter
+	- refuse-any nsd.conf option that refuses queries of type ANY.
+
 5 March 2017: Wouter
 	- Fix #3562: explain build error when flex missing.
 

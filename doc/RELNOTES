@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 	- --enable-memclean cleans up memory for use with memory checkers,
 	  eg. valgrind.
+	- refuse-any nsd.conf option that refuses queries of type ANY.
 BUG FIXES:
 	- Fix unused variable warnings and uninit variable in statistics
 	  printout from clang analyzer.
