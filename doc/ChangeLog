@@ -1,5 +1,6 @@
 26 April 2017: Wouter
 	- lower memory usage for tcp connections, so tcp-count can be higher.
+	- Fix checkconf test for refuse-any option.
 
 3 April 2017: Wouter
 	- refuse-any nsd.conf option that refuses queries of type ANY.
