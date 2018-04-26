@@ -6,6 +6,7 @@ FEATURES:
 	- --enable-memclean cleans up memory for use with memory checkers,
 	  eg. valgrind.
 	- refuse-any nsd.conf option that refuses queries of type ANY.
+	- lower memory usage for tcp connections, so tcp-count can be higher.
 BUG FIXES:
 	- Fix unused variable warnings and uninit variable in statistics
 	  printout from clang analyzer.

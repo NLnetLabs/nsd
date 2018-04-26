@@ -20,6 +20,8 @@
 static uint16_t *compressed_dname_offsets = 0;
 static uint32_t compression_table_capacity = 0;
 static uint32_t compression_table_size = 0;
+static domain_type* compressed_dnames[MAXRRSPP];
+
 /* fake compression table implementation, copy from server.c */
 static void init_dname_compr(nsd_type* nsd)
 {
@@ -101,7 +103,7 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 	compression_table_capacity = 0;
 	init_dname_compr(nsd);
 	*query = query_create(region, compressed_dname_offsets,
-		compression_table_size);
+		compression_table_size, compressed_dnames);
 }
 
 void
