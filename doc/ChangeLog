@@ -1,3 +1,6 @@
+3 May 2017: Wouter
+	- Fix buffer size warnings from compiler on filename lengths.
+
 26 April 2017: Wouter
 	- lower memory usage for tcp connections, so tcp-count can be higher.
 	- Fix checkconf test for refuse-any option.
