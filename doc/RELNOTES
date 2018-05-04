@@ -13,6 +13,7 @@ BUG FIXES:
 	- Fix spelling error in xfr-inspect.
 	- Fix #3562: explain build error when flex missing.
 	- Fix buffer size warnings from compiler on filename lengths.
+	- Fix #4093: Release notes not using 2018.
 
 
 4.1.20
