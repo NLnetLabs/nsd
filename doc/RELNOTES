@@ -3,6 +3,8 @@ NSD RELEASE NOTES
 4.1.22 (upcoming)
 ================
 FEATURES:
+	- refuse-any sends truncation (+TC) in reply to ANY queries over UDP,
+	  and allows TCP queries like normal.
 BUG FIXES:
 
 
