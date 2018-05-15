@@ -114,6 +114,26 @@ debug_hex(char* desc, uint8_t* d, size_t s)
 	printf("%s: %s\n", desc, buf);
 }
 
+static void
+qfree(struct qs* qs)
+{
+	struct qtodo* p, *next;
+	if(!qs) return;
+	p = qs->qlist;
+	while(p) {
+		next = p->next;
+		if(p->q) {
+			free(p->q->_data);
+			free(p->q);
+		}
+		free(p->title);
+		free(p->txt);
+		free(p);
+		p = next;
+	}
+	free(qs);
+}
+
 /* create a buffer with a regular query */
 static buffer_type*
 create_normal_query(char* desc, int withdo)
@@ -557,6 +577,7 @@ int runqtest(char* config, char* qfile, int verbose)
 	if(qs->write)
 		do_write(qs, query, &nsd, "qfile.out");
 
+	qfree(qs);
 	free(compressed_dname_offsets);
 	region_destroy(region);
 	return 0;
