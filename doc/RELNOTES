@@ -6,6 +6,7 @@ FEATURES:
 	- refuse-any sends truncation (+TC) in reply to ANY queries over UDP,
 	  and allows TCP queries like normal.
 BUG FIXES:
+	- Fix nsec3 hash of parent and child co-hosted nsec3 enabled zones.
 
 
 4.1.21

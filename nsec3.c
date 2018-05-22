@@ -440,7 +440,8 @@ nsec3_condition_dshash(domain_type* d, zone_type* z)
 {
 	return d->is_existing && !domain_has_only_NSEC3(d, z) &&
 		(domain_find_rrset(d, z, TYPE_DS) ||
-		domain_find_rrset(d, z, TYPE_NS)) && d != z->apex;
+		domain_find_rrset(d, z, TYPE_NS)) && d != z->apex
+		&& nsec3_domain_part_of_zone(d->parent, z);
 }
 
 zone_type*

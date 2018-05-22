@@ -1,3 +1,6 @@
+22 May 2018: Wouter
+	- Fix nsec3 hash of parent and child co-hosted nsec3 enabled zones.
+
 15 May 2018: Wouter
 	- Fix memory free in unit test.
 
