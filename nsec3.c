@@ -397,8 +397,7 @@ nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 					walk->nsec3->hash_wc = NULL;
 				}
 			}
-			if(!walk->parent ||
-				nsec3_condition_dshash(walk->parent, zone)) {
+			if(nsec3_condition_dshash(walk, zone)) {
 				walk->nsec3->nsec3_ds_parent_cover = NULL;
 				walk->nsec3->nsec3_ds_parent_is_exact = 0;
 				if (walk->nsec3->ds_parent_hash) {
