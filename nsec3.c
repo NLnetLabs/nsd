@@ -385,7 +385,7 @@ nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 	walk = zone->apex;
 	while(walk && domain_is_subdomain(walk, zone->apex)) {
 		if(walk->nsec3) {
-			if(nsec3_domain_part_of_zone(walk, zone)) {
+			if(nsec3_condition_hash(walk, zone)) {
 				walk->nsec3->nsec3_node.key = NULL;
 				walk->nsec3->nsec3_cover = NULL;
 				walk->nsec3->nsec3_wcard_child_cover = NULL;
@@ -398,7 +398,7 @@ nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 				}
 			}
 			if(!walk->parent ||
-				nsec3_domain_part_of_zone(walk->parent, zone)) {
+				nsec3_condition_dshash(walk->parent, zone)) {
 				walk->nsec3->nsec3_ds_parent_cover = NULL;
 				walk->nsec3->nsec3_ds_parent_is_exact = 0;
 				if (walk->nsec3->ds_parent_hash) {

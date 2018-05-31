@@ -1,3 +1,6 @@
+31 May 2018: Wouter
+	- Fix to use same condition for nsec3 hash allocation and free.
+
 23 May 2018: Wouter
 	- Use accept4 to speed up answer of TCP queries, on Linux and FreeBSD.
 
