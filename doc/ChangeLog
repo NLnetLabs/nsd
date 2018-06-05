@@ -5,7 +5,8 @@
 	- Fix to use same condition for nsec3 hash allocation and free.
 
 23 May 2018: Wouter
-	- Use accept4 to speed up answer of TCP queries, on Linux and FreeBSD.
+	- Use accept4 to speed up answer of TCP queries, on Linux and FreeBSD
+	  and OpenBSD.
 
 22 May 2018: Wouter
 	- Fix nsec3 hash of parent and child co-hosted nsec3 enabled zones.
