@@ -2,7 +2,8 @@
 	- Patch to fix openwrt for mac os build darwin detection in configure.
 
 4 June 2018: Wouter
-	- tag for 4.1.22rc1.
+	- tag for 4.1.22rc1.  Became 4.1.22 on 11 June, trunk is 4.1.23 in
+	  development from this point.
 
 31 May 2018: Wouter
 	- Fix to use same condition for nsec3 hash allocation and free.

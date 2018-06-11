@@ -1,5 +1,12 @@
 NSD RELEASE NOTES
 
+4.1.23 (upcoming)
+================
+FEATURES:
+BUG FIXES:
+	- Patch to fix openwrt for mac os build darwin detection in configure.
+
+
 4.1.22
 ================
 FEATURES:
