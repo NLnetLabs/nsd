@@ -1967,7 +1967,6 @@ remote_handshake_later(struct daemon_remote* rc, struct rc_state* s, int fd,
 			log_msg(LOG_ERR, "remote control connection closed prematurely");
 		log_crypto_err("remote control failed ssl");
 		clean_point(rc, s);
-		return;
 	}
 }
 
