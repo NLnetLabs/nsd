@@ -458,12 +458,12 @@ Use 0.0.0.0 and ::0 to service the wildcard interface.  If none are given
 NSD listens to the localhost 127.0.0.1 and ::1 interfaces for control,
 if control is enabled with control\-enable.
 .IP
-With an absolute path, a unix local name pipe is used for control.  The
+With an absolute path, a unix local named pipe is used for control.  The
 file is created with user and group that is configured and access bits
 are set to allow members of the group access.  Further access can be
 controlled by setting permissions on the directory containing the control
 socket file.  The key and cert files are not used when control is via the
-name pipe, because access control is via file and directory permission.
+named pipe, because access control is via file and directory permission.
 .TP
 .B control\-port:\fR <number>
 The port number for remote control service. 8952 by default.
