@@ -177,7 +177,7 @@ typedef struct remote_stream RES;
 
 /** 
  * Print fixed line of text over ssl connection in blocking mode
- * @param ssl: print to
+ * @param res: print to
  * @param text: the text.
  * @return false on connection failure.
  */
@@ -185,7 +185,7 @@ static int ssl_print_text(RES* res, const char* text);
 
 /** 
  * printf style printing to the ssl connection
- * @param ssl: the RES connection to print to. Blocking.
+ * @param res: the RES connection to print to. Blocking.
  * @param format: printf style format string.
  * @return success or false on a network failure.
  */
