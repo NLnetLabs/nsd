@@ -56,6 +56,9 @@
 #ifdef HAVE_OPENSSL_RAND_H
 #include <openssl/rand.h>
 #endif
+#ifdef HAVE_SYS_UN_H
+#include <sys/un.h>
+#endif
 #include "util.h"
 #include "tsig.h"
 #include "options.h"
@@ -156,6 +159,7 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 	socklen_t addrlen;
 	int fd;
 	int port = cfg->control_port;
+	int addrfamily = 0;
 	/* use svr or a config entry */
 	if(!svr) {
 		if(cfg->control_interface) {
@@ -183,7 +187,18 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 			exit(1);
 		}
 	} 
-        if(strchr(svr, ':')) {
+	if(svr[0] == '/') {
+#ifdef HAVE_SYS_UN_H
+		struct sockaddr_un* usock = (struct sockaddr_un *) &addr;
+		usock->sun_family = AF_LOCAL;
+#ifdef HAVE_STRUCT_SOCKADDR_UN_SUN_LEN
+		usock->sun_len = (unsigned)sizeof(usock);
+#endif
+		(void)strlcpy(usock->sun_path, svr, sizeof(usock->sun_path));
+		addrlen = (socklen_t)sizeof(struct sockaddr_un);
+		addrfamily = AF_LOCAL;
+#endif
+	} else if(strchr(svr, ':')) {
 		struct sockaddr_in6 sa;
 		addrlen = (socklen_t)sizeof(struct sockaddr_in6);
 		memset(&sa, 0, addrlen);
@@ -194,6 +209,7 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 			exit(1);
 		}
 		memcpy(&addr, &sa, addrlen);
+		addrfamily = AF_INET6;
 	} else { /* ip4 */
 		struct sockaddr_in sa;
 		addrlen = (socklen_t)sizeof(struct sockaddr_in);
@@ -205,9 +221,10 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 			exit(1);
 		}
 		memcpy(&addr, &sa, addrlen);
+		addrfamily = AF_INET;
 	}
 
-	fd = socket(strchr(svr, ':')?AF_INET6:AF_INET, SOCK_STREAM, 0);
+	fd = socket(addrfamily, SOCK_STREAM, 0);
 	if(fd == -1) {
 		fprintf(stderr, "socket: %s\n", strerror(errno));
 		exit(1);
