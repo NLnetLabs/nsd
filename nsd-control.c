@@ -197,6 +197,7 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 		(void)strlcpy(usock->sun_path, svr, sizeof(usock->sun_path));
 		addrlen = (socklen_t)sizeof(struct sockaddr_un);
 		addrfamily = AF_LOCAL;
+		port = 0;
 #endif
 	} else if(strchr(svr, ':')) {
 		struct sockaddr_in6 sa;
@@ -230,9 +231,12 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 		exit(1);
 	}
 	if(connect(fd, (struct sockaddr*)&addr, addrlen) < 0) {
-		fprintf(stderr, "error: connect (%s@%d): %s\n", svr, port,
-			strerror(errno));
-		if(errno == ECONNREFUSED && statuscmd) {
+		int err = errno;
+		if(!port) fprintf(stderr, "error: connect (%s): %s\n", svr,
+			strerror(err));
+		else fprintf(stderr, "error: connect (%s@%d): %s\n", svr, port,
+			strerror(err));
+		if(err == ECONNREFUSED && statuscmd) {
 			printf("nsd is stopped\n");
 			exit(3);
 		}
@@ -323,7 +327,6 @@ remote_write(SSL* ssl, int fd, const char* buf, size_t len)
 		}
 	}
 }
-
 
 /** send stdin to server */
 static void
