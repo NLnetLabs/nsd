@@ -99,4 +99,14 @@ void daemon_remote_attach(struct daemon_remote* rc, struct xfrd_state* xfrd);
  */
 void daemon_remote_process_stats(struct daemon_remote* rc);
 
+/**
+ * Create and bind local listening socket
+ * @param path: path to the socket.
+ * @param noproto: on error, this is set true if cause is that local sockets
+ *	are not supported.
+ * @param use_systemd: if true, fetch sockets from systemd.
+ * @return: the socket. -1 on error.
+ */
+int create_local_accept_sock(const char* path, int* noproto, int use_systemd);
+
 #endif /* DAEMON_REMOTE_H */

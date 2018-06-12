@@ -341,6 +341,10 @@ unsigned getzonestatid(struct nsd_options* opt, struct zone_options* zopt);
 /* create string, same options as zonefile but no chroot changes */
 const char* config_cook_string(struct zone_options* zone, const char* input);
 
+/** check if config turns on IP-address interface with certificates or a
+ * named pipe without certificates. */
+int options_remote_is_address(struct nsd_options* cfg);
+
 #if defined(HAVE_SSL)
 /* tsig must be inited, adds all keys in options to tsig. */
 void key_options_tsig_add(struct nsd_options* opt);

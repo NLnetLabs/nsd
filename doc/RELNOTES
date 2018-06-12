@@ -3,6 +3,11 @@ NSD RELEASE NOTES
 4.1.23 (upcoming)
 ================
 FEATURES:
+	- #4102: control interface via local socket.
+	  configure it with control-interface: "/path/nsd.ctl"  The path
+	  has to start with a / to separate it from an IP address.
+	  The local socket does not use SSL, but unencrypted traffic, use
+	  file and containing directory permissions to restrict access.
 BUG FIXES:
 	- Patch to fix openwrt for mac os build darwin detection in configure.
 
