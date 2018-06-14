@@ -550,11 +550,18 @@ rc_control_port: VAR_CONTROL_PORT STRING
 	;
 rc_control_interface: VAR_CONTROL_INTERFACE STRING
 	{
+		ip_address_option_type* last = NULL;
 		ip_address_option_type* o = (ip_address_option_type*)region_alloc(
 			cfg_parser->opt->region, sizeof(ip_address_option_type));
 		OUTYY(("P(control_interface:%s)\n", $2));
-		o->next = cfg_parser->opt->control_interface;
-		cfg_parser->opt->control_interface = o;
+		/* append at end */
+		last = cfg_parser->opt->control_interface;
+		while(last && last->next)
+			last = last->next;
+		if(last == NULL)
+			cfg_parser->opt->control_interface = o;
+		else	last->next = o;
+		o->next = NULL;
 		o->address = region_strdup(cfg_parser->opt->region, $2);
 	}
 	;

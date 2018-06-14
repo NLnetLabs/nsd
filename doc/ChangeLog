@@ -1,3 +1,7 @@
+14 June 2018: Wouter
+	- Fix that first control-interface determines if TLS is used.  Warn
+	  when IP address interfaces are used without TLS.
+
 12 June 2018: Wouter
 	- #4102: control interface via local socket.
 	  configure it with control-interface: "/path/nsd.ctl"  The path

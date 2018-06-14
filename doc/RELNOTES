@@ -10,6 +10,8 @@ FEATURES:
 	  file and containing directory permissions to restrict access.
 BUG FIXES:
 	- Patch to fix openwrt for mac os build darwin detection in configure.
+	- Fix that first control-interface determines if TLS is used.  Warn
+	  when IP address interfaces are used without TLS.
 
 
 4.1.22

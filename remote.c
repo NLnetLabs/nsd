@@ -342,8 +342,13 @@ daemon_remote_create(struct nsd_options* cfg)
 		}
 		rc->use_cert = 1;
 	} else {
+		struct ip_address_option* o;
 		rc->ctx = NULL;
 		rc->use_cert = 0;
+		for(o = cfg->control_interface; o; o = o->next) {
+			if(o->address && o->address[0] != '/')
+				log_msg(LOG_WARNING, "control-interface %s is not using TLS, but plain transfer, because first control-interface in config file is a local socket (starts with a /).", o->address);
+		}
 	}
 
 	/* and try to open the ports */
