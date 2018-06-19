@@ -1,3 +1,7 @@
+19 June 2018: Wouter
+	- #4106: Fix that stats printed from nsd-control are recast from
+	  unsigned long to unsigned (remote.c).
+
 14 June 2018: Wouter
 	- Fix that first control-interface determines if TLS is used.  Warn
 	  when IP address interfaces are used without TLS.

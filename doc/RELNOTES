@@ -12,6 +12,8 @@ BUG FIXES:
 	- Patch to fix openwrt for mac os build darwin detection in configure.
 	- Fix that first control-interface determines if TLS is used.  Warn
 	  when IP address interfaces are used without TLS.
+	- #4106: Fix that stats printed from nsd-control are recast from
+	  unsigned long to unsigned (remote.c).
 
 
 4.1.22

@@ -984,7 +984,7 @@ do_transfer(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		RBTREE_FOR(zone, xfrd_zone_type*, xfrd->zones) {
 			xfrd_handle_notify_and_start_xfr(zone, NULL);
 		}
-		ssl_printf(ssl, "ok, %u zones\n", (unsigned)xfrd->zones->count);
+		ssl_printf(ssl, "ok, %lu zones\n", (unsigned long)xfrd->zones->count);
 	}
 }
 
@@ -1025,7 +1025,7 @@ do_force_transfer(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		RBTREE_FOR(zone, xfrd_zone_type*, xfrd->zones) {
 			force_transfer_zone(zone);
 		}
-		ssl_printf(ssl, "ok, %u zones\n", (unsigned)xfrd->zones->count);
+		ssl_printf(ssl, "ok, %lu zones\n", (unsigned long)xfrd->zones->count);
 	}
 }
 
@@ -1096,8 +1096,8 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 			xz->soa_notified_acquired))
 			return 0;
 	} else if(xz->event_added) {
-		if(!ssl_printf(ssl, "\twait: \"%u sec between attempts\"\n",
-			(unsigned)xz->timeout.tv_sec))
+		if(!ssl_printf(ssl, "\twait: \"%lu sec between attempts\"\n",
+			(unsigned long)xz->timeout.tv_sec))
 			return 0;
 	}
 
@@ -2052,10 +2052,10 @@ print_longnum(RES* ssl, char* desc, uint64_t x)
 		/* more than a Gb */
 		size_t front = (size_t)(x / (uint64_t)1000000);
 		size_t back = (size_t)(x % (uint64_t)1000000);
-		return ssl_printf(ssl, "%s%u%6.6u\n", desc, 
-			(unsigned)front, (unsigned)back);
+		return ssl_printf(ssl, "%s%lu%6.6lu\n", desc, 
+			(unsigned long)front, (unsigned long)back);
 	} else {
-		return ssl_printf(ssl, "%s%u\n", desc, (unsigned)x);
+		return ssl_printf(ssl, "%s%lu\n", desc, (unsigned long)x);
 	}
 }
 
@@ -2073,8 +2073,8 @@ print_stat_block(RES* ssl, char* n, char* d, struct nsdst* st)
 		if(inhibit_zero && st->qtype[i] == 0 &&
 			strncmp(rrtype_to_string(i), "TYPE", 4) == 0)
 			continue;
-		if(!ssl_printf(ssl, "%s%snum.type.%s=%u\n", n, d,
-			rrtype_to_string(i), (unsigned)st->qtype[i]))
+		if(!ssl_printf(ssl, "%s%snum.type.%s=%lu\n", n, d,
+			rrtype_to_string(i), (unsigned long)st->qtype[i]))
 			return;
 	}
 
@@ -2082,8 +2082,8 @@ print_stat_block(RES* ssl, char* n, char* d, struct nsdst* st)
 	for(i=0; i<6; i++) {
 		if(inhibit_zero && st->opcode[i] == 0 && i != OPCODE_QUERY)
 			continue;
-		if(!ssl_printf(ssl, "%s%snum.opcode.%s=%u\n", n, d,
-			opcode2str(i), (unsigned)st->opcode[i]))
+		if(!ssl_printf(ssl, "%s%snum.opcode.%s=%lu\n", n, d,
+			opcode2str(i), (unsigned long)st->opcode[i]))
 			return;
 	}
 
@@ -2091,8 +2091,8 @@ print_stat_block(RES* ssl, char* n, char* d, struct nsdst* st)
 	for(i=0; i<4; i++) {
 		if(inhibit_zero && st->qclass[i] == 0 && i != CLASS_IN)
 			continue;
-		if(!ssl_printf(ssl, "%s%snum.class.%s=%u\n", n, d,
-			rrclass_to_string(i), (unsigned)st->qclass[i]))
+		if(!ssl_printf(ssl, "%s%snum.class.%s=%lu\n", n, d,
+			rrclass_to_string(i), (unsigned long)st->qclass[i]))
 			return;
 	}
 
@@ -2101,58 +2101,58 @@ print_stat_block(RES* ssl, char* n, char* d, struct nsdst* st)
 		if(inhibit_zero && st->rcode[i] == 0 &&
 			i > RCODE_YXDOMAIN) /* NSD does not use larger */
 			continue;
-		if(!ssl_printf(ssl, "%s%snum.rcode.%s=%u\n", n, d, rcstr[i],
-			(unsigned)st->rcode[i]))
+		if(!ssl_printf(ssl, "%s%snum.rcode.%s=%lu\n", n, d, rcstr[i],
+			(unsigned long)st->rcode[i]))
 			return;
 	}
 
 	/* edns */
-	if(!ssl_printf(ssl, "%s%snum.edns=%u\n", n, d, (unsigned)st->edns))
+	if(!ssl_printf(ssl, "%s%snum.edns=%lu\n", n, d, (unsigned long)st->edns))
 		return;
 
 	/* ednserr */
-	if(!ssl_printf(ssl, "%s%snum.ednserr=%u\n", n, d,
-		(unsigned)st->ednserr))
+	if(!ssl_printf(ssl, "%s%snum.ednserr=%lu\n", n, d,
+		(unsigned long)st->ednserr))
 		return;
 
 	/* qudp */
-	if(!ssl_printf(ssl, "%s%snum.udp=%u\n", n, d, (unsigned)st->qudp))
+	if(!ssl_printf(ssl, "%s%snum.udp=%lu\n", n, d, (unsigned long)st->qudp))
 		return;
 	/* qudp6 */
-	if(!ssl_printf(ssl, "%s%snum.udp6=%u\n", n, d, (unsigned)st->qudp6))
+	if(!ssl_printf(ssl, "%s%snum.udp6=%lu\n", n, d, (unsigned long)st->qudp6))
 		return;
 	/* ctcp */
-	if(!ssl_printf(ssl, "%s%snum.tcp=%u\n", n, d, (unsigned)st->ctcp))
+	if(!ssl_printf(ssl, "%s%snum.tcp=%lu\n", n, d, (unsigned long)st->ctcp))
 		return;
 	/* ctcp6 */
-	if(!ssl_printf(ssl, "%s%snum.tcp6=%u\n", n, d, (unsigned)st->ctcp6))
+	if(!ssl_printf(ssl, "%s%snum.tcp6=%lu\n", n, d, (unsigned long)st->ctcp6))
 		return;
 
 	/* nona */
-	if(!ssl_printf(ssl, "%s%snum.answer_wo_aa=%u\n", n, d,
-		(unsigned)st->nona))
+	if(!ssl_printf(ssl, "%s%snum.answer_wo_aa=%lu\n", n, d,
+		(unsigned long)st->nona))
 		return;
 
 	/* rxerr */
-	if(!ssl_printf(ssl, "%s%snum.rxerr=%u\n", n, d, (unsigned)st->rxerr))
+	if(!ssl_printf(ssl, "%s%snum.rxerr=%lu\n", n, d, (unsigned long)st->rxerr))
 		return;
 
 	/* txerr */
-	if(!ssl_printf(ssl, "%s%snum.txerr=%u\n", n, d, (unsigned)st->txerr))
+	if(!ssl_printf(ssl, "%s%snum.txerr=%lu\n", n, d, (unsigned long)st->txerr))
 		return;
 
 	/* number of requested-axfr, number of times axfr served to clients */
-	if(!ssl_printf(ssl, "%s%snum.raxfr=%u\n", n, d, (unsigned)st->raxfr))
+	if(!ssl_printf(ssl, "%s%snum.raxfr=%lu\n", n, d, (unsigned long)st->raxfr))
 		return;
 
 	/* truncated */
-	if(!ssl_printf(ssl, "%s%snum.truncated=%u\n", n, d,
-		(unsigned)st->truncated))
+	if(!ssl_printf(ssl, "%s%snum.truncated=%lu\n", n, d,
+		(unsigned long)st->truncated))
 		return;
 
 	/* dropped */
-	if(!ssl_printf(ssl, "%s%snum.dropped=%u\n", n, d,
-		(unsigned)st->dropped))
+	if(!ssl_printf(ssl, "%s%snum.dropped=%lu\n", n, d,
+		(unsigned long)st->dropped))
 		return;
 }
 
@@ -2212,8 +2212,8 @@ zonestat_print(RES* ssl, xfrd_state_type* xfrd, int clear)
 		}
 
 		/* stat0 contains the details that we want to print */
-		if(!ssl_printf(ssl, "%s%snum.queries=%u\n", name, ".",
-			(unsigned)(stat0.qudp + stat0.qudp6 + stat0.ctcp +
+		if(!ssl_printf(ssl, "%s%snum.queries=%lu\n", name, ".",
+			(unsigned long)(stat0.qudp + stat0.qudp6 + stat0.ctcp +
 				stat0.ctcp6)))
 			return;
 		print_stat_block(ssl, name, ".", &stat0);
@@ -2230,22 +2230,22 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear)
 
 	/* per CPU and total */
 	for(i=0; i<xfrd->nsd->child_count; i++) {
-		if(!ssl_printf(ssl, "server%d.queries=%u\n", (int)i,
-			(unsigned)xfrd->nsd->children[i].query_count))
+		if(!ssl_printf(ssl, "server%d.queries=%lu\n", (int)i,
+			(unsigned long)xfrd->nsd->children[i].query_count))
 			return;
 		total += xfrd->nsd->children[i].query_count;
 	}
-	if(!ssl_printf(ssl, "num.queries=%u\n", (unsigned)total))
+	if(!ssl_printf(ssl, "num.queries=%lu\n", (unsigned long)total))
 		return;
 
 	/* time elapsed and uptime (in seconds) */
 	timeval_subtract(&uptime, now, &xfrd->nsd->rc->boot_time);
 	timeval_subtract(&elapsed, now, &xfrd->nsd->rc->stats_time);
-	if(!ssl_printf(ssl, "time.boot=%u.%6.6u\n",
-		(unsigned)uptime.tv_sec, (unsigned)uptime.tv_usec))
+	if(!ssl_printf(ssl, "time.boot=%lu.%6.6lu\n",
+		(unsigned long)uptime.tv_sec, (unsigned long)uptime.tv_usec))
 		return;
-	if(!ssl_printf(ssl, "time.elapsed=%u.%6.6u\n",
-		(unsigned)elapsed.tv_sec, (unsigned)elapsed.tv_usec))
+	if(!ssl_printf(ssl, "time.elapsed=%lu.%6.6lu\n",
+		(unsigned long)elapsed.tv_sec, (unsigned long)elapsed.tv_usec))
 		return;
 
 	/* mem info, database on disksize */
@@ -2264,10 +2264,10 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear)
 	print_stat_block(ssl, "", "", &xfrd->nsd->st);
 
 	/* zone statistics */
-	if(!ssl_printf(ssl, "zone.master=%u\n",
-		(unsigned)(xfrd->notify_zones->count - xfrd->zones->count)))
+	if(!ssl_printf(ssl, "zone.master=%lu\n",
+		(unsigned long)(xfrd->notify_zones->count - xfrd->zones->count)))
 		return;
-	if(!ssl_printf(ssl, "zone.slave=%u\n", (unsigned)xfrd->zones->count))
+	if(!ssl_printf(ssl, "zone.slave=%lu\n", (unsigned long)xfrd->zones->count))
 		return;
 #ifdef USE_ZONE_STATS
 	zonestat_print(ssl, xfrd, clear); /* per-zone statistics */
