@@ -905,6 +905,10 @@ case "$enable_packed" in
 	;;
 esac
 
+# Include systemd.m4 - begin
+sinclude(systemd.m4)
+# Include systemd.m4 - end
+
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
 #if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \

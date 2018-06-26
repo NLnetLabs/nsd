@@ -8,6 +8,9 @@ FEATURES:
 	  has to start with a / to separate it from an IP address.
 	  The local socket does not use SSL, but unencrypted traffic, use
 	  file and containing directory permissions to restrict access.
+	- configure --enable-systemd (needs pkg-config and libsystemd) can
+	  be used to then use-systemd: yes in nsd.conf and use socket
+	  activation and readiness signalling with systemd.
 BUG FIXES:
 	- Patch to fix openwrt for mac os build darwin detection in configure.
 	- Fix that first control-interface determines if TLS is used.  Warn

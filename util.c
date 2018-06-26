@@ -28,6 +28,9 @@
 #include "rdata.h"
 #include "zonec.h"
 
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
 #ifdef USE_MMAP_ALLOC
 #include <sys/mman.h>
 
@@ -1085,3 +1088,66 @@ addr2str(
 		str, len))
 		strlcpy(str, "[unknown ip4, inet_ntop failed]", len);
 }
+
+#ifdef HAVE_SYSTEMD
+int
+systemd_get_activated(int family, int socktype, int listen,
+		      struct sockaddr *addr, socklen_t addrlen,
+		      const char *path)
+{
+	int i = 0;
+	int r = 0;
+	int s = -1;
+	const char* listen_pid, *listen_fds;
+
+	/* We should use "listen" option only for stream protocols. For UDP it should be -1 */
+
+	if((r = sd_booted()) < 1) {
+		if(r == 0)
+			log_msg(LOG_WARNING, "systemd is not running");
+		else
+			log_msg(LOG_ERR, "systemd sd_booted(): %s", strerror(-r));
+		return -1;
+	}
+
+	listen_pid = getenv("LISTEN_PID");
+	listen_fds = getenv("LISTEN_FDS");
+
+	if (!listen_pid) {
+		log_msg(LOG_WARNING, "Systemd mandatory ENV variable is not defined: LISTEN_PID");
+		return -1;
+	}
+
+	if (!listen_fds) {
+		log_msg(LOG_WARNING, "Systemd mandatory ENV variable is not defined: LISTEN_FDS");
+		return -1;
+	}
+
+	if((r = sd_listen_fds(0)) < 1) {
+		if(r == 0)
+			log_msg(LOG_WARNING, "systemd: did not return socket, check unit configuration");
+		else
+			log_msg(LOG_ERR, "systemd sd_listen_fds(): %s", strerror(-r));
+		return -1;
+	}
+	
+	for(i = 0; i < r; i++) {
+		if(sd_is_socket(SD_LISTEN_FDS_START + i, family, socktype, listen)) {
+			s = SD_LISTEN_FDS_START + i;
+			break;
+		}
+	}
+	if (s == -1) {
+		if (addr && addrlen) {
+			char buf[256];
+			buf[0] = 0;
+			inet_ntop(((struct sockaddr_in*)addr)->sin_family, addr, buf, (socklen_t)sizeof(buf));
+			log_msg(LOG_ERR, "systemd sd_listen_fds() "
+				"no such socket %s %d", buf, ntohs(((struct sockaddr_in*)addr)->sin_port));
+		} else {
+			log_msg(LOG_ERR, "systemd sd_listen_fds(): %s", path);
+		}
+	}
+	return s;
+}
+#endif
