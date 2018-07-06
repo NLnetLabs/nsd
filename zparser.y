@@ -1051,7 +1051,7 @@ rdata_eui64:	STR trail
     ;
 
 /* RFC7553 */
-rdata_uri:	STR sp STR sp STR trail
+rdata_uri:	STR sp STR sp dotted_str trail
     {
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* priority */
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $3.str)); /* weight */
@@ -1060,7 +1060,7 @@ rdata_uri:	STR sp STR sp STR trail
     ;
 
 /* RFC 6844 */
-rdata_caa:	STR sp STR sp STR trail
+rdata_caa:	STR sp STR sp dotted_str trail
     {
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* Flags */
 	    zadd_rdata_wireformat(zparser_conv_tag(parser->region, $3.str, $3.len)); /* Tag */

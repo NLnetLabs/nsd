@@ -1,5 +1,7 @@
 6 July 2018: Wouter
 	- RFC8162 support, for record type SMIMEA.
+	- Fix that type CAA (and URI) in the zone file can contain
+	  dots when not in quotes.
 
 26 June 2018: Wouter
 	- configure --enable-systemd (needs pkg-config and libsystemd) can

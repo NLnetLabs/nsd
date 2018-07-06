@@ -18,6 +18,8 @@ BUG FIXES:
 	  when IP address interfaces are used without TLS.
 	- #4106: Fix that stats printed from nsd-control are recast from
 	  unsigned long to unsigned (remote.c).
+	- Fix that type CAA (and URI) in the zone file can contain
+	  dots when not in quotes.
 
 
 4.1.22
