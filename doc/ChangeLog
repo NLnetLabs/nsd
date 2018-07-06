@@ -1,3 +1,6 @@
+6 July 2018: Wouter
+	- RFC8162 support, for record type SMIMEA.
+
 26 June 2018: Wouter
 	- configure --enable-systemd (needs pkg-config and libsystemd) can
 	  be used to then use-systemd: yes in nsd.conf and use socket

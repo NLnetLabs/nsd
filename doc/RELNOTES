@@ -11,6 +11,7 @@ FEATURES:
 	- configure --enable-systemd (needs pkg-config and libsystemd) can
 	  be used to then use-systemd: yes in nsd.conf and use socket
 	  activation and readiness signalling with systemd.
+	- RFC8162 support, for record type SMIMEA.
 BUG FIXES:
 	- Patch to fix openwrt for mac os build darwin detection in configure.
 	- Fix that first control-interface determines if TLS is used.  Warn
