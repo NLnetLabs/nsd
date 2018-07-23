@@ -91,9 +91,6 @@
 #ifdef HAVE_SYS_UN_H
 #  include <sys/un.h>
 #endif
-#ifdef HAVE_SYSTEMD
-#include <systemd/sd-daemon.h>
-#endif
 
 /** number of seconds timeout on incoming remote control handshake */
 #define REMOTE_CONTROL_TCP_TIMEOUT 120
@@ -488,7 +485,7 @@ add_open(struct daemon_remote* rc, struct nsd_options* cfg, const char* ip,
 
 	if(ip[0] == '/') {
 		/* This looks like a local socket */
-		fd = create_local_accept_sock(ip, &noproto, cfg->use_systemd);
+		fd = create_local_accept_sock(ip, &noproto);
 		/*
 		 * Change socket ownership and permissions so users other
 		 * than root can access it provided they are in the same
@@ -2324,21 +2321,11 @@ daemon_remote_process_stats(struct daemon_remote* rc)
 #endif /* BIND8_STATS */
 
 int
-create_local_accept_sock(const char *path, int* noproto, int use_systemd)
+create_local_accept_sock(const char *path, int* noproto)
 {
-#ifdef HAVE_SYSTEMD
-	int ret;
-
-	if (use_systemd && (ret = systemd_get_activated(AF_LOCAL, SOCK_STREAM, 1, NULL, 0, path)) != -1)
-		return ret;
-	else {
-#endif
 #ifdef HAVE_SYS_UN_H
 	int s;
 	struct sockaddr_un usock;
-#ifndef HAVE_SYSTEMD
-	(void)use_systemd;
-#endif
 
 	VERBOSITY(3, (LOG_INFO, "creating unix socket %s", path));
 #ifdef HAVE_STRUCT_SOCKADDR_UN_SUN_LEN
@@ -2386,9 +2373,6 @@ err:
 	close(s);
 	return -1;
 
-#ifdef HAVE_SYSTEMD
-	}
-#endif
 #else
 	(void)use_systemd;
 	(void)path;

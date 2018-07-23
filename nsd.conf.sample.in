@@ -36,7 +36,7 @@ server:
 	# enable debug mode, does not fork daemon process into the background.
 	# debug-mode: no
 
-	# use systemd socket activation for UDP, TCP, and control sockets.
+	# use systemd for readiness signalling.
 	# use-systemd: no
 
 	# listen on IPv4 connections

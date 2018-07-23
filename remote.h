@@ -104,9 +104,8 @@ void daemon_remote_process_stats(struct daemon_remote* rc);
  * @param path: path to the socket.
  * @param noproto: on error, this is set true if cause is that local sockets
  *	are not supported.
- * @param use_systemd: if true, fetch sockets from systemd.
  * @return: the socket. -1 on error.
  */
-int create_local_accept_sock(const char* path, int* noproto, int use_systemd);
+int create_local_accept_sock(const char* path, int* noproto);
 
 #endif /* DAEMON_REMOTE_H */

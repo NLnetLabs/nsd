@@ -190,7 +190,7 @@ be helpful for commandline debugging, but is also used by certain
 server supervisor processes to ascertain that the server is running.
 .TP
 .B use\-systemd: \fI<yes or no>
-Enable or disable systemd socket activation.
+Enable or disable systemd readiness signalling.
 Default is no.
 .TP
 .B do\-ip4:\fR <yes or no>

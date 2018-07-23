@@ -410,8 +410,4 @@ void addr2str(
 #endif
 	, char* str, size_t len);
 
-/** if HAVE_SYSTEMD, get a listening fd for systemd */
-int systemd_get_activated(int family, int socktype, int listen,
-	struct sockaddr *addr, socklen_t addrlen, const char *path);
-
 #endif /* _UTIL_H_ */

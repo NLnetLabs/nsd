@@ -66,10 +66,6 @@
 #include "lookup3.h"
 #include "rrl.h"
 
-#ifdef HAVE_SYSTEMD
-#include <systemd/sd-daemon.h>
-#endif
-
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 
 /*
@@ -565,16 +561,12 @@ initialize_dname_compression_tables(struct nsd *nsd)
 
 /* create and bind sockets.  */
 static int
-server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works,
-	int use_systemd)
+server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 {
 	struct addrinfo* addr;
 	size_t i;
 #if defined(SO_REUSEPORT) || defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU) || defined(IP_TRANSPARENT)) || defined(IP_FREEBIND) || defined(SO_BINDANY))
 	int on = 1;
-#endif
-#ifdef HAVE_SYSTEMD
-	int got_fd_from_systemd = 0;
 #endif
 
 	/* UDP */
@@ -588,15 +580,6 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works,
 			continue;
 		}
 		nsd->udp[i].fam = (int)addr->ai_family;
-#ifdef HAVE_SYSTEMD
-		got_fd_from_systemd = 0;
-		if(!use_systemd || (nsd->udp[i].s = systemd_get_activated(
-			addr->ai_family, addr->ai_socktype, -1,
-			(struct sockaddr*)addr->ai_addr, addr->ai_addrlen,
-			NULL)) == -1) {
-#else
-		(void)use_systemd;
-#endif
 		if ((nsd->udp[i].s = socket(addr->ai_family, addr->ai_socktype, 0)) == -1) {
 #if defined(INET6)
 			if (addr->ai_family == AF_INET6 &&
@@ -608,11 +591,6 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works,
 			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
 			return -1;
 		}
-#ifdef HAVE_SYSTEMD
-		} else {
-			got_fd_from_systemd = 1;
-		}
-#endif
 
 #ifdef SO_REUSEPORT
 		if(nsd->reuseport && *reuseport_works &&
@@ -786,9 +764,6 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works,
 		}
 
 		if (
-#ifdef HAVE_SYSTEMD
-			!got_fd_from_systemd &&
-#endif
 			bind(nsd->udp[i].s, (struct sockaddr *) addr->ai_addr, addr->ai_addrlen) != 0) {
 			log_msg(LOG_ERR, "can't bind udp socket: %s", strerror(errno));
 			return -1;
@@ -811,15 +786,6 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works,
 			nsd->tcp[i].s = nsd->tcp[i%nsd->ifs].s;
 			continue;
 		}
-#ifdef HAVE_SYSTEMD
-		got_fd_from_systemd = 0;
-		if(!use_systemd || (nsd->tcp[i].s = systemd_get_activated(
-			addr->ai_family, addr->ai_socktype, 1,
-			(struct sockaddr*)addr->ai_addr, addr->ai_addrlen,
-			NULL)) == -1) {
-#else
-		(void)use_systemd;
-#endif
 		if ((nsd->tcp[i].s = socket(addr->ai_family, addr->ai_socktype, 0)) == -1) {
 #if defined(INET6)
 			if (addr->ai_family == AF_INET6 &&
@@ -831,11 +797,6 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works,
 			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
 			return -1;
 		}
-#ifdef HAVE_SYSTEMD
-		} else {
-			got_fd_from_systemd = 1;
-		}
-#endif
 
 #ifdef SO_REUSEPORT
 		if(nsd->reuseport && *reuseport_works &&
@@ -940,9 +901,6 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works,
 		}
 
 		if(
-#ifdef HAVE_SYSTEMD
-			!got_fd_from_systemd &&
-#endif
 			bind(nsd->tcp[i].s, (struct sockaddr *) addr->ai_addr, addr->ai_addrlen) != 0) {
 			log_msg(LOG_ERR, "can't bind tcp socket: %s", strerror(errno));
 			return -1;
@@ -980,14 +938,13 @@ server_init(struct nsd *nsd)
 	}
 
 	/* open the server interface ports */
-	if(server_init_ifs(nsd, 0, nsd->ifs, &reuseport_successful,
-		nsd->options->use_systemd) == -1)
+	if(server_init_ifs(nsd, 0, nsd->ifs, &reuseport_successful) == -1)
 		return -1;
 
 	/* continue to open the remaining reuseport ports */
 	if(nsd->reuseport && reuseport_successful) {
 		if(server_init_ifs(nsd, nsd->ifs, nsd->ifs*nsd->reuseport,
-			&reuseport_successful, nsd->options->use_systemd) == -1)
+			&reuseport_successful) == -1)
 			return -1;
 		nsd->ifs *= nsd->reuseport;
 	} else {
