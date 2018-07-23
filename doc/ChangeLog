@@ -2,6 +2,7 @@
 	- Remove socket activation from systemd code, it was reported as
 	  not useful to enable.  The readiness signalling is still there,
 	  and can be enabled with use-systemd: yes.
+	- Only call sd_notify from systemd when use-systemd is yes.
 
 6 July 2018: Wouter
 	- RFC8162 support, for record type SMIMEA.
