@@ -20,6 +20,8 @@ BUG FIXES:
 	  unsigned long to unsigned (remote.c).
 	- Fix that type CAA (and URI) in the zone file can contain
 	  dots when not in quotes.
+	- Fix that when IXFR contains a zone with broken NSEC3PARAM chain,
+	  NSD leniently attempts to find a working NSEC3PARAM.
 
 
 4.1.22
