@@ -279,7 +279,7 @@ db_find_nsec3param(struct namedb* db, struct zone* z, struct rr* avoid_rr,
 			}
 			if(2 <= verbosity) {
 				char str[MAX_RDLENGTH*2+16];
-				nsec3param_to_str(z->nsec3_param, str,
+				nsec3param_to_str(&rrset->rrs[i], str,
 					sizeof(str));
 				VERBOSITY(2, (LOG_INFO, "rehash of zone %s with parameters %s",
 					domain_to_string(z->apex), str));
