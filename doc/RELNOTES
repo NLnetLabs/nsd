@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.23 (upcoming)
+4.1.24 (upcoming)
 ================
 FEATURES:
 	- #4102: control interface via local socket.
@@ -22,6 +22,12 @@ BUG FIXES:
 	  dots when not in quotes.
 	- #4133: Fix that when IXFR contains a zone with broken NSEC3PARAM
 	  chain, NSD leniently attempts to find a working NSEC3PARAM.
+
+
+4.1.23
+================
+BUG FIXES:
+	- Fix NSD time sensitive TSIG compare vulnerability.
 
 
 4.1.22

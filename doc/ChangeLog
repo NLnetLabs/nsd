@@ -1,3 +1,7 @@
+30 July 2018: Wouter
+	- Tag for NSD 4.1.23 release, trunk is 4.1.24, includes
+	  fix NSD time sensitive TSIG compare vulnerability.
+
 25 July 2018: Wouter
 	- #4133: Fix that when IXFR contains a zone with broken NSEC3PARAM
 	  chain, NSD leniently attempts to find a working NSEC3PARAM.
