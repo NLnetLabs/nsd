@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+4.1.23
+================
+BUG FIXES:
+	- Fix NSD time sensitive TSIG compare vulnerability.
+
+
 4.1.22
 ================
 FEATURES:
