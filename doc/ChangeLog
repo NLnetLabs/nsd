@@ -3,6 +3,7 @@
 	- trunk is 4.1.25 in development.
 	- Fix that nsec3 precompile deletion happens before the RRs of
 	  the zone are deleted.
+	- Fix printout of accepted remote control connection for unix sockets.
 
 6 August 2018: Wouter
 	- tag for 4.1.24rc1 release.

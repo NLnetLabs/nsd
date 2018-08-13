@@ -138,6 +138,8 @@ struct acceptlist {
 	struct acceptlist* next;
 	int event_added;
 	struct event c;
+	char* ident;
+	struct daemon_remote* rc;
 };
 
 /**
@@ -378,6 +380,7 @@ void daemon_remote_close(struct daemon_remote* rc)
 		if(h->event_added)
 			event_del(&h->c);
 		close(h->c.ev_fd);
+		free(h->ident);
 		free(h);
 		h = nh;
 	}
@@ -539,6 +542,14 @@ add_open(struct daemon_remote* rc, struct nsd_options* cfg, const char* ip,
 
 	/* alloc */
 	hl = (struct acceptlist*)xalloc_zero(sizeof(*hl));
+	hl->rc = rc;
+	hl->ident = strdup(ip);
+	if(!hl->ident) {
+		log_msg(LOG_ERR, "malloc failure");
+		close(fd);
+		free(hl);
+		return 0;
+	}
 	hl->next = rc->accept_list;
 	rc->accept_list = hl;
 
@@ -582,7 +593,7 @@ daemon_remote_attach(struct daemon_remote* rc, struct xfrd_state* xfrd)
 		/* add event */
 		fd = p->c.ev_fd;
 		event_set(&p->c, fd, EV_PERSIST|EV_READ, remote_accept_callback,
-			rc);
+			p);
 		if(event_base_set(xfrd->event_base, &p->c) != 0)
 			log_msg(LOG_ERR, "remote: cannot set event_base");
 		if(event_add(&p->c, NULL) != 0)
@@ -594,7 +605,8 @@ daemon_remote_attach(struct daemon_remote* rc, struct xfrd_state* xfrd)
 static void
 remote_accept_callback(int fd, short event, void* arg)
 {
-	struct daemon_remote *rc = (struct daemon_remote*)arg;
+	struct acceptlist *hl = (struct acceptlist*)arg;
+	struct daemon_remote *rc = hl->rc;
 #ifdef INET6
 	struct sockaddr_storage addr;
 #else
@@ -672,9 +684,13 @@ remote_accept_callback(int fd, short event, void* arg)
 	n->event_added = 1;
 
 	if(2 <= verbosity) {
-		char s[128];
-		addr2str(&addr, s, sizeof(s));
-		VERBOSITY(2, (LOG_INFO, "new control connection from %s", s));
+		if(hl->ident && hl->ident[0] == '/') {
+			VERBOSITY(2, (LOG_INFO, "new control connection from %s", hl->ident));
+		} else {
+			char s[128];
+			addr2str(&addr, s, sizeof(s));
+			VERBOSITY(2, (LOG_INFO, "new control connection from %s", s));
+		}
 	}
 
 	if(rc->ctx) {
