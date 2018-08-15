@@ -2390,7 +2390,6 @@ err:
 	return -1;
 
 #else
-	(void)use_systemd;
 	(void)path;
 	log_msg(LOG_ERR, "Local sockets are not supported");
 	*noproto = 1;

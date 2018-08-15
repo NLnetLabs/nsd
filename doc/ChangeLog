@@ -1,3 +1,6 @@
+15 August 2018: Wouter
+	- Fix use_systemd typo/leftover in remote.c.
+
 13 August 2018: Wouter
 	- tag for 4.1.24 release.
 	- trunk is 4.1.25 in development.
