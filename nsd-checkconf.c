@@ -755,9 +755,9 @@ main(int argc, char* argv[])
 			usage();
 		};
 	}
-        argc -= optind;
-        argv += optind;
-        if (argc == 0 || argc>=2) {
+	argc -= optind;
+	argv += optind;
+	if (argc == 0 || argc>=2) {
 		usage();
 	}
 	configfile = argv[0];
