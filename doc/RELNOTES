@@ -8,6 +8,7 @@ BUG FIXES:
 	  the zone are deleted.
 	- Fix printout of accepted remote control connection for unix sockets.
 	- Fix use_systemd typo/leftover in remote.c.
+	- Fix codingstyle in nsd-checkconf.c in patch from Sharp Liu.
 
 
 4.1.24
