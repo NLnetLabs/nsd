@@ -410,4 +410,11 @@ void addr2str(
 #endif
 	, char* str, size_t len);
 
+/** copy dirname string and append slash.  Previous dirname is leaked,
+ * but it is to be used once, at startup, for chroot */
+void append_trailing_slash(const char** dirname, struct region* region);
+
+/** true if filename starts with chroot or is not absolute */
+int file_inside_chroot(const char* fname, const char* chr);
+
 #endif /* _UTIL_H_ */
