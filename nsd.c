@@ -133,17 +133,17 @@ void
 get_ip_port_frm_str(const char* arg, const char** hostname,
         const char** port)
 {
-        /* parse src[@port] option */
-        char* delim = NULL;
+	/* parse src[@port] option */
+	char* delim = NULL;
 	if (arg) {
 		delim = strchr(arg, '@');
 	}
 
-        if (delim) {
-                *delim = '\0';
-                *port = delim+1;
-        }
-        *hostname = arg;
+	if (delim) {
+		*delim = '\0';
+		*port = delim+1;
+	}
+	*hostname = arg;
 }
 
 /* append interface to interface array (names, udp, tcp) */

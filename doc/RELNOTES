@@ -11,6 +11,7 @@ BUG FIXES:
 	- Fix codingstyle in nsd-checkconf.c in patch from Sharp Liu.
 	- append_trailing_slash has one implementation and is not repeated
 	  differently.
+	- Fix coding style in nsd.c
 
 
 4.1.24
