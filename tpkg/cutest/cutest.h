@@ -71,6 +71,7 @@ void CuAssertPtrEquals_LineMsg(CuTest* tc,
 
 /* public assert functions */
 #ifdef __clang_analyzer__
+#include <assert.h>
 #define CuFail(tc, ms) exit(1)
 #define CuAssert(tc, ms, cond) assert(cond)
 #define CuAssertTrue(tc, cond) assert(cond)
