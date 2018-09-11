@@ -14,6 +14,7 @@ BUG FIXES:
 	- Fix coding style in nsd.c
 	- Fix to combine the same error function into one, from Xiaobo Liu.
 	- Fix initialisation in remote.c.
+	- please clang analyzer and fix parse of IPSECKEY with bad gateway.
 
 
 4.1.24

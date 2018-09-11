@@ -1,6 +1,7 @@
 11 September 2018: Wouter
 	- Fix to combine the same error function into one, from Xiaobo Liu.
 	- Fix initialisation in remote.c.
+	- please clang analyzer and fix parse of IPSECKEY with bad gateway.
 
 10 September 2018: Wouter
 	- Fix coding style in nsd.c
