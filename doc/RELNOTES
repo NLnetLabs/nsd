@@ -15,6 +15,7 @@ BUG FIXES:
 	- Fix to combine the same error function into one, from Xiaobo Liu.
 	- Fix initialisation in remote.c.
 	- please clang analyzer and fix parse of IPSECKEY with bad gateway.
+	- Fix nsd-checkconf fail on bad zone name.
 
 
 4.1.24

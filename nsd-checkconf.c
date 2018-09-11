@@ -575,6 +575,7 @@ additional_checks(nsd_options_type* opt, const char* filename)
 		if(!dname) {
 			fprintf(stderr, "%s: cannot parse zone name syntax for zone %s.\n", filename, zone->name);
 			errors ++;
+			continue;
 		}
 #ifndef ROOT_SERVER
 		/* Is it a root zone? Are we a root server then? Idiot proof. */

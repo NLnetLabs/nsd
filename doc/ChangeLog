@@ -3,6 +3,7 @@
 	- Fix initialisation in remote.c.
 	- please clang analyzer and fix parse of IPSECKEY with bad gateway.
 	- Fix unit test code for clang analyzer.
+	- Fix nsd-checkconf fail on bad zone name.
 
 10 September 2018: Wouter
 	- Fix coding style in nsd.c
