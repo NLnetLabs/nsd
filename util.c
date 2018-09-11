@@ -1106,3 +1106,18 @@ file_inside_chroot(const char* fname, const char* chr)
 	return ((fname && fname[0] && strncmp(fname, chr, strlen(chr)) == 0) ||
 		(fname && fname[0] != '/'));
 }
+
+/*
+ * Something went wrong, give error messages and exit.
+ *
+ */
+void
+error(const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	log_vmsg(LOG_ERR, format, args);
+	va_end(args);
+	exit(1);
+}
+

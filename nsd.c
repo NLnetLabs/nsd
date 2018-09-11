@@ -51,8 +51,6 @@ struct nsd nsd;
 static char hostname[MAXHOSTNAMELEN];
 extern config_parser_state_type* cfg_parser;
 
-static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
-
 /*
  * Print the help text.
  *
@@ -113,20 +111,6 @@ version(void)
 		"There is NO warranty; not even for MERCHANTABILITY or FITNESS\n"
 		"FOR A PARTICULAR PURPOSE.\n");
 	exit(0);
-}
-
-/*
- * Something went wrong, give error messages and exit.
- *
- */
-static void
-error(const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	log_vmsg(LOG_ERR, format, args);
-	va_end(args);
-	exit(1);
 }
 
 void
