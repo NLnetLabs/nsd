@@ -13,6 +13,7 @@ BUG FIXES:
 	  differently.
 	- Fix coding style in nsd.c
 	- Fix to combine the same error function into one, from Xiaobo Liu.
+	- Fix initialisation in remote.c.
 
 
 4.1.24

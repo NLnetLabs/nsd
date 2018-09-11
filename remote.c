@@ -479,12 +479,13 @@ add_open(struct daemon_remote* rc, struct nsd_options* cfg, const char* ip,
 	struct addrinfo hints;
 	struct addrinfo* res;
 	struct acceptlist* hl;
-	int noproto;
+	int noproto = 0;
 	int fd, r;
 	char port[15];
 	snprintf(port, sizeof(port), "%d", nr);
 	port[sizeof(port)-1]=0;
 	memset(&hints, 0, sizeof(hints));
+	assert(ip);
 
 	if(ip[0] == '/') {
 		/* This looks like a local socket */
