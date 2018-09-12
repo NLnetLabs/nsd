@@ -1,3 +1,6 @@
+12 September 2018: Wouter
+	- clang analysis test.
+
 11 September 2018: Wouter
 	- Fix to combine the same error function into one, from Xiaobo Liu.
 	- Fix initialisation in remote.c.
