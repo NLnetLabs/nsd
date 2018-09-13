@@ -3,6 +3,7 @@ NSD RELEASE NOTES
 4.1.25 (upcoming)
 ================
 FEATURES:
+	- nsd-control prints neater errors for file failures.
 BUG FIXES:
 	- Fix that nsec3 precompile deletion happens before the RRs of
 	  the zone are deleted.
@@ -16,6 +17,7 @@ BUG FIXES:
 	- Fix initialisation in remote.c.
 	- please clang analyzer and fix parse of IPSECKEY with bad gateway.
 	- Fix nsd-checkconf fail on bad zone name.
+	- Annotate exit functions with noreturn.
 
 
 4.1.24

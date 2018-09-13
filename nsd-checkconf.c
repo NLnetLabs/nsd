@@ -20,6 +20,7 @@
 
 extern char *optarg;
 extern int optind;
+static void usage(void) ATTR_NORETURN;
 
 #define ZONE_GET_ACL(NAME, VAR, PATTERN) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\

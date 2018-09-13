@@ -1,5 +1,7 @@
 13 September 2018: Wouter
 	- Fix typo in clang analysis test.
+	- Annotate exit functions with noreturn.
+	- nsd-control prints neater errors for file failures.
 
 12 September 2018: Wouter
 	- clang analysis test.
