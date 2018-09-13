@@ -144,7 +144,8 @@ setup_ctx(struct nsd_options* cfg)
 	if (cfg->zonesdir && cfg->zonesdir[0] &&
 		(s_cert[0] != '/' || c_key[0] != '/' || c_cert[0] != '/')) {
 		if(chdir(cfg->zonesdir))
-			error("could not chdir to zonesdir");
+			error("could not chdir to zonesdir: %s %s",
+				cfg->zonesdir, strerror(errno));
 	}
 
         ctx = SSL_CTX_new(SSLv23_client_method());
