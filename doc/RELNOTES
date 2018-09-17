@@ -19,6 +19,9 @@ BUG FIXES:
 	- Fix nsd-checkconf fail on bad zone name.
 	- Annotate exit functions with noreturn.
 	- Remove unused if clause during server service startup.
+	- Fix #4156: Fix systemd service manager state change notification
+	  When it is compiled, systemd readiness signalling is enabled.
+	  The option in nsd.conf is not used, it is ignored when read.
 
 
 4.1.24

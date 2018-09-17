@@ -1,3 +1,6 @@
+17 September 2018: Wouter
+	- Fix #4156: Fix systemd service manager state change notification
+
 14 September 2018: Wouter
 	- Remove unused if clause during server service startup.
 

@@ -189,10 +189,6 @@ If set to yes it does not fork and stays in the foreground, which can
 be helpful for commandline debugging, but is also used by certain
 server supervisor processes to ascertain that the server is running.
 .TP
-.B use\-systemd: \fI<yes or no>
-Enable or disable systemd readiness signalling.
-Default is no.
-.TP
 .B do\-ip4:\fR <yes or no>
 If yes, NSD listens to IPv4 connections.  Default yes.
 .TP
