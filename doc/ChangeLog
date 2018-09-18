@@ -1,3 +1,6 @@
+18 September 2018: Wouter
+	- tag for NSD 4.1.25rc1.
+
 17 September 2018: Wouter
 	- Fix #4156: Fix systemd service manager state change notification
 
