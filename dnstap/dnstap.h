@@ -117,7 +117,11 @@ dt_delete(struct dt_env *env);
  */
 void
 dt_msg_send_auth_query(struct dt_env *env,
+#ifdef INET6
 	struct sockaddr_storage* addr,
+#else
+	struct sockaddr_in* addr,
+#endif
 	int is_tcp, uint8_t* zone, size_t zonelen, uint8_t* pkt, size_t pktlen);
 
 /**
@@ -132,7 +136,11 @@ dt_msg_send_auth_query(struct dt_env *env,
  */
 void
 dt_msg_send_auth_response(struct dt_env *env,
+#ifdef INET6
 	struct sockaddr_storage* addr,
+#else
+	struct sockaddr_in* addr,
+#endif
 	int is_tcp, uint8_t* zone, size_t zonelen, uint8_t* pkt, size_t pktlen);
 
 #endif /* USE_DNSTAP */

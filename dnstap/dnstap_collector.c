@@ -191,7 +191,11 @@ static void
 dt_submit_content(struct dt_env* dt_env, struct buffer* buf)
 {
 	uint8_t is_response, is_tcp;
+#ifdef INET6
 	struct sockaddr_storage addr;
+#else
+	struct sockaddr_in addr;
+#endif
 	socklen_t addrlen;
 	size_t pktlen;
 	uint8_t* data;

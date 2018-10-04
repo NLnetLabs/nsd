@@ -274,11 +274,16 @@ dt_fill_buffer(uint8_t* pkt, size_t pktlen, ProtobufCBinaryData *p, protobuf_c_b
 
 static void
 dt_msg_fill_net(struct dt_msg *dm,
+#ifdef INET6
 		struct sockaddr_storage *ss,
+#else
+		struct sockaddr_in *ss,
+#endif
 		int is_tcp,
 		ProtobufCBinaryData *addr, protobuf_c_boolean *has_addr,
 		uint32_t *port, protobuf_c_boolean *has_port)
 {
+#ifdef INET6
 	assert(ss->ss_family == AF_INET6 || ss->ss_family == AF_INET);
 	if (ss->ss_family == AF_INET6) {
 		struct sockaddr_in6 *s = (struct sockaddr_in6 *) ss;
@@ -296,6 +301,9 @@ dt_msg_fill_net(struct dt_msg *dm,
 		*port = ntohs(s->sin6_port);
 		*has_port = 1;
 	} else if (ss->ss_family == AF_INET) {
+#else
+	if (ss->ss_family == AF_INET) {
+#endif /* INET6 */
 		struct sockaddr_in *s = (struct sockaddr_in *) ss;
 
 		/* socket_family */
@@ -325,7 +333,11 @@ dt_msg_fill_net(struct dt_msg *dm,
 
 void
 dt_msg_send_auth_query(struct dt_env *env,
+#ifdef INET6
 	struct sockaddr_storage* addr,
+#else
+	struct sockaddr_in* addr,
+#endif
 	int is_tcp, uint8_t* zone, size_t zonelen, uint8_t* pkt, size_t pktlen)
 {
 	struct dt_msg dm;
@@ -362,7 +374,11 @@ dt_msg_send_auth_query(struct dt_env *env,
 
 void
 dt_msg_send_auth_response(struct dt_env *env,
+#ifdef INET6
 	struct sockaddr_storage* addr,
+#else
+	struct sockaddr_in* addr,
+#endif
 	int is_tcp, uint8_t* zone, size_t zonelen, uint8_t* pkt, size_t pktlen)
 {
 	struct dt_msg dm;
