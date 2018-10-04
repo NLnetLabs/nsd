@@ -45,6 +45,9 @@
 #include "tsig.h"
 #include "remote.h"
 #include "xfrd-disk.h"
+#ifdef USE_DNSTAP
+#include "dnstap/dnstap_collector.h"
+#endif
 
 /* The server handler... */
 struct nsd nsd;
@@ -1098,6 +1101,10 @@ main(int argc, char *argv[])
 	options_zonestatnames_create(nsd.options);
 	server_zonestat_alloc(&nsd);
 #endif /* USE_ZONE_STATS */
+#ifdef USE_DNSTAP
+	nsd.dt_collector = dt_collector_create(&nsd);
+	dt_collector_start(nsd.dt_collector, &nsd);
+#endif /* USE_DNSTAP */
 
 	if(nsd.server_kind == NSD_SERVER_MAIN) {
 		server_prepare_xfrd(&nsd);
