@@ -16,6 +16,7 @@ struct event;
 struct dt_collector_input;
 struct zone;
 struct buffer;
+struct region;
 
 /* information for the dnstap collector process. It collects information
  * for dnstap from the worker processes.  And writes them to the dnstap
@@ -38,6 +39,10 @@ struct dt_collector {
 	struct event* cmd_event;
 	/* in the collector process, array size count of input per worker */
 	struct dt_collector_input* inputs;
+	/* region for buffers */
+	struct region* region;
+	/* buffer for sending data to the collector */
+	struct buffer* send_buffer;
 };
 
 /* information per worker to get input from that worker. */
@@ -47,7 +52,7 @@ struct dt_collector_input {
 	/* the event to listen to the datagrams to process for that worker*/
 	struct event* event;
 	/* buffer to store the datagrams while they are read in */
-	uint8_t* buffer;
+	struct buffer* buffer;
 };
 
 /* create dt_collector process structure and dt_env */

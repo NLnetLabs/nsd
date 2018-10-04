@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <unistd.h>
 #ifndef USE_MINI_EVENT
 #  ifdef HAVE_EVENT_H
@@ -28,6 +29,9 @@
 //#include "dnstap/dnstap.h"
 #include "util.h"
 #include "nsd.h"
+#include "region-allocator.h"
+#include "buffer.h"
+#include "namedb.h"
 
 struct dt_collector* dt_collector_create(struct nsd* nsd)
 {
@@ -36,6 +40,16 @@ struct dt_collector* dt_collector_create(struct nsd* nsd)
 		sizeof(*dt_col));
 	dt_col->count = nsd->child_count;
 	dt_col->dt_env = NULL;
+	dt_col->region = region_create(xalloc, free);
+	dt_col->send_buffer = buffer_create(dt_col->region,
+		/* msglen + is_response + addrlen + is_tcp + packetlen + packet + zonelen + zone + spare + addr */
+		4+1+4+1+4+TCP_MAX_MESSAGE_LEN+4+MAXHOSTNAMELEN + 32 +
+#ifdef INET6
+		sizeof(struct sockaddr_storage)
+#else
+		sizeof(struct sockaddr_in)
+#endif
+		);
 	/* get config from struct nsd and nsd.options,
 	 * socket_path, nsd.child_count */
 
@@ -52,6 +66,12 @@ struct dt_collector* dt_collector_create(struct nsd* nsd)
 			error("dnstap_collector: cannot create pipe: %s",
 				strerror(errno));
 		}
+		if(fcntl(fd[0], F_SETFL, O_NONBLOCK) == -1) {
+			log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
+		}
+		if(fcntl(fd[1], F_SETFL, O_NONBLOCK) == -1) {
+			log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
+		}
 		nsd->dt_collector_fd_recv[i] = fd[0];
 		nsd->dt_collector_fd_send[i] = fd[1];
 	}
@@ -60,6 +80,12 @@ struct dt_collector* dt_collector_create(struct nsd* nsd)
 	if(socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
 		error("dnstap_collector: cannot create socketpair: %s",
 			strerror(errno));
+	}
+	if(fcntl(sv[0], F_SETFL, O_NONBLOCK) == -1) {
+		log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
+	}
+	if(fcntl(sv[1], F_SETFL, O_NONBLOCK) == -1) {
+		log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
 	}
 	dt_col->cmd_socket_dt = sv[0];
 	dt_col->cmd_socket_nsd = sv[1];
@@ -74,6 +100,7 @@ void dt_collector_destroy(struct dt_collector* dt_col, struct nsd* nsd)
 	nsd->dt_collector_fd_recv = NULL;
 	free(nsd->dt_collector_fd_send);
 	nsd->dt_collector_fd_send = NULL;
+	region_destroy(dt_col->region);
 	free(dt_col);
 }
 
@@ -112,6 +139,53 @@ dt_handle_cmd_from_nsd(int ATTR_UNUSED(fd), short event, void* arg)
 	}
 }
 
+/* read data from fd into buffer, true when message is complete */
+static int read_into_buffer(int fd, struct buffer* buf)
+{
+	size_t msglen;
+	ssize_t r;
+	if(buffer_position(buf) < 4) {
+		/* read the length of the message */
+		r = read(fd, buffer_current(buf), 4 - buffer_position(buf));
+		if(r == -1) {
+			if(errno == EAGAIN || errno == EINTR) {
+				/* continue to read later */
+				return 0;
+			}
+			log_msg(LOG_ERR, "dnstap collector: read failed: %s",
+				strerror(errno));
+			return 0;
+		}
+		buffer_skip(buf, r);
+		if(buffer_position(buf) < 4)
+			return 0; /* continue to read more msglen later */
+	}
+
+	/* msglen complete */
+	msglen = buffer_read_u32_at(buf, 0);
+	/* assert we have enough space, if we don't and we wanted to continue,
+	 * we would have to skip the message somehow, but that should never
+	 * happen because send_buffer and receive_buffer have the same size */
+	assert(buffer_capacity(buf) >= msglen + 4);
+	r = read(fd, buffer_current(buf), msglen - (buffer_position(buf) - 4));
+	if(r == -1) {
+		if(errno == EAGAIN || errno == EINTR) {
+			/* continue to read later */
+			return 0;
+		}
+		log_msg(LOG_ERR, "dnstap collector: read failed: %s",
+			strerror(errno));
+		return 0;
+	}
+	buffer_skip(buf, r);
+	if(buffer_position(buf) < 4 + msglen)
+		return 0; /* read more msg later */
+
+	/* msg complete */
+	buffer_flip(buf);
+	return 1;
+}
+
 /* handle input from worker for dnstap */
 void
 dt_handle_input(int fd, short event, void* arg)
@@ -119,10 +193,16 @@ dt_handle_input(int fd, short event, void* arg)
 	struct dt_collector_input* dt_input = (struct dt_collector_input*)arg;
 	if((event&EV_READ) != 0) {
 		/* read */
-		(void)fd; (void)dt_input;
+		if(!read_into_buffer(fd, dt_input->buffer))
+			return;
 
 		/* once data is complete, write it to dnstap */
+		VERBOSITY(4, (LOG_INFO, "dnstap collector: received msg len %d",
+			(int)buffer_remaining(dt_input->buffer)));
 		//dt_write();
+		
+		/* clear buffer for next message */
+		buffer_clear(dt_input->buffer);
 	}
 }
 
@@ -194,7 +274,17 @@ static void dt_attach_events(struct dt_collector* dt_col, struct nsd* nsd)
 		if(event_add(dt_col->inputs[i].event, NULL) != 0)
 			log_msg(LOG_ERR, "dnstap collector: event_add failed");
 		
-		//dt_col->inputs[i].buffer = 
+		dt_col->inputs[i].buffer = buffer_create(dt_col->region,
+			/* msglen + is_response + addrlen + is_tcp + packetlen + packet + zonelen + zone + spare + addr */
+			4+1+4+1+4+TCP_MAX_MESSAGE_LEN+4+MAXHOSTNAMELEN + 32 +
+#ifdef INET6
+			sizeof(struct sockaddr_storage)
+#else
+			sizeof(struct sockaddr_in)
+#endif
+		);
+		assert(buffer_capacity(dt_col->inputs[i].buffer) ==
+			buffer_capacity(dt_col->send_buffer));
 	}
 }
 
@@ -240,6 +330,78 @@ void dt_collector_start(struct dt_collector* dt_col, struct nsd* nsd)
 	}
 }
 
+/* put data for sending to the collector process into the buffer */
+static int
+prep_send_data(struct buffer* buf, uint8_t is_response,
+#ifdef INET6
+        struct sockaddr_storage* addr,
+#else
+        struct sockaddr_in* addr,
+#endif
+	socklen_t addrlen, int is_tcp, struct buffer* packet,
+	struct zone* zone)
+{
+	buffer_clear(buf);
+	if(!buffer_available(buf, 4+1+4+addrlen+1+4+buffer_remaining(packet)))
+		return 0; /* does not fit in send_buffer, log is dropped */
+	buffer_skip(buf, 4); /* the length of the message goes here */
+	buffer_write_u8(buf, is_response);
+	buffer_write_u32(buf, addrlen);
+	buffer_write(buf, addr, (size_t)addrlen);
+	buffer_write_u8(buf, (is_tcp?1:0));
+	buffer_write_u32(buf, buffer_remaining(packet));
+	buffer_write(buf, buffer_begin(packet), buffer_remaining(packet));
+	if(zone && zone->apex && domain_dname(zone->apex)) {
+		if(!buffer_available(buf, 4 + domain_dname(zone->apex)->name_size))
+			return 0;
+		buffer_write_u32(buf, domain_dname(zone->apex)->name_size);
+		buffer_write(buf, dname_name(domain_dname(zone->apex)),
+			domain_dname(zone->apex)->name_size);
+	} else {
+		if(!buffer_available(buf, 4))
+			return 0;
+		buffer_write_u32(buf, 0);
+	}
+
+	buffer_flip(buf);
+	/* write length of message */
+	buffer_write_u32_at(buf, 0, buffer_remaining(buf)-4);
+	return 1;
+}
+
+/* attempt to write buffer to socket, if it blocks do not write it. */
+static void attempt_to_write(int s, uint8_t* data, size_t len)
+{
+	size_t total = 0;
+	ssize_t r;
+	while(total < len) {
+		r = write(s, data+total, len-total);
+		if(r == -1) {
+			if(errno == EAGAIN && total == 0) {
+				/* on first write part, check if pipe is full,
+				 * if the nonblocking fd blocks, then drop
+				 * the message */
+				return;
+			}
+			if(errno != EAGAIN && errno != EINTR) {
+				/* some sort of error, print it and drop it */
+				log_msg(LOG_ERR,
+					"dnstap collector: write failed: %s",
+					strerror(errno));
+				return;
+			}
+			/* continue and write this again */
+			/* for EINTR, we have to do this,
+			 * for EAGAIN, if the first part succeeded, we have
+			 * to continue to write the remainder of the message,
+			 * because otherwise partial messages confuse the
+			 * receiver. */
+			continue;
+		}
+		total += r;
+	}
+}
+
 void dt_collector_submit_auth_query(struct nsd* nsd,
 #ifdef INET6
         struct sockaddr_storage* addr,
@@ -249,11 +411,16 @@ void dt_collector_submit_auth_query(struct nsd* nsd,
 	socklen_t addrlen, int is_tcp, struct buffer* packet)
 {
 	VERBOSITY(4, (LOG_INFO, "dnstap submit auth query"));
-	(void)nsd;
-	(void)addr;
-	(void)addrlen;
-	(void)is_tcp;
-	(void)packet;
+
+	/* marshal data into send buffer */
+	if(!prep_send_data(nsd->dt_collector->send_buffer, 0, addr, addrlen,
+		is_tcp, packet, NULL))
+		return; /* probably did not fit in buffer */
+
+	/* attempt to send data; do not block */
+	attempt_to_write(nsd->dt_collector_fd_send[nsd->this_child->child_num],
+		buffer_begin(nsd->dt_collector->send_buffer),
+		buffer_remaining(nsd->dt_collector->send_buffer));
 }
 
 void dt_collector_submit_auth_response(struct nsd* nsd,
@@ -266,10 +433,14 @@ void dt_collector_submit_auth_response(struct nsd* nsd,
 	struct zone* zone)
 {
 	VERBOSITY(4, (LOG_INFO, "dnstap submit auth response"));
-	(void)nsd;
-	(void)addr;
-	(void)addrlen;
-	(void)is_tcp;
-	(void)packet;
-	(void)zone;
+
+	/* marshal data into send buffer */
+	if(!prep_send_data(nsd->dt_collector->send_buffer, 1, addr, addrlen,
+		is_tcp, packet, zone))
+		return; /* probably did not fit in buffer */
+
+	/* attempt to send data; do not block */
+	attempt_to_write(nsd->dt_collector_fd_send[nsd->this_child->child_num],
+		buffer_begin(nsd->dt_collector->send_buffer),
+		buffer_remaining(nsd->dt_collector->send_buffer));
 }
