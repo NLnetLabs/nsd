@@ -213,7 +213,7 @@ dt_apply_version(struct dt_env *env, struct nsd_options *cfg)
 void
 dt_apply_cfg(struct dt_env *env, struct nsd_options *cfg)
 {
-	if (!cfg->dnstap)
+	if (!cfg->dnstap_enable)
 		return;
 
 	dt_apply_identity(env, cfg);

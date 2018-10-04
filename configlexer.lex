@@ -274,6 +274,15 @@ rrl-whitelist-ratelimit{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_WHIT
 rrl-whitelist{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_WHITELIST;}
 zonefiles-check{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ZONEFILES_CHECK;}
 zonefiles-write{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ZONEFILES_WRITE;}
+dnstap{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP;}
+dnstap-enable{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_ENABLE;}
+dnstap-socket-path{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_SOCKET_PATH; }
+dnstap-send-identity{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_SEND_IDENTITY; }
+dnstap-send-version{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_SEND_VERSION; }
+dnstap-identity{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_IDENTITY; }
+dnstap-version{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_VERSION; }
+dnstap-log-auth-query-messages{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_LOG_AUTH_QUERY_MESSAGES; }
+dnstap-log-auth-response-messages{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_LOG_AUTH_RESPONSE_MESSAGES; }
 log-time-ascii{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_LOG_TIME_ASCII;}
 round-robin{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ROUND_ROBIN;}
 minimal-responses{COLON} { LEXOUT(("v(%s) ", yytext)); return VAR_MINIMAL_RESPONSES;}

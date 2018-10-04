@@ -126,7 +126,7 @@ struct nsd_options {
 	size_t rrl_whitelist_ratelimit;
 #endif
 	/** if dnstap is enabled */
-	int dnstap;
+	int dnstap_enable;
 	/** dnstap socket path */
 	char* dnstap_socket_path;
 	/** true to send "identity" via dnstap */

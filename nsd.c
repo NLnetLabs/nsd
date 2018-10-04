@@ -1102,7 +1102,7 @@ main(int argc, char *argv[])
 	server_zonestat_alloc(&nsd);
 #endif /* USE_ZONE_STATS */
 #ifdef USE_DNSTAP
-	if(nsd.options->dnstap) {
+	if(nsd.options->dnstap_enable) {
 		nsd.dt_collector = dt_collector_create(&nsd);
 		dt_collector_start(nsd.dt_collector, &nsd);
 	}

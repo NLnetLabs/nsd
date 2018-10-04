@@ -259,7 +259,6 @@ dt_handle_input(int fd, short event, void* arg)
 /* init dnstap */
 static void dt_init_dnstap(struct dt_collector* dt_col, struct nsd* nsd)
 {
-	/* TODO config parsing */
 	int num_workers = 1;
 	dt_col->dt_env = dt_create(nsd->options->dnstap_socket_path, num_workers);
 	if(!dt_col->dt_env) {

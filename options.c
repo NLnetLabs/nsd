@@ -99,7 +99,7 @@ nsd_options_create(region_type* region)
 #  endif
 #endif
 #ifdef USE_DNSTAP
-	opt->dnstap = 0;
+	opt->dnstap_enable = 0;
 	opt->dnstap_socket_path = DNSTAP_SOCKET_PATH;
 	opt->dnstap_send_identity = 0;
 	opt->dnstap_send_version = 0;
