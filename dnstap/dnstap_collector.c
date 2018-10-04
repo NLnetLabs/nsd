@@ -145,13 +145,15 @@ static void dt_collector_cleanup(struct dt_collector* dt_col, struct nsd* nsd)
 		event_del(dt_col->inputs[i].event);
 	}
 	dt_collector_close(dt_col, nsd);
+	event_base_free(dt_col->event_base);
 #ifdef MEMCLEAN
 	free(dt_col->cmd_event);
-	for(i=0; i<dt_col->count; i++) {
-		free(dt_col->inputs[i].event);
+	if(dt_col->inputs) {
+		for(i=0; i<dt_col->count; i++) {
+			free(dt_col->inputs[i].event);
+		}
+		free(dt_col->inputs);
 	}
-	free(dt_col->inputs);
-	event_base_free(dt_col->event_base);
 	dt_collector_destroy(dt_col, nsd);
 #endif
 }
