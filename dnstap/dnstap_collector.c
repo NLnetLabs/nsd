@@ -25,13 +25,13 @@
 #  include "mini_event.h"
 #endif
 #include "dnstap/dnstap_collector.h"
-// these and other // need to be removed to call dnstap to write stuff.
-//#include "dnstap/dnstap.h"
+#include "dnstap/dnstap.h"
 #include "util.h"
 #include "nsd.h"
 #include "region-allocator.h"
 #include "buffer.h"
 #include "namedb.h"
+#include "options.h"
 
 struct dt_collector* dt_collector_create(struct nsd* nsd)
 {
@@ -186,6 +186,53 @@ static int read_into_buffer(int fd, struct buffer* buf)
 	return 1;
 }
 
+/* submit the content of the buffer received to dnstap */
+static void
+dt_submit_content(struct dt_env* dt_env, struct buffer* buf)
+{
+	uint8_t is_response, is_tcp;
+	struct sockaddr_storage addr;
+	socklen_t addrlen;
+	size_t pktlen;
+	uint8_t* data;
+	size_t zonelen;
+	uint8_t* zone;
+
+	/* parse content from buffer */
+	if(!buffer_available(buf, 4+1+4)) return;
+	buffer_skip(buf, 4); /* skip msglen */
+	is_response = buffer_read_u8(buf);
+	addrlen = buffer_read_u32(buf);
+	if(addrlen > sizeof(addr)) return;
+	if(!buffer_available(buf, addrlen)) return;
+	buffer_read(buf, &addr, addrlen);
+	if(!buffer_available(buf, 1+4)) return;
+	is_tcp = buffer_read_u8(buf);
+	pktlen = buffer_read_u32(buf);
+	if(!buffer_available(buf, pktlen)) return;
+	data = buffer_current(buf);
+	buffer_skip(buf, pktlen);
+	if(!buffer_available(buf, 4)) return;
+	zonelen = buffer_read_u32(buf);
+	if(zonelen == 0) {
+		zone = NULL;
+	} else {
+		if(zonelen > MAXDOMAINLEN) return;
+		if(!buffer_available(buf, zonelen)) return;
+		zone = buffer_current(buf);
+		buffer_skip(buf, zonelen);
+	}
+
+	/* submit it */
+	if(is_response) {
+		dt_msg_send_auth_response(dt_env, &addr, is_tcp, zone,
+			zonelen, data, pktlen);
+	} else {
+		dt_msg_send_auth_query(dt_env, &addr, is_tcp, zone,
+			zonelen, data, pktlen);
+	}
+}
+
 /* handle input from worker for dnstap */
 void
 dt_handle_input(int fd, short event, void* arg)
@@ -199,7 +246,10 @@ dt_handle_input(int fd, short event, void* arg)
 		/* once data is complete, write it to dnstap */
 		VERBOSITY(4, (LOG_INFO, "dnstap collector: received msg len %d",
 			(int)buffer_remaining(dt_input->buffer)));
-		//dt_write();
+		if(dt_input->dt_collector->dt_env) {
+			dt_submit_content(dt_input->dt_collector->dt_env,
+				dt_input->buffer);
+		}
 		
 		/* clear buffer for next message */
 		buffer_clear(dt_input->buffer);
@@ -207,19 +257,24 @@ dt_handle_input(int fd, short event, void* arg)
 }
 
 /* init dnstap */
-static void dt_init_dnstap(struct dt_collector* dt_col)
+static void dt_init_dnstap(struct dt_collector* dt_col, struct nsd* nsd)
 {
-	dt_col->dt_env = NULL;
-	//dt_env = dt_create(const char *socket_path, unsigned num_workers);
-	//dt_apply_cfg(struct dt_env *env, struct config_file *cfg);
-	//dt_init
+	/* TODO config parsing */
+	int num_workers = 1;
+	dt_col->dt_env = dt_create(nsd->options->dnstap_socket_path, num_workers);
+	if(!dt_col->dt_env) {
+		log_msg(LOG_ERR, "could not create dnstap env");
+		return;
+	}
+	dt_apply_cfg(dt_col->dt_env, nsd->options);
+	dt_init(dt_col->dt_env);
 }
 
 /* cleanup dt collector process for exit */
 static void dt_collector_cleanup(struct dt_collector* dt_col, struct nsd* nsd)
 {
 	int i;
-	//dt_delete(dt_col->dt_env);
+	dt_delete(dt_col->dt_env);
 	event_del(dt_col->cmd_event);
 	for(i=0; i<dt_col->count; i++) {
 		event_del(dt_col->inputs[i].event);
@@ -293,7 +348,7 @@ static void dt_collector_run(struct dt_collector* dt_col, struct nsd* nsd)
 {
 	/* init dnstap */
 	VERBOSITY(1, (LOG_INFO, "dnstap collector started"));
-	dt_init_dnstap(dt_col);
+	dt_init_dnstap(dt_col, nsd);
 	dt_attach_events(dt_col, nsd);
 
 	/* run */
@@ -334,9 +389,9 @@ void dt_collector_start(struct dt_collector* dt_col, struct nsd* nsd)
 static int
 prep_send_data(struct buffer* buf, uint8_t is_response,
 #ifdef INET6
-        struct sockaddr_storage* addr,
+	struct sockaddr_storage* addr,
 #else
-        struct sockaddr_in* addr,
+	struct sockaddr_in* addr,
 #endif
 	socklen_t addrlen, int is_tcp, struct buffer* packet,
 	struct zone* zone)
@@ -404,12 +459,14 @@ static void attempt_to_write(int s, uint8_t* data, size_t len)
 
 void dt_collector_submit_auth_query(struct nsd* nsd,
 #ifdef INET6
-        struct sockaddr_storage* addr,
+	struct sockaddr_storage* addr,
 #else
-        struct sockaddr_in* addr,
+	struct sockaddr_in* addr,
 #endif
 	socklen_t addrlen, int is_tcp, struct buffer* packet)
 {
+	if(!nsd->dt_collector) return;
+	if(!nsd->options->dnstap_log_auth_query_messages) return;
 	VERBOSITY(4, (LOG_INFO, "dnstap submit auth query"));
 
 	/* marshal data into send buffer */
@@ -425,13 +482,15 @@ void dt_collector_submit_auth_query(struct nsd* nsd,
 
 void dt_collector_submit_auth_response(struct nsd* nsd,
 #ifdef INET6
-        struct sockaddr_storage* addr,
+	struct sockaddr_storage* addr,
 #else
-        struct sockaddr_in* addr,
+	struct sockaddr_in* addr,
 #endif
 	socklen_t addrlen, int is_tcp, struct buffer* packet,
 	struct zone* zone)
 {
+	if(!nsd->dt_collector) return;
+	if(!nsd->options->dnstap_log_auth_response_messages) return;
 	VERBOSITY(4, (LOG_INFO, "dnstap submit auth response"));
 
 	/* marshal data into send buffer */

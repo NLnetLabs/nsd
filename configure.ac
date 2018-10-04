@@ -941,9 +941,7 @@ dt_DNSTAP([${localstatedir}/run/nsd-dnstap.sock],
             ["$hdr_dnstap_socket_path"], [default dnstap socket path])
 
         AC_SUBST([DNSTAP_SRC], ["dnstap/dnstap.c dnstap/dnstap.pb-c.c dnstap/dnstap_collector.c"])
-        #AC_SUBST([DNSTAP_OBJ], ["dnstap.o dnstap_collector.o dnstap.pb-c.o"])
-	#debug
-        AC_SUBST([DNSTAP_OBJ], ["dnstap_collector.o dnstap.pb-c.o"])
+        AC_SUBST([DNSTAP_OBJ], ["dnstap.o dnstap_collector.o dnstap.pb-c.o"])
 	dnstap_config="dnstap/dnstap_config.h"
     ],
     [

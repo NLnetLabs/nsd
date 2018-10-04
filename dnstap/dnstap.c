@@ -1,4 +1,4 @@
-/* dnstap support for Unbound */
+/* dnstap support for NSD */
 
 /*
  * Copyright (c) 2013-2014, Farsight Security, Inc.
@@ -39,11 +39,9 @@
 #include "config.h"
 #include <string.h>
 #include <sys/time.h>
-#include "sldns/sbuffer.h"
-#include "util/config_file.h"
-#include "util/net_help.h"
-#include "util/netevent.h"
-#include "util/log.h"
+#include <unistd.h>
+#include "util.h"
+#include "options.h"
 
 #include <fstrm.h>
 #include <protobuf-c/protobuf-c.h>
@@ -121,7 +119,7 @@ dt_msg_init(const struct dt_env *env,
 struct dt_env *
 dt_create(const char *socket_path, unsigned num_workers)
 {
-#ifdef UNBOUND_DEBUG
+#ifndef NDEBUG
 	fstrm_res res;
 #endif
 	struct dt_env *env;
@@ -130,36 +128,36 @@ dt_create(const char *socket_path, unsigned num_workers)
 	struct fstrm_writer *fw;
 	struct fstrm_writer_options *fwopt;
 
-	verbose(VERB_OPS, "attempting to connect to dnstap socket %s",
-		socket_path);
-	log_assert(socket_path != NULL);
-	log_assert(num_workers > 0);
+	VERBOSITY(1, (LOG_INFO, "attempting to connect to dnstap socket %s",
+		socket_path));
+	assert(socket_path != NULL);
+	assert(num_workers > 0);
 
 	env = (struct dt_env *) calloc(1, sizeof(struct dt_env));
 	if (!env)
 		return NULL;
 
 	fwopt = fstrm_writer_options_init();
-#ifdef UNBOUND_DEBUG
+#ifndef NDEBUG
 	res = 
 #else
 	(void)
 #endif
 	    fstrm_writer_options_add_content_type(fwopt,
 		DNSTAP_CONTENT_TYPE, sizeof(DNSTAP_CONTENT_TYPE) - 1);
-	log_assert(res == fstrm_res_success);
+	assert(res == fstrm_res_success);
 
 	fuwopt = fstrm_unix_writer_options_init();
 	fstrm_unix_writer_options_set_socket_path(fuwopt, socket_path);
 
 	fw = fstrm_unix_writer_init(fuwopt, fwopt);
-	log_assert(fw != NULL);
+	assert(fw != NULL);
 
 	fopt = fstrm_iothr_options_init();
 	fstrm_iothr_options_set_num_input_queues(fopt, num_workers);
 	env->iothr = fstrm_iothr_init(fopt, &fw);
 	if (env->iothr == NULL) {
-		verbose(VERB_DETAIL, "dt_create: fstrm_iothr_init() failed");
+		log_msg(LOG_ERR, "dt_create: fstrm_iothr_init() failed");
 		fstrm_writer_destroy(&fw);
 		free(env);
 		env = NULL;
@@ -172,7 +170,7 @@ dt_create(const char *socket_path, unsigned num_workers)
 }
 
 static void
-dt_apply_identity(struct dt_env *env, struct config_file *cfg)
+dt_apply_identity(struct dt_env *env, struct nsd_options *cfg)
 {
 	char buf[MAXHOSTNAMELEN+1];
 	if (!cfg->dnstap_send_identity)
@@ -183,20 +181,20 @@ dt_apply_identity(struct dt_env *env, struct config_file *cfg)
 			buf[MAXHOSTNAMELEN] = 0;
 			env->identity = strdup(buf);
 		} else {
-			fatal_exit("dt_apply_identity: gethostname() failed");
+			error("dt_apply_identity: gethostname() failed");
 		}
 	} else {
 		env->identity = strdup(cfg->dnstap_identity);
 	}
 	if (env->identity == NULL)
-		fatal_exit("dt_apply_identity: strdup() failed");
+		error("dt_apply_identity: strdup() failed");
 	env->len_identity = (unsigned int)strlen(env->identity);
-	verbose(VERB_OPS, "dnstap identity field set to \"%s\"",
-		env->identity);
+	VERBOSITY(1, (LOG_INFO, "dnstap identity field set to \"%s\"",
+		env->identity));
 }
 
 static void
-dt_apply_version(struct dt_env *env, struct config_file *cfg)
+dt_apply_version(struct dt_env *env, struct nsd_options *cfg)
 {
 	if (!cfg->dnstap_send_version)
 		return;
@@ -206,49 +204,29 @@ dt_apply_version(struct dt_env *env, struct config_file *cfg)
 	else
 		env->version = strdup(cfg->dnstap_version);
 	if (env->version == NULL)
-		fatal_exit("dt_apply_version: strdup() failed");
+		error("dt_apply_version: strdup() failed");
 	env->len_version = (unsigned int)strlen(env->version);
-	verbose(VERB_OPS, "dnstap version field set to \"%s\"",
-		env->version);
+	VERBOSITY(1, (LOG_INFO, "dnstap version field set to \"%s\"",
+		env->version));
 }
 
 void
-dt_apply_cfg(struct dt_env *env, struct config_file *cfg)
+dt_apply_cfg(struct dt_env *env, struct nsd_options *cfg)
 {
 	if (!cfg->dnstap)
 		return;
 
 	dt_apply_identity(env, cfg);
 	dt_apply_version(env, cfg);
-	if ((env->log_resolver_query_messages = (unsigned int)
-	     cfg->dnstap_log_resolver_query_messages))
+	if ((env->log_auth_query_messages = (unsigned int)
+	     cfg->dnstap_log_auth_query_messages))
 	{
-		verbose(VERB_OPS, "dnstap Message/RESOLVER_QUERY enabled");
+		VERBOSITY(1, (LOG_INFO, "dnstap Message/AUTH_QUERY enabled"));
 	}
-	if ((env->log_resolver_response_messages = (unsigned int)
-	     cfg->dnstap_log_resolver_response_messages))
+	if ((env->log_auth_response_messages = (unsigned int)
+	     cfg->dnstap_log_auth_response_messages))
 	{
-		verbose(VERB_OPS, "dnstap Message/RESOLVER_RESPONSE enabled");
-	}
-	if ((env->log_client_query_messages = (unsigned int)
-	     cfg->dnstap_log_client_query_messages))
-	{
-		verbose(VERB_OPS, "dnstap Message/CLIENT_QUERY enabled");
-	}
-	if ((env->log_client_response_messages = (unsigned int)
-	     cfg->dnstap_log_client_response_messages))
-	{
-		verbose(VERB_OPS, "dnstap Message/CLIENT_RESPONSE enabled");
-	}
-	if ((env->log_forwarder_query_messages = (unsigned int)
-	     cfg->dnstap_log_forwarder_query_messages))
-	{
-		verbose(VERB_OPS, "dnstap Message/FORWARDER_QUERY enabled");
-	}
-	if ((env->log_forwarder_response_messages = (unsigned int)
-	     cfg->dnstap_log_forwarder_response_messages))
-	{
-		verbose(VERB_OPS, "dnstap Message/FORWARDER_RESPONSE enabled");
+		VERBOSITY(1, (LOG_INFO, "dnstap Message/AUTH_RESPONSE enabled"));
 	}
 }
 
@@ -266,7 +244,7 @@ dt_delete(struct dt_env *env)
 {
 	if (!env)
 		return;
-	verbose(VERB_OPS, "closing dnstap socket");
+	VERBOSITY(1, (LOG_INFO, "closing dnstap socket"));
 	fstrm_iothr_destroy(&env->iothr);
 	free(env->identity);
 	free(env->version);
@@ -287,22 +265,21 @@ dt_fill_timeval(const struct timeval *tv,
 }
 
 static void
-dt_fill_buffer(sldns_buffer *b, ProtobufCBinaryData *p, protobuf_c_boolean *has)
+dt_fill_buffer(uint8_t* pkt, size_t pktlen, ProtobufCBinaryData *p, protobuf_c_boolean *has)
 {
-	log_assert(b != NULL);
-	p->len = sldns_buffer_limit(b);
-	p->data = sldns_buffer_begin(b);
+	p->len = pktlen;
+	p->data = pkt;
 	*has = 1;
 }
 
 static void
 dt_msg_fill_net(struct dt_msg *dm,
 		struct sockaddr_storage *ss,
-		enum comm_point_type cptype,
+		int is_tcp,
 		ProtobufCBinaryData *addr, protobuf_c_boolean *has_addr,
 		uint32_t *port, protobuf_c_boolean *has_port)
 {
-	log_assert(ss->ss_family == AF_INET6 || ss->ss_family == AF_INET);
+	assert(ss->ss_family == AF_INET6 || ss->ss_family == AF_INET);
 	if (ss->ss_family == AF_INET6) {
 		struct sockaddr_in6 *s = (struct sockaddr_in6 *) ss;
 
@@ -335,12 +312,11 @@ dt_msg_fill_net(struct dt_msg *dm,
 		*has_port = 1;
 	}
 
-	log_assert(cptype == comm_udp || cptype == comm_tcp);
-	if (cptype == comm_udp) {
+	if (!is_tcp) {
 		/* socket_protocol */
 		dm->m.socket_protocol = DNSTAP__SOCKET_PROTOCOL__UDP;
 		dm->m.has_socket_protocol = 1;
-	} else if (cptype == comm_tcp) {
+	} else {
 		/* socket_protocol */
 		dm->m.socket_protocol = DNSTAP__SOCKET_PROTOCOL__TCP;
 		dm->m.has_socket_protocol = 1;
@@ -348,10 +324,9 @@ dt_msg_fill_net(struct dt_msg *dm,
 }
 
 void
-dt_msg_send_client_query(struct dt_env *env,
-			 struct sockaddr_storage *qsock,
-			 enum comm_point_type cptype,
-			 sldns_buffer *qmsg)
+dt_msg_send_auth_query(struct dt_env *env,
+	struct sockaddr_storage* addr,
+	int is_tcp, uint8_t* zone, size_t zonelen, uint8_t* pkt, size_t pktlen)
 {
 	struct dt_msg dm;
 	struct timeval qtime;
@@ -359,7 +334,14 @@ dt_msg_send_client_query(struct dt_env *env,
 	gettimeofday(&qtime, NULL);
 
 	/* type */
-	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__CLIENT_QUERY);
+	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__AUTH_QUERY);
+
+	if(zone) {
+		/* query_zone */
+		dm.m.query_zone.data = zone;
+		dm.m.query_zone.len = zonelen;
+		dm.m.has_query_zone = 1;
+	}
 
 	/* query_time */
 	dt_fill_timeval(&qtime,
@@ -367,11 +349,10 @@ dt_msg_send_client_query(struct dt_env *env,
 			&dm.m.query_time_nsec, &dm.m.has_query_time_nsec);
 
 	/* query_message */
-	dt_fill_buffer(qmsg, &dm.m.query_message, &dm.m.has_query_message);
+	dt_fill_buffer(pkt, pktlen, &dm.m.query_message, &dm.m.has_query_message);
 
 	/* socket_family, socket_protocol, query_address, query_port */
-	log_assert(cptype == comm_udp || cptype == comm_tcp);
-	dt_msg_fill_net(&dm, qsock, cptype,
+	dt_msg_fill_net(&dm, addr, is_tcp,
 			&dm.m.query_address, &dm.m.has_query_address,
 			&dm.m.query_port, &dm.m.has_query_port);
 
@@ -380,10 +361,9 @@ dt_msg_send_client_query(struct dt_env *env,
 }
 
 void
-dt_msg_send_client_response(struct dt_env *env,
-			    struct sockaddr_storage *qsock,
-			    enum comm_point_type cptype,
-			    sldns_buffer *rmsg)
+dt_msg_send_auth_response(struct dt_env *env,
+	struct sockaddr_storage* addr,
+	int is_tcp, uint8_t* zone, size_t zonelen, uint8_t* pkt, size_t pktlen)
 {
 	struct dt_msg dm;
 	struct timeval rtime;
@@ -391,7 +371,14 @@ dt_msg_send_client_response(struct dt_env *env,
 	gettimeofday(&rtime, NULL);
 
 	/* type */
-	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__CLIENT_RESPONSE);
+	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__AUTH_RESPONSE);
+
+	if(zone) {
+		/* query_zone */
+		dm.m.query_zone.data = zone;
+		dm.m.query_zone.len = zonelen;
+		dm.m.has_query_zone = 1;
+	}
 
 	/* response_time */
 	dt_fill_timeval(&rtime,
@@ -399,117 +386,12 @@ dt_msg_send_client_response(struct dt_env *env,
 			&dm.m.response_time_nsec, &dm.m.has_response_time_nsec);
 
 	/* response_message */
-	dt_fill_buffer(rmsg, &dm.m.response_message, &dm.m.has_response_message);
+	dt_fill_buffer(pkt, pktlen, &dm.m.response_message, &dm.m.has_response_message);
 
 	/* socket_family, socket_protocol, query_address, query_port */
-	log_assert(cptype == comm_udp || cptype == comm_tcp);
-	dt_msg_fill_net(&dm, qsock, cptype,
+	dt_msg_fill_net(&dm, addr, is_tcp,
 			&dm.m.query_address, &dm.m.has_query_address,
 			&dm.m.query_port, &dm.m.has_query_port);
-
-	if (dt_pack(&dm.d, &dm.buf, &dm.len_buf))
-		dt_send(env, dm.buf, dm.len_buf);
-}
-
-void
-dt_msg_send_outside_query(struct dt_env *env,
-			  struct sockaddr_storage *rsock,
-			  enum comm_point_type cptype,
-			  uint8_t *zone, size_t zone_len,
-			  sldns_buffer *qmsg)
-{
-	struct dt_msg dm;
-	struct timeval qtime;
-	uint16_t qflags;
-
-	gettimeofday(&qtime, NULL);
-	qflags = sldns_buffer_read_u16_at(qmsg, 2);
-
-	/* type */
-	if (qflags & BIT_RD) {
-		if (!env->log_forwarder_query_messages)
-			return;
-		dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__FORWARDER_QUERY);
-	} else {
-		if (!env->log_resolver_query_messages)
-			return;
-		dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__RESOLVER_QUERY);
-	}
-
-	/* query_zone */
-	dm.m.query_zone.data = zone;
-	dm.m.query_zone.len = zone_len;
-	dm.m.has_query_zone = 1;
-
-	/* query_time_sec, query_time_nsec */
-	dt_fill_timeval(&qtime,
-			&dm.m.query_time_sec, &dm.m.has_query_time_sec,
-			&dm.m.query_time_nsec, &dm.m.has_query_time_nsec);
-
-	/* query_message */
-	dt_fill_buffer(qmsg, &dm.m.query_message, &dm.m.has_query_message);
-
-	/* socket_family, socket_protocol, response_address, response_port */
-	log_assert(cptype == comm_udp || cptype == comm_tcp);
-	dt_msg_fill_net(&dm, rsock, cptype,
-			&dm.m.response_address, &dm.m.has_response_address,
-			&dm.m.response_port, &dm.m.has_response_port);
-
-	if (dt_pack(&dm.d, &dm.buf, &dm.len_buf))
-		dt_send(env, dm.buf, dm.len_buf);
-}
-
-void
-dt_msg_send_outside_response(struct dt_env *env,
-			     struct sockaddr_storage *rsock,
-			     enum comm_point_type cptype,
-			     uint8_t *zone, size_t zone_len,
-			     uint8_t *qbuf, size_t qbuf_len,
-			     const struct timeval *qtime,
-			     const struct timeval *rtime,
-			     sldns_buffer *rmsg)
-{
-	struct dt_msg dm;
-	uint16_t qflags;
-
-	log_assert(qbuf_len >= sizeof(qflags));
-	memcpy(&qflags, qbuf, sizeof(qflags));
-	qflags = ntohs(qflags);
-
-	/* type */
-	if (qflags & BIT_RD) {
-		if (!env->log_forwarder_response_messages)
-			return;
-		dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__FORWARDER_RESPONSE);
-	} else {
-		if (!env->log_resolver_response_messages)
-			return;
-		dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__RESOLVER_RESPONSE);
-	}
-
-	/* query_zone */
-	dm.m.query_zone.data = zone;
-	dm.m.query_zone.len = zone_len;
-	dm.m.has_query_zone = 1;
-
-	/* query_time_sec, query_time_nsec */
-	dt_fill_timeval(qtime,
-			&dm.m.query_time_sec, &dm.m.has_query_time_sec,
-			&dm.m.query_time_nsec, &dm.m.has_query_time_nsec);
-
-	/* response_time_sec, response_time_nsec */
-	dt_fill_timeval(rtime,
-			&dm.m.response_time_sec, &dm.m.has_response_time_sec,
-			&dm.m.response_time_nsec, &dm.m.has_response_time_nsec);
-
-	/* response_message */
-	dt_fill_buffer(rmsg, &dm.m.response_message, &dm.m.has_response_message);
-
-	/* socket_family, socket_protocol, response_address, response_port */
-	log_assert(cptype == comm_udp || cptype == comm_tcp);
-	dt_msg_fill_net(&dm, rsock, cptype,
-			&dm.m.response_address, &dm.m.has_response_address,
-			&dm.m.response_port, &dm.m.has_response_port);
 
 	if (dt_pack(&dm.d, &dm.buf, &dm.len_buf))
 		dt_send(env, dm.buf, dm.len_buf);
