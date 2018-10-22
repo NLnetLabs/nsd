@@ -39,6 +39,8 @@
 #include "config.h"
 #include <string.h>
 #include <sys/time.h>
+#include <sys/stat.h>
+#include <errno.h>
 #include <unistd.h>
 #include "util.h"
 #include "options.h"
@@ -116,6 +118,18 @@ dt_msg_init(const struct dt_env *env,
 	}
 }
 
+/* check that the socket file can be opened and exists, print error if not */
+static void
+check_socket_file(const char* socket_path)
+{
+	struct stat statbuf;
+	memset(&statbuf, 0, sizeof(statbuf));
+	if(stat(socket_path, &statbuf) < 0) {
+		log_msg(LOG_WARNING, "could not open dnstap-socket-path: %s, %s",
+			socket_path, strerror(errno));
+	}
+}
+
 struct dt_env *
 dt_create(const char *socket_path, unsigned num_workers)
 {
@@ -132,6 +146,7 @@ dt_create(const char *socket_path, unsigned num_workers)
 		socket_path));
 	assert(socket_path != NULL);
 	assert(num_workers > 0);
+	check_socket_file(socket_path);
 
 	env = (struct dt_env *) calloc(1, sizeof(struct dt_env));
 	if (!env)
