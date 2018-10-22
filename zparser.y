@@ -301,6 +301,9 @@ wire_dname:	wire_abs_dname
     {
 	    /* terminate in root label and copy the origin in there */
 	    $$.len = $1.len + domain_dname(parser->origin)->name_size;
+	    if ($$.len > MAXDOMAINLEN)
+		    zc_error("domain name exceeds %d character limit",
+			     MAXDOMAINLEN);
 	    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
 	    memmove($$.str, $1.str, $1.len);
 	    memmove($$.str + $1.len, dname_name(domain_dname(parser->origin)),
@@ -317,21 +320,19 @@ wire_abs_dname:	'.'
     }
     |	'@'
     {
-	    char *result = (char *) region_alloc(parser->rr_region,
-	    	domain_dname(parser->origin)->name_size);
-	    memmove(result, dname_name(domain_dname(parser->origin)),
-	    	domain_dname(parser->origin)->name_size);
-	    $$.str = result;
 	    $$.len = domain_dname(parser->origin)->name_size;
+	    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
+	    memmove($$.str, dname_name(domain_dname(parser->origin)), $$.len);
     }
     |	wire_rel_dname '.'
     {
-	    char *result = (char *) region_alloc(parser->rr_region,
-						 $1.len + 1);
-	    memcpy(result, $1.str, $1.len);
-	    result[$1.len] = 0;
-	    $$.str = result;
 	    $$.len = $1.len + 1;
+	    if ($$.len > MAXDOMAINLEN)
+		    zc_error("domain name exceeds %d character limit",
+			     MAXDOMAINLEN);
+	    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
+	    memcpy($$.str, $1.str, $1.len);
+	    $$.str[$1.len] = 0;
     }
     ;
 
@@ -355,12 +356,10 @@ wire_label:	STR
 wire_rel_dname:	wire_label
     |	wire_rel_dname '.' wire_label
     {
-	    if ($1.len + $3.len > MAXDOMAINLEN)
+	    $$.len = $1.len + $3.len;
+	    if ($$.len > MAXDOMAINLEN)
 		    zc_error("domain name exceeds %d character limit",
 			     MAXDOMAINLEN);
-
-	    /* make dname anyway */
-	    $$.len = $1.len + $3.len;
 	    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
 	    memmove($$.str, $1.str, $1.len);
 	    memmove($$.str + $1.len, $3.str, $3.len);

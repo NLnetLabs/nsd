@@ -1,6 +1,7 @@
 22 October 2018: Wouter
 	- Fix #4194: Zone file parser derailed by non-FQDN names in RHS of
 	  DNSSEC RRs.
+	- Fix some more, neater code and checks for domain length limit.
 
 4 October 2018: Wouter
 	- dnstap work, the dnstap.proto is a copy of the file from Unbound,
