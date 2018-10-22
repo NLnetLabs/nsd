@@ -298,23 +298,38 @@ rel_dname:	label
 
 wire_dname:	wire_abs_dname
     |	wire_rel_dname
+    {
+	    /* terminate in root label and copy the origin in there */
+	    $$.len = $1.len + domain_dname(parser->origin)->name_size;
+	    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
+	    memmove($$.str, $1.str, $1.len);
+	    memmove($$.str + $1.len, dname_name(domain_dname(parser->origin)),
+	    	domain_dname(parser->origin)->name_size);
+    }
     ;
 
 wire_abs_dname:	'.'
     {
-	    char *result = (char *) region_alloc(parser->rr_region, 2);
+	    char *result = (char *) region_alloc(parser->rr_region, 1);
 	    result[0] = 0;
-	    result[1] = '\0';
 	    $$.str = result;
 	    $$.len = 1;
+    }
+    |	'@'
+    {
+	    char *result = (char *) region_alloc(parser->rr_region,
+	    	domain_dname(parser->origin)->name_size);
+	    memmove(result, dname_name(domain_dname(parser->origin)),
+	    	domain_dname(parser->origin)->name_size);
+	    $$.str = result;
+	    $$.len = domain_dname(parser->origin)->name_size;
     }
     |	wire_rel_dname '.'
     {
 	    char *result = (char *) region_alloc(parser->rr_region,
-						 $1.len + 2);
+						 $1.len + 1);
 	    memcpy(result, $1.str, $1.len);
 	    result[$1.len] = 0;
-	    result[$1.len+1] = '\0';
 	    $$.str = result;
 	    $$.len = $1.len + 1;
     }
@@ -330,7 +345,7 @@ wire_label:	STR
 
 	    /* make label anyway */
 	    result[0] = $1.len;
-	    memcpy(result+1, $1.str, $1.len);
+	    memmove(result+1, $1.str, $1.len);
 
 	    $$.str = result;
 	    $$.len = $1.len + 1;
@@ -340,16 +355,15 @@ wire_label:	STR
 wire_rel_dname:	wire_label
     |	wire_rel_dname '.' wire_label
     {
-	    if ($1.len + $3.len - 3 > MAXDOMAINLEN)
+	    if ($1.len + $3.len > MAXDOMAINLEN)
 		    zc_error("domain name exceeds %d character limit",
 			     MAXDOMAINLEN);
 
 	    /* make dname anyway */
 	    $$.len = $1.len + $3.len;
-	    $$.str = (char *) region_alloc(parser->rr_region, $$.len + 1);
-	    memcpy($$.str, $1.str, $1.len);
-	    memcpy($$.str + $1.len, $3.str, $3.len);
-	    $$.str[$$.len] = '\0';
+	    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
+	    memmove($$.str, $1.str, $1.len);
+	    memmove($$.str + $1.len, $3.str, $3.len);
     }
     ;
 
