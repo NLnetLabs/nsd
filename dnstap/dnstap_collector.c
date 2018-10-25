@@ -50,8 +50,6 @@ struct dt_collector* dt_collector_create(struct nsd* nsd)
 		sizeof(struct sockaddr_in)
 #endif
 		);
-	/* get config from struct nsd and nsd.options,
-	 * socket_path, nsd.child_count */
 
 	/* open pipes in struct nsd */
 	nsd->dt_collector_fd_send = (int*)xalloc_array_zero(dt_col->count,
@@ -264,6 +262,16 @@ dt_handle_input(int fd, short event, void* arg)
 static void dt_init_dnstap(struct dt_collector* dt_col, struct nsd* nsd)
 {
 	int num_workers = 1;
+#ifdef HAVE_CHROOT
+	if(nsd->chrootdir && nsd->chrootdir[0]) {
+		int l = strlen(nsd->chrootdir)-1; /* ends in trailing slash */
+		if (nsd->options->dnstap_socket_path &&
+			nsd->options->dnstap_socket_path[0] == '/' &&
+			strncmp(nsd->options->dnstap_socket_path,
+				nsd->chrootdir, l) == 0)
+			nsd->options->dnstap_socket_path += l;
+	}
+#endif
 	dt_col->dt_env = dt_create(nsd->options->dnstap_socket_path, num_workers);
 	if(!dt_col->dt_env) {
 		log_msg(LOG_ERR, "could not create dnstap env");
