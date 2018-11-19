@@ -10,6 +10,7 @@ BUG FIXES:
 	- Fix #4194: Zone file parser derailed by non-FQDN names in RHS of
 	  DNSSEC RRs.
 	- Fix #4202: nsd-control delzone incorrect exit code on error.
+	- Tab style fix to use tab for 8 spaces, from Xiaobo Liu.
 
 
 4.1.25
