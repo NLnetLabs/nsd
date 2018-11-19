@@ -596,6 +596,26 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 		}
 
 #ifdef SO_REUSEPORT
+#  ifdef SO_REUSEPORT_LB
+		/* on FreeBSD 12 we have SO_REUSEPORT_LB that does loadbalance
+		 * like SO_REUSEPORT on Linux.  This is what the users want
+		 * with the config option in nsd.conf; if we actually
+		 * need local address and port reuse they'll also need to
+		 * have SO_REUSEPORT set for them, assume it was _LB they want.
+		 */
+		if(nsd->reuseport && *reuseport_works &&
+			setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_REUSEPORT_LB,
+			(void*)&on, (socklen_t)sizeof(on)) < 0) {
+			if(verbosity >= 3
+#ifdef ENOPROTOOPT
+				|| errno != ENOPROTOOPT
+#endif
+				)
+			    log_msg(LOG_ERR, "setsockopt(..., SO_REUSEPORT_LB, "
+				"...) failed: %s", strerror(errno));
+			*reuseport_works = 0;
+		}
+#  else /* SO_REUSEPORT_LB */
 		if(nsd->reuseport && *reuseport_works &&
 			setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_REUSEPORT,
 			(void*)&on, (socklen_t)sizeof(on)) < 0) {
@@ -608,6 +628,7 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 				"...) failed: %s", strerror(errno));
 			*reuseport_works = 0;
 		}
+#  endif /* SO_REUSEPORT_LB */
 #else
 		(void)reuseport_works;
 #endif /* SO_REUSEPORT */

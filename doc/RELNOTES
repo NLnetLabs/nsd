@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- DNSTAP support for NSD, --enable-dnstap and then config in nsd.conf.
+	- Support SO_REUSEPORT_LB in FreeBSD 12 with the reuseport: yes
+	  option in nsd.conf.
 BUG FIXES:
 	- Fix #4194: Zone file parser derailed by non-FQDN names in RHS of
 	  DNSSEC RRs.
