@@ -1334,7 +1334,7 @@ perform_delzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		/* nothing to do */
 		if(!ssl_printf(ssl, "warning zone %s not present\n", arg))
 			return 0;
-		return 1;
+		return 0;
 	}
 
 	/* see if it can be deleted */

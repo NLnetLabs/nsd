@@ -1,6 +1,7 @@
 19 November 2018: Wouter
 	- Support SO_REUSEPORT_LB in FreeBSD 12 with the reuseport: yes
 	  option in nsd.conf.
+	- Fix #4202: nsd-control delzone incorrect exit code on error.
 
 25 October 2018: Wouter
 	- Adjust dnstap socket path for chroot.
