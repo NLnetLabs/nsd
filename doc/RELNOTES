@@ -11,6 +11,8 @@ BUG FIXES:
 	  DNSSEC RRs.
 	- Fix #4202: nsd-control delzone incorrect exit code on error.
 	- Tab style fix to use tab for 8 spaces, from Xiaobo Liu.
+	- Fix #4205: enable-recvmmsg in mixed IPv4/IPv6 environment fails.
+	  This sets the msg_hdr.msg_namelen correctly after receipt.
 
 
 4.1.25

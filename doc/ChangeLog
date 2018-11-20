@@ -1,3 +1,7 @@
+20 November 2018: Wouter
+	- Fix #4205: enable-recvmmsg in mixed IPv4/IPv6 environment fails.
+	  This sets the msg_hdr.msg_namelen correctly after receipt.
+
 19 November 2018: Wouter
 	- Support SO_REUSEPORT_LB in FreeBSD 12 with the reuseport: yes
 	  option in nsd.conf.
