@@ -6,6 +6,9 @@ FEATURES:
 	- DNSTAP support for NSD, --enable-dnstap and then config in nsd.conf.
 	- Support SO_REUSEPORT_LB in FreeBSD 12 with the reuseport: yes
 	  option in nsd.conf.
+	- Added nsd-control changezone.  nsd-control changezone name pattern
+	  allows the change of a zone pattern option without downtime for
+	  the zone, in one operation.
 BUG FIXES:
 	- Fix #4194: Zone file parser derailed by non-FQDN names in RHS of
 	  DNSSEC RRs.

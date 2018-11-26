@@ -88,6 +88,12 @@ inside nsd.conf itself cannot be removed this way because the daemon
 does not write to the nsd.conf file, you need to add such zones to the
 zonelist file to be able to delete them with the delzone command.
 .TP
+.B changezone <zone name> <pattern name>
+Change a zone to use the pattern for options.  The zone is deleted and added
+in one operation, changing it to use the new pattern for the zone options.
+Zones configured in nsd.conf cannot be changed like this, instead edit
+the nsd.conf (or the included file in nsd.conf) and reconfig.
+.TP
 .B addzones
 Add zones read from stdin of nsd\-control.  Input is read per line,
 with name space patternname on a line.  For bulk additions.
