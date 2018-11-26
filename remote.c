@@ -1283,8 +1283,6 @@ perform_changezone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 
 	/* see if zone is a duplicate */
 	if( (zopt=zone_options_find(xfrd->nsd->options, dname)) ) {
-		region_recycle(xfrd->region, (void*)dname,
-			dname_total_size(dname));
 		if(zopt->part_of_config) {
 			(void)ssl_printf(ssl, "error zone defined in nsd.conf, "
 			  "cannot delete it in this manner: remove it from "
@@ -1295,6 +1293,10 @@ perform_changezone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		}
 		/* found the zone, now delete it */
 		/* create deletion task */
+		/* this deletion task is processed before the addition task,
+		 * that is created below, in the same reload process, causing
+		 * a seamless change from one to the other, with no downtime
+		 * for the zone. */
 		task_new_del_zone(xfrd->nsd->task[xfrd->nsd->mytask],
 			xfrd->last_task, dname);
 		xfrd_set_reload_now(xfrd);
