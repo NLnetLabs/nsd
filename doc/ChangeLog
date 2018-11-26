@@ -4,6 +4,7 @@
 	- Added nsd-control changezone.  nsd-control changezone name pattern
 	  allows the change of a zone pattern option without downtime for
 	  the zone, in one operation.
+	- Fix #3433: document that reconfig does not change per-zone stats.
 
 20 November 2018: Wouter
 	- Fix #4205: enable-recvmmsg in mixed IPv4/IPv6 environment fails.

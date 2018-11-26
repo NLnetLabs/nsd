@@ -18,6 +18,7 @@ BUG FIXES:
 	  This sets the msg_hdr.msg_namelen correctly after receipt.
 	- Fix to not set GLOB_NOSORT so the nsd.conf include: files are
 	  sorted and in a predictable order.
+	- Fix #3433: document that reconfig does not change per-zone stats.
 
 
 4.1.25
