@@ -1,3 +1,6 @@
+27 November 2018: Wouter
+	- Fix parsezone failure in 4194 fix.
+
 26 November 2018: Wouter
 	- Fix to not set GLOB_NOSORT so the nsd.conf include: files are
 	  sorted and in a predictable order.

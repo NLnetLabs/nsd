@@ -300,14 +300,24 @@ wire_dname:	wire_abs_dname
     |	wire_rel_dname
     {
 	    /* terminate in root label and copy the origin in there */
-	    $$.len = $1.len + domain_dname(parser->origin)->name_size;
-	    if ($$.len > MAXDOMAINLEN)
-		    zc_error("domain name exceeds %d character limit",
-			     MAXDOMAINLEN);
-	    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
-	    memmove($$.str, $1.str, $1.len);
-	    memmove($$.str + $1.len, dname_name(domain_dname(parser->origin)),
-	    	domain_dname(parser->origin)->name_size);
+	    if(parser->origin && domain_dname(parser->origin)) {
+		    $$.len = $1.len + domain_dname(parser->origin)->name_size;
+		    if ($$.len > MAXDOMAINLEN)
+			    zc_error("domain name exceeds %d character limit",
+				     MAXDOMAINLEN);
+		    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
+		    memmove($$.str, $1.str, $1.len);
+		    memmove($$.str + $1.len, dname_name(domain_dname(parser->origin)),
+			domain_dname(parser->origin)->name_size);
+	    } else {
+		    $$.len = $1.len + 1;
+		    if ($$.len > MAXDOMAINLEN)
+			    zc_error("domain name exceeds %d character limit",
+				     MAXDOMAINLEN);
+		    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
+		    memmove($$.str, $1.str, $1.len);
+		    $$.str[ $1.len ] = 0;
+	    }
     }
     ;
 
