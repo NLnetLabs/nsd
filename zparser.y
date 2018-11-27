@@ -330,9 +330,15 @@ wire_abs_dname:	'.'
     }
     |	'@'
     {
-	    $$.len = domain_dname(parser->origin)->name_size;
-	    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
-	    memmove($$.str, dname_name(domain_dname(parser->origin)), $$.len);
+	    if(parser->origin && domain_dname(parser->origin)) {
+		    $$.len = domain_dname(parser->origin)->name_size;
+		    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
+		    memmove($$.str, dname_name(domain_dname(parser->origin)), $$.len);
+	    } else {
+		    $$.len = 1;
+		    $$.str = (char *) region_alloc(parser->rr_region, $$.len);
+		    $$.str[0] = 0;
+	    }
     }
     |	wire_rel_dname '.'
     {
