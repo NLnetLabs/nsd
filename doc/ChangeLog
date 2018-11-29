@@ -2,6 +2,7 @@
 	- Tag for 4.1.26rc1.
 	- Fix clang analysis warning on null in closest encloser for wildcard
 	  denial nsec.
+	- Fix clang analysis warnings.
 
 27 November 2018: Wouter
 	- Fix parsezone failure in 4194 fix.
