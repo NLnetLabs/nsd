@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.26 (upcoming)
+4.1.26
 ================
 FEATURES:
 	- DNSTAP support for NSD, --enable-dnstap and then config in nsd.conf.
