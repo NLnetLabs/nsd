@@ -603,7 +603,7 @@ static void fillperm(CuTest* tc, int d, int **perm, size_t* curx, int cury)
 				break;
 			}
 		if(found) continue;
-		CuAssertTrue(tc, perm[*curx]);
+		CuAssertTrue(tc, perm[*curx] != NULL);
 		perm[*curx][cury] = i;
 		/* recurse */
 		fillperm(tc, d, perm, curx, cury+1);
