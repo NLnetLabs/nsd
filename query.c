@@ -1182,8 +1182,10 @@ answer_authoritative(struct nsd   *nsd,
 			 * No match and no wildcard.  Include NSEC
 			 * proving there is no wildcard.
 			 */
-			nsec_domain = find_covering_nsec(closest_encloser->wildcard_child_closest_match, q->zone, &nsec_rrset);
-			if (nsec_domain) {
+			if(closest_encloser && (nsec_domain =
+				find_covering_nsec(closest_encloser->
+					wildcard_child_closest_match, q->zone,
+					&nsec_rrset)) != NULL) {
 				add_rrset(q, answer, AUTHORITY_SECTION, nsec_domain, nsec_rrset);
 			}
 		}
