@@ -578,7 +578,7 @@ static void test_add_remove(CuTest *tc, rbtree_type* tree, const int* insert, co
 	CuAssert(tc, "tree->count == 0", (tree->count == 0));
 }
 
-static void fillperm(int d, int **perm, size_t* curx, int cury)
+static void fillperm(CuTest* tc, int d, int **perm, size_t* curx, int cury)
 {
 	int i;
 	if(cury == d)
@@ -603,9 +603,10 @@ static void fillperm(int d, int **perm, size_t* curx, int cury)
 				break;
 			}
 		if(found) continue;
+		CuAssertTrue(tc, perm[*curx]);
 		perm[*curx][cury] = i;
 		/* recurse */
-		fillperm(d, perm, curx, cury+1);
+		fillperm(tc, d, perm, curx, cury+1);
 	}
 }
 
@@ -624,7 +625,7 @@ static size_t makepermutations(CuTest *tc, int d, int ***perm)
 	}
 	(*perm)[num+1] = 0;
 	i=0;
-	fillperm(d, *perm, &i, 0);
+	fillperm(tc, d, *perm, &i, 0);
 	CuAssert(tc, "num == i", (num == i));
 	return num;
 }
