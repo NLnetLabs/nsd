@@ -1,6 +1,7 @@
 3 December 2018: Wouter
 	- Note that the content_list member is unused; and could be removed
 	  if the database format is modified or updated.
+	- Fix that dnstap logs CQ and CR like BIND does.
 	 
 29 November 2018: Wouter
 	- Tag for 4.1.26rc1.

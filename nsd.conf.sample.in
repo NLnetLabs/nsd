@@ -186,8 +186,8 @@ server:
 	# dnstap-send-version: no
 	# dnstap-identity: ""
 	# dnstap-version: ""
-	# dnstap-log-auth-query-messages: no
-	# dnstap-log-auth-response-messages: no
+	# dnstap-log-client-query-messages: no
+	# dnstap-log-client-response-messages: no
 
 # Remote control config section. 
 remote-control:

@@ -235,15 +235,15 @@ dt_apply_cfg(struct dt_env *env, struct nsd_options *cfg)
 
 	dt_apply_identity(env, cfg);
 	dt_apply_version(env, cfg);
-	if ((env->log_auth_query_messages = (unsigned int)
-	     cfg->dnstap_log_auth_query_messages))
+	if ((env->log_client_query_messages = (unsigned int)
+	     cfg->dnstap_log_client_query_messages))
 	{
-		VERBOSITY(1, (LOG_INFO, "dnstap Message/AUTH_QUERY enabled"));
+		VERBOSITY(1, (LOG_INFO, "dnstap Message/CLIENT_QUERY enabled"));
 	}
-	if ((env->log_auth_response_messages = (unsigned int)
-	     cfg->dnstap_log_auth_response_messages))
+	if ((env->log_client_response_messages = (unsigned int)
+	     cfg->dnstap_log_client_response_messages))
 	{
-		VERBOSITY(1, (LOG_INFO, "dnstap Message/AUTH_RESPONSE enabled"));
+		VERBOSITY(1, (LOG_INFO, "dnstap Message/CLIENT_RESPONSE enabled"));
 	}
 }
 
@@ -349,7 +349,7 @@ dt_msg_fill_net(struct dt_msg *dm,
 }
 
 void
-dt_msg_send_auth_query(struct dt_env *env,
+dt_msg_send_client_query(struct dt_env *env,
 #ifdef INET6
 	struct sockaddr_storage* addr,
 #else
@@ -363,7 +363,7 @@ dt_msg_send_auth_query(struct dt_env *env,
 	gettimeofday(&qtime, NULL);
 
 	/* type */
-	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__AUTH_QUERY);
+	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__CLIENT_QUERY);
 
 	if(zone) {
 		/* query_zone */
@@ -390,7 +390,7 @@ dt_msg_send_auth_query(struct dt_env *env,
 }
 
 void
-dt_msg_send_auth_response(struct dt_env *env,
+dt_msg_send_client_response(struct dt_env *env,
 #ifdef INET6
 	struct sockaddr_storage* addr,
 #else
@@ -404,7 +404,7 @@ dt_msg_send_auth_response(struct dt_env *env,
 	gettimeofday(&rtime, NULL);
 
 	/* type */
-	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__AUTH_RESPONSE);
+	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__CLIENT_RESPONSE);
 
 	if(zone) {
 		/* query_zone */

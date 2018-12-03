@@ -63,9 +63,9 @@ struct dt_env {
 	unsigned len_version;
 
 	/** whether to log Message/AUTH_QUERY */
-	unsigned log_auth_query_messages : 1;
+	unsigned log_client_query_messages : 1;
 	/** whether to log Message/AUTH_RESPONSE */
-	unsigned log_auth_response_messages : 1;
+	unsigned log_client_response_messages : 1;
 };
 
 /**
@@ -116,7 +116,7 @@ dt_delete(struct dt_env *env);
  * @param pktlen: length of pkt.
  */
 void
-dt_msg_send_auth_query(struct dt_env *env,
+dt_msg_send_client_query(struct dt_env *env,
 #ifdef INET6
 	struct sockaddr_storage* addr,
 #else
@@ -135,7 +135,7 @@ dt_msg_send_auth_query(struct dt_env *env,
  * @param pktlen: length of pkt.
  */
 void
-dt_msg_send_auth_response(struct dt_env *env,
+dt_msg_send_client_response(struct dt_env *env,
 #ifdef INET6
 	struct sockaddr_storage* addr,
 #else
