@@ -137,10 +137,10 @@ struct nsd_options {
 	char* dnstap_identity;
 	/** dnstap "version", package version is used if "". */
 	char* dnstap_version;
-	/** true to log dnstap CLIENT_QUERY message events */
-	int dnstap_log_client_query_messages;
-	/** true to log dnstap CLIENT_RESPONSE message events */
-	int dnstap_log_client_response_messages;
+	/** true to log dnstap AUTH_QUERY message events */
+	int dnstap_log_auth_query_messages;
+	/** true to log dnstap AUTH_RESPONSE message events */
+	int dnstap_log_auth_response_messages;
 
 	region_type* region;
 };

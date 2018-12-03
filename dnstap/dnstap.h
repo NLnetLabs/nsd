@@ -62,10 +62,10 @@ struct dt_env {
 	/** length of "version" field */
 	unsigned len_version;
 
-	/** whether to log Message/CLIENT_QUERY */
-	unsigned log_client_query_messages : 1;
-	/** whether to log Message/CLIENT_RESPONSE */
-	unsigned log_client_response_messages : 1;
+	/** whether to log Message/AUTH_QUERY */
+	unsigned log_auth_query_messages : 1;
+	/** whether to log Message/AUTH_RESPONSE */
+	unsigned log_auth_response_messages : 1;
 };
 
 /**
@@ -106,7 +106,7 @@ void
 dt_delete(struct dt_env *env);
 
 /**
- * Create and send a new dnstap "Message" event of type CLIENT_QUERY.
+ * Create and send a new dnstap "Message" event of type AUTH_QUERY.
  * @param env: dnstap environment object.
  * @param addr: address/port of client.
  * @param is_tcp: true for tcp, false for udp.
@@ -116,7 +116,7 @@ dt_delete(struct dt_env *env);
  * @param pktlen: length of pkt.
  */
 void
-dt_msg_send_client_query(struct dt_env *env,
+dt_msg_send_auth_query(struct dt_env *env,
 #ifdef INET6
 	struct sockaddr_storage* addr,
 #else
@@ -125,7 +125,7 @@ dt_msg_send_client_query(struct dt_env *env,
 	int is_tcp, uint8_t* zone, size_t zonelen, uint8_t* pkt, size_t pktlen);
 
 /**
- * Create and send a new dnstap "Message" event of type CLIENT_RESPONSE.
+ * Create and send a new dnstap "Message" event of type AUTH_RESPONSE.
  * @param env: dnstap environment object.
  * @param addr: address/port of client.
  * @param is_tcp: true for tcp, false for udp.
@@ -135,7 +135,7 @@ dt_msg_send_client_query(struct dt_env *env,
  * @param pktlen: length of pkt.
  */
 void
-dt_msg_send_client_response(struct dt_env *env,
+dt_msg_send_auth_response(struct dt_env *env,
 #ifdef INET6
 	struct sockaddr_storage* addr,
 #else

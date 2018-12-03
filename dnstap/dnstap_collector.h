@@ -64,11 +64,11 @@ void dt_collector_close(struct dt_collector* dt_col, struct nsd* nsd);
 /* start the collector process */
 void dt_collector_start(struct dt_collector* dt_col, struct nsd* nsd);
 
-/* submit client query from worker.  It attempts to send it to the collector,
+/* submit auth query from worker.  It attempts to send it to the collector,
  * if the nonblocking fails, then it silently skips it.  So it does not block
  * on the log.
  */
-void dt_collector_submit_client_query(struct nsd* nsd,
+void dt_collector_submit_auth_query(struct nsd* nsd,
 #ifdef INET6
 	struct sockaddr_storage* addr,
 #else
@@ -76,11 +76,11 @@ void dt_collector_submit_client_query(struct nsd* nsd,
 #endif
 	socklen_t addrlen, int is_tcp, struct buffer* packet);
 
-/* submit client response from worker.  It attempts to send it to the collector,
+/* submit auth response from worker.  It attempts to send it to the collector,
  * if the nonblocking fails, then it silently skips it.  So it does not block
  * on the log.
  */
-void dt_collector_submit_client_response(struct nsd* nsd,
+void dt_collector_submit_auth_response(struct nsd* nsd,
 #ifdef INET6
 	struct sockaddr_storage* addr,
 #else

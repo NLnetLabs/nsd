@@ -412,8 +412,8 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_BIN(dnstap_send_version, o);
 		SERV_GET_STR(dnstap_identity, o);
 		SERV_GET_STR(dnstap_version, o);
-		SERV_GET_BIN(dnstap_log_client_query_messages, o);
-		SERV_GET_BIN(dnstap_log_client_response_messages, o);
+		SERV_GET_BIN(dnstap_log_auth_query_messages, o);
+		SERV_GET_BIN(dnstap_log_auth_response_messages, o);
 #endif
 		SERV_GET_INT(zonefiles_write, o);
 		/* remote control */
@@ -545,8 +545,8 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\tdnstap-send-version: %s\n", opt->dnstap_send_version?"yes":"no");
 	print_string_var("dnstap-identity:", opt->dnstap_identity);
 	print_string_var("dnstap-version:", opt->dnstap_version);
-	printf("\tdnstap-log-client-query-messages: %s\n", opt->dnstap_log_client_query_messages?"yes":"no");
-	printf("\tdnstap-log-client-response-messages: %s\n", opt->dnstap_log_client_response_messages?"yes":"no");
+	printf("\tdnstap-log-auth-query-messages: %s\n", opt->dnstap_log_auth_query_messages?"yes":"no");
+	printf("\tdnstap-log-auth-response-messages: %s\n", opt->dnstap_log_auth_response_messages?"yes":"no");
 #endif
 
 	printf("\nremote-control:\n");

@@ -105,8 +105,8 @@ nsd_options_create(region_type* region)
 	opt->dnstap_send_version = 0;
 	opt->dnstap_identity = NULL;
 	opt->dnstap_version = NULL;
-	opt->dnstap_log_client_query_messages = 0;
-	opt->dnstap_log_client_response_messages = 0;
+	opt->dnstap_log_auth_query_messages = 0;
+	opt->dnstap_log_auth_response_messages = 0;
 #endif
 	opt->zonefiles_check = 1;
 	if(opt->database == NULL || opt->database[0] == 0)

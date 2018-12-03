@@ -2,6 +2,7 @@
 	- Note that the content_list member is unused; and could be removed
 	  if the database format is modified or updated.
 	- Fix that dnstap logs CQ and CR like BIND does.
+	- Revert that, it looks wrong, AQ and AR are for the authoritative.
 	 
 29 November 2018: Wouter
 	- Tag for 4.1.26rc1.

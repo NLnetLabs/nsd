@@ -2264,7 +2264,7 @@ handle_udp(int fd, short event, void* arg)
 		buffer_skip(q->packet, received);
 		buffer_flip(q->packet);
 #ifdef USE_DNSTAP
-		dt_collector_submit_client_query(data->nsd, &q->addr, q->addrlen,
+		dt_collector_submit_auth_query(data->nsd, &q->addr, q->addrlen,
 			q->tcp, q->packet);
 #endif /* USE_DNSTAP */
 
@@ -2298,7 +2298,7 @@ handle_udp(int fd, short event, void* arg)
 			}
 #endif /* BIND8_STATS */
 #ifdef USE_DNSTAP
-			dt_collector_submit_client_response(data->nsd,
+			dt_collector_submit_auth_response(data->nsd,
 				&q->addr, q->addrlen, q->tcp, q->packet,
 				q->zone);
 #endif /* USE_DNSTAP */
@@ -2434,7 +2434,7 @@ handle_udp(int fd, short event, void* arg)
 		buffer_skip(q->packet, received);
 		buffer_flip(q->packet);
 #ifdef USE_DNSTAP
-		dt_collector_submit_client_query(data->nsd, &q->addr, q->addrlen,
+		dt_collector_submit_auth_query(data->nsd, &q->addr, q->addrlen,
 			q->tcp, q->packet);
 #endif /* USE_DNSTAP */
 
@@ -2484,7 +2484,7 @@ handle_udp(int fd, short event, void* arg)
 				}
 #endif /* BIND8_STATS */
 #ifdef USE_DNSTAP
-				dt_collector_submit_client_response(data->nsd,
+				dt_collector_submit_auth_response(data->nsd,
 					&q->addr, q->addrlen, q->tcp,
 					q->packet, q->zone);
 #endif /* USE_DNSTAP */
@@ -2684,7 +2684,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 
 	buffer_flip(data->query->packet);
 #ifdef USE_DNSTAP
-	dt_collector_submit_client_query(data->nsd, &data->query->addr,
+	dt_collector_submit_auth_query(data->nsd, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
 	data->query_state = server_process_query(data->nsd, data->query);
@@ -2723,7 +2723,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 	buffer_flip(data->query->packet);
 	data->query->tcplen = buffer_remaining(data->query->packet);
 #ifdef USE_DNSTAP
-	dt_collector_submit_client_response(data->nsd, &data->query->addr,
+	dt_collector_submit_auth_response(data->nsd, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
 #endif /* USE_DNSTAP */

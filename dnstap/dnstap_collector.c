@@ -227,10 +227,10 @@ dt_submit_content(struct dt_env* dt_env, struct buffer* buf)
 
 	/* submit it */
 	if(is_response) {
-		dt_msg_send_client_response(dt_env, &addr, is_tcp, zone,
+		dt_msg_send_auth_response(dt_env, &addr, is_tcp, zone,
 			zonelen, data, pktlen);
 	} else {
-		dt_msg_send_client_query(dt_env, &addr, is_tcp, zone,
+		dt_msg_send_auth_query(dt_env, &addr, is_tcp, zone,
 			zonelen, data, pktlen);
 	}
 }
@@ -468,7 +468,7 @@ static void attempt_to_write(int s, uint8_t* data, size_t len)
 	}
 }
 
-void dt_collector_submit_client_query(struct nsd* nsd,
+void dt_collector_submit_auth_query(struct nsd* nsd,
 #ifdef INET6
 	struct sockaddr_storage* addr,
 #else
@@ -477,8 +477,8 @@ void dt_collector_submit_client_query(struct nsd* nsd,
 	socklen_t addrlen, int is_tcp, struct buffer* packet)
 {
 	if(!nsd->dt_collector) return;
-	if(!nsd->options->dnstap_log_client_query_messages) return;
-	VERBOSITY(4, (LOG_INFO, "dnstap submit client query"));
+	if(!nsd->options->dnstap_log_auth_query_messages) return;
+	VERBOSITY(4, (LOG_INFO, "dnstap submit auth query"));
 
 	/* marshal data into send buffer */
 	if(!prep_send_data(nsd->dt_collector->send_buffer, 0, addr, addrlen,
@@ -491,7 +491,7 @@ void dt_collector_submit_client_query(struct nsd* nsd,
 		buffer_remaining(nsd->dt_collector->send_buffer));
 }
 
-void dt_collector_submit_client_response(struct nsd* nsd,
+void dt_collector_submit_auth_response(struct nsd* nsd,
 #ifdef INET6
 	struct sockaddr_storage* addr,
 #else
@@ -501,8 +501,8 @@ void dt_collector_submit_client_response(struct nsd* nsd,
 	struct zone* zone)
 {
 	if(!nsd->dt_collector) return;
-	if(!nsd->options->dnstap_log_client_response_messages) return;
-	VERBOSITY(4, (LOG_INFO, "dnstap submit client response"));
+	if(!nsd->options->dnstap_log_auth_response_messages) return;
+	VERBOSITY(4, (LOG_INFO, "dnstap submit auth response"));
 
 	/* marshal data into send buffer */
 	if(!prep_send_data(nsd->dt_collector->send_buffer, 1, addr, addrlen,
