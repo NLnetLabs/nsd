@@ -5,7 +5,8 @@
 	- Revert that, it looks wrong, AQ and AR are for the authoritative.
 	 
 29 November 2018: Wouter
-	- Tag for 4.1.26rc1.
+	- Tag for 4.1.26rc1. Which became 4.1.26 on 4 dec 2018.
+	  Trunk has 4.1.27 in development.
 	- Fix clang analysis warning on null in closest encloser for wildcard
 	  denial nsec.
 	- Fix clang analysis warnings.
