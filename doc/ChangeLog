@@ -1,3 +1,6 @@
+5 December 2018: Wouter
+	- Fix #4213: disable-ipv6 and dnstap compile error.
+
 3 December 2018: Wouter
 	- Note that the content_list member is unused; and could be removed
 	  if the database format is modified or updated.
