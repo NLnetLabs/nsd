@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix #4213: disable-ipv6 and dnstap compile error.
 
 
 4.1.26
