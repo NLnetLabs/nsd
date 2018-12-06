@@ -1,3 +1,7 @@
+6 December 2018: Wouter
+	- Fix to reduce region_log_stats if condition, this removes a
+	  debug statement.
+
 5 December 2018: Wouter
 	- Fix #4213: disable-ipv6 and dnstap compile error.
 

@@ -5,6 +5,8 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix #4213: disable-ipv6 and dnstap compile error.
+	- Fix to reduce region_log_stats if condition, this removes a
+	  debug statement.
 
 
 4.1.26
