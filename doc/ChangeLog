@@ -1,5 +1,5 @@
 10 December 2018: Wouter
-	- Fix for FreeBSD port with dnstap enabled if it reruns autoconf.
+	- Fix for FreeBSD port with dnstap enabled.
 
 6 December 2018: Wouter
 	- Fix to reduce region_log_stats if condition, this removes a
