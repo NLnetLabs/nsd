@@ -7,6 +7,7 @@ BUG FIXES:
 	- Fix #4213: disable-ipv6 and dnstap compile error.
 	- Fix to reduce region_log_stats if condition, this removes a
 	  debug statement.
+        - Fix for FreeBSD port with dnstap enabled if it reruns autoconf.
 
 
 4.1.26

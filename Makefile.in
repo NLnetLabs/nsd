@@ -319,7 +319,7 @@ dnstap_collector.o:	$(srcdir)/dnstap/dnstap_collector.c config.h \
 	$(srcdir)/buffer.h $(srcdir)/namedb.h $(srcdir)/dname.h \
 	$(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/rbtree.h \
 	$(srcdir)/options.h
-dnstap/dnstap.pb-c.c dnstap/dnstap.pb-c.h: $(srcdir)/dnstap/dnstap.proto
+dnstap/dnstap.pb-c.c dnstap/dnstap.pb-c.h ./dnstap/dnstap.pb-c.c ./dnstap/dnstap.pb-c.h: $(srcdir)/dnstap/dnstap.proto
 	@-if test ! -d dnstap; then $(INSTALL) -d dnstap; fi
 	$(PROTOC_C) --c_out=. --proto_path=$(srcdir) $(srcdir)/dnstap/dnstap.proto
 
