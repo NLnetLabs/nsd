@@ -365,7 +365,7 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 	    if(pz->nsec3_param && domain->is_existing) {
 		const dname_type* h;
 		uint8_t hash[NSEC3_HASH_LEN];
-		CuAssertTrue(tc, domain->nsec3);
+		CuAssertTrue(tc, domain->nsec3 != NULL);
 		CuAssertTrue(tc, domain->nsec3->ds_parent_hash
 		              && domain->nsec3->ds_parent_hash->node.key);
 		nsec3_hash_and_store(pz, domain_dname(domain), hash);
