@@ -693,7 +693,8 @@ answer_needs_ns(struct query* query)
 	assert(query);
 	/* Currently, only troublesome for DNSKEY and DS,
          * cuz their RRSETs are quite large. */
-	return (query->qtype != TYPE_DNSKEY && query->qtype != TYPE_DS);
+	return (query->qtype != TYPE_DNSKEY && query->qtype != TYPE_DS
+		&& query->qtype != TYPE_ANY);
 }
 
 static int
@@ -969,6 +970,9 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 			{
 				add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
 				++added;
+				/* minimize response size with one RR,
+				 * according to RFC 8482(4.1). */
+				break;
 			}
 		}
 		if (added == 0) {

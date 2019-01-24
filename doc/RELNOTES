@@ -3,6 +3,11 @@ NSD RELEASE NOTES
 4.1.27 (Upcoming)
 ================
 FEATURES:
+	- Deny ANY with only one RR in response, by default.  Patch from
+	  Daisuke Higashi.  The deny-any statement in nsd.conf sets ANY
+	  queries over UDP to be further moved to TCP as well.
+	  Also no additional section processig for type ANY, reducing
+	  the response size.
 BUG FIXES:
 	- Fix #4213: disable-ipv6 and dnstap compile error.
 	- Fix to reduce region_log_stats if condition, this removes a
