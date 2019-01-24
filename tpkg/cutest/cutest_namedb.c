@@ -365,6 +365,7 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 	    if(pz->nsec3_param && domain->is_existing) {
 		const dname_type* h;
 		uint8_t hash[NSEC3_HASH_LEN];
+		CuAssertTrue(tc, domain->nsec3);
 		CuAssertTrue(tc, domain->nsec3->ds_parent_hash
 		              && domain->nsec3->ds_parent_hash->node.key);
 		nsec3_hash_and_store(pz, domain_dname(domain), hash);
@@ -382,9 +383,11 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 			CuAssertTrue(tc, !domain->nsec3->nsec3_ds_parent_is_exact);
 		}
 	    } else {
-		CuAssertTrue(tc, !domain->nsec3->ds_parent_hash);
-		CuAssertTrue(tc, !domain->nsec3->nsec3_ds_parent_cover);
-		CuAssertTrue(tc, !domain->nsec3->nsec3_ds_parent_is_exact);
+		if(domain->nsec3) {
+			CuAssertTrue(tc, !domain->nsec3->ds_parent_hash);
+			CuAssertTrue(tc, !domain->nsec3->nsec3_ds_parent_cover);
+			CuAssertTrue(tc, !domain->nsec3->nsec3_ds_parent_is_exact);
+		}
 	    }
 	} else {
 		/* if it previously was DS but not any more, it can remain

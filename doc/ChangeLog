@@ -4,6 +4,7 @@
 	  queries over UDP to be further moved to TCP as well.
 	  Also no additional section processig for type ANY, reducing
 	  the response size.
+	- assertions for clang analysis.
 
 10 December 2018: Wouter
 	- Fix for FreeBSD port with dnstap enabled.
