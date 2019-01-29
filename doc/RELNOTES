@@ -8,6 +8,11 @@ FEATURES:
 	  queries over UDP to be further moved to TCP as well.
 	  Also no additional section processig for type ANY, reducing
 	  the response size.
+	- Fix #4215: on-the-fly change of TSIG keys with patch from Igor, adds
+	  nsd-control print_tsig, update_tsig, add_tsig, assoc_tsig
+	  and del_tsig.  These changes are gone after reload, edit the
+	  config file (or a file included from it) to make changes that
+	  last after restart.
 BUG FIXES:
 	- Fix #4213: disable-ipv6 and dnstap compile error.
 	- Fix to reduce region_log_stats if condition, this removes a
