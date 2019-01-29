@@ -1911,8 +1911,6 @@ print_ssl_cfg_err(void* arg, const char* str)
 /* TODO:
  * - check repat_all complete
  * - repat all meaningful name.
- * - secret puttsig is in b64 (for note in docs).
- * - documentation in man page for new tsig options.
  */
 static void
 repat_all(xfrd_state_type* xfrd, struct nsd_options* new_opt)
