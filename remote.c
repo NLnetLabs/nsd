@@ -1908,10 +1908,6 @@ print_ssl_cfg_err(void* arg, const char* str)
 }
 
 /* repat all (keys, patterns, options) for new options */
-/* TODO:
- * - check repat_all complete
- * - repat all meaningful name.
- */
 static void
 repat_all(xfrd_state_type* xfrd, struct nsd_options* new_opt)
 {
