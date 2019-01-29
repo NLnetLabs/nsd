@@ -152,6 +152,30 @@ is also stable.
 .TP
 .B verbosity <number>
 Change logging verbosity.
+.TP
+.B print_tsig <key_name>
+print the secret and algorithm for the TSIG key with that name.
+.TP
+.B update_tsig <name> <secret>
+Change existing TSIG key with name to the new secret.  The secret is
+a base64 encoded string.  The changes are only in-memory and are gone next
+restart, for lasting changes edit the nsd.conf file or a file included from it.
+.TP
+.B add_tsig <name> <secret> [algo]
+Add a new TSIG key with the given name, secret and algorithm.  Without
+algorithm a default (hmac-sha256) algorithm is used.  The secret is a
+base64 encoded string.  The changes are only in-memory and are gone next
+restart, for lasting changes edit the nsd.conf file or a file included from it.
+.TP
+.B assoc_tsig <zone> <key_name>
+Associate the zone with the given tsig.  The access control lists for
+notify, allow-notify, provide-xfr and request-xfr are adjusted to use the
+given key.
+.TP
+.B del_tsig <key_name>
+Delete the TSIG key with the given name.  Prints error if the key is still
+in use by some zone.  The changes are only in-memory and are gone next
+restart, for lasting changes edit the nsd.conf file or a file included from it.
 .SH "EXIT CODE"
 The nsd\-control program exits with status code 1 on error, 0 on success.
 .SH "SET UP"

@@ -4,6 +4,7 @@
 	  and del_tsig.  These changes are gone after reload, edit the
 	  config file (or a file included from it) to make changes that
 	  last after restart.
+	- documentation for tsig nsd-control options.
 
 24 January 2019: Wouter
 	- Deny ANY with only one RR in response, by default.  Patch from
