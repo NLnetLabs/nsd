@@ -2119,8 +2119,9 @@ zopt_set_acl_to_tsig(struct acl_options* acl, struct region* region,
 			continue;
 		}
 		acl->nokey = 0;
-		region_recycle(region, (void*)acl->key_name,
-			strlen(acl->key_name)+1);
+		if(acl->key_name)
+			region_recycle(region, (void*)acl->key_name,
+				strlen(acl->key_name)+1);
 		acl->key_name = region_strdup(region, key_name);
 		acl->key_options = key_opt;
 		acl = acl->next;
@@ -2149,6 +2150,11 @@ do_assoc_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 
 	if(!get_zone_arg(ssl, xfrd, arg, &zone))
 		return;
+	if(!zone) {
+		if(!ssl_printf(ssl, "error: missing argument (zone)"))
+			return;
+		return;
+	}
 	key_opt = key_options_find(xfrd->nsd->options, arg2);
 	if(!key_opt) {
 		if(!ssl_printf(ssl, "error: key: %s does not exist", arg2))
