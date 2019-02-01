@@ -2183,6 +2183,7 @@ acl_contains_tsig_key(struct acl_options* acl, const char* name)
 	while(acl) {
 		if(acl->key_name && strcmp(acl->key_name, name) == 0)
 			return 1;
+		acl = acl->next;
 	}
 	return 0;
 }
