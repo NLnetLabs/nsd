@@ -43,6 +43,7 @@
 #include "zparser.h"
 #include "options.h"
 #include "nsec3.h"
+#include "pzl/pzl4nsd.h"
 
 #define ILNP_MAXDIGITS 4
 #define ILNP_NUMGROUPS 4
@@ -1323,6 +1324,7 @@ zrdatacmp(uint16_t type, rr_type *a, rr_type *b)
 	return 0;
 }
 
+#ifndef PARALLEL_LOADING
 /*
  *
  * Opens a zone file.
@@ -1349,6 +1351,7 @@ zone_open(const char *filename, uint32_t ttl, uint16_t klass,
 
 	return 1;
 }
+#endif
 
 
 void
@@ -1575,6 +1578,40 @@ check_dname(zone_type* zone)
 	}
 }
 
+static inline int pzl_error(return_status *st)
+{
+	char log_ln_spc[2048], *log_ln = log_ln_spc;
+      	char *eoll = log_ln_spc + sizeof(log_ln_spc);
+	int r;
+
+	if ((r = snprintf( log_ln, eoll > log_ln ? eoll - log_ln : 0
+	                 , "%s error: %s in "
+			 , status_code2str(st->code), st->msg)) < 0)
+		return r;
+	else	log_ln += r;
+
+	if (st->code == STATUS_PARSE_ERR) {
+		if ((r = snprintf( log_ln, eoll > log_ln ? eoll - log_ln : 0
+		                 , "\"%s\" at line %zu col %zu\n\tin "
+				 , st->details.parse.fn
+				 , st->details.parse.line_nr + 1
+				 , st->details.parse.col_nr + 1)) < 0)
+			return r;
+		else    log_ln += r;
+	}
+	if ((r = snprintf( log_ln, eoll > log_ln ? eoll - log_ln : 0
+	                 , "function %s at %s:%d\n"
+			 , st->func, st->file, st->line) < 0))
+		return r;
+	else    log_ln += r;
+
+	if (log_ln >= eoll)
+		eoll[-1] = 0;
+	log_msg(LOG_ERR, "%s", log_ln_spc);
+	return_status_reset(st);
+	return log_ln - log_ln_spc;
+}
+
 /*
  * Reads the specified zone into the memory
  * nsd_options can be NULL if no config file is passed.
@@ -1582,6 +1619,9 @@ check_dname(zone_type* zone)
 unsigned int
 zonec_read(const char* name, const char* zonefile, zone_type* zone)
 {
+#ifdef PARALLEL_LOADING
+	return_status st = RETURN_STATUS_CLEAR;
+#endif
 	const dname_type *dname;
 
 	totalrrs = 0;
@@ -1602,6 +1642,7 @@ zonec_read(const char* name, const char* zonefile, zone_type* zone)
 	}
 #endif
 
+#ifndef PARALLEL_LOADING
 	/* Open the zone file */
 	if (!zone_open(zonefile, 3600, CLASS_IN, dname)) {
 		zc_error("cannot open '%s': %s", zonefile, strerror(errno));
@@ -1611,6 +1652,13 @@ zonec_read(const char* name, const char* zonefile, zone_type* zone)
 
 	/* Parse and process all RRs.  */
 	yyparse();
+#else
+	//parser->current_zone = zone;
+	zparser_init(zonefile, 3600, CLASS_IN, dname);
+	parser->current_zone = zone;
+	if (pzl_load(name, zonefile, &st))
+		pzl_error(&st);
+#endif
 
 	/* remove origin if it was unused */
 	if(parser->origin != error_domain)
@@ -1633,7 +1681,9 @@ zonec_read(const char* name, const char* zonefile, zone_type* zone)
 	region_free_all(parser->rr_region);
 
 	parser_flush();
+#ifndef PARALLEL_LOADING
 	fclose(yyin);
+#endif
 	if(!zone_is_slave(zone->opts))
 		check_dname(zone);
 

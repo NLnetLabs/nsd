@@ -929,6 +929,16 @@ case "$enable_packed" in
 	;;
 esac
 
+AC_ARG_ENABLE(parallel-loading, AC_HELP_STRING([--enable-parallel-loading], [Enable parallel loading of zonefiles]))
+case "$enable_parallel_loading" in
+	yes)
+	AC_DEFINE_UNQUOTED([PARALLEL_LOADING], [], [Define this to use parallel loading of zone files.])
+	AC_CHECK_LIB(pthread, pthread_join)
+	;;
+	no|*)
+	;;
+esac
+
 # check for dnstap if requested
 dt_DNSTAP([${localstatedir}/run/nsd-dnstap.sock],
     [
