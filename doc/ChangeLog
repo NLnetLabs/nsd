@@ -1,3 +1,7 @@
+14 February 2019: Wouter
+	- Fix #4: setusercontext() is in libutil on NetBSD, and also
+	  include login_cap.h only if it exists.
+
 1 February 2019: Wouter
 	- Fix for tsig assoc_tsig command on acl with nokey elements.
 
