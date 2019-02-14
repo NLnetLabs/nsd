@@ -1907,15 +1907,6 @@ print_ssl_cfg_err(void* arg, const char* str)
 		*ssl = NULL; /* failed, stop printing */
 }
 
-/* repat all (keys, patterns, options) for new options */
-static void
-repat_all(xfrd_state_type* xfrd, struct nsd_options* new_opt)
-{
-	repat_keys(xfrd, new_opt);
-	repat_patterns(xfrd, new_opt);
-	repat_options(xfrd, new_opt);
-}
-
 /** do the repattern command: reread config file and apply keys, patterns */
 static void
 do_repattern(RES* ssl, xfrd_state_type* xfrd)
@@ -1968,22 +1959,23 @@ static void
 do_print_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 {
 	if(*arg == '\0') {
-		if(!ssl_printf(ssl, "error: missing argument (keyname)"))
-			return;
+		struct key_options* key;
+		RBTREE_FOR(key, struct key_options*, xfrd->nsd->options->keys) {
+			if(!ssl_printf(ssl, "key: name: \"%s\" secret: \"%s\" algorithm: %s\n", key->name, key->secret, key->algorithm))
+				return;
+		}
 		return;
 	} else {
 		struct key_options* key_opts = key_options_find(xfrd->nsd->options, arg);
 		if(!key_opts) {
-			if(!ssl_printf(ssl, "error: no such key with name: %s", arg))
+			if(!ssl_printf(ssl, "error: no such key with name: %s\n", arg))
 				return;
 			return;
 		} else {
-			if(!ssl_printf(ssl, "the KEY: %s has SECRET %s with algo: %s", arg, key_opts->secret, key_opts->algorithm))
+			if(!ssl_printf(ssl, "key: name: \"%s\" secret: \"%s\" algorithm: %s\n", arg, key_opts->secret, key_opts->algorithm))
 				return;
 		}
 	}
-
-	send_ok(ssl);
 }
 
 /** do the update_tsig command: change existing tsig to new secret */
@@ -1996,30 +1988,30 @@ do_update_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	struct key_options* key_opt;
 
 	if(*arg == '\0') {
-		if(!ssl_printf(ssl, "error: missing argument (keyname)"))
+		if(!ssl_printf(ssl, "error: missing argument (keyname)\n"))
 			return;
 		return;
 	}
 	if(!find_arg2(ssl, arg, &arg2)) {
-		if(!ssl_printf(ssl, "error: missing argument (secret)"))
+		if(!ssl_printf(ssl, "error: missing argument (secret)\n"))
 			return;
 		return;
 	}
 	key_opt = key_options_find(xfrd->nsd->options, arg);
 	if(!key_opt) {
-		if(!ssl_printf(ssl, "error: no such key with name: %s", arg))
+		if(!ssl_printf(ssl, "error: no such key with name: %s\n", arg))
 			return;
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
 	}
 	if(b64_pton(arg2, data, sizeof(data)) == -1) {
-		if(!ssl_printf(ssl, "error: the secret: %s is not in b64 format", arg2))
+		if(!ssl_printf(ssl, "error: the secret: %s is not in b64 format\n", arg2))
 			return;
 		memset(data, 0xdd, sizeof(data)); /* wipe secret */
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
 	}
-	log_msg(LOG_INFO, "changing secret provided with the key: %s and algo: %s", key_opt->secret, key_opt->algorithm);
+	log_msg(LOG_INFO, "changing secret provided with the key: %s and algo: %s\n", key_opt->secret, key_opt->algorithm);
 	if(key_opt->secret) {
 		/* wipe old secret */
 		memset(key_opt->secret, 0xdd, strlen(key_opt->secret));
@@ -2027,14 +2019,16 @@ do_update_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			strlen(key_opt->secret)+1);
 	}
 	key_opt->secret = region_strdup(region, arg2);
-	key_options_insert(xfrd->nsd->options, key_opt);
-	log_msg(LOG_INFO, "the key: %s has new secret %s and algorithm: %s", arg, key_opt->secret, key_opt->algorithm);
+	log_msg(LOG_INFO, "the key: %s has new secret %s and algorithm: %s\n", arg, key_opt->secret, key_opt->algorithm);
 	/* wipe secret from temp parse buffer */
 	memset(arg2, 0xdd, strlen(arg2));
 	memset(data, 0xdd, sizeof(data));
 
-	repat_all(xfrd, xfrd->nsd->options);
-	key_options_tsig_add(xfrd->nsd->options);
+	key_options_desetup(region, key_opt);
+	key_options_setup(region, key_opt);
+	task_new_add_key(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
+		key_opt);
+	xfrd_set_reload_now(xfrd);
 
 	send_ok(ssl);
 }
@@ -2052,7 +2046,7 @@ do_add_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	struct key_options* new_key_opt;
 
 	if(*arg == '\0') {
-		if(!ssl_printf(ssl, "error: missing argument (keyname)"))
+		if(!ssl_printf(ssl, "error: missing argument (keyname)\n"))
 			return;
 		return;
 	}
@@ -2062,18 +2056,18 @@ do_add_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		strlcpy(algo, arg3, sizeof(algo));
 	}
 	if(!arg2) {
-		if(!ssl_printf(ssl, "error: missing argument (secret)"))
+		if(!ssl_printf(ssl, "error: missing argument (secret)\n"))
 			return;
 		return;
 	}
 	if(key_options_find(xfrd->nsd->options, arg)) {
-		if(!ssl_printf(ssl, "error: key %s already exists", arg))
+		if(!ssl_printf(ssl, "error: key %s already exists\n", arg))
 			return;
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
 	}
 	if(b64_pton(arg2, data, sizeof(data)) == -1) {
-		if(!ssl_printf(ssl, "error: the secret: %s is not in b64 format", arg2))
+		if(!ssl_printf(ssl, "error: the secret: %s is not in b64 format\n", arg2))
 			return;
 		memset(data, 0xdd, sizeof(data)); /* wipe secret */
 		memset(arg2, 0xdd, strlen(arg2));
@@ -2081,27 +2075,23 @@ do_add_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	}
 	memset(data, 0xdd, sizeof(data)); /* wipe secret from temp buffer */
 	if(!dname_parse_wire(dname, arg)) {
-		if(!ssl_printf(ssl, "error: could not parse key name: %s", arg))
+		if(!ssl_printf(ssl, "error: could not parse key name: %s\n", arg))
 			return;
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
 	}
 	if(tsig_get_algorithm_by_name(algo) == NULL) {
-		if(!ssl_printf(ssl, "error: unknown algorithm: %s", algo))
+		if(!ssl_printf(ssl, "error: unknown algorithm: %s\n", algo))
 			return;
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
 	}
-	log_msg(LOG_INFO, "adding key with name: %s and secret: %s with algo: %s", arg, arg2, algo);
+	log_msg(LOG_INFO, "adding key with name: %s and secret: %s with algo: %s\n", arg, arg2, algo);
 	new_key_opt = key_options_create(region);
 	new_key_opt->name = region_strdup(region, arg);
 	new_key_opt->secret = region_strdup(region, arg2);
 	new_key_opt->algorithm = region_strdup(region, algo);
 	add_key(xfrd, new_key_opt);
-	key_options_insert(xfrd->nsd->options, new_key_opt);
-
-	key_options_tsig_add(xfrd->nsd->options);
-	repat_all(xfrd, xfrd->nsd->options);
 
 	/* wipe secret from temp buffer */
 	memset(arg2, 0xdd, strlen(arg2));
@@ -2138,12 +2128,12 @@ do_assoc_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	struct key_options* key_opt;
 
 	if(*arg == '\0') {
-		if(!ssl_printf(ssl, "error: missing argument (zonename)"))
+		if(!ssl_printf(ssl, "error: missing argument (zonename)\n"))
 			return;
 		return;
 	}
 	if(!find_arg2(ssl, arg, &arg2)) {
-		if(!ssl_printf(ssl, "error: missing argument (keyname)"))
+		if(!ssl_printf(ssl, "error: missing argument (keyname)\n"))
 			return;
 		return;
 	}
@@ -2151,13 +2141,13 @@ do_assoc_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	if(!get_zone_arg(ssl, xfrd, arg, &zone))
 		return;
 	if(!zone) {
-		if(!ssl_printf(ssl, "error: missing argument (zone)"))
+		if(!ssl_printf(ssl, "error: missing argument (zone)\n"))
 			return;
 		return;
 	}
 	key_opt = key_options_find(xfrd->nsd->options, arg2);
 	if(!key_opt) {
-		if(!ssl_printf(ssl, "error: key: %s does not exist", arg2))
+		if(!ssl_printf(ssl, "error: key: %s does not exist\n", arg2))
 			return;
 		return;
 	}
@@ -2170,8 +2160,9 @@ do_assoc_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	zopt_set_acl_to_tsig(zone->pattern->provide_xfr, region, arg2,
 		key_opt);
 
-	key_options_tsig_add(xfrd->nsd->options);
-	repat_all(xfrd, xfrd->nsd->options);
+	task_new_add_pattern(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task, zone->pattern);
+	xfrd_set_reload_now(xfrd);
 
 	send_ok(ssl);
 }
@@ -2196,13 +2187,13 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 	struct key_options* key_opt;
 
 	if(*arg == '\0') {
-		if(!ssl_printf(ssl, "error: missing argument (keyname)"))
+		if(!ssl_printf(ssl, "error: missing argument (keyname)\n"))
 			return;
 		return;
 	}
 	key_opt = key_options_find(xfrd->nsd->options, arg);
 	if(!key_opt) {
-		if(!ssl_printf(ssl, "key %s does not exist, nothing to be deleted", arg))
+		if(!ssl_printf(ssl, "key %s does not exist, nothing to be deleted\n", arg))
 			return;
 		return;
 	}
@@ -2212,7 +2203,7 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 		   acl_contains_tsig_key(zone->pattern->notify, arg) ||
 		   acl_contains_tsig_key(zone->pattern->request_xfr, arg) ||
 		   acl_contains_tsig_key(zone->pattern->provide_xfr, arg)) {
-			if(!ssl_printf(ssl, "zone %s uses key %s",
+			if(!ssl_printf(ssl, "zone %s uses key %s\n",
 				zone->name, arg))
 				return;
 			used_key = 1;
@@ -2221,13 +2212,12 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 	}
 
 	if(used_key) {
-		if(!ssl_printf(ssl, "error: key: %s is in use and cannot be deleted", arg))
+		if(!ssl_printf(ssl, "error: key: %s is in use and cannot be deleted\n", arg))
 			return;
 		return;
 	} else {
-		key_options_remove(xfrd->nsd->options, arg);
-		repat_all(xfrd, xfrd->nsd->options);
-		log_msg(LOG_INFO, "key: %s is successfully deleted", arg);
+		remove_key(xfrd, arg);
+		log_msg(LOG_INFO, "key: %s is successfully deleted\n", arg);
 	}
 
 	send_ok(ssl);

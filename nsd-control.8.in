@@ -153,8 +153,9 @@ is also stable.
 .B verbosity <number>
 Change logging verbosity.
 .TP
-.B print_tsig <key_name>
+.B print_tsig [<key_name>]
 print the secret and algorithm for the TSIG key with that name.
+Or list all the tsig keys with their name, secret and algorithm.
 .TP
 .B update_tsig <name> <secret>
 Change existing TSIG key with name to the new secret.  The secret is
