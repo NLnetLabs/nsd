@@ -2011,7 +2011,7 @@ do_update_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
 	}
-	log_msg(LOG_INFO, "changing secret provided with the key: %s and algo: %s\n", key_opt->secret, key_opt->algorithm);
+	log_msg(LOG_INFO, "changing secret provided with the key: %s with old secret %s and algo: %s\n", arg, key_opt->secret, key_opt->algorithm);
 	if(key_opt->secret) {
 		/* wipe old secret */
 		memset(key_opt->secret, 0xdd, strlen(key_opt->secret));

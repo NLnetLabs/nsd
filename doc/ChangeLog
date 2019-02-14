@@ -4,6 +4,7 @@
 	- Fix #4215: fixup for state update for TSIG information in server
 	  processes, nicer printout for tsig_print, tsig_print without
 	  arguments and no leaks.
+	- nicer logging for update_tsig.
 
 1 February 2019: Wouter
 	- Fix for tsig assoc_tsig command on acl with nokey elements.
