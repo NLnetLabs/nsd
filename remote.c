@@ -743,12 +743,22 @@ state_list_remove_elem(struct rc_state** list, struct rc_state* todel)
 static void
 stats_list_remove_elem(struct rc_state** list, struct rc_state* todel)
 {
-	while(*list) {
-		if( (*list) == todel) {
-			*list = (*list)->stats_next;
-			return;
+	struct rc_state* prev = NULL;
+	struct rc_state* n = *list;
+	while(n) {
+		/* delete this one? */
+		if(n == todel) {
+			if(prev) prev->next = n->next;
+			else	(*list) = n->next;
+			/* go on and delete further elements */
+			/* prev = prev; */
+			n = n->next;
+			continue;
 		}
-		list = &(*list)->stats_next;
+
+		/* go to the next element */
+		prev = n;
+		n = n->next;
 	}
 }
 

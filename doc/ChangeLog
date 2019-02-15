@@ -1,3 +1,6 @@
+15 February 2019: Wouter
+	- tentative robustness, delete stats items from list twice if needed.
+
 14 February 2019: Wouter
 	- Fix #4: setusercontext() is in libutil on NetBSD, and also
 	  include login_cap.h only if it exists.
