@@ -18,6 +18,7 @@ BUG FIXES:
 	- Fix to reduce region_log_stats if condition, this removes a
 	  debug statement.
         - Fix for FreeBSD port with dnstap enabled.
+	- Fix to remove unused code.
 
 
 4.1.26

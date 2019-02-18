@@ -954,7 +954,7 @@ main(int argc, char *argv[])
 		int fd;
 
 		/* Take off... */
-		switch ((nsd.pid = fork())) {
+		switch (fork()) {
 		case 0:
 			/* Child */
 			break;
