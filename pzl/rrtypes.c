@@ -1,4 +1,4 @@
-#include "pzl/dnsextlang.h"
+#include "dnsextlang.h"
 static dnsextlang_field t0001_fields[1] = {
 	{ del_ftype_A, 0, { NULL }, NULL, "addr"
 	, "IPv4 address" }
@@ -51,13 +51,13 @@ static dnsextlang_field t0006_fields[7] = {
 	, "Responsible mailbox" },
 	{ del_ftype_I4, 0, { NULL }, NULL, "serial"
 	, "Serial number" },
-	{ del_ftype_I4, 0, { NULL }, NULL, "refresh"
+	{ del_ftype_I4, (del_qual_P), { NULL }, NULL, "refresh"
 	, "Refresh time (seconds)" },
-	{ del_ftype_I4, 0, { NULL }, NULL, "retry"
+	{ del_ftype_I4, (del_qual_P), { NULL }, NULL, "retry"
 	, "Retry time (seconds)" },
-	{ del_ftype_I4, 0, { NULL }, NULL, "expire"
+	{ del_ftype_I4, (del_qual_P), { NULL }, NULL, "expire"
 	, "Expire time (seconds)" },
-	{ del_ftype_I4, 0, { NULL }, NULL, "minimum"
+	{ del_ftype_I4, (del_qual_P), { NULL }, NULL, "minimum"
 	, "Minium time (seconds)" }
 };
 static const dnsextlang_stanza t0006 = {
@@ -1081,7 +1081,7 @@ static dnsextlang_field t002e_fields[9] = {
 	, "Signature inception (timestamp)" },
 	{ del_ftype_I2, 0, { NULL }, NULL, "keytag"
 	, "Key tag" },
-	{ del_ftype_N, 0, { NULL }, NULL, "signer"
+	{ del_ftype_N, (del_qual_L), { NULL }, NULL, "signer"
 	, "Signer's name" },
 	{ del_ftype_B64, 0, { NULL }, NULL, "signature"
 	, "Signature" }
@@ -1092,7 +1092,7 @@ static const dnsextlang_stanza t002e = {
 	9, t002e_fields
 };
 static dnsextlang_field t002f_fields[2] = {
-	{ del_ftype_N, 0, { NULL }, NULL, "next"
+	{ del_ftype_N, (del_qual_L), { NULL }, NULL, "next"
 	, "Next domain name" },
 	{ del_ftype_R, (del_qual_L), { NULL }, NULL, "types"
 	, "Type bitmaps (as window blocks)" }

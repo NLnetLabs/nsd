@@ -1623,6 +1623,10 @@ zonec_read(const char* name, const char* zonefile, zone_type* zone)
 	return_status st = RETURN_STATUS_CLEAR;
 #endif
 	const dname_type *dname;
+#ifdef HAVE_CLOCK_GETTIME
+	struct timespec start;
+	struct timespec finish;
+#endif
 
 	totalrrs = 0;
 	startzonec = time(NULL);
@@ -1641,7 +1645,10 @@ zonec_read(const char* name, const char* zonefile, zone_type* zone)
 		return 1;
 	}
 #endif
-
+#ifdef HAVE_CLOCK_GETTIME
+	if (verbosity >= 3)
+		(void) clock_gettime(CLOCK_MONOTONIC, &start);
+#endif
 #ifndef PARALLEL_LOADING
 	/* Open the zone file */
 	if (!zone_open(zonefile, 3600, CLASS_IN, dname)) {
@@ -1659,7 +1666,25 @@ zonec_read(const char* name, const char* zonefile, zone_type* zone)
 	if (pzl_load(name, zonefile, &st))
 		pzl_error(&st);
 #endif
+#ifdef HAVE_CLOCK_GETTIME
+	if (verbosity >= 3 && !clock_gettime(CLOCK_MONOTONIC, &finish)) {
+		struct timespec elapsed;
 
+		if (finish.tv_nsec > start.tv_nsec) {
+			elapsed.tv_nsec = finish.tv_nsec - start.tv_nsec;
+			elapsed.tv_sec = finish.tv_sec - start.tv_sec;
+		} else {
+			elapsed.tv_nsec = 1000000000 -  start.tv_nsec
+			                             + finish.tv_nsec;
+			elapsed.tv_sec = finish.tv_sec - 1 - start.tv_sec;
+		}
+		VERBOSITY(3, (LOG_INFO, "parse %s took %d:%.2d.%.3d",
+			parser->current_zone->opts->name,
+			(int)(elapsed.tv_sec / 60),
+			(int)(elapsed.tv_sec % 60),
+			(int)(elapsed.tv_nsec / 1000000)));
+	}
+#endif
 	/* remove origin if it was unused */
 	if(parser->origin != error_domain)
 		domain_table_deldomain(parser->db, parser->origin);

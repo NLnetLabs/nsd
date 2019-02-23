@@ -148,7 +148,7 @@ static inline status_code mmap_parser_init_fn(
 		    "determening file size with which to initialize parser");
 	}
 	if ((text = mmap( NULL, statbuf.st_size, PROT_READ
-	                , MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
+	                , MAP_SHARED, fd, 0)) == MAP_FAILED) {
 		close(fd);
 		return RETURN_IO_ERR(st,
 		    "mmapping the file with which to initialize parser");

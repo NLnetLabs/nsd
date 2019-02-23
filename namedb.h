@@ -244,7 +244,7 @@ int domain_is_prehash(domain_table_type* table, domain_type* domain);
  */
 void domain_add_rrset(domain_type* domain, rrset_type* rrset);
 
-rrset_type* domain_find_rrset(domain_type* domain, zone_type* zone, uint16_t type);
+rrset_type* domain_find_rrset(domain_type* domain, const zone_type* zone, uint16_t type);
 rrset_type* domain_find_any_rrset(domain_type* domain, zone_type* zone);
 
 zone_type* domain_find_zone(namedb_type* db, domain_type* domain);
@@ -256,7 +256,7 @@ domain_type * find_dname_above(domain_type* domain, zone_type* zone);
 
 int domain_is_glue(domain_type* domain, zone_type* zone);
 
-rrset_type* domain_find_non_cname_rrset(domain_type* domain, zone_type* zone);
+rrset_type* domain_find_non_cname_rrset(domain_type* domain, const zone_type* zone);
 
 domain_type* domain_wildcard_child(domain_type* domain);
 domain_type *domain_previous_existing_child(domain_type* domain);

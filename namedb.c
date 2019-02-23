@@ -524,7 +524,7 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
 
 
 rrset_type *
-domain_find_rrset(domain_type* domain, zone_type* zone, uint16_t type)
+domain_find_rrset(domain_type* domain, const zone_type* zone, uint16_t type)
 {
 	rrset_type* result = domain->rrsets;
 
@@ -668,7 +668,7 @@ namedb_find_zone(namedb_type* db, const dname_type* dname)
 }
 
 rrset_type *
-domain_find_non_cname_rrset(domain_type* domain, zone_type* zone)
+domain_find_non_cname_rrset(domain_type* domain, const zone_type* zone)
 {
 	/* find any rrset type that is not allowed next to a CNAME */
 	/* nothing is allowed next to a CNAME, except RRSIG, NSEC, NSEC3 */

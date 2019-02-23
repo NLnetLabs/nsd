@@ -80,9 +80,9 @@ static inline void *werr(zonefile_worker *w)
 
 void *zonefile_worker_start(void *worker)
 {
-	char               origin_spc[1024], *origin = origin_spc;
+	char               origin_spc[1024] = "", *origin = origin_spc;
 	size_t             origin_len = sizeof(origin_spc);
-	char               owner_spc[1024], *owner = owner_spc;
+	char               owner_spc[1024] = "", *owner = owner_spc;
 	size_t             owner_len = sizeof(owner_spc);
 	zonefile_worker    *w       = (zonefile_worker *)worker;
 	zonefile_processor *mzp     = w->mzp;
@@ -137,6 +137,7 @@ void *zonefile_worker_start(void *worker)
 			}
 			(void) memcpy(
 			    owner, zi->owner.r.text, zi_owner_len);
+			owner[zi_owner_len] = 0;
 			if (zi->owner.r.prev)
 				(void) parse_dereference(&zi->owner.r, NULL);
 		} else
@@ -150,7 +151,6 @@ void *zonefile_worker_start(void *worker)
 
 			if (zi_origin_len > origin_len) {
 				origin_len = (zi_origin_len / 1024 + 1) * 1024;
-				fprintf(stderr, "end (%p) - text (%p) = %zu\n", (void *)zi->origin.end, (void *)zi->origin.r.text, zi_origin_len);
 				if (!(origin = malloc(origin_len)))
 					return RETURN_MEM_ERR(st,
 					    "allocating origin space"), werr(w);
@@ -159,6 +159,7 @@ void *zonefile_worker_start(void *worker)
 			}
 			(void) memcpy(
 			    origin, zi->origin.r.text, zi_origin_len);
+			origin[zi_origin_len] = 0;
 			if (zi->origin.r.prev)
 				(void) parse_dereference(&zi->origin.r, NULL);
 		} else
