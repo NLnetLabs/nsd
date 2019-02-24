@@ -49,6 +49,8 @@ allocate_domain_info(domain_table_type* table,
 #endif
 	result->is_existing = 0;
 	result->is_apex = 0;
+	result->numlist_prev4usage_refs = 0;
+
 	assert(table->numlist_last); /* it exists because root exists */
 	/* push this domain at the end of the numlist */
 	result->number = table->numlist_last->number+1;
@@ -141,6 +143,7 @@ domain_can_be_deleted(domain_type* domain)
 	/* it has data or it has usage, do not delete it */
 	if(domain->rrsets) return 0;
 	if(domain->usage) return 0;
+	if(domain->numlist_prev4usage_refs) return 0;
 	n = domain_next(domain);
 	/* it has children domains, do not delete it */
 	if(n && domain_is_subdomain(n, domain))

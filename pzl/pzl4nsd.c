@@ -654,7 +654,7 @@ static inline status_code pzl_add_n_remaining_b64_rdata(region_type *region,
 	 rdata_elem = region_alloc(region, sizeof(uint16_t) + o);
 	*rdata_elem = o;
 	(void) memcpy((uint8_t *)(rdata_elem + 1), target, o);
-	assert(rr->rdata_count < MAXDATALEN);
+	assert(rr->rdata_count < MAXRDATALEN);
 	rr->rdatas[rr->rdata_count++].data = rdata_elem;
 	return STATUS_OK;
 }
@@ -812,6 +812,7 @@ static void pzl_recycle_rdata_elements(region_type *region, rr_type *rr)
 	rr->rdata_count = 0;
 }
 
+typedef struct merge_sorter merge_sorter;
 typedef struct worker_data worker_data;
 typedef struct process_data {
 	size_t        n_workers;
@@ -819,10 +820,14 @@ typedef struct process_data {
 	const char     *name;
 	time_t          start_time;
 	worker_data    *wd;
+	worker_data   **domain_tables;
+	size_t        n_mergers;
+	merge_sorter  **mergers;
 } process_data;
 
 struct worker_data {
 	process_data      *pd;
+	size_t             i;
 	size_t           n_rrs;
 	dname_type        *origin;
 	region_type       *region;
@@ -831,6 +836,421 @@ struct worker_data {
 	zone_type          wd_zone;
 };
 
+#define SORTBATCHSIZE 8192
+#define MAXNBATCHES 20
+
+typedef struct wd_domain {
+	worker_data *wd;
+	domain_type *domain;
+} wd_domain;
+
+static void debug_print_domain_type(const char *msg, domain_type *d)
+{
+	fprintf(stderr, "%s %s (usage: %zu)\n", msg,
+	   wiredname2str(dname_name(domain_dname(d))),
+	   (size_t)d->usage
+	   );
+}
+
+typedef struct pzl_domain_ref pzl_domain_ref;
+struct pzl_domain_ref {
+	domain_type   **ref;
+	pzl_domain_ref *next;
+	region_type    *region;
+};
+
+static inline pzl_domain_ref **pzl_get_domain_ref(domain_type *d)
+{ return d->numlist_prev4usage_refs
+       ? (pzl_domain_ref **)&d->numlist_prev : NULL; }
+
+static void pzl_merge(wd_domain dst, wd_domain src)
+{
+	/* Merge src->domain (all RRs and refs to), into dst->domain.
+	 * Afterwards recycle parts of src->domain which are redundant,
+	 * but not the src->domain struct itself because it is stil
+	 * needed for iterating.  The caller needs to free it after
+	 * the complete tree was traversed.
+	 */
+	rrset_type *rrset, *next_rrset;
+	pzl_domain_ref **src_ref, **dst_ref;
+
+	if ((src_ref = pzl_get_domain_ref(src.domain)) && *src_ref) {
+#ifndef NDEBUG
+		size_t n = 0;
+#endif
+
+		dst_ref = pzl_get_domain_ref(dst.domain);
+
+		while (*src_ref) {
+			assert(*(*src_ref)->ref == src.domain);
+			*(*src_ref)->ref = dst.domain;
+			src_ref = &(*src_ref)->next;
+#ifndef NDEBUG
+			n += 1;
+#endif
+		}
+		assert(src.domain->usage == n);
+		dst.domain->usage += src.domain->usage;
+		src.domain->usage = 0;
+		if (dst_ref) {
+			*src_ref = *dst_ref;
+			*dst_ref = *pzl_get_domain_ref(src.domain);
+		} else {
+			pzl_domain_ref *ref, *next_ref;
+
+			for ( ref = *pzl_get_domain_ref(src.domain)
+			    , next_ref = ref->next
+			    ; ref ; ref = next_ref
+			          , next_ref = ref ? ref->next : NULL)
+				region_recycle(ref->region, ref,
+				    sizeof(pzl_domain_ref));
+		}
+	}
+	if (!src.domain->rrsets)
+		; /* pass */
+
+	else if (!dst.domain->rrsets) {
+		dst.domain->rrsets = src.domain->rrsets;
+		for ( rrset = dst.domain->rrsets
+		    ; rrset ; rrset = rrset->next )
+			rrset->zone = dst.wd->zone;
+		src.domain->rrsets = NULL;
+
+	} else for ( rrset = src.domain->rrsets, next_rrset = rrset->next
+	           ; rrset
+		   ; next_rrset = (rrset = next_rrset) ? rrset->next : NULL) {
+		rrset_type *dst_rrset;
+
+		dst_rrset = domain_find_rrset(
+		    dst.domain, dst.wd->zone, rrset_rrtype(rrset));
+		if (!dst_rrset) {
+			rrset->zone = dst.wd->zone;
+			domain_add_rrset(dst.domain, rrset);
+			continue;
+		} else {
+			/* We cannot merge rrsets yet, because references
+			 * to domains in their data might get corrected when
+			 * merging domains.  Merging rrsets must wait until
+			 * the very end, but we can make sure they can be
+			 * merged relatively quickly by making sure that the
+			 * same types follow each other.
+			 *
+			 * TODO: As a future optimazation we could already
+			 *       merge rrsets of types that do not have
+			 *       references to domains in them here.
+			 */
+			rrset->next = dst_rrset->next;
+			dst_rrset->next = rrset;
+		}
+	}
+}
+
+typedef struct merge_batch merge_batch;
+struct merge_batch {
+	wd_domain   *cur;
+	wd_domain   *end;
+	merge_batch *next;
+	wd_domain    domains[SORTBATCHSIZE];
+};
+
+struct merge_sorter {
+	process_data   *pd;
+	size_t          i;
+	pthread_t       thread;
+	pthread_mutex_t started_mut;
+	pthread_cond_t  started;
+	pthread_mutex_t has_sorted_mut;
+	pthread_cond_t  has_sorted;
+	merge_batch    *sorted;
+	merge_batch    *last;
+	pthread_mutex_t free_mut;
+	pthread_cond_t  has_free;
+	merge_batch    *free;
+	size_t          n_mallocs;
+	domain_type    *domains2free;
+};
+
+static void batch_provide(merge_sorter *me, merge_batch *ready)
+{
+	(void) pthread_mutex_lock(&me->has_sorted_mut);
+	if (ready) {
+		ready->end = ready->cur;
+		ready->cur = ready->domains;
+		ready->next = NULL;
+		if (me->last) {
+			me->last->next = ready;
+			me->last = ready;
+		} else {
+			assert(me->sorted == NULL);
+			me->last = me->sorted = ready;
+			(void) pthread_cond_signal(&me->has_sorted);
+		}
+	} else {
+		/* everything is processed and everything is freed */
+		assert(me->sorted == NULL);
+		(void) pthread_cond_signal(&me->has_sorted);
+	}
+	(void) pthread_mutex_unlock(&me->has_sorted_mut);
+}
+
+static merge_batch *batch_new(merge_sorter *me, merge_batch *ready)
+{
+	merge_batch *batch;
+
+	if (ready) batch_provide(me, ready);
+	(void) pthread_mutex_lock(&me->free_mut);
+	if (me->free) {
+		batch = me->free;
+		me->free = batch->next;
+	} else if (me->n_mallocs >= MAXNBATCHES) {
+		(void) pthread_cond_wait(&me->has_free, &me->free_mut);
+		assert(me->free);
+		batch = me->free;
+		me->free = batch->next;
+	} else {
+		batch = xalloc(sizeof(merge_batch));
+		me->n_mallocs++;
+	}
+	batch->next = NULL;
+	batch->cur = batch->domains;
+	batch->end = batch->domains + SORTBATCHSIZE;
+	(void) pthread_mutex_unlock(&me->free_mut);
+	return batch;
+}
+
+static void batch_free(merge_sorter *me, merge_batch *to_free)
+{
+	(void) pthread_mutex_lock(&me->free_mut);
+	to_free->next = me->free;
+	me->free = to_free;
+	(void) pthread_cond_signal(&me->has_free);
+	(void) pthread_mutex_unlock(&me->free_mut);
+}
+
+typedef struct wd_domain_iter {
+	wd_domain     cur;
+	merge_sorter *ms;
+	merge_batch  *batch;
+} wd_domain_iter;
+
+static status_code wd_domain_iter_next(wd_domain_iter *wdi)
+{
+	if (!wdi->ms) {
+		assert(wdi->cur.wd);
+
+		wdi->cur.domain = (domain_type *)(
+		      (rbnode_type *)wdi->cur.domain != RBTREE_NULL
+		    ? rbtree_next(&wdi->cur.domain->node)
+		    : rbtree_first(wdi->cur.wd->domains->names_to_domains));
+		return (rbnode_type *)wdi->cur.domain != RBTREE_NULL
+		     ? STATUS_OK : STATUS_STOP_ITERATION;
+	}
+	if (wdi->batch) {
+		if (wdi->batch->cur < wdi->batch->end) {
+			wdi->cur = *wdi->batch->cur++;
+			return STATUS_OK;
+		}
+		batch_free(wdi->ms, wdi->batch);
+		wdi->batch = NULL;
+	}
+	while (!wdi->batch) {
+		(void) pthread_mutex_lock(&wdi->ms->has_sorted_mut);
+		if (!wdi->ms->sorted)
+			(void) pthread_cond_wait( &wdi->ms->has_sorted
+			                        , &wdi->ms->has_sorted_mut);
+		if ((wdi->batch = wdi->ms->sorted)) {
+			if (!(wdi->ms->sorted = wdi->ms->sorted->next))
+				wdi->ms->last = NULL;
+		}
+		(void) pthread_mutex_unlock(&wdi->ms->has_sorted_mut);
+		if (!wdi->batch)
+			return STATUS_STOP_ITERATION;
+		if (wdi->batch->cur < wdi->batch->end) {
+			wdi->cur = *wdi->batch->cur++;
+			return STATUS_OK;
+		}
+		batch_free(wdi->ms, wdi->batch);
+		wdi->batch = NULL;
+	}
+	return STATUS_STOP_ITERATION;
+}
+
+static status_code wd_domain_iter_init(wd_domain_iter *wdi, process_data *pd)
+{
+	size_t i;
+
+	wdi->cur.domain = NULL;
+	for (i = 0; i < pd->n_workers; i++) {
+		if (pd->domain_tables[i]) {
+			wdi->ms = NULL;
+			wdi->cur.wd = pd->domain_tables[i];
+			wdi->cur.domain = (domain_type *)RBTREE_NULL;
+			pd->domain_tables[i] = NULL;
+			return STATUS_OK;
+		}
+	}
+	for (i = 0; i < pd->n_mergers; i++) {
+		if (pd->mergers[i]) {
+			wdi->cur.wd = NULL;
+			wdi->ms = pd->mergers[i];
+			pd->mergers[i] = NULL;
+			wdi->batch = NULL;
+			return STATUS_OK;
+		}
+	}
+	return STATUS_NOT_FOUND_ERR;
+}
+
+static void *start_merger(void *arg)
+{
+	merge_sorter  *me = (merge_sorter *)arg;
+	process_data  *pd = me->pd;
+	wd_domain_iter i1, i2;
+	status_code    sc1, sc2;
+	size_t         i;
+	merge_batch   *batch = NULL;
+
+	fprintf(stderr, "Initialize merge sorter %zu\n", me->i);
+	(void) pthread_mutex_lock(&me->started_mut);
+	sc1 = wd_domain_iter_init(&i1, pd);
+	sc2 = wd_domain_iter_init(&i2, pd);
+	if (sc1 != STATUS_OK || sc2 != STATUS_OK) {
+		fprintf(stderr, "Cannot initialize merge sorter %zu\n", me->i);
+		exit(EXIT_FAILURE);
+	}
+	for (i = 0; i < pd->n_mergers; i++) {
+		if (pd->mergers[i] == NULL) {
+			pd->mergers[i] = me;
+			break;
+		}
+	}
+	assert(i < pd->n_mergers);
+	fprintf(stderr, "Merge sorter %zu initialized at slot %zu\n", me->i, i);
+	(void) pthread_cond_signal(&me->started);
+	(void) pthread_mutex_unlock(&me->started_mut);
+	fprintf(stderr, "Merge sorter %zu starting\n", me->i);
+
+	sc1 = wd_domain_iter_next(&i1);
+	sc2 = wd_domain_iter_next(&i2);
+	while (sc1 == STATUS_OK && sc2 == STATUS_OK) {
+		batch = batch_new(me, batch);
+		while (batch->cur < batch->end) {
+			int dc = dname_compare( domain_dname(i1.cur.domain)
+			                      , domain_dname(i2.cur.domain));
+			if (dc < 0) {
+				*batch->cur++ = i1.cur;
+				if ((sc1 = wd_domain_iter_next(&i1)))
+					break;
+			} else if (dc) {
+				*batch->cur++ = i2.cur;
+				if ((sc2 = wd_domain_iter_next(&i2)))
+					break;
+			} else {
+				wd_domain i2wd = i2.cur;
+
+				pzl_merge(i1.cur, i2.cur);
+				*batch->cur++ = i1.cur;
+				sc1 = wd_domain_iter_next(&i1);
+				sc2 = wd_domain_iter_next(&i2);
+
+				i2wd.domain->numlist_next = me->domains2free;
+				me->domains2free = i2wd.domain;
+				i2wd.domain->numlist_prev =
+					(domain_type *)(void *)i2wd.wd;
+
+				if (sc1 || sc2)
+					break;
+			}
+		}
+	}
+	if (!batch)
+		batch = batch_new(me, batch);
+	while (sc1 == STATUS_OK) {
+		while (batch->cur < batch->end) {
+			*batch->cur++ = i1.cur;
+			if ((sc1 = wd_domain_iter_next(&i1)))
+				break;
+		}
+		if (sc1)
+			break;
+		else
+			batch = batch_new(me, batch);
+	}
+	while (sc2 == STATUS_OK) {
+		while (batch->cur < batch->end) {
+			*batch->cur++ = i2.cur;
+			if ((sc2 = wd_domain_iter_next(&i2)))
+				break;
+		}
+		if (sc2)
+			break;
+		else
+			batch = batch_new(me, batch);
+	}
+	if (batch)
+		batch_provide(me, batch);
+
+	/* Wait until consumers are done
+	 * this is when all batches are freed
+	 */
+	while (me->n_mallocs) {
+		merge_batch *to_free;
+
+		fprintf(stderr,
+		    "Merge sorter %zu needs to free %zu more batches\n",
+		    me->i, me->n_mallocs);
+		(void) pthread_mutex_lock(&me->free_mut);
+		if (!me->free)
+			pthread_cond_wait(&me->has_free, &me->free_mut);
+		assert(me->free);
+		to_free = me->free;
+		me->free = to_free->next;
+		free(to_free);
+		me->n_mallocs--;
+		(void) pthread_mutex_unlock(&me->free_mut);
+	}
+	fprintf(stderr, "Merge sorter %zu recycling merged domains\n", me->i);
+	i = 0;
+	while (0 && me->domains2free) {
+		domain_type *to_recycle = me->domains2free;
+
+		me->domains2free = to_recycle->numlist_next;
+		region_recycle(
+		    ((worker_data *)(void *)to_recycle->numlist_prev)->region,
+		    domain_dname(to_recycle),
+		    dname_total_size(domain_dname(to_recycle)));
+		region_recycle(
+		    ((worker_data *)(void *)to_recycle->numlist_prev)->region,
+		    to_recycle, sizeof(domain_type));
+		i++;
+	};
+	fprintf(stderr,
+	    "Merge sorter %zu %zu merged domains recycled\n", me->i, i);
+	fprintf(stderr, "Merge sorter %zu finished\n", me->i);
+	batch_provide(me, NULL);
+	return NULL;
+}
+
+/* These are protected by the started semaphore */
+static size_t n_domain_tables(process_data *pd)
+{
+	size_t n = 0, i;
+
+	for (i = 0; i < pd->n_workers; i++)
+		if (pd->domain_tables[i])
+			n++;
+	return n;
+}
+
+static size_t n_mergers(process_data *pd)
+{
+	size_t n = 0, i;
+
+	for (i = 0; i < pd->n_mergers; i++)
+		if (pd->mergers[i])
+			n++;
+	return n;
+}
 
 /* pzl_add_rdata_field should return STATUS_STOP_ITERATION when all
  * pieces (from pi) consumed
@@ -978,9 +1398,25 @@ static inline status_code pzl_add_rdata_field(
 		if (!domain)
 			return pieces_iter_parse_error(
 			    pi, st, "could not insert dname");
+		if (wd->i && !domain->numlist_prev4usage_refs) {
+			domain->numlist_prev = NULL;
+			domain->numlist_prev4usage_refs = 1;
+		}
+		rr2add->rdatas[rr2add->rdata_count].domain = domain;
+		if (domain->numlist_prev4usage_refs) {
+			pzl_domain_ref *domain_ref = region_alloc(
+                            region, sizeof(pzl_domain_ref));
 
-		rr2add->rdatas[rr2add->rdata_count++].domain = domain;
+			domain_ref->region = region;
+			domain_ref->ref =
+			    &rr2add->rdatas[rr2add->rdata_count].domain;
+			domain_ref->next =
+			    (pzl_domain_ref *)(void *)domain->numlist_prev;
+			domain->numlist_prev =
+			    (domain_type *)(void *)domain_ref;
+		}
 		domain->usage++;
+		rr2add->rdata_count += 1;
 		break;
 	
 	case del_ftype_S:
@@ -1123,6 +1559,13 @@ static status_code process_rrs(
 	domain_type  *owner  = NULL;
 	status_code   sc     = STATUS_OK;
 
+	if (time(NULL) > pd->start_time + ZONEC_PCT_TIME) {
+		(void) pthread_mutex_lock(&pd->mutex);
+		pd->start_time = time(NULL);
+		VERBOSITY(1, (LOG_INFO, "parse %s %6.2f %%",
+		    pd->name, progress * 100));
+		(void) pthread_mutex_unlock(&pd->mutex);
+	}
 	wd->n_rrs += end_of_rrs - rr;
 	while (rr < end_of_rrs) {
 		rr_type rr2add;
@@ -1152,9 +1595,10 @@ static status_code process_rrs(
 		rr2add.klass = rr->rr_class;
 		s = dnsextlang_lookup_(rr->rr_type->start,
 		     rr->rr_type->end - rr->rr_type->start, NULL);
-		rr2add.rdatas = rdatas;
 		rr2add.rdata_count = 0;
 		if (s) {
+			rr2add.rdatas = (rdata_atom_type *)region_alloc_array(
+			    region, s->n_fields, sizeof(rdata_atom_type));
 			rr2add.type = s->number;
 			if ((sc = parse_rdata(wd, s, rr, &rr2add, st)))
 				return sc;
@@ -1167,12 +1611,17 @@ static status_code process_rrs(
 				    rr->rr_type->fn, rr->rr_type->line_nr,
 				    rr->rr_type->col_nr);
 			rr2add.type = t;
+			rr2add.rdatas = rdatas;
 			if ((sc = parse_rdata(wd, NULL, rr, &rr2add, st)))
 				return sc;
+			rr2add.rdatas = (rdata_atom_type *)
+			    region_alloc_array_init(
+			    region, rr2add.rdatas, rr2add.rdata_count,
+			    sizeof(rdata_atom_type));
 		}
-		rr2add.rdatas = (rdata_atom_type *)region_alloc_array_init(
-		    region, rr2add.rdatas, rr2add.rdata_count,
-		    sizeof(rdata_atom_type));
+		if (s)
+			assert(rr2add.rdata_count == s->n_fields);
+
 		if ((!pzl_process_rr(region, wd->zone, &rr2add))) {
 			return RETURN_PARSE_ERR(st, "error processing rr type",
 			    rr->rr_type->fn, rr->rr_type->line_nr,
@@ -1180,14 +1629,54 @@ static status_code process_rrs(
 		}
 		rr += 1;
 	}
-	(void) pthread_mutex_lock(&pd->mutex);
-	if (time(NULL) > pd->start_time + ZONEC_PCT_TIME) {
-		pd->start_time = time(NULL);
-		VERBOSITY(1, (LOG_INFO, "parse %s %6.2f %%",
-		    pd->name, progress * 100));
-	}
-	(void) pthread_mutex_unlock(&pd->mutex);
 	return sc;
+}
+
+static void pzl_merge_rrsets(rrset_type *dst_rrset, rrset_type *src_rrset)
+{
+	region_type *dst_region;
+	region_type *src_region;
+	rr_type *o;
+
+	dst_region = dst_rrset->zone == parser->current_zone
+	    ? parser->db->region : (region_type *)dst_rrset->zone->filename;
+	src_region = src_rrset->zone == parser->current_zone
+	    ? parser->db->region : (region_type *)src_rrset->zone->filename;
+
+	/* TODO: Search and discard possible duplicates... */
+	/* TODO: Check total count of dst_rrset will be <= 65535 */
+	assert(dst_rrset->rr_count + src_rrset->rr_count <= 65535);
+
+	/* Add it... */
+	o = dst_rrset->rrs;
+	dst_rrset->rrs = (rr_type *)region_alloc_array(dst_region,
+	    dst_rrset->rr_count + src_rrset->rr_count, sizeof(rr_type));
+	memcpy(dst_rrset->rrs, o,
+	    dst_rrset->rr_count * sizeof(rr_type));
+	region_recycle(dst_region, o,
+	    dst_rrset->rr_count * sizeof(rr_type));
+	memcpy(dst_rrset->rrs + dst_rrset->rr_count, src_rrset->rrs,
+	    src_rrset->rr_count * sizeof(rr_type));
+	dst_rrset->rr_count += src_rrset->rr_count;
+	region_recycle(src_region, src_rrset->rrs,
+	    src_rrset->rr_count * sizeof(rr_type));
+	region_recycle(src_region, src_rrset, sizeof(rrset_type));
+}
+
+static void pzl_scan_rrsets2merge(rrset_type *rrset)
+{
+	rrset_type *next;
+
+	for ( next = rrset ? rrset->next : NULL
+	    ; rrset && next
+	    ; rrset = next, next = rrset ? rrset->next : NULL) {
+		while (next && rrset_rrtype(rrset) == rrset_rrtype(next)
+		            && rrset->zone->apex == next->zone->apex) {
+			rrset->next = next->next;
+			pzl_merge_rrsets(rrset, next);
+			next = rrset->next;
+		}
+	}
 }
 
 status_code pzl_load(const char *name, const char *fn, return_status *st)
@@ -1198,6 +1687,10 @@ status_code pzl_load(const char *name, const char *fn, return_status *st)
 	size_t       i;
 	uint8_t      origin_spc[MAXDOMAINLEN * 2];
 	dname_type  *origin;
+	region_type *tmpregion = region_create(xalloc, free);
+
+	if (!tmpregion)
+		return RETURN_MEM_ERR(st, "allocating PZL temporary region");
 
 	origin = dname_init(origin_spc + MAXDOMAINLEN,
 	    name, name + strlen(name), NULL);
@@ -1212,12 +1705,15 @@ status_code pzl_load(const char *name, const char *fn, return_status *st)
 
 	(void) pthread_mutex_init(&pd.mutex, NULL);
 	pd.start_time = time(NULL);
-	if (!(pd.wd = region_alloc_array(
-	    parser->region, pd.n_workers, sizeof(worker_data))))
-		return RETURN_MEM_ERR(st, "allocating worker data");
-
+	pd.wd = region_alloc_array(
+	    tmpregion, pd.n_workers, sizeof(worker_data));
+	pd.domain_tables = region_alloc_array(
+	    tmpregion, pd.n_workers, sizeof(worker_data *));
+	
 	for (i = 0; i < pd.n_workers; i++) {
+		pd.domain_tables[i] = &pd.wd[i];
 		pd.wd[i].pd = &pd;
+		pd.wd[i].i = i;
 		pd.wd[i].n_rrs = 0;
 		pd.wd[i].origin = NULL;
 		if (!i) {
@@ -1252,8 +1748,95 @@ status_code pzl_load(const char *name, const char *fn, return_status *st)
 	sc = zonefile_process_rrs_fn_(
 	    &cfg, fn, pd.n_workers, process_rrs, &pd, st);
 
-	region_recycle(
-	    parser->region, pd.wd, pd.n_workers * sizeof(worker_data));
+	if (sc == STATUS_OK) {
+		merge_sorter *mergers, *started;
+		int pc;
+		void *retval = NULL;
+		wd_domain_iter wdi;
+		size_t n = 0;
+
+		/* Change apex for worker zones to real apex so the zone
+		 * can be recognised when we have to merge rrsets later on.
+		 * (to determine the region to recycle things).
+		 */
+		for (i = 1; i < pd.n_workers; i++) {
+			pd.wd[i].zone->apex = pd.wd[0].zone->apex;
+			pd.wd[i].zone->filename = (char *)pd.wd[i].region;
+		}
+		pd.n_mergers = pd.n_workers - 1;
+		mergers = region_alloc_array(
+		    tmpregion, pd.n_mergers, sizeof(merge_sorter));
+		pd.mergers = region_alloc_array(
+		    tmpregion, pd.n_mergers, sizeof(merge_sorter *));
+		for (i = 0; i < pd.n_mergers; i++) {
+			merge_sorter *merger = &mergers[i];
+
+			(void) memset(merger, 0, sizeof(merge_sorter));
+			merger->pd = &pd;
+			merger->i = i;
+			(void) pthread_mutex_init(&merger->started_mut, NULL);
+			(void) pthread_cond_init(&merger->started, NULL);
+			(void) pthread_mutex_init(&merger->has_sorted_mut, NULL);
+			(void) pthread_cond_init(&merger->has_sorted, NULL);
+			(void) pthread_mutex_init(&merger->free_mut, NULL);
+			(void) pthread_cond_init(&merger->has_free, NULL);
+
+			pd.mergers[i] = NULL;
+		}
+		started = mergers;
+		while (n_domain_tables(&pd) || n_mergers(&pd) != 1) {
+			merge_sorter *merger = started++;
+
+			(void) pthread_mutex_lock(&merger->started_mut);
+			if ((pc = pthread_create(&merger->thread, NULL,
+			    start_merger, merger))) {
+				sc = RETURN_PTHREAD_ERR(
+				    st, "starting merger", pc);
+				break;
+			}
+			(void) pthread_cond_wait( &merger->started
+			                        , &merger->started_mut);
+			(void) pthread_mutex_unlock(&merger->started_mut);
+		}
+		fprintf(stderr, "waiting for merger (n_domain_tables: %zu)\n", n_domain_tables(&pd));
+
+		sc = wd_domain_iter_init(&wdi, &pd);
+		assert(sc == STATUS_OK);
+
+		domain_type *prev_domain = pd.wd[0].domains->root;
+		n = 1;
+		while (!(sc = wd_domain_iter_next(&wdi))) {
+			if (wdi.cur.domain == pd.wd[0].zone->apex)
+				fprintf(stderr, "APEX FOUND at %zu\n", n);
+			else if (wdi.cur.domain == pd.wd[0].domains->root)
+				fprintf(stderr, "ROOT FOUND at %zu, num: %zu\n", n, (size_t)wdi.cur.domain->number);
+			prev_domain->numlist_next = wdi.cur.domain;
+			wdi.cur.domain->number = n;
+			wdi.cur.domain->numlist_prev = prev_domain;
+			prev_domain = wdi.cur.domain;
+			n++;
+		}
+		if (sc == STATUS_STOP_ITERATION) {
+			prev_domain->numlist_next = NULL;
+			pd.wd[0].domains->numlist_last = prev_domain;
+			sc = STATUS_OK;
+		}
+		fprintf(stderr, "Done iterating (%zu domains)\n", n);
+
+		if (wdi.ms && (pc = pthread_join(wdi.ms->thread, &retval)))
+			return RETURN_PTHREAD_ERR(st, "joining merger", pc);
+
+		if (sc == STATUS_OK) {
+			domain_type *d = pd.wd[0].domains->root;
+
+			while (d) {
+				pzl_scan_rrsets2merge(d->rrsets);
+				d = d->numlist_next;
+			}
+			/* TODO: Construct red black tree */
+		}
+	}
+	region_destroy(tmpregion);
 	return sc;
 }
 

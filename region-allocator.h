@@ -150,4 +150,13 @@ size_t region_get_mem_unused(region_type* region);
 /* Debug print REGION statistics to LOG. */
 void region_log_stats(region_type *region);
 
+/* Merge allocations & recyclebin of region src in region dst
+ * Region dst is subsequently freed and all references to region dst in
+ * data structures should be replaced with region src.
+ * On success 0 is returned, when regions are of a different type they cannot
+ * be merged and -1 is returned.
+ */
+int region_merge(region_type *target, region_type *src);
+
+
 #endif /* _REGION_ALLOCATOR_H_ */
