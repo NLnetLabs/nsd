@@ -1620,7 +1620,7 @@ unsigned int
 zonec_read(const char* name, const char* zonefile, zone_type* zone)
 {
 #ifdef PARALLEL_LOADING
-	return_status st = RETURN_STATUS_CLEAR;
+	return_status st;
 #endif
 	const dname_type *dname;
 #ifdef HAVE_CLOCK_GETTIME
@@ -1663,7 +1663,10 @@ zonec_read(const char* name, const char* zonefile, zone_type* zone)
 	//parser->current_zone = zone;
 	zparser_init(zonefile, 3600, CLASS_IN, dname);
 	parser->current_zone = zone;
-	if (pzl_load(name, zonefile, &st))
+	return_status_reset(&st);
+	if (pzl_load( parser->db->region, parser->db->domains, zone
+	            , parser->default_ttl, parser->default_class
+	            , name, zonefile, &st))
 		pzl_error(&st);
 #endif
 #ifdef HAVE_CLOCK_GETTIME

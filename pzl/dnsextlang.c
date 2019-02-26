@@ -613,7 +613,7 @@ static inline status_code p_del_parse_quals(dnsextlang_field *f,
 				break;
 
 			case del_ftype_I4:
-				if (ll > 4294967295UL)
+				if (ll > 4294967295)
 					return RETURN_PARSE_ERR(st,
 					    "I4 field value must be "
 					    "< 4294967296", p->fn, p->line_nr,
@@ -739,7 +739,7 @@ dnsextlang_stanza *dnsextlang_stanza_new_from_pieces(
 		    "stanza number missing", piece->fn, piece->line_nr,
 		    piece->col_nr + (s - piece->start)));
 
-	if (e - s > sizeof(numbuf) - 1)
+	if (e - s > (int)sizeof(numbuf) - 1)
 		return p_err(r, RETURN_PARSE_ERR(st,
 		    "stanza number too large", piece->fn, piece->line_nr,
 		    piece->col_nr + (s - piece->start)));
@@ -968,12 +968,14 @@ static inline mmap_parser *p_dfi_next(mmap_parser *p, return_status *st)
 	return p_dfi_return(p, st);
 }
 
+static
 dnsextlang_def *p_dfi2def(dns_config *cfg, mmap_parser *i, return_status *st)
 {
 	dnsextlang_def *d = calloc(1, sizeof(dnsextlang_def));
 	mmap_parser *j = i;
-	return_status my_st = RETURN_STATUS_CLEAR;
+	return_status my_st;
 
+	return_status_reset(&my_st);
 	if (!st)
 		st = &my_st;
 
@@ -1001,6 +1003,7 @@ dnsextlang_def *p_dfi2def(dns_config *cfg, mmap_parser *i, return_status *st)
 		dnsextlang_def_free(d);
 		return NULL;
 	}
+	d->fallback = cfg->rrtypes;
 	return d;
 }
 

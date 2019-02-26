@@ -56,7 +56,7 @@ void zonefile_iter_free_in_use(zonefile_iter *i)
 	mmap_parser_free_in_use(&i->p);
 }
 
-static inline status_code p_zfi_at_end(zonefile_iter *i, return_status *st)
+static inline status_code p_zfi_at_end(zonefile_iter *i)
 {
 	if (i->p.cur) {
 		assert(i->p.cur == i->p.end);
@@ -84,7 +84,7 @@ static inline status_code p_zfi_return(zonefile_iter *i, return_status *st)
 		/* Nothing, so process next line*/
 		i->p.start = i->p.cur;
 		return i->p.start ? p_zfi_get_piece(i, st)
-		                  : p_zfi_at_end(i, st);
+		                  : p_zfi_at_end(i);
 	}
 	i->p.cur_piece->start = NULL;
 	return STATUS_OK;
@@ -103,7 +103,7 @@ static inline status_code p_zfi_get_closing_piece(
 				/* p_zfi_get_closing_piece()
 				 * does cur and line_nr incr. */
 				return p_zfi_get_closing_piece(i, st);
-		return p_zfi_at_end(i, st);
+		return p_zfi_at_end(i);
 
 	case '\n':
 		i->p.line_nr += 1;
@@ -123,7 +123,7 @@ static inline status_code p_zfi_get_closing_piece(
 				/* Non whitespace get this piece */
 				return p_zfi_get_closing_piece(i, st);
 			}
-		return p_zfi_at_end(i, st);
+		return p_zfi_at_end(i);
 
 	case ')':
 		i->p.cur += 1;
@@ -162,7 +162,7 @@ static inline status_code p_zfi_get_closing_piece(
 
 		if ((sc = increment_cur_piece(&i->p, st)))
 			return sc;
-		return p_zfi_at_end(i, st);
+		return p_zfi_at_end(i);
 
 	default:
 		if ((sc = equip_cur_piece(&i->p, st)))
@@ -191,7 +191,7 @@ static inline status_code p_zfi_get_closing_piece(
 			}
 		if ((sc = increment_cur_piece(&i->p, st)))
 			return sc;
-		return p_zfi_at_end(i, st);
+		return p_zfi_at_end(i);
 	}
 }
 
@@ -207,7 +207,7 @@ static status_code p_zfi_get_piece(zonefile_iter *i, return_status *st)
 				/* p_zfi_return()
 				 * does cur and line_nr incr. */
 				return p_zfi_return(i, st);
-		return p_zfi_at_end(i, st);
+		return p_zfi_at_end(i);
 
 	case '\n':
 		/* Remaining space is no piece */
@@ -230,7 +230,7 @@ static status_code p_zfi_get_piece(zonefile_iter *i, return_status *st)
 				/* Non whitespace get this piece */
 				return p_zfi_get_piece(i, st);
 			}
-		return p_zfi_at_end(i, st);
+		return p_zfi_at_end(i);
 
 	case '(':
 		i->p.cur += 1;
@@ -269,7 +269,7 @@ static status_code p_zfi_get_piece(zonefile_iter *i, return_status *st)
 			}
 		if ((sc = increment_cur_piece(&i->p, st)))
 			return sc;
-		return p_zfi_at_end(i, st);
+		return p_zfi_at_end(i);
 
 	default: /* unquoted piece (bounded by whitespace) */
 		if ((sc = equip_cur_piece(&i->p, st)))
@@ -302,7 +302,7 @@ static status_code p_zfi_get_piece(zonefile_iter *i, return_status *st)
 			}
 		if ((sc = increment_cur_piece(&i->p, st)))
 			return sc;
-		return p_zfi_at_end(i, st);
+		return p_zfi_at_end(i);
 	}
 }
 
@@ -486,7 +486,7 @@ status_code zonefile_iter_next_(zonefile_iter *i, return_status *st)
 
 	i->p.start = i->p.cur;
 	if (!i->p.start)
-		return p_zfi_at_end(i, st);
+		return p_zfi_at_end(i);
 
 	if ((sc = p_zfi_get_piece(i, st)))
 		return sc;

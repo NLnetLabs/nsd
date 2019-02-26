@@ -192,7 +192,8 @@ region_destroy(region_type *region)
 
 	region_free_all(region);
 	deallocator(region->cleanups);
-	deallocator(region->initial_data);
+	if (region->initial_data)
+		deallocator(region->initial_data);
 	if(region->recycle_bin)
 		deallocator(region->recycle_bin);
 	if(region->large_list) {
@@ -561,3 +562,117 @@ region_log_stats(region_type *region)
 	}
 	log_msg(LOG_INFO, "memory: %s", buf);
 }
+
+int
+region_merge(region_type *dst, region_type *src)
+{
+	if (!dst || !src)
+		return 0;
+
+	if (dst->allocator != src->allocator
+	||  dst->deallocator != src->deallocator
+	||  dst->chunk_size != src->chunk_size
+	||  dst->large_object_size != src->large_object_size)
+		return -1;
+
+	/* Move large objects from src to dst */
+	if (src->large_list) {
+		if (!dst->large_list)
+			dst->large_list = src->large_list;
+		else {
+			struct large_elem *le = dst->large_list;
+
+			while (le->next != NULL)
+				le = le->next;
+			le->next = src->large_list;
+			src->large_list->prev = le;
+		}
+		dst->large_objects += src->large_objects;
+		src->large_list = NULL;
+	}
+	/* Recycle remaining data in src->data
+	 */
+	if (src->allocated) {
+		char  *to_recycle = src->data + src->allocated;
+		size_t to_recycle_sz = src->chunk_size - src->allocated;
+
+		while (to_recycle_sz >= src->large_object_size) {
+			region_recycle(src,
+			      to_recycle, src->large_object_size - 1);
+			to_recycle    += (src->large_object_size - 1);
+			to_recycle_sz -= (src->large_object_size - 1);
+		}
+		if (to_recycle_sz)
+			region_recycle(src, to_recycle, to_recycle_sz);
+
+		src->allocated = 0;
+	} else
+		region_remove_cleanup(src, src->deallocator, src->data);
+	src->data = NULL;
+
+	/* Move cleanup handlers from src to dst
+	 */
+	if (src->cleanup_count) {
+		size_t maximum_cleanup_count = dst->maximum_cleanup_count;
+		size_t cleanup_count = dst->cleanup_count
+		                     + src->cleanup_count + 1;
+
+		if (cleanup_count >= maximum_cleanup_count) {
+			cleanup_type *cleanups;
+
+			while (cleanup_count >= maximum_cleanup_count)
+				maximum_cleanup_count *= 2;
+
+			cleanups = (cleanup_type *) dst->allocator(
+			    maximum_cleanup_count * sizeof(cleanup_type));
+			if (!cleanups)
+				return -1;
+
+			memcpy(cleanups, dst->cleanups,
+			       dst->cleanup_count * sizeof(cleanup_type));
+			dst->deallocator(dst->cleanups);
+
+			dst->cleanups = cleanups;
+			dst->maximum_cleanup_count = maximum_cleanup_count;
+		}
+		memcpy(dst->cleanups + dst->cleanup_count, src->cleanups,
+		       src->cleanup_count * sizeof(cleanup_type));
+		dst->cleanup_count += src->cleanup_count;
+		src->cleanup_count = 0;
+	}
+	if (!region_add_cleanup(dst, src->deallocator, src->initial_data))
+		return -1;
+	src->initial_data = NULL;
+
+	/* Move items in src->recycle_bin to dst->recycle_bin
+	 */
+	if (src->recycle_bin) {
+		size_t sz;
+
+		for (sz = 1; sz < src->large_object_size; sz++) {
+			if (!src->recycle_bin[sz])
+				continue;
+
+			if (!dst->recycle_bin[sz])
+				dst->recycle_bin[sz] = src->recycle_bin[sz];
+			else {
+				struct recycle_elem *re = dst->recycle_bin[sz];
+
+				while (re->next != NULL)
+					re = re->next;
+				re->next = src->recycle_bin[sz];
+			}
+			src->recycle_bin[sz] = NULL;
+		}
+	}
+	dst->total_allocated += src->total_allocated;
+	dst->small_objects   += src->small_objects;
+	dst->chunk_count     += src->chunk_count;
+	dst->unused_space    += src->unused_space;
+	dst->recycle_size    += src->recycle_size;
+	region_destroy(src);
+
+	return 0;
+}
+
+

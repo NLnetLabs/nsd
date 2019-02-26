@@ -35,6 +35,9 @@
 #include "zonec.h"
 #include "pzl/zonefile_processor.h"
 
-status_code pzl_load(const char *name, const char *filename, return_status *st);
+status_code pzl_load(
+    region_type *region, domain_table_type *domains, zone_type *zone,
+    uint32_t default_ttl, uint16_t default_class,
+    const char *name, const char *filename, return_status *st);
 
 #endif

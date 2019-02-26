@@ -118,7 +118,7 @@ struct domain
 	 */
 	unsigned     is_existing : 1;
 	unsigned     is_apex : 1;
-	unsigned     numlist_prev4usage_refs : 1;
+	unsigned     nsec34usage_refs : 1;
 } ATTR_PACKED;
 
 struct zone

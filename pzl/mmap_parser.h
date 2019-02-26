@@ -205,12 +205,12 @@ static inline status_code mmap_parser_progressive_munmap(
 	else
 		return STATUS_OK; /* parsing has not yet started */
 
-	assert(n_to_munmap >= 0);
 	if (n_to_munmap < 0)
 		return RETURN_DATA_ERR(st,
 		    "p->to_munmap progressed beyond referenced text");
 
-	if (n_to_munmap < p->munmap_treshold)
+	assert(n_to_munmap >= 0);
+	if ((size_t)n_to_munmap < p->munmap_treshold)
 		return STATUS_OK;
 
 	n_to_munmap /= p->munmap_treshold;
