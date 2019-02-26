@@ -494,6 +494,13 @@ static inline status_code pzl_add_small_hex_rdata(region_type *region,
 	uint8_t    *target;
 	status_code sc;
 
+	if (pieces_iter_len(pi) == 1 && *pi->cur->start == '-') {
+		 rdata = region_alloc(region, sizeof(uint16_t) + 1);
+		*rdata = 1;
+		((uint8_t *)(rdata + 1))[0] = 0;
+		rr->rdatas[rr->rdata_count++].data = rdata;
+		return STATUS_OK;
+	}
 	single_piece.cur = pi->cur;
 	single_piece.end = single_piece.cur + 1;
 	len = (pieces_iter_len(&single_piece) + 1) / 2;
