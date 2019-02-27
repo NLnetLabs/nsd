@@ -811,10 +811,33 @@ struct pzl_domain_ref {
 	region_type    *tmpregion;
 };
 
-static inline pzl_domain_ref **pzl_get_domain_ref(domain_type *d)
-{ return d->nsec34usage_refs ? (pzl_domain_ref **)&d->nsec3 : NULL; }
+static inline void pzl_merge_rrsets(
+    region_type *dst_region, rrset_type *dst_rrset,
+    region_type *src_region, rrset_type *src_rrset)
+{
+	rr_type *o;
 
-static void pzl_merge(wd_domain dst, wd_domain src, int can_recycle)
+	/* TODO: Search and discard possible duplicates... */
+	/* TODO: Check total count of dst_rrset will be <= 65535 */
+	assert(dst_rrset->rr_count + src_rrset->rr_count <= 65535);
+
+	/* Add it... */
+	o = dst_rrset->rrs;
+	dst_rrset->rrs = (rr_type *)region_alloc_array(dst_region,
+	    dst_rrset->rr_count + src_rrset->rr_count , sizeof(rr_type));
+	memcpy(dst_rrset->rrs, o, dst_rrset->rr_count * sizeof(rr_type));
+	region_recycle(dst_region, o, dst_rrset->rr_count * sizeof(rr_type));
+	memcpy(dst_rrset->rrs + dst_rrset->rr_count, src_rrset->rrs,
+	    src_rrset->rr_count * sizeof(rr_type));
+	dst_rrset->rr_count += src_rrset->rr_count;
+	region_recycle(src_region, src_rrset->rrs,
+	    src_rrset->rr_count * sizeof(rr_type));
+	region_recycle(src_region, src_rrset, sizeof(rrset_type));
+}
+
+
+static void pzl_merge(
+    wd_domain dst, wd_domain src, int can_recycle, int final_merge)
 {
 	/* Merge src->domain (all RRs and refs to), into dst->domain.
 	 * Afterwards recycle parts of src->domain which are redundant,
@@ -823,14 +846,12 @@ static void pzl_merge(wd_domain dst, wd_domain src, int can_recycle)
 	 * the complete tree was traversed.
 	 */
 	rrset_type *rrset, *next_rrset;
-	pzl_domain_ref **src_ref, **dst_ref;
+	pzl_domain_ref **src_ref;
 
 	if (src.domain->is_existing && !dst.domain->is_existing)
 		dst.domain->is_existing = 1;
 
-	if ((src_ref = pzl_get_domain_ref(src.domain)) && *src_ref) {
-		dst_ref = pzl_get_domain_ref(dst.domain);
-
+	if ((src_ref = (void *)&src.domain->nsec3) && *src_ref) {
 		while (*src_ref) {
 			assert(*(*src_ref)->ref == src.domain);
 			*(*src_ref)->ref = dst.domain;
@@ -838,36 +859,39 @@ static void pzl_merge(wd_domain dst, wd_domain src, int can_recycle)
 		}
 		dst.domain->usage += src.domain->usage;
 		src.domain->usage = 0;
-		if (dst_ref) {
-			*src_ref = *dst_ref;
-			*dst_ref = *pzl_get_domain_ref(src.domain);
+		if (!final_merge && dst.wd->i) {
+			*src_ref = (void *)dst.domain->nsec3;
+			dst.domain->nsec3 = src.domain->nsec3;
 
-		} else if (can_recycle) {
+		} else if (can_recycle) { /* Not strictly necessary */
 			pzl_domain_ref *ref, *next_ref;
 
-			for ( ref = *pzl_get_domain_ref(src.domain)
+			for ( ref = (void *)src.domain->nsec3
 			    , next_ref = ref->next
 			    ; ref ; ref = next_ref
 			          , next_ref = ref ? ref->next : NULL) {
 				region_recycle(ref->tmpregion, ref,
 				    sizeof(pzl_domain_ref));
 			}
-			src.domain->nsec3 = NULL;
 		}
+		src.domain->nsec3 = NULL;
+	}
+	for (rrset = src.domain->rrsets; rrset; rrset = rrset->next) {
+		size_t i;
+
+		rrset->zone = dst.wd->zone; /* needed for domain_find_rrset */
+		for (i = 0; i < rrset->rr_count; i++)
+			rrset->rrs[i].owner = dst.domain;
 	}
 	if (!src.domain->rrsets)
 		; /* pass */
 
-	else if (!dst.domain->rrsets) {
+	else if (!dst.domain->rrsets)
 		dst.domain->rrsets = src.domain->rrsets;
-		for ( rrset = dst.domain->rrsets
-		    ; rrset ; rrset = rrset->next )
-			rrset->zone = dst.wd->zone;
-		src.domain->rrsets = NULL;
 
-	} else for ( rrset = src.domain->rrsets, next_rrset = rrset->next
-	           ; rrset
-		   ; next_rrset = (rrset = next_rrset) ? rrset->next : NULL) {
+	else for ( rrset = src.domain->rrsets, next_rrset = rrset->next
+	         ; rrset
+	         ; next_rrset = (rrset = next_rrset) ? rrset->next : NULL) {
 		rrset_type *dst_rrset;
 
 		rrset->zone = dst.wd->zone;
@@ -876,22 +900,26 @@ static void pzl_merge(wd_domain dst, wd_domain src, int can_recycle)
 		if (!dst_rrset) {
 			domain_add_rrset(dst.domain, rrset);
 			continue;
+		} else if (can_recycle) {
+			pzl_merge_rrsets( dst.wd->region, dst_rrset
+			                , src.wd->region, rrset);
 		} else {
-			/* We cannot merge rrsets yet, because references
-			 * to domains in their data might get corrected when
-			 * merging domains.  Merging rrsets must wait until
+			/* We cannot merge the rrset, because we cannot use
+			 * the region without the risk of interfering with
+			 * another thead.  Merging rrsets must wait until
 			 * the very end, but we can make sure they can be
 			 * merged relatively quickly by making sure that the
 			 * same types follow each other.
-			 *
-			 * TODO: As a future optimazation we could already
-			 *       merge rrsets of types that do not have
-			 *       references to domains in them here.
+			 * Also, we can mark the domain with rrsets to merge,
+			 * so the ones that are done already can be skipped
+			 * quickly.
 			 */
 			rrset->next = dst_rrset->next;
 			dst_rrset->next = rrset;
+			dst.domain->rrsets2merge = 1;
 		}
 	}
+	src.domain->rrsets = NULL;
 }
 
 typedef struct merge_batch merge_batch;
@@ -1069,6 +1097,7 @@ static void *start_merger(void *arg)
 	size_t         i;
 	merge_batch   *batch = NULL;
 	int            can_recycle;
+	int            final_merge = me->i == pd->n_workers - 1;
 
 	(void) pthread_mutex_lock(&me->started_mut);
 	sc1 = wd_domain_iter_init(&i1, pd);
@@ -1105,7 +1134,7 @@ static void *start_merger(void *arg)
 		} else {
 			wd_domain i2wd = i2.cur;
 
-			pzl_merge(i1.cur, i2.cur, can_recycle);
+			pzl_merge(i1.cur, i2.cur, can_recycle, final_merge);
 			merge_provide(me, &batch, i1.cur);
 			sc1 = wd_domain_iter_next(&i1);
 			sc2 = wd_domain_iter_next(&i2);
@@ -1168,6 +1197,9 @@ static void *start_merger(void *arg)
 		me->domains2free = to_recycle->numlist_next;
 		if (to_recycle->is_apex || !to_recycle->parent)
 			continue;
+
+		assert(to_recycle->rrsets == NULL);
+		assert(to_recycle->nsec3 == NULL);
 
 	       	dname_sz = dname_total_size(domain_dname(to_recycle));
 		memset(domain_dname(to_recycle), 0xFF, dname_sz);
@@ -1350,12 +1382,9 @@ static inline status_code pzl_add_rdata_field(
 		if (!domain)
 			return pieces_iter_parse_error(
 			    pi, st, "could not insert dname");
-		if (wd->i && !domain->nsec34usage_refs)
-			/* Not with wd->i == 0 because mergers merge left */
-			domain->nsec34usage_refs = 1;
 
 		rr2add->rdatas[rr2add->rdata_count].domain = domain;
-		if (domain->nsec34usage_refs) {
+		if (wd->i) {
 			pzl_domain_ref *domain_ref = region_alloc(
                             wd->tmpregion, sizeof(pzl_domain_ref));
 
@@ -1584,30 +1613,7 @@ static status_code process_rrs(
 	return sc;
 }
 
-static void pzl_merge_rrsets(rrset_type *dst_rrset, rrset_type *src_rrset)
-{
-	region_type *region = parser->db->region;
-	rr_type *o;
-
-	/* TODO: Search and discard possible duplicates... */
-	/* TODO: Check total count of dst_rrset will be <= 65535 */
-	assert(dst_rrset->rr_count + src_rrset->rr_count <= 65535);
-
-	/* Add it... */
-	o = dst_rrset->rrs;
-	dst_rrset->rrs = (rr_type *)region_alloc_array(region,
-	    dst_rrset->rr_count + src_rrset->rr_count , sizeof(rr_type));
-	memcpy(dst_rrset->rrs, o, dst_rrset->rr_count * sizeof(rr_type));
-	region_recycle(region, o, dst_rrset->rr_count * sizeof(rr_type));
-	memcpy(dst_rrset->rrs + dst_rrset->rr_count, src_rrset->rrs,
-	    src_rrset->rr_count * sizeof(rr_type));
-	dst_rrset->rr_count += src_rrset->rr_count;
-	region_recycle(region, src_rrset->rrs,
-	    src_rrset->rr_count * sizeof(rr_type));
-	region_recycle(region, src_rrset, sizeof(rrset_type));
-}
-
-static void pzl_scan_rrsets2merge(rrset_type *rrset)
+static inline void pzl_scan_rrsets2merge(rrset_type *rrset)
 {
 	rrset_type *next;
 
@@ -1617,7 +1623,8 @@ static void pzl_scan_rrsets2merge(rrset_type *rrset)
 		while (next && rrset_rrtype(rrset) == rrset_rrtype(next)
 		            && rrset->zone->apex == next->zone->apex) {
 			rrset->next = next->next;
-			pzl_merge_rrsets(rrset, next);
+			pzl_merge_rrsets( parser->db->region, rrset
+			                , parser->db->region, next);
 			next = rrset->next;
 		}
 	}
@@ -1635,7 +1642,6 @@ static rbnode_type *pzl_list2tree(
 		return RBTREE_NULL;
 
 	left = pzl_list2tree(head_ref, n / 2, depth + 1);
-	pzl_scan_rrsets2merge((*head_ref)->rrsets);
 	root = &(*head_ref)->node;
 	root->color = ((depth % 2) == 0) ? BLACK : RED;
 	root->left = left;
@@ -1646,6 +1652,24 @@ static rbnode_type *pzl_list2tree(
 	if (root->right != RBTREE_NULL)
 		root->right->parent = root;
 	return root;
+}
+
+typedef struct list2tree_args {
+	domain_type *head;
+	size_t       size;
+	size_t       depth;
+} list2tree_args;
+
+static void *pzl_list2tree_worker(void *args)
+{
+	list2tree_args *a = args;
+	void *ret;
+
+	VERBOSITY(3,
+	    (LOG_INFO, "Make red/black tree for %d names", (int)a->size));
+	ret = pzl_list2tree(&a->head, a->size, a->depth);
+	VERBOSITY(3, (LOG_INFO, "Finished red/black tree"));
+	return ret;
 }
 
 status_code pzl_load(
@@ -1670,11 +1694,14 @@ status_code pzl_load(
 	domain_type *prev;
 
 	/* variables used in red/black tree reconstruction */
-	domain_type *head;
 	rbnode_type *root;
 
 	/* apex_rrset_checks */
-	rrset_type *rrset;
+	rrset_type  *rrset;
+	size_t     n_rrsets2merge;
+	domain_type *rrsets2merge;
+	list2tree_args l2t_args;
+	pthread_t      l2t_thread;
 
 	if (!tmpregion)
 		return RETURN_MEM_ERR(st, "allocating PZL temporary region");
@@ -1795,6 +1822,8 @@ status_code pzl_load(
 					, &merger->started_mut);
 		(void) pthread_mutex_unlock(&merger->started_mut);
 	}
+	n_rrsets2merge = 0;
+	rrsets2merge = NULL;
 	n = 1;
 	prev = NULL;
 	if ((sc = wd_domain_iter_init(&wdi, &pd)))
@@ -1807,8 +1836,12 @@ status_code pzl_load(
 		prev = wdi.cur.domain;
 		if ((sc = wd_domain_iter_next(&wdi)))
 			break;
-
 		wdi.cur.domain->nsec3 = NULL; /* remaining pzl_domain_refs */
+		if (wdi.cur.domain->rrsets2merge) {
+			n_rrsets2merge += 1;
+			wdi.cur.domain->nsec3 = (void *)rrsets2merge;
+			rrsets2merge = wdi.cur.domain;
+		}
 		if ( domain_dname(wdi.cur.domain)->label_count >
 		     domain_dname(prev)->label_count ) {
 			assert(domain_dname(wdi.cur.domain)->label_count ==
@@ -1861,6 +1894,13 @@ status_code pzl_load(
 		region_destroy(tmpregion);
 		return sc;
 	}
+	l2t_args.head = domains->root;
+	l2t_args.size = n;
+	l2t_args.depth = 0;
+	if ((pc = pthread_create(
+	    &l2t_thread, NULL, pzl_list2tree_worker, &l2t_args)))
+		return RETURN_PTHREAD_ERR( st, "starting list2tree worker", pc);
+
 	if (!wdi.ms)
 		; /* pass */
 	else while (wdi.ms->domains2free) {
@@ -1870,6 +1910,9 @@ status_code pzl_load(
 		wdi.ms->domains2free = to_recycle->numlist_next;
 		if (to_recycle->is_apex || !to_recycle->parent)
 			continue;
+
+		assert(to_recycle->rrsets == NULL);
+		assert(to_recycle->nsec3 == NULL);
 
 	       	dname_sz = dname_total_size(domain_dname(to_recycle));
 		memset(domain_dname(to_recycle), 0xFF, dname_sz);
@@ -1881,7 +1924,7 @@ status_code pzl_load(
 		    to_recycle, sizeof(domain_type));
 	};
 	VERBOSITY(3,
-	    (LOG_INFO, "Reconstructing red/black tree for %d names", (int)n));
+	    (LOG_INFO, "%d names with rrsets to merge", (int)n_rrsets2merge));
 
 	/* Change apex for worker zones to real apex so the
 	 * zone can be recognised when we have to merge rrsets
@@ -1905,9 +1948,18 @@ status_code pzl_load(
 
 		pd.wd[i].zone->apex = zone->apex;
 	}
-	head = domains->root;
-	root = pzl_list2tree(&head, n, 0);
+	while (rrsets2merge) {
+		domain_type *next = (void *)rrsets2merge->nsec3;
 
+		rrsets2merge->nsec3 = NULL;
+		rrsets2merge->rrsets2merge = 0;
+		pzl_scan_rrsets2merge(rrsets2merge->rrsets);
+		rrsets2merge = next;
+	}
+
+	if ((pc = pthread_join(l2t_thread, &retval)))
+		return RETURN_PTHREAD_ERR(st, "list2tree worker", pc);
+	root = retval;
 	root->parent = RBTREE_NULL;
 	domains->names_to_domains->root = root;
 	domains->names_to_domains->count = n;
@@ -1916,6 +1968,12 @@ status_code pzl_load(
 		apex_rrset_checks(parser->db, rrset, zone->apex);
 
 	region_destroy(tmpregion);
+	
+	if (1) {
+		FILE *f = fopen("out.zone", "w");
+		print_rrs(f, zone);
+		fclose(f);
+	}
 	return sc;
 }
 

@@ -92,6 +92,15 @@ static const dnsextlang_stanza t0009 = {
 	"a mail rename domain name (EXPERIMENTAL) [RFC1035]",
 	1, t0009_fields
 };
+static dnsextlang_field t000a_fields[1] = {
+	{ del_ftype_X, 0, { NULL }, NULL, "anything"
+	, "Anything" }
+};
+static const dnsextlang_stanza t000a = {
+	"NULL", 10, (del_option_E),
+	"a null RR (EXPERIMENTAL) [RFC1035]",
+	1, t000a_fields
+};
 static dnsextlang_field t000b_fields[3] = {
 	{ del_ftype_A, 0, { NULL }, NULL, NULL
 	, "IPv4 address" },
@@ -332,6 +341,24 @@ static const dnsextlang_stanza t001e = {
 	"Next Domain (OBSOLETE) [RFC3755][RFC2535]",
 	2, t001e_fields
 };
+static dnsextlang_field t001f_fields[1] = {
+	{ del_ftype_X, 0, { NULL }, NULL, "identifier"
+	, "Endpoint identifier" }
+};
+static const dnsextlang_stanza t001f = {
+	"EID", 31, (del_option_P),
+	"Endpoint Identifier",
+	1, t001f_fields
+};
+static dnsextlang_field t0020_fields[1] = {
+	{ del_ftype_X, 0, { NULL }, NULL, "locator"
+	, "Nimrod locator" }
+};
+static const dnsextlang_stanza t0020 = {
+	"NIMLOC", 32, (del_option_P),
+	"Nimrod Locator",
+	1, t0020_fields
+};
 static dnsextlang_field t0021_fields[4] = {
 	{ del_ftype_I2, 0, { NULL }, NULL, "priority"
 	, "Priority" },
@@ -346,6 +373,15 @@ static const dnsextlang_stanza t0021 = {
 	"SRV", 33, (del_option_I),
 	"Server Selection [1][RFC2782]",
 	4, t0021_fields
+};
+static dnsextlang_field t0022_fields[1] = {
+	{ del_ftype_X, 0, { NULL }, NULL, "format"
+	, "Format" }
+};
+static const dnsextlang_stanza t0022 = {
+	"ATMA", 34, (del_option_P),
+	"ATM Address",
+	1, t0022_fields
 };
 static dnsextlang_field t0023_fields[6] = {
 	{ del_ftype_I2, 0, { NULL }, NULL, "order"
@@ -665,6 +701,30 @@ static const dnsextlang_stanza t0027 = {
 	"DNAME", 39, (del_option_A),
 	"DNAME [RFC6672]",
 	1, t0027_fields
+};
+static dnsextlang_field t0028_fields[3] = {
+	{ del_ftype_I1, 0, { NULL }, NULL, "coding"
+	, "Coding" },
+	{ del_ftype_I2, 0, { NULL }, NULL, "subcoding"
+	, "Subcoding" },
+	{ del_ftype_B64, 0, { NULL }, NULL, "data"
+	, "Data" }
+};
+static const dnsextlang_stanza t0028 = {
+	"SINK", 40, (del_option_P),
+	"SINK",
+	3, t0028_fields
+};
+static dnsextlang_field t0029_fields[2] = {
+	{ del_ftype_I2, (del_qual_M), { NULL }, NULL, "code"
+	, "Option code" },
+	{ del_ftype_X, (del_qual_L), { NULL }, NULL, "data"
+	, "Option data" }
+};
+static const dnsextlang_stanza t0029 = {
+	"OPT", 41, (del_option_W),
+	"OPT [RFC6891][RFC3225]",
+	2, t0029_fields
 };
 static dnsextlang_field t002a_fields[1] = {
 	{ del_ftype_Z, (del_qual_APL), { NULL }, NULL, "prefixes"
@@ -1443,6 +1503,41 @@ static const dnsextlang_stanza t0037 = {
 	"Host Identity Protocol [RFC8005]",
 	4, t0037_fields
 };
+static dnsextlang_field t0038_fields[1] = {
+	{ del_ftype_S, 0, { NULL }, NULL, "status"
+	, "Status of zone" }
+};
+static const dnsextlang_stanza t0038 = {
+	"NINFO", 56, (del_option_P),
+	"NINFO",
+	1, t0038_fields
+};
+static dnsextlang_field t0039_fields[4] = {
+	{ del_ftype_I2, 0, { NULL }, NULL, "flags"
+	, "Flags" },
+	{ del_ftype_I1, 0, { NULL }, NULL, "protocol"
+	, "Protocol" },
+	{ del_ftype_I1, 0, { NULL }, NULL, "algorithm"
+	, "Algorithm" },
+	{ del_ftype_B64, 0, { NULL }, NULL, "data"
+	, "Key data" }
+};
+static const dnsextlang_stanza t0039 = {
+	"RKEY", 57, (del_option_P),
+	"RKEY",
+	4, t0039_fields
+};
+static dnsextlang_field t003a_fields[2] = {
+	{ del_ftype_N, 0, { NULL }, NULL, "previous"
+	, "Previous" },
+	{ del_ftype_N, 0, { NULL }, NULL, "next"
+	, "Next" }
+};
+static const dnsextlang_stanza t003a = {
+	"TALINK", 58, (del_option_P),
+	"Trust Anchor LINK",
+	2, t003a_fields
+};
 static const char *t003b_1_xx[256] = {
 	  NULL, "RSAMD5", "DH", "DSA", "ECC", "RSASHA1", "DSA-NSEC-SHA1",
 	 "RSASHA1-NSEC3-SHA1", "RSASHA256", NULL, "RSASHA512", NULL,
@@ -1897,6 +1992,26 @@ static const dnsextlang_stanza t0063 = {
 	"[RFC7208]",
 	1, t0063_fields
 };
+static const dnsextlang_stanza t0064 = {
+	"UINFO", 100, (del_option_R),
+	"[IANA-Reserved]",
+	0, NULL
+};
+static const dnsextlang_stanza t0065 = {
+	"UID", 101, (del_option_R),
+	"[IANA-Reserved]",
+	0, NULL
+};
+static const dnsextlang_stanza t0066 = {
+	"GID", 102, (del_option_R),
+	"[IANA-Reserved]",
+	0, NULL
+};
+static const dnsextlang_stanza t0067 = {
+	"UNSPEC", 103, (del_option_R),
+	"[IANA-Reserved]",
+	0, NULL
+};
 static dnsextlang_field t0068_fields[2] = {
 	{ del_ftype_I2, 0, { NULL }, NULL, "preference"
 	, "Preference" },
@@ -1959,18 +2074,53 @@ static const dnsextlang_stanza t006d = {
 	"an EUI-64 address [RFC7043]",
 	1, t006d_fields
 };
+static const dnsextlang_stanza t00f9 = {
+	"TKEY", 249, (del_option_W),
+	"Transaction Key [RFC2930]",
+	0, NULL
+};
+static const dnsextlang_stanza t00fa = {
+	"TSIG", 250, (del_option_W),
+	"Transaction Signature [RFC2845]",
+	0, NULL
+};
+static const dnsextlang_stanza t00fb = {
+	"IXFR", 251, (del_option_Q),
+	"Incremental transfer [RFC1995]",
+	0, NULL
+};
+static const dnsextlang_stanza t00fc = {
+	"AXFR", 252, (del_option_Q),
+	"Transfer of an entrire zone [RFC1035][RFC5936]",
+	0, NULL
+};
+static const dnsextlang_stanza t00fd = {
+	"MAILB", 253, (del_option_E|del_option_Q),
+	"Mailbox-related RRs (MB, MG or MR) [RFC1035]",
+	0, NULL
+};
+static const dnsextlang_stanza t00fe = {
+	"MAILA", 254, (del_option_O|del_option_Q),
+	"Mail agent RRs (OBSOLETE - see MX) [RFC1035]",
+	0, NULL
+};
+static const dnsextlang_stanza t00ff = {
+	"ANY", 255, (del_option_Q),
+	"Some or all records the server has available",
+	0, NULL
+};
 static const dnsextlang_stanza *t00xx[256] = {
 	  NULL ,&t0001,&t0002,&t0003,&t0004,&t0005,&t0006,&t0007,&t0008,&t0009
-	, NULL ,&t000b,&t000c,&t000d,&t000e,&t000f,&t0010,&t0011,&t0012,&t0013
+	,&t000a,&t000b,&t000c,&t000d,&t000e,&t000f,&t0010,&t0011,&t0012,&t0013
 	,&t0014,&t0015,&t0016,&t0017,&t0018,&t0019,&t001a,&t001b,&t001c,&t001d
-	,&t001e, NULL , NULL ,&t0021, NULL ,&t0023,&t0024,&t0025,&t0026,&t0027
-	, NULL , NULL ,&t002a,&t002b,&t002c,&t002d,&t002e,&t002f,&t0030,&t0031
-	,&t0032,&t0033,&t0034,&t0035, NULL ,&t0037, NULL , NULL , NULL ,&t003b
+	,&t001e,&t001f,&t0020,&t0021,&t0022,&t0023,&t0024,&t0025,&t0026,&t0027
+	,&t0028,&t0029,&t002a,&t002b,&t002c,&t002d,&t002e,&t002f,&t0030,&t0031
+	,&t0032,&t0033,&t0034,&t0035, NULL ,&t0037,&t0038,&t0039,&t003a,&t003b
 	,&t003c,&t003d,&t003e,&t003f, NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,&t0063
-	, NULL , NULL , NULL , NULL ,&t0068,&t0069,&t006a,&t006b,&t006c,&t006d
+	,&t0064,&t0065,&t0066,&t0067,&t0068,&t0069,&t006a,&t006b,&t006c,&t006d
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
@@ -1984,8 +2134,8 @@ static const dnsextlang_stanza *t00xx[256] = {
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
-	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
-	, NULL , NULL , NULL , NULL , NULL , NULL };
+	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,&t00f9
+	,&t00fa,&t00fb,&t00fc,&t00fd,&t00fe,&t00ff};
 static dnsextlang_field t0100_fields[3] = {
 	{ del_ftype_I2, 0, { NULL }, NULL, "priority"
 	, "Priority" },
@@ -2012,8 +2162,49 @@ static const dnsextlang_stanza t0101 = {
 	"Certification Authority Restriction [RFC6844]",
 	3, t0101_fields
 };
+static dnsextlang_field t0102_fields[1] = {
+	{ del_ftype_S, 0, { NULL }, NULL, "meta_data"
+	, "Meta data" }
+};
+static const dnsextlang_stanza t0102 = {
+	"AVC", 258, (del_option_P),
+	"Application Visibility and Control",
+	1, t0102_fields
+};
+static dnsextlang_field t0103_fields[5] = {
+	{ del_ftype_I4, 0, { NULL }, NULL, "enterprise"
+	, "Enterprise" },
+	{ del_ftype_I4, 0, { NULL }, NULL, "type"
+	, "Type" },
+	{ del_ftype_I1, 0, { NULL }, NULL, "location"
+	, "Location" },
+	{ del_ftype_S, 0, { NULL }, NULL, "media_type"
+	, "Media type" },
+	{ del_ftype_B64, 0, { NULL }, NULL, "data"
+	, "Data" }
+};
+static const dnsextlang_stanza t0103 = {
+	"DOA", 259, (del_option_D),
+	"Digital Object Architecture [draft-durand-doa-over-dns]",
+	5, t0103_fields
+};
+static dnsextlang_field t0104_fields[4] = {
+	{ del_ftype_I1, 0, { NULL }, NULL, "precedence"
+	, "Precedence" },
+	{ del_ftype_I1, 0, { NULL }, NULL, "relay_type"
+	, "Relay type" },
+	{ del_ftype_I1, 0, { NULL }, NULL, "discobery_optional"
+	, "Discovery Optional" },
+	{ del_ftype_Z, (del_qual_IPSECKEY), { NULL }, NULL, "relay"
+	, "Relay" }
+};
+static const dnsextlang_stanza t0104 = {
+	"AMTRELAY", 260, (del_option_D),
+	"Automatic Multicast Tunneling Relay [draft-ietf-mboned-driad-amt-discovery]",
+	4, t0104_fields
+};
 static const dnsextlang_stanza *t01xx[256] = {
-	 &t0100,&t0101, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
+	 &t0100,&t0101,&t0102,&t0103,&t0104, NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
@@ -2039,6 +2230,261 @@ static const dnsextlang_stanza *t01xx[256] = {
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL };
+static const char *t8000_1_xx[256] = {
+	  NULL, "RSAMD5", "DH", "DSA", "ECC", "RSASHA1", "DSA-NSEC-SHA1",
+	 "RSASHA1-NSEC3-SHA1", "RSASHA256", NULL, "RSASHA512", NULL,
+	 "ECC-GOST", "ECDSAP256SHA256", "ECDSAP384SHA384", NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, "INDIRECT", "PRIVATEDNS", "PRIVATEOID", NULL};
+static const long long int t8000_1_DH_ll = 2;
+static ldh_radix t8000_1_DH = { "H", 1, &t8000_1_DH_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_1_DSA_NSEC_SHA1_ll = 6;
+static ldh_radix t8000_1_DSA_NSEC_SHA1 = { "-NSEC-SHA1", 10, &t8000_1_DSA_NSEC_SHA1_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_1_DSA_ll = 3;
+static ldh_radix t8000_1_DSA = { "SA", 2, &t8000_1_DSA_ll,
+	{&t8000_1_DSA_NSEC_SHA1, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL } };
+static ldh_radix t8000_1_D = { "D", 1, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL,&t8000_1_DH, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL,&t8000_1_DSA, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL } };
+static const long long int t8000_1_ECC_GOST_ll = 12;
+static ldh_radix t8000_1_ECC_GOST = { "-GOST", 5, &t8000_1_ECC_GOST_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_1_ECC_ll = 4;
+static ldh_radix t8000_1_ECC = { "C", 1, &t8000_1_ECC_ll,
+	{&t8000_1_ECC_GOST, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL } };
+static const long long int t8000_1_ECDSAP256SHA256_ll = 13;
+static ldh_radix t8000_1_ECDSAP256SHA256 = { "256SHA256", 9, &t8000_1_ECDSAP256SHA256_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_1_ECDSAP384SHA384_ll = 14;
+static ldh_radix t8000_1_ECDSAP384SHA384 = { "384SHA384", 9, &t8000_1_ECDSAP384SHA384_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix t8000_1_ECDSAP = { "DSAP", 4, NULL,
+	{ NULL, NULL, NULL, NULL, NULL,&t8000_1_ECDSAP256SHA256,
+	 &t8000_1_ECDSAP384SHA384, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL } };
+static ldh_radix t8000_1_EC = { "EC", 2, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	 &t8000_1_ECC,&t8000_1_ECDSAP, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL } };
+static const long long int t8000_1_INDIRECT_ll = 252;
+static ldh_radix t8000_1_INDIRECT = { "INDIRECT", 8, &t8000_1_INDIRECT_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_1_PRIVATEDNS_ll = 253;
+static ldh_radix t8000_1_PRIVATEDNS = { "DNS", 3, &t8000_1_PRIVATEDNS_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_1_PRIVATEOID_ll = 254;
+static ldh_radix t8000_1_PRIVATEOID = { "OID", 3, &t8000_1_PRIVATEOID_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix t8000_1_PRIVATE = { "PRIVATE", 7, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL,&t8000_1_PRIVATEDNS, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL,&t8000_1_PRIVATEOID, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL } };
+static const long long int t8000_1_RSAMD5_ll = 1;
+static ldh_radix t8000_1_RSAMD5 = { "MD5", 3, &t8000_1_RSAMD5_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_1_RSASHA1_NSEC3_SHA1_ll = 7;
+static ldh_radix t8000_1_RSASHA1_NSEC3_SHA1 = { "-NSEC3-SHA1", 11, &t8000_1_RSASHA1_NSEC3_SHA1_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_1_RSASHA1_ll = 5;
+static ldh_radix t8000_1_RSASHA1 = { "1", 1, &t8000_1_RSASHA1_ll,
+	{&t8000_1_RSASHA1_NSEC3_SHA1, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL } };
+static const long long int t8000_1_RSASHA256_ll = 8;
+static ldh_radix t8000_1_RSASHA256 = { "256", 3, &t8000_1_RSASHA256_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_1_RSASHA512_ll = 10;
+static ldh_radix t8000_1_RSASHA512 = { "512", 3, &t8000_1_RSASHA512_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix t8000_1_RSASHA = { "SHA", 3, NULL,
+	{ NULL, NULL, NULL, NULL,&t8000_1_RSASHA1,&t8000_1_RSASHA256, NULL,
+	  NULL,&t8000_1_RSASHA512, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL } };
+static ldh_radix t8000_1_RSA = { "RSA", 3, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	 &t8000_1_RSAMD5, NULL, NULL, NULL, NULL, NULL,&t8000_1_RSASHA,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL } };
+static ldh_radix t8000_1_ldh_radix = { "", 0, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL,&t8000_1_D,&t8000_1_EC, NULL, NULL, NULL,&t8000_1_INDIRECT,
+	  NULL, NULL, NULL, NULL, NULL, NULL,&t8000_1_PRIVATE, NULL,
+	 &t8000_1_RSA, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL } };
+static const char *t8000_2_xx[256] = {
+	  NULL, "SHA-1", "SHA-256", "GOST", "SHA-384", NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL};
+static const long long int t8000_2_GOST_ll = 3;
+static ldh_radix t8000_2_GOST = { "GOST", 4, &t8000_2_GOST_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_2_SHA_1_ll = 1;
+static ldh_radix t8000_2_SHA_1 = { "1", 1, &t8000_2_SHA_1_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_2_SHA_256_ll = 2;
+static ldh_radix t8000_2_SHA_256 = { "256", 3, &t8000_2_SHA_256_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static const long long int t8000_2_SHA_384_ll = 4;
+static ldh_radix t8000_2_SHA_384 = { "384", 3, &t8000_2_SHA_384_ll,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix t8000_2_SHA_ = { "SHA-", 4, NULL,
+	{ NULL, NULL, NULL, NULL,&t8000_2_SHA_1,&t8000_2_SHA_256,
+	 &t8000_2_SHA_384, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL } };
+static ldh_radix t8000_2_ldh_radix = { "", 0, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL,&t8000_2_GOST, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL,&t8000_2_SHA_, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL } };
+static dnsextlang_field t8000_fields[4] = {
+	{ del_ftype_I2, 0, { NULL }, NULL, "keytag"
+	, "Key tag" },
+	{ del_ftype_I1, 0
+	, { (void *)t8000_1_xx }, &t8000_1_ldh_radix, "algorithm"
+	, "Algorithm" },
+	{ del_ftype_I1, 0
+	, { (void *)t8000_2_xx }, &t8000_2_ldh_radix, "digtype"
+	, "Digest type" },
+	{ del_ftype_X, 0, { NULL }, NULL, "digest"
+	, "Digest" }
+};
+static const dnsextlang_stanza t8000 = {
+	"TA", 32768, (del_option_P),
+	"DNSSEC Trust Authorities",
+	4, t8000_fields
+};
 static const char *t8001_1_xx[256] = {
 	  NULL, "RSAMD5", "DH", "DSA", "ECC", "RSASHA1", NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2161,7 +2607,7 @@ static const dnsextlang_stanza t8001 = {
 	4, t8001_fields
 };
 static const dnsextlang_stanza *t80xx[256] = {
-	  NULL ,&t8001, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
+	 &t8000,&t8001, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
 	, NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL 
@@ -2232,7 +2678,37 @@ static ldh_radix rr_AFSDB = { "FSDB", 4, &t0012,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL } };
+static ldh_radix rr_AMTRELAY = { "MTRELAY", 7, &t0104,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_ANY = { "NY", 2, &t00ff,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
 static ldh_radix rr_APL = { "PL", 2, &t002a,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_ATMA = { "TMA", 3, &t0022,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_AVC = { "VC", 2, &t0102,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_AXFR = { "XFR", 3, &t00fc,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2242,8 +2718,8 @@ static ldh_radix rr_A = { "A", 1, &t0001,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_A6, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_AAAA,
 	  NULL, NULL, NULL, NULL,&rr_AFSDB, NULL, NULL, NULL, NULL, NULL,
-	  NULL, NULL, NULL, NULL,&rr_APL, NULL, NULL, NULL, NULL, NULL,
-	  NULL, NULL, NULL, NULL, NULL } };
+	  NULL,&rr_AMTRELAY,&rr_ANY, NULL,&rr_APL, NULL, NULL, NULL,
+	 &rr_ATMA, NULL,&rr_AVC, NULL,&rr_AXFR, NULL, NULL } };
 static ldh_radix rr_CAA = { "AA", 2, &t0101,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2322,6 +2798,12 @@ static ldh_radix rr_DN = { "N", 1, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL,&rr_DNSKEY, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL } };
+static ldh_radix rr_DOA = { "OA", 2, &t0103,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
 static ldh_radix rr_DS = { "S", 1, &t002b,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2332,8 +2814,14 @@ static ldh_radix rr_D = { "D", 1, NULL,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL,&rr_DHCID, NULL, NULL, NULL,&rr_DLV,
-	  NULL,&rr_DN, NULL, NULL, NULL, NULL,&rr_DS, NULL, NULL, NULL,
+	  NULL,&rr_DN,&rr_DOA, NULL, NULL, NULL,&rr_DS, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL } };
+static ldh_radix rr_EID = { "ID", 2, &t001f,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
 static ldh_radix rr_EUI48 = { "48", 2, &t006c,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2346,18 +2834,36 @@ static ldh_radix rr_EUI64 = { "64", 2, &t006d,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL } };
-static ldh_radix rr_EUI = { "EUI", 3, NULL,
+static ldh_radix rr_EUI = { "UI", 2, NULL,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_EUI48, NULL,
 	 &rr_EUI64, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL } };
-static ldh_radix rr_GPOS = { "GPOS", 4, &t001b,
+static ldh_radix rr_E = { "E", 1, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL,&rr_EID, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_EUI, NULL,
+	  NULL, NULL, NULL, NULL } };
+static ldh_radix rr_GID = { "ID", 2, &t0066,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL } };
+static ldh_radix rr_GPOS = { "POS", 3, &t001b,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_G = { "G", 1, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL,&rr_GID, NULL, NULL, NULL,
+	  NULL, NULL, NULL,&rr_GPOS, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL } };
 static ldh_radix rr_HINFO = { "NFO", 3, &t000d,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2388,12 +2894,18 @@ static ldh_radix rr_ISDN = { "SDN", 3, &t0014,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL } };
+static ldh_radix rr_IXFR = { "XFR", 3, &t00fb,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
 static ldh_radix rr_I = { "I", 1, NULL,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL,&rr_IPSECKEY, NULL, NULL,&rr_ISDN, NULL, NULL, NULL,
-	  NULL, NULL, NULL, NULL } };
+	  NULL,&rr_IXFR, NULL, NULL } };
 static ldh_radix rr_KEY = { "EY", 2, &t0019,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2442,6 +2954,24 @@ static ldh_radix rr_L = { "L", 1, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL,&rr_LOC,&rr_LP, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL } };
+static ldh_radix rr_MAILA = { "A", 1, &t00fe,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_MAILB = { "B", 1, &t00fd,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_MAIL = { "AIL", 3, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_MAILA,
+	 &rr_MAILB, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL } };
 static ldh_radix rr_MB = { "B", 1, &t0007,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2486,22 +3016,40 @@ static ldh_radix rr_MX = { "X", 1, &t000f,
 	  NULL, NULL } };
 static ldh_radix rr_M = { "M", 1, NULL,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_MB,
-	  NULL,&rr_MD, NULL,&rr_MF,&rr_MG, NULL,&rr_MINFO, NULL, NULL, NULL,
-	  NULL, NULL, NULL, NULL, NULL,&rr_MR, NULL, NULL, NULL, NULL, NULL,
-	 &rr_MX, NULL, NULL } };
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_MAIL,
+	 &rr_MB, NULL,&rr_MD, NULL,&rr_MF,&rr_MG, NULL,&rr_MINFO, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_MR, NULL, NULL, NULL,
+	  NULL, NULL,&rr_MX, NULL, NULL } };
 static ldh_radix rr_NAPTR = { "APTR", 4, &t0023,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL } };
-static ldh_radix rr_NID = { "ID", 2, &t0068,
+static ldh_radix rr_NID = { "D", 1, &t0068,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL } };
+static ldh_radix rr_NIMLOC = { "MLOC", 4, &t0020,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_NINFO = { "NFO", 3, &t0038,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_NI = { "I", 1, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL,&rr_NID, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	 &rr_NIMLOC,&rr_NINFO, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL } };
 static ldh_radix rr_NSAP_PTR = { "-PTR", 4, &t0017,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2538,6 +3086,12 @@ static ldh_radix rr_NS = { "S", 1, &t0002,
 	  NULL, NULL, NULL,&rr_NSEC, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL } };
+static ldh_radix rr_NULL = { "ULL", 3, &t000a,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
 static ldh_radix rr_NXT = { "XT", 2, &t001e,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2547,15 +3101,27 @@ static ldh_radix rr_NXT = { "XT", 2, &t001e,
 static ldh_radix rr_N = { "N", 1, NULL,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_NAPTR,
-	  NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_NID, NULL, NULL,
-	  NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_NS, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_NI, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL,&rr_NS, NULL,&rr_NULL, NULL,
 	  NULL,&rr_NXT, NULL, NULL } };
-static ldh_radix rr_OPENPGPKEY = { "OPENPGPKEY", 10, &t003d,
+static ldh_radix rr_OPENPGPKEY = { "ENPGPKEY", 8, &t003d,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL } };
+static ldh_radix rr_OPT = { "T", 1, &t0029,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_OP = { "OP", 2, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL,&rr_OPENPGPKEY, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_OPT, NULL,
+	  NULL, NULL, NULL, NULL, NULL } };
 static ldh_radix rr_PTR = { "TR", 2, &t000c,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2574,6 +3140,12 @@ static ldh_radix rr_P = { "P", 1, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL,&rr_PTR, NULL, NULL, NULL,
 	 &rr_PX, NULL, NULL } };
+static ldh_radix rr_RKEY = { "KEY", 3, &t0039,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
 static ldh_radix rr_RP = { "P", 1, &t0011,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2595,15 +3167,27 @@ static ldh_radix rr_RT = { "T", 1, &t0015,
 static ldh_radix rr_R = { "R", 1, NULL,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	  NULL, NULL,&rr_RP, NULL,&rr_RRSIG, NULL,&rr_RT, NULL, NULL, NULL,
-	  NULL, NULL, NULL } };
-static ldh_radix rr_SIG = { "IG", 2, &t0018,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_RKEY, NULL,
+	  NULL, NULL, NULL,&rr_RP, NULL,&rr_RRSIG, NULL,&rr_RT, NULL, NULL,
+	  NULL, NULL, NULL, NULL } };
+static ldh_radix rr_SIG = { "G", 1, &t0018,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL } };
+static ldh_radix rr_SINK = { "NK", 2, &t0028,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_SI = { "I", 1, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL,&rr_SIG, NULL, NULL, NULL, NULL, NULL,
+	  NULL,&rr_SINK, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL } };
 static ldh_radix rr_SMIMEA = { "MIMEA", 5, &t0035,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2637,10 +3221,34 @@ static ldh_radix rr_SSHFP = { "SHFP", 4, &t002c,
 static ldh_radix rr_S = { "S", 1, NULL,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	  NULL, NULL, NULL, NULL, NULL, NULL,&rr_SIG, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL,&rr_SI, NULL, NULL, NULL,
 	 &rr_SMIMEA, NULL,&rr_SOA,&rr_SPF, NULL,&rr_SRV,&rr_SSHFP, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL } };
+static ldh_radix rr_TALINK = { "LINK", 4, &t003a,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_TA = { "A", 1, &t8000,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_TALINK,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL } };
+static ldh_radix rr_TKEY = { "KEY", 3, &t00f9,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
 static ldh_radix rr_TLSA = { "LSA", 3, &t0034,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_TSIG = { "SIG", 3, &t00fa,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2654,16 +3262,46 @@ static ldh_radix rr_TXT = { "XT", 2, &t0010,
 	  NULL, NULL } };
 static ldh_radix rr_T = { "T", 1, NULL,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_TLSA,
-	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	 &rr_TXT, NULL, NULL } };
-static ldh_radix rr_URI = { "URI", 3, &t0100,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_TA, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_TKEY,&rr_TLSA,
+	  NULL, NULL, NULL, NULL, NULL, NULL,&rr_TSIG, NULL, NULL, NULL,
+	  NULL,&rr_TXT, NULL, NULL } };
+static ldh_radix rr_UID = { "D", 1, &t0065,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL } };
+static ldh_radix rr_UINFO = { "NFO", 3, &t0064,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_UI = { "I", 1, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL,&rr_UID, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL,&rr_UINFO, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL } };
+static ldh_radix rr_UNSPEC = { "NSPEC", 5, &t0067,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_URI = { "RI", 2, &t0100,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL } };
+static ldh_radix rr_U = { "U", 1, NULL,
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL, NULL, NULL, NULL,&rr_UI, NULL, NULL, NULL, NULL,
+	 &rr_UNSPEC, NULL, NULL, NULL,&rr_URI, NULL, NULL, NULL, NULL, NULL,
+	  NULL, NULL, NULL } };
 static ldh_radix rr_WKS = { "WKS", 3, &t000b,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2685,9 +3323,9 @@ static ldh_radix rr_ZONEMD = { "ZONEMD", 6, &t003f,
 static ldh_radix rr_ldh_radix = { "", 0, NULL,
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,&rr_A, NULL,
-	 &rr_C,&rr_D,&rr_EUI, NULL,&rr_GPOS,&rr_HI,&rr_I, NULL,&rr_K,&rr_L,
-	 &rr_M,&rr_N,&rr_OPENPGPKEY,&rr_P, NULL,&rr_R,&rr_S,&rr_T,&rr_URI,
-	  NULL,&rr_WKS,&rr_X25, NULL,&rr_ZONEMD } };
+	 &rr_C,&rr_D,&rr_E, NULL,&rr_G,&rr_HI,&rr_I, NULL,&rr_K,&rr_L,&rr_M,
+	 &rr_N,&rr_OP,&rr_P, NULL,&rr_R,&rr_S,&rr_T,&rr_U, NULL,&rr_WKS,
+	 &rr_X25, NULL,&rr_ZONEMD } };
 static dnsextlang_def p_dns_default_rrtypes = {
 	(void *)rrtypes_table, &rr_ldh_radix, NULL };
 dnsextlang_def *dns_default_rrtypes = &p_dns_default_rrtypes;
@@ -2696,11 +3334,6 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
     const char *s, size_t len)
 {
 	switch (len) {
-	case  1: switch (s[0]) {
-	         case 'A': 
-	         case 'a': return &t0001;
-	         };
-	         break;
 	case  2: switch (s[0]) {
 	         case 'N': 
 	         case 'n': switch (s[1]) {
@@ -2761,12 +3394,33 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	                   case 'p': return &t0011;
 	                   };
 	                   break;
+	         case 'T': 
+	         case 't': switch (s[1]) {
+	                   case 'A': 
+	                   case 'a': return &t8000;
+	                   };
+	                   break;
+	         };
+	         break;
+	case  1: switch (s[0]) {
+	         case 'A': 
+	         case 'a': return &t0001;
 	         };
 	         break;
 	case  4: switch (s[0]) {
 	         case 'A': 
-	         case 'a': if (strncmp(s + 1, "AAA", 3)) break;
-	                   return &t001c;
+	         case 'a': switch (s[1]) {
+	                   case 'A': 
+	                   case 'a': if (strncmp(s + 2, "AA", 2)) break;
+	                             return &t001c;
+	                   case 'T': 
+	                   case 't': if (strncmp(s + 2, "MA", 2)) break;
+	                             return &t0022;
+	                   case 'X': 
+	                   case 'x': if (strncmp(s + 2, "FR", 2)) break;
+	                             return &t00fc;
+	                   };
+	                   break;
 	         case 'N': 
 	         case 'n': switch (s[1]) {
 	                   case 'S': 
@@ -2785,20 +3439,46 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	                                       break;
 	                             };
 	                             break;
+	                   case 'U': 
+	                   case 'u': if (strncmp(s + 2, "LL", 2)) break;
+	                             return &t000a;
 	                   };
 	                   break;
 	         case 'C': 
 	         case 'c': if (strncmp(s + 1, "ERT", 3)) break;
 	                   return &t0025;
 	         case 'T': 
-	         case 't': if (strncmp(s + 1, "LSA", 3)) break;
-	                   return &t0034;
+	         case 't': switch (s[1]) {
+	                   case 'L': 
+	                   case 'l': if (strncmp(s + 2, "SA", 2)) break;
+	                             return &t0034;
+	                   case 'K': 
+	                   case 'k': if (strncmp(s + 2, "EY", 2)) break;
+	                             return &t00f9;
+	                   case 'S': 
+	                   case 's': if (strncmp(s + 2, "IG", 2)) break;
+	                             return &t00fa;
+	                   };
+	                   break;
 	         case 'G': 
 	         case 'g': if (strncmp(s + 1, "POS", 3)) break;
 	                   return &t001b;
 	         case 'I': 
-	         case 'i': if (strncmp(s + 1, "SDN", 3)) break;
-	                   return &t0014;
+	         case 'i': switch (s[1]) {
+	                   case 'S': 
+	                   case 's': if (strncmp(s + 2, "DN", 2)) break;
+	                             return &t0014;
+	                   case 'X': 
+	                   case 'x': if (strncmp(s + 2, "FR", 2)) break;
+	                             return &t00fb;
+	                   };
+	                   break;
+	         case 'S': 
+	         case 's': if (strncmp(s + 1, "INK", 3)) break;
+	                   return &t0028;
+	         case 'R': 
+	         case 'r': if (strncmp(s + 1, "KEY", 3)) break;
+	                   return &t0039;
 	         };
 	         break;
 	case  3: switch (s[0]) {
@@ -2853,8 +3533,21 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	                   };
 	                   break;
 	         case 'U': 
-	         case 'u': if (strncmp(s + 1, "RI", 2)) break;
-	                   return &t0100;
+	         case 'u': switch (s[1]) {
+	                   case 'R': 
+	                   case 'r': switch (s[2]) {
+	                             case 'I': 
+	                             case 'i': return &t0100;
+	                             };
+	                             break;
+	                   case 'I': 
+	                   case 'i': switch (s[2]) {
+	                             case 'D': 
+	                             case 'd': return &t0065;
+	                             };
+	                             break;
+	                   };
+	                   break;
 	         case 'L': 
 	         case 'l': switch (s[1]) {
 	                   case '6': switch (s[2]) {
@@ -2890,14 +3583,46 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	                   };
 	                   break;
 	         case 'D': 
-	         case 'd': if (strncmp(s + 1, "LV", 2)) break;
-	                   return &t8001;
+	         case 'd': switch (s[1]) {
+	                   case 'L': 
+	                   case 'l': switch (s[2]) {
+	                             case 'V': 
+	                             case 'v': return &t8001;
+	                             };
+	                             break;
+	                   case 'O': 
+	                   case 'o': switch (s[2]) {
+	                             case 'A': 
+	                             case 'a': return &t0103;
+	                             };
+	                             break;
+	                   };
+	                   break;
 	         case 'H': 
 	         case 'h': if (strncmp(s + 1, "IP", 2)) break;
 	                   return &t0037;
 	         case 'A': 
-	         case 'a': if (strncmp(s + 1, "PL", 2)) break;
-	                   return &t002a;
+	         case 'a': switch (s[1]) {
+	                   case 'P': 
+	                   case 'p': switch (s[2]) {
+	                             case 'L': 
+	                             case 'l': return &t002a;
+	                             };
+	                             break;
+	                   case 'V': 
+	                   case 'v': switch (s[2]) {
+	                             case 'C': 
+	                             case 'c': return &t0102;
+	                             };
+	                             break;
+	                   case 'N': 
+	                   case 'n': switch (s[2]) {
+	                             case 'Y': 
+	                             case 'y': return &t00ff;
+	                             };
+	                             break;
+	                   };
+	                   break;
 	         case 'K': 
 	         case 'k': if (strncmp(s + 1, "EY", 2)) break;
 	                   return &t0019;
@@ -2907,6 +3632,15 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	         case 'W': 
 	         case 'w': if (strncmp(s + 1, "KS", 2)) break;
 	                   return &t000b;
+	         case 'G': 
+	         case 'g': if (strncmp(s + 1, "ID", 2)) break;
+	                   return &t0066;
+	         case 'O': 
+	         case 'o': if (strncmp(s + 1, "PT", 2)) break;
+	                   return &t0029;
+	         case 'E': 
+	         case 'e': if (strncmp(s + 1, "ID", 2)) break;
+	                   return &t001f;
 	         };
 	         break;
 	case  5: switch (s[0]) {
@@ -2931,6 +3665,9 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	                   case 'A': 
 	                   case 'a': if (strncmp(s + 2, "PTR", 3)) break;
 	                             return &t0023;
+	                   case 'I': 
+	                   case 'i': if (strncmp(s + 2, "NFO", 3)) break;
+	                             return &t0038;
 	                   };
 	                   break;
 	         case 'D': 
@@ -2970,8 +3707,31 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	         case 'a': if (strncmp(s + 1, "FSDB", 4)) break;
 	                   return &t0012;
 	         case 'M': 
-	         case 'm': if (strncmp(s + 1, "INFO", 4)) break;
-	                   return &t000e;
+	         case 'm': switch (s[1]) {
+	                   case 'I': 
+	                   case 'i': if (strncmp(s + 2, "NFO", 3)) break;
+	                             return &t000e;
+	                   case 'A': 
+	                   case 'a': switch (s[2]) {
+	                             case 'I': 
+	                             case 'i': switch (s[3]) {
+	                                       case 'L': 
+	                                       case 'l': switch (s[4]) {
+	                                                 case 'A': 
+	                                                 case 'a': return &t00fe;
+	                                                 case 'B': 
+	                                                 case 'b': return &t00fd;
+	                                                 };
+	                                                 break;
+	                                       };
+	                                       break;
+	                             };
+	                             break;
+	                   };
+	                   break;
+	         case 'U': 
+	         case 'u': if (strncmp(s + 1, "INFO", 4)) break;
+	                   return &t0064;
 	         case 'H': 
 	         case 'h': if (strncmp(s + 1, "INFO", 4)) break;
 	                   return &t000d;
@@ -2987,6 +3747,15 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	         case 'S': 
 	         case 's': if (strncmp(s + 1, "MIMEA", 5)) break;
 	                   return &t0035;
+	         case 'U': 
+	         case 'u': if (strncmp(s + 1, "NSPEC", 5)) break;
+	                   return &t0067;
+	         case 'T': 
+	         case 't': if (strncmp(s + 1, "ALINK", 5)) break;
+	                   return &t003a;
+	         case 'N': 
+	         case 'n': if (strncmp(s + 1, "IMLOC", 5)) break;
+	                   return &t0020;
 	         };
 	         break;
 	case  7: if (strncmp(s, "CDNSKEY", 7)) break;
@@ -2998,6 +3767,9 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	         case 'N': 
 	         case 'n': if (strncmp(s + 1, "SAP-PTR", 7)) break;
 	                   return &t0017;
+	         case 'A': 
+	         case 'a': if (strncmp(s + 1, "MTRELAY", 7)) break;
+	                   return &t0104;
 	         };
 	         break;
 	case 10: switch (s[0]) {

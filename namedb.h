@@ -118,7 +118,9 @@ struct domain
 	 */
 	unsigned     is_existing : 1;
 	unsigned     is_apex : 1;
-	unsigned     nsec34usage_refs : 1;
+#ifdef PARALLEL_LOADING
+	unsigned     rrsets2merge: 1;
+#endif
 } ATTR_PACKED;
 
 struct zone
