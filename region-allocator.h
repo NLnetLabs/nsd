@@ -150,13 +150,17 @@ size_t region_get_mem_unused(region_type* region);
 /* Debug print REGION statistics to LOG. */
 void region_log_stats(region_type *region);
 
-/* Merge allocations & recyclebin of region src in region dst
- * Region dst is subsequently freed and all references to region dst in
- * data structures should be replaced with region src.
+# ifdef PARALLEL_LOADING
+/*
+ * Merge allocations & recyclebin of region src in region dst.
+ * Remaining available data in src is recycled in recycle_chunk_size which
+ * must be < large_object_size.
  * On success 0 is returned, when regions are of a different type they cannot
  * be merged and -1 is returned.
+ * When region_merge exits successfully, region src freed and may not be
+ * destroyed by the caller.
  */
-int region_merge(region_type *target, region_type *src);
-
+int region_merge(region_type *dst, region_type *src, size_t recycle_chunk_size);
+# endif
 
 #endif /* _REGION_ALLOCATOR_H_ */

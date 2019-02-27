@@ -1924,7 +1924,7 @@ status_code pzl_load(
 		    to_recycle, sizeof(domain_type));
 	};
 	VERBOSITY(3,
-	    (LOG_INFO, "%d names with rrsets to merge", (int)n_rrsets2merge));
+	    (LOG_INFO, "%d regions to merge", (int)pd.n_workers));
 
 	/* Change apex for worker zones to real apex so the
 	 * zone can be recognised when we have to merge rrsets
@@ -1935,7 +1935,7 @@ status_code pzl_load(
 		size_t dname_sz;
 
 		region_destroy(pd.wd[i].tmpregion);
-		region_merge(region, pd.wd[i].region);
+		region_merge(region, pd.wd[i].region, sizeof(domain_type));
 
 		dname = domain_dname(pd.wd[i].domains->root);
 		dname_sz = dname_total_size(dname);
@@ -1948,6 +1948,12 @@ status_code pzl_load(
 
 		pd.wd[i].zone->apex = zone->apex;
 	}
+	VERBOSITY(3,
+	    (LOG_INFO, "%d regions merged", (int)pd.n_workers));
+
+	VERBOSITY(3,
+	    (LOG_INFO, "%d names with rrsets to merge", (int)n_rrsets2merge));
+
 	while (rrsets2merge) {
 		domain_type *next = (void *)rrsets2merge->nsec3;
 
@@ -1956,6 +1962,8 @@ status_code pzl_load(
 		pzl_scan_rrsets2merge(rrsets2merge->rrsets);
 		rrsets2merge = next;
 	}
+	VERBOSITY(3,
+	    (LOG_INFO, "%d names with rrsets merged", (int)n_rrsets2merge));
 
 	if ((pc = pthread_join(l2t_thread, &retval)))
 		return RETURN_PTHREAD_ERR(st, "list2tree worker", pc);
@@ -1969,11 +1977,13 @@ status_code pzl_load(
 
 	region_destroy(tmpregion);
 	
+#if 0
 	if (1) {
 		FILE *f = fopen("out.zone", "w");
 		print_rrs(f, zone);
 		fclose(f);
 	}
+#endif
 	return sc;
 }
 

@@ -71,7 +71,9 @@ struct region
 	size_t        cleanup_count;
 	cleanup_type *cleanups;
 	struct large_elem* large_list;
-
+#ifdef PARALLEL_LOADING
+	struct large_elem* large_list_last;
+#endif
 	size_t        chunk_size;
 	size_t        large_object_size;
 
@@ -80,6 +82,9 @@ struct region
 	 * The parts are all pointers to within the allocated chunks.
 	 * Array [i] points to elements of size i. */
 	struct recycle_elem** recycle_bin;
+#ifdef PARALLEL_LOADING
+	struct recycle_elem** recycle_bin_last;
+#endif
 	/* amount of memory in recycle storage */
 	size_t		recycle_size;
 };
@@ -101,7 +106,10 @@ alloc_region_base(void *(*allocator)(size_t size),
 	result->recycle_bin = NULL;
 	result->recycle_size = 0;
 	result->large_list = NULL;
-
+#ifdef PARALLEL_LOADING
+	result->recycle_bin_last = NULL;
+	result->large_list_last = NULL;
+#endif
 	result->allocated = 0;
 	result->data = NULL;
 	result->initial_data = NULL;
@@ -176,6 +184,16 @@ region_type *region_create_custom(void *(*allocator)(size_t),
 		}
 		memset(result->recycle_bin, 0, sizeof(struct recycle_elem*)
 			* result->large_object_size);
+#ifdef PARALLEL_LOADING
+		result->recycle_bin_last = allocator(
+		    sizeof(struct recycle_elem*) * result->large_object_size);
+		if(!result->recycle_bin_last) {
+			region_destroy(result);
+			return NULL;
+		}
+		memset(result->recycle_bin_last, 0,
+		    sizeof(struct recycle_elem*) * result->large_object_size);
+#endif
 	}
 	return result;
 }
@@ -196,6 +214,10 @@ region_destroy(region_type *region)
 		deallocator(region->initial_data);
 	if(region->recycle_bin)
 		deallocator(region->recycle_bin);
+#ifdef PARALLEL_LOADING
+	if(region->recycle_bin_last)
+		deallocator(region->recycle_bin_last);
+#endif
 	if(region->large_list) {
 		struct large_elem* p = region->large_list, *np;
 		while(p) {
@@ -268,6 +290,10 @@ region_alloc(region_type *region, size_t size)
 		((struct large_elem*)result)->next = region->large_list;
 		if(region->large_list)
 			region->large_list->prev = (struct large_elem*)result;
+#ifdef PARALLEL_LOADING
+		else
+			region->large_list_last  = (struct large_elem*)result;
+#endif
 		region->large_list = (struct large_elem*)result;
 
 		region->total_allocated += size;
@@ -279,6 +305,10 @@ region_alloc(region_type *region, size_t size)
 	if (region->recycle_bin && region->recycle_bin[aligned_size]) {
 		result = (void*)region->recycle_bin[aligned_size];
 		region->recycle_bin[aligned_size] = region->recycle_bin[aligned_size]->next;
+#ifdef PARALLEL_LOADING
+		if(!region->recycle_bin[aligned_size])
+			region->recycle_bin_last[aligned_size] = NULL;
+#endif
 		region->recycle_size -= aligned_size;
 		region->unused_space += aligned_size - size;
 		return result;
@@ -410,7 +440,13 @@ region_free_all(region_type *region)
 		}
 		region->large_list = NULL;
 	}
-
+#ifdef PARALLEL_LOADING
+	if(region->recycle_bin_last) {
+		memset(region->recycle_bin_last, 0,
+		    sizeof(struct recycle_elem*) * region->large_object_size);
+	}
+	region->large_list_last = NULL;
+#endif
 	region->data = region->initial_data;
 	region->cleanup_count = 0;
 	region->allocated = 0;
@@ -457,8 +493,11 @@ region_recycle(region_type *region, void *block, size_t size)
 			}
 		}
 #endif
-
 		elem->next = region->recycle_bin[aligned_size];
+#ifdef PARALLEL_LOADING
+		if(!elem->next)
+			region->recycle_bin_last[aligned_size] = elem;
+#endif
 		region->recycle_bin[aligned_size] = elem;
 		region->recycle_size += aligned_size;
 		region->unused_space -= aligned_size - size;
@@ -476,6 +515,10 @@ region_recycle(region_type *region, void *block, size_t size)
 		else	region->large_list = l->next;
 		if(l->next)
 			l->next->prev = l->prev;
+#ifdef PARALLEL_LOADING
+		else
+			region->large_list_last = l->prev;
+#endif
 		region->deallocator(l);
 	}
 }
@@ -563,8 +606,9 @@ region_log_stats(region_type *region)
 	log_msg(LOG_INFO, "memory: %s", buf);
 }
 
+#ifdef PARALLEL_LOADING
 int
-region_merge(region_type *dst, region_type *src)
+region_merge(region_type *dst, region_type *src, size_t recycle_chunk_size)
 {
 	if (!dst || !src)
 		return 0;
@@ -572,7 +616,10 @@ region_merge(region_type *dst, region_type *src)
 	if (dst->allocator != src->allocator
 	||  dst->deallocator != src->deallocator
 	||  dst->chunk_size != src->chunk_size
-	||  dst->large_object_size != src->large_object_size)
+	||  dst->large_object_size != src->large_object_size
+	||  recycle_chunk_size >= src->large_object_size
+	||  ( dst->recycle_bin && !src->recycle_bin)
+	||  (!dst->recycle_bin &&  src->recycle_bin))
 		return -1;
 
 	/* Move large objects from src to dst */
@@ -580,15 +627,13 @@ region_merge(region_type *dst, region_type *src)
 		if (!dst->large_list)
 			dst->large_list = src->large_list;
 		else {
-			struct large_elem *le = dst->large_list;
-
-			while (le->next != NULL)
-				le = le->next;
-			le->next = src->large_list;
-			src->large_list->prev = le;
+			dst->large_list_last->next = src->large_list;
+			src->large_list->prev = dst->large_list_last;
+			dst->large_list_last  = src->large_list_last;
 		}
 		dst->large_objects += src->large_objects;
 		src->large_list = NULL;
+		src->large_list_last = NULL;
 	}
 	/* Recycle remaining data in src->data
 	 */
@@ -597,10 +642,9 @@ region_merge(region_type *dst, region_type *src)
 		size_t to_recycle_sz = src->chunk_size - src->allocated;
 
 		while (to_recycle_sz >= src->large_object_size) {
-			region_recycle(src,
-			      to_recycle, src->large_object_size - 1);
-			to_recycle    += (src->large_object_size - 1);
-			to_recycle_sz -= (src->large_object_size - 1);
+			region_recycle(src, to_recycle, recycle_chunk_size);
+			to_recycle    += recycle_chunk_size;
+			to_recycle_sz -= recycle_chunk_size;
 		}
 		if (to_recycle_sz)
 			region_recycle(src, to_recycle, to_recycle_sz);
@@ -653,16 +697,18 @@ region_merge(region_type *dst, region_type *src)
 			if (!src->recycle_bin[sz])
 				continue;
 
-			if (!dst->recycle_bin[sz])
-				dst->recycle_bin[sz] = src->recycle_bin[sz];
-			else {
-				struct recycle_elem *re = dst->recycle_bin[sz];
-
-				while (re->next != NULL)
-					re = re->next;
-				re->next = src->recycle_bin[sz];
+			if (!dst->recycle_bin[sz]) {
+				dst->recycle_bin_last[sz]
+				    = dst->recycle_bin[sz]
+				    = src->recycle_bin[sz];
+			} else {
+				dst->recycle_bin_last[sz]->next
+				    = src->recycle_bin[sz];
+				dst->recycle_bin_last[sz]
+				    = src->recycle_bin_last[sz];
 			}
 			src->recycle_bin[sz] = NULL;
+			src->recycle_bin_last[sz] = NULL;
 		}
 	}
 	dst->total_allocated += src->total_allocated;
@@ -674,5 +720,4 @@ region_merge(region_type *dst, region_type *src)
 
 	return 0;
 }
-
-
+#endif
