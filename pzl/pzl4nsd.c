@@ -1686,6 +1686,7 @@ static inline size_t rbnode_info_n(rbnode_info *i)
 static inline rbnode_info *rbnode_info_next(rbnode_info *i)
 { if (i) do i = i->next; while(i && i->depth == i->infos->depth);  return i; }
 
+#ifndef NDEBUG
 static void rbnode_infos_debug(rbnode_infos *rbis)
 {
 	rbnode_info *cur;
@@ -1712,6 +1713,9 @@ static void rbnode_infos_debug(rbnode_infos *rbis)
 	}
 	fprintf(stderr, "-----\n");
 }
+#else
+#define rbnode_infos_debug(X)
+#endif
 
 static void *rbnode_info_worker(void *args)
 {
@@ -1719,18 +1723,24 @@ static void *rbnode_info_worker(void *args)
 	domain_type *head;
 
 	head = rbi->prev ? rbi->prev->domain->numlist_next : rbi->infos->root;
-	VERBOSITY(3,
-	    (LOG_INFO, "Make red/black tree for %d names from %d == %d"
-	             , (int)rbi->count, (int)rbi->offset, (int)head->number));
 	assert(rbi->offset == head->number);
 	rbi->domain = (domain_type *)pzl_list2tree(
 	    &head, rbi->count, rbi->depth);
-	VERBOSITY(3, (LOG_INFO, "Finished red/black tree %d == %d",
-	    (int)rbi->domain->number, (int)rbnode_info_n(rbi)));
 	assert(rbi->domain->number == rbnode_info_n(rbi));
 	return rbi->domain;
 }
 
+static void *rbnode_info_mover(void *args)
+{
+	rbnode_info *rbi = args;
+	size_t n = rbnode_info_n(rbi);
+
+	while (rbi->domain->number > n)
+		rbi->domain = rbi->domain->numlist_prev;
+	while (rbi->domain->number < n)
+		rbi->domain = rbi->domain->numlist_next;
+	return NULL;
+}
 
 static void rbnode_info_equip_numbers(size_t depth, rbnode_info **head,
     size_t cur_depth, size_t offset, size_t count)
@@ -1779,29 +1789,30 @@ static status_code rbnode_infos_fixup(
     rbnode_infos *rbis, domain_type *root, size_t count, return_status *st)
 {
 	rbnode_info *cur;
+	int pc;
 
 	rbis->root = root;
 	cur = rbis->infos;
 	rbnode_info_equip_numbers(rbis->depth, &cur, 0, 1, count);
 	for (cur = rbis->infos; cur ; cur = cur->next) {
-		size_t n;
-
 		if (!cur->domain)
 			continue;
 
-		n = rbnode_info_n(cur);
-
-		VERBOSITY(3,
-		    ( LOG_INFO, "Moving %d to %d"
-		    , cur->domain->number, (int)rbnode_info_n(cur)));
-		while (cur->domain->number > n)
-			cur->domain = cur->domain->numlist_prev;
-		while (cur->domain->number < n)
-			cur->domain = cur->domain->numlist_next;
+		if ((pc = pthread_create(
+		    &cur->thread, NULL, rbnode_info_mover, cur)))
+			return RETURN_PTHREAD_ERR(
+			    st, "creating rbnode_info_mover", pc);
 	}
 	for (cur = rbis->infos; cur ; cur = cur->next) {
-		int pc;
-
+		if (!cur->domain)
+			continue;
+		if ((pc = pthread_join(cur->thread, NULL)))
+			return RETURN_PTHREAD_ERR(
+			    st, "creating rbnode_info_mover", pc);
+	}
+	VERBOSITY(3,
+	    (LOG_INFO, "Make red/black tree for %d names", (int)count));
+	for (cur = rbis->infos; cur ; cur = cur->next) {
 		if (cur->domain)
 			continue;
 
@@ -1837,6 +1848,7 @@ static status_code rbnode_infos_wait(
 	domains->names_to_domains->root = &rb_root->domain->node;
 	domains->names_to_domains->count = rb_root->count;
 	rbnode_infos_debug(rbis);
+	VERBOSITY(3, (LOG_INFO, "Finished making red/black tree"));
 	return STATUS_OK;
 }
 
@@ -1850,7 +1862,6 @@ static rbnode_infos *rbnode_infos_new(
 	size_t        i;
 	
 	rbis->depth = depth;
-	fprintf(stderr, "depth: %zu, n_infos: %zu\n", depth, n_infos(depth));
 	for ( i = 0, cur = rbis->infos, prev = NULL
 	    ; i < n_infos(depth); i++, prev = cur++) {
 		cur->prev = prev;
@@ -2034,8 +2045,6 @@ status_code pzl_load(
 		wdi.cur.domain->number = n;
 		if (rbi && n == rbnode_info_n(rbi)) {
 			rbi->domain = wdi.cur.domain;
-			VERBOSITY(3,
-			    (LOG_INFO, "domain %zu found", n));
 			rbi = rbnode_info_next(rbi);
 		}
 		wdi.cur.domain->numlist_prev = prev;
@@ -2092,6 +2101,10 @@ status_code pzl_load(
 	if (wdi.ms && (pc = pthread_join(wdi.ms->thread, &retval)))
 		return RETURN_PTHREAD_ERR(st, "joining merger", pc);
 
+	while (rbi) {
+		rbi->domain = prev;
+		rbi = rbnode_info_next(rbi);
+	}
 	if (!sc)
 		sc = rbnode_infos_fixup(rbis, domains->root, n, st);
 
