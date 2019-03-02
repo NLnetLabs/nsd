@@ -45,7 +45,7 @@ typedef struct zonefile_processor {
 } zonefile_processor;
 
 #ifndef ZONEFILE_WORKER_N_RRS
-#define ZONEFILE_WORKER_N_RRS 8192
+#define ZONEFILE_WORKER_N_RRS 1024
 #endif
 
 struct zonefile_worker {

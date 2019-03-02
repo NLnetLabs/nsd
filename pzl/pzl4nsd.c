@@ -796,8 +796,8 @@ struct worker_data {
 	zone_type          wd_zone;
 };
 
-#define SORTBATCHSIZE 8192
-#define MAXNBATCHES 20
+#define SORTBATCHSIZE 16374
+#define MAXNBATCHES 32
 
 typedef struct wd_domain {
 	worker_data *wd;
@@ -1660,16 +1660,207 @@ typedef struct list2tree_args {
 	size_t       depth;
 } list2tree_args;
 
-static void *pzl_list2tree_worker(void *args)
-{
-	list2tree_args *a = args;
-	void *ret;
+typedef struct rbnode_infos rbnode_infos;
+typedef struct rbnode_info rbnode_info;
+struct rbnode_info {
+	domain_type  *domain;
+	size_t        depth;
+	size_t        offset;
+	size_t        count;
+	rbnode_info  *prev;
+	rbnode_info  *next;
+	rbnode_infos *infos;
+	pthread_t     thread;
+};
 
+struct rbnode_infos {
+	size_t       depth;
+	domain_type *root;
+	rbnode_info  infos[];
+};
+
+static inline size_t ln2(size_t x) { return x / 2 ? ln2(x / 2) + 1 : 0; }
+static inline size_t n_infos(size_t depth) { return (2 << depth) - 1; }
+static inline size_t rbnode_info_n(rbnode_info *i)
+{ return i->count / 2 + i->offset; }
+static inline rbnode_info *rbnode_info_next(rbnode_info *i)
+{ if (i) do i = i->next; while(i && i->depth == i->infos->depth);  return i; }
+
+static void rbnode_infos_debug(rbnode_infos *rbis)
+{
+	rbnode_info *cur;
+
+	fprintf(stderr, "-----\n");
+	for (cur = rbis->infos; cur; cur = cur->next) {
+		domain_type *left, *right, *parent;
+		size_t l, r, n, p;
+
+		fprintf(stderr, "d: %2zu, o: %9zu, n: %9zu, ",
+		    cur->depth, cur->offset, rbnode_info_n(cur));
+		if (!cur->domain) {
+			fprintf(stderr, "-\n");
+			continue;
+		}
+		left  = (domain_type *)(cur->domain->node.left);
+		l     = left && &left->node != RBTREE_NULL ? left->number  : 0;
+		right = (domain_type *)(cur->domain->node.right);
+		r     = right && &right->node != RBTREE_NULL ? right->number : 0;
+		parent = (domain_type *)(cur->domain->node.parent);
+		p     = parent && &parent->node != RBTREE_NULL ? parent->number : 0;
+		n     = cur->domain->number;
+		fprintf(stderr, "l: %9zu, n: %9zu, r: %9zu, p: %9zu\n", l, n, r, p);
+	}
+	fprintf(stderr, "-----\n");
+}
+
+static void *rbnode_info_worker(void *args)
+{
+	rbnode_info *rbi = args;
+	domain_type *head;
+
+	head = rbi->prev ? rbi->prev->domain->numlist_next : rbi->infos->root;
 	VERBOSITY(3,
-	    (LOG_INFO, "Make red/black tree for %d names", (int)a->size));
-	ret = pzl_list2tree(&a->head, a->size, a->depth);
-	VERBOSITY(3, (LOG_INFO, "Finished red/black tree"));
-	return ret;
+	    (LOG_INFO, "Make red/black tree for %d names from %d == %d"
+	             , (int)rbi->count, (int)rbi->offset, (int)head->number));
+	assert(rbi->offset == head->number);
+	rbi->domain = (domain_type *)pzl_list2tree(
+	    &head, rbi->count, rbi->depth);
+	VERBOSITY(3, (LOG_INFO, "Finished red/black tree %d == %d",
+	    (int)rbi->domain->number, (int)rbnode_info_n(rbi)));
+	assert(rbi->domain->number == rbnode_info_n(rbi));
+	return rbi->domain;
+}
+
+
+static void rbnode_info_equip_numbers(size_t depth, rbnode_info **head,
+    size_t cur_depth, size_t offset, size_t count)
+{
+	size_t n;
+
+	if (cur_depth < depth)
+		rbnode_info_equip_numbers(depth, head,
+		    cur_depth + 1, offset , count / 2);
+
+	(*head)->depth  = cur_depth;
+	(*head)->offset = offset;
+	(*head)->count  = count;
+	n = rbnode_info_n(*head);
+	*head = (*head)->next;
+
+	if (cur_depth < depth)
+		rbnode_info_equip_numbers(depth, head,
+		    cur_depth + 1, n + 1, count - count / 2 - 1);
+}
+
+static rbnode_info *rbnode_infos_connect_top(
+    size_t depth, rbnode_info **head, size_t cur_depth)
+{
+	rbnode_info *me, *left = NULL, *right = NULL;
+
+	if (cur_depth < depth)
+		left = rbnode_infos_connect_top(depth, head, cur_depth + 1);
+
+	me = *head;
+	*head = (*head)->next;
+
+	if (cur_depth < depth) {
+		right = rbnode_infos_connect_top(depth, head, cur_depth + 1);
+
+		me->domain->node.left = &left->domain->node;
+		me->domain->node.right = &right->domain->node;
+		me->domain->node.color = ((me->depth % 2) == 0) ? BLACK : RED;
+		left->domain->node.parent = &me->domain->node;
+		right->domain->node.parent = &me->domain->node;
+	}
+	return me;
+}
+
+static status_code rbnode_infos_fixup(
+    rbnode_infos *rbis, domain_type *root, size_t count, return_status *st)
+{
+	rbnode_info *cur;
+
+	rbis->root = root;
+	cur = rbis->infos;
+	rbnode_info_equip_numbers(rbis->depth, &cur, 0, 1, count);
+	for (cur = rbis->infos; cur ; cur = cur->next) {
+		size_t n;
+
+		if (!cur->domain)
+			continue;
+
+		n = rbnode_info_n(cur);
+
+		VERBOSITY(3,
+		    ( LOG_INFO, "Moving %d to %d"
+		    , cur->domain->number, (int)rbnode_info_n(cur)));
+		while (cur->domain->number > n)
+			cur->domain = cur->domain->numlist_prev;
+		while (cur->domain->number < n)
+			cur->domain = cur->domain->numlist_next;
+	}
+	for (cur = rbis->infos; cur ; cur = cur->next) {
+		int pc;
+
+		if (cur->domain)
+			continue;
+
+		assert(cur->depth == rbis->depth);
+		if ((pc = pthread_create(
+		    &cur->thread, NULL, rbnode_info_worker, cur)))
+			return RETURN_PTHREAD_ERR(
+			    st, "creating rbnode_info_worker", pc);
+	}
+	return STATUS_OK;
+}
+
+static status_code rbnode_infos_wait(
+    rbnode_infos *rbis, domain_table_type *domains, return_status *st)
+{
+	rbnode_info *cur, *rb_root;
+
+	for (cur = rbis->infos; cur ; cur = cur->next) {
+		int pc;
+		void *retval;
+
+		if (cur->depth != rbis->depth)
+			continue;
+
+		if ((pc = pthread_join(cur->thread, &retval)))
+			return RETURN_PTHREAD_ERR(
+			    st, "joining rbnode_info_worker", pc);
+		assert(retval == cur->domain);
+	}
+	cur = rbis->infos;
+	rb_root = rbnode_infos_connect_top(rbis->depth, &cur, 0);
+	rb_root->domain->node.parent = RBTREE_NULL;
+	domains->names_to_domains->root = &rb_root->domain->node;
+	domains->names_to_domains->count = rb_root->count;
+	rbnode_infos_debug(rbis);
+	return STATUS_OK;
+}
+
+static rbnode_infos *rbnode_infos_new(
+    region_type *region, size_t n_workers, size_t count)
+{
+	size_t depth = ln2(n_workers);
+	rbnode_infos *rbis = (rbnode_infos *)region_alloc_zero(region,
+	    sizeof(rbnode_infos) + n_infos(depth) * sizeof(rbnode_info));
+	rbnode_info  *prev, *cur;
+	size_t        i;
+	
+	rbis->depth = depth;
+	fprintf(stderr, "depth: %zu, n_infos: %zu\n", depth, n_infos(depth));
+	for ( i = 0, cur = rbis->infos, prev = NULL
+	    ; i < n_infos(depth); i++, prev = cur++) {
+		cur->prev = prev;
+		cur->infos = rbis;
+		if (prev) prev->next = cur;
+	}
+	cur = rbis->infos;
+	rbnode_info_equip_numbers(depth, &cur, 0, 1, count);
+	rbnode_infos_debug(rbis);
+	return rbis;
 }
 
 status_code pzl_load(
@@ -1685,6 +1876,11 @@ status_code pzl_load(
 	dname_type  *origin;
 	region_type *tmpregion = region_create(xalloc, free);
 
+	/* variables used in red/black tree reconstruction */
+	size_t        total_names;
+	rbnode_infos *rbis;
+	rbnode_info  *rbi;
+
 	/* variables used in merging */
 	merge_sorter *mergers, *started;
 	int pc;
@@ -1693,15 +1889,10 @@ status_code pzl_load(
 	size_t n = 0;
 	domain_type *prev;
 
-	/* variables used in red/black tree reconstruction */
-	rbnode_type *root;
-
 	/* apex_rrset_checks */
 	rrset_type  *rrset;
 	size_t     n_rrsets2merge;
 	domain_type *rrsets2merge;
-	list2tree_args l2t_args;
-	pthread_t      l2t_thread;
 
 	if (!tmpregion)
 		return RETURN_MEM_ERR(st, "allocating PZL temporary region");
@@ -1787,6 +1978,15 @@ status_code pzl_load(
 		VERBOSITY(3, (LOG_INFO, "Parallel merge of %d domain tables"
 				      , (int)pd.n_workers));
 	}
+	total_names = 0;
+	for (i = 0; i < pd.n_workers; i++)
+		total_names += pd.wd[i].domains->names_to_domains->count;
+	VERBOSITY(3, (LOG_INFO, "%d estimated total names"
+			      , (int)total_names));
+
+	rbis = rbnode_infos_new(tmpregion, pd.n_workers, total_names);
+	rbi = rbnode_info_next(rbis->infos);
+
 	pd.n_mergers = pd.n_workers - 1;
 	mergers = region_alloc_array(
 	    tmpregion, pd.n_mergers, sizeof(merge_sorter));
@@ -1832,6 +2032,12 @@ status_code pzl_load(
 		; /* pass */
 	else for (;;) {
 		wdi.cur.domain->number = n;
+		if (rbi && n == rbnode_info_n(rbi)) {
+			rbi->domain = wdi.cur.domain;
+			VERBOSITY(3,
+			    (LOG_INFO, "domain %zu found", n));
+			rbi = rbnode_info_next(rbi);
+		}
 		wdi.cur.domain->numlist_prev = prev;
 		prev = wdi.cur.domain;
 		if ((sc = wd_domain_iter_next(&wdi)))
@@ -1886,6 +2092,9 @@ status_code pzl_load(
 	if (wdi.ms && (pc = pthread_join(wdi.ms->thread, &retval)))
 		return RETURN_PTHREAD_ERR(st, "joining merger", pc);
 
+	if (!sc)
+		sc = rbnode_infos_fixup(rbis, domains->root, n, st);
+
 	if (sc) {
 		for (i = 0; i < pd.n_workers; i++) {
 			region_destroy(pd.wd[i].region);
@@ -1894,13 +2103,6 @@ status_code pzl_load(
 		region_destroy(tmpregion);
 		return sc;
 	}
-	l2t_args.head = domains->root;
-	l2t_args.size = n;
-	l2t_args.depth = 0;
-	if ((pc = pthread_create(
-	    &l2t_thread, NULL, pzl_list2tree_worker, &l2t_args)))
-		return RETURN_PTHREAD_ERR( st, "starting list2tree worker", pc);
-
 	if (!wdi.ms)
 		; /* pass */
 	else while (wdi.ms->domains2free) {
@@ -1965,13 +2167,10 @@ status_code pzl_load(
 	VERBOSITY(3,
 	    (LOG_INFO, "%d names with rrsets merged", (int)n_rrsets2merge));
 
-	if ((pc = pthread_join(l2t_thread, &retval)))
-		return RETURN_PTHREAD_ERR(st, "list2tree worker", pc);
-	root = retval;
-	root->parent = RBTREE_NULL;
-	domains->names_to_domains->root = root;
-	domains->names_to_domains->count = n;
-
+	if ((sc = rbnode_infos_wait(rbis, domains, st))) {
+		region_destroy(tmpregion);
+		return sc;
+	}
 	for ( rrset = zone->apex->rrsets; rrset ; rrset = rrset->next )
 		apex_rrset_checks(parser->db, rrset, zone->apex);
 
