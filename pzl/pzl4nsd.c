@@ -37,6 +37,10 @@
 #include "rdata.h"
 #include <pthread.h>
 
+/* #define PRINT_DOMAIN_TABLES */
+#ifndef NDEBUG
+int print_rrs(FILE* out, struct zone* zone);
+#endif
 /*
  * Compares two rdata arrays.
  *
@@ -1556,8 +1560,14 @@ static status_code process_rrs(
 			    rr->origin, rr->origin_end, NULL);
 			origin_str = rr->origin;
 			wd->origin = origin;
+			owner_dname = dname_init(owner_spc + MAXDOMAINLEN,
+			    rr->owner, rr->owner_end, origin);
+			owner = domain_table_insert(wd->domains, owner_dname);
+			owner_str = rr->owner;
+			if (!owner->rrsets)
+				wd->n_names += 1;
 		}
-		if (rr->owner != owner_str && (!owner_str ||
+		else if (rr->owner != owner_str && (!owner_str ||
 		    strncmp(owner_str,rr->owner,rr->owner_end-rr->owner))) {
 			owner_dname = dname_init(owner_spc + MAXDOMAINLEN,
 			    rr->owner, rr->owner_end, origin);
@@ -1986,6 +1996,18 @@ status_code pzl_load(
 			    (int)i, (int)pd.wd[i].n_rrs,
 			    (int)pd.wd[i].n_names));
 		}
+#ifdef PRINT_DOMAIN_TABLES
+		if (1) for (i = 0; i < pd.n_workers; i++) {
+			char fn[1024];
+			FILE *f;
+
+			snprintf(fn, sizeof(fn), "%s.worker_%zu", name, i);
+			if ((f = fopen(fn, "w"))) {
+				print_rrs(f, pd.wd[i].zone);
+				fclose(f);
+			}
+		}
+#endif
 		VERBOSITY(3, (LOG_INFO, "Parallel merge of %d domain tables"
 				      , (int)pd.n_workers));
 	}
@@ -2138,37 +2160,26 @@ status_code pzl_load(
 		    ((worker_data *)to_recycle->numlist_prev)->region,
 		    to_recycle, sizeof(domain_type));
 	};
+
 	VERBOSITY(3,
-	    (LOG_INFO, "%d regions to merge", (int)pd.n_workers));
+	    (LOG_INFO, "%d names with rrsets to merge", (int)n_rrsets2merge));
 
 	/* Change apex for worker zones to real apex so the
 	 * zone can be recognised when we have to merge rrsets
 	 * later on.
 	 */
 	for (i = 1; i < pd.n_workers; i++) {
-		dname_type *dname;
-		size_t dname_sz;
+		region_destroy(pd.wd[i].tmpregion); /* For domain_refs */
 
-		region_destroy(pd.wd[i].tmpregion);
-		region_merge(region, pd.wd[i].region, sizeof(domain_type));
-
-		dname = domain_dname(pd.wd[i].domains->root);
-		dname_sz = dname_total_size(dname);
-		memset(dname, 0xFF, dname_sz);
-		region_recycle(region, dname, dname_sz);
-		region_recycle(region, pd.wd[i].domains->root
-		                     , sizeof(domain_type));
-		region_recycle(region, pd.wd[i].domains
-		                     , sizeof(domain_table_type));
-
+		region_recycle(pd.wd[i].region,
+		                     domain_dname(pd.wd[i].domains->root),
+		    dname_total_size(domain_dname(pd.wd[i].domains->root)));
+		region_recycle(pd.wd[i].region,
+		    pd.wd[i].domains->root, sizeof(domain_type));
+		region_recycle(pd.wd[i].region,
+		    pd.wd[i].domains , sizeof(domain_table_type));
 		pd.wd[i].zone->apex = zone->apex;
 	}
-	VERBOSITY(3,
-	    (LOG_INFO, "%d regions merged", (int)pd.n_workers));
-
-	VERBOSITY(3,
-	    (LOG_INFO, "%d names with rrsets to merge", (int)n_rrsets2merge));
-
 	while (rrsets2merge) {
 		domain_type *next = (void *)rrsets2merge->nsec3;
 
@@ -2180,6 +2191,13 @@ status_code pzl_load(
 	VERBOSITY(3,
 	    (LOG_INFO, "%d names with rrsets merged", (int)n_rrsets2merge));
 
+	VERBOSITY(3,
+	    (LOG_INFO, "Merging %d regions", (int)pd.n_workers));
+	for (i = 1; i < pd.n_workers; i++)
+		region_merge(region, pd.wd[i].region, sizeof(domain_type));
+	VERBOSITY(3,
+	    (LOG_INFO, "%d regions merged", (int)pd.n_workers));
+
 	if ((sc = rbnode_infos_wait(rbis, domains, st))) {
 		region_destroy(tmpregion);
 		return sc;
@@ -2187,13 +2205,19 @@ status_code pzl_load(
 	for ( rrset = zone->apex->rrsets; rrset ; rrset = rrset->next )
 		apex_rrset_checks(parser->db, rrset, zone->apex);
 
+
 	region_destroy(tmpregion);
 	
-#if 0
+#ifdef PRINT_DOMAIN_TABLES
 	if (1) {
-		FILE *f = fopen("out.zone", "w");
-		print_rrs(f, zone);
-		fclose(f);
+		char fn[1024];
+		FILE *f;
+
+		snprintf(fn, sizeof(fn), "%s.merged.zone", name);
+		if ((f = fopen(fn, "w"))) {
+			print_rrs(f, zone);
+			fclose(f);
+		}
 	}
 #endif
 	return sc;
