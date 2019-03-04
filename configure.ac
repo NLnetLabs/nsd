@@ -913,8 +913,10 @@ esac
 AC_ARG_ENABLE(radix-tree, AC_HELP_STRING([--disable-radix-tree], [You can disable the radix tree and use the red-black tree for the main lookups, the red-black tree uses less memory, but uses some more CPU.]))
 case "$enable_radix_tree" in
         no)
+	USE_RBTREE="yes"
 	;;
 	yes|*)
+	USE_RBTREE="no"
 	AC_DEFINE_UNQUOTED([USE_RADIX_TREE], [], [Define this to configure to use the radix tree.])
 	;;
 esac
@@ -932,6 +934,9 @@ esac
 AC_ARG_ENABLE(parallel-loading, AC_HELP_STRING([--enable-parallel-loading], [Enable parallel loading of zonefiles]))
 case "$enable_parallel_loading" in
 	yes)
+	if test x$USE_RBTREE != x"yes"; then
+		AC_MSG_ERROR(Parallel loading currently requires the red-black tree backend. Please reconfigure with --disable-radix-tree)
+	fi
 	AC_DEFINE_UNQUOTED([PARALLEL_LOADING], [], [Define this to use parallel loading of zone files.])
 	AC_CHECK_LIB(pthread, pthread_join)
 	;;
