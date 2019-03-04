@@ -565,6 +565,12 @@ static inline status_code p_del_parse_quals(dnsextlang_field *f,
 			while (e < p->end && isdigit(*e))
 				e++;
 			assert(e > (eq + 1));
+			if (e - (eq + 1) >= (int)sizeof(numbuf))
+				return RETURN_PARSE_ERR(st,
+				    "numeric field",
+				    p->fn, p->line_nr,
+				    p->col_nr + (eq + 1 - p->start));
+
 			(void) memcpy(numbuf, eq + 1, e - (eq + 1));
 			numbuf[e - (eq + 1)] = 0;
 			ll = strtoll(numbuf, &endptr, 10);
