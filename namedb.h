@@ -400,7 +400,7 @@ void namedb_write_zonefile(struct nsd* nsd, struct zone_options* zopt);
 void namedb_write_zonefiles(struct nsd* nsd, struct nsd_options* options);
 int create_dirs(const char* path);
 int file_get_mtime(const char* file, struct timespec* mtime, int* nonexist);
-void allocate_domain_nsec3(domain_table_type *table, domain_type *result);
+void allocate_domain_nsec3(region_type *region, domain_type *result);
 
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)

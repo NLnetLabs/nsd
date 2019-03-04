@@ -35,12 +35,22 @@
 #include "pzl/dnsextlang.h"
 #include "zonec.h"
 #include "rdata.h"
+#include "nsec3.h"
+#include "iterated_hash.h"
 #include <pthread.h>
 
 /* #define PRINT_DOMAIN_TABLES */
+
 #ifndef NDEBUG
 int print_rrs(FILE* out, struct zone* zone);
 #endif
+#ifdef PARALLEL_LOADING
+void nsec3_lookup_hash_and_wc(region_type* region, zone_type* zone,
+        const dname_type* dname, domain_type* domain, region_type* tmpregion);
+void nsec3_lookup_hash_ds(region_type* region, zone_type* zone,
+        const dname_type* dname, domain_type* domain);
+#endif
+
 /*
  * Compares two rdata arrays.
  *
@@ -108,6 +118,15 @@ pzl_has_soa(const domain_type* domain)
         return 0;
 }
 
+static inline void pzl_check_nsec3_param(zone_type *zone, rr_type *rr)
+{
+	if (rr->type == TYPE_NSEC3PARAM && rr->owner == zone->apex &&
+	    !zone->nsec3_param && rr->rdata_count >= 4 &&
+	    rdata_atom_data(rr->rdatas[0])[0] == NSEC3_SHA1_HASH &&
+	    rdata_atom_data(rr->rdatas[1])[0] == 0)
+		zone->nsec3_param = rr;
+}
+
 /* TODO: Should return status_code and set return_status to make thread safe */
 static int pzl_process_rr(region_type *region, zone_type *zone, rr_type *rr)
 {
@@ -170,6 +189,8 @@ static int pzl_process_rr(region_type *region, zone_type *zone, rr_type *rr)
 		rrset->rrs = (rr_type *) region_alloc(region, sizeof(rr_type));
 		rrset->rrs[0] = *rr;
 
+		pzl_check_nsec3_param(zone, rrset->rrs);
+
 		/* Add it */
 		/* TODO: Replace with fast add_rrset and deal with is_existing
 		 * parent and wildcard_child_closest_match later
@@ -208,6 +229,7 @@ static int pzl_process_rr(region_type *region, zone_type *zone, rr_type *rr)
 		memcpy(rrset->rrs, o, (rrset->rr_count) * sizeof(rr_type));
 		region_recycle(region, o, (rrset->rr_count) * sizeof(rr_type));
 		rrset->rrs[rrset->rr_count] = *rr;
+		pzl_check_nsec3_param(zone, &rrset->rrs[rrset->rr_count]);
 		++rrset->rr_count;
 	}
 
@@ -798,6 +820,14 @@ struct worker_data {
 	domain_table_type *domains;
 	zone_type         *zone;
 	zone_type          wd_zone;
+
+	pthread_t          thread;
+	domain_type       *prehash_start;
+	size_t           n_prehash;
+	domain_type       *wchash_next;
+	size_t           n_wchash;
+	domain_type       *dshash_next;
+	size_t           n_dshash;
 };
 
 #define SORTBATCHSIZE 16374
@@ -855,7 +885,11 @@ static void pzl_merge(
 	if (src.domain->is_existing && !dst.domain->is_existing)
 		dst.domain->is_existing = 1;
 
-	if ((src_ref = (void *)&src.domain->nsec3) && *src_ref) {
+	if (src.domain->nsec3 && !dst.domain->nsec3) {
+		dst.domain->nsec3 = src.domain->nsec3;
+		src.domain->nsec3 = NULL;
+	}
+	if ((src_ref = (void *)&src.domain->numlist_prev) && *src_ref) {
 		while (*src_ref) {
 			assert(*(*src_ref)->ref == src.domain);
 			*(*src_ref)->ref = dst.domain;
@@ -864,13 +898,13 @@ static void pzl_merge(
 		dst.domain->usage += src.domain->usage;
 		src.domain->usage = 0;
 		if (!final_merge && dst.wd->i) {
-			*src_ref = (void *)dst.domain->nsec3;
-			dst.domain->nsec3 = src.domain->nsec3;
+			*src_ref = (void *)dst.domain->numlist_prev;
+			dst.domain->numlist_prev = src.domain->numlist_prev;
 
 		} else if (can_recycle) { /* Not strictly necessary */
 			pzl_domain_ref *ref, *next_ref;
 
-			for ( ref = (void *)src.domain->nsec3
+			for ( ref = (void *)src.domain->numlist_prev
 			    , next_ref = ref->next
 			    ; ref ; ref = next_ref
 			          , next_ref = ref ? ref->next : NULL) {
@@ -878,7 +912,7 @@ static void pzl_merge(
 				    sizeof(pzl_domain_ref));
 			}
 		}
-		src.domain->nsec3 = NULL;
+		src.domain->numlist_prev = NULL;
 	}
 	for (rrset = src.domain->rrsets; rrset; rrset = rrset->next) {
 		size_t i;
@@ -1146,6 +1180,7 @@ static void *start_merger(void *arg)
 			if (!(i2wd.domain->numlist_next = me->domains2free))
 				me->domains2free_last = i2wd.domain;
 			me->domains2free = i2wd.domain;
+			assert(i2wd.domain->numlist_prev == NULL);
 			i2wd.domain->numlist_prev =
 				(domain_type *)(void *)i2wd.wd;
 		}
@@ -1202,8 +1237,12 @@ static void *start_merger(void *arg)
 			continue;
 
 		assert(to_recycle->rrsets == NULL);
-		assert(to_recycle->nsec3 == NULL);
-
+		if (to_recycle->nsec3)
+			region_recycle(
+			    ((worker_data *)
+			     to_recycle->nsec3->prehash_prev)->region,
+			    to_recycle->nsec3,
+			    sizeof(struct nsec3_domain_data));
 		region_recycle(
 		    ((worker_data *)to_recycle->numlist_prev)->region,
 		    domain_dname(to_recycle),
@@ -1392,8 +1431,9 @@ static inline status_code pzl_add_rdata_field(
 			domain_ref->tmpregion = wd->tmpregion;
 			domain_ref->ref =
 			    &rr2add->rdatas[rr2add->rdata_count].domain;
-			domain_ref->next = (pzl_domain_ref *)domain->nsec3;
-			domain->nsec3 = (void *)domain_ref;
+			domain_ref->next =
+			    (pzl_domain_ref *)domain->numlist_prev;
+			domain->numlist_prev = (void *)domain_ref;
 		}
 		domain->usage++;
 		rr2add->rdata_count += 1;
@@ -1607,8 +1647,15 @@ static status_code process_rrs(
 			    region, rr2add.rdatas, rr2add.rdata_count,
 			    sizeof(rdata_atom_type));
 		}
+#ifndef NDEBUG
 		if (s)
 			assert(rr2add.rdata_count == s->n_fields);
+#endif
+		if (rr2add.type == TYPE_NSEC3) {
+			allocate_domain_nsec3(wd->region, owner);
+			if (!owner->nsec3->prehash_prev)
+				owner->nsec3->prehash_prev = (void *)wd;
+		}
 
 		if ((!pzl_process_rr(region, wd->zone, &rr2add))) {
 			return RETURN_PARSE_ERR(st, "error processing rr type",
@@ -1620,9 +1667,10 @@ static status_code process_rrs(
 	return sc;
 }
 
-static inline void pzl_scan_rrsets2merge(rrset_type *rrset)
+static inline int pzl_scan_rrsets2merge(rrset_type *rrset)
 {
 	rrset_type *next;
+	int merged_nsec3_param = 0;
 
 	for ( next = rrset ? rrset->next : NULL
 	    ; rrset && next
@@ -1632,9 +1680,12 @@ static inline void pzl_scan_rrsets2merge(rrset_type *rrset)
 			rrset->next = next->next;
 			pzl_merge_rrsets( parser->db->region, rrset
 			                , parser->db->region, next);
+			if (rrset_rrtype(rrset) == TYPE_NSEC3PARAM)
+				merged_nsec3_param = 1;
 			next = rrset->next;
 		}
 	}
+	return merged_nsec3_param;
 }
 
 #define BLACK   0
@@ -1881,6 +1932,139 @@ static rbnode_infos *rbnode_infos_new(
 	return rbis;
 }
 
+typedef struct domain_ll domain_ll;
+struct domain_ll {
+	domain_type *domain;
+	domain_ll   *next;
+};
+
+static domain_type *pzl_find_domain_by_number(
+    domain_table_type *domains, uint32_t number)
+{
+	rbnode_type *node = domains->names_to_domains->root;
+
+	while (node && node != RBTREE_NULL) {
+		if (((domain_type *)node)->number == number)
+			return (domain_type *)node;
+		if (number < ((domain_type *)node)->number)
+			node = node->left;
+		else
+			node = node->right;
+	}
+	return NULL;
+}
+
+static void *pzl_prehash_worker(void *args)
+{
+	worker_data       *wd = args;
+	domain_type       *domain = wd->prehash_start;
+	size_t             n = wd->n_prehash;
+	zone_type         *zone = wd->pd->wd[0].zone;
+	region_type       *region = wd->region;
+	region_type       *tmpregion = wd->tmpregion;
+
+	while (domain && n) {
+		if (nsec3_condition_hash(domain, zone)) {
+			domain_type *result = NULL;
+			int exact;
+
+			allocate_domain_nsec3(region, domain);
+			nsec3_lookup_hash_and_wc(region, zone,
+			    domain_dname(domain), domain, tmpregion);
+			region_free_all(tmpregion);
+			exact = nsec3_find_cover(zone,
+			    domain->nsec3->hash_wc->hash.hash,
+			    sizeof(domain->nsec3->hash_wc->hash.hash),
+			    &result);
+			domain->nsec3->nsec3_cover = result;
+			domain->nsec3->nsec3_is_exact = exact ? 1 : 0;
+			domain->nsec3->prehash_next = wd->wchash_next;
+			wd->wchash_next = domain;
+			wd->n_wchash++;
+		}
+		if (nsec3_condition_dshash(domain, zone)) {
+			domain_type *result = NULL;
+			int exact;
+
+			allocate_domain_nsec3(region, domain);
+			nsec3_lookup_hash_ds(region, zone,
+			    domain_dname(domain), domain);
+			exact = nsec3_find_cover(zone,
+			    domain->nsec3->ds_parent_hash->hash,
+			    sizeof(domain->nsec3->ds_parent_hash->hash),
+			    &result);
+			domain->nsec3->nsec3_ds_parent_cover = result;
+			domain->nsec3->nsec3_ds_parent_is_exact = exact ? 1 : 0;
+			domain->nsec3->prehash_prev = wd->dshash_next;
+			wd->dshash_next = domain;
+			wd->n_dshash++;
+		}
+		domain = domain->numlist_next;
+		n--;
+	}
+	return NULL;
+}
+
+static void *pzl_dshash_worker(void *args)
+{
+	process_data *pd = (process_data *)args;
+	zone_type    *zone = pd->wd[0].zone;
+	size_t i;
+
+	for (i = 0; i < pd->n_workers; i++) {
+		domain_type *domain = pd->wd[i].dshash_next;
+		size_t c = 0;
+
+		while (domain) {
+			domain_type *next;
+
+			zone_add_domain_in_hash_tree(NULL,
+			    &zone->dshashtree, NULL, domain,
+			    &domain->nsec3->ds_parent_hash->node);
+			c++;
+			next = domain->nsec3->prehash_prev;
+			domain->nsec3->prehash_prev = NULL;
+			domain = next;
+		}
+		assert(c == pd->wd[i].n_dshash);
+	}
+	return NULL;
+}
+
+static void *pzl_hash_worker(void *args)
+{
+	process_data *pd = (process_data *)args;
+	zone_type    *zone = pd->wd[0].zone;
+	size_t i;
+
+	for (i = 0; i < pd->n_workers; i++) {
+		domain_type *domain = pd->wd[i].wchash_next;
+		size_t c = 0;
+
+		while (domain) {
+			zone_add_domain_in_hash_tree(NULL,
+			    &zone->hashtree, NULL, domain,
+			    &domain->nsec3->hash_wc->hash.node);
+			c++;
+			domain = domain->nsec3->prehash_next;
+		}
+		assert(c == pd->wd[i].n_wchash);
+	}
+	return NULL;
+}
+
+static void *pzl_clear_prehash_next_worker(void *args)
+{
+	worker_data *wd = args;
+	domain_type *domain, *next;
+
+	for (domain = wd->wchash_next; domain; domain = next) {
+		next = domain->nsec3->prehash_next;
+		domain->nsec3->prehash_next = NULL;
+	}
+	return NULL;
+}
+
 status_code pzl_load(
     region_type *region, domain_table_type *domains, zone_type *zone,
     uint32_t default_ttl, uint16_t default_class,
@@ -1908,9 +2092,9 @@ status_code pzl_load(
 	domain_type *prev;
 
 	/* apex_rrset_checks */
-	rrset_type  *rrset;
-	size_t     n_rrsets2merge;
-	domain_type *rrsets2merge;
+	rrset_type *rrset;
+	size_t    n_rrsets2merge;
+	domain_ll  *rrsets2merge;
 
 	if (!tmpregion)
 		return RETURN_MEM_ERR(st, "allocating PZL temporary region");
@@ -2014,6 +2198,14 @@ status_code pzl_load(
 	VERBOSITY(3, (LOG_INFO, "%d estimated total names"
 			      , (int)total_names));
 
+	for (i = 0; i < pd.n_workers; i++) {
+		if (pd.wd[i].zone->nsec3_param) {
+			VERBOSITY(3, (LOG_INFO, "NSEC3 zone"));
+			zone->nsec3_param = NULL;
+			nsec3_zone_trees_create(region, zone);
+			break;
+		}
+	}
 	rbis = rbnode_infos_new(tmpregion, pd.n_workers, total_names);
 	rbi = rbnode_info_next(rbis->infos);
 
@@ -2070,11 +2262,14 @@ status_code pzl_load(
 		prev = wdi.cur.domain;
 		if ((sc = wd_domain_iter_next(&wdi)))
 			break;
-		wdi.cur.domain->nsec3 = NULL; /* remaining pzl_domain_refs */
 		if (wdi.cur.domain->rrsets2merge) {
+			domain_ll *ll = (domain_ll *)region_alloc_zero(
+			    tmpregion, sizeof(domain_ll));
+
+			ll->domain = wdi.cur.domain;
+			ll->next = rrsets2merge;
+			rrsets2merge = ll;
 			n_rrsets2merge += 1;
-			wdi.cur.domain->nsec3 = (void *)rrsets2merge;
-			rrsets2merge = wdi.cur.domain;
 		}
 		if ( domain_dname(wdi.cur.domain)->label_count >
 		     domain_dname(prev)->label_count ) {
@@ -2105,12 +2300,34 @@ status_code pzl_load(
 			    dname_name(domain_dname(wdi.cur.domain)),
 			    (const uint8_t *) "\001*") <= 0
 			&&  dname_compare(domain_dname(wdi.cur.domain),
-			    domain_dname(wdi.cur.domain->parent->wildcard_child_closest_match)) > 0) {
-				wdi.cur.domain->parent->wildcard_child_closest_match = wdi.cur.domain;
+			    domain_dname(wdi.cur.domain->parent->
+				         wildcard_child_closest_match)) > 0) {
+				wdi.cur.domain->parent->
+				    wildcard_child_closest_match
+				    = wdi.cur.domain;
 			}
 		}
 		assert(!wdi.cur.domain->is_existing ||
 			wdi.cur.domain->parent->is_existing);
+
+		if (wdi.cur.domain == zone->apex && zone->nsec3tree)
+			nsec3_find_zone_param(parser->db, zone, NULL, NULL,0);
+
+		else if (!wdi.cur.domain->nsec3)
+		       ; /* pass */
+		else if (nsec3_in_chain_count(wdi.cur.domain, zone)) {
+			/* synchronous with nsec3_precompile_nsec3rr */
+			wdi.cur.domain->nsec3->prehash_prev = NULL;
+			zone_add_domain_in_hash_tree(NULL, &zone->nsec3tree,
+			    NULL, wdi.cur.domain,
+			    &wdi.cur.domain->nsec3->nsec3_node);
+			if(rbtree_last(zone->nsec3tree)->key==wdi.cur.domain)
+				zone->nsec3_last = wdi.cur.domain;
+		} else {
+			/* TODO: Dispose of these nsec3s */
+			wdi.cur.domain->nsec3->prehash_prev = NULL;
+			wdi.cur.domain->nsec3 = NULL;
+		}
 		n++;
 		prev->numlist_next = wdi.cur.domain;
 	};
@@ -2148,8 +2365,12 @@ status_code pzl_load(
 			continue;
 
 		assert(to_recycle->rrsets == NULL);
-		assert(to_recycle->nsec3 == NULL);
-
+		if (to_recycle->nsec3)
+			region_recycle(
+			    ((worker_data *)
+			     to_recycle->nsec3->prehash_prev)->region,
+			    to_recycle->nsec3,
+			    sizeof(struct nsec3_domain_data));
 		region_recycle(
 		    ((worker_data *)to_recycle->numlist_prev)->region,
 		    domain_dname(to_recycle),
@@ -2167,8 +2388,6 @@ status_code pzl_load(
 	 * later on.
 	 */
 	for (i = 1; i < pd.n_workers; i++) {
-		region_destroy(pd.wd[i].tmpregion); /* For domain_refs */
-
 		region_recycle(pd.wd[i].region,
 		                     domain_dname(pd.wd[i].domains->root),
 		    dname_total_size(domain_dname(pd.wd[i].domains->root)));
@@ -2177,24 +2396,17 @@ status_code pzl_load(
 		region_recycle(pd.wd[i].region,
 		    pd.wd[i].domains , sizeof(domain_table_type));
 		pd.wd[i].zone->apex = zone->apex;
+		region_free_all(pd.wd[i].tmpregion); /* For domain_refs */
 	}
 	while (rrsets2merge) {
-		domain_type *next = (void *)rrsets2merge->nsec3;
-
-		rrsets2merge->nsec3 = NULL;
-		rrsets2merge->rrsets2merge = 0;
-		pzl_scan_rrsets2merge(rrsets2merge->rrsets);
-		rrsets2merge = next;
+		rrsets2merge->domain->rrsets2merge = 0;
+		if (pzl_scan_rrsets2merge(rrsets2merge->domain->rrsets))
+			nsec3_find_zone_param(parser->db, zone, NULL, NULL,0);
+		rrsets2merge = rrsets2merge->next;
 	}
+
 	VERBOSITY(3,
 	    (LOG_INFO, "%d names with rrsets merged", (int)n_rrsets2merge));
-
-	VERBOSITY(3,
-	    (LOG_INFO, "Merging %d regions", (int)pd.n_workers));
-	for (i = 1; i < pd.n_workers; i++)
-		region_merge(region, pd.wd[i].region, sizeof(domain_type));
-	VERBOSITY(3,
-	    (LOG_INFO, "%d regions merged", (int)pd.n_workers));
 
 	if ((sc = rbnode_infos_wait(rbis, domains, st))) {
 		region_destroy(tmpregion);
@@ -2203,6 +2415,96 @@ status_code pzl_load(
 	for ( rrset = zone->apex->rrsets; rrset ; rrset = rrset->next )
 		apex_rrset_checks(parser->db, rrset, zone->apex);
 
+	if (zone->nsec3_param) {
+		size_t prehash_chunk = 1;
+		size_t n_wchash = 0;
+		size_t n_dshash = 0;
+		pthread_t hash_thread;
+		pthread_t dshash_thread;
+
+		VERBOSITY(3, (LOG_INFO, "Parallel prehashing"));
+
+		assert(n == domains->names_to_domains->count);
+
+		prehash_chunk = 1;
+		for (i = 0; i < pd.n_workers; i++) {
+			pd.wd[i].prehash_start = pzl_find_domain_by_number(
+			    domains, prehash_chunk);
+			assert(pd.wd[i].prehash_start);
+			pd.wd[i].n_prehash = n / pd.n_workers;
+			prehash_chunk += n / pd.n_workers;
+			pd.wd[i].wchash_next = NULL;
+			pd.wd[i].n_wchash = 0;
+			pd.wd[i].dshash_next = NULL;
+			pd.wd[i].n_dshash = 0;
+		}
+		pd.wd[pd.n_workers - 1].n_prehash =
+		    n - pd.wd[pd.n_workers - 1].prehash_start->number;
+		
+		for (i = 0; i < pd.n_workers; i++) {
+			if ((pc = pthread_create(&pd.wd[i].thread, NULL,
+			    pzl_prehash_worker, &pd.wd[i])))
+				return RETURN_PTHREAD_ERR(
+				    st, "creating prehash_worker", pc);
+		}
+		for (i = 0; i < pd.n_workers; i++) {
+			if ((pc = pthread_join(pd.wd[i].thread, NULL)))
+				return RETURN_PTHREAD_ERR(
+				    st, "joining prehash_worker", pc);
+			n_wchash += pd.wd[i].n_wchash;
+			n_dshash += pd.wd[i].n_dshash;
+		}
+		VERBOSITY(3, (LOG_INFO, "Inserting %d hashes and %d DS hashes"
+		                      , (int)n_wchash, (int)n_dshash));
+		if ((pc = pthread_create(
+		    &dshash_thread, NULL, pzl_dshash_worker, &pd)))
+			return RETURN_PTHREAD_ERR(
+			    st, "creating dshash_worker", pc);
+		if ((pc = pthread_create(
+		    &hash_thread, NULL, pzl_hash_worker, &pd)))
+			return RETURN_PTHREAD_ERR(
+			    st, "creating hash_worker", pc);
+		for (i = 0; i < pd.n_workers; i++) {
+			domain_type *domain = pd.wd[i].wchash_next;
+			size_t c = 0;
+
+			while (domain) {
+				zone_add_domain_in_hash_tree(NULL,
+				    &zone->wchashtree, NULL, domain,
+				    &domain->nsec3->hash_wc->wc.node);
+				c++;
+				domain = domain->nsec3->prehash_next;
+			}
+			assert(c == pd.wd[i].n_wchash);
+		}
+		if ((pc = pthread_join(hash_thread, NULL)))
+			return RETURN_PTHREAD_ERR(
+			    st, "joining hash_worker", pc);
+		/* TODO: Clear wd->wchash_next -> prehash_next linked list */
+		for (i = 0; i < pd.n_workers; i++) {
+			if ((pc = pthread_create(&pd.wd[i].thread, NULL,
+			    pzl_clear_prehash_next_worker, &pd.wd[i])))
+				return RETURN_PTHREAD_ERR(
+				    st, "creating clear_prehash_worker", pc);
+		}
+		for (i = 0; i < pd.n_workers; i++) {
+			if ((pc = pthread_join(pd.wd[i].thread, NULL)))
+				return RETURN_PTHREAD_ERR(
+				    st, "joining clear_prehash_worker", pc);
+		}
+		if ((pc = pthread_join(dshash_thread, NULL)))
+			return RETURN_PTHREAD_ERR(
+			    st, "joining dshash_worker", pc);
+		VERBOSITY(3, (LOG_INFO, "Parallel prehashing done"));
+	}
+	VERBOSITY(3,
+	    (LOG_INFO, "Merging %d regions", (int)pd.n_workers));
+	for (i = 1; i < pd.n_workers; i++) {
+		region_destroy(pd.wd[i].tmpregion); /* For domain_refs */
+		region_merge(region, pd.wd[i].region, sizeof(domain_type));
+	}
+	VERBOSITY(3,
+	    (LOG_INFO, "%d regions merged", (int)pd.n_workers));
 
 	region_destroy(tmpregion);
 	

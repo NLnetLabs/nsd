@@ -126,7 +126,10 @@ nsec3_hash_and_store(zone_type* zone, const dname_type* dname, uint8_t* store)
 #define STORE_HASH(x,y) memmove(domain->nsec3->x,y,NSEC3_HASH_LEN); domain->nsec3->have_##x =1;
 
 /** find hash or create it and store it */
-static void
+#ifndef PARALLEL_LOADING
+static
+#endif
+void
 nsec3_lookup_hash_and_wc(region_type* region, zone_type* zone,
 	const dname_type* dname, domain_type* domain, region_type* tmpregion)
 {
@@ -145,7 +148,10 @@ nsec3_lookup_hash_and_wc(region_type* region, zone_type* zone,
 	nsec3_hash_and_store(zone, wcard, domain->nsec3->hash_wc->wc.hash);
 }
 
-static void
+#ifndef PARALLEL_LOADING
+static
+#endif
+void
 nsec3_lookup_hash_ds(region_type* region, zone_type* zone,
 	const dname_type* dname, domain_type* domain)
 {
@@ -543,7 +549,7 @@ nsec3_precompile_domain(struct namedb* db, struct domain* domain,
 {
 	domain_type* result = 0;
 	int exact;
-	allocate_domain_nsec3(db->domains, domain);
+	allocate_domain_nsec3(db->domains->region, domain);
 
 	/* hash it */
 	nsec3_lookup_hash_and_wc(db->region,
@@ -575,7 +581,7 @@ nsec3_precompile_domain_ds(struct namedb* db, struct domain* domain,
 {
 	domain_type* result = 0;
 	int exact;
-	allocate_domain_nsec3(db->domains, domain);
+	allocate_domain_nsec3(db->domains->region, domain);
 
 	/* hash it : it could have different hash parameters then the
 	   other hash for this domain name */
@@ -612,7 +618,7 @@ void
 nsec3_precompile_nsec3rr(namedb_type* db, struct domain* domain,
 	struct zone* zone)
 {
-	allocate_domain_nsec3(db->domains, domain);
+	allocate_domain_nsec3(db->domains->region, domain);
 	/* add into nsec3tree */
 	zone_add_domain_in_hash_tree(db->region, &zone->nsec3tree,
 		cmp_nsec3_tree, domain, &domain->nsec3->nsec3_node);

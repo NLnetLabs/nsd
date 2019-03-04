@@ -51,7 +51,10 @@ allocate_domain_info(domain_table_type* table,
 	result->is_apex = 0;
 #ifdef PARALLEL_LOADING
 	result->rrsets2merge = 0;
-#endif
+	result->number = 0;
+	result->numlist_prev = NULL;
+	result->numlist_next = NULL;
+#else
 	assert(table->numlist_last); /* it exists because root exists */
 	/* push this domain at the end of the numlist */
 	result->number = table->numlist_last->number+1;
@@ -59,17 +62,17 @@ allocate_domain_info(domain_table_type* table,
 	result->numlist_prev = table->numlist_last;
 	table->numlist_last->numlist_next = result;
 	table->numlist_last = result;
-
+#endif
 	return result;
 }
 
 #ifdef NSEC3
 void
-allocate_domain_nsec3(domain_table_type* table, domain_type* result)
+allocate_domain_nsec3(region_type* region, domain_type* result)
 {
 	if(result->nsec3)
 		return;
-	result->nsec3 = (struct nsec3_domain_data*) region_alloc(table->region,
+	result->nsec3 = (struct nsec3_domain_data*) region_alloc(region,
 		sizeof(struct nsec3_domain_data));
 	result->nsec3->nsec3_cover = NULL;
 	result->nsec3->nsec3_wcard_child_cover = NULL;
@@ -191,7 +194,7 @@ prehash_add(domain_table_type* table, domain_type* domain)
 {
 	if(domain_is_prehash(table, domain))
 		return;
-	allocate_domain_nsec3(table, domain);
+	allocate_domain_nsec3(table->region, domain);
 	domain->nsec3->prehash_next = table->prehash_list;
 	if(table->prehash_list)
 		table->prehash_list->nsec3->prehash_prev = domain;
