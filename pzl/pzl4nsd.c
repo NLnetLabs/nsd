@@ -2153,7 +2153,7 @@ status_code pzl_load(
 		region_recycle(
 		    ((worker_data *)to_recycle->numlist_prev)->region,
 		    domain_dname(to_recycle),
-		    name_total_size(domain_dname(to_recycle));
+		    dname_total_size(domain_dname(to_recycle)));
 		region_recycle(
 		    ((worker_data *)to_recycle->numlist_prev)->region,
 		    to_recycle, sizeof(domain_type));

@@ -642,7 +642,9 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 	}
 	if(taskudb) task_new_soainfo(taskudb, last_task, zone, 0);
 #ifdef NSEC3
+# ifndef PARALLEL_LOADING
 	prehash_zone_complete(nsd->db, zone);
+# endif
 #endif
 }
 
