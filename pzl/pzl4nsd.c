@@ -1196,7 +1196,6 @@ static void *start_merger(void *arg)
 		}
 	} else while (me->domains2free) {
 		domain_type *to_recycle = me->domains2free;
-		size_t dname_sz;
 
 		me->domains2free = to_recycle->numlist_next;
 		if (to_recycle->is_apex || !to_recycle->parent)
@@ -1205,8 +1204,6 @@ static void *start_merger(void *arg)
 		assert(to_recycle->rrsets == NULL);
 		assert(to_recycle->nsec3 == NULL);
 
-	       	dname_sz = dname_total_size(domain_dname(to_recycle));
-		memset(domain_dname(to_recycle), 0xFF, dname_sz);
 		region_recycle(
 		    ((worker_data *)to_recycle->numlist_prev)->region,
 		    domain_dname(to_recycle),
@@ -2145,7 +2142,6 @@ status_code pzl_load(
 		; /* pass */
 	else while (wdi.ms->domains2free) {
 		domain_type *to_recycle = wdi.ms->domains2free;
-		size_t dname_sz;
 
 		wdi.ms->domains2free = to_recycle->numlist_next;
 		if (to_recycle->is_apex || !to_recycle->parent)
@@ -2154,11 +2150,10 @@ status_code pzl_load(
 		assert(to_recycle->rrsets == NULL);
 		assert(to_recycle->nsec3 == NULL);
 
-	       	dname_sz = dname_total_size(domain_dname(to_recycle));
-		memset(domain_dname(to_recycle), 0xFF, dname_sz);
 		region_recycle(
 		    ((worker_data *)to_recycle->numlist_prev)->region,
-		    domain_dname(to_recycle), dname_sz);
+		    domain_dname(to_recycle),
+		    name_total_size(domain_dname(to_recycle));
 		region_recycle(
 		    ((worker_data *)to_recycle->numlist_prev)->region,
 		    to_recycle, sizeof(domain_type));
