@@ -1708,12 +1708,13 @@ zonec_read(const char* name, const char* zonefile, zone_type* zone)
 	}
 	region_free_all(parser->rr_region);
 
-	parser_flush();
 #ifndef PARALLEL_LOADING
+	parser_flush();
 	fclose(yyin);
-#endif
+
 	if(!zone_is_slave(zone->opts))
 		check_dname(zone);
+#endif
 
 	parser->filename = NULL;
 	return parser->errors;

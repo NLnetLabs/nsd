@@ -2093,6 +2093,9 @@ status_code pzl_load(
 				parent = parent->parent;
 			wdi.cur.domain->parent = parent;
 		}
+		/* TODO: Now wdi.cur.domain has a parent, we can do the
+		 *       check_dname() (from zonec.c) check.
+		 */
 		/* wdi.cur.domain is merged, so safe to touch rrsets */
 		if (wdi.cur.domain->rrsets) {
 			if (wdi.cur.wd->zone != zone) {
