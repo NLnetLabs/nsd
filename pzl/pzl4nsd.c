@@ -962,6 +962,72 @@ static void pzl_merge(
 	src.domain->rrsets = NULL;
 }
 
+typedef struct node_domain_map_funcs {
+	int          (*cmp)(const void *x, const void *y);
+	rbnode_type *(*domain2node)(domain_type *domain);
+	domain_type *(*node2domain)(rbnode_type *domain);
+	rbtree_type *(*tree)(worker_data *wd);
+} node_domain_map_funcs;
+
+
+static int
+cmp_domain(const void* x, const void* y)
+{
+	return dname_compare( domain_dname((domain_type *)x)
+	                    , domain_dname((domain_type *)y));
+}
+
+static rbnode_type *domain2node(domain_type *domain)
+{
+	return domain ? &domain->node : RBTREE_NULL;
+}
+
+static domain_type *node2domain(rbnode_type *node)
+{
+	return node != RBTREE_NULL ? (domain_type *)node : NULL;
+}
+
+static rbtree_type *domain_tree(worker_data *wd)
+{
+	return wd->domains->names_to_domains;
+}
+
+static const node_domain_map_funcs domain_funcs = {
+    cmp_domain, domain2node, node2domain, domain_tree };
+ 
+static int
+cmp_dshash_tree(const void* x, const void* y)
+{
+	const domain_type* a = (const domain_type*)x;
+	const domain_type* b = (const domain_type*)y;
+	if(!a->nsec3) return (b->nsec3?-1:0);
+	if(!b->nsec3) return 1;
+	if(!a->nsec3->ds_parent_hash) return (b->nsec3->ds_parent_hash?-1:0);
+	if(!b->nsec3->ds_parent_hash) return 1;
+	return memcmp(a->nsec3->ds_parent_hash->hash,
+		b->nsec3->ds_parent_hash->hash, NSEC3_HASH_LEN);
+}
+
+static rbnode_type *domain2node_dshash(domain_type *domain)
+{
+	return domain && domain->nsec3 && domain->nsec3->ds_parent_hash
+	    ? &domain->nsec3->ds_parent_hash->node : RBTREE_NULL;
+}
+
+static domain_type *node2domain_dshash(rbnode_type *node)
+{
+	/* assert(node == domain2node_dshash((domain_type *)node->key)); */
+	return node && node != RBTREE_NULL ? (domain_type *)node->key : NULL;
+}
+
+static rbtree_type *dshashtree(worker_data *wd)
+{
+	return &wd->dshashtree;
+}
+
+static const node_domain_map_funcs dshash_funcs = {
+    cmp_dshash_tree, domain2node_dshash, node2domain_dshash, dshashtree };
+
 typedef struct merge_batch merge_batch;
 struct merge_batch {
 	wd_domain   *cur;
@@ -986,6 +1052,7 @@ struct merge_sorter {
 	size_t          n_mallocs;
 	domain_type    *domains2free;
 	domain_type    *domains2free_last;
+	node_domain_map_funcs funcs;
 };
 
 static void batch_provide(merge_sorter *me, merge_batch *ready)
@@ -1060,16 +1127,17 @@ typedef struct wd_domain_iter {
 	wd_domain     cur;
 	merge_sorter *ms;
 	merge_batch  *batch;
+	node_domain_map_funcs funcs;
 } wd_domain_iter;
 
 static status_code wd_domain_iter_next(wd_domain_iter *wdi)
 {
 	if (!wdi->ms) {
 		assert(wdi->cur.wd);
-
-		wdi->cur.domain = wdi->cur.domain
-		    ? domain_next(wdi->cur.domain)
-		    : wdi->cur.wd->domains->root;
+		                   
+		wdi->cur.domain = wdi->funcs.node2domain(wdi->cur.domain
+		  ? rbtree_next(wdi->funcs.domain2node(wdi->cur.domain))
+		  : rbtree_first(wdi->funcs.tree(wdi->cur.wd)));
 		return wdi->cur.domain ? STATUS_OK : STATUS_STOP_ITERATION;
 	}
 	if (wdi->batch) {
@@ -1143,9 +1211,11 @@ static void *start_merger(void *arg)
 	sc1 = wd_domain_iter_init(&i1, pd);
 	sc2 = wd_domain_iter_init(&i2, pd);
 	if (sc1 != STATUS_OK || sc2 != STATUS_OK) {
-		fprintf(stderr, "Cannot initialize merge sorter %zu\n", me->i);
+		fprintf(stderr,"Cannot initialize merge sorter %zu\n", me->i);
 		exit(EXIT_FAILURE);
 	}
+	i1.funcs = me->funcs;
+	i2.funcs = me->funcs;
 	can_recycle = !i1.ms && !i2.ms;
 	for (i = 0; i < pd->n_mergers; i++) {
 		if (pd->mergers[i] == NULL) {
@@ -1161,8 +1231,7 @@ static void *start_merger(void *arg)
 	sc2 = wd_domain_iter_next(&i2);
 
 	while (sc1 == STATUS_OK && sc2 == STATUS_OK) {
-		int dc = dname_compare( domain_dname(i1.cur.domain)
-				      , domain_dname(i2.cur.domain));
+		int dc = me->funcs.cmp(i1.cur.domain, i2.cur.domain);
 		if (dc < 0) {
 			merge_provide(me, &batch, i1.cur);
 			if ((sc1 = wd_domain_iter_next(&i1)))
@@ -1171,8 +1240,10 @@ static void *start_merger(void *arg)
 			merge_provide(me, &batch, i2.cur);
 			if ((sc2 = wd_domain_iter_next(&i2)))
 				break;
-		} else {
+		} else if (me->funcs.tree == domain_tree) {
 			wd_domain i2wd = i2.cur;
+
+
 
 			pzl_merge(i1.cur, i2.cur, can_recycle, final_merge);
 			merge_provide(me, &batch, i1.cur);
@@ -1185,6 +1256,10 @@ static void *start_merger(void *arg)
 			assert(i2wd.domain->numlist_prev == NULL);
 			i2wd.domain->numlist_prev =
 				(domain_type *)(void *)i2wd.wd;
+		} else {
+			/* HASH Collision! TODO: Emit something! */
+			merge_provide(me, &batch, i1.cur);
+			merge_provide(me, &batch, i2.cur);
 		}
 	}
 	while (sc1 == STATUS_OK) {
@@ -1253,145 +1328,6 @@ static void *start_merger(void *arg)
 		    ((worker_data *)to_recycle->numlist_prev)->region,
 		    to_recycle, sizeof(domain_type));
 	};
-	batch_provide(me, NULL);
-	return NULL;
-}
-
-static status_code wd_domain_iter_ds_next(wd_domain_iter *wdi)
-{
-	if (!wdi->ms) {
-		rbnode_type *node;
-
-		assert(wdi->cur.wd);
-		node = !wdi->cur.domain
-		    ? rbtree_first(&wdi->cur.wd->dshashtree)
-		    : (  !wdi->cur.domain->nsec3
-		      || !wdi->cur.domain->nsec3->ds_parent_hash)
-		    ? RBTREE_NULL
-		    : rbtree_next(&wdi->cur.domain->nsec3->
-		                                    ds_parent_hash->node);
-
-		wdi->cur.domain = !node || node == RBTREE_NULL
-		    ? NULL : (domain_type *)node->key;
-
-		return wdi->cur.domain ? STATUS_OK : STATUS_STOP_ITERATION;
-	}
-	if (wdi->batch) {
-		if (wdi->batch->cur < wdi->batch->end) {
-			wdi->cur = *wdi->batch->cur++;
-			return STATUS_OK;
-		}
-		batch_free(wdi->ms, wdi->batch);
-		wdi->batch = NULL;
-	}
-	while (!wdi->batch) {
-		(void) pthread_mutex_lock(&wdi->ms->has_sorted_mut);
-		if (!wdi->ms->sorted)
-			(void) pthread_cond_wait( &wdi->ms->has_sorted
-			                        , &wdi->ms->has_sorted_mut);
-		if ((wdi->batch = wdi->ms->sorted)) {
-			if (!(wdi->ms->sorted = wdi->ms->sorted->next))
-				wdi->ms->last = NULL;
-		}
-		(void) pthread_mutex_unlock(&wdi->ms->has_sorted_mut);
-		if (!wdi->batch)
-			return STATUS_STOP_ITERATION;
-		if (wdi->batch->cur < wdi->batch->end) {
-			wdi->cur = *wdi->batch->cur++;
-			return STATUS_OK;
-		}
-		batch_free(wdi->ms, wdi->batch);
-		wdi->batch = NULL;
-	}
-	return STATUS_STOP_ITERATION;
-}
-
-
-static int
-cmp_dshash_tree(const void* x, const void* y)
-{
-	const domain_type* a = (const domain_type*)x;
-	const domain_type* b = (const domain_type*)y;
-	if(!a->nsec3) return (b->nsec3?-1:0);
-	if(!b->nsec3) return 1;
-	if(!a->nsec3->ds_parent_hash) return (b->nsec3->ds_parent_hash?-1:0);
-	if(!b->nsec3->ds_parent_hash) return 1;
-	return memcmp(a->nsec3->ds_parent_hash->hash,
-		b->nsec3->ds_parent_hash->hash, NSEC3_HASH_LEN);
-}
-
-static void *start_ds_merger(void *arg)
-{
-	merge_sorter  *me = (merge_sorter *)arg;
-	process_data  *pd = me->pd;
-	wd_domain_iter i1, i2;
-	status_code    sc1, sc2;
-	size_t         i;
-	merge_batch   *batch = NULL;
-
-	(void) pthread_mutex_lock(&me->started_mut);
-	sc1 = wd_domain_iter_init(&i1, pd);
-	sc2 = wd_domain_iter_init(&i2, pd);
-	if (sc1 != STATUS_OK || sc2 != STATUS_OK) {
-		fprintf(stderr,"Cannot initialize merge sorter %zu\n", me->i);
-		exit(EXIT_FAILURE);
-	}
-	for (i = 0; i < pd->n_mergers; i++) {
-		if (pd->mergers[i] == NULL) {
-			pd->mergers[i] = me;
-			break;
-		}
-	}
-	assert(i < pd->n_mergers);
-	(void) pthread_cond_signal(&me->started);
-	(void) pthread_mutex_unlock(&me->started_mut);
-
-	sc1 = wd_domain_iter_ds_next(&i1);
-	sc2 = wd_domain_iter_ds_next(&i2);
-
-	while (sc1 == STATUS_OK && sc2 == STATUS_OK) {
-		int dc = cmp_dshash_tree(i1.cur.domain, i2.cur.domain);
-		if (dc < 0) {
-			merge_provide(me, &batch, i1.cur);
-			if ((sc1 = wd_domain_iter_ds_next(&i1)))
-				break;
-		} else if (dc > 0) {
-			merge_provide(me, &batch, i2.cur);
-			if ((sc2 = wd_domain_iter_ds_next(&i2)))
-				break;
-		} else {
-			/* Hash collision! */
-			fprintf(stderr, "Hash collision!\n");
-			exit(EXIT_FAILURE);
-		}
-	}
-	while (sc1 == STATUS_OK) {
-		merge_provide(me, &batch, i1.cur);
-		sc1 = wd_domain_iter_ds_next(&i1);
-	}
-	while (sc2 == STATUS_OK) {
-		merge_provide(me, &batch, i2.cur);
-		sc2 = wd_domain_iter_ds_next(&i2);
-	}
-	if (batch)
-		batch_provide(me, batch);
-
-	/* Wait until consumers are done
-	 * this is when all batches are freed
-	 */
-	while (me->n_mallocs) {
-		merge_batch *to_free;
-
-		(void) pthread_mutex_lock(&me->free_mut);
-		if (!me->free)
-			pthread_cond_wait(&me->has_free, &me->free_mut);
-		assert(me->free);
-		to_free = me->free;
-		me->free = to_free->next;
-		free(to_free);
-		me->n_mallocs--;
-		(void) pthread_mutex_unlock(&me->free_mut);
-	}
 	batch_provide(me, NULL);
 	return NULL;
 }
@@ -1902,13 +1838,15 @@ static void rbnode_infos_debug(rbnode_infos *rbis)
 			continue;
 		}
 		left  = (domain_type *)(cur->domain->node.left);
-		l     = left && &left->node != RBTREE_NULL ? left->number  : 0;
+		l     = left && &left->node != RBTREE_NULL ? left->number : 0;
 		right = (domain_type *)(cur->domain->node.right);
-		r     = right && &right->node != RBTREE_NULL ? right->number : 0;
+		r     = right&& &right->node!= RBTREE_NULL ? right->number: 0;
 		parent = (domain_type *)(cur->domain->node.parent);
-		p     = parent && &parent->node != RBTREE_NULL ? parent->number : 0;
+		p     = parent &&
+		       &parent->node != RBTREE_NULL ? parent->number : 0;
 		n     = cur->domain->number;
-		fprintf(stderr, "l: %9zu, n: %9zu, r: %9zu, p: %9zu\n", l, n, r, p);
+		fprintf(stderr,
+		    "l: %9zu, n: %9zu, r: %9zu, p: %9zu\n", l, n, r, p);
 	}
 	fprintf(stderr, "-----\n");
 }
@@ -2359,7 +2297,6 @@ status_code pzl_load(
 	    tmpregion, pd.n_workers, sizeof(worker_data *));
 	
 	for (i = 0; i < pd.n_workers; i++) {
-		pd.domain_tables[i] = &pd.wd[i];
 		pd.wd[i].pd = &pd;
 		pd.wd[i].i = i;
 		pd.wd[i].n_rrs = 0;
@@ -2453,12 +2390,15 @@ status_code pzl_load(
 	    tmpregion, pd.n_mergers, sizeof(merge_sorter));
 	pd.mergers = region_alloc_array(
 	    tmpregion, pd.n_mergers, sizeof(merge_sorter *));
+	for (i = 0; i < pd.n_workers; i++)
+		pd.domain_tables[i] = &pd.wd[i];
 	for (i = 0; i < pd.n_mergers; i++) {
 		merge_sorter *merger = &mergers[i];
 
 		(void) memset(merger, 0, sizeof(merge_sorter));
 		merger->pd = &pd;
 		merger->i = i;
+
 		(void) pthread_mutex_init(&merger->started_mut, NULL);
 		(void) pthread_cond_init(&merger->started, NULL);
 		(void) pthread_mutex_init(&merger->has_sorted_mut, NULL);
@@ -2466,6 +2406,7 @@ status_code pzl_load(
 		(void) pthread_mutex_init(&merger->free_mut, NULL);
 		(void) pthread_cond_init(&merger->has_free, NULL);
 
+		merger->funcs = domain_funcs;
 		pd.mergers[i] = NULL;
 	}
 	started = mergers;
@@ -2705,16 +2646,17 @@ status_code pzl_load(
 
 		for (i = 0; i < pd.n_workers; i++)
 			pd.domain_tables[i] = &pd.wd[i];
-		for (i = 0; i < pd.n_mergers; i++)
+		for (i = 0; i < pd.n_mergers; i++) {
+			mergers[i].funcs = dshash_funcs;
 			pd.mergers[i] = NULL;
-
+		}
 		started = mergers;
 		while (n_domain_tables(&pd) || n_mergers(&pd) != 1) {
 			merge_sorter *merger = started++;
 
 			(void) pthread_mutex_lock(&merger->started_mut);
 			if ((pc = pthread_create(&merger->thread, NULL,
-			    start_ds_merger, merger))) {
+			    start_merger, merger))) {
 				sc = RETURN_PTHREAD_ERR(
 				    st, "starting ds merger", pc);
 				break;
@@ -2729,7 +2671,7 @@ status_code pzl_load(
 		n_dshash2 = 0;
 		if ((sc = wd_domain_iter_init(&wdi, &pd)))
 			; /* pass */
-		else while (!(sc = wd_domain_iter_ds_next(&wdi))) {
+		else while (!(sc = wd_domain_iter_next(&wdi))) {
 			*next_dshash = wdi.cur.domain;
 			next_dshash = &wdi.cur.domain->nsec3->prehash_prev;
 			n_dshash2++;
@@ -2742,7 +2684,7 @@ status_code pzl_load(
 			sc = STATUS_OK;
 
 		if (wdi.ms && (pc = pthread_join(wdi.ms->thread, &retval)))
-			return RETURN_PTHREAD_ERR(st, "joining merger", pc);
+			return RETURN_PTHREAD_ERR(st,"joining ds merger", pc);
 
 		assert(n_dshash2 == n_dshash);
 		assert(!rbi);
@@ -2767,7 +2709,8 @@ status_code pzl_load(
 			rbnode_type *r;
 
 			RBTREE_FOR(r, rbnode_type *, zone->dshashtree) {
-				assert(r == &((domain_type *)r->key)->nsec3->ds_parent_hash->node);
+				assert(r == &((domain_type *)r->key)->nsec3->
+				             ds_parent_hash->node);
 				n_dshash3++;
 			}
 			assert(n_dshash2 == n_dshash3);
