@@ -828,6 +828,8 @@ struct worker_data {
 	size_t           n_wchash;
 	domain_type       *dshash_next;
 	size_t           n_dshash;
+	rbtree_type        dshashtree;
+	rbtree_type       *dshashtree_ptr;
 };
 
 #define SORTBATCHSIZE 16374
@@ -1251,6 +1253,145 @@ static void *start_merger(void *arg)
 		    ((worker_data *)to_recycle->numlist_prev)->region,
 		    to_recycle, sizeof(domain_type));
 	};
+	batch_provide(me, NULL);
+	return NULL;
+}
+
+static status_code wd_domain_iter_ds_next(wd_domain_iter *wdi)
+{
+	if (!wdi->ms) {
+		rbnode_type *node;
+
+		assert(wdi->cur.wd);
+		node = !wdi->cur.domain
+		    ? rbtree_first(&wdi->cur.wd->dshashtree)
+		    : (  !wdi->cur.domain->nsec3
+		      || !wdi->cur.domain->nsec3->ds_parent_hash)
+		    ? RBTREE_NULL
+		    : rbtree_next(&wdi->cur.domain->nsec3->
+		                                    ds_parent_hash->node);
+
+		wdi->cur.domain = !node || node == RBTREE_NULL
+		    ? NULL : (domain_type *)node->key;
+
+		return wdi->cur.domain ? STATUS_OK : STATUS_STOP_ITERATION;
+	}
+	if (wdi->batch) {
+		if (wdi->batch->cur < wdi->batch->end) {
+			wdi->cur = *wdi->batch->cur++;
+			return STATUS_OK;
+		}
+		batch_free(wdi->ms, wdi->batch);
+		wdi->batch = NULL;
+	}
+	while (!wdi->batch) {
+		(void) pthread_mutex_lock(&wdi->ms->has_sorted_mut);
+		if (!wdi->ms->sorted)
+			(void) pthread_cond_wait( &wdi->ms->has_sorted
+			                        , &wdi->ms->has_sorted_mut);
+		if ((wdi->batch = wdi->ms->sorted)) {
+			if (!(wdi->ms->sorted = wdi->ms->sorted->next))
+				wdi->ms->last = NULL;
+		}
+		(void) pthread_mutex_unlock(&wdi->ms->has_sorted_mut);
+		if (!wdi->batch)
+			return STATUS_STOP_ITERATION;
+		if (wdi->batch->cur < wdi->batch->end) {
+			wdi->cur = *wdi->batch->cur++;
+			return STATUS_OK;
+		}
+		batch_free(wdi->ms, wdi->batch);
+		wdi->batch = NULL;
+	}
+	return STATUS_STOP_ITERATION;
+}
+
+
+static int
+cmp_dshash_tree(const void* x, const void* y)
+{
+	const domain_type* a = (const domain_type*)x;
+	const domain_type* b = (const domain_type*)y;
+	if(!a->nsec3) return (b->nsec3?-1:0);
+	if(!b->nsec3) return 1;
+	if(!a->nsec3->ds_parent_hash) return (b->nsec3->ds_parent_hash?-1:0);
+	if(!b->nsec3->ds_parent_hash) return 1;
+	return memcmp(a->nsec3->ds_parent_hash->hash,
+		b->nsec3->ds_parent_hash->hash, NSEC3_HASH_LEN);
+}
+
+static void *start_ds_merger(void *arg)
+{
+	merge_sorter  *me = (merge_sorter *)arg;
+	process_data  *pd = me->pd;
+	wd_domain_iter i1, i2;
+	status_code    sc1, sc2;
+	size_t         i;
+	merge_batch   *batch = NULL;
+
+	(void) pthread_mutex_lock(&me->started_mut);
+	sc1 = wd_domain_iter_init(&i1, pd);
+	sc2 = wd_domain_iter_init(&i2, pd);
+	if (sc1 != STATUS_OK || sc2 != STATUS_OK) {
+		fprintf(stderr,"Cannot initialize merge sorter %zu\n", me->i);
+		exit(EXIT_FAILURE);
+	}
+	for (i = 0; i < pd->n_mergers; i++) {
+		if (pd->mergers[i] == NULL) {
+			pd->mergers[i] = me;
+			break;
+		}
+	}
+	assert(i < pd->n_mergers);
+	(void) pthread_cond_signal(&me->started);
+	(void) pthread_mutex_unlock(&me->started_mut);
+
+	sc1 = wd_domain_iter_ds_next(&i1);
+	sc2 = wd_domain_iter_ds_next(&i2);
+
+	while (sc1 == STATUS_OK && sc2 == STATUS_OK) {
+		int dc = cmp_dshash_tree(i1.cur.domain, i2.cur.domain);
+		if (dc < 0) {
+			merge_provide(me, &batch, i1.cur);
+			if ((sc1 = wd_domain_iter_ds_next(&i1)))
+				break;
+		} else if (dc > 0) {
+			merge_provide(me, &batch, i2.cur);
+			if ((sc2 = wd_domain_iter_ds_next(&i2)))
+				break;
+		} else {
+			/* Hash collision! */
+			fprintf(stderr, "Hash collision!\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+	while (sc1 == STATUS_OK) {
+		merge_provide(me, &batch, i1.cur);
+		sc1 = wd_domain_iter_ds_next(&i1);
+	}
+	while (sc2 == STATUS_OK) {
+		merge_provide(me, &batch, i2.cur);
+		sc2 = wd_domain_iter_ds_next(&i2);
+	}
+	if (batch)
+		batch_provide(me, batch);
+
+	/* Wait until consumers are done
+	 * this is when all batches are freed
+	 */
+	while (me->n_mallocs) {
+		merge_batch *to_free;
+
+		(void) pthread_mutex_lock(&me->free_mut);
+		if (!me->free)
+			pthread_cond_wait(&me->has_free, &me->free_mut);
+		assert(me->free);
+		to_free = me->free;
+		me->free = to_free->next;
+		free(to_free);
+		me->n_mallocs--;
+		(void) pthread_mutex_unlock(&me->free_mut);
+	}
 	batch_provide(me, NULL);
 	return NULL;
 }
@@ -1932,6 +2073,130 @@ static rbnode_infos *rbnode_infos_new(
 	return rbis;
 }
 
+static rbnode_info *rbnode_infos_connect_top_ds(
+    size_t depth, rbnode_info **head, size_t cur_depth)
+{
+	rbnode_info *me, *left = NULL, *right = NULL;
+
+	if (cur_depth < depth)
+		left = rbnode_infos_connect_top_ds(depth, head, cur_depth+1);
+
+	me = *head;
+	*head = (*head)->next;
+
+	if (cur_depth < depth) {
+		right = rbnode_infos_connect_top_ds(depth, head, cur_depth+1);
+
+		me->domain->nsec3->ds_parent_hash->node.left
+		    = &left->domain->nsec3->ds_parent_hash->node;
+		me->domain->nsec3->ds_parent_hash->node.right
+		    = &right->domain->nsec3->ds_parent_hash->node;
+		me->domain->nsec3->ds_parent_hash->node.color
+		    = ((me->depth % 2) == 0) ? BLACK : RED;
+		left->domain->nsec3->ds_parent_hash->node.parent
+		    = &me->domain->nsec3->ds_parent_hash->node;
+		right->domain->nsec3->ds_parent_hash->node.parent
+		    = &me->domain->nsec3->ds_parent_hash->node;
+	}
+	return me;
+}
+
+static status_code rbnode_infos_wait_ds(
+    rbnode_infos *rbis, rbtree_type *dshashtree, return_status *st)
+{
+	rbnode_info *cur, *rb_root;
+
+	for (cur = rbis->infos; cur ; cur = cur->next) {
+		int pc;
+		void *retval;
+
+		if (cur->depth != rbis->depth)
+			continue;
+
+		if ((pc = pthread_join(cur->thread, &retval)))
+			return RETURN_PTHREAD_ERR(
+			    st, "joining rbnode_info_worker", pc);
+		assert(retval == cur->domain);
+	}
+	cur = rbis->infos;
+	rb_root = rbnode_infos_connect_top_ds(rbis->depth, &cur, 0);
+	rb_root->domain->nsec3->ds_parent_hash->node.parent = RBTREE_NULL;
+	dshashtree->root = &rb_root->domain->nsec3->ds_parent_hash->node;
+	dshashtree->count = rb_root->count;
+	rbnode_infos_debug(rbis);
+	VERBOSITY(3,
+	    (LOG_INFO, "Finished making red/black tree for ds hashes"));
+	return STATUS_OK;
+}
+
+static rbnode_type *pzl_ds_list2tree(
+    domain_type **head_ref, int n, size_t depth)
+{
+	rbnode_type *left, *root;
+
+	if (n <= 0)
+		return RBTREE_NULL;
+
+	left = pzl_ds_list2tree(head_ref, n / 2, depth + 1);
+	root = &(*head_ref)->nsec3->ds_parent_hash->node;
+	root->color = ((depth % 2) == 0) ? BLACK : RED;
+	root->left = left;
+	if (left != RBTREE_NULL)
+		left->parent = root;
+	*head_ref = (*head_ref)->nsec3->prehash_prev;
+	root->right = pzl_ds_list2tree(head_ref, n - (n / 2) - 1, depth + 1);
+	if (root->right != RBTREE_NULL)
+		root->right->parent = root;
+	return root;
+}
+
+static void *rbnode_info_ds_worker(void *args)
+{
+	rbnode_info *rbi = args;
+	domain_type *head;
+	rbnode_type *ret;
+
+	head = rbi->prev ? rbi->prev->domain->nsec3->prehash_prev
+	                 : rbi->infos->root;
+
+	ret = pzl_ds_list2tree(&head, rbi->count, rbi->depth);
+	rbi->domain = ret == RBTREE_NULL ? NULL : (domain_type *)ret->key;
+	return rbi->domain;
+}
+
+static status_code rbnode_infos_fixup_ds(
+    rbnode_infos *rbis, domain_type *first, size_t count, return_status *st)
+{
+	rbnode_info *cur;
+	int pc;
+
+	rbis->root = first;
+	cur = rbis->infos;
+	VERBOSITY(3,
+	    (LOG_INFO, "Make red/black tree for %d ds hashses", (int)count));
+	for (cur = rbis->infos; cur ; cur = cur->next) {
+		if (cur->domain)
+			continue;
+
+		assert(cur->depth == rbis->depth);
+		if ((pc = pthread_create(
+		    &cur->thread, NULL, rbnode_info_ds_worker, cur)))
+			return RETURN_PTHREAD_ERR(
+			    st, "creating rbnode_info_worker", pc);
+	}
+	return STATUS_OK;
+}
+
+static void rbnode_infos_reinit(rbnode_infos *rbis, size_t count)
+{
+	rbnode_info  *cur;
+	
+	for (cur = rbis->infos; cur; cur = cur->next)
+		cur->domain = NULL;
+	cur = rbis->infos;
+	rbnode_info_equip_numbers(rbis->depth, &cur, 0, 1, count);
+}
+
 typedef struct domain_ll domain_ll;
 struct domain_ll {
 	domain_type *domain;
@@ -1995,38 +2260,12 @@ static void *pzl_prehash_worker(void *args)
 			    &result);
 			domain->nsec3->nsec3_ds_parent_cover = result;
 			domain->nsec3->nsec3_ds_parent_is_exact = exact ? 1 : 0;
-			domain->nsec3->prehash_prev = wd->dshash_next;
-			wd->dshash_next = domain;
-			wd->n_dshash++;
+			zone_add_domain_in_hash_tree(NULL,
+			    &wd->dshashtree_ptr, NULL, domain,
+			    &domain->nsec3->ds_parent_hash->node);
 		}
 		domain = domain->numlist_next;
 		n--;
-	}
-	return NULL;
-}
-
-static void *pzl_dshash_worker(void *args)
-{
-	process_data *pd = (process_data *)args;
-	zone_type    *zone = pd->wd[0].zone;
-	size_t i;
-
-	for (i = 0; i < pd->n_workers; i++) {
-		domain_type *domain = pd->wd[i].dshash_next;
-		size_t c = 0;
-
-		while (domain) {
-			domain_type *next;
-
-			zone_add_domain_in_hash_tree(NULL,
-			    &zone->dshashtree, NULL, domain,
-			    &domain->nsec3->ds_parent_hash->node);
-			c++;
-			next = domain->nsec3->prehash_prev;
-			domain->nsec3->prehash_prev = NULL;
-			domain = next;
-		}
-		assert(c == pd->wd[i].n_dshash);
 	}
 	return NULL;
 }
@@ -2418,9 +2657,10 @@ status_code pzl_load(
 	if (zone->nsec3_param) {
 		size_t prehash_chunk = 1;
 		size_t n_wchash = 0;
-		size_t n_dshash = 0;
+		size_t n_dshash = 0, n_dshash2 = 0;
 		pthread_t hash_thread;
-		pthread_t dshash_thread;
+		domain_type *dshash_domains = NULL;
+		domain_type **next_dshash = &dshash_domains;
 
 		VERBOSITY(3, (LOG_INFO, "Parallel prehashing"));
 
@@ -2435,8 +2675,11 @@ status_code pzl_load(
 			prehash_chunk += n / pd.n_workers;
 			pd.wd[i].wchash_next = NULL;
 			pd.wd[i].n_wchash = 0;
-			pd.wd[i].dshash_next = NULL;
-			pd.wd[i].n_dshash = 0;
+			pd.wd[i].dshashtree.root = RBTREE_NULL;
+			pd.wd[i].dshashtree.count = 0;
+			pd.wd[i].dshashtree.region = NULL;
+			pd.wd[i].dshashtree.cmp = zone->dshashtree->cmp;
+			pd.wd[i].dshashtree_ptr = &pd.wd[i].dshashtree;
 		}
 		pd.wd[pd.n_workers - 1].n_prehash =
 		    n - pd.wd[pd.n_workers - 1].prehash_start->number;
@@ -2452,14 +2695,88 @@ status_code pzl_load(
 				return RETURN_PTHREAD_ERR(
 				    st, "joining prehash_worker", pc);
 			n_wchash += pd.wd[i].n_wchash;
-			n_dshash += pd.wd[i].n_dshash;
+			n_dshash += pd.wd[i].dshashtree.count;
 		}
+
+		/************************************************************/
+
 		VERBOSITY(3, (LOG_INFO, "Inserting %d hashes and %d DS hashes"
 		                      , (int)n_wchash, (int)n_dshash));
-		if ((pc = pthread_create(
-		    &dshash_thread, NULL, pzl_dshash_worker, &pd)))
-			return RETURN_PTHREAD_ERR(
-			    st, "creating dshash_worker", pc);
+
+		for (i = 0; i < pd.n_workers; i++)
+			pd.domain_tables[i] = &pd.wd[i];
+		for (i = 0; i < pd.n_mergers; i++)
+			pd.mergers[i] = NULL;
+
+		started = mergers;
+		while (n_domain_tables(&pd) || n_mergers(&pd) != 1) {
+			merge_sorter *merger = started++;
+
+			(void) pthread_mutex_lock(&merger->started_mut);
+			if ((pc = pthread_create(&merger->thread, NULL,
+			    start_ds_merger, merger))) {
+				sc = RETURN_PTHREAD_ERR(
+				    st, "starting ds merger", pc);
+				break;
+			}
+			(void) pthread_cond_wait( &merger->started
+						, &merger->started_mut);
+			(void) pthread_mutex_unlock(&merger->started_mut);
+		}
+		rbnode_infos_reinit(rbis, n_dshash);
+		rbi = rbnode_info_next(rbis->infos);
+
+		n_dshash2 = 0;
+		if ((sc = wd_domain_iter_init(&wdi, &pd)))
+			; /* pass */
+		else while (!(sc = wd_domain_iter_ds_next(&wdi))) {
+			*next_dshash = wdi.cur.domain;
+			next_dshash = &wdi.cur.domain->nsec3->prehash_prev;
+			n_dshash2++;
+			if (rbi && n_dshash2 == rbnode_info_n(rbi)) {
+				rbi->domain = wdi.cur.domain;
+				rbi = rbnode_info_next(rbi);
+			}
+		};
+		if (sc == STATUS_STOP_ITERATION)
+			sc = STATUS_OK;
+
+		if (wdi.ms && (pc = pthread_join(wdi.ms->thread, &retval)))
+			return RETURN_PTHREAD_ERR(st, "joining merger", pc);
+
+		assert(n_dshash2 == n_dshash);
+		assert(!rbi);
+		rbnode_infos_debug(rbis);
+		if (!sc)
+			sc = rbnode_infos_fixup_ds(
+			    rbis, dshash_domains, n_dshash2, st);
+
+		if (!sc)
+			sc = rbnode_infos_wait_ds(rbis, zone->dshashtree, st);
+		if (sc) {
+			for (i = 0; i < pd.n_workers; i++) {
+				region_destroy(pd.wd[i].region);
+				region_destroy(pd.wd[i].tmpregion);
+			}
+			region_destroy(tmpregion);
+			return sc;
+		}
+#if 0
+		if (1) {
+			size_t n_dshash3 = 0;
+			rbnode_type *r;
+
+			RBTREE_FOR(r, rbnode_type *, zone->dshashtree) {
+				assert(r == &((domain_type *)r->key)->nsec3->ds_parent_hash->node);
+				n_dshash3++;
+			}
+			assert(n_dshash2 == n_dshash3);
+		}
+#endif
+
+		/************************************************************/
+
+
 		if ((pc = pthread_create(
 		    &hash_thread, NULL, pzl_hash_worker, &pd)))
 			return RETURN_PTHREAD_ERR(
@@ -2480,7 +2797,7 @@ status_code pzl_load(
 		if ((pc = pthread_join(hash_thread, NULL)))
 			return RETURN_PTHREAD_ERR(
 			    st, "joining hash_worker", pc);
-		/* TODO: Clear wd->wchash_next -> prehash_next linked list */
+
 		for (i = 0; i < pd.n_workers; i++) {
 			if ((pc = pthread_create(&pd.wd[i].thread, NULL,
 			    pzl_clear_prehash_next_worker, &pd.wd[i])))
@@ -2492,9 +2809,6 @@ status_code pzl_load(
 				return RETURN_PTHREAD_ERR(
 				    st, "joining clear_prehash_worker", pc);
 		}
-		if ((pc = pthread_join(dshash_thread, NULL)))
-			return RETURN_PTHREAD_ERR(
-			    st, "joining dshash_worker", pc);
 		VERBOSITY(3, (LOG_INFO, "Parallel prehashing done"));
 	}
 	VERBOSITY(3,
