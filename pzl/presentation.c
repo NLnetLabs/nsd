@@ -151,7 +151,8 @@ static inline status_code p_zfi_get_closing_piece(
 
 			case '\\':
 				i->p.cur += 1;
-				if (i->p.cur < i->p.end && *i->p.cur == '"')
+				if (i->p.cur < i->p.end &&
+				    (*i->p.cur == '"' || *i->p.cur == '\\'))
 					i->p.cur += 1;
 				continue;
 			default:
@@ -259,7 +260,8 @@ static status_code p_zfi_get_piece(zonefile_iter *i, return_status *st)
 
 			case '\\':
 				i->p.cur += 1;
-				if (i->p.cur < i->p.end && *i->p.cur == '"')
+				if (i->p.cur < i->p.end &&
+				    (*i->p.cur == '"' || *i->p.cur == '\\'))
 					i->p.cur += 1;
 				continue;
 			default:
