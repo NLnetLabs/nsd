@@ -346,16 +346,16 @@ static inline status_code mmap_parser_up_ref(
 		return RETURN_DATA_ERR(st,
 		    "cannot add an already added reference");
 
-	refs = &p->refs;
-	for (;;) {
-		if (!*refs || r->text < (*refs)->text) {
-			r->next = *refs;
-			r->prev =  refs;
-			*refs =  r;
-			return STATUS_OK;
+	for (refs = &p->refs; *refs; refs = &(*refs)->next) {
+		if (r->text < (*refs)->text) {
+			(*refs)->prev = &r->next;
+			break;
 		}
-		refs = &(*refs)->next;
 	}
+	r->next = *refs;
+	r->prev =  refs;
+	*refs = r;
+	return STATUS_OK;
 }
 
 #endif /* #ifndef MMAP_PARSER_H_ */
