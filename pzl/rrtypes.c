@@ -3411,13 +3411,13 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	         case 'A': 
 	         case 'a': switch (s[1]) {
 	                   case 'A': 
-	                   case 'a': if (strncmp(s + 2, "AA", 2)) break;
+	                   case 'a': if (strncasecmp(s + 2, "AA", 2)) break;
 	                             return &t001c;
 	                   case 'T': 
-	                   case 't': if (strncmp(s + 2, "MA", 2)) break;
+	                   case 't': if (strncasecmp(s + 2, "MA", 2)) break;
 	                             return &t0022;
 	                   case 'X': 
-	                   case 'x': if (strncmp(s + 2, "FR", 2)) break;
+	                   case 'x': if (strncasecmp(s + 2, "FR", 2)) break;
 	                             return &t00fc;
 	                   };
 	                   break;
@@ -3440,53 +3440,53 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	                             };
 	                             break;
 	                   case 'U': 
-	                   case 'u': if (strncmp(s + 2, "LL", 2)) break;
+	                   case 'u': if (strncasecmp(s + 2, "LL", 2)) break;
 	                             return &t000a;
 	                   };
 	                   break;
 	         case 'C': 
-	         case 'c': if (strncmp(s + 1, "ERT", 3)) break;
+	         case 'c': if (strncasecmp(s + 1, "ERT", 3)) break;
 	                   return &t0025;
 	         case 'T': 
 	         case 't': switch (s[1]) {
 	                   case 'L': 
-	                   case 'l': if (strncmp(s + 2, "SA", 2)) break;
+	                   case 'l': if (strncasecmp(s + 2, "SA", 2)) break;
 	                             return &t0034;
 	                   case 'K': 
-	                   case 'k': if (strncmp(s + 2, "EY", 2)) break;
+	                   case 'k': if (strncasecmp(s + 2, "EY", 2)) break;
 	                             return &t00f9;
 	                   case 'S': 
-	                   case 's': if (strncmp(s + 2, "IG", 2)) break;
+	                   case 's': if (strncasecmp(s + 2, "IG", 2)) break;
 	                             return &t00fa;
 	                   };
 	                   break;
 	         case 'G': 
-	         case 'g': if (strncmp(s + 1, "POS", 3)) break;
+	         case 'g': if (strncasecmp(s + 1, "POS", 3)) break;
 	                   return &t001b;
 	         case 'I': 
 	         case 'i': switch (s[1]) {
 	                   case 'S': 
-	                   case 's': if (strncmp(s + 2, "DN", 2)) break;
+	                   case 's': if (strncasecmp(s + 2, "DN", 2)) break;
 	                             return &t0014;
 	                   case 'X': 
-	                   case 'x': if (strncmp(s + 2, "FR", 2)) break;
+	                   case 'x': if (strncasecmp(s + 2, "FR", 2)) break;
 	                             return &t00fb;
 	                   };
 	                   break;
 	         case 'S': 
-	         case 's': if (strncmp(s + 1, "INK", 3)) break;
+	         case 's': if (strncasecmp(s + 1, "INK", 3)) break;
 	                   return &t0028;
 	         case 'R': 
-	         case 'r': if (strncmp(s + 1, "KEY", 3)) break;
+	         case 'r': if (strncasecmp(s + 1, "KEY", 3)) break;
 	                   return &t0039;
 	         };
 	         break;
 	case  3: switch (s[0]) {
 	         case 'P': 
-	         case 'p': if (strncmp(s + 1, "TR", 2)) break;
+	         case 'p': if (strncasecmp(s + 1, "TR", 2)) break;
 	                   return &t000c;
 	         case 'T': 
-	         case 't': if (strncmp(s + 1, "XT", 2)) break;
+	         case 't': if (strncasecmp(s + 1, "XT", 2)) break;
 	                   return &t0010;
 	         case 'S': 
 	         case 's': switch (s[1]) {
@@ -3599,7 +3599,7 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	                   };
 	                   break;
 	         case 'H': 
-	         case 'h': if (strncmp(s + 1, "IP", 2)) break;
+	         case 'h': if (strncasecmp(s + 1, "IP", 2)) break;
 	                   return &t0037;
 	         case 'A': 
 	         case 'a': switch (s[1]) {
@@ -3624,22 +3624,22 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	                   };
 	                   break;
 	         case 'K': 
-	         case 'k': if (strncmp(s + 1, "EY", 2)) break;
+	         case 'k': if (strncasecmp(s + 1, "EY", 2)) break;
 	                   return &t0019;
 	         case 'X': 
-	         case 'x': if (strncmp(s + 1, "25", 2)) break;
+	         case 'x': if (strncasecmp(s + 1, "25", 2)) break;
 	                   return &t0013;
 	         case 'W': 
-	         case 'w': if (strncmp(s + 1, "KS", 2)) break;
+	         case 'w': if (strncasecmp(s + 1, "KS", 2)) break;
 	                   return &t000b;
 	         case 'G': 
-	         case 'g': if (strncmp(s + 1, "ID", 2)) break;
+	         case 'g': if (strncasecmp(s + 1, "ID", 2)) break;
 	                   return &t0066;
 	         case 'O': 
-	         case 'o': if (strncmp(s + 1, "PT", 2)) break;
+	         case 'o': if (strncasecmp(s + 1, "PT", 2)) break;
 	                   return &t0029;
 	         case 'E': 
-	         case 'e': if (strncmp(s + 1, "ID", 2)) break;
+	         case 'e': if (strncasecmp(s + 1, "ID", 2)) break;
 	                   return &t001f;
 	         };
 	         break;
@@ -3647,36 +3647,36 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	         case 'C': 
 	         case 'c': switch (s[1]) {
 	                   case 'N': 
-	                   case 'n': if (strncmp(s + 2, "AME", 3)) break;
+	                   case 'n': if (strncasecmp(s + 2, "AME", 3)) break;
 	                             return &t0005;
 	                   case 'S': 
-	                   case 's': if (strncmp(s + 2, "YNC", 3)) break;
+	                   case 's': if (strncasecmp(s + 2, "YNC", 3)) break;
 	                             return &t003e;
 	                   };
 	                   break;
 	         case 'R': 
-	         case 'r': if (strncmp(s + 1, "RSIG", 4)) break;
+	         case 'r': if (strncasecmp(s + 1, "RSIG", 4)) break;
 	                   return &t002e;
 	         case 'N': 
 	         case 'n': switch (s[1]) {
 	                   case 'S': 
-	                   case 's': if (strncmp(s + 2, "EC3", 3)) break;
+	                   case 's': if (strncasecmp(s + 2, "EC3", 3)) break;
 	                             return &t0032;
 	                   case 'A': 
-	                   case 'a': if (strncmp(s + 2, "PTR", 3)) break;
+	                   case 'a': if (strncasecmp(s + 2, "PTR", 3)) break;
 	                             return &t0023;
 	                   case 'I': 
-	                   case 'i': if (strncmp(s + 2, "NFO", 3)) break;
+	                   case 'i': if (strncasecmp(s + 2, "NFO", 3)) break;
 	                             return &t0038;
 	                   };
 	                   break;
 	         case 'D': 
 	         case 'd': switch (s[1]) {
 	                   case 'N': 
-	                   case 'n': if (strncmp(s + 2, "AME", 3)) break;
+	                   case 'n': if (strncasecmp(s + 2, "AME", 3)) break;
 	                             return &t0027;
 	                   case 'H': 
-	                   case 'h': if (strncmp(s + 2, "CID", 3)) break;
+	                   case 'h': if (strncasecmp(s + 2, "CID", 3)) break;
 	                             return &t0031;
 	                   };
 	                   break;
@@ -3701,15 +3701,15 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	                   };
 	                   break;
 	         case 'S': 
-	         case 's': if (strncmp(s + 1, "SHFP", 4)) break;
+	         case 's': if (strncasecmp(s + 1, "SHFP", 4)) break;
 	                   return &t002c;
 	         case 'A': 
-	         case 'a': if (strncmp(s + 1, "FSDB", 4)) break;
+	         case 'a': if (strncasecmp(s + 1, "FSDB", 4)) break;
 	                   return &t0012;
 	         case 'M': 
 	         case 'm': switch (s[1]) {
 	                   case 'I': 
-	                   case 'i': if (strncmp(s + 2, "NFO", 3)) break;
+	                   case 'i': if (strncasecmp(s + 2, "NFO", 3)) break;
 	                             return &t000e;
 	                   case 'A': 
 	                   case 'a': switch (s[2]) {
@@ -3730,54 +3730,54 @@ static const dnsextlang_stanza *p_dnsextlang_lookup_(
 	                   };
 	                   break;
 	         case 'U': 
-	         case 'u': if (strncmp(s + 1, "INFO", 4)) break;
+	         case 'u': if (strncasecmp(s + 1, "INFO", 4)) break;
 	                   return &t0064;
 	         case 'H': 
-	         case 'h': if (strncmp(s + 1, "INFO", 4)) break;
+	         case 'h': if (strncasecmp(s + 1, "INFO", 4)) break;
 	                   return &t000d;
 	         };
 	         break;
 	case  6: switch (s[0]) {
 	         case 'D': 
-	         case 'd': if (strncmp(s + 1, "NSKEY", 5)) break;
+	         case 'd': if (strncasecmp(s + 1, "NSKEY", 5)) break;
 	                   return &t0030;
 	         case 'Z': 
-	         case 'z': if (strncmp(s + 1, "ONEMD", 5)) break;
+	         case 'z': if (strncasecmp(s + 1, "ONEMD", 5)) break;
 	                   return &t003f;
 	         case 'S': 
-	         case 's': if (strncmp(s + 1, "MIMEA", 5)) break;
+	         case 's': if (strncasecmp(s + 1, "MIMEA", 5)) break;
 	                   return &t0035;
 	         case 'U': 
-	         case 'u': if (strncmp(s + 1, "NSPEC", 5)) break;
+	         case 'u': if (strncasecmp(s + 1, "NSPEC", 5)) break;
 	                   return &t0067;
 	         case 'T': 
-	         case 't': if (strncmp(s + 1, "ALINK", 5)) break;
+	         case 't': if (strncasecmp(s + 1, "ALINK", 5)) break;
 	                   return &t003a;
 	         case 'N': 
-	         case 'n': if (strncmp(s + 1, "IMLOC", 5)) break;
+	         case 'n': if (strncasecmp(s + 1, "IMLOC", 5)) break;
 	                   return &t0020;
 	         };
 	         break;
-	case  7: if (strncmp(s, "CDNSKEY", 7)) break;
+	case  7: if (strncasecmp(s, "CDNSKEY", 7)) break;
 	         return &t003c;
 	case  8: switch (s[0]) {
 	         case 'I': 
-	         case 'i': if (strncmp(s + 1, "PSECKEY", 7)) break;
+	         case 'i': if (strncasecmp(s + 1, "PSECKEY", 7)) break;
 	                   return &t002d;
 	         case 'N': 
-	         case 'n': if (strncmp(s + 1, "SAP-PTR", 7)) break;
+	         case 'n': if (strncasecmp(s + 1, "SAP-PTR", 7)) break;
 	                   return &t0017;
 	         case 'A': 
-	         case 'a': if (strncmp(s + 1, "MTRELAY", 7)) break;
+	         case 'a': if (strncasecmp(s + 1, "MTRELAY", 7)) break;
 	                   return &t0104;
 	         };
 	         break;
 	case 10: switch (s[0]) {
 	         case 'N': 
-	         case 'n': if (strncmp(s + 1, "SEC3PARAM", 9)) break;
+	         case 'n': if (strncasecmp(s + 1, "SEC3PARAM", 9)) break;
 	                   return &t0033;
 	         case 'O': 
-	         case 'o': if (strncmp(s + 1, "PENPGPKEY", 9)) break;
+	         case 'o': if (strncasecmp(s + 1, "PENPGPKEY", 9)) break;
 	                   return &t003d;
 	         };
 	         break;
