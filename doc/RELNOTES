@@ -21,6 +21,7 @@ BUG FIXES:
 	- Fix to remove unused code.
 	- Fix #6: nsd-control-setup: Change validity time to a shorter
 	  period (<2038).
+	- Fix unused definition in header remote.h.
 
 
 4.1.26

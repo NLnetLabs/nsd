@@ -1,6 +1,7 @@
 11 March 2019: Wouter
 	- Fix #6: nsd-control-setup: Change validity time to a shorter
 	  period (<2038).
+	- Fix unused definition in header remote.h.
 
 18 February 2019: Wouter
 	- Fix to remove unused code.
