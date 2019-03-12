@@ -185,6 +185,14 @@ static inline status_code p_zfi_get_closing_piece(
 				i->p.cur += 1;
 				return p_zfi_get_piece(i, st);
 
+			case '\\':
+				i->p.cur += 1;
+				if (i->p.cur < i->p.end &&
+				    (  *i->p.cur == '\\'
+				    || *i->p.cur == ')'
+				    || isspace(*i->p.cur)))
+					i->p.cur += 1;
+				continue;
 			default:
 				/* Skip non whitespace */
 				i->p.cur += 1;
@@ -265,7 +273,6 @@ static status_code p_zfi_get_piece(zonefile_iter *i, return_status *st)
 					i->p.cur += 1;
 				continue;
 			default:
-				/* Skip non closing quote */
 				i->p.cur += 1;
 				continue;
 			}
@@ -294,7 +301,8 @@ static status_code p_zfi_get_piece(zonefile_iter *i, return_status *st)
 
 			case '\\':
 				i->p.cur += 1;
-				if (i->p.cur < i->p.end && isspace(*i->p.cur))
+				if (i->p.cur < i->p.end &&
+				    (*i->p.cur == '\\' || isspace(*i->p.cur)))
 					i->p.cur += 1;
 				continue;
 			default:

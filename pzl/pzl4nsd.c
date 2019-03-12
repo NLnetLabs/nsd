@@ -420,6 +420,9 @@ static inline status_code pieces_iter_init(
 	return start < end ? STATUS_OK : STATUS_STOP_ITERATION;
 }
 
+static inline int pieces_iter_last(pieces_iter *i)
+{ return i->cur == i->end - 1; }
+
 static inline size_t pieces_iter_len(pieces_iter *i)
 { return i->cur->end - i->cur->start; }
 
@@ -648,6 +651,16 @@ static inline status_code pzl_add_remaining_b64_rdata(region_type *region,
 	size_t b64_size = 0;
 	pieces_iter tmp_pi = *pi;
 
+	if (pieces_iter_last(pi)
+	    && pieces_iter_len(pi) == 1 && *pi->cur->start == '0') {
+		uint16_t *rdata_elem;
+
+		assert(rr->rdata_count < MAXRDATALEN);
+		 rdata_elem = region_alloc(region, sizeof(uint16_t));
+		*rdata_elem = 0;
+		rr->rdatas[rr->rdata_count++].data = rdata_elem;
+		return STATUS_OK;
+	}
 	do b64_size += pieces_iter_len(&tmp_pi);
 	while (pieces_iter_next(&tmp_pi) == STATUS_OK);
 	b64_size = (((((b64_size + 3) / 4) * 3)) + 1);
