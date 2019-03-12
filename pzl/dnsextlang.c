@@ -1037,7 +1037,6 @@ static void p_del_free_stanza(
 
 void dnsextlang_def_free(dnsextlang_def *d)
 {
-	/* TODO: implement */
 	if (!d)
 		return;
 	uint16_table_walk(d->stanzas_by_u16,
