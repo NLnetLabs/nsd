@@ -24,6 +24,7 @@ BUG FIXES:
 	- Fix unused definition in header remote.h.
 	- Fix #4236: IPV4_MINIMAL_RESPONSE_SIZE=1480 is slightly too big.
 	- Fix #4235: IP_PMTUDISC_OMIT on IPv4/UDP sockets.
+	- Fixed radtree_insert memory leak.
 
 
 4.1.26
