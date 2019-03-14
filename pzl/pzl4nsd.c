@@ -267,14 +267,6 @@ static dname_type *dname_init(uint8_t *dname,
 			return (void *)(dname - 2 - origin->label_count);
 		}
 	}
-	if (*start == '.' && start + 1 == end) {
-		/* Root domain.  */
-		dname[-3] = 1; /* name_size = 1;        */
-		dname[-2] = 1; /* label_count = 1;      */
-		dname[-1] = 0; /* label_offsets[0] = 0; */
-		dname[ 0] = 0; /* name[0] = 0;          */
-		return (void *)&dname[-3];
-	}
 	for (h = d, p = h + 1; s < e; ++s, ++p) {
 		if (p - dname >= MAXDOMAINLEN) {
 			return NULL;
@@ -337,6 +329,8 @@ static dname_type *dname_init(uint8_t *dname,
 		const uint8_t *o_l = dname_label_offsets(origin);
 		const uint8_t *o_n = o_l + origin->label_count;
 
+		if (p + origin->name_size - dname >= MAXDOMAINLEN)
+			return NULL;
 		/* non fqdn */
 		(void) memcpy(p, o_n--, origin->name_size);
 		while (o_n > dname_label_offsets(origin))
