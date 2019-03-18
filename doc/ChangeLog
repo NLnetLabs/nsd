@@ -1,3 +1,7 @@
+18 March 2019: Wouter
+	- Fix unit test bug013_truncate for new truncation with EDNS size,
+	  it is one RR smaller for the truncated response in the test.
+
 14 March 2019: Wouter
 	- Fixed radtree_insert memory leak.
 	- Fixed access recycled variable.
