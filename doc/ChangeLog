@@ -1,3 +1,6 @@
+19 March 2019: Wouter
+	- tag 4.1.27rc1
+
 18 March 2019: Wouter
 	- Fix unit test bug013_truncate for new truncation with EDNS size,
 	  it is one RR smaller for the truncated response in the test.

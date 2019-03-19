@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.27 (Upcoming)
+4.1.27
 ================
 FEATURES:
 	- Deny ANY with only one RR in response, by default.  Patch from
