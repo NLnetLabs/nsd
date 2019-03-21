@@ -1157,7 +1157,6 @@ zparser_create(region_type *region, region_type *rr_region, namedb_type *db)
 	result->current_zone = NULL;
 	result->origin = NULL;
 	result->prev_dname = NULL;
-	result->default_apex = NULL;
 
 	result->temporary_rdatas = (rdata_atom_type *) region_alloc_array(
 		result->region, MAXRDATALEN, sizeof(rdata_atom_type));
@@ -1181,7 +1180,6 @@ zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
 	parser->current_zone = NULL;
 	parser->origin = domain_table_insert(parser->db->domains, origin);
 	parser->prev_dname = parser->origin;
-	parser->default_apex = parser->origin;
 	parser->error_occurred = 0;
 	parser->errors = 0;
 	parser->line = 1;
