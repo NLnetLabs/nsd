@@ -275,6 +275,13 @@ struct	nsd
 	/* ratelimit for errors, packet count */
 	unsigned int err_limit_count;
 
+	/** do answer with server cookie when request contained cookie option */
+	int do_answer_cookie;
+	/** cookie secret */
+	uint8_t cookie_secret[32];
+	/** cookie secret length */
+	size_t  cookie_secret_len;
+
 	struct nsd_options* options;
 };
 

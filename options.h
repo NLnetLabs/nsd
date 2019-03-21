@@ -142,6 +142,11 @@ struct nsd_options {
 	/** true to log dnstap AUTH_RESPONSE message events */
 	int dnstap_log_auth_response_messages;
 
+	/** do answer with server cookie when request contained cookie option */
+	int do_answer_cookie;
+	/** cookie secret */
+	char *cookie_secret;
+
 	region_type* region;
 };
 

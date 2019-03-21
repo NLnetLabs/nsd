@@ -2015,23 +2015,24 @@ server_main(struct nsd *nsd)
 }
 
 static query_state_type
-server_process_query(struct nsd *nsd, struct query *query)
+server_process_query(struct nsd *nsd, struct query *query, uint32_t *now_p)
 {
-	return query_process(query, nsd);
+	return query_process(query, nsd, now_p);
 }
 
 static query_state_type
-server_process_query_udp(struct nsd *nsd, struct query *query)
+server_process_query_udp(struct nsd *nsd, struct query *query, uint32_t *now_p)
 {
 #ifdef RATELIMIT
-	if(query_process(query, nsd) != QUERY_DISCARDED) {
-		if(rrl_process_query(query))
+	if(query_process(query, nsd, now_p) != QUERY_DISCARDED) {
+		if(query->edns.cookie_status != COOKIE_VALID
+		&& rrl_process_query(query))
 			return rrl_slip(query);
 		else	return QUERY_PROCESSED;
 	}
 	return QUERY_DISCARDED;
 #else
-	return query_process(query, nsd);
+	return query_process(query, nsd, now_p);
 #endif
 }
 
@@ -2262,6 +2263,7 @@ handle_udp(int fd, short event, void* arg)
 	struct udp_handler_data *data = (struct udp_handler_data *) arg;
 	int received, sent, recvcount, i;
 	struct query *q;
+	uint32_t now = 0;
 
 	if (!(event & EV_READ)) {
 		return;
@@ -2311,7 +2313,7 @@ handle_udp(int fd, short event, void* arg)
 #endif /* USE_DNSTAP */
 
 		/* Process and answer the query... */
-		if (server_process_query_udp(data->nsd, q) != QUERY_DISCARDED) {
+		if (server_process_query_udp(data->nsd, q, &now) != QUERY_DISCARDED) {
 			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet)) {
 				STATUP(data->nsd, nona);
 				ZTATUP(data->nsd, q->zone, nona);
@@ -2326,7 +2328,7 @@ handle_udp(int fd, short event, void* arg)
 #endif
 
 			/* Add EDNS0 and TSIG info if necessary.  */
-			query_add_optional(q, data->nsd);
+			query_add_optional(q, data->nsd, &now);
 
 			buffer_flip(q->packet);
 			iovecs[i].iov_len = buffer_remaining(q->packet);
@@ -2406,6 +2408,7 @@ handle_udp(int fd, short event, void* arg)
 	int i;
 #endif /* NONBLOCKING_IS_BROKEN */
 	struct query *q;
+	uint32_t now = 0;
 #if (defined(NONBLOCKING_IS_BROKEN) || !defined(HAVE_RECVMMSG))
 	q = data->query;
 #endif
@@ -2481,7 +2484,7 @@ handle_udp(int fd, short event, void* arg)
 #endif /* USE_DNSTAP */
 
 		/* Process and answer the query... */
-		if (server_process_query_udp(data->nsd, q) != QUERY_DISCARDED) {
+		if (server_process_query_udp(data->nsd, q, &now) != QUERY_DISCARDED) {
 			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet)) {
 				STATUP(data->nsd, nona);
 				ZTATUP(data->nsd, q->zone, nona);
@@ -2496,7 +2499,7 @@ handle_udp(int fd, short event, void* arg)
 #endif
 
 			/* Add EDNS0 and TSIG info if necessary.  */
-			query_add_optional(q, data->nsd);
+			query_add_optional(q, data->nsd, &now);
 
 			buffer_flip(q->packet);
 
@@ -2578,6 +2581,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 	ssize_t received;
 	struct event_base* ev_base;
 	struct timeval timeout;
+	uint32_t now;
 
 	if ((event & EV_TIMEOUT)) {
 		/* Connection timed out.  */
@@ -2729,7 +2733,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 	dt_collector_submit_auth_query(data->nsd, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
-	data->query_state = server_process_query(data->nsd, data->query);
+	data->query_state = server_process_query(data->nsd, data->query, &now);
 	if (data->query_state == QUERY_DISCARDED) {
 		/* Drop the packet and the entire connection... */
 		STATUP(data->nsd, dropped);
@@ -2759,7 +2763,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 #endif
 #endif /* USE_ZONE_STATS */
 
-	query_add_optional(data->query, data->nsd);
+	query_add_optional(data->query, data->nsd, &now);
 
 	/* Switch to the tcp write handler.  */
 	buffer_flip(data->query->packet);
@@ -2794,6 +2798,7 @@ handle_tcp_writing(int fd, short event, void* arg)
 	struct query *q = data->query;
 	struct timeval timeout;
 	struct event_base* ev_base;
+	uint32_t now = 0;
 
 	if ((event & EV_TIMEOUT)) {
 		/* Connection timed out.  */
@@ -2897,7 +2902,7 @@ handle_tcp_writing(int fd, short event, void* arg)
 		buffer_clear(q->packet);
 		data->query_state = query_axfr(data->nsd, q);
 		if (data->query_state != QUERY_PROCESSED) {
-			query_add_optional(data->query, data->nsd);
+			query_add_optional(data->query, data->nsd, &now);
 
 			/* Reset data. */
 			buffer_flip(q->packet);

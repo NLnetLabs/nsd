@@ -25,6 +25,9 @@
 #include <login_cap.h>
 #endif /* HAVE_LOGIN_CAP_H */
 #endif /* HAVE_SETUSERCONTEXT */
+#ifdef HAVE_OPENSSL_RAND_H
+#include <openssl/rand.h>
+#endif
 
 #include <assert.h>
 #include <ctype.h>
@@ -437,6 +440,8 @@ main(int argc, char *argv[])
 	nsd.grab_ip6_optional = 0;
 	nsd.file_rotation_ok = 0;
 
+	nsd.do_answer_cookie = 1;
+
 	/* Set up our default identity to gethostname(2) */
 	if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {
 		nsd.identity = hostname;
@@ -710,6 +715,30 @@ main(int argc, char *argv[])
 #endif /* IPV6 MTU) */
 #endif /* defined(INET6) */
 
+	nsd.do_answer_cookie = nsd.options->do_answer_cookie;
+	if (nsd.cookie_secret_len != 0)
+		; /* pass */
+
+	else if (nsd.options->cookie_secret) {
+		int len = hex_pton(nsd.options->cookie_secret,
+			nsd.cookie_secret, sizeof(nsd.cookie_secret));
+		if (len !=  8 && len != 16 && len != 24 && len != 32) {
+			error("A cookie secret must be a "
+			      "64, 128, 192 or 256 bit hex string");
+		}
+		nsd.cookie_secret_len = len;
+	} else {
+		int i;
+
+		/* Calculate a new random secret */
+		srandom(getpid() ^ time(NULL));
+		nsd.cookie_secret_len = 8;
+#if defined(HAVE_SSL)
+		if (!RAND_status() || !RAND_bytes(nsd.cookie_secret, 8))
+#endif
+			for (i = 0; i < 8; i++)
+				nsd.cookie_secret[i] = random_generate(256);
+	}
 	if (nsd.nsid_len == 0 && nsd.options->nsid) {
 		if (strlen(nsd.options->nsid) % 2 != 0) {
 			error("the NSID must be a hex string of an even length.");

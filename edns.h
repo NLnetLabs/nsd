@@ -18,6 +18,7 @@ struct query;
 #define OPT_RDATA 2                     /* holds the rdata length comes after OPT_LEN */
 #define OPT_HDR 4U                      /* NSID opt header length */
 #define NSID_CODE       3               /* nsid option code */
+#define COOKIE_CODE    10               /* COOKIE option code */
 #define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
 
 struct edns_data
@@ -25,8 +26,8 @@ struct edns_data
 	char ok[OPT_LEN];
 	char error[OPT_LEN];
 	char rdata_none[OPT_RDATA];
-	char rdata_nsid[OPT_RDATA];
 	char nsid[OPT_HDR];
+	char cookie[OPT_HDR];
 };
 typedef struct edns_data edns_data_type;
 
@@ -39,14 +40,26 @@ enum edns_status
 };
 typedef enum edns_status edns_status_type;
 
+enum cookie_status
+{
+	COOKIE_NOT_PRESENT,
+	COOKIE_UNVERIFIED,
+	COOKIE_VALID,
+	COOKIE_INVALID
+};
+typedef enum cookie_status cookie_status_type;
+
 struct edns_record
 {
-	edns_status_type status;
-	size_t           position;
-	size_t           maxlen;
-	size_t		 opt_reserved_space;
-	int              dnssec_ok;
-	int              nsid;
+	edns_status_type   status;
+	size_t             position;
+	size_t             maxlen;
+	size_t		   opt_reserved_space;
+	int                dnssec_ok;
+	int                nsid;
+	cookie_status_type cookie_status;
+	size_t             cookie_len;
+	uint8_t            cookie[40];
 };
 typedef struct edns_record edns_record_type;
 
@@ -62,5 +75,8 @@ int edns_parse_record(edns_record_type *data, buffer_type *packet,
 size_t edns_reserved_space(edns_record_type *data);
 
 void edns_init_nsid(edns_data_type *data, uint16_t nsid_len);
+
+void cookie_verify(edns_record_type *data, struct nsd* nsd, uint32_t *now_p);
+void cookie_create(edns_record_type *data, struct nsd* nsd, uint32_t *now_p);
 
 #endif /* _EDNS_H_ */

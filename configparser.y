@@ -69,6 +69,7 @@ extern config_parser_state_type* cfg_parser;
 %token VAR_RRL_WHITELIST_RATELIMIT VAR_RRL_WHITELIST
 %token VAR_ZONEFILES_CHECK VAR_ZONEFILES_WRITE VAR_LOG_TIME_ASCII
 %token VAR_ROUND_ROBIN VAR_ZONESTATS VAR_REUSEPORT VAR_VERSION
+%token VAR_ANSWER_COOKIE VAR_COOKIE_SECRET
 %token VAR_MAX_REFRESH_TIME VAR_MIN_REFRESH_TIME
 %token VAR_MAX_RETRY_TIME VAR_MIN_RETRY_TIME
 %token VAR_MULTI_MASTER_CHECK VAR_MINIMAL_RESPONSES VAR_REFUSE_ANY
@@ -107,7 +108,8 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_zonefiles_check | server_do_ip4 | server_do_ip6 |
 	server_zonefiles_write | server_log_time_ascii | server_round_robin |
 	server_reuseport | server_version | server_ip_freebind |
-	server_minimal_responses | server_refuse_any | server_use_systemd;
+	server_minimal_responses | server_refuse_any | server_use_systemd |
+	server_answer_cookie | server_cookie_secret;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -527,6 +529,30 @@ server_zonefiles_write: VAR_ZONEFILES_WRITE STRING
 		if(atoi($2) == 0 && strcmp($2, "0") != 0)
 			yyerror("number expected");
 		else cfg_parser->opt->zonefiles_write = atoi($2);
+	}
+	;
+server_answer_cookie: VAR_ANSWER_COOKIE STRING
+	{ 
+		OUTYY(("P(server_answer_cookie:%s)\n", $2)); 
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->do_answer_cookie = (strcmp($2, "yes")==0);
+	}
+	;
+server_cookie_secret: VAR_COOKIE_SECRET STRING
+	{ 
+		uint8_t secret[32];
+		int secret_len;
+
+		OUTYY(("P(server_cookie_secret:%s)\n", $2));
+		if ((secret_len = hex_pton($2, secret, sizeof(secret))) == -1
+		|| (  secret_len !=  8 && secret_len != 16
+		   && secret_len != 24 && secret_len != 32))
+			yyerror("expected 64, 128, 192 or 256 bit hex string");
+		else {
+			cfg_parser->opt->cookie_secret =
+				region_strdup(cfg_parser->opt->region, $2);
+		}
 	}
 	;
 
