@@ -6,7 +6,7 @@ FEATURES:
 	- Deny ANY with only one RR in response, by default.  Patch from
 	  Daisuke Higashi.  The deny-any statement in nsd.conf sets ANY
 	  queries over UDP to be further moved to TCP as well.
-	  Also no additional section processig for type ANY, reducing
+	  Also no additional section processing for type ANY, reducing
 	  the response size.
 	- Fix #4215: on-the-fly change of TSIG keys with patch from Igor, adds
 	  nsd-control print_tsig, update_tsig, add_tsig, assoc_tsig
