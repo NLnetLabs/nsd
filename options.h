@@ -143,7 +143,7 @@ struct nsd_options {
 	int dnstap_log_auth_response_messages;
 
 	/** do answer with server cookie when request contained cookie option */
-	int do_answer_cookie;
+	int answer_cookie;
 	/** cookie secret */
 	char *cookie_secret;
 

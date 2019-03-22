@@ -715,7 +715,7 @@ main(int argc, char *argv[])
 #endif /* IPV6 MTU) */
 #endif /* defined(INET6) */
 
-	nsd.do_answer_cookie = nsd.options->do_answer_cookie;
+	nsd.do_answer_cookie = nsd.options->answer_cookie;
 	if (nsd.cookie_secret_len != 0)
 		; /* pass */
 

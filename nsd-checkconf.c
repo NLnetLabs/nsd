@@ -536,7 +536,7 @@ config_test_print_server(nsd_options_type* opt)
 #endif
 	printf("\tzonefiles-check: %s\n", opt->zonefiles_check?"yes":"no");
 	printf("\tzonefiles-write: %d\n", opt->zonefiles_write);
-	printf("\tanswer-cookie: %s\n", opt->do_answer_cookie?"yes":"no");
+	printf("\tanswer-cookie: %s\n", opt->answer_cookie?"yes":"no");
 	if (opt->cookie_secret)
 		print_string_var("cookie-secret:", opt->cookie_secret);
 

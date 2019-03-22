@@ -536,7 +536,7 @@ server_answer_cookie: VAR_ANSWER_COOKIE STRING
 		OUTYY(("P(server_answer_cookie:%s)\n", $2)); 
 		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
 			yyerror("expected yes or no.");
-		else cfg_parser->opt->do_answer_cookie = (strcmp($2, "yes")==0);
+		else cfg_parser->opt->answer_cookie = (strcmp($2, "yes")==0);
 	}
 	;
 server_cookie_secret: VAR_COOKIE_SECRET STRING
