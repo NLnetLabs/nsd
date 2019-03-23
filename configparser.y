@@ -546,9 +546,8 @@ server_cookie_secret: VAR_COOKIE_SECRET STRING
 
 		OUTYY(("P(server_cookie_secret:%s)\n", $2));
 		if ((secret_len = hex_pton($2, secret, sizeof(secret))) == -1
-		|| (  secret_len !=  8 && secret_len != 16
-		   && secret_len != 24 && secret_len != 32))
-			yyerror("expected 64, 128, 192 or 256 bit hex string");
+		|| (  secret_len != 16 && secret_len != 24 && secret_len != 32))
+			yyerror("expected 128, 192 or 256 bit hex string");
 		else {
 			cfg_parser->opt->cookie_secret =
 				region_strdup(cfg_parser->opt->region, $2);

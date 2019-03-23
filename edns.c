@@ -304,7 +304,7 @@ void cookie_verify(edns_record_type *data, struct nsd* nsd, uint32_t *now_p)
 				nsd->cookie_secret_len, data->cookie))
 			break;
 		else	return;
-	case 4:	if (nsd->cookie_secret_len != 8)
+	case 4:	if (nsd->cookie_secret_len != 16)
 			return;
 		siphash(data->cookie, 16, nsd->cookie_secret, server_cookie, 8);
 		break;
@@ -320,7 +320,7 @@ void cookie_create(edns_record_type *data, struct nsd* nsd, uint32_t *now_p)
 	uint32_t now_uint32 = *now_p ? *now_p : (*now_p = (uint32_t)time(NULL));
 
 	data->cookie[ 8] = 1;
-	data->cookie[ 9] = nsd->cookie_secret_len == 8 ? 4 : 3;
+	data->cookie[ 9] = nsd->cookie_secret_len == 16 ? 4 : 3;
 	data->cookie[10] = 0;
 	data->cookie[11] = 0;
 	data->cookie[12] = (now_uint32 & 0xFF000000) >> 24;

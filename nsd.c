@@ -722,9 +722,9 @@ main(int argc, char *argv[])
 	else if (nsd.options->cookie_secret) {
 		int len = hex_pton(nsd.options->cookie_secret,
 			nsd.cookie_secret, sizeof(nsd.cookie_secret));
-		if (len !=  8 && len != 16 && len != 24 && len != 32) {
+		if (len != 16 && len != 24 && len != 32) {
 			error("A cookie secret must be a "
-			      "64, 128, 192 or 256 bit hex string");
+			      "128, 192 or 256 bit hex string");
 		}
 		nsd.cookie_secret_len = len;
 	} else {
@@ -732,11 +732,12 @@ main(int argc, char *argv[])
 
 		/* Calculate a new random secret */
 		srandom(getpid() ^ time(NULL));
-		nsd.cookie_secret_len = 8;
+		nsd.cookie_secret_len = 16;
 #if defined(HAVE_SSL)
-		if (!RAND_status() || !RAND_bytes(nsd.cookie_secret, 8))
+		if (!RAND_status()
+		||  !RAND_bytes(nsd.cookie_secret, nsd.cookie_secret_len))
 #endif
-			for (i = 0; i < 8; i++)
+			for (i = 0; i < nsd.cookie_secret_len; i++)
 				nsd.cookie_secret[i] = random_generate(256);
 	}
 	if (nsd.nsid_len == 0 && nsd.options->nsid) {

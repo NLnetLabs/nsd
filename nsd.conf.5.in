@@ -440,10 +440,10 @@ With the value 0 the rate is unlimited.
 Enable to answer to requests containig DNS Cookies as specified in RFC7873.
 Default is yes.
 .TP
-.B cookie\-secret:\fR <64, 128, 192 or 256 bit hex string>
+.B cookie\-secret:\fR <128, 192 or 256 bit hex string>
 Server's in an Anycast deployment need to be able to  verify  each other's
 Server  Cookies.  For  this they need to share the secret used to construct and
-verify the Server Cookies.  Default is a  64 bits random secret generated at
+verify the Server Cookies.  Default is a  128 bits random secret generated at
 startup time.
 .\" rrlend
 .SS "Remote Control"
