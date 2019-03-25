@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix to delete unused zparser.default_apex member.
 
 
 4.1.27
