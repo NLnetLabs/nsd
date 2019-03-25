@@ -3,6 +3,7 @@ NSD RELEASE NOTES
 4.1.28 (upcoming)
 ================
 FEATURES:
+	- Print IP address when bind socket fails with error.
 BUG FIXES:
 	- Fix to delete unused zparser.default_apex member.
 

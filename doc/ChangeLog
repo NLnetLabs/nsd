@@ -1,3 +1,6 @@
+25 March 2019: Wouter
+	- Print IP address when bind socket fails with error.
+
 21 March 2019: Wouter
 	- Fix spelling error in release notes.
 	- Fix to delete unused zparser.default_apex member.
