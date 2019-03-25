@@ -3,7 +3,8 @@
 	- Fix to delete unused zparser.default_apex member.
 
 19 March 2019: Wouter
-	- tag 4.1.27rc1
+	- tag 4.1.27rc1.  This became 4.1.27 on 25 March 2019 and trunk has
+	  4.1.28 in development.
 
 18 March 2019: Wouter
 	- Fix unit test bug013_truncate for new truncation with EDNS size,
