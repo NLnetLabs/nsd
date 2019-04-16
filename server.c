@@ -3266,9 +3266,9 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 			return 1;
 		} else {
 			if(r == 0)
-				log_msg(LOG_ERR, "connection closed prematurely");
+				VERBOSITY(3, (LOG_ERR, "TLS handshake: connection closed prematurely"));
 			cleanup_tcp_handler(data);
-			log_msg(LOG_ERR, "TLS failed");
+			VERBOSITY(3, (LOG_ERR, "TLS handshake failed"));
 			return 0;
 		}
 	}

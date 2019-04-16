@@ -20,6 +20,7 @@
 	  with the same parameters when the desired event has been satisfied.
 	- Fix that TCP Fastopen has better error message and supports OSX.
 	- Fix log for fastopen with verbosity.
+	- Squelch TLS handshake failure log until verbosity 3.
 
 25 March 2019: Wouter
 	- Print IP address when bind socket fails with error.
