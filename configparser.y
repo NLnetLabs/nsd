@@ -76,6 +76,7 @@ extern config_parser_state_type* cfg_parser;
 %token VAR_DNSTAP_SEND_IDENTITY VAR_DNSTAP_SEND_VERSION VAR_DNSTAP_IDENTITY
 %token VAR_DNSTAP_VERSION VAR_DNSTAP_LOG_AUTH_QUERY_MESSAGES
 %token VAR_DNSTAP_LOG_AUTH_RESPONSE_MESSAGES
+%token VAR_TLS_SERVICE_KEY VAR_TLS_SERVICE_PEM VAR_TLS_PORT VAR_DO_STARTTLS
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -107,6 +108,7 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_zonefiles_check | server_do_ip4 | server_do_ip6 |
 	server_zonefiles_write | server_log_time_ascii | server_round_robin |
 	server_reuseport | server_version | server_ip_freebind |
+	server_tls_service_key | server_tls_service_pem | server_tls_port | server_do_starttls |
 	server_minimal_responses | server_refuse_any | server_use_systemd |
 	server_hide_identity;
 server_ip_address: VAR_IP_ADDRESS STRING 
@@ -538,7 +540,32 @@ server_zonefiles_write: VAR_ZONEFILES_WRITE STRING
 		else cfg_parser->opt->zonefiles_write = atoi($2);
 	}
 	;
-
+server_tls_service_key: VAR_TLS_SERVICE_KEY STRING
+	{
+		OUTYY(("P(server_tls_service_key:%s)\n", $2));
+		cfg_parser->opt->tls_service_key = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+server_tls_service_pem: VAR_TLS_SERVICE_PEM STRING
+	{
+		OUTYY(("P(server_tls_service_pem:%s)\n", $2));
+		cfg_parser->opt->tls_service_pem = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+server_tls_port: VAR_TLS_PORT STRING
+	{
+		OUTYY(("P(server_tls_port:%s)\n", $2));
+		cfg_parser->opt->tls_port = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+server_do_starttls: VAR_DO_STARTTLS STRING
+	{
+		OUTYY(("P(server_do_starttls:%s)\n", $2));
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->do_starttls = (strcmp($2, "yes")==0);
+	}
+	;
 rcstart: VAR_REMOTE_CONTROL
 	{
 		OUTYY(("\nP(remote-control:)\n"));

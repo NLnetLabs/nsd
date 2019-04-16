@@ -114,6 +114,10 @@ nsd_options_create(region_type* region)
 		opt->zonefiles_write = ZONEFILES_WRITE_INTERVAL;
 	else	opt->zonefiles_write = 0;
 	opt->xfrd_reload_timeout = 1;
+	opt->tls_service_key = NULL;
+	opt->tls_service_pem = NULL;
+	opt->tls_port = NULL;
+	opt->do_starttls = 0;
 	opt->control_enable = 0;
 	opt->control_interface = NULL;
 	opt->control_port = NSD_CONTROL_PORT;

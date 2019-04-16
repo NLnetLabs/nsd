@@ -872,6 +872,7 @@ if test x$HAVE_SSL = x"yes"; then
 
 else
 	AC_MSG_WARN([No SSL, therefore remote-control is disabled])
+	AC_MSG_WARN([No SSL, therefore TLS is disabled])
 fi
 
 AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
@@ -953,6 +954,32 @@ dt_DNSTAP([${localstatedir}/run/nsd-dnstap.sock],
 # Include systemd.m4 - begin
 sinclude(systemd.m4)
 # Include systemd.m4 - end
+
+AC_ARG_ENABLE(TObit, AC_HELP_STRING([--enable-TObit], [(Experimental) Enables TO bit during STARTTLS negotiation. NOTE WELL: The TO bit is NOT assigned by IANA - USE FOR TESTING ONLY! DO NOT DEPLOY TO PRODUCTION ENVIRONMENTS!]))
+case "$enable_TObit" in
+       yes)
+       if test x$HAVE_SSL = x"yes"; then
+               AC_DEFINE_UNQUOTED([USE_TO_BIT], [], [Define this to enable use of the TO bit.])
+       else
+               AC_MSG_WARN([No SSL, therefore TO bit is disabled])
+       fi
+               ;;
+       no|*)
+               ;;
+esac
+
+AC_ARG_ENABLE(tcp-fastopen, AC_HELP_STRING([--enable-tcp-fastopen], [Enable TCP Fast Open]))
+case "$enable_tcp_fastopen" in
+       yes)
+             AC_CHECK_DECL([TCP_FASTOPEN], [], [AC_MSG_ERROR([TCP Fast Open is not available: please rerun without --enable-tcp-fastopen])], [AC_INCLUDES_DEFAULT
+#include <netinet/tcp.h>
+             ])
+               AC_DEFINE_UNQUOTED([USE_TCP_FASTOPEN], [1], [Define this to enable TCP fast open.])
+               ;;
+       no|*)
+               ;;
+esac
+
 
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */

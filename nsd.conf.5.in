@@ -441,6 +441,26 @@ whitelisted. Default @ratelimit_default@ (with a suggested 2000 qps). With the r
 specific queries to receive this qps limit instead of the normal limit.
 With the value 0 the rate is unlimited.
 .\" rrlend
+.TP
+.B tls\-service\-key:\fR <filename>
+If  enabled, the server provides TLS service on its TCP sockets.
+The file is the private key for the TLS session. The public certificate is in the
+tls-service-pem file. Default is "", turned off. Requires a restart (a reload is
+not enough) if changed, because the private key is read while root permissions
+are held and before chroot (if any). Normal DNS TCP service is not provided and gives
+errors, this service is best run with a different port: config or @port suffixes in the
+interface config.
+.TP
+.B tls\-service\-pem:\fR <filename>
+The public key certificate pem file for the tls service. Default is "", turned off.
+.TP
+.B tls\-port:\fR <number>
+The port number on which to provide TCP TLS service, default is turned off, only
+interfaces configured with that port number as @number get the TLS service.
+.TP
+.B do\-starttls:\fR <yes or no>
+Allow upgrade to TLS on regular TCP connections via STARTTLS.
+Uses the tls\-service\-key and tls\-service\-pem for the key and certificate.
 .SS "Remote Control"
 The
 .B remote\-control:

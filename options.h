@@ -98,6 +98,15 @@ struct nsd_options {
 	int refuse_any;
 	int reuseport;
 
+	/* private key file for TLS */
+	char* tls_service_key;
+	/* certificate file for TLS */
+	char* tls_service_pem;
+	/* TLS dedicated port */
+	const char* tls_port;
+	/* Allow upgrade to TLS after STARTTLS negotiation*/
+	int do_starttls;
+
         /** remote control section. enable toggle. */
 	int control_enable;
 	/** the interfaces the remote control should listen on */

@@ -37,6 +37,11 @@
 #include "nsec3.h"
 #include "tsig.h"
 
+#ifdef HAVE_SSL
+#define STARTTLS_STR "STARTTLS"
+#define NO_TLS_STR   "NO_TLS"
+#endif
+
 /* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
  * This function determines if the final response packet needs the NS RRset
  * included. Currently, it will only return negative if QTYPE == DNSKEY|DS.
@@ -200,6 +205,10 @@ query_create(region_type *region, uint16_t *compressed_dname_offsets,
 	query->tsig_prepare_it = 1;
 	query->tsig_update_it = 1;
 	query->tsig_sign_it = 1;
+#ifdef HAVE_SSL
+	query->first_query = 1;
+	query->tls_ok = 0;
+#endif
 	return query;
 }
 
@@ -361,6 +370,22 @@ process_edns(nsd_type* nsd, struct query *q)
 			}
 #endif
 		}
+
+#ifdef USE_TO_BIT
+	/* Change the value of the tls_ok bit depending on whether or not the
+	 * connection should be upgraded to TLS based on this query. The value is
+	 * used later to trigger the upgrade and also to construct the response.
+	 */
+	if (q->edns.tls_ok) {
+		/* Logs for testing */
+		VERBOSITY(3, (LOG_INFO, "TO bit recieved"));
+		if (!(q->tcp && q->first_query && nsd->tls_ctx
+		    && nsd->options->do_starttls)) {
+			VERBOSITY(3, (LOG_INFO, "TO bit rejected"));
+			q->edns.tls_ok = 0;
+		}
+	}
+#endif
 
 		/* Strip the OPT resource record off... */
 		buffer_set_position(q->packet, q->edns.position);
@@ -557,6 +582,46 @@ answer_chaos(struct nsd *nsd, query_type *q)
 			} else {
 				RCODE_SET(q->packet, RCODE_REFUSE);
 			}
+#ifdef HAVE_SSL
+		} else if (q->qname->name_size == 10
+			   && memcmp(dname_name(q->qname), "\010starttls", 10) == 0) {
+			if (q->tcp) {
+				if (q->first_query) {
+					if (nsd->tls_ctx
+#ifdef USE_TO_BIT
+					    && q->edns.tls_ok
+#endif
+					    && nsd->options->do_starttls ) {
+						/* Add STARTTLS answer */
+						query_addtxt(q,
+							buffer_begin(q->packet) + QHEADERSZ,
+							CLASS_CH,
+							0,
+							STARTTLS_STR);
+						ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
+						/* Not required if TO bit assigned and used.*/
+						q->tls_ok = 1;
+						/* Logs here are for testing */
+						VERBOSITY(3, (LOG_INFO, "STARTTLS received and sent in response"));
+					} else {
+						/* Add NO_TLS answer */
+						query_addtxt(q,
+							buffer_begin(q->packet) + QHEADERSZ,
+							CLASS_CH,
+							0,
+							NO_TLS_STR);
+						ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
+						VERBOSITY(3, (LOG_INFO, "STARTTLS received and but NO_TLS sent in response"));
+					}
+				} else {
+					RCODE_SET(q->packet, RCODE_REFUSE);
+					VERBOSITY(3, (LOG_INFO, "STARTTLS ignored as not first query on tcp connection"));
+				}
+			} else {
+				RCODE_SET(q->packet, RCODE_REFUSE);
+			}
+#endif
+		/* Back port of fix in 4.1.1 for noname CH TXT queries */
 		} else {
 			RCODE_SET(q->packet, RCODE_REFUSE);
 		}
@@ -1528,6 +1593,11 @@ query_add_optional(query_type *q, nsd_type *nsd)
 	case EDNS_OK:
 		if (q->edns.dnssec_ok)	edns->ok[7] = 0x80;
 		else			edns->ok[7] = 0x00;
+#ifdef USE_TO_BIT
+		if (q->edns.tls_ok) {
+			edns->ok[7] = edns->ok[7] | ((TLS_OK_MASK >> 8) & 0xFF);
+		}
+#endif
 		buffer_write(q->packet, edns->ok, OPT_LEN);
 		if(q->edns.opt_reserved_space == 0 || !buffer_available(
 			q->packet, 2+q->edns.opt_reserved_space)) {
@@ -1551,6 +1621,11 @@ query_add_optional(query_type *q, nsd_type *nsd)
 	case EDNS_ERROR:
 		if (q->edns.dnssec_ok)	edns->error[7] = 0x80;
 		else			edns->error[7] = 0x00;
+#ifdef USE_TO_BIT
+		if (q->edns.tls_ok) {
+			edns->ok[7] = edns->ok[7] | ((TLS_OK_MASK >> 8) & 0xFF);
+		}
+#endif
 		buffer_write(q->packet, edns->error, OPT_LEN);
 		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);

@@ -57,6 +57,9 @@ edns_init_record(edns_record_type *edns)
 	edns->maxlen = 0;
 	edns->opt_reserved_space = 0;
 	edns->dnssec_ok = 0;
+#ifdef USE_TO_BIT
+	edns->tls_ok = 0;
+#endif
 	edns->nsid = 0;
 }
 
@@ -146,6 +149,9 @@ edns_parse_record(edns_record_type *edns, buffer_type *packet,
 	edns->status = EDNS_OK;
 	edns->maxlen = opt_class;
 	edns->dnssec_ok = opt_flags & DNSSEC_OK_MASK;
+#ifdef USE_TO_BIT
+	edns->tls_ok = opt_flags & TLS_OK_MASK;
+#endif
 	return 1;
 }
 

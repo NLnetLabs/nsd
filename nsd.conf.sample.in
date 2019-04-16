@@ -192,6 +192,16 @@ server:
 	# dnstap-log-auth-query-messages: no
 	# dnstap-log-auth-response-messages: no
 
+	# Service clients over TLS (on the TCP sockets), with plain DNS inside
+	# the TLS stream. Give the certificate to use and private key.
+	# Default is "" (disabled). Requires restart to take effect.
+	# tls-service-key: "path/to/privatekeyfile.key"
+	# tls-service-pem: "path/to/publiccertfile.pem"
+	# tls-port: <port-number>
+
+	# Do we allow tls upgrade on tcp connections after STARTTLS?
+	# do-starttls
+
 # Remote control config section. 
 remote-control:
 	# Enable remote control with nsd-control(8) here.
