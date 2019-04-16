@@ -652,6 +652,9 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 #if defined(SO_REUSEPORT) || defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU) || defined(IP_TRANSPARENT)) || defined(IP_FREEBIND) || defined(SO_BINDANY))
 	int on = 1;
 #endif
+#ifdef USE_TCP_FASTOPEN
+	int qlen;
+#endif
 
 	/* UDP */
 
@@ -1062,9 +1065,30 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 		}
 
 #ifdef USE_TCP_FASTOPEN
-		int backlog = TCP_BACKLOG;
-		if ((setsockopt(nsd->tcp[i].s, IPPROTO_TCP, TCP_FASTOPEN, &backlog, sizeof(backlog))) == -1 ) {
-			log_msg(LOG_ERR, "Setting TCP Fast Open Failed: %s", strerror(errno));
+		/* qlen specifies how many outstanding TFO requests to allow. Limit is a defense
+		   against IP spoofing attacks as suggested in RFC7413 */
+#ifdef __APPLE__
+		/* OS X implementation only supports qlen of 1 via this call. Actual
+		   value is configured by the net.inet.tcp.fastopen_backlog kernel parm. */
+		qlen = 1;
+#else
+		/* 5 is recommended on linux */
+		qlen = 5;
+#endif
+		if ((setsockopt(nsd->tcp[i].s, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen))) == -1 ) {
+#ifdef ENOPROTOOPT
+                /* squelch ENOPROTOOPT: freebsd server mode with kernel support
+                   disabled, except when verbosity enabled for debugging */
+                    if(errno != ENOPROTOOPT || verbosity >= 3) {
+#endif
+			if(errno == EPERM) {
+				log_msg(LOG_ERR, "Setting TCP Fast Open as server failed: %s ; this could likely be because sysctl net.inet.tcp.fastopen.enabled, net.inet.tcp.fastopen.server_enable, or net.ipv4.tcp_fastopen is disabled", strerror(errno));
+			} else {
+				log_msg(LOG_ERR, "Setting TCP Fast Open as server failed: %s", strerror(errno));
+			}
+#ifdef ENOPROTOOPT
+		    }
+#endif
 		}
 #endif
 

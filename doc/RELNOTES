@@ -17,6 +17,7 @@ BUG FIXES:
 	  continue when done.
 	- Fix that TLS renegotiation calls the read and write routines again
 	  with the same parameters when the desired event has been satisfied.
+	- Fix that TCP Fastopen has better error message and supports OSX.
 
 
 4.1.27
