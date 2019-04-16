@@ -3019,6 +3019,15 @@ handle_tcp_reading(int fd, short event, void* arg)
 	/* Switch to the tcp write handler.  */
 	buffer_flip(data->query->packet);
 	data->query->tcplen = buffer_remaining(data->query->packet);
+#ifdef BIND8_STATS
+	/* Account the rcode & TC... */
+	STATUP2(data->nsd, rcode, RCODE(data->query->packet));
+	ZTATUP2(data->nsd, data->query->zone, rcode, RCODE(data->query->packet));
+	if (TC(data->query->packet)) {
+		STATUP(data->nsd, truncated);
+		ZTATUP(data->nsd, data->query->zone, truncated);
+	}
+#endif /* BIND8_STATS */
 #ifdef USE_DNSTAP
 	dt_collector_submit_auth_response(data->nsd, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet,
@@ -3436,25 +3445,59 @@ handle_tls_reading(int fd, short event, void* arg)
 	data->query_count++;
 
 	buffer_flip(data->query->packet);
+#ifdef USE_DNSTAP
+	dt_collector_submit_auth_query(data->nsd, &data->query->addr,
+		data->query->addrlen, data->query->tcp, data->query->packet);
+#endif /* USE_DNSTAP */
 	data->query_state = server_process_query(data->nsd, data->query);
 	if (data->query_state == QUERY_DISCARDED) {
 		/* Drop the packet and the entire connection... */
 		STATUP(data->nsd, dropped);
+		ZTATUP(data->nsd, data->query->zone, dropped);
 		cleanup_tcp_handler(data);
 		return;
 	}
 
+#ifdef BIND8_STATS
 	if (RCODE(data->query->packet) == RCODE_OK
 	    && !AA(data->query->packet))
 	{
 		STATUP(data->nsd, nona);
+		ZTATUP(data->nsd, data->query->zone, nona);
 	}
+#endif /* BIND8_STATS */
+
+#ifdef USE_ZONE_STATS
+#ifndef INET6
+	ZTATUP(data->nsd, data->query->zone, ctcp);
+#else
+	if (data->query->addr.ss_family == AF_INET) {
+		ZTATUP(data->nsd, data->query->zone, ctcp);
+	} else if (data->query->addr.ss_family == AF_INET6) {
+		ZTATUP(data->nsd, data->query->zone, ctcp6);
+	}
+#endif
+#endif /* USE_ZONE_STATS */
 
 	query_add_optional(data->query, data->nsd);
 
 	/* Switch to the tcp write handler.  */
 	buffer_flip(data->query->packet);
 	data->query->tcplen = buffer_remaining(data->query->packet);
+#ifdef BIND8_STATS
+	/* Account the rcode & TC... */
+	STATUP2(data->nsd, rcode, RCODE(data->query->packet));
+	ZTATUP2(data->nsd, data->query->zone, rcode, RCODE(data->query->packet));
+	if (TC(data->query->packet)) {
+		STATUP(data->nsd, truncated);
+		ZTATUP(data->nsd, data->query->zone, truncated);
+	}
+#endif /* BIND8_STATS */
+#ifdef USE_DNSTAP
+	dt_collector_submit_auth_response(data->nsd, &data->query->addr,
+		data->query->addrlen, data->query->tcp, data->query->packet,
+		data->query->zone);
+#endif /* USE_DNSTAP */
 	data->bytes_transmitted = 0;
 
 	tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT);
@@ -3504,7 +3547,7 @@ handle_tls_writing(int fd, short event, void* arg)
 		}
 		buffer_write_u16(write_buffer, q->tcplen);
 		buffer_write(write_buffer, buffer_current(q->packet),
-               		     (int)buffer_remaining(q->packet));
+			(int)buffer_remaining(q->packet));
 		buffer_flip(write_buffer);
 	} else {
 		write_buffer = q->packet;

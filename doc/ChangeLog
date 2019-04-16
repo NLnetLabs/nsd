@@ -21,6 +21,8 @@
 	- Fix that TCP Fastopen has better error message and supports OSX.
 	- Fix log for fastopen with verbosity.
 	- Squelch TLS handshake failure log until verbosity 3.
+	- Add per-zone statistics for TLS queries, and dnstap for TLS queries,
+	  and rcode and TCflag statistics for TCP and TLS queries.
 
 25 March 2019: Wouter
 	- Print IP address when bind socket fails with error.
