@@ -1549,7 +1549,7 @@ server_tls_ctx_create(struct nsd* nsd, char* verifypem)
 int
 using_tls_port(struct sockaddr* addr, const char* tls_port)
 {
-	in_port_t port;
+	in_port_t port = 0;
 
 	if (addr->sa_family == AF_INET)
 		port = ((struct sockaddr_in*)addr)->sin_port;
