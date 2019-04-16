@@ -3488,8 +3488,8 @@ handle_tls_writing(int fd, short event, void* arg)
 	buffer_skip(write_buffer, sent);
 	if(buffer_remaining(write_buffer) != 0) {
 		/* If not all sent, sync up the real buffer if it wasn't used.*/
-		if (data->bytes_transmitted == 0 && (ssize_t)sent > sizeof(q->tcplen)) {
-			buffer_skip(q->packet, (ssize_t)sent - sizeof(q->tcplen));
+		if (data->bytes_transmitted == 0 && (ssize_t)sent > (ssize_t)sizeof(q->tcplen)) {
+			buffer_skip(q->packet, (ssize_t)sent - (ssize_t)sizeof(q->tcplen));
 		}
 	}
 
