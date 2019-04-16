@@ -37,11 +37,6 @@
 #include "nsec3.h"
 #include "tsig.h"
 
-#ifdef HAVE_SSL
-#define STARTTLS_STR "STARTTLS"
-#define NO_TLS_STR   "NO_TLS"
-#endif
-
 /* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
  * This function determines if the final response packet needs the NS RRset
  * included. Currently, it will only return negative if QTYPE == DNSKEY|DS.
