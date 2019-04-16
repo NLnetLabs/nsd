@@ -197,7 +197,8 @@ struct tcp_handler_data
 	/*
 	 * TLS handshake state.
 	 */
-	enum { tls_hs_none, tls_hs_read, tls_hs_write } shake_state;
+	enum { tls_hs_none, tls_hs_read, tls_hs_write,
+		tls_hs_read_event, tls_hs_write_event} shake_state;
 #endif
 };
 
@@ -3198,6 +3199,18 @@ static int
 tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 {
 	int r;
+	if(data->shake_state == tls_hs_read_event) {
+		/* read condition satisfied back to writing */
+		tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST|EV_TIMEOUT|EV_WRITE);
+		data->shake_state = tls_hs_none;
+		return 1;
+	}
+	if(data->shake_state == tls_hs_write_event) {
+		/* write condition satisfied back to reading */
+		tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST|EV_TIMEOUT|EV_READ);
+		data->shake_state = tls_hs_none;
+		return 1;
+	}
 
 	/* (continue to) setup the TLS connection */
 	ERR_clear_error();
@@ -3295,7 +3308,7 @@ handle_tls_reading(int fd, short event, void* arg)
 			}
 			else if(want == SSL_ERROR_WANT_WRITE) {
 				/* switch to writing */
-				data->shake_state = tls_hs_write;
+				data->shake_state = tls_hs_write_event;
 				tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT);
 				return;
 			}
@@ -3357,7 +3370,7 @@ handle_tls_reading(int fd, short event, void* arg)
 		}
 		else if(want == SSL_ERROR_WANT_WRITE) {
 			/* switch back writing */
-			data->shake_state = tls_hs_write;
+			data->shake_state = tls_hs_write_event;
 			tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT);
 			return;
 		}
@@ -3479,7 +3492,7 @@ handle_tls_writing(int fd, short event, void* arg)
 			/* closed */
 		} else if(want == SSL_ERROR_WANT_READ) {
 			/* switch back to reading */
-			data->shake_state = tls_hs_read;
+			data->shake_state = tls_hs_read_event;
 			tcp_handler_setup_event(data, handle_tls_reading, fd, EV_PERSIST | EV_READ | EV_TIMEOUT);
 		} else if(want != SSL_ERROR_WANT_WRITE) {
 			cleanup_tcp_handler(data);

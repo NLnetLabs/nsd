@@ -16,6 +16,8 @@
 	- Fix to add missing comment.
 	- Fix that the TLS handshake routine sets the correct event to
 	  continue when done.
+	- Fix that TLS renegotiation calls the read and write routines again
+	  with the same parameters when the desired event has been satisfied.
 
 25 March 2019: Wouter
 	- Print IP address when bind socket fails with error.
