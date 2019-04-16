@@ -104,8 +104,6 @@ struct nsd_options {
 	char* tls_service_pem;
 	/* TLS dedicated port */
 	const char* tls_port;
-	/* Allow upgrade to TLS after STARTTLS negotiation*/
-	int do_starttls;
 
         /** remote control section. enable toggle. */
 	int control_enable;

@@ -582,46 +582,6 @@ answer_chaos(struct nsd *nsd, query_type *q)
 			} else {
 				RCODE_SET(q->packet, RCODE_REFUSE);
 			}
-#ifdef HAVE_SSL
-		} else if (q->qname->name_size == 10
-			   && memcmp(dname_name(q->qname), "\010starttls", 10) == 0) {
-			if (q->tcp) {
-				if (q->first_query) {
-					if (nsd->tls_ctx
-#ifdef USE_TO_BIT
-					    && q->edns.tls_ok
-#endif
-					    && nsd->options->do_starttls ) {
-						/* Add STARTTLS answer */
-						query_addtxt(q,
-							buffer_begin(q->packet) + QHEADERSZ,
-							CLASS_CH,
-							0,
-							STARTTLS_STR);
-						ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
-						/* Not required if TO bit assigned and used.*/
-						q->tls_ok = 1;
-						/* Logs here are for testing */
-						VERBOSITY(3, (LOG_INFO, "STARTTLS received and sent in response"));
-					} else {
-						/* Add NO_TLS answer */
-						query_addtxt(q,
-							buffer_begin(q->packet) + QHEADERSZ,
-							CLASS_CH,
-							0,
-							NO_TLS_STR);
-						ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
-						VERBOSITY(3, (LOG_INFO, "STARTTLS received and but NO_TLS sent in response"));
-					}
-				} else {
-					RCODE_SET(q->packet, RCODE_REFUSE);
-					VERBOSITY(3, (LOG_INFO, "STARTTLS ignored as not first query on tcp connection"));
-				}
-			} else {
-				RCODE_SET(q->packet, RCODE_REFUSE);
-			}
-#endif
-		/* Back port of fix in 4.1.1 for noname CH TXT queries */
 		} else {
 			RCODE_SET(q->packet, RCODE_REFUSE);
 		}

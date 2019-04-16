@@ -295,7 +295,6 @@ multi-master-check{COLON}      { LEXOUT(("v(%s) ", yytext)); return VAR_MULTI_MA
 tls-service-key{COLON} { LEXOUT(("v(%s) ", yytext)); return VAR_TLS_SERVICE_KEY;}
 tls-service-pem{COLON} { LEXOUT(("v(%s) ", yytext)); return VAR_TLS_SERVICE_PEM;}
 tls-port{COLON}        { LEXOUT(("v(%s) ", yytext)); return VAR_TLS_PORT;}
-do-starttls{COLON}     { LEXOUT(("v(%s) ", yytext)); return VAR_DO_STARTTLS;}
 {NEWLINE}		{ LEXOUT(("NL\n")); cfg_parser->line++;}
 
 	/* Quoted strings. Strip leading and ending quotes */

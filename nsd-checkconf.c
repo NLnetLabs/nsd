@@ -372,7 +372,6 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_BIN(round_robin, o);
 		SERV_GET_BIN(minimal_responses, o);
 		SERV_GET_BIN(refuse_any, o);
-		SERV_GET_BIN(do_starttls, o);
 		/* str */
 		SERV_GET_PATH(final, database, o);
 		SERV_GET_STR(identity, o);
@@ -545,7 +544,6 @@ config_test_print_server(nsd_options_type* opt)
 	print_string_var("tls-service-key:", opt->tls_service_key);
 	print_string_var("tls-service-pem:", opt->tls_service_pem);
 	print_string_var("tls-port:", opt->tls_port);
-	printf("\tdo_starttls: %s\n", opt->do_starttls?"yes":"no");
 
 #ifdef USE_DNSTAP
 	printf("\ndnstap:\n");

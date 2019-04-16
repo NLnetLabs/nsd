@@ -954,8 +954,6 @@ main(int argc, char *argv[])
 	   && nsd.options->tls_service_pem && nsd.options->tls_service_pem[0]) {
 		if(!(nsd.tls_ctx = server_tls_ctx_create(&nsd, NULL)))
 			error("could not set up tls SSL_CTX");
-		if (nsd.options->do_starttls)
-			log_msg(LOG_NOTICE, "STARTTLS enabled");
 	}
 #endif /* HAVE_SSL */
 
