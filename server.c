@@ -237,7 +237,7 @@ static SSL* incoming_ssl_fd(SSL_CTX* ctx, int fd);
 /*
  * Handle TLS handshake. May be called multiple times if incomplete.
  */
-static int tls_handshake(struct tcp_handler_data* data, int fd);
+static int tls_handshake(struct tcp_handler_data* data, int fd, int writing);
 
 /*
  * Handle incoming queries on a TLS over TCP connection.  The TLS
@@ -2813,7 +2813,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 
 	if (data->nsd->tcp_query_count > 0 &&
 		data->query_count >= data->nsd->tcp_query_count) {
-		/* No more queries allowed on this tcp connection.  */
+		/* No more queries allowed on this tcp connection. */
 		cleanup_tcp_handler(data);
 		return;
 	}
@@ -3195,7 +3195,7 @@ incoming_ssl_fd(SSL_CTX* ctx, int fd)
 
 /** TLS handshake to upgrade TCP connection */
 static int
-tls_handshake(struct tcp_handler_data* data, int fd)
+tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 {
 	int r;
 
@@ -3234,6 +3234,12 @@ tls_handshake(struct tcp_handler_data* data, int fd)
 
 	/* Use to log successful upgrade for testing - could be removed*/
 	VERBOSITY(3, (LOG_INFO, "TLS handshake succeeded."));
+	/* set back to the event we need to have when reading (or writing) */
+	if(data->shake_state == tls_hs_read && writing) {
+		tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST|EV_TIMEOUT|EV_WRITE);
+	} else if(data->shake_state == tls_hs_write && !writing) {
+		tcp_handler_setup_event(data, handle_tls_reading, fd, EV_PERSIST|EV_TIMEOUT|EV_READ);
+	}
 	data->shake_state = tls_hs_none;
 	return 1;
 }
@@ -3253,7 +3259,7 @@ handle_tls_reading(int fd, short event, void* arg)
 
 	if (data->nsd->tcp_query_count > 0 &&
 	    data->query_count >= data->nsd->tcp_query_count) {
-		/* No more queries allowed on this tcp connection.  */
+		/* No more queries allowed on this tcp connection. */
 		cleanup_tcp_handler(data);
 		return;
 	}
@@ -3265,7 +3271,7 @@ handle_tls_reading(int fd, short event, void* arg)
 	}
 
 	if(data->shake_state != tls_hs_none) {
-		if(!tls_handshake(data, fd))
+		if(!tls_handshake(data, fd, 0))
 			return;
 		if(data->shake_state != tls_hs_none)
 			return;
@@ -3435,7 +3441,7 @@ handle_tls_writing(int fd, short event, void* arg)
 	assert((event & EV_WRITE));
 
 	if(data->shake_state != tls_hs_none) {
-		if(!tls_handshake(data, fd))
+		if(!tls_handshake(data, fd, 1))
 			return;
 		if(data->shake_state != tls_hs_none)
 			return;

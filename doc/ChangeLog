@@ -14,6 +14,8 @@
 	- Fix potential uninitialized variable.
 	- Fix documentation for DNS over TLS, and set default port 853.
 	- Fix to add missing comment.
+	- Fix that the TLS handshake routine sets the correct event to
+	  continue when done.
 
 25 March 2019: Wouter
 	- Print IP address when bind socket fails with error.

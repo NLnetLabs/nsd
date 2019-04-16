@@ -13,6 +13,8 @@ FEATURES:
 	  from Sara Dickinson (Sinodun).
 BUG FIXES:
 	- Fix to delete unused zparser.default_apex member.
+	- Fix that the TLS handshake routine sets the correct event to
+	  continue when done.
 
 
 4.1.27
