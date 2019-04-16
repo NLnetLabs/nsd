@@ -232,7 +232,7 @@ static void handle_tcp_reading(int fd, short event, void* arg);
 static void handle_tcp_writing(int fd, short event, void* arg);
 
 #ifdef HAVE_SSL
-/*Comment*/
+/* create SSL object and associate fd */
 static SSL* incoming_ssl_fd(SSL_CTX* ctx, int fd);
 /*
  * Handle TLS handshake. May be called multiple times if incomplete.
