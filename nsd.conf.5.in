@@ -443,20 +443,22 @@ With the value 0 the rate is unlimited.
 .\" rrlend
 .TP
 .B tls\-service\-key:\fR <filename>
-If  enabled, the server provides TLS service on its TCP sockets.
-The file is the private key for the TLS session. The public certificate is in the
-tls-service-pem file. Default is "", turned off. Requires a restart (a reload is
-not enough) if changed, because the private key is read while root permissions
-are held and before chroot (if any). Normal DNS TCP service is not provided and gives
-errors, this service is best run with a different port: config or @port suffixes in the
-interface config.
+If enabled, the server provides TLS service on TCP sockets with the TLS
+service port number.  The port number (853) is configured with tls\-port.
+To turn it on, create an interface with @port appended to the IP-address.
+This creates the extra interface on which the DNS over TLS service is provided.
+.IP
+The file is the private key for the TLS session. The public certificate is
+in the tls-service-pem file. Default is "", turned off. Requires a
+restart (a reload is not enough) if changed, because the private key is
+read while root permissions are held and before chroot (if any).
 .TP
 .B tls\-service\-pem:\fR <filename>
 The public key certificate pem file for the tls service. Default is "", turned off.
 .TP
 .B tls\-port:\fR <number>
-The port number on which to provide TCP TLS service, default is turned off, only
-interfaces configured with that port number as @number get the TLS service.
+The port number on which to provide TCP TLS service, default is 853, only
+interfaces configured with that port number as @number get DNS over TLS service.
 .TP
 .B do\-starttls:\fR <yes or no>
 Allow upgrade to TLS on regular TCP connections via STARTTLS.

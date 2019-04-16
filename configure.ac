@@ -722,6 +722,7 @@ AC_DEFINE_UNQUOTED([TCP_MAX_MESSAGE_LEN], [65535], [Define to the default maximu
 AC_DEFINE_UNQUOTED([UDP_PORT], ["53"], [Define to the default udp port.])
 AC_DEFINE_UNQUOTED([UDP_MAX_MESSAGE_LEN], [512], [Define to the default maximum udp message length.])
 AC_DEFINE_UNQUOTED([EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximum message length with EDNS.])
+AC_DEFINE_UNQUOTED([TLS_PORT], ["853"], [Define to the default DNS over TLS port.])
 AC_DEFINE_UNQUOTED([MAXSYSLOGMSGLEN], [512], [Define to the maximum message length to pass to syslog.])
 AC_DEFINE_UNQUOTED([NSD_CONTROL_PORT], [8952], [Define to the default nsd-control port.])
 AC_DEFINE_UNQUOTED([NSD_CONTROL_VERSION], [1], [Define to nsd-control proto version.])
