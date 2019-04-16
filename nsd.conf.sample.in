@@ -199,9 +199,6 @@ server:
 	# tls-service-pem: "path/to/publiccertfile.pem"
 	# tls-port: <port-number>
 
-	# Do we allow tls upgrade on tcp connections after STARTTLS?
-	# do-starttls
-
 # Remote control config section. 
 remote-control:
 	# Enable remote control with nsd-control(8) here.
