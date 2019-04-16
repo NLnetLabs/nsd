@@ -64,6 +64,7 @@ struct nsd_options {
 	int debug_mode;
 	int verbosity;
 	int hide_version;
+	int hide_identity;
 	int do_ip4;
 	int do_ip6;
 	const char* database;

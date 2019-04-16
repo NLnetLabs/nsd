@@ -59,7 +59,7 @@ extern config_parser_state_type* cfg_parser;
 %token VAR_KEY
 %token VAR_ALGORITHM VAR_SECRET
 %token VAR_AXFR VAR_UDP
-%token VAR_VERBOSITY VAR_HIDE_VERSION
+%token VAR_VERBOSITY VAR_HIDE_VERSION VAR_HIDE_IDENTITY
 %token VAR_PATTERN VAR_INCLUDEPATTERN VAR_ZONELISTFILE
 %token VAR_REMOTE_CONTROL VAR_CONTROL_ENABLE VAR_CONTROL_INTERFACE
 %token VAR_CONTROL_PORT VAR_SERVER_KEY_FILE VAR_SERVER_CERT_FILE
@@ -107,7 +107,8 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_zonefiles_check | server_do_ip4 | server_do_ip6 |
 	server_zonefiles_write | server_log_time_ascii | server_round_robin |
 	server_reuseport | server_version | server_ip_freebind |
-	server_minimal_responses | server_refuse_any | server_use_systemd;
+	server_minimal_responses | server_refuse_any | server_use_systemd |
+	server_hide_identity;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -173,6 +174,14 @@ server_hide_version: VAR_HIDE_VERSION STRING
 		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
 			yyerror("expected yes or no.");
 		else cfg_parser->opt->hide_version = (strcmp($2, "yes")==0);
+	}
+	;
+server_hide_identity: VAR_HIDE_IDENTITY STRING 
+	{ 
+		OUTYY(("P(server_hide_identity:%s)\n", $2)); 
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->hide_identity = (strcmp($2, "yes")==0);
 	}
 	;
 server_ip4_only: VAR_IP4_ONLY STRING 

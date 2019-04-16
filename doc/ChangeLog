@@ -1,3 +1,7 @@
+16 April 2019: Wouter
+	- Fix #4249: The option hide-identity: yes stops NSD from responding
+	  with the hostname for chaos class queries.
+
 25 March 2019: Wouter
 	- Print IP address when bind socket fails with error.
 

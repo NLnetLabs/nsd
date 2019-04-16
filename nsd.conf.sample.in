@@ -85,6 +85,9 @@ server:
 	# don't answer VERSION.BIND and VERSION.SERVER CHAOS class queries
 	# hide-version: no
 
+	# don't answer HOSTNAME.BIND and ID.SERVER CHAOS class queries
+	# hide-identity: no
+
 	# version string the server responds with for chaos queries.
 	# default is 'NSD x.y.z' with the server's version number.
 	# version: "NSD"
