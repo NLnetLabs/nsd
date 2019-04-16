@@ -1,3 +1,7 @@
+16 April 2019: Andreas via Sara
+	- Patch to add support for TCP Fast Open
+	- Patch to add support for tls service on a specified tls port
+
 16 April 2019: Wouter
 	- Fix #4249: The option hide-identity: yes stops NSD from responding
 	  with the hostname for chaos class queries.  Implements the RFC4829
@@ -231,11 +235,6 @@
 23 May 2018: Wouter
 	- Use accept4 to speed up answer of TCP queries, on Linux and FreeBSD
 	  and OpenBSD.
-
-23 May 2018: Andreas via Sara
-	- Patch to add support for experimental STARTTLS implementation
-	- Patch to add support for experimental TCP Fast Open
-	- Patch to add support for tls service on a specified tls port
 
 22 May 2018: Wouter
 	- Fix nsec3 hash of parent and child co-hosted nsec3 enabled zones.
