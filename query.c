@@ -200,10 +200,6 @@ query_create(region_type *region, uint16_t *compressed_dname_offsets,
 	query->tsig_prepare_it = 1;
 	query->tsig_update_it = 1;
 	query->tsig_sign_it = 1;
-#ifdef HAVE_SSL
-	query->first_query = 1;
-	query->tls_ok = 0;
-#endif
 	return query;
 }
 

@@ -8,6 +8,7 @@
 	  security considerations.
 	- Remove starttls, this signalling method was not standardized.
 	- Remove TO bit, this signalling method was not standardized.
+	- Remove unused first_query and tls_ok states.
 
 25 March 2019: Wouter
 	- Print IP address when bind socket fails with error.

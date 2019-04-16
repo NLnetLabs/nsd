@@ -63,13 +63,6 @@ struct query {
 
 	int tcp;
 	uint16_t tcplen;
-#ifdef HAVE_SSL
-	int first_query;
-	/* This tls_ok variable is needed for the case where the TO bit is not used
-	 * and upgrade is triggered based only on the STARTTLS query content. It can
-	 * be removed if the TO bit is assigned by IANA and the logic is revised. */
-	int tls_ok;
-#endif
 
 	buffer_type *packet;
 

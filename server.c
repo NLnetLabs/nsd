@@ -3002,25 +3002,8 @@ handle_tcp_reading(int fd, short event, void* arg)
 
 	ev_base = data->event.ev_base;
 	event_del(&data->event);
-#ifdef HAVE_SSL
-	data->query->first_query = 0;
-	if (data->nsd->tls_ctx && data->query->tls_ok) {
-		data->tls = incoming_ssl_fd(data->nsd->tls_ctx, fd);
-		if(!data->tls) {
-			close(fd);
-			return;
-		}
-		data->shake_state = tls_hs_read;
-		event_set(&data->event, fd, EV_PERSIST | EV_READ | EV_TIMEOUT,
-			  handle_tls_reading, data);
-		data->query_state = QUERY_PROCESSED;
-	} else {
-#endif
-		event_set(&data->event, fd, EV_PERSIST | EV_READ | EV_TIMEOUT,
-			handle_tcp_reading, data);
-#ifdef HAVE_SSL
-	}
-#endif
+	event_set(&data->event, fd, EV_PERSIST | EV_READ | EV_TIMEOUT,
+		handle_tcp_reading, data);
 	if(event_base_set(ev_base, &data->event) != 0)
 		log_msg(LOG_ERR, "event base set tcpr failed");
 	if(event_add(&data->event, &timeout) != 0)
@@ -3557,7 +3540,6 @@ handle_tls_writing(int fd, short event, void* arg)
 	}
 
 	data->bytes_transmitted = 0;
-	data->query->first_query = 0;
 
 	tcp_handler_setup_event(data, handle_tls_reading, fd, EV_PERSIST | EV_READ | EV_TIMEOUT);
 }
