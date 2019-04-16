@@ -198,7 +198,7 @@ struct tcp_handler_data
 	 * TLS handshake state.
 	 */
 	enum { tls_hs_none, tls_hs_read, tls_hs_write,
-		tls_hs_read_event, tls_hs_write_event} shake_state;
+		tls_hs_read_event, tls_hs_write_event } shake_state;
 #endif
 };
 
