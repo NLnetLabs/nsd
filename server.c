@@ -293,12 +293,12 @@ static void report_tcp_fastopen_config() {
 		close(tcp_fastopen_fp);
 	}
 	if (!(tcp_fastopen_value & TCP_FASTOPEN_SERVER_BIT_MASK)) {
-		log_msg(LOG_ERR,"Error: TCP Fast Open support is available and configure in NSD by default.\n");
-		log_msg(LOG_ERR,"However the kernel paramenters are not configured to support TCP_FASTOPEN in server mode.\n");
-		log_msg(LOG_ERR,"To enable TFO use the command:");
-		log_msg(LOG_ERR,"  'sudo sysctl -w net.ipv4.tcp_fastopen=2' for pure server mode or\n");
-		log_msg(LOG_ERR,"  'sudo sysctl -w net.ipv4.tcp_fastopen=3' for both client and server mode\n");
-		log_msg(LOG_ERR,"NSD will not have TCP Fast Open available until this change is made.\n");
+		log_msg(LOG_WARNING, "Error: TCP Fast Open support is available and configured in NSD by default.\n");
+		log_msg(LOG_WARNING, "However the kernel paramenters are not configured to support TCP_FASTOPEN in server mode.\n");
+		log_msg(LOG_WARNING, "To enable TFO use the command:");
+		log_msg(LOG_WARNING, "  'sudo sysctl -w net.ipv4.tcp_fastopen=2' for pure server mode or\n");
+		log_msg(LOG_WARNING, "  'sudo sysctl -w net.ipv4.tcp_fastopen=3' for both client and server mode\n");
+		log_msg(LOG_WARNING, "NSD will not have TCP Fast Open available until this change is made.\n");
 		close(tcp_fastopen_fp);
 	}
 	close(tcp_fastopen_fp);
@@ -2399,7 +2399,11 @@ server_child(struct nsd *nsd)
 			if (nsd->tls_ctx && nsd->options->tls_port && using_tls_port(
 			    data->socket->addr->ai_addr, nsd->options->tls_port)) {
 				data->tls_accept = 1;
-				log_msg(LOG_NOTICE, "setup TCP for TLS service on interface %d", (int)i);
+				if(verbosity >= 2) {
+					char buf[48];
+					addrport2str((struct sockaddr_storage*)data->socket->addr->ai_addr, buf, sizeof(buf));
+					VERBOSITY(2, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
+				}
 			}
 			else
 				data->tls_accept = 0;
