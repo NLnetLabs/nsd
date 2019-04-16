@@ -277,7 +277,7 @@ static uint32_t compression_table_size = 0;
 static domain_type* compressed_dnames[MAXRRSPP];
 
 #ifdef USE_TCP_FASTOPEN
-/* Checks to see if the kernal value must be manually changed in order for
+/* Checks to see if the kernel value must be manually changed in order for
    TCP Fast Open to support server mode */
 static void report_tcp_fastopen_config() {
 
@@ -293,7 +293,7 @@ static void report_tcp_fastopen_config() {
 	}
 	if (!(tcp_fastopen_value & TCP_FASTOPEN_SERVER_BIT_MASK)) {
 		log_msg(LOG_ERR,"Error: TCP Fast Open support is available and configure in NSD by default.\n");
-		log_msg(LOG_ERR,"However the kernal paramenters are not configured to support TCP_FASTOPEN in server mode.\n");
+		log_msg(LOG_ERR,"However the kernel paramenters are not configured to support TCP_FASTOPEN in server mode.\n");
 		log_msg(LOG_ERR,"To enable TFO use the command:");
 		log_msg(LOG_ERR,"  'sudo sysctl -w net.ipv4.tcp_fastopen=2' for pure server mode or\n");
 		log_msg(LOG_ERR,"  'sudo sysctl -w net.ipv4.tcp_fastopen=3' for both client and server mode\n");
