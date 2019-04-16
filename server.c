@@ -3004,11 +3004,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 	event_del(&data->event);
 #ifdef HAVE_SSL
 	data->query->first_query = 0;
-#ifdef USE_TO_BIT
-	if (data->nsd->tls_ctx && data->query->edns.tls_ok) {
-#else
 	if (data->nsd->tls_ctx && data->query->tls_ok) {
-#endif
 		data->tls = incoming_ssl_fd(data->nsd->tls_ctx, fd);
 		if(!data->tls) {
 			close(fd);

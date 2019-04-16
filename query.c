@@ -366,22 +366,6 @@ process_edns(nsd_type* nsd, struct query *q)
 #endif
 		}
 
-#ifdef USE_TO_BIT
-	/* Change the value of the tls_ok bit depending on whether or not the
-	 * connection should be upgraded to TLS based on this query. The value is
-	 * used later to trigger the upgrade and also to construct the response.
-	 */
-	if (q->edns.tls_ok) {
-		/* Logs for testing */
-		VERBOSITY(3, (LOG_INFO, "TO bit recieved"));
-		if (!(q->tcp && q->first_query && nsd->tls_ctx
-		    && nsd->options->do_starttls)) {
-			VERBOSITY(3, (LOG_INFO, "TO bit rejected"));
-			q->edns.tls_ok = 0;
-		}
-	}
-#endif
-
 		/* Strip the OPT resource record off... */
 		buffer_set_position(q->packet, q->edns.position);
 		buffer_set_limit(q->packet, q->edns.position);
@@ -1548,11 +1532,6 @@ query_add_optional(query_type *q, nsd_type *nsd)
 	case EDNS_OK:
 		if (q->edns.dnssec_ok)	edns->ok[7] = 0x80;
 		else			edns->ok[7] = 0x00;
-#ifdef USE_TO_BIT
-		if (q->edns.tls_ok) {
-			edns->ok[7] = edns->ok[7] | ((TLS_OK_MASK >> 8) & 0xFF);
-		}
-#endif
 		buffer_write(q->packet, edns->ok, OPT_LEN);
 		if(q->edns.opt_reserved_space == 0 || !buffer_available(
 			q->packet, 2+q->edns.opt_reserved_space)) {
@@ -1576,11 +1555,6 @@ query_add_optional(query_type *q, nsd_type *nsd)
 	case EDNS_ERROR:
 		if (q->edns.dnssec_ok)	edns->error[7] = 0x80;
 		else			edns->error[7] = 0x00;
-#ifdef USE_TO_BIT
-		if (q->edns.tls_ok) {
-			edns->ok[7] = edns->ok[7] | ((TLS_OK_MASK >> 8) & 0xFF);
-		}
-#endif
 		buffer_write(q->packet, edns->error, OPT_LEN);
 		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);

@@ -19,10 +19,6 @@ struct query;
 #define OPT_HDR 4U                      /* NSID opt header length */
 #define NSID_CODE       3               /* nsid option code */
 #define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
-#ifdef USE_TO_BIT
-#define TLS_OK_MASK  0x4000U            /* to bit mask */
-#endif
-
 
 struct edns_data
 {

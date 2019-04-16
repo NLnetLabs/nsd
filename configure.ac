@@ -955,19 +955,6 @@ dt_DNSTAP([${localstatedir}/run/nsd-dnstap.sock],
 sinclude(systemd.m4)
 # Include systemd.m4 - end
 
-AC_ARG_ENABLE(TObit, AC_HELP_STRING([--enable-TObit], [(Experimental) Enables TO bit during STARTTLS negotiation. NOTE WELL: The TO bit is NOT assigned by IANA - USE FOR TESTING ONLY! DO NOT DEPLOY TO PRODUCTION ENVIRONMENTS!]))
-case "$enable_TObit" in
-       yes)
-       if test x$HAVE_SSL = x"yes"; then
-               AC_DEFINE_UNQUOTED([USE_TO_BIT], [], [Define this to enable use of the TO bit.])
-       else
-               AC_MSG_WARN([No SSL, therefore TO bit is disabled])
-       fi
-               ;;
-       no|*)
-               ;;
-esac
-
 AC_ARG_ENABLE(tcp-fastopen, AC_HELP_STRING([--enable-tcp-fastopen], [Enable TCP Fast Open]))
 case "$enable_tcp_fastopen" in
        yes)
@@ -979,7 +966,6 @@ case "$enable_tcp_fastopen" in
        no|*)
                ;;
 esac
-
 
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
