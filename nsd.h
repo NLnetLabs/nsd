@@ -321,6 +321,7 @@ void server_start_xfrd(struct nsd *nsd, int del_db, int reload_active);
 void server_send_soa_xfrd(struct nsd *nsd, int shortsoa);
 #ifdef HAVE_SSL
 SSL_CTX* server_tls_ctx_create(struct nsd *nsd, char* verifypem);
+void perform_openssl_init(void);
 #endif
 ssize_t block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout);
 

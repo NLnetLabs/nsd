@@ -1,3 +1,6 @@
+17 April 2019: Wouter
+	- Fix to share openssl init code, and perform it once.
+
 16 April 2019: Andreas via Sara
 	- Patch to add support for TCP Fast Open
 	- Patch to add support for tls service on a specified tls port

@@ -945,6 +945,9 @@ main(int argc, char *argv[])
 			"not be started", argv0);
 	}
 #if defined(HAVE_SSL)
+	if(nsd.options->control_enable || (nsd.options->tls_service_key && nsd.options->tls_service_key[0])) {
+		perform_openssl_init();
+	}
 	if(nsd.options->control_enable) {
 		/* read ssl keys while superuser and outside chroot */
 		if(!(nsd.rc = daemon_remote_create(nsd.options)))

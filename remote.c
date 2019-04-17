@@ -305,38 +305,6 @@ daemon_remote_create(struct nsd_options* cfg)
 	rc->max_active = 10;
 	assert(cfg->control_enable);
 
-	/* init SSL library */
-#ifdef HAVE_ERR_LOAD_CRYPTO_STRINGS
-	ERR_load_crypto_strings();
-#endif
-	ERR_load_SSL_strings();
-#if OPENSSL_VERSION_NUMBER < 0x10100000 || !defined(HAVE_OPENSSL_INIT_CRYPTO)
-	OpenSSL_add_all_algorithms();
-#else
-	OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS
-		| OPENSSL_INIT_ADD_ALL_DIGESTS
-		| OPENSSL_INIT_LOAD_CRYPTO_STRINGS, NULL);
-#endif
-#if OPENSSL_VERSION_NUMBER < 0x10100000 || !defined(HAVE_OPENSSL_INIT_SSL)
-	(void)SSL_library_init();
-#else
-	OPENSSL_init_ssl(0, NULL);
-#endif
-
-	if(!RAND_status()) {
-		/* try to seed it */
-		unsigned char buf[256];
-		unsigned int v, seed=(unsigned)time(NULL) ^ (unsigned)getpid();
-		size_t i;
-		v = seed;
-		for(i=0; i<256/sizeof(v); i++) {
-			memmove(buf+i*sizeof(v), &v, sizeof(v));
-			v = v*seed + (unsigned int)i;
-		}
-		RAND_seed(buf, 256);
-		log_msg(LOG_WARNING, "warning: no entropy, seeding openssl PRNG with time");
-	}
-
 	if(options_remote_is_address(cfg)) {
 		if(!remote_setup_ctx(rc, cfg)) {
 			daemon_remote_delete(rc);
