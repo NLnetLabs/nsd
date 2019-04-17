@@ -460,10 +460,6 @@ The public key certificate pem file for the tls service. Default is "", turned o
 .B tls\-port:\fR <number>
 The port number on which to provide TCP TLS service, default is 853, only
 interfaces configured with that port number as @number get DNS over TLS service.
-.TP
-.B do\-starttls:\fR <yes or no>
-Allow upgrade to TLS on regular TCP connections via STARTTLS.
-Uses the tls\-service\-key and tls\-service\-pem for the key and certificate.
 .SS "Remote Control"
 The
 .B remote\-control:
