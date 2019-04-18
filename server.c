@@ -1602,6 +1602,21 @@ server_tls_ctx_create(struct nsd* nsd, char* verifypem)
 		return 0;
 	}
 #endif
+#if defined(SHA256_DIGEST_LENGTH) && defined(SSL_TXT_CHACHA20)
+	/* if we have sha256, set the cipher list to have no known vulns */
+	if(!SSL_CTX_set_cipher_list(ctx, "CHACHA20+ECDH:AESGCM+ECDH:!SHA:!AESCCM"))
+		log_crypto_err("could not set cipher list with SSL_CTX_set_cipher_list");
+#endif
+	if((SSL_CTX_set_options(ctx, SSL_OP_CIPHER_SERVER_PREFERENCE) &
+		SSL_OP_CIPHER_SERVER_PREFERENCE) !=
+		SSL_OP_CIPHER_SERVER_PREFERENCE) {
+		log_crypto_err("could not set SSL_OP_CIPHER_SERVER_PREFERENCE");
+		SSL_CTX_free(ctx);
+		return 0;
+	}
+#ifdef HAVE_SSL_CTX_SET_SECURITY_LEVEL
+	SSL_CTX_set_security_level(ctx, 0);
+#endif
 	if(!SSL_CTX_use_certificate_chain_file(ctx, pem)) {
 		log_msg(LOG_ERR, "error for cert file: %s", pem);
 		log_crypto_err("error in SSL_CTX use_certificate_chain_file");

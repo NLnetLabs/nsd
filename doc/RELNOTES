@@ -21,6 +21,8 @@ BUG FIXES:
 	- Fix that TCP Fastopen has better error message and supports OSX.
 	- Fix to avoid buffer alloc with global buffer in tls write handler.
 	- Fix to initialize event structure when accepting TCP connection.
+	- Disable TLS1.0, TLS1.1 and weak ciphers, enable
+	  CIPHER_SERVER_PREFERENCE, patch from Andreas Schulze.
 
 
 4.1.27
