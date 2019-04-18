@@ -1556,6 +1556,14 @@ server_tls_ctx_create(struct nsd* nsd, char* verifypem)
 
 	key = nsd->options->tls_service_key;
 	pem = nsd->options->tls_service_pem;
+	if(!key || key[0] == 0) {
+		log_msg(LOG_ERR, "error: no tls-service-key file specified");
+		return NULL;
+	}
+	if(!pem || pem[0] == 0) {
+		log_msg(LOG_ERR, "error: no tls-service-pem file specified");
+		return NULL;
+	}
 
 	/* NOTE:This mimics the existing code in Unbound 1.5.1 by supporting SSL but
 	 * raft-ietf-uta-tls-bcp-08 recommends only using TLSv1.2*/
@@ -1564,12 +1572,36 @@ server_tls_ctx_create(struct nsd* nsd, char* verifypem)
 		log_crypto_err("could not SSL_CTX_new");
 		return NULL;
 	}
-	/* no SSLv2 because has defects */
+	/* no SSLv2, SSLv3 because has defects */
 	if((SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2) & SSL_OP_NO_SSLv2) != SSL_OP_NO_SSLv2){
 		log_crypto_err("could not set SSL_OP_NO_SSLv2");
 		SSL_CTX_free(ctx);
 		return NULL;
 	}
+	if((SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3) & SSL_OP_NO_SSLv3)
+		!= SSL_OP_NO_SSLv3){
+		log_crypto_err("could not set SSL_OP_NO_SSLv3");
+		SSL_CTX_free(ctx);
+		return 0;
+	}
+#if defined(SSL_OP_NO_TLSv1) && defined(SSL_OP_NO_TLSv1_1)
+	/* if we have tls 1.1 disable 1.0 */
+	if((SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1) & SSL_OP_NO_TLSv1)
+		!= SSL_OP_NO_TLSv1){
+		log_crypto_err("could not set SSL_OP_NO_TLSv1");
+		SSL_CTX_free(ctx);
+		return 0;
+	}
+#endif
+#if defined(SSL_OP_NO_TLSv1_1) && defined(SSL_OP_NO_TLSv1_2)
+	/* if we have tls 1.2 disable 1.1 */
+	if((SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1_1) & SSL_OP_NO_TLSv1_1)
+		!= SSL_OP_NO_TLSv1_1){
+		log_crypto_err("could not set SSL_OP_NO_TLSv1_1");
+		SSL_CTX_free(ctx);
+		return 0;
+	}
+#endif
 	if(!SSL_CTX_use_certificate_chain_file(ctx, pem)) {
 		log_msg(LOG_ERR, "error for cert file: %s", pem);
 		log_crypto_err("error in SSL_CTX use_certificate_chain_file");
