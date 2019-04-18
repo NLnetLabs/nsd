@@ -11,6 +11,7 @@ FEATURES:
 	  Dickinson (Sinodun).
 	- Patch to add support for tls service on a specified tls port,
 	  from Sara Dickinson (Sinodun).
+	- Use travis for build check, initial unit test and clang analysis.
 BUG FIXES:
 	- Fix to delete unused zparser.default_apex member.
 	- Fix that the TLS handshake routine sets the correct event to

@@ -1,0 +1,19 @@
+sudo: false
+language: c
+compiler:
+  - gcc
+addons:
+  apt:
+    packages:
+    - autoconf
+    - bison
+    - flex
+    - libssl-dev
+    - libevent-dev
+    - clang
+script:
+  - autoconf && autoheader
+  - ./configure --enable-checking --enable-root-server
+  - make
+  - make cutest && ./cutest
+  - cd tpkg; ./mini_tpkg.sh exe clang-analysis.tpkg
