@@ -1,3 +1,6 @@
+18 April 2019: Wouter
+	- Fix to avoid buffer alloc with global buffer in tls write handler.
+
 17 April 2019: Wouter
 	- Fix to share openssl init code, and perform it once.
 

@@ -3544,8 +3544,10 @@ handle_tls_writing(int fd, short event, void* arg)
 	struct tcp_handler_data *data = (struct tcp_handler_data *) arg;
 	ssize_t sent;
 	struct query *q = data->query;
+	/* static variable that holds reassembly buffer used to put the
+	 * TCP length in front of the packet, like writev. */
+	static buffer_type* global_tls_temp_buffer = NULL;
 	buffer_type* write_buffer;
-	region_type* region;
 
 	if ((event & EV_TIMEOUT)) {
 		/* Connection timed out.  */
@@ -3564,18 +3566,23 @@ handle_tls_writing(int fd, short event, void* arg)
 
 	(void)SSL_set_mode(data->tls, SSL_MODE_ENABLE_PARTIAL_WRITE);
 
-	/* If we are writng the start of a message, we must include the length
+	/* If we are writing the start of a message, we must include the length
 	 * For now, create a new buffer with the length prepended. This is very
 	 * inefficient and should be optimised. This could be done best by creating
 	 * a wrapper for the underlying message buffer.*/
 	write_buffer = NULL;
-	region = NULL;
 	if (data->bytes_transmitted == 0) {
-		region = region_create(xalloc, free);
-		write_buffer = buffer_create(region, buffer_limit(q->packet) + sizeof(q->tcplen));
-		if (!write_buffer) {
-			return;
+		if(!global_tls_temp_buffer) {
+			/* gets deallocated when nsd shuts down from
+			 * nsd.region */
+			global_tls_temp_buffer = buffer_create(nsd.region,
+				QIOBUFSZ + sizeof(q->tcplen));
+			if (!global_tls_temp_buffer) {
+				return;
+			}
 		}
+		write_buffer = global_tls_temp_buffer;
+		buffer_clear(write_buffer);
 		buffer_write_u16(write_buffer, q->tcplen);
 		buffer_write(write_buffer, buffer_current(q->packet),
 			(int)buffer_remaining(q->packet));
@@ -3600,9 +3607,6 @@ handle_tls_writing(int fd, short event, void* arg)
 			cleanup_tcp_handler(data);
 			log_crypto_err("could not SSL_write");
 		}
-		if (data->bytes_transmitted == 0 && write_buffer != NULL) {
-			region_destroy(region);
-		}
 		return;
 	}
 
@@ -3613,9 +3617,6 @@ handle_tls_writing(int fd, short event, void* arg)
 			buffer_skip(q->packet, (ssize_t)sent - (ssize_t)sizeof(q->tcplen));
 		}
 	}
-
-	if (data->bytes_transmitted == 0 && write_buffer != NULL)
-		region_destroy(region);
 
 	data->bytes_transmitted += sent;
 	if (data->bytes_transmitted < q->tcplen + sizeof(q->tcplen)) {
@@ -3779,6 +3780,7 @@ handle_tcp_accept(int fd, short event, void* arg)
 		/* very busy, give smaller timeout */
 		tcp_data->tcp_timeout = 200;
 	}
+	memset(&tcp_data->event, 0, sizeof(tcp_data->event));
 	timeout.tv_sec = tcp_data->tcp_timeout / 1000;
 	timeout.tv_usec = (tcp_data->tcp_timeout % 1000)*1000;
 

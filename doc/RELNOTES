@@ -18,6 +18,7 @@ BUG FIXES:
 	- Fix that TLS renegotiation calls the read and write routines again
 	  with the same parameters when the desired event has been satisfied.
 	- Fix that TCP Fastopen has better error message and supports OSX.
+	- Fix to avoid buffer alloc with global buffer in tls write handler.
 
 
 4.1.27
