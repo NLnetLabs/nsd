@@ -19,6 +19,7 @@ BUG FIXES:
 	  with the same parameters when the desired event has been satisfied.
 	- Fix that TCP Fastopen has better error message and supports OSX.
 	- Fix to avoid buffer alloc with global buffer in tls write handler.
+	- Fix to initialize event structure when accepting TCP connection.
 
 
 4.1.27
