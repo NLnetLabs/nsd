@@ -387,6 +387,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_PATH(final, zonelistfile, o);
 		SERV_GET_STR(port, o);
 		SERV_GET_STR(tls_service_key, o);
+		SERV_GET_STR(tls_service_ocsp, o);
 		SERV_GET_STR(tls_service_pem, o);
 		SERV_GET_STR(tls_port, o);
 		/* int */
@@ -543,6 +544,7 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\tzonefiles-write: %d\n", opt->zonefiles_write);
 	print_string_var("tls-service-key:", opt->tls_service_key);
 	print_string_var("tls-service-pem:", opt->tls_service_pem);
+	print_string_var("tls-service-ocsp:", opt->tls_service_ocsp);
 	print_string_var("tls-port:", opt->tls_port);
 
 #ifdef USE_DNSTAP

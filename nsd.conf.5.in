@@ -457,6 +457,19 @@ read while root permissions are held and before chroot (if any).
 .B tls\-service\-pem:\fR <filename>
 The public key certificate pem file for the tls service. Default is "", turned off.
 .TP
+.B tls\-service\-ocsp:\fR <filename>
+The ocsp pem file for the tls service, for OCSP stapling.  Default is "",
+turned off.  An external process prepares and updates the OCSP stapling data.
+Like this,
+.RS 9
+openssl ocsp -no_nonce \\
+   -respout /path/to/ocsp.pem \\
+   -CAfile /path/to/ca_and_any_intermediate.pem \\
+   -issuer /path/to/direct_issuer.pem \\
+   -cert /path/to/cert.pem \\
+   -url "$( openssl x509 -noout -text -in /path/to/cert.pem | grep 'OCSP - URI:' | cut -d: -f2,3 )"
+.RE
+.TP
 .B tls\-port:\fR <number>
 The port number on which to provide TCP TLS service, default is 853, only
 interfaces configured with that port number as @number get DNS over TLS service.

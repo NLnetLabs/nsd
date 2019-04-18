@@ -100,6 +100,8 @@ struct nsd_options {
 
 	/* private key file for TLS */
 	char* tls_service_key;
+	/* ocsp stapling file for TLS */
+	char* tls_service_ocsp;
 	/* certificate file for TLS */
 	char* tls_service_pem;
 	/* TLS dedicated port */

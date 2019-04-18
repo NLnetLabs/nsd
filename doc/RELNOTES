@@ -24,6 +24,8 @@ BUG FIXES:
 	- Disable TLS1.0, TLS1.1 and weak ciphers, enable
 	  CIPHER_SERVER_PREFERENCE, patch from Andreas Schulze.
 	- further setup ssl ctx after the keys are loaded, for ECDH.
+	- TLS OCSP stapling support, enabled with tls-service-ocsp: filename,
+	  patch from Andreas Schulze.
 
 
 4.1.27

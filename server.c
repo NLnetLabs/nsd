@@ -49,6 +49,9 @@
 #ifdef HAVE_OPENSSL_ERR_H
 #include <openssl/err.h>
 #endif
+#ifdef HAVE_OPENSSL_OCSP_H
+#include <openssl/ocsp.h>
+#endif
 #ifndef USE_MINI_EVENT
 #  ifdef HAVE_EVENT_H
 #    include <event.h>
@@ -116,6 +119,11 @@ static struct tcp_accept_handler_data*	tcp_accept_handlers;
 
 static struct event slowaccept_event;
 static int slowaccept;
+
+#ifdef HAVE_SSL
+static unsigned char *ocspdata = NULL;
+static long ocspdata_len = 0;
+#endif
 
 #ifndef NONBLOCKING_IS_BROKEN
 #  define NUM_RECV_PER_SELECT 100
@@ -1548,6 +1556,56 @@ perform_openssl_init(void)
 	}
 }
 
+static int
+get_ocsp(char *filename, unsigned char **ocsp)
+{
+	BIO *bio;
+	OCSP_RESPONSE *response;
+	int len = -1;
+	unsigned char *p, *buf;
+	assert(filename);
+
+	if ((bio = BIO_new_file(filename, "r")) == NULL) {
+		log_crypto_err("get_ocsp: BIO_new_file failed");
+		return -1;
+	}
+
+	if ((response = d2i_OCSP_RESPONSE_bio(bio, NULL)) == NULL) {
+		log_crypto_err("get_ocsp: d2i_OCSP_RESPONSE_bio failed");
+		BIO_free(bio);
+		return -1;
+	}
+
+	if ((len = i2d_OCSP_RESPONSE(response, NULL)) <= 0) {
+		log_crypto_err("get_ocsp: i2d_OCSP_RESPONSE #1 failed");
+		OCSP_RESPONSE_free(response);
+		BIO_free(bio);
+		return -1;
+	}
+
+	if ((buf = malloc((size_t) len)) == NULL) {
+		log_msg(LOG_ERR, "get_ocsp: malloc failed");
+		OCSP_RESPONSE_free(response);
+		BIO_free(bio);
+		return -1;
+	}
+
+	p = buf;
+	if ((len = i2d_OCSP_RESPONSE(response, &p)) <= 0) {
+		log_crypto_err("get_ocsp: i2d_OCSP_RESPONSE #2 failed");
+		free(buf);
+		OCSP_RESPONSE_free(response);
+		BIO_free(bio);
+		return -1;
+	}
+
+	OCSP_RESPONSE_free(response);
+	BIO_free(bio);
+
+	*ocsp = buf;
+	return len;
+}
+
 /* further setup ssl ctx after the keys are loaded */
 static void
 listen_sslctx_setup_2(void* ctxt)
@@ -1573,8 +1631,29 @@ listen_sslctx_setup_2(void* ctxt)
 #endif
 }
 
+static int
+add_ocsp_data_cb(SSL *s, void* ATTR_UNUSED(arg))
+{
+	if(ocspdata) {
+		unsigned char *p;
+		if ((p=malloc(ocspdata_len)) == NULL) {
+			log_msg(LOG_ERR, "add_ocsp_data_cb: malloc failure");
+			return SSL_TLSEXT_ERR_NOACK;
+		}
+		memcpy(p, ocspdata, ocspdata_len);
+		if ((SSL_set_tlsext_status_ocsp_resp(s, p, ocspdata_len)) != 1) {
+			log_crypto_err("Error in SSL_set_tlsext_status_ocsp_resp");
+			free(p);
+			return SSL_TLSEXT_ERR_NOACK;
+		}
+		return SSL_TLSEXT_ERR_OK;
+	} else {
+		return SSL_TLSEXT_ERR_NOACK;
+	}
+}
+
 SSL_CTX*
-server_tls_ctx_create(struct nsd* nsd, char* verifypem)
+server_tls_ctx_create(struct nsd* nsd, char* verifypem, char* ocspfile)
 {
 	char *key, *pem;
 	SSL_CTX *ctx;
@@ -1669,6 +1748,20 @@ server_tls_ctx_create(struct nsd* nsd, char* verifypem)
 		}
 		SSL_CTX_set_client_CA_list(ctx, SSL_load_client_CA_file(verifypem));
 		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
+	}
+	if(ocspfile && ocspfile[0]) {
+		if ((ocspdata_len = get_ocsp(ocspfile, &ocspdata)) < 0) {
+			log_crypto_err("Error reading OCSPfile");
+			SSL_CTX_free(ctx);
+			return NULL;
+		} else {
+			VERBOSITY(2, (LOG_INFO, "ocspfile %s loaded", ocspfile));
+			if(!SSL_CTX_set_tlsext_status_cb(ctx, add_ocsp_data_cb)) {
+				log_crypto_err("Error in SSL_CTX_set_tlsext_status_cb");
+				SSL_CTX_free(ctx);
+				return NULL;
+			}
+		}
 	}
 	return ctx;
 }

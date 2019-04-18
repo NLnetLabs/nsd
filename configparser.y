@@ -76,7 +76,7 @@ extern config_parser_state_type* cfg_parser;
 %token VAR_DNSTAP_SEND_IDENTITY VAR_DNSTAP_SEND_VERSION VAR_DNSTAP_IDENTITY
 %token VAR_DNSTAP_VERSION VAR_DNSTAP_LOG_AUTH_QUERY_MESSAGES
 %token VAR_DNSTAP_LOG_AUTH_RESPONSE_MESSAGES
-%token VAR_TLS_SERVICE_KEY VAR_TLS_SERVICE_PEM VAR_TLS_PORT VAR_DO_STARTTLS
+%token VAR_TLS_SERVICE_KEY VAR_TLS_SERVICE_OCSP VAR_TLS_SERVICE_PEM VAR_TLS_PORT
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -110,7 +110,7 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_reuseport | server_version | server_ip_freebind |
 	server_tls_service_key | server_tls_service_pem | server_tls_port |
 	server_minimal_responses | server_refuse_any | server_use_systemd |
-	server_hide_identity;
+	server_hide_identity | server_tls_service_ocsp;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -546,6 +546,12 @@ server_tls_service_key: VAR_TLS_SERVICE_KEY STRING
 		cfg_parser->opt->tls_service_key = region_strdup(cfg_parser->opt->region, $2);
 	}
 	;
+server_tls_service_ocsp: VAR_TLS_SERVICE_OCSP STRING
+	{
+		OUTYY(("P(server_tls_service_ocsp:%s)\n", $2));
+		cfg_parser->opt->tls_service_ocsp = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
 server_tls_service_pem: VAR_TLS_SERVICE_PEM STRING
 	{
 		OUTYY(("P(server_tls_service_pem:%s)\n", $2));
@@ -742,7 +748,7 @@ zone_config_item: zone_zonefile | zone_allow_notify | zone_request_xfr |
 	zone_outgoing_interface | zone_allow_axfr_fallback | include_pattern |
 	zone_rrl_whitelist | zone_zonestats | zone_max_refresh_time |
 	zone_min_refresh_time | zone_max_retry_time | zone_min_retry_time |
-       zone_size_limit_xfr | zone_multi_master_check;
+	zone_size_limit_xfr | zone_multi_master_check;
 pattern_name: VAR_NAME STRING
 	{ 
 		OUTYY(("P(pattern_name:%s)\n", $2)); 

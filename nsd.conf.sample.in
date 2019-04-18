@@ -197,6 +197,7 @@ server:
 	# Default is "" (disabled). Requires restart to take effect.
 	# tls-service-key: "path/to/privatekeyfile.key"
 	# tls-service-pem: "path/to/publiccertfile.pem"
+	# tls-service-ocsp: "path/to/ocsp.pem"
 	# tls-port: 853
 
 # Remote control config section. 

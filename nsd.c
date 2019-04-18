@@ -955,7 +955,8 @@ main(int argc, char *argv[])
 	}
 	if(nsd.options->tls_service_key && nsd.options->tls_service_key[0]
 	   && nsd.options->tls_service_pem && nsd.options->tls_service_pem[0]) {
-		if(!(nsd.tls_ctx = server_tls_ctx_create(&nsd, NULL)))
+		if(!(nsd.tls_ctx = server_tls_ctx_create(&nsd, NULL,
+			nsd.options->tls_service_ocsp)))
 			error("could not set up tls SSL_CTX");
 	}
 #endif /* HAVE_SSL */

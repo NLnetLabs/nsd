@@ -115,6 +115,7 @@ nsd_options_create(region_type* region)
 	else	opt->zonefiles_write = 0;
 	opt->xfrd_reload_timeout = 1;
 	opt->tls_service_key = NULL;
+	opt->tls_service_ocsp = NULL;
 	opt->tls_service_pem = NULL;
 	opt->tls_port = TLS_PORT;
 	opt->control_enable = 0;
