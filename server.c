@@ -3567,9 +3567,7 @@ handle_tls_writing(int fd, short event, void* arg)
 	(void)SSL_set_mode(data->tls, SSL_MODE_ENABLE_PARTIAL_WRITE);
 
 	/* If we are writing the start of a message, we must include the length
-	 * For now, create a new buffer with the length prepended. This is very
-	 * inefficient and should be optimised. This could be done best by creating
-	 * a wrapper for the underlying message buffer.*/
+	 * this is done with a copy into write_buffer. */
 	write_buffer = NULL;
 	if (data->bytes_transmitted == 0) {
 		if(!global_tls_temp_buffer) {
