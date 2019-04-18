@@ -16,4 +16,4 @@ script:
   - ./configure --enable-checking --disable-flto
   - make
   - make cutest && ./cutest
-  - cd tpkg; ./mini_tpkg.sh exe clang-analysis.tpkg ; if grep -e "warning:" -e "error:" result.clang-analysis ; then exit 1; else exit 0; fi
+  - (cd tpkg; ./mini_tpkg.sh exe clang-analysis.tpkg ; if grep -e "warning:" -e "error:" result.clang-analysis ; then exit 1; else exit 0; fi)
