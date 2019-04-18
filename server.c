@@ -1548,6 +1548,31 @@ perform_openssl_init(void)
 	}
 }
 
+/* further setup ssl ctx after the keys are loaded */
+static void
+listen_sslctx_setup_2(void* ctxt)
+{
+	SSL_CTX* ctx = (SSL_CTX*)ctxt;
+	(void)ctx;
+#if HAVE_DECL_SSL_CTX_SET_ECDH_AUTO
+	if(!SSL_CTX_set_ecdh_auto(ctx,1)) {
+		log_crypto_err("Error in SSL_CTX_ecdh_auto, not enabling ECDHE");
+	}
+#elif defined(HAVE_DECL_SSL_CTX_SET_TMP_ECDH) && defined(NID_X9_62_prime256v1)
+	if(1) {
+		EC_KEY *ecdh = EC_KEY_new_by_curve_name (NID_X9_62_prime256v1);
+		if (!ecdh) {
+			log_crypto_err("could not find p256, not enabling ECDHE");
+		} else {
+			if (1 != SSL_CTX_set_tmp_ecdh (ctx, ecdh)) {
+				log_crypto_err("Error in SSL_CTX_set_tmp_ecdh, not enabling ECDHE");
+			}
+			EC_KEY_free (ecdh);
+		}
+	}
+#endif
+}
+
 SSL_CTX*
 server_tls_ctx_create(struct nsd* nsd, char* verifypem)
 {
@@ -1635,7 +1660,7 @@ server_tls_ctx_create(struct nsd* nsd, char* verifypem)
 		SSL_CTX_free(ctx);
 		return NULL;
 	}
-
+	listen_sslctx_setup_2(ctx);
 	if(verifypem && verifypem[0]) {
 		if(!SSL_CTX_load_verify_locations(ctx, verifypem, NULL)) {
 			log_crypto_err("Error in SSL_CTX verify locations");

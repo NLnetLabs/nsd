@@ -23,6 +23,7 @@ BUG FIXES:
 	- Fix to initialize event structure when accepting TCP connection.
 	- Disable TLS1.0, TLS1.1 and weak ciphers, enable
 	  CIPHER_SERVER_PREFERENCE, patch from Andreas Schulze.
+	- further setup ssl ctx after the keys are loaded, for ECDH.
 
 
 4.1.27
