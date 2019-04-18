@@ -13,7 +13,8 @@ addons:
     - clang
 script:
   - autoconf && autoheader
-  - ./configure --enable-checking --enable-root-server
+  - ./configure --enable-checking --disable-flto
   - make
   - make cutest && ./cutest
-  - cd tpkg; ./mini_tpkg.sh exe clang-analysis.tpkg
+  - cd tpkg; ./mini_tpkg.sh exe clang-analysis.tpkg ; grep -e "warning:" -e "error:" result.clang-analysis
+  - cd tpkg; ./mini_tpkg.sh exe clang-analysis.tpkg ; if grep -e "warning:" -e "error:" result.clang-analysis ; then exit 1; else exit 0; fi
