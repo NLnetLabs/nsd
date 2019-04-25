@@ -1,3 +1,6 @@
+25 April 2019: Wouter
+	- Add tls.tpkg unit test for DNS over TLS functionality.
+
 18 April 2019: Wouter
 	- Fix to avoid buffer alloc with global buffer in tls write handler.
 	- Fix to initialize event structure when accepting TCP connection.
