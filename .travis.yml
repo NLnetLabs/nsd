@@ -16,4 +16,4 @@ script:
   - ./configure --enable-checking --disable-flto
   - make
   - make cutest && ./cutest
-  - (cd tpkg; tar xzf clang-analysis.tpkg; cd clang-analysis.dir; sh clang-analysis.test)
+  - (cd tpkg; tar xzf clang-analysis.tpkg; cd clang-analysis.dir; bash clang-analysis.test)
