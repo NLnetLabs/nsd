@@ -1,6 +1,7 @@
 # NSD
 
 [![Travis Build Status](https://travis-ci.org/NLnetLabs/nsd.svg?branch=master)](https://travis-ci.org/NLnetLabs/nsd)
+[![Packaging status](https://repology.org/badge/tiny-repos/nsd.svg)](https://repology.org/project/nsd/versions)
 
 The NLnet Labs Name Server Daemon (NSD) is an authoritative DNS name server.
 It has been developed for operations in environments where speed,
