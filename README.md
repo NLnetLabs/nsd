@@ -21,7 +21,7 @@ this (./configure is included in release tarballs, and then you do not
 have to generate it first):
 
 ```
-autoconf && autoheader
+aclocal && autoconf && autoheader
 ```
 
 NSD can be compiled and installed using:

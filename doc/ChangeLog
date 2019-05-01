@@ -4,6 +4,7 @@
 	- Add .gitignore file to exclude built files from version tracking.
 	- Add README.md file in repository with compile instructions.
 	- Fix .gitignore for dnstap files and aclocal temp.
+	- Add aclocal to README.md for pkgconfig for some configure options.
 
 25 April 2019: Wouter
 	- Add tls.tpkg unit test for DNS over TLS functionality.
