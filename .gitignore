@@ -2,8 +2,10 @@
 /.libs/
 /Makefile
 /autom4te.cache/
+/aclocal.m4
 /config.h
 /config.h.in
+/config.h.in~
 /config.log
 /config.status
 /configure
@@ -28,3 +30,6 @@
 /cutest
 /udb-inspect
 /xfr-inspect
+/dnstap/dnstap.pb-c.c
+/dnstap/dnstap.pb-c.h
+/dnstap/dnstap_config.h
