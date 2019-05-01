@@ -2,6 +2,7 @@
 	- Fix makedist.sh for use with git.
 	- Nicer output on travis for clang analysis.
 	- Add .gitignore file to exclude built files from version tracking.
+	- Add README.md file in repository with compile instructions.
 
 25 April 2019: Wouter
 	- Add tls.tpkg unit test for DNS over TLS functionality.
