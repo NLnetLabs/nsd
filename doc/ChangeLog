@@ -1,5 +1,6 @@
 1 May 2019: Wouter
 	- Fix makedist.sh for use with git.
+	- Nicer output on travis for clang analysis.
 
 25 April 2019: Wouter
 	- Add tls.tpkg unit test for DNS over TLS functionality.
