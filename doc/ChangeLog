@@ -1,3 +1,6 @@
+2 May 2019: Wouter
+	- Fix .gitignore for unit test generated files.
+
 1 May 2019: Wouter
 	- Fix makedist.sh for use with git.
 	- Nicer output on travis for clang analysis.
