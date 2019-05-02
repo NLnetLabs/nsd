@@ -35,3 +35,6 @@
 /dnstap/dnstap_config.h
 /tpkg/result.*
 /tpkg/.done-*
+/tpkg/long/result.*
+/tpkg/long/.done-*
+/tpkg/long/*.log
