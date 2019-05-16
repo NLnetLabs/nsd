@@ -26,6 +26,8 @@ BUG FIXES:
 	- further setup ssl ctx after the keys are loaded, for ECDH.
 	- TLS OCSP stapling support, enabled with tls-service-ocsp: filename,
 	  patch from Andreas Schulze.
+	- Fix #10: Fix memory leaks caused by duplicate rr and include
+	  instructions.
 
 
 4.1.27
