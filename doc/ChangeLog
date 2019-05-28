@@ -1,3 +1,6 @@
+28 May 2019: Wouter
+	- Fix to define _OPENBSD_SOURCE to get reallocarray on NetBSD.
+
 16 May 2019: Wouter
 	- Fix #10: Fix memory leaks caused by duplicate rr and include
 	  instructions.

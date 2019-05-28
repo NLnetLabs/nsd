@@ -691,7 +691,22 @@ AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
 AC_REPLACE_FUNCS(pselect)
 AC_REPLACE_FUNCS(memmove)
-AC_REPLACE_FUNCS(reallocarray)
+AC_MSG_CHECKING([reallocarray])
+AC_LINK_IFELSE([AC_LANG_SOURCE(AC_INCLUDES_DEFAULT
+[[
+#define _OPENBSD_SOURCE 1
+#include <stdlib.h>
+int main(void) {
+	void* p = reallocarray(NULL, 10, 100);
+	free(p);
+	return 0;
+}
+]])], [AC_MSG_RESULT(yes)
+	AC_DEFINE(HAVE_REALLOCARRAY, 1, [If we have reallocarray(3)])
+], [
+	AC_MSG_RESULT(no)
+	AC_LIBOBJ(reallocarray)
+])
 
 AC_MSG_CHECKING(for pselect prototype in sys/select.h)
 AC_EGREP_HEADER([[^a-zA-Z_]*pselect[^a-zA-Z_]], sys/select.h, AC_DEFINE(HAVE_PSELECT_PROTO, 1, 
@@ -1000,6 +1015,9 @@ AH_BOTTOM([
 #  endif
 #  ifndef _BSD_SOURCE
 #    define _BSD_SOURCE 1
+#  endif
+#  ifndef _OPENBSD_SOURCE
+#    define _OPENBSD_SOURCE 1
 #  endif
 #  ifndef _DEFAULT_SOURCE
 #    define _DEFAULT_SOURCE 1

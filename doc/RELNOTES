@@ -28,6 +28,7 @@ BUG FIXES:
 	  patch from Andreas Schulze.
 	- Fix #10: Fix memory leaks caused by duplicate rr and include
 	  instructions.
+	- Fix to define _OPENBSD_SOURCE to get reallocarray on NetBSD.
 
 
 4.1.27
