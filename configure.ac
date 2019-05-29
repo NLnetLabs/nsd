@@ -694,7 +694,9 @@ AC_REPLACE_FUNCS(memmove)
 AC_MSG_CHECKING([for reallocarray])
 AC_LINK_IFELSE([AC_LANG_SOURCE(AC_INCLUDES_DEFAULT
 [[
+#ifndef _OPENBSD_SOURCE
 #define _OPENBSD_SOURCE 1
+#endif
 #include <stdlib.h>
 int main(void) {
 	void* p = reallocarray(NULL, 10, 100);
