@@ -73,7 +73,7 @@ static inline void uint8_table_walk_(
 	if (!table) return;
 	if (leaf) {
 		size_t i;
-		for (i = 0; i < 255; i++)
+		for (i = 0; i < 256; i++)
 			if (table[i])
 				leaf( depth + 1, (n << 8) | i
 				    , table[i], userarg);
