@@ -1,3 +1,7 @@
+4 June 2019: Wouter
+	- Fix unit test for outgoing interface to use random port numbers for
+	  the outgoing interface config.
+
 29 May 2019: Wouter
 	- Fix to guard _OPENBSD_SOURCE from redefinition.
 
