@@ -181,6 +181,12 @@ than 1 (such as, equal to the number of cpus).  The default is no.
 It works on Linux, but does not work on FreeBSD, and likely does not
 work on other systems.
 .TP
+.B send\-buffer\-size:\fR <number>
+Set the send buffer size for query-servicing sockets.  Set to 0 to use the default settings.
+.TP
+.B receive\-buffer\-size:\fR <number>
+Set the receive buffer size for query-servicing sockets.  Set to 0 to use the default settings.
+.TP
 .B debug\-mode:\fR <yes or no>
 Turns on debugging mode for nsd, does not fork a daemon process. 
 Default is no. Same as commandline option

@@ -77,6 +77,7 @@ extern config_parser_state_type* cfg_parser;
 %token VAR_DNSTAP_VERSION VAR_DNSTAP_LOG_AUTH_QUERY_MESSAGES
 %token VAR_DNSTAP_LOG_AUTH_RESPONSE_MESSAGES
 %token VAR_TLS_SERVICE_KEY VAR_TLS_SERVICE_OCSP VAR_TLS_SERVICE_PEM VAR_TLS_PORT
+%token VAR_SEND_BUFFER_SIZE VAR_RECEIVE_BUFFER_SIZE
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -110,7 +111,8 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_reuseport | server_version | server_ip_freebind |
 	server_tls_service_key | server_tls_service_pem | server_tls_port |
 	server_minimal_responses | server_refuse_any | server_use_systemd |
-	server_hide_identity | server_tls_service_ocsp;
+	server_hide_identity | server_tls_service_ocsp |
+	server_send_buffer_size | server_receive_buffer_size;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -141,12 +143,30 @@ server_ip_transparent: VAR_IP_TRANSPARENT STRING
 		else cfg_parser->opt->ip_transparent = (strcmp($2, "yes")==0);
 	}
 	;
-server_ip_freebind: VAR_IP_FREEBIND STRING 
-	{ 
-		OUTYY(("P(server_ip_freebind:%s)\n", $2)); 
+server_ip_freebind: VAR_IP_FREEBIND STRING
+	{
+		OUTYY(("P(server_ip_freebind:%s)\n", $2));
 		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
 			yyerror("expected yes or no.");
 		else cfg_parser->opt->ip_freebind = (strcmp($2, "yes")==0);
+	}
+	;
+server_send_buffer_size: VAR_SEND_BUFFER_SIZE STRING
+	{
+		int sz = atoi($2);
+		OUTYY(("P(server_send_buffer_size:%s)\n", $2));
+		if(sz < 0)
+			yyerror("non-negative number expected");
+		else cfg_parser->opt->send_buffer_size = sz;
+	}
+	;
+server_receive_buffer_size: VAR_RECEIVE_BUFFER_SIZE STRING
+	{
+		int sz = atoi($2);
+		OUTYY(("P(server_receive_buffer_size:%s)\n", $2));
+		if(sz < 0)
+			yyerror("non-negative number expected");
+		else cfg_parser->opt->receive_buffer_size = sz;
 	}
 	;
 server_debug_mode: VAR_DEBUG_MODE STRING 

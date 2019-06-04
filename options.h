@@ -61,6 +61,8 @@ struct nsd_options {
 
 	int ip_transparent;
 	int ip_freebind;
+	int send_buffer_size;
+	int receive_buffer_size;
 	int debug_mode;
 	int verbosity;
 	int hide_version;

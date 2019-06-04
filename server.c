@@ -724,59 +724,61 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 #else
 		(void)reuseport_works;
 #endif /* SO_REUSEPORT */
-#if defined(SO_RCVBUF) || defined(SO_SNDBUF)
-	if(1) {
-	int rcv = 1*1024*1024;
-	int snd = 1*1024*1024;
-
-#ifdef SO_RCVBUF
+#if defined(SO_RCVBUF)
+	{
+		int rcv = 1*1024*1024;
+		if (nsd->options->receive_buffer_size > 0) {
+			rcv = nsd->options->receive_buffer_size;
+		}
 #  ifdef SO_RCVBUFFORCE
-	if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUFFORCE, (void*)&rcv,
-		(socklen_t)sizeof(rcv)) < 0) {
-		if(errno != EPERM && errno != ENOBUFS) {
-			log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, "
+		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUFFORCE, (void*)&rcv,
+			(socklen_t)sizeof(rcv)) < 0) {
+			if(errno != EPERM && errno != ENOBUFS) {
+				log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, "
                                         "...) failed: %s", strerror(errno));
-			return -1;
-		} 
+				return -1;
+			}
+		}
 #  else
-	if(1) {
-#  endif /* SO_RCVBUFFORCE */
 		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUF, (void*)&rcv,
-			 (socklen_t)sizeof(rcv)) < 0) {
+			(socklen_t)sizeof(rcv)) < 0) {
 			if(errno != ENOBUFS && errno != ENOSYS) {
 				log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, "
                                         "...) failed: %s", strerror(errno));
 				return -1;
 			}
 		}
+#  endif /* SO_RCVBUFFORCE */
 	}
 #endif /* SO_RCVBUF */
 
 #ifdef SO_SNDBUF
+	{
+		int snd = 1*1024*1024;
+		if (nsd->options->send_buffer_size > 0) {
+			snd = nsd->options->send_buffer_size;
+		}
 #  ifdef SO_SNDBUFFORCE
-	if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUFFORCE, (void*)&snd,
-		(socklen_t)sizeof(snd)) < 0) {
-		if(errno != EPERM && errno != ENOBUFS) {
-			log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, "
+		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUFFORCE, (void*)&snd,
+			(socklen_t)sizeof(snd)) < 0) {
+			if(errno != EPERM && errno != ENOBUFS) {
+				log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, "
                                         "...) failed: %s", strerror(errno));
-			return -1;
-		} 
+				return -1;
+			}
+		}
 #  else
-	if(1) {
-#  endif /* SO_SNDBUFFORCE */
 		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUF, (void*)&snd,
-			 (socklen_t)sizeof(snd)) < 0) {
+			(socklen_t)sizeof(snd)) < 0) {
 			if(errno != ENOBUFS && errno != ENOSYS) {
 				log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUF, "
                                         "...) failed: %s", strerror(errno));
 				return -1;
 			}
 		}
+#  endif /* SO_SNDBUFFFORCE */
 	}
 #endif /* SO_SNDBUF */
-
-	}
-#endif /* defined(SO_RCVBUF) || defined(SO_SNDBUF) */
 
 #if defined(INET6)
 		if (addr->ai_family == AF_INET6) {

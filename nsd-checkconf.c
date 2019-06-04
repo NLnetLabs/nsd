@@ -402,6 +402,8 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
 		SERV_GET_INT(verbosity, o);
+		SERV_GET_INT(send_buffer_size, o);
+		SERV_GET_INT(receive_buffer_size, o);
 #ifdef RATELIMIT
 		SERV_GET_INT(rrl_size, o);
 		SERV_GET_INT(rrl_ratelimit, o);
@@ -498,6 +500,8 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\treuseport: %s\n", opt->reuseport?"yes":"no");
 	printf("\tdo-ip4: %s\n", opt->do_ip4?"yes":"no");
 	printf("\tdo-ip6: %s\n", opt->do_ip6?"yes":"no");
+	printf("\tsend-buffer-size: %d\n", opt->send_buffer_size);
+	printf("\treceive-buffer-size: %d\n", opt->receive_buffer_size);
 	printf("\thide-version: %s\n", opt->hide_version?"yes":"no");
 	printf("\thide-identity: %s\n", opt->hide_identity?"yes":"no");
 	print_string_var("database:", opt->database);
