@@ -71,6 +71,7 @@ nsd_options_create(region_type* region)
 	opt->refuse_any = 0;
 	opt->server_count = 1;
 	opt->tcp_count = 100;
+	opt->tcp_reject_overflow = 0;
 	opt->tcp_query_count = 0;
 	opt->tcp_timeout = TCP_TIMEOUT;
 	opt->tcp_mss = 0;

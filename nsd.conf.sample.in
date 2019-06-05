@@ -109,6 +109,11 @@ server:
 	# Maximum number of concurrent TCP connections per server.
 	# tcp-count: 100
 
+	# Accept (and immediately close) TCP connections after maximum number
+	# of connections is reached to prevent kernel connection queue from
+	# growing.
+	# tcp-reject-overflow: no
+
 	# Maximum number of queries served on a single TCP connection.
 	# By default 0, which means no maximum.
 	# tcp-query-count: 0

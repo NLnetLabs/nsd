@@ -372,6 +372,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_BIN(round_robin, o);
 		SERV_GET_BIN(minimal_responses, o);
 		SERV_GET_BIN(refuse_any, o);
+		SERV_GET_BIN(tcp_reject_overflow, o);
 		/* str */
 		SERV_GET_PATH(final, database, o);
 		SERV_GET_STR(identity, o);
@@ -504,6 +505,8 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\treceive-buffer-size: %d\n", opt->receive_buffer_size);
 	printf("\thide-version: %s\n", opt->hide_version?"yes":"no");
 	printf("\thide-identity: %s\n", opt->hide_identity?"yes":"no");
+	printf("\ttcp-reject-overflow: %s\n",
+		opt->tcp_reject_overflow ? "yes" : "no");
 	print_string_var("database:", opt->database);
 	print_string_var("identity:", opt->identity);
 	print_string_var("version:", opt->version);
@@ -595,7 +598,6 @@ config_test_print_server(nsd_options_type* opt)
 		print_string_var("name:", zone->name);
 		print_zone_content_elems(zone->pattern);
 	}
-
 }
 
 static int

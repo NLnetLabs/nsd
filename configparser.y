@@ -78,6 +78,7 @@ extern config_parser_state_type* cfg_parser;
 %token VAR_DNSTAP_LOG_AUTH_RESPONSE_MESSAGES
 %token VAR_TLS_SERVICE_KEY VAR_TLS_SERVICE_OCSP VAR_TLS_SERVICE_PEM VAR_TLS_PORT
 %token VAR_SEND_BUFFER_SIZE VAR_RECEIVE_BUFFER_SIZE
+%token VAR_TCP_REJECT_OVERFLOW
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -112,7 +113,8 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_tls_service_key | server_tls_service_pem | server_tls_port |
 	server_minimal_responses | server_refuse_any | server_use_systemd |
 	server_hide_identity | server_tls_service_ocsp |
-	server_send_buffer_size | server_receive_buffer_size;
+	server_send_buffer_size | server_receive_buffer_size |
+	server_tcp_reject_overflow;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -368,6 +370,17 @@ server_tcp_count: VAR_TCP_COUNT STRING
 		if(atoi($2) <= 0)
 			yyerror("number greater than zero expected");
 		else cfg_parser->opt->tcp_count = atoi($2);
+	}
+	;
+server_tcp_reject_overflow: VAR_TCP_REJECT_OVERFLOW STRING
+	{
+		OUTYY(("P(server_reject_overflow_tcp:%s)\n", $2));
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0) {
+			yyerror("tcp-reject-overflow: expected yes or no.");
+		} else {
+			cfg_parser->opt->tcp_reject_overflow =
+				(strcmp($2, "yes")==0);
+		}
 	}
 	;
 server_pidfile: VAR_PIDFILE STRING

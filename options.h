@@ -75,6 +75,7 @@ struct nsd_options {
 	const char* logfile;
 	int server_count;
 	int tcp_count;
+	int tcp_reject_overflow;
 	int tcp_query_count;
 	int tcp_timeout;
 	int tcp_mss;
