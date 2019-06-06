@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.1.28 (upcoming)
+4.2.0
 ================
 FEATURES:
 	- Print IP address when bind socket fails with error.
