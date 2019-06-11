@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix #13: Stray dot at the end of some log entries, removes dot
+	  after updated serial number in log entry.
 
 
 4.2.0

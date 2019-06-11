@@ -1,6 +1,8 @@
 11 June 2019: Wouter
 	- NSD 4.2.0 release.  Current development is 4.2.1.
 	- Fixup of RELNOTES, corrected RFC reference for 4892.
+	- Fix #13: Stray dot at the end of some log entries, removes dot
+	  after updated serial number in log entry.
 
 6 June 2019: Wouter
 	- NSD 4.2.0rc1 tag.
