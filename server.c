@@ -1708,7 +1708,7 @@ server_tls_ctx_create(struct nsd* nsd, char* verifypem, char* ocspfile)
 #endif
 #if defined(SHA256_DIGEST_LENGTH) && defined(SSL_TXT_CHACHA20)
 	/* if we have sha256, set the cipher list to have no known vulns */
-	if(!SSL_CTX_set_cipher_list(ctx, "CHACHA20+ECDH:AESGCM+ECDH:!SHA:!AESCCM"))
+	if(!SSL_CTX_set_cipher_list(ctx, "ECDHE+AESGCM:ECDHE+CHACHA20"))
 		log_crypto_err("could not set cipher list with SSL_CTX_set_cipher_list");
 #endif
 	if((SSL_CTX_set_options(ctx, SSL_OP_CIPHER_SERVER_PREFERENCE) &
