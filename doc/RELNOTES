@@ -8,6 +8,8 @@ BUG FIXES:
 	  after updated serial number in log entry.
 	- Fix TLS cipher selection, the previous was redundant, prefers
 	  CHACHA20-POLY1305 over AESGCM and was not as readable as it could be. 
+	- Consolidate server tls context create and remote control context
+	  create, with hardening for the remote control tls context too.
 
 
 4.2.0

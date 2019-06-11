@@ -252,48 +252,13 @@ timeval_subtract(struct timeval* d, const struct timeval* end,
 static int
 remote_setup_ctx(struct daemon_remote* rc, struct nsd_options* cfg)
 {
-	char* s_cert;
-	char* s_key;
-	rc->ctx = SSL_CTX_new(SSLv23_server_method());
+	char* s_cert = cfg->server_cert_file;
+	char* s_key = cfg->server_key_file;
+	rc->ctx = server_tls_ctx_setup(s_key, s_cert, s_cert);
 	if(!rc->ctx) {
-		log_crypto_err("could not SSL_CTX_new");
+		log_msg(LOG_ERR, "could not setup remote control TLS context");
 		return 0;
 	}
-	/* no SSLv2, SSLv3 because has defects */
-	if((SSL_CTX_set_options(rc->ctx, SSL_OP_NO_SSLv2) & SSL_OP_NO_SSLv2)
-		!= SSL_OP_NO_SSLv2){
-		log_crypto_err("could not set SSL_OP_NO_SSLv2");
-		return 0;
-	}
-	if((SSL_CTX_set_options(rc->ctx, SSL_OP_NO_SSLv3) & SSL_OP_NO_SSLv3)
-		!= SSL_OP_NO_SSLv3){
-		log_crypto_err("could not set SSL_OP_NO_SSLv3");
-		return 0;
-	}
-	s_cert = cfg->server_cert_file;
-	s_key = cfg->server_key_file;
-	VERBOSITY(2, (LOG_INFO, "setup SSL certificates"));
-	if (!SSL_CTX_use_certificate_file(rc->ctx,s_cert,SSL_FILETYPE_PEM)) {
-		log_msg(LOG_ERR, "Error for server-cert-file: %s", s_cert);
-		log_crypto_err("Error in SSL_CTX use_certificate_file");
-		return 0;
-	}
-	if(!SSL_CTX_use_PrivateKey_file(rc->ctx,s_key,SSL_FILETYPE_PEM)) {
-		log_msg(LOG_ERR, "Error for server-key-file: %s", s_key);
-		log_crypto_err("Error in SSL_CTX use_PrivateKey_file");
-		return 0;
-	}
-	if(!SSL_CTX_check_private_key(rc->ctx)) {
-		log_msg(LOG_ERR, "Error for server-key-file: %s", s_key);
-		log_crypto_err("Error in SSL_CTX check_private_key");
-		return 0;
-	}
-	if(!SSL_CTX_load_verify_locations(rc->ctx, s_cert, NULL)) {
-		log_crypto_err("Error setting up SSL_CTX verify locations");
-		return 0;
-	}
-	SSL_CTX_set_client_CA_list(rc->ctx, SSL_load_client_CA_file(s_cert));
-	SSL_CTX_set_verify(rc->ctx, SSL_VERIFY_PEER, NULL);
 	return 1;
 }
 

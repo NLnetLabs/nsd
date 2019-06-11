@@ -1653,25 +1653,9 @@ add_ocsp_data_cb(SSL *s, void* ATTR_UNUSED(arg))
 }
 
 SSL_CTX*
-server_tls_ctx_create(struct nsd* nsd, char* verifypem, char* ocspfile)
+server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 {
-	char *key, *pem;
-	SSL_CTX *ctx;
-
-	key = nsd->options->tls_service_key;
-	pem = nsd->options->tls_service_pem;
-	if(!key || key[0] == 0) {
-		log_msg(LOG_ERR, "error: no tls-service-key file specified");
-		return NULL;
-	}
-	if(!pem || pem[0] == 0) {
-		log_msg(LOG_ERR, "error: no tls-service-pem file specified");
-		return NULL;
-	}
-
-	/* NOTE:This mimics the existing code in Unbound 1.5.1 by supporting SSL but
-	 * raft-ietf-uta-tls-bcp-08 recommends only using TLSv1.2*/
-	ctx = SSL_CTX_new(SSLv23_server_method());
+	SSL_CTX *ctx = SSL_CTX_new(SSLv23_server_method());
 	if(!ctx) {
 		log_crypto_err("could not SSL_CTX_new");
 		return NULL;
@@ -1749,6 +1733,29 @@ server_tls_ctx_create(struct nsd* nsd, char* verifypem, char* ocspfile)
 		SSL_CTX_set_client_CA_list(ctx, SSL_load_client_CA_file(verifypem));
 		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
 	}
+	return ctx;
+}
+
+SSL_CTX*
+server_tls_ctx_create(struct nsd* nsd, char* verifypem, char* ocspfile)
+{
+	char *key, *pem;
+	SSL_CTX *ctx;
+
+	key = nsd->options->tls_service_key;
+	pem = nsd->options->tls_service_pem;
+	if(!key || key[0] == 0) {
+		log_msg(LOG_ERR, "error: no tls-service-key file specified");
+		return NULL;
+	}
+	if(!pem || pem[0] == 0) {
+		log_msg(LOG_ERR, "error: no tls-service-pem file specified");
+		return NULL;
+	}
+
+	/* NOTE:This mimics the existing code in Unbound 1.5.1 by supporting SSL but
+	 * raft-ietf-uta-tls-bcp-08 recommends only using TLSv1.2*/
+	ctx = server_tls_ctx_setup(key, pem, verifypem);
 	if(ocspfile && ocspfile[0]) {
 		if ((ocspdata_len = get_ocsp(ocspfile, &ocspdata)) < 0) {
 			log_crypto_err("Error reading OCSPfile");
