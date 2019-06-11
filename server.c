@@ -1756,6 +1756,10 @@ server_tls_ctx_create(struct nsd* nsd, char* verifypem, char* ocspfile)
 	/* NOTE:This mimics the existing code in Unbound 1.5.1 by supporting SSL but
 	 * raft-ietf-uta-tls-bcp-08 recommends only using TLSv1.2*/
 	ctx = server_tls_ctx_setup(key, pem, verifypem);
+	if(!ctx) {
+		log_msg(LOG_ERR, "could not setup server TLS context");
+		return NULL;
+	}
 	if(ocspfile && ocspfile[0]) {
 		if ((ocspdata_len = get_ocsp(ocspfile, &ocspdata)) < 0) {
 			log_crypto_err("Error reading OCSPfile");
