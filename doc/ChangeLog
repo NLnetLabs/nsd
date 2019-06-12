@@ -1,3 +1,6 @@
+12 June 2019: Wouter
+	- Fix to init event structure for reassignment.
+
 11 June 2019: Wouter
 	- NSD 4.2.0 release.  Current development is 4.2.1.
 	- Fixup of RELNOTES, corrected RFC reference for 4892.
