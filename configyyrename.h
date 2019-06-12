@@ -55,7 +55,6 @@
 #define yyrule   c_yyrule
 #define yyin    c_in
 #define yyout   c_out
-#define yywrap  c_wrap
 #define yy_load_buffer_state c_load_buffer_state
 #define yy_switch_to_buffer c_switch_to_buffer
 #define yy_flush_buffer c_flush_buffer

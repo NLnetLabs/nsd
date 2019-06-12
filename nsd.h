@@ -120,7 +120,7 @@ struct nsd_socket
 struct nsd_child
 {
 	 /* The type of child process (UDP or TCP handler). */
-	int   kind;
+	int kind;
 
 	/* The child's process id.  */
 	pid_t pid;
@@ -209,7 +209,7 @@ struct	nsd
 	const char		*version;
 	const char		*identity;
 	uint16_t		nsid_len;
-	unsigned char   *nsid;
+	unsigned char		*nsid;
 	uint8_t 		file_rotation_ok;
 
 	/* number of interfaces */

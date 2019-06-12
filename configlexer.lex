@@ -25,7 +25,6 @@
 #include "options.h"
 #include "configyyrename.h"
 #include "configparser.h"
-void c_error(const char *message);
 
 #if 0
 #define LEXOUT(s)  printf s /* used ONLY when debugging */
@@ -58,27 +57,27 @@ static void config_start_include(const char* filename)
 	struct inc_state* s;
 	char* nm;
 	if(inc_depth++ > 10000000) {
-		c_error_msg("too many include files");
+		yyerror("too many include files");
 		return;
 	}
 	if(strlen(filename) == 0) {
-		c_error_msg("empty include file name");
+		yyerror("empty include file name");
 		return;
 	}
 	s = (struct inc_state*)malloc(sizeof(*s));
 	if(!s) {
-		c_error_msg("include %s: malloc failure", filename);
+		yyerror("include %s: malloc failure", filename);
 		return;
 	}
 	nm = strdup(filename);
 	if(!nm) {
-		c_error_msg("include %s: strdup failure", filename);
+		yyerror("include %s: strdup failure", filename);
 		free(s);
 		return;
 	}
 	input = fopen(filename, "r");
 	if(!input) {
-		c_error_msg("cannot open include file '%s': %s",
+		yyerror("cannot open include file '%s': %s",
 			filename, strerror(errno));
 		free(s);
 		free(nm);
@@ -107,7 +106,7 @@ static void config_start_include_glob(const char* filename)
 	if (cfg_parser->chroot) {
 		int l = strlen(cfg_parser->chroot); /* chroot has trailing slash */
 		if (strncmp(cfg_parser->chroot, filename, l) != 0) {
-			c_error_msg("include file '%s' is not relative to chroot '%s'",
+			yyerror("include file '%s' is not relative to chroot '%s'",
 				filename, cfg_parser->chroot);
 			return;
 		}
@@ -175,6 +174,7 @@ static void config_end_include(void)
 #endif
 
 %}
+%option noyywrap
 %option noinput
 %option nounput
 %{
@@ -257,7 +257,7 @@ key{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_KEY;}
 algorithm{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ALGORITHM;}
 secret{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_SECRET;}
 pattern{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_PATTERN;}
-include-pattern{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_INCLUDEPATTERN;}
+include-pattern{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_INCLUDE_PATTERN;}
 remote-control{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_REMOTE_CONTROL;}
 control-enable{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_CONTROL_ENABLE;}
 control-interface{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_CONTROL_INTERFACE;}
