@@ -2523,6 +2523,7 @@ server_child(struct nsd *nsd)
 
 		handler = (struct event*) region_alloc(
 			server_region, sizeof(*handler));
+		memset(&handler, 0, sizeof(handler));
 		event_set(handler, nsd->this_child->parent_fd, EV_PERSIST|
 			EV_READ, child_handle_parent_command, user_data);
 		if(event_base_set(event_base, handler) != 0)
@@ -2577,6 +2578,7 @@ server_child(struct nsd *nsd)
 
 			handler = (struct event*) region_alloc(
 				server_region, sizeof(*handler));
+			memset(&handler, 0, sizeof(handler));
 			event_set(handler, nsd->udp[i].s, EV_PERSIST|EV_READ,
 				handle_udp, data);
 			if(event_base_set(event_base, handler) != 0)
@@ -2615,6 +2617,7 @@ server_child(struct nsd *nsd)
 			else
 				data->tls_accept = 0;
 #endif
+			memset(&handler, 0, sizeof(handler));
 			event_set(handler, nsd->tcp[i].s, EV_PERSIST|EV_READ,
 				handle_tcp_accept, data);
 			if(event_base_set(event_base, handler) != 0)
@@ -2995,6 +2998,7 @@ tcp_handler_setup_event(struct tcp_handler_data* data, void (*fn)(int, short, vo
 
 	ev_base = data->event.ev_base;
 	event_del(&data->event);
+	memset(&data->event, 0, sizeof(data->event));
 	event_set(&data->event, fd, event, fn, data);
 	if(event_base_set(ev_base, &data->event) != 0)
 		log_msg(LOG_ERR, "event base set failed");
@@ -3247,6 +3251,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 
 	ev_base = data->event.ev_base;
 	event_del(&data->event);
+	memset(&data->event, 0, sizeof(data->event));
 	event_set(&data->event, fd, EV_PERSIST | EV_READ | EV_TIMEOUT,
 		handle_tcp_reading, data);
 	if(event_base_set(ev_base, &data->event) != 0)
@@ -3379,6 +3384,7 @@ handle_tcp_writing(int fd, short event, void* arg)
 			timeout.tv_usec = (data->tcp_timeout % 1000)*1000;
 			ev_base = data->event.ev_base;
 			event_del(&data->event);
+			memset(&data->event, 0, sizeof(data->event));
 			event_set(&data->event, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT,
 				handle_tcp_writing, data);
 			if(event_base_set(ev_base, &data->event) != 0)
@@ -3410,6 +3416,7 @@ handle_tcp_writing(int fd, short event, void* arg)
 	timeout.tv_usec = (data->tcp_timeout % 1000)*1000;
 	ev_base = data->event.ev_base;
 	event_del(&data->event);
+	memset(&data->event, 0, sizeof(data->event));
 	event_set(&data->event, fd, EV_PERSIST | EV_READ | EV_TIMEOUT,
 		handle_tcp_reading, data);
 	if(event_base_set(ev_base, &data->event) != 0)
@@ -3901,6 +3908,8 @@ handle_tcp_accept(int fd, short event, void* arg)
 				configure_handler_event_types(0);
 				tv.tv_sec = SLOW_ACCEPT_TIMEOUT;
 				tv.tv_usec = 0L;
+				memset(&slowaccept_event, 0,
+					sizeof(slowaccept_event));
 				event_set(&slowaccept_event, -1, EV_TIMEOUT,
 					handle_slowaccept_timeout, NULL);
 				(void)event_base_set(data->event.ev_base,
@@ -3966,10 +3975,12 @@ handle_tcp_accept(int fd, short event, void* arg)
 			return;
 		}
 		tcp_data->shake_state = tls_hs_read;
+		memset(&tcp_data->event, 0, sizeof(tcp_data->event));
 		event_set(&tcp_data->event, s, EV_PERSIST | EV_READ | EV_TIMEOUT,
 			  handle_tls_reading, tcp_data);
 	} else {
 #endif
+		memset(&tcp_data->event, 0, sizeof(tcp_data->event));
 		event_set(&tcp_data->event, s, EV_PERSIST | EV_READ | EV_TIMEOUT,
 			  handle_tcp_reading, tcp_data);
 #ifdef HAVE_SSL
@@ -4068,6 +4079,7 @@ configure_handler_event_types(short event_types)
 			struct event_base* base = handler->ev_base;
 			if(tcp_accept_handlers[i].event_added)
 				event_del(handler);
+			memset(&handler, 0, sizeof(handler));
 			event_set(handler, fd, event_types,
 				handle_tcp_accept, &tcp_accept_handlers[i]);
 			if(event_base_set(base, handler) != 0)
