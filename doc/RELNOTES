@@ -11,6 +11,7 @@ BUG FIXES:
 	- Consolidate server tls context create and remote control context
 	  create, with hardening for the remote control tls context too.
 	- Fix to init event structure for reassignment.
+	- Fix to init event not pointer, in reassignment.
 
 
 4.2.0

@@ -2523,7 +2523,7 @@ server_child(struct nsd *nsd)
 
 		handler = (struct event*) region_alloc(
 			server_region, sizeof(*handler));
-		memset(&handler, 0, sizeof(handler));
+		memset(handler, 0, sizeof(*handler));
 		event_set(handler, nsd->this_child->parent_fd, EV_PERSIST|
 			EV_READ, child_handle_parent_command, user_data);
 		if(event_base_set(event_base, handler) != 0)
@@ -2578,7 +2578,7 @@ server_child(struct nsd *nsd)
 
 			handler = (struct event*) region_alloc(
 				server_region, sizeof(*handler));
-			memset(&handler, 0, sizeof(handler));
+			memset(handler, 0, sizeof(*handler));
 			event_set(handler, nsd->udp[i].s, EV_PERSIST|EV_READ,
 				handle_udp, data);
 			if(event_base_set(event_base, handler) != 0)
@@ -2617,7 +2617,7 @@ server_child(struct nsd *nsd)
 			else
 				data->tls_accept = 0;
 #endif
-			memset(&handler, 0, sizeof(handler));
+			memset(handler, 0, sizeof(*handler));
 			event_set(handler, nsd->tcp[i].s, EV_PERSIST|EV_READ,
 				handle_tcp_accept, data);
 			if(event_base_set(event_base, handler) != 0)
@@ -4079,7 +4079,7 @@ configure_handler_event_types(short event_types)
 			struct event_base* base = handler->ev_base;
 			if(tcp_accept_handlers[i].event_added)
 				event_del(handler);
-			memset(&handler, 0, sizeof(handler));
+			memset(handler, 0, sizeof(*handler));
 			event_set(handler, fd, event_types,
 				handle_tcp_accept, &tcp_accept_handlers[i]);
 			if(event_base_set(base, handler) != 0)
