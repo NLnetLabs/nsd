@@ -3952,6 +3952,10 @@ handle_tcp_accept(int fd, short event, void* arg)
 		compression_table_size, compressed_dnames);
 	tcp_data->nsd = data->nsd;
 	tcp_data->query_count = 0;
+#ifdef HAVE_SSL
+	tcp_data->shake_state = tls_hs_none;
+	tcp_data->tls = NULL;
+#endif
 
 	tcp_data->query_state = QUERY_PROCESSED;
 	tcp_data->bytes_transmitted = 0;

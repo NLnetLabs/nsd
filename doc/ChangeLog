@@ -1,3 +1,7 @@
+18 June 2019: Wouter
+	- Fix #15: crash in SSL library, initialize variables for TCP access
+	  when TLS is configured.
+
 14 June 2019: Wouter
 	- Fix to init event not pointer, in reassignment.
 

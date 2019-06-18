@@ -12,6 +12,8 @@ BUG FIXES:
 	  create, with hardening for the remote control tls context too.
 	- Fix to init event structure for reassignment.
 	- Fix to init event not pointer, in reassignment.
+	- Fix #15: crash in SSL library, initialize variables for TCP access
+	  when TLS is configured.
 
 
 4.2.0
