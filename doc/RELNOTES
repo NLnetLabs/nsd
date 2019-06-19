@@ -7,13 +7,16 @@ BUG FIXES:
 	- Fix #13: Stray dot at the end of some log entries, removes dot
 	  after updated serial number in log entry.
 	- Fix TLS cipher selection, the previous was redundant, prefers
-	  CHACHA20-POLY1305 over AESGCM and was not as readable as it could be. 
+	  CHACHA20-POLY1305 over AESGCM and was not as readable as it
+	  could be.
 	- Consolidate server tls context create and remote control context
 	  create, with hardening for the remote control tls context too.
 	- Fix to init event structure for reassignment.
 	- Fix to init event not pointer, in reassignment.
 	- Fix #15: crash in SSL library, initialize variables for TCP access
 	  when TLS is configured.
+	- Fix tls handshake event callback function mistake, reported
+	  by Mykhailo Danylenko.
 
 
 4.2.0

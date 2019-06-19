@@ -3458,7 +3458,7 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 	}
 	if(data->shake_state == tls_hs_write_event) {
 		/* write condition satisfied back to reading */
-		tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST|EV_TIMEOUT|EV_READ);
+		tcp_handler_setup_event(data, handle_tls_reading, fd, EV_PERSIST|EV_TIMEOUT|EV_READ);
 		data->shake_state = tls_hs_none;
 		return 1;
 	}
