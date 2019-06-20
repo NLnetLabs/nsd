@@ -2,6 +2,7 @@
 	- Initialize event structures before event_set, to stop uninitialized
 	  values from setting event library lists and assertions, that would
 	  sometimes also show after event_del.
+	- Added num.tls and num.tls6 stat counters.
 
 19 June 2019: Wouter
 	- Fix tls handshake event callback function mistake, reported

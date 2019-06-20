@@ -267,6 +267,8 @@ stats_add(struct nsdst* total, struct nsdst* s)
 	total->qudp6 += s->qudp6;
 	total->ctcp += s->ctcp;
 	total->ctcp6 += s->ctcp6;
+	total->ctls += s->ctls;
+	total->ctls6 += s->ctls6;
 	for(i=0; i<sizeof(total->rcode)/sizeof(stc_type); i++)
 		total->rcode[i] += s->rcode[i];
 	for(i=0; i<sizeof(total->opcode)/sizeof(stc_type); i++)
@@ -298,6 +300,8 @@ stats_subtract(struct nsdst* total, struct nsdst* s)
 	total->qudp6 -= s->qudp6;
 	total->ctcp -= s->ctcp;
 	total->ctcp6 -= s->ctcp6;
+	total->ctls -= s->ctls;
+	total->ctls6 -= s->ctls6;
 	for(i=0; i<sizeof(total->rcode)/sizeof(stc_type); i++)
 		total->rcode[i] -= s->rcode[i];
 	for(i=0; i<sizeof(total->opcode)/sizeof(stc_type); i++)
@@ -324,7 +328,8 @@ read_child_stats(struct nsd* nsd, struct nsd_child* child, int fd)
 			"%d: %s", (int)child->pid, strerror(errno));
 	} else {
 		stats_add(&nsd->st, &s);
-		child->query_count = s.qudp + s.qudp6 + s.ctcp + s.ctcp6;
+		child->query_count = s.qudp + s.qudp6 + s.ctcp + s.ctcp6
+			+ s.ctls + s.ctls6;
 		/* we know that the child is going to close the connection
 		 * now (this is an ACK of the QUIT_W_STATS so we know the
 		 * child is done, no longer sending e.g. NOTIFY contents) */

@@ -247,6 +247,7 @@ struct	nsd
 		stc_type qclass[4];	/* Class IN or Class CH or other */
 		stc_type qudp, qudp6;	/* Number of queries udp and udp6 */
 		stc_type ctcp, ctcp6;	/* Number of tcp and tcp6 connections */
+		stc_type ctls, ctls6;	/* Number of tls and tls6 connections */
 		stc_type rcode[17], opcode[6]; /* Rcodes & opcodes */
 		/* Dropped, truncated, queries for nonconfigured zone, tx errors */
 		stc_type dropped, truncated, wrongzone, txerr, rxerr;

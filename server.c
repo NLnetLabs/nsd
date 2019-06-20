@@ -3644,12 +3644,12 @@ handle_tls_reading(int fd, short event, void* arg)
 
 	/* Account... */
 #ifndef INET6
-	STATUP(data->nsd, ctcp);
+	STATUP(data->nsd, ctls);
 #else
 	if (data->query->addr.ss_family == AF_INET) {
-		STATUP(data->nsd, ctcp);
+		STATUP(data->nsd, ctls);
 	} else if (data->query->addr.ss_family == AF_INET6) {
-		STATUP(data->nsd, ctcp6);
+		STATUP(data->nsd, ctls6);
 	}
 #endif
 
@@ -3683,12 +3683,12 @@ handle_tls_reading(int fd, short event, void* arg)
 
 #ifdef USE_ZONE_STATS
 #ifndef INET6
-	ZTATUP(data->nsd, data->query->zone, ctcp);
+	ZTATUP(data->nsd, data->query->zone, ctls);
 #else
 	if (data->query->addr.ss_family == AF_INET) {
-		ZTATUP(data->nsd, data->query->zone, ctcp);
+		ZTATUP(data->nsd, data->query->zone, ctls);
 	} else if (data->query->addr.ss_family == AF_INET6) {
-		ZTATUP(data->nsd, data->query->zone, ctcp6);
+		ZTATUP(data->nsd, data->query->zone, ctls6);
 	}
 #endif
 #endif /* USE_ZONE_STATS */

@@ -2490,6 +2490,12 @@ print_stat_block(RES* ssl, char* n, char* d, struct nsdst* st)
 	/* ctcp6 */
 	if(!ssl_printf(ssl, "%s%snum.tcp6=%lu\n", n, d, (unsigned long)st->ctcp6))
 		return;
+	/* ctls */
+	if(!ssl_printf(ssl, "%s%snum.tls=%lu\n", n, d, (unsigned long)st->ctls))
+		return;
+	/* ctls6 */
+	if(!ssl_printf(ssl, "%s%snum.tls6=%lu\n", n, d, (unsigned long)st->ctls6))
+		return;
 
 	/* nona */
 	if(!ssl_printf(ssl, "%s%snum.answer_wo_aa=%lu\n", n, d,
@@ -2577,7 +2583,7 @@ zonestat_print(RES* ssl, xfrd_state_type* xfrd, int clear)
 		/* stat0 contains the details that we want to print */
 		if(!ssl_printf(ssl, "%s%snum.queries=%lu\n", name, ".",
 			(unsigned long)(stat0.qudp + stat0.qudp6 + stat0.ctcp +
-				stat0.ctcp6)))
+				stat0.ctcp6 + stat0.ctls + stat0.ctls6)))
 			return;
 		print_stat_block(ssl, name, ".", &stat0);
 	}

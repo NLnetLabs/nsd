@@ -3,6 +3,7 @@ NSD RELEASE NOTES
 4.2.1 (in development)
 ================
 FEATURES:
+	- Added num.tls and num.tls6 stat counters.
 BUG FIXES:
 	- Fix #13: Stray dot at the end of some log entries, removes dot
 	  after updated serial number in log entry.
