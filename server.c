@@ -3861,7 +3861,7 @@ handle_slowaccept_timeout(int ATTR_UNUSED(fd), short ATTR_UNUSED(event),
 }
 
 #ifndef HAVE_ACCEPT4
-static inline int accept4(
+static int nsd_accept4(
 	int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags)
 {
 	int s = accept(sockfd, addr, addrlen);
@@ -3874,6 +3874,8 @@ static inline int accept4(
 	}
 	return s;
 }
+#else
+#define nsd_accept4 accept4
 #endif /* HAVE_ACCEPT4 */
 
 /*
@@ -3911,7 +3913,7 @@ handle_tcp_accept(int fd, short event, void* arg)
 
 	/* Accept it... */
 	addrlen = sizeof(addr);
-	s = accept4(fd, (struct sockaddr *) &addr, &addrlen, SOCK_NONBLOCK);
+	s = nsd_accept4(fd, (struct sockaddr *) &addr, &addrlen, SOCK_NONBLOCK);
 	if (s == -1) {
 		/**
 		 * EMFILE and ENFILE is a signal that the limit of open

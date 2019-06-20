@@ -23,6 +23,8 @@ BUG FIXES:
 	- Initialize event structures before event_set, to stop uninitialized
 	  values from setting event library lists and assertions, that would
 	  sometimes also show after event_del.
+	- Do not use symbol from libc, instead use own replacement, if not
+	  available, for accept4.
 
 
 4.2.0

@@ -5,6 +5,8 @@
 	- Added num.tls and num.tls6 stat counters.
 	- PR #12: send-buffer-size, receive-buffer-size,
 	  tcp-reject-overflow options for nsd.conf, from Jeroen Koekkoek.
+	- Do not use symbol from libc, instead use own replacement, if not
+	  available, for accept4.
 
 19 June 2019: Wouter
 	- Fix tls handshake event callback function mistake, reported
