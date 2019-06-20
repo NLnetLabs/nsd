@@ -593,6 +593,7 @@ ipc_xfrd_set_listening(struct xfrd_state* xfrd, short mode)
 	int fd = xfrd->ipc_handler.ev_fd;
 	struct event_base* base = xfrd->event_base;
 	event_del(&xfrd->ipc_handler);
+	memset(&xfrd->ipc_handler, 0, sizeof(xfrd->ipc_handler));
 	event_set(&xfrd->ipc_handler, fd, mode, xfrd_handle_ipc, xfrd);
 	if(event_base_set(base, &xfrd->ipc_handler) != 0)
 		log_msg(LOG_ERR, "ipc: cannot set event_base");

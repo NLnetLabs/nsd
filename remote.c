@@ -526,6 +526,7 @@ daemon_remote_attach(struct daemon_remote* rc, struct xfrd_state* xfrd)
 	for(p = rc->accept_list; p; p = p->next) {
 		/* add event */
 		fd = p->c.ev_fd;
+		memset(&p->c, 0, sizeof(p->c));
 		event_set(&p->c, fd, EV_PERSIST|EV_READ, remote_accept_callback,
 			p);
 		if(event_base_set(xfrd->event_base, &p->c) != 0)
@@ -603,6 +604,7 @@ remote_accept_callback(int fd, short event, void* arg)
 	n->tval.tv_usec = 0L;
 	n->fd = newfd;
 
+	memset(&n->c, 0, sizeof(n->c));
 	event_set(&n->c, newfd, EV_PERSIST|EV_TIMEOUT|EV_READ,
 		remote_control_callback, n);
 	if(event_base_set(xfrd->event_base, &n->c) != 0) {
@@ -2305,6 +2307,7 @@ remote_handshake_later(struct daemon_remote* rc, struct rc_state* s, int fd,
 		}
 		s->shake_state = rc_hs_read;
 		event_del(&s->c);
+		memset(&s->c, 0, sizeof(s->c));
 		event_set(&s->c, fd, EV_PERSIST|EV_TIMEOUT|EV_READ,
 			remote_control_callback, s);
 		if(event_base_set(xfrd->event_base, &s->c) != 0)
@@ -2319,6 +2322,7 @@ remote_handshake_later(struct daemon_remote* rc, struct rc_state* s, int fd,
 		}
 		s->shake_state = rc_hs_write;
 		event_del(&s->c);
+		memset(&s->c, 0, sizeof(s->c));
 		event_set(&s->c, fd, EV_PERSIST|EV_TIMEOUT|EV_WRITE,
 			remote_control_callback, s);
 		if(event_base_set(xfrd->event_base, &s->c) != 0)
