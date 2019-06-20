@@ -3870,6 +3870,9 @@ static int nsd_accept4(
 			log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
 			close(s);
 			s = -1;
+			errno=EINTR; /* stop error printout as error in accept4
+				by setting this errno, it omits printout, in
+				later code that calls nsd_accept4 */
 		}
 	}
 	return s;
