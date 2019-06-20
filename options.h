@@ -61,6 +61,8 @@ struct nsd_options {
 
 	int ip_transparent;
 	int ip_freebind;
+	int send_buffer_size;
+	int receive_buffer_size;
 	int debug_mode;
 	int verbosity;
 	int hide_version;
@@ -73,6 +75,7 @@ struct nsd_options {
 	const char* logfile;
 	int server_count;
 	int tcp_count;
+	int tcp_reject_overflow;
 	int tcp_query_count;
 	int tcp_timeout;
 	int tcp_mss;

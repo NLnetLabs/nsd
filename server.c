@@ -724,59 +724,61 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 #else
 		(void)reuseport_works;
 #endif /* SO_REUSEPORT */
-#if defined(SO_RCVBUF) || defined(SO_SNDBUF)
-	if(1) {
-	int rcv = 1*1024*1024;
-	int snd = 1*1024*1024;
-
-#ifdef SO_RCVBUF
+#if defined(SO_RCVBUF)
+	{
+		int rcv = 1*1024*1024;
+		if (nsd->options->receive_buffer_size > 0) {
+			rcv = nsd->options->receive_buffer_size;
+		}
 #  ifdef SO_RCVBUFFORCE
-	if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUFFORCE, (void*)&rcv,
-		(socklen_t)sizeof(rcv)) < 0) {
-		if(errno != EPERM && errno != ENOBUFS) {
-			log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, "
+		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUFFORCE, (void*)&rcv,
+			(socklen_t)sizeof(rcv)) < 0) {
+			if(errno != EPERM && errno != ENOBUFS) {
+				log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, "
                                         "...) failed: %s", strerror(errno));
-			return -1;
-		} 
+				return -1;
+			}
+		}
 #  else
-	if(1) {
-#  endif /* SO_RCVBUFFORCE */
 		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUF, (void*)&rcv,
-			 (socklen_t)sizeof(rcv)) < 0) {
+			(socklen_t)sizeof(rcv)) < 0) {
 			if(errno != ENOBUFS && errno != ENOSYS) {
 				log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, "
                                         "...) failed: %s", strerror(errno));
 				return -1;
 			}
 		}
+#  endif /* SO_RCVBUFFORCE */
 	}
 #endif /* SO_RCVBUF */
 
 #ifdef SO_SNDBUF
+	{
+		int snd = 1*1024*1024;
+		if (nsd->options->send_buffer_size > 0) {
+			snd = nsd->options->send_buffer_size;
+		}
 #  ifdef SO_SNDBUFFORCE
-	if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUFFORCE, (void*)&snd,
-		(socklen_t)sizeof(snd)) < 0) {
-		if(errno != EPERM && errno != ENOBUFS) {
-			log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, "
+		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUFFORCE, (void*)&snd,
+			(socklen_t)sizeof(snd)) < 0) {
+			if(errno != EPERM && errno != ENOBUFS) {
+				log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, "
                                         "...) failed: %s", strerror(errno));
-			return -1;
-		} 
+				return -1;
+			}
+		}
 #  else
-	if(1) {
-#  endif /* SO_SNDBUFFORCE */
 		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUF, (void*)&snd,
-			 (socklen_t)sizeof(snd)) < 0) {
+			(socklen_t)sizeof(snd)) < 0) {
 			if(errno != ENOBUFS && errno != ENOSYS) {
 				log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUF, "
                                         "...) failed: %s", strerror(errno));
 				return -1;
 			}
 		}
+#  endif /* SO_SNDBUFFFORCE */
 	}
 #endif /* SO_SNDBUF */
-
-	}
-#endif /* defined(SO_RCVBUF) || defined(SO_SNDBUF) */
 
 #if defined(INET6)
 		if (addr->ai_family == AF_INET6) {
@@ -3858,6 +3860,22 @@ handle_slowaccept_timeout(int ATTR_UNUSED(fd), short ATTR_UNUSED(event),
 	}
 }
 
+#ifndef HAVE_ACCEPT4
+static inline int accept4(
+	int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags)
+{
+	int s = accept(sockfd, addr, addrlen);
+	if (s != -1) {
+		if (fcntl(s, F_SETFL, O_NONBLOCK) == -1) {
+			log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
+			close(s);
+			s = -1;
+		}
+	}
+	return s;
+}
+#endif /* HAVE_ACCEPT4 */
+
 /*
  * Handle an incoming TCP connection.  The connection is accepted and
  * a new TCP reader event handler is added.  The TCP handler
@@ -3869,6 +3887,7 @@ handle_tcp_accept(int fd, short event, void* arg)
 	struct tcp_accept_handler_data *data
 		= (struct tcp_accept_handler_data *) arg;
 	int s;
+	int reject = 0;
 	struct tcp_handler_data *tcp_data;
 	region_type *tcp_region;
 #ifdef INET6
@@ -3884,16 +3903,15 @@ handle_tcp_accept(int fd, short event, void* arg)
 	}
 
 	if (data->nsd->current_tcp_count >= data->nsd->maximum_tcp_count) {
-		return;
+		reject = data->nsd->options->tcp_reject_overflow;
+		if (!reject) {
+			return;
+		}
 	}
 
 	/* Accept it... */
 	addrlen = sizeof(addr);
-#ifndef HAVE_ACCEPT4
-	s = accept(fd, (struct sockaddr *) &addr, &addrlen);
-#else
 	s = accept4(fd, (struct sockaddr *) &addr, &addrlen, SOCK_NONBLOCK);
-#endif
 	if (s == -1) {
 		/**
 		 * EMFILE and ENFILE is a signal that the limit of open
@@ -3932,13 +3950,11 @@ handle_tcp_accept(int fd, short event, void* arg)
 		return;
 	}
 
-#ifndef HAVE_ACCEPT4
-	if (fcntl(s, F_SETFL, O_NONBLOCK) == -1) {
-		log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
+	if (reject) {
+		shutdown(s, SHUT_RDWR);
 		close(s);
 		return;
 	}
-#endif
 
 	/*
 	 * This region is deallocated when the TCP connection is
@@ -4007,9 +4023,16 @@ handle_tcp_accept(int fd, short event, void* arg)
 	 * Keep track of the total number of TCP handlers installed so
 	 * we can stop accepting connections when the maximum number
 	 * of simultaneous TCP connections is reached.
+	 *
+	 * If tcp-reject-overflow is enabled, however, then we do not
+	 * change the handler event type; we keep it as-is and accept
+	 * overflow TCP connections only so that we can forcibly kill
+	 * them off.
 	 */
 	++data->nsd->current_tcp_count;
-	if (data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
+	if (!data->nsd->options->tcp_reject_overflow &&
+	     data->nsd->current_tcp_count == data->nsd->maximum_tcp_count)
+	{
 		configure_handler_event_types(0);
 	}
 }
