@@ -37,6 +37,7 @@ ipc_child_quit(struct nsd* nsd)
 {
 	/* call shutdown and quit routines */
 	nsd->mode = NSD_QUIT;
+	service_remaining_tcp(nsd);
 #ifdef	BIND8_STATS
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */

@@ -7,6 +7,10 @@
 	  tcp-reject-overflow options for nsd.conf, from Jeroen Koekkoek.
 	- Do not use symbol from libc, instead use own replacement, if not
 	  available, for accept4.
+	- Fix #14, tcp connections have 1/10 to be active and have to work
+	  every second, and then they get time to complete during a reload,
+	  this is a process that lingers with the old version during a version
+	  update.
 
 19 June 2019: Wouter
 	- Fix tls handshake event callback function mistake, reported

@@ -6,6 +6,10 @@ FEATURES:
 	- Added num.tls and num.tls6 stat counters.
 	- PR #12: send-buffer-size, receive-buffer-size,
 	  tcp-reject-overflow options for nsd.conf, from Jeroen Koekkoek.
+	- Fix #14, tcp connections have 1/10 to be active and have to work
+	  every second, and then they get time to complete during a reload,
+	  this is a process that lingers with the old version during a version
+	  update.
 BUG FIXES:
 	- Fix #13: Stray dot at the end of some log entries, removes dot
 	  after updated serial number in log entry.

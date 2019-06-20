@@ -208,7 +208,11 @@ struct tcp_handler_data
 	enum { tls_hs_none, tls_hs_read, tls_hs_write,
 		tls_hs_read_event, tls_hs_write_event } shake_state;
 #endif
+	/* list of connections, for service of remaining tcp channels */
+	struct tcp_handler_data *prev, *next;
 };
+/* global that is the list of active tcp channels */
+static struct tcp_handler_data *tcp_active_list = NULL;
 
 /*
  * Handle incoming queries on the UDP server sockets.
@@ -2680,6 +2684,7 @@ server_child(struct nsd *nsd)
 		}
 	}
 
+	service_remaining_tcp(nsd);
 #ifdef	BIND8_STATS
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
@@ -2692,6 +2697,112 @@ server_child(struct nsd *nsd)
 	region_destroy(server_region);
 #endif
 	server_shutdown(nsd);
+}
+
+static void remaining_tcp_timeout(int ATTR_UNUSED(fd), short event, void* arg)
+{
+	int* timed_out = (int*)arg;
+        assert(event & EV_TIMEOUT);
+	/* wake up the service tcp thread, note event is no longer
+	 * registered */
+	*timed_out = 1;
+}
+
+void
+service_remaining_tcp(struct nsd* nsd)
+{
+	struct tcp_handler_data* p;
+	struct event_base* event_base;
+	/* it is needed */
+	if(nsd->current_tcp_count == 0)
+		return;
+	VERBOSITY(4, (LOG_INFO, "service remaining TCP connections"));
+
+	/* setup event base */
+	event_base = nsd_child_event_base();
+	if(!event_base) {
+		log_msg(LOG_ERR, "nsd remain tcp could not create event base");
+		return;
+	}
+	/* register tcp connections */
+	for(p = tcp_active_list; p != NULL; p = p->next) {
+		struct timeval timeout;
+		int fd = p->event.ev_fd;
+#ifdef USE_MINI_EVENT
+		short event = p->event.ev_flags & (EV_READ|EV_WRITE);
+#else
+		short event = p->event.ev_events & (EV_READ|EV_WRITE);
+#endif
+		void (*fn)(int, short, void*);
+#ifdef HAVE_SSL
+		if(p->tls) {
+			if((event&EV_READ))
+				fn = handle_tls_reading;
+			else	fn = handle_tls_writing;
+		} else {
+#endif
+			if((event&EV_READ))
+				fn = handle_tcp_reading;
+			else	fn = handle_tcp_writing;
+#ifdef HAVE_SSL
+		}
+#endif
+
+		/* set timeout to 1/10 second */
+		if(p->tcp_timeout > 100)
+			p->tcp_timeout = 100;
+		timeout.tv_sec = p->tcp_timeout / 1000;
+		timeout.tv_usec = (p->tcp_timeout % 1000)*1000;
+		event_del(&p->event);
+		memset(&p->event, 0, sizeof(p->event));
+		event_set(&p->event, fd, EV_PERSIST | event | EV_TIMEOUT,
+			fn, p);
+		if(event_base_set(event_base, &p->event) != 0)
+			log_msg(LOG_ERR, "event base set failed");
+		if(event_add(&p->event, &timeout) != 0)
+			log_msg(LOG_ERR, "event add failed");
+	}
+
+	/* handle it */
+	while(nsd->current_tcp_count > 0) {
+		mode_t m = server_signal_mode(nsd);
+		struct event timeout;
+		struct timeval tv;
+		int timed_out = 0;
+		if(m == NSD_QUIT || m == NSD_SHUTDOWN ||
+			m == NSD_REAP_CHILDREN) {
+			/* quit */
+			break;
+		}
+		/* timer */
+		/* have to do something every second */
+		tv.tv_sec = 1;
+		tv.tv_usec = 0;
+		memset(&timeout, 0, sizeof(timeout));
+		event_set(&timeout, -1, EV_TIMEOUT, remaining_tcp_timeout,
+			&timed_out);
+		if(event_base_set(event_base, &timeout) != 0)
+			log_msg(LOG_ERR, "remaintcp timer: event_base_set failed");
+		if(event_add(&timeout, &tv) != 0)
+			log_msg(LOG_ERR, "remaintcp timer: event_add failed");
+
+		/* service loop */
+		if(event_base_loop(event_base, EVLOOP_ONCE) == -1) {
+			if (errno != EINTR) {
+				log_msg(LOG_ERR, "dispatch failed: %s", strerror(errno));
+				break;
+			}
+		}
+		if(!timed_out) {
+			event_del(&timeout);
+		} else {
+			/* timed out, quit */
+			VERBOSITY(4, (LOG_INFO, "service remaining TCP connections: timed out, quit"));
+			break;
+		}
+	}
+	event_base_free(event_base);
+	/* continue to quit after return */
 }
 
 #if defined(HAVE_SENDMMSG) && !defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG)
@@ -3020,6 +3131,11 @@ cleanup_tcp_handler(struct tcp_handler_data* data)
 	}
 #endif
 	close(data->event.ev_fd);
+	if(data->prev)
+		data->prev->next = data->next;
+	else	tcp_active_list = data->next;
+	if(data->next)
+		data->next->prev = data->prev;
 
 	/*
 	 * Enable the TCP accept handlers when the current number of
@@ -3977,6 +4093,8 @@ handle_tcp_accept(int fd, short event, void* arg)
 	tcp_data->shake_state = tls_hs_none;
 	tcp_data->tls = NULL;
 #endif
+	tcp_data->prev = NULL;
+	tcp_data->next = NULL;
 
 	tcp_data->query_state = QUERY_PROCESSED;
 	tcp_data->bytes_transmitted = 0;
@@ -4023,6 +4141,11 @@ handle_tcp_accept(int fd, short event, void* arg)
 		region_destroy(tcp_region);
 		return;
 	}
+	if(tcp_active_list) {
+		tcp_active_list->prev = tcp_data;
+		tcp_data->next = tcp_active_list;
+	}
+	tcp_active_list = tcp_data;
 
 	/*
 	 * Keep track of the total number of TCP handlers installed so
