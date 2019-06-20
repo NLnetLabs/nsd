@@ -3,6 +3,8 @@
 	  values from setting event library lists and assertions, that would
 	  sometimes also show after event_del.
 	- Added num.tls and num.tls6 stat counters.
+	- PR #12: send-buffer-size, receive-buffer-size,
+	  tcp-reject-overflow options for nsd.conf, from Jeroen Koekkoek.
 
 19 June 2019: Wouter
 	- Fix tls handshake event callback function mistake, reported

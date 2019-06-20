@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- Added num.tls and num.tls6 stat counters.
+	- PR #12: send-buffer-size, receive-buffer-size,
+	  tcp-reject-overflow options for nsd.conf, from Jeroen Koekkoek.
 BUG FIXES:
 	- Fix #13: Stray dot at the end of some log entries, removes dot
 	  after updated serial number in log entry.
