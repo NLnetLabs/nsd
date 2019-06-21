@@ -2713,8 +2713,8 @@ service_remaining_tcp(struct nsd* nsd)
 {
 	struct tcp_handler_data* p;
 	struct event_base* event_base;
-	/* it is needed */
-	if(nsd->current_tcp_count == 0)
+	/* check if it is needed */
+	if(nsd->current_tcp_count == 0 || tcp_active_list == NULL)
 		return;
 	VERBOSITY(4, (LOG_INFO, "service remaining TCP connections"));
 
