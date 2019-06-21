@@ -736,7 +736,7 @@ main(int argc, char* argv[])
 	log_init("nsd-checkconf");
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "vfo:a:p:s:z:")) != -1) {
+	while ((c = getopt(argc, argv, "vfho:a:p:s:z:")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose = 1;
@@ -769,6 +769,7 @@ main(int argc, char* argv[])
 		case 'z':
 			conf_zone = optarg;
 			break;
+		case 'h':
 		default:
 			usage();
 		};
