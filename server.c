@@ -3976,11 +3976,10 @@ handle_slowaccept_timeout(int ATTR_UNUSED(fd), short ATTR_UNUSED(event),
 	}
 }
 
-#ifndef HAVE_ACCEPT4
-static int nsd_accept4(
-	int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags)
+static int perform_accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	int s = accept(sockfd, addr, addrlen);
+#ifndef HAVE_ACCEPT4
+	int s = accept(fd, addr, addrlen);
 	if (s != -1) {
 		if (fcntl(s, F_SETFL, O_NONBLOCK) == -1) {
 			log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
@@ -3992,10 +3991,10 @@ static int nsd_accept4(
 		}
 	}
 	return s;
-}
 #else
-#define nsd_accept4 accept4
+	return accept4(fd, addr, addrlen, SOCK_NONBLOCK);
 #endif /* HAVE_ACCEPT4 */
+}
 
 /*
  * Handle an incoming TCP connection.  The connection is accepted and
@@ -4032,7 +4031,7 @@ handle_tcp_accept(int fd, short event, void* arg)
 
 	/* Accept it... */
 	addrlen = sizeof(addr);
-	s = nsd_accept4(fd, (struct sockaddr *) &addr, &addrlen, SOCK_NONBLOCK);
+	s = perform_accept(fd, (struct sockaddr *) &addr, &addrlen);
 	if (s == -1) {
 		/**
 		 * EMFILE and ENFILE is a signal that the limit of open
