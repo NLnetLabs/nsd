@@ -1,3 +1,7 @@
+27 June 2019: Wouter
+	- Fix unit test for added options and no dot after zone updated
+	  log message.
+
 21 June 2019: Wouter
 	- Omit remaining tcp processing if the list is empty.
 	- Fix output of nsd-checkconf -h.
