@@ -957,7 +957,16 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 	rrset_type *rrset;
 
 	if (q->qtype == TYPE_ANY) {
-		int added = 0;
+		rrset_type *preferred_rrset = NULL;
+		rrset_type *normal_rrset = NULL;
+		rrset_type *non_preferred_rrset = NULL;
+
+		/*
+		 * Minimize response size for ANY, with one RRset
+		 * according to RFC 8482(4.1).
+		 * Prefers popular and not large rtypes (A,AAAA,...)
+		 * lowering large ones (DNSKEY,RRSIG,...).
+		 */
 		for (rrset = domain_find_any_rrset(domain, q->zone); rrset; rrset = rrset->next) {
 			if (rrset->zone == q->zone
 #ifdef NSEC3
@@ -972,14 +981,32 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 				 && zone_is_secure(q->zone)
 				 && rrset_rrtype(rrset) == TYPE_RRSIG))
 			{
-				add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
-				++added;
-				/* minimize response size with one RR,
-				 * according to RFC 8482(4.1). */
-				break;
+				switch(rrset_rrtype(rrset)) {
+					case TYPE_A:
+					case TYPE_AAAA:
+					case TYPE_SOA:
+					case TYPE_MX:
+					case TYPE_PTR:
+						preferred_rrset = rrset;
+						break;
+					case TYPE_DNSKEY:
+					case TYPE_RRSIG:
+					case TYPE_NSEC:
+						non_preferred_rrset = rrset;
+						break;
+					default:
+						normal_rrset = rrset;
+				}
+				if (preferred_rrset) break;
 			}
 		}
-		if (added == 0) {
+		if (preferred_rrset) {
+			add_rrset(q, answer, ANSWER_SECTION, domain, preferred_rrset);
+		} else if (normal_rrset) {
+			add_rrset(q, answer, ANSWER_SECTION, domain, normal_rrset);
+		} else if (non_preferred_rrset) {
+			add_rrset(q, answer, ANSWER_SECTION, domain, non_preferred_rrset);
+		} else {
 			answer_nodata(q, answer, original);
 			return;
 		}
