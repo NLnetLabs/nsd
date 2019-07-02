@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.2.1 (in development)
+4.2.1
 ================
 FEATURES:
 	- Added num.tls and num.tls6 stat counters.
