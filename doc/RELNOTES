@@ -7,6 +7,9 @@ BUG FIXES:
 	  dname_concatenate() function.  Reported by Frederic Cambus.
 	  It causes the zone parser to crash on a malformed zone file,
 	  with assertions enabled, an assertion catches it.
+	- Fix #19: Out-of-bounds read caused by improper validation of
+	  array index.  Reported by Frederic Cambus.  The zone parser
+	  fails on type SIG because of mismatched definition with RRSIG.
 
 
 4.2.1
