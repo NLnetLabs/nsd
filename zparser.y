@@ -1020,6 +1020,10 @@ rdata_ipsec_base: STR sp STR sp STR sp dotted_str
 				if(parser->origin == error_domain) {
 		    			zc_error("cannot concatenate origin to domain name, because origin failed to parse");
 					break;
+				} else if(name->name_size + domain_dname(parser->origin)->name_size - 1 > MAXDOMAINLEN) {
+					zc_error("ipsec gateway name exceeds %d character limit",
+						MAXDOMAINLEN);
+					break;
 				}
 				name = dname_concatenate(parser->rr_region, name, 
 					domain_dname(parser->origin));

@@ -1,3 +1,9 @@
+4 July 2019: Wouter
+	- Fix #20: CVE-2019-13207 Stack-based Buffer Overflow in the
+	  dname_concatenate() function.  Reported by Frederic Cambus.
+	  It causes the zone parser to crash on a malformed zone file,
+	  with assertions enabled, an assertion catches it.
+
 2 July 2019: Wouter
 	- Tag for 4.2.1rc1
 
