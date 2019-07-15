@@ -1,3 +1,6 @@
+15 July 2019: Wouter
+	- PR #23: Fix typo in nsd.conf man-page.
+
 4 July 2019: Wouter
 	- Set version to 4.2.2 in development.
 	- clean memory on exit of nsd-checkzone for memory debug.

@@ -10,6 +10,7 @@ BUG FIXES:
 	- Fix #19: Out-of-bounds read caused by improper validation of
 	  array index.  Reported by Frederic Cambus.  The zone parser
 	  fails on type SIG because of mismatched definition with RRSIG.
+	- PR #23: Fix typo in nsd.conf man-page.
 
 
 4.2.1
