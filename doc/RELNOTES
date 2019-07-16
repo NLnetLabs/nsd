@@ -1,12 +1,88 @@
 NSD RELEASE NOTES
 
-4.1.27 (Upcoming)
+4.2.2 (in development)
+================
+BUG FIXES:
+	- Fix #20: CVE-2019-13207 Stack-based Buffer Overflow in the
+	  dname_concatenate() function.  Reported by Frederic Cambus.
+	  It causes the zone parser to crash on a malformed zone file,
+	  with assertions enabled, an assertion catches it.
+	- Fix #19: Out-of-bounds read caused by improper validation of
+	  array index.  Reported by Frederic Cambus.  The zone parser
+	  fails on type SIG because of mismatched definition with RRSIG.
+	- PR #23: Fix typo in nsd.conf man-page.
+
+
+4.2.1
+================
+FEATURES:
+	- Added num.tls and num.tls6 stat counters.
+	- PR #12: send-buffer-size, receive-buffer-size,
+	  tcp-reject-overflow options for nsd.conf, from Jeroen Koekkoek.
+	- Fix #14, tcp connections have 1/10 to be active and have to work
+	  every second, and then they get time to complete during a reload,
+	  this is a process that lingers with the old version during a version
+	  update.
+BUG FIXES:
+	- Fix #13: Stray dot at the end of some log entries, removes dot
+	  after updated serial number in log entry.
+	- Fix TLS cipher selection, the previous was redundant, prefers
+	  CHACHA20-POLY1305 over AESGCM and was not as readable as it
+	  could be.
+	- Consolidate server tls context create and remote control context
+	  create, with hardening for the remote control tls context too.
+	- Fix to init event structure for reassignment.
+	- Fix to init event not pointer, in reassignment.
+	- Fix #15: crash in SSL library, initialize variables for TCP access
+	  when TLS is configured.
+	- Fix tls handshake event callback function mistake, reported
+	  by Mykhailo Danylenko.
+	- Initialize event structures before event_set, to stop uninitialized
+	  values from setting event library lists and assertions, that would
+	  sometimes also show after event_del.
+	- Do not use symbol from libc, instead use own replacement, if not
+	  available, for accept4.
+	- Fix output of nsd-checkconf -h.
+
+
+4.2.0
+================
+FEATURES:
+	- Print IP address when bind socket fails with error.
+	- Fix #4249: The option hide-identity: yes stops NSD from responding
+	  with the hostname for chaos class queries.  Implements the RFC4892
+	  security considerations.
+	- Patch to add support for TCP Fast Open, from Sara
+	  Dickinson (Sinodun).
+	- Patch to add support for tls service on a specified tls port,
+	  from Sara Dickinson (Sinodun).
+	- Use travis for build check, initial unit test and clang analysis.
+	- TLS OCSP stapling support, enabled with tls-service-ocsp: filename,
+	  patch from Andreas Schulze.
+BUG FIXES:
+	- Fix to delete unused zparser.default_apex member.
+	- Fix that the TLS handshake routine sets the correct event to
+	  continue when done.
+	- Fix that TLS renegotiation calls the read and write routines again
+	  with the same parameters when the desired event has been satisfied.
+	- Fix that TCP Fastopen has better error message and supports OSX.
+	- Fix to avoid buffer alloc with global buffer in tls write handler.
+	- Fix to initialize event structure when accepting TCP connection.
+	- Disable TLS1.0, TLS1.1 and weak ciphers, enable
+	  CIPHER_SERVER_PREFERENCE, patch from Andreas Schulze.
+	- further setup ssl ctx after the keys are loaded, for ECDH.
+	- Fix #10: Fix memory leaks caused by duplicate rr and include
+	  instructions.
+	- Fix to define _OPENBSD_SOURCE to get reallocarray on NetBSD.
+
+
+4.1.27
 ================
 FEATURES:
 	- Deny ANY with only one RR in response, by default.  Patch from
 	  Daisuke Higashi.  The deny-any statement in nsd.conf sets ANY
 	  queries over UDP to be further moved to TCP as well.
-	  Also no additional section processig for type ANY, reducing
+	  Also no additional section processing for type ANY, reducing
 	  the response size.
 	- Fix #4215: on-the-fly change of TSIG keys with patch from Igor, adds
 	  nsd-control print_tsig, update_tsig, add_tsig, assoc_tsig
@@ -18,6 +94,14 @@ BUG FIXES:
 	- Fix to reduce region_log_stats if condition, this removes a
 	  debug statement.
         - Fix for FreeBSD port with dnstap enabled.
+	- Fix to remove unused code.
+	- Fix #6: nsd-control-setup: Change validity time to a shorter
+	  period (<2038).
+	- Fix unused definition in header remote.h.
+	- Fix #4236: IPV4_MINIMAL_RESPONSE_SIZE=1480 is slightly too big.
+	- Fix #4235: IP_PMTUDISC_OMIT on IPv4/UDP sockets.
+	- Fixed radtree_insert memory leak.
+	- Fixed access recycled variable.
 
 
 4.1.26

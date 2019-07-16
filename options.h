@@ -61,9 +61,12 @@ struct nsd_options {
 
 	int ip_transparent;
 	int ip_freebind;
+	int send_buffer_size;
+	int receive_buffer_size;
 	int debug_mode;
 	int verbosity;
 	int hide_version;
+	int hide_identity;
 	int do_ip4;
 	int do_ip6;
 	const char* database;
@@ -72,6 +75,7 @@ struct nsd_options {
 	const char* logfile;
 	int server_count;
 	int tcp_count;
+	int tcp_reject_overflow;
 	int tcp_query_count;
 	int tcp_timeout;
 	int tcp_mss;
@@ -96,6 +100,15 @@ struct nsd_options {
 	int minimal_responses;
 	int refuse_any;
 	int reuseport;
+
+	/* private key file for TLS */
+	char* tls_service_key;
+	/* ocsp stapling file for TLS */
+	char* tls_service_ocsp;
+	/* certificate file for TLS */
+	char* tls_service_pem;
+	/* TLS dedicated port */
+	const char* tls_port;
 
         /** remote control section. enable toggle. */
 	int control_enable;
@@ -337,6 +350,8 @@ struct key_options* key_options_find(struct nsd_options* opt, const char* name);
 void key_options_remove(struct nsd_options* opt, const char* name);
 int key_options_equal(struct key_options* p, struct key_options* q);
 void key_options_add_modify(struct nsd_options* opt, struct key_options* key);
+void key_options_setup(region_type* region, struct key_options* key);
+void key_options_desetup(region_type* region, struct key_options* key);
 /* read in zone list file. Returns false on failure */
 int parse_zone_list_file(struct nsd_options* opt);
 /* create zone entry and add to the zonelist file */

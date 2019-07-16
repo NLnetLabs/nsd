@@ -1,3 +1,181 @@
+15 July 2019: Wouter
+	- PR #23: Fix typo in nsd.conf man-page.
+
+4 July 2019: Wouter
+	- Set version to 4.2.2 in development.
+	- clean memory on exit of nsd-checkzone for memory debug.
+	- Fix #20: CVE-2019-13207 Stack-based Buffer Overflow in the
+	  dname_concatenate() function.  Reported by Frederic Cambus.
+	  It causes the zone parser to crash on a malformed zone file,
+	  with assertions enabled, an assertion catches it.
+	- Fix #19: Out-of-bounds read caused by improper validation of
+	  array index.  Reported by Frederic Cambus.  The zone parser
+	  fails on type SIG because of mismatched definition with RRSIG.
+
+2 July 2019: Wouter
+	- Tag for 4.2.1rc1
+
+27 June 2019: Wouter
+	- Fix unit test for added options and no dot after zone updated
+	  log message.
+	- Fix compile without accept4.
+
+21 June 2019: Wouter
+	- Omit remaining tcp processing if the list is empty.
+	- Fix output of nsd-checkconf -h.
+
+20 June 2019: Wouter
+	- Initialize event structures before event_set, to stop uninitialized
+	  values from setting event library lists and assertions, that would
+	  sometimes also show after event_del.
+	- Added num.tls and num.tls6 stat counters.
+	- PR #12: send-buffer-size, receive-buffer-size,
+	  tcp-reject-overflow options for nsd.conf, from Jeroen Koekkoek.
+	- Do not use symbol from libc, instead use own replacement, if not
+	  available, for accept4.
+	- Fix #14, tcp connections have 1/10 to be active and have to work
+	  every second, and then they get time to complete during a reload,
+	  this is a process that lingers with the old version during a version
+	  update.
+
+19 June 2019: Wouter
+	- Fix tls handshake event callback function mistake, reported
+	  by Mykhailo Danylenko.
+
+18 June 2019: Wouter
+	- Fix #15: crash in SSL library, initialize variables for TCP access
+	  when TLS is configured.
+
+14 June 2019: Wouter
+	- Fix to init event not pointer, in reassignment.
+
+12 June 2019: Wouter
+	- Fix to init event structure for reassignment.
+
+11 June 2019: Wouter
+	- NSD 4.2.0 release.  Current development is 4.2.1.
+	- Fixup of RELNOTES, corrected RFC reference for 4892.
+	- Fix #13: Stray dot at the end of some log entries, removes dot
+	  after updated serial number in log entry.
+	- Fix TLS cipher selection, the previous was redundant, prefers
+	  CHACHA20-POLY1305 over AESGCM and was not as readable as it could be. 
+	- Consolidate server tls context create and remote control context
+	  create, with hardening for the remote control tls context too.
+
+6 June 2019: Wouter
+	- NSD 4.2.0rc1 tag.
+
+4 June 2019: Wouter
+	- Fix unit test for outgoing interface to use random port numbers for
+	  the outgoing interface config.
+
+29 May 2019: Wouter
+	- Fix to guard _OPENBSD_SOURCE from redefinition.
+
+28 May 2019: Wouter
+	- Fix to define _OPENBSD_SOURCE to get reallocarray on NetBSD.
+
+16 May 2019: Wouter
+	- Fix #10: Fix memory leaks caused by duplicate rr and include
+	  instructions.
+
+6 May 2019: Wouter
+	- Note CII best practices badge for NSD on the README.md.
+
+2 May 2019: Wouter
+	- Fix .gitignore for unit test generated files.
+	- Fix checkconf unit test for hide-identity and tls.
+
+1 May 2019: Wouter
+	- Fix makedist.sh for use with git.
+	- Nicer output on travis for clang analysis.
+	- Add .gitignore file to exclude built files from version tracking.
+	- Add README.md file in repository with compile instructions.
+	- Fix .gitignore for dnstap files and aclocal temp.
+	- Add aclocal to README.md for pkgconfig for some configure options.
+
+25 April 2019: Wouter
+	- Add tls.tpkg unit test for DNS over TLS functionality.
+
+18 April 2019: Wouter
+	- Fix to avoid buffer alloc with global buffer in tls write handler.
+	- Fix to initialize event structure when accepting TCP connection.
+	- Use travis for build check, initial unit test and clang analysis.
+	- Disable SSLv2,3,TLSv1.0,1.1 if TLS1.2 is available in libssl.
+	- Disable weak ciphers, enable CIPHER_SERVER_PREFERENCE.
+	- further setup ssl ctx after the keys are loaded, for ECDH.
+	- TLS OCSP stapling support, enabled with tls-service-ocsp: filename,
+	  patch from Andreas Schulze.
+
+17 April 2019: Wouter
+	- Fix to share openssl init code, and perform it once.
+
+16 April 2019: Andreas via Sara
+	- Patch to add support for TCP Fast Open
+	- Patch to add support for tls service on a specified tls port
+
+16 April 2019: Wouter
+	- Fix #4249: The option hide-identity: yes stops NSD from responding
+	  with the hostname for chaos class queries.  Implements the RFC4829
+	  security considerations.
+	- Remove starttls, this signalling method was not standardized.
+	- Remove TO bit, this signalling method was not standardized.
+	- Remove unused first_query and tls_ok states.
+	- Remove sign-compare warning in tls packet send code.
+	- Fix spelling in comment and log printout.
+	- Fix potential uninitialized variable.
+	- Fix documentation for DNS over TLS, and set default port 853.
+	- Fix to add missing comment.
+	- Fix that the TLS handshake routine sets the correct event to
+	  continue when done.
+	- Fix that TLS renegotiation calls the read and write routines again
+	  with the same parameters when the desired event has been satisfied.
+	- Fix that TCP Fastopen has better error message and supports OSX.
+	- Fix log for fastopen with verbosity.
+	- Squelch TLS handshake failure log until verbosity 3.
+	- Add per-zone statistics for TLS queries, and dnstap for TLS queries,
+	  and rcode and TCflag statistics for TCP and TLS queries.
+
+25 March 2019: Wouter
+	- Print IP address when bind socket fails with error.
+
+21 March 2019: Wouter
+	- Fix spelling error in release notes.
+	- Fix to delete unused zparser.default_apex member.
+
+19 March 2019: Wouter
+	- tag 4.1.27rc1.  This became 4.1.27 on 25 March 2019 and trunk has
+	  4.1.28 in development.
+
+18 March 2019: Wouter
+	- Fix unit test bug013_truncate for new truncation with EDNS size,
+	  it is one RR smaller for the truncated response in the test.
+
+14 March 2019: Wouter
+	- Fixed radtree_insert memory leak.
+	- Fixed access recycled variable.
+
+11 March 2019: Wouter
+	- Fix #6: nsd-control-setup: Change validity time to a shorter
+	  period (<2038).
+	- Fix unused definition in header remote.h.
+	- Fix #4236: IPV4_MINIMAL_RESPONSE_SIZE=1480 is slightly too big.
+	- Fix #4235: IP_PMTUDISC_OMIT on IPv4/UDP sockets.
+
+18 February 2019: Wouter
+	- Fix to remove unused code.
+
+15 February 2019: Wouter
+	- tentative robustness, delete stats items from list twice if needed.
+
+14 February 2019: Wouter
+	- Fix #4: setusercontext() is in libutil on NetBSD, and also
+	  include login_cap.h only if it exists.
+	- Fix #4215: fixup for state update for TSIG information in server
+	  processes, nicer printout for tsig_print, tsig_print without
+	  arguments and no leaks.
+	- nicer logging for update_tsig.
+
 1 February 2019: Wouter
 	- Fix for tsig assoc_tsig command on acl with nokey elements.
 
