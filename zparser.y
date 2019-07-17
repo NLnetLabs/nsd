@@ -633,7 +633,7 @@ type_and_rdata:
     |	T_DLV sp rdata_dlv { if (dlv_warn) { dlv_warn = 0; zc_warning_prev_line("DLV is experimental"); } }
     |	T_DLV sp rdata_unknown { if (dlv_warn) { dlv_warn = 0; zc_warning_prev_line("DLV is experimental"); } $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_SSHFP sp rdata_sshfp
-    |	T_SSHFP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_SSHFP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); check_sshfp(); }
     |	T_RRSIG sp rdata_rrsig
     |	T_RRSIG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_NSEC sp rdata_nsec
@@ -906,6 +906,7 @@ rdata_sshfp:	STR sp STR sp str_sp_seq trail
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* alg */
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* fp type */
 	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $5.str, $5.len)); /* hash */
+	    check_sshfp();
     }
     ;
 

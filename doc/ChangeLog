@@ -1,3 +1,6 @@
+17 July 2019: Wouter
+	- Fix that NSD warns for wrong length of the hash in SSHFP records.
+
 15 July 2019: Wouter
 	- PR #23: Fix typo in nsd.conf man-page.
 

@@ -1742,3 +1742,27 @@ zonec_parse_string(region_type* region, domain_table_type* domains,
 	parser_flush();
 	return errors;
 }
+
+/** check SSHFP type for failures and emit warnings */
+void check_sshfp(void)
+{
+	uint8_t hash;
+	uint16_t size;
+	if(parser->current_rr.rdata_count < 3)
+		return; /* cannot check it, too few rdata elements */
+	if(rdata_atom_size(parser->current_rr.rdatas[1]) != 1)
+		return; /* wrong size of the hash type rdata element */
+	hash = rdata_atom_data(parser->current_rr.rdatas[1])[0];
+	size = rdata_atom_size(parser->current_rr.rdatas[2]);
+	if(hash == 1 && size != 20) {
+		zc_warning_prev_line("SSHFP %s of type SHA1 has hash of "
+			"wrong length, %d bytes, should be 20",
+			domain_to_string(parser->current_rr.owner),
+			(int)size);
+	} else if(hash == 2 && size != 32) {
+		zc_warning_prev_line("SSHFP %s of type SHA256 has hash of "
+			"wrong length, %d bytes, should be 32",
+			domain_to_string(parser->current_rr.owner),
+			(int)size);
+	}
+}

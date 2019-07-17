@@ -11,6 +11,7 @@ BUG FIXES:
 	  array index.  Reported by Frederic Cambus.  The zone parser
 	  fails on type SIG because of mismatched definition with RRSIG.
 	- PR #23: Fix typo in nsd.conf man-page.
+	- Fix that NSD warns for wrong length of the hash in SSHFP records.
 
 
 4.2.1
