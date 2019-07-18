@@ -2,6 +2,8 @@
 	- Fix #25: NSD doesn't refresh zones after extended downtime,
 	  it refreshes the old zones, with a random delay of a couple of
 	  seconds to spread the load.
+	- Fix so that expired zones stay expired when server is down a
+	  long time.
 
 17 July 2019: Wouter
 	- Fix that NSD warns for wrong length of the hash in SSHFP records.

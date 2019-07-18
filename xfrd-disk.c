@@ -286,7 +286,8 @@ xfrd_read_state(struct xfrd_state* xfrd)
 			 * but spread the load of all zones over a couple
 			 * of seconds to avoid flooding the master. */
 			timeout = (uint32_t)random_generate(10);
-			zone->state = xfrd_zone_refreshing;
+			if(zone->state == xfrd_zone_ok)
+				zone->state = xfrd_zone_refreshing;
 			xfrd_set_refresh_now(zone);
 		}
 		if(timeout == 0 || soa_notified_acquired_read != 0 ||
