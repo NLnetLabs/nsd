@@ -281,6 +281,14 @@ xfrd_read_state(struct xfrd_state* xfrd)
 			soa_refresh = zone->zone_options->pattern->max_refresh_time;
 		else if (soa_refresh < (time_t)zone->zone_options->pattern->min_refresh_time)
 			soa_refresh = zone->zone_options->pattern->min_refresh_time;
+		if(timeout != 0 && filetime + timeout < (uint32_t)xfrd_time()) {
+			/* timeout is in the past, refresh the zone,
+			 * but spread the load of all zones over a couple
+			 * of seconds to avoid flooding the master. */
+			timeout = (uint32_t)random_generate(10);
+			zone->state = xfrd_zone_refreshing;
+			xfrd_set_refresh_now(zone);
+		}
 		if(timeout == 0 || soa_notified_acquired_read != 0 ||
 			(soa_disk_acquired_read != 0 &&
 			(uint32_t)xfrd_time() - soa_disk_acquired_read
