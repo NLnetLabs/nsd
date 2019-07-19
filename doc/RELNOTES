@@ -15,6 +15,8 @@ BUG FIXES:
 	- Fix #25: NSD doesn't refresh zones after extended downtime,
 	  it refreshes the old zones, with a random delay of a couple of
 	  seconds to spread the load.
+	- Set no renegotiation on the SSL context to stop client
+	  session renegotiation.
 
 
 4.2.1

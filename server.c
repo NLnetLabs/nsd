@@ -1696,6 +1696,15 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 		return 0;
 	}
 #endif
+#if defined(SSL_OP_NO_RENEGOTIATION)
+	/* disable client renegotiation */
+	if((SSL_CTX_set_options(ctx, SSL_OP_NO_RENEGOTIATION) &
+		SSL_OP_NO_RENEGOTIATION) != SSL_OP_NO_RENEGOTIATION) {
+		log_crypto_err("could not set SSL_OP_NO_RENEGOTIATION");
+		SSL_CTX_free(ctx);
+		return 0;
+	}
+#endif
 #if defined(SHA256_DIGEST_LENGTH) && defined(SSL_TXT_CHACHA20)
 	/* if we have sha256, set the cipher list to have no known vulns */
 	if(!SSL_CTX_set_cipher_list(ctx, "ECDHE+AESGCM:ECDHE+CHACHA20"))
