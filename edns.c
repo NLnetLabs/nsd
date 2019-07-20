@@ -224,7 +224,7 @@ subtract_1982(uint32_t a, uint32_t b)
 
 void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p)
 {
-	uint8_t hash[8];
+	uint8_t hash[8], hash2verify[8];
 	uint32_t cookie_time, now_uint32;
 
 	/* We support only draft-sury-toorop-dnsop-server-cookies sizes */
@@ -248,6 +248,7 @@ void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p)
 	} else if (subtract_1982(now_uint32, cookie_time) > 300)
                 /* ignore cookies > 5 minutes in future */
                 return;
+	memcpy(hash2verify, q->edns.cookie + 16, 8);
 #ifdef INET6
 	if (q->addr.ss_family == AF_INET6) {
 		memcpy( q->edns.cookie + 16
@@ -262,7 +263,7 @@ void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p)
 	memcpy( q->edns.cookie + 16, &q->addr->sin_addr, 4);
 	siphash(q->edns.cookie, 20, nsd->cookie_secret, hash, 8);
 #endif
-	q->edns.cookie_status = memcmp(q->edns.cookie + 16, hash, 8)
+	q->edns.cookie_status = memcmp(hash2verify, hash, 8)
 	                      ? COOKIE_INVALID : COOKIE_VALID;
 }
 
