@@ -76,7 +76,7 @@ size_t edns_reserved_space(edns_record_type *data);
 
 void edns_init_nsid(edns_data_type *data, uint16_t nsid_len);
 
-void cookie_verify(edns_record_type *data, struct nsd* nsd, uint32_t *now_p);
-void cookie_create(edns_record_type *data, struct nsd* nsd, uint32_t *now_p);
+void cookie_verify(struct query *q, struct nsd* nsd, uint32_t *now_p);
+void cookie_create(struct query *q, struct nsd* nsd, uint32_t *now_p);
 
 #endif /* _EDNS_H_ */

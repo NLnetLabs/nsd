@@ -1487,7 +1487,7 @@ query_process(query_type *q, nsd_type *nsd, uint32_t *now_p)
 	}
 
 	if (q->edns.cookie_status == COOKIE_UNVERIFIED)
-		cookie_verify(&q->edns, nsd, now_p);
+		cookie_verify(q, nsd, now_p);
 
 	query_prepare_response(q);
 
@@ -1550,7 +1550,7 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 				/* cookie opt header */
 				buffer_write(q->packet, edns->cookie, OPT_HDR);
 				/* cookie payload */
-				cookie_create(&q->edns, nsd, now_p);
+				cookie_create(q, nsd, now_p);
 				buffer_write(q->packet, q->edns.cookie, 24);
 			}
 		}

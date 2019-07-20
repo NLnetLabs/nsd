@@ -3637,6 +3637,7 @@ handle_tls_reading(int fd, short event, void* arg)
 {
 	struct tcp_handler_data *data = (struct tcp_handler_data *) arg;
 	ssize_t received;
+	uint32_t now = 0;
 
 	if ((event & EV_TIMEOUT)) {
 		/* Connection timed out.  */
@@ -3786,7 +3787,7 @@ handle_tls_reading(int fd, short event, void* arg)
 	dt_collector_submit_auth_query(data->nsd, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
-	data->query_state = server_process_query(data->nsd, data->query);
+	data->query_state = server_process_query(data->nsd, data->query, &now);
 	if (data->query_state == QUERY_DISCARDED) {
 		/* Drop the packet and the entire connection... */
 		STATUP(data->nsd, dropped);
@@ -3816,7 +3817,7 @@ handle_tls_reading(int fd, short event, void* arg)
 #endif
 #endif /* USE_ZONE_STATS */
 
-	query_add_optional(data->query, data->nsd);
+	query_add_optional(data->query, data->nsd, &now);
 
 	/* Switch to the tcp write handler.  */
 	buffer_flip(data->query->packet);
@@ -3854,6 +3855,7 @@ handle_tls_writing(int fd, short event, void* arg)
 	 * TCP length in front of the packet, like writev. */
 	static buffer_type* global_tls_temp_buffer = NULL;
 	buffer_type* write_buffer;
+	uint32_t now = 0;
 
 	if ((event & EV_TIMEOUT)) {
 		/* Connection timed out.  */
@@ -3938,7 +3940,7 @@ handle_tls_writing(int fd, short event, void* arg)
 		buffer_clear(q->packet);
 		data->query_state = query_axfr(data->nsd, q);
 		if (data->query_state != QUERY_PROCESSED) {
-			query_add_optional(data->query, data->nsd);
+			query_add_optional(data->query, data->nsd, &now);
 
 			/* Reset data. */
 			buffer_flip(q->packet);
