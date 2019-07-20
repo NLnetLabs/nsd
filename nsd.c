@@ -725,9 +725,9 @@ main(int argc, char *argv[])
 	else if (nsd.options->cookie_secret) {
 		int len = hex_pton(nsd.options->cookie_secret,
 			nsd.cookie_secret, sizeof(nsd.cookie_secret));
-		if (len != 16 && len != 24 && len != 32) {
+		if (len != 16) {
 			error("A cookie secret must be a "
-			      "128, 192 or 256 bit hex string");
+			      "128 bit hex string");
 		}
 		nsd.cookie_secret_len = len;
 	} else {
