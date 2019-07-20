@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Build a NSD distribution tar from the SVN repository.
+# Build a NSD distribution tar from the git repository.
 
 # Abort script on unexpected errors.
 set -e
@@ -11,7 +11,7 @@ cwd=`pwd`
 # Utility functions.
 usage () {
     cat >&2 <<EOF
-Usage $0: [-h] [-s] [-d SVN_root]
+Usage $0: [-h] [-s] [-u git_url] [-b git_branch]
 Generate a distribution tar file for NSD.
 
     -h           This usage information.
@@ -19,7 +19,12 @@ Generate a distribution tar file for NSD.
                  automatically appended to the current NSD version number.
     -rc <nr>     Build a release candidate, the given string will be added
 		 to the version number (nsd-<version>rc<number>).
-    -d SVN_root  Retrieve the NSD source from the specified repository.
+    -u git_url   Retrieve the NSD source from the specified repository.
+                 If not specified, the url is detected from the
+		 working directory.
+    -b git_branch Retrieve the specified branch or tag.
+                 If not specified, the current branch is detected from the
+		 working directory.
 EOF
     exit 1
 }
@@ -82,8 +87,12 @@ while [ "$1" ]; do
         "-h")
             usage
             ;;
-        "-d")
-            SVNROOT="$2"
+        "-u")
+            GITREPO="$2"
+            shift
+            ;;
+        "-b")
+            GITBRANCH="$2"
             shift
             ;;
         "-rc")
@@ -100,14 +109,27 @@ while [ "$1" ]; do
     shift
 done
 
-# Check if SVNROOT is specified.
-if [ -z "$SVNROOT" ]; then
-    error "SVNROOT must be specified (using -d)"
+# Check if GITREPO is specified.
+if [ -z "$GITREPO" ]; then
+    if git status 2>&1 | grep "not a git repository" >/dev/null; then
+	error "GITREPO must be specified (using -u) or use settings detected by starting from working copy directory"
+    else
+	GITREPO="`git config --get remote.origin.url`"
+    fi
+fi
+if [ -z "$GITBRANCH" ]; then
+   if git status 2>&1 | grep "not a git repository" >/dev/null; then
+       error "specify branch (using -b) or use settings detected by starting from working copy directory"
+   else
+       GITBRANCH="`git branch | grep '^\*' | sed -e 's/^\* //'`"
+  fi
 fi
 
+
 # Start the packaging process.
-info "SVNROOT  is $SVNROOT"
-info "SNAPSHOT is $SNAPSHOT"
+info "GITREPO   is $GITREPO"
+info "GITBRANCH is $GITBRANCH"
+info "SNAPSHOT  is $SNAPSHOT"
 info "RELEASE CANDIDATE is $RC"
 
 #question "Do you wish to continue with these settings?" || error "User abort."
@@ -119,10 +141,13 @@ temp_dir=`mktemp -d nsd-dist-XXXXXX`
 info "Directory '$temp_dir' created."
 cd $temp_dir
 
-info "Exporting source from SVN."
-svn export "$SVNROOT" nsd || error_cleanup "SVN command failed"
+info "Exporting source from git."
+# --depth=1 and --no-tags reduce the download size.
+info "git clone --depth=1 --no-tags -b $GITBRANCH $GITREPO nsd"
+git clone --depth=1 --no-tags -b $GITBRANCH $GITREPO nsd || error_cleanup "git clone command failed"
 
-cd nsd || error_cleanup "NSD not exported correctly from SVN"
+cd nsd || error_cleanup "NSD not exported correctly from git"
+rm -rf .git || error_cleanup "Failed to remove .git tracking information"
 
 info "Building configure script (autoconf)."
 autoconf || error_cleanup "Autoconf failed."

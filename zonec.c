@@ -1464,6 +1464,16 @@ process_rr(void)
 
 		/* Discard the duplicates... */
 		if (i < rrset->rr_count) {
+			/* add rdatas to recycle bin. */
+			size_t i;
+			for (i = 0; i < rr->rdata_count; i++) {
+				if(!rdata_atom_is_domain(rr->type, i))
+					region_recycle(parser->region, rr->rdatas[i].data,
+						rdata_atom_size(rr->rdatas[i])
+						+ sizeof(uint16_t));
+			}
+			region_recycle(parser->region, rr->rdatas,
+				sizeof(rdata_atom_type)*rr->rdata_count);
 			return 0;
 		}
 		if(rrset->rr_count == 65535) {
