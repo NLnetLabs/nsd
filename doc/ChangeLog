@@ -1,3 +1,7 @@
+22 July 2019: Wouter
+	- Set timeout for refetch immediately, only spread load when there
+	  are retries.
+
 19 July 2019: Wouter
 	- Set no renegotiation on the SSL context to stop client
 	  session renegotiation.
