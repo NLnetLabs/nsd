@@ -1752,7 +1752,8 @@ void check_sshfp(void)
 		return; /* cannot check it, too few rdata elements */
 	if(!parser->current_rr.rdatas[0].data ||
 		!parser->current_rr.rdatas[1].data ||
-		!parser->current_rr.rdatas[2].data)
+		!parser->current_rr.rdatas[2].data ||
+		!parser->current_rr.owner)
 		return; /* cannot check, NULLs (due to earlier errors) */
 	if(rdata_atom_size(parser->current_rr.rdatas[1]) != 1)
 		return; /* wrong size of the hash type rdata element */

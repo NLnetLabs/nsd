@@ -17,6 +17,7 @@ BUG FIXES:
 	- Set no renegotiation on the SSL context to stop client
 	  session renegotiation.
 	- Fix #29: SSHFP check NULL pointer dereference.
+	- Fix #30: SSHFP check failure due to missing domain name.
 
 
 4.2.1
