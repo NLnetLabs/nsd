@@ -1,3 +1,6 @@
+31 July 2019: Wouter
+	- Fix #29: SSHFP check NULL pointer dereference.
+
 22 July 2019: Wouter
 	- Set timeout for refetch immediately, only spread load when there
 	  are retries.

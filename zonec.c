@@ -1750,6 +1750,10 @@ void check_sshfp(void)
 	uint16_t size;
 	if(parser->current_rr.rdata_count < 3)
 		return; /* cannot check it, too few rdata elements */
+	if(!parser->current_rr.rdatas[0].data ||
+		!parser->current_rr.rdatas[1].data ||
+		!parser->current_rr.rdatas[2].data)
+		return; /* cannot check, NULLs (due to earlier errors) */
 	if(rdata_atom_size(parser->current_rr.rdatas[1]) != 1)
 		return; /* wrong size of the hash type rdata element */
 	hash = rdata_atom_data(parser->current_rr.rdatas[1])[0];
