@@ -18,6 +18,7 @@ BUG FIXES:
 	  session renegotiation.
 	- Fix #29: SSHFP check NULL pointer dereference.
 	- Fix #30: SSHFP check failure due to missing domain name.
+	- Fix to timeval_add in minievent for remaining second in microseconds.
 
 
 4.2.1

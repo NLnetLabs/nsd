@@ -1,6 +1,7 @@
 31 July 2019: Wouter
 	- Fix #29: SSHFP check NULL pointer dereference.
 	- Fix #30: SSHFP check failure due to missing domain name.
+	- Fix to timeval_add in minievent for remaining second in microseconds.
 
 22 July 2019: Wouter
 	- Set timeout for refetch immediately, only spread load when there
