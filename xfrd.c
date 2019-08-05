@@ -402,6 +402,8 @@ xfrd_shutdown()
 	xfrd_del_tempdir(xfrd->nsd);
 #ifdef HAVE_SSL
 	daemon_remote_delete(xfrd->nsd->rc); /* ssl-delete secret keys */
+	if (xfrd->nsd->tls_ctx)
+		SSL_CTX_free(xfrd->nsd->tls_ctx);
 #endif
 #ifdef USE_DNSTAP
 	dt_collector_close(nsd.dt_collector, &nsd);

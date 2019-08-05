@@ -21,6 +21,7 @@ BUG FIXES:
 	- Fix to timeval_add in minievent for remaining second in microseconds.
 	- PR #31: nsd-control: Add missing stdio header.
 	- PR #32: tsig: Fix compilation without HAVE_SSL.
+	- Cleanup tls context on xfrd exit.
 
 
 4.2.1
