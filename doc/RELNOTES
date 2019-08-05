@@ -20,6 +20,7 @@ BUG FIXES:
 	- Fix #30: SSHFP check failure due to missing domain name.
 	- Fix to timeval_add in minievent for remaining second in microseconds.
 	- PR #31: nsd-control: Add missing stdio header.
+	- PR #32: tsig: Fix compilation without HAVE_SSL.
 
 
 4.2.1

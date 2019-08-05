@@ -1,5 +1,6 @@
 5 August 2019: Wouter
 	- PR #31: nsd-control: Add missing stdio header.
+	- PR #32: tsig: Fix compilation without HAVE_SSL.
 
 31 July 2019: Wouter
 	- Fix #29: SSHFP check NULL pointer dereference.

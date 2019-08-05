@@ -1167,9 +1167,12 @@ server_prepare(struct nsd *nsd)
 #else
 	uint32_t v = getpid() ^ time(NULL);
 	srandom((unsigned long)v);
+#  ifdef HAVE_SSL
 	if(RAND_status() && RAND_bytes((unsigned char*)&v, sizeof(v)) > 0)
 		hash_set_raninit(v);
-	else	hash_set_raninit(random());
+	else
+#  endif
+		hash_set_raninit(random());
 #endif
 	rrl_mmap_init(nsd->child_count, nsd->options->rrl_size,
 		nsd->options->rrl_ratelimit,
@@ -3105,6 +3108,7 @@ handle_udp(int fd, short event, void* arg)
 }
 #endif /* defined(HAVE_SENDMMSG) && !defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG) */
 
+#ifdef HAVE_SSL
 /*
  * Setup an event for the tcp handler.
  */
@@ -3127,6 +3131,7 @@ tcp_handler_setup_event(struct tcp_handler_data* data, void (*fn)(int, short, vo
 	if(event_add(&data->event, &timeout) != 0)
 		log_msg(LOG_ERR, "event add failed");
 }
+#endif /* HAVE_SSL */
 
 static void
 cleanup_tcp_handler(struct tcp_handler_data* data)
