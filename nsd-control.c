@@ -42,6 +42,7 @@
  */
 
 #include "config.h"
+#include <stdio.h>
 #ifdef HAVE_SSL
 
 #include <sys/types.h>
