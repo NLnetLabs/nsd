@@ -44,7 +44,6 @@
 #include "config.h"
 #include <stdio.h>
 #ifdef HAVE_SSL
-
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
