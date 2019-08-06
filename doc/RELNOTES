@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.2.2 (in development)
+4.2.2
 ================
 BUG FIXES:
 	- Fix #20: CVE-2019-13207 Stack-based Buffer Overflow in the
