@@ -2813,7 +2813,9 @@ service_remaining_tcp(struct nsd* nsd)
 			break;
 		}
 	}
+#ifdef MEMCLEAN
 	event_base_free(event_base);
+#endif
 	/* continue to quit after return */
 }
 

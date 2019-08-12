@@ -304,8 +304,7 @@ event_base_free(struct event_base* base)
 {
 	if(!base)
 		return;
-	if(base->times)
-		free(base->times);
+	/* base->times is allocated in region and is freed with the region */
 	if(base->fds)
 		free(base->fds);
 	if(base->signals)
