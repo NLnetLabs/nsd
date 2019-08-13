@@ -1409,8 +1409,10 @@ process_rr(void)
 	assert(zone);
 	if (rr->type == TYPE_SOA) {
 		if (rr->owner != zone->apex) {
+			char s[MAXDOMAINLEN*5];
+			snprintf(s, sizeof(s), "%s", domain_to_string(zone->apex));
 			zc_error_prev_line(
-				"SOA record with invalid domain name");
+				"SOA record with invalid domain name, '%s' is not '%s'", domain_to_string(rr->owner), s);
 			return 0;
 		}
 		if(has_soa(rr->owner)) {
@@ -1425,10 +1427,12 @@ process_rr(void)
 
 	if (!domain_is_subdomain(rr->owner, zone->apex))
 	{
+		char s[MAXDOMAINLEN*5];
+		snprintf(s, sizeof(s), "%s", domain_to_string(zone->apex));
 		if(zone_is_slave(zone->opts))
-			zc_warning_prev_line("out of zone data");
+			zc_warning_prev_line("out of zone data: %s is outside the zone for fqdn %s", domain_to_string(rr->owner), s);
 		else
-			zc_error_prev_line("out of zone data");
+			zc_error_prev_line("out of zone data: %s is outside the zone for fqdn %s", domain_to_string(rr->owner), s);
 		return 0;
 	}
 

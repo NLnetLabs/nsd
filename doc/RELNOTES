@@ -23,6 +23,7 @@ BUG FIXES:
 	- PR #32: tsig: Fix compilation without HAVE_SSL.
 	- Cleanup tls context on xfrd exit.
 	- Fix #33: Fix segfault in service of remaining streams on exit.
+	- Fix error message for out of zone data to have more information.
 
 
 4.2.1

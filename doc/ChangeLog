@@ -1,3 +1,6 @@
+13 August 2019: Wouter
+	- Fix error message for out of zone data to have more information.
+
 12 August 2019: Wouter
 	- Fix #33: Fix segfault in service of remaining streams on exit.
 
