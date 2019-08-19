@@ -1,5 +1,9 @@
+19 August 2019: Wouter
+	- Tag for 4.2.2 release.  Git master contains 4.2.3 in development.
+
 13 August 2019: Wouter
 	- Fix error message for out of zone data to have more information.
+	- Tag for 4.2.2rc2.
 
 12 August 2019: Wouter
 	- Fix #33: Fix segfault in service of remaining streams on exit.
