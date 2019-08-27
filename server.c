@@ -659,7 +659,7 @@ initialize_dname_compression_tables(struct nsd *nsd)
 static int
 server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 {
-	struct addrinfo* addr;
+	struct nsd_addrinfo* addr;
 	size_t i;
 #if defined(SO_REUSEPORT) || defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU) || defined(IP_TRANSPARENT)) || defined(IP_FREEBIND) || defined(SO_BINDANY))
 	int on = 1;
@@ -673,16 +673,13 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 	/* Make a socket... */
 	for (i = from; i < to; i++) {
 		/* for reuseports copy socket specs of first entries */
-		addr = nsd->udp[i%nsd->ifs].addr;
-		if (!addr) {
-			nsd->udp[i].s = -1;
-			continue;
-		}
-		nsd->udp[i].fam = (int)addr->ai_family;
+		addr = &nsd->udp[i%nsd->ifs].addr;
 		if ((nsd->udp[i].s = socket(addr->ai_family, addr->ai_socktype, 0)) == -1) {
 #if defined(INET6)
 			if (addr->ai_family == AF_INET6 &&
-				errno == EAFNOSUPPORT && nsd->grab_ip6_optional) {
+				errno == EAFNOSUPPORT &&
+				(nsd->udp[i].flags & NSD_SOCKET_IS_OPTIONAL))
+			{
 				log_msg(LOG_WARNING, "fallback to UDP4, no IPv6: not supported");
 				continue;
 			}
@@ -928,9 +925,9 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 		}
 
 		if (
-			bind(nsd->udp[i].s, (struct sockaddr *) addr->ai_addr, addr->ai_addrlen) != 0) {
+			bind(nsd->udp[i].s, (struct sockaddr *) &addr->ai_addr, addr->ai_addrlen) != 0) {
 			char buf[256];
-			addrport2str((void*)addr->ai_addr, buf, sizeof(buf));
+			addrport2str((void*)&addr->ai_addr, buf, sizeof(buf));
 			log_msg(LOG_ERR, "can't bind udp socket %s: %s", buf, strerror(errno));
 			return -1;
 		}
@@ -945,12 +942,7 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 	/* Make a socket... */
 	for (i = from; i < to; i++) {
 		/* for reuseports copy socket specs of first entries */
-		addr = nsd->tcp[i%nsd->ifs].addr;
-		if (!addr) {
-			nsd->tcp[i].s = -1;
-			continue;
-		}
-		nsd->tcp[i].fam = (int)addr->ai_family;
+		addr = &nsd->tcp[i%nsd->ifs].addr;
 		/* turn off REUSEPORT for TCP by copying the socket fd */
 		if(i >= nsd->ifs) {
 			nsd->tcp[i].s = nsd->tcp[i%nsd->ifs].s;
@@ -959,7 +951,9 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 		if ((nsd->tcp[i].s = socket(addr->ai_family, addr->ai_socktype, 0)) == -1) {
 #if defined(INET6)
 			if (addr->ai_family == AF_INET6 &&
-				errno == EAFNOSUPPORT && nsd->grab_ip6_optional) {
+				errno == EAFNOSUPPORT &&
+				(nsd->tcp[i].flags & NSD_SOCKET_IS_OPTIONAL))
+			{
 				log_msg(LOG_WARNING, "fallback to TCP4, no IPv6: not supported");
 				continue;
 			}
@@ -1071,9 +1065,9 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 		}
 
 		if(
-			bind(nsd->tcp[i].s, (struct sockaddr *) addr->ai_addr, addr->ai_addrlen) != 0) {
+			bind(nsd->tcp[i].s, (struct sockaddr *) &addr->ai_addr, addr->ai_addrlen) != 0) {
 			char buf[256];
-			addrport2str((void*)addr->ai_addr, buf, sizeof(buf));
+			addrport2str((void*)&addr->ai_addr, buf, sizeof(buf));
 			log_msg(LOG_ERR, "can't bind tcp socket %s: %s", buf, strerror(errno));
 			return -1;
 		}
@@ -1241,8 +1235,6 @@ server_close_all_sockets(struct nsd_socket sockets[], size_t n)
 	for (i = 0; i < n; ++i) {
 		if (sockets[i].s != -1) {
 			close(sockets[i].s);
-			if(sockets[i].addr)
-				freeaddrinfo(sockets[i].addr);
 			sockets[i].s = -1;
 		}
 	}
@@ -2657,7 +2649,7 @@ server_child(struct nsd *nsd)
 			data->socket = &nsd->tcp[i];
 #ifdef HAVE_SSL
 			if (nsd->tls_ctx && nsd->options->tls_port && using_tls_port(
-			    data->socket->addr->ai_addr, nsd->options->tls_port)) {
+			    (struct sockaddr *)&data->socket->addr.ai_addr, nsd->options->tls_port)) {
 				data->tls_accept = 1;
 				if(verbosity >= 2) {
 					char buf[48];
@@ -2667,7 +2659,7 @@ server_child(struct nsd *nsd)
 #else
 					(struct sockaddr_in*)
 #endif
-					data->socket->addr->ai_addr, buf, sizeof(buf));
+					&data->socket->addr.ai_addr, buf, sizeof(buf));
 					VERBOSITY(2, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
 				}
 			}
@@ -2899,9 +2891,9 @@ handle_udp(int fd, short event, void* arg)
 
 		/* Account... */
 #ifdef BIND8_STATS
-		if (data->socket->fam == AF_INET) {
+		if (data->socket->addr.ai_family == AF_INET) {
 			STATUP(data->nsd, qudp);
-		} else if (data->socket->fam == AF_INET6) {
+		} else if (data->socket->addr.ai_family == AF_INET6) {
 			STATUP(data->nsd, qudp6);
 		}
 #endif
@@ -3070,9 +3062,9 @@ handle_udp(int fd, short event, void* arg)
 #endif /* NONBLOCKING_IS_BROKEN || !HAVE_RECVMMSG */
 
 		/* Account... */
-		if (data->socket->fam == AF_INET) {
+		if (data->socket->addr.ai_family == AF_INET) {
 			STATUP(data->nsd, qudp);
-		} else if (data->socket->fam == AF_INET6) {
+		} else if (data->socket->addr.ai_family == AF_INET6) {
 			STATUP(data->nsd, qudp6);
 		}
 

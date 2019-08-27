@@ -110,11 +110,22 @@ typedef	unsigned long stc_type;
 #define	ZTATUP2(nsd, zone, stc, i) /* Nothing */
 #endif /* USE_ZONE_STATS */
 
+#define NSD_SOCKET_IS_OPTIONAL (1<<0)
+
+struct nsd_addrinfo
+{
+	int ai_flags;
+	int ai_family;
+	int ai_socktype;
+	socklen_t ai_addrlen;
+	struct sockaddr_storage ai_addr;
+};
+
 struct nsd_socket
 {
-	struct addrinfo	*	addr;
+	struct nsd_addrinfo	addr;
 	int			s;
-	int			fam;
+	int			flags;
 };
 
 struct nsd_child
@@ -214,7 +225,6 @@ struct	nsd
 
 	/* number of interfaces */
 	size_t	ifs;
-	uint8_t grab_ip6_optional;
 	/* non0 if so_reuseport is in use, if so, tcp, udp array increased */
 	int reuseport;
 
