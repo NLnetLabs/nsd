@@ -95,17 +95,17 @@ struct udp_handler_data
 {
 	struct nsd        *nsd;
 	struct nsd_socket *socket;
-	query_type        *query;
+	struct event       event;
 };
 
 struct tcp_accept_handler_data {
-	struct nsd         *nsd;
-	struct nsd_socket  *socket;
-	int event_added;
+	struct nsd        *nsd;
+	struct nsd_socket *socket;
+	int                event_added;
 	struct event       event;
 #ifdef HAVE_SSL
 	/* handler accepts TLS connections on the dedicated port */
-	int tls_accept;
+	int                tls_accept;
 #endif
 };
 
@@ -114,8 +114,8 @@ struct tcp_accept_handler_data {
  * when the number of TCP connection drops below the maximum
  * number of TCP connections.
  */
-static size_t		tcp_accept_handler_count;
-static struct tcp_accept_handler_data*	tcp_accept_handlers;
+static size_t tcp_accept_handler_count;
+static struct tcp_accept_handler_data *tcp_accept_handlers;
 
 static struct event slowaccept_event;
 static int slowaccept;
@@ -125,15 +125,24 @@ static unsigned char *ocspdata = NULL;
 static long ocspdata_len = 0;
 #endif
 
-#ifndef NONBLOCKING_IS_BROKEN
-#  define NUM_RECV_PER_SELECT 100
+#ifdef NONBLOCKING_IS_BROKEN
+/* Define NUM_RECV_PER_SELECT to 1 (one) to avoid opportunistically trying to
+   read multiple times from a socket when reported ready by select. */
+# define NUM_RECV_PER_SELECT (1)
+#else /* !NONBLOCKING_IS_BROKEN */
+# define NUM_RECV_PER_SELECT (100)
+#endif /* NONBLOCKING_IS_BROKEN */
+
+#ifndef HAVE_MMSGHDR
+struct mmsghdr {
+	struct msghdr msg_hdr;
+	unsigned int  msg_len;
+};
 #endif
 
-#if (!defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG))
-struct mmsghdr msgs[NUM_RECV_PER_SELECT];
-struct iovec iovecs[NUM_RECV_PER_SELECT];
-struct query *queries[NUM_RECV_PER_SELECT];
-#endif
+static struct mmsghdr msgs[NUM_RECV_PER_SELECT];
+static struct iovec iovecs[NUM_RECV_PER_SELECT];
+static struct query *queries[NUM_RECV_PER_SELECT];
 
 /*
  * Data for the TCP connection handlers.
@@ -2567,6 +2576,61 @@ nsd_child_event_base(void)
 	return base;
 }
 
+static void
+add_udp_handler(
+	struct nsd *nsd,
+	struct nsd_socket *sock,
+	struct udp_handler_data *data)
+{
+	struct event *handler = &data->event;
+
+	data->nsd = nsd;
+	data->socket = sock;
+
+	memset(handler, 0, sizeof(*handler));
+	event_set(handler, sock->s, EV_PERSIST|EV_READ, handle_udp, data);
+	if(event_base_set(nsd->event_base, handler) != 0)
+		log_msg(LOG_ERR, "nsd udp: event_base_set failed");
+	if(event_add(handler, NULL) != 0)
+		log_msg(LOG_ERR, "nsd udp: event_add failed");
+}
+
+void
+add_tcp_handler(
+	struct nsd *nsd,
+	struct nsd_socket *sock,
+	struct tcp_accept_handler_data *data)
+{
+	struct event *handler = &data->event;
+
+	data->nsd = nsd;
+	data->socket = sock;
+
+#ifdef HAVE_SSL
+	if (nsd->tls_ctx &&
+	    nsd->options->tls_port &&
+	    using_tls_port((struct sockaddr *)&sock->addr.ai_addr, nsd->options->tls_port))
+	{
+		data->tls_accept = 1;
+		if(verbosity >= 2) {
+			char buf[48];
+			addrport2str((struct sockaddr_storage*)&sock->addr.ai_addr, buf, sizeof(buf));
+			VERBOSITY(2, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
+		}
+	} else {
+		data->tls_accept = 0;
+	}
+#endif
+
+	memset(handler, 0, sizeof(*handler));
+	event_set(handler, sock->s, EV_PERSIST|EV_READ,	handle_tcp_accept, data);
+	if(event_base_set(nsd->event_base, handler) != 0)
+		log_msg(LOG_ERR, "nsd tcp: event_base_set failed");
+	if(event_add(handler, NULL) != 0)
+		log_msg(LOG_ERR, "nsd tcp: event_add failed");
+	data->event_added = 1;
+}
+
 /*
  * Serve DNS requests.
  */
@@ -2576,7 +2640,6 @@ server_child(struct nsd *nsd)
 	size_t i, from, numifs;
 	region_type *server_region = region_create(xalloc, free);
 	struct event_base* event_base = nsd_child_event_base();
-	query_type *udp_query;
 	sig_atomic_t mode;
 
 	if(!event_base) {
@@ -2632,12 +2695,6 @@ server_child(struct nsd *nsd)
 	}
 
 	if (nsd->server_kind & NSD_SERVER_UDP) {
-#if (defined(NONBLOCKING_IS_BROKEN) || !defined(HAVE_RECVMMSG))
-		udp_query = query_create(server_region,
-			compressed_dname_offsets, compression_table_size,
-			compressed_dnames);
-#else
-		udp_query = NULL;
 		memset(msgs, 0, sizeof(msgs));
 		for (i = 0; i < NUM_RECV_PER_SELECT; i++) {
 			queries[i] = query_create(server_region,
@@ -2651,27 +2708,11 @@ server_child(struct nsd *nsd)
 			msgs[i].msg_hdr.msg_name    = &queries[i]->addr;
 			msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
 		}
-#endif
+
 		for (i = from; i < from+numifs; ++i) {
-			struct udp_handler_data *data;
-			struct event *handler;
-
-			data = (struct udp_handler_data *) region_alloc(
-				server_region,
-				sizeof(struct udp_handler_data));
-			data->query = udp_query;
-			data->nsd = nsd;
-			data->socket = &nsd->udp[i];
-
-			handler = (struct event*) region_alloc(
-				server_region, sizeof(*handler));
-			memset(handler, 0, sizeof(*handler));
-			event_set(handler, nsd->udp[i].s, EV_PERSIST|EV_READ,
-				handle_udp, data);
-			if(event_base_set(event_base, handler) != 0)
-				log_msg(LOG_ERR, "nsd udp: event_base_set failed");
-			if(event_add(handler, NULL) != 0)
-				log_msg(LOG_ERR, "nsd udp: event_add failed");
+			struct udp_handler_data *data =	region_alloc_zero(
+				nsd->server_region, sizeof(*data));
+			add_udp_handler(nsd, &nsd->udp[i], data);
 		}
 	}
 
@@ -2680,46 +2721,20 @@ server_child(struct nsd *nsd)
 	 * and disable them based on the current number of active TCP
 	 * connections.
 	 */
-	tcp_accept_handler_count = numifs;
-	tcp_accept_handlers = (struct tcp_accept_handler_data*)
-		region_alloc_array(server_region,
-		numifs, sizeof(*tcp_accept_handlers));
 	if (nsd->server_kind & NSD_SERVER_TCP) {
-		for (i = from; i < numifs; ++i) {
-			struct event *handler = &tcp_accept_handlers[i-from].event;
-			struct tcp_accept_handler_data* data =
+		tcp_accept_handler_count = numifs;
+		tcp_accept_handlers = region_alloc_array(server_region,
+			numifs, sizeof(*tcp_accept_handlers));
+
+		for (i = from; i < numifs; i++) {
+			struct tcp_accept_handler_data *data =
 				&tcp_accept_handlers[i-from];
-			data->nsd = nsd;
-			data->socket = &nsd->tcp[i];
-#ifdef HAVE_SSL
-			if (nsd->tls_ctx && nsd->options->tls_port && using_tls_port(
-			    (struct sockaddr *)&data->socket->addr.ai_addr, nsd->options->tls_port)) {
-				data->tls_accept = 1;
-				if(verbosity >= 2) {
-					char buf[48];
-					addrport2str(
-#ifdef INET6
-					(struct sockaddr_storage*)
-#else
-					(struct sockaddr_in*)
-#endif
-					&data->socket->addr.ai_addr, buf, sizeof(buf));
-					VERBOSITY(2, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
-				}
-			}
-			else
-				data->tls_accept = 0;
-#endif
-			memset(handler, 0, sizeof(*handler));
-			event_set(handler, nsd->tcp[i].s, EV_PERSIST|EV_READ,
-				handle_tcp_accept, data);
-			if(event_base_set(event_base, handler) != 0)
-				log_msg(LOG_ERR, "nsd tcp: event_base_set failed");
-			if(event_add(handler, NULL) != 0)
-				log_msg(LOG_ERR, "nsd tcp: event_add failed");
-			data->event_added = 1;
+			memset(data, 0, sizeof(*data));
+			add_tcp_handler(nsd, &nsd->tcp[i], data);
 		}
-	} else tcp_accept_handler_count = 0;
+	} else {
+		tcp_accept_handler_count = 0;
+	}
 
 	/* The main loop... */
 	while ((mode = nsd->mode) != NSD_QUIT) {
@@ -2894,7 +2909,97 @@ service_remaining_tcp(struct nsd* nsd)
 	/* continue to quit after return */
 }
 
-#if defined(HAVE_SENDMMSG) && !defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG)
+/* Implement recvmmsg and sendmmsg if the platform does not. These functions
+ * are always used, even if nonblocking operations are broken, in which case
+ * NUM_RECV_PER_SELECT is defined to 1 (one).
+ */
+#if defined(HAVE_RECVMMSG)
+#define nsd_recvmmsg recvmmsg
+#else /* !HAVE_RECVMMSG */
+
+static int
+nsd_recvmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
+             int flags, struct timespec *timeout)
+{
+	int orig_errno;
+	unsigned int vpos = 0;
+	ssize_t rcvd;
+
+	/* timeout is ignored, ensure caller does not expect it to work */
+	assert(timeout == NULL);
+
+	orig_errno = errno;
+	errno = 0;
+	while(vpos < vlen) {
+		rcvd = recvfrom(sockfd,
+		                msgvec[vpos].msg_hdr.msg_iov->iov_base,
+		                msgvec[vpos].msg_hdr.msg_iov->iov_len,
+		                flags,
+		                msgvec[vpos].msg_hdr.msg_name,
+		               &msgvec[vpos].msg_hdr.msg_namelen);
+		if(rcvd < 0) {
+			break;
+		} else {
+			assert(rcvd <= UINT_MAX);
+			msgvec[vpos].msg_len = (unsigned int)rcvd;
+			vpos++;
+		}
+	}
+
+	if(vpos) {
+		/* error will be picked up next time */
+		return (int)vpos;
+	} else if(errno == 0) {
+		errno = orig_errno;
+		return 0;
+	} else if(errno == EAGAIN) {
+		return 0;
+	}
+
+	return -1;
+}
+#endif /* HAVE_RECVMMSG */
+
+#ifdef HAVE_SENDMMSG
+#define nsd_sendmmsg(...) sendmmsg(__VA_ARGS__)
+#else /* !HAVE_SENDMMSG */
+
+static int
+nsd_sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen, int flags)
+{
+	int orig_errno;
+	unsigned int vpos = 0;
+	ssize_t snd;
+
+	orig_errno = errno;
+	errno = 0;
+	while(vpos < vlen) {
+		assert(msgvec[vpos].msg_hdr.msg_iovlen == 1);
+		snd = sendto(sockfd,
+		             msgvec[vpos].msg_hdr.msg_iov->iov_base,
+		             msgvec[vpos].msg_hdr.msg_iov->iov_len,
+		             flags,
+		             msgvec[vpos].msg_hdr.msg_name,
+		             msgvec[vpos].msg_hdr.msg_namelen);
+		if(snd < 0) {
+			break;
+		} else {
+			msgvec[vpos].msg_len = (unsigned int)snd;
+			vpos++;
+		}
+	}
+
+	if(vpos) {
+		return (int)vpos;
+	} else if(errno == 0) {
+		errno = orig_errno;
+		return 0;
+	}
+
+	return -1;
+}
+#endif /* HAVE_SENDMMSG */
+
 static void
 handle_udp(int fd, short event, void* arg)
 {
@@ -2905,7 +3010,7 @@ handle_udp(int fd, short event, void* arg)
 	if (!(event & EV_READ)) {
 		return;
 	}
-	recvcount = recvmmsg(fd, msgs, NUM_RECV_PER_SELECT, 0, NULL);
+	recvcount = nsd_recvmmsg(fd, msgs, NUM_RECV_PER_SELECT, 0, NULL);
 	/* this printf strangely gave a performance increase on Linux */
 	/* printf("recvcount %d \n", recvcount); */
 	if (recvcount == -1) {
@@ -3011,7 +3116,7 @@ handle_udp(int fd, short event, void* arg)
 	/* send until all are sent */
 	i = 0;
 	while(i<recvcount) {
-		sent = sendmmsg(fd, &msgs[i], recvcount-i, 0);
+		sent = nsd_sendmmsg(fd, &msgs[i], recvcount-i, 0);
 		if(sent == -1) {
 			const char* es = strerror(errno);
 			char a[48];
@@ -3030,160 +3135,6 @@ handle_udp(int fd, short event, void* arg)
 		msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
 	}
 }
-
-#else /* defined(HAVE_SENDMMSG) && !defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG) */
-
-static void
-handle_udp(int fd, short event, void* arg)
-{
-	struct udp_handler_data *data = (struct udp_handler_data *) arg;
-	int received, sent;
-#ifndef NONBLOCKING_IS_BROKEN
-#ifdef HAVE_RECVMMSG
-	int recvcount;
-#endif /* HAVE_RECVMMSG */
-	int i;
-#endif /* NONBLOCKING_IS_BROKEN */
-	struct query *q;
-#if (defined(NONBLOCKING_IS_BROKEN) || !defined(HAVE_RECVMMSG))
-	q = data->query;
-#endif
-
-	if (!(event & EV_READ)) {
-		return;
-	}
-#ifndef NONBLOCKING_IS_BROKEN
-#ifdef HAVE_RECVMMSG
-	recvcount = recvmmsg(fd, msgs, NUM_RECV_PER_SELECT, 0, NULL);
-	/* this printf strangely gave a performance increase on Linux */
-	/* printf("recvcount %d \n", recvcount); */
-	if (recvcount == -1) {
-		if (errno != EAGAIN && errno != EINTR) {
-			log_msg(LOG_ERR, "recvmmsg failed: %s", strerror(errno));
-			STATUP(data->nsd, rxerr);
-			/* No zone statup */
-		}
-		/* Simply no data available */
-		return;
-	}
-	for (i = 0; i < recvcount; i++) {
-		received = msgs[i].msg_len;
-		queries[i]->addrlen = msgs[i].msg_hdr.msg_namelen;
-		if (received == -1) {
-			log_msg(LOG_ERR, "recvmmsg failed");
-			STATUP(data->nsd, rxerr);
-			/* No zone statup */
-			/* the error can be found in msgs[i].msg_hdr.msg_flags */
-			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
-			iovecs[i].iov_len = buffer_remaining(queries[i]->packet);
-			msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
-			continue;
-		}
-		q = queries[i];
-#else
-	for(i=0; i<NUM_RECV_PER_SELECT; i++) {
-#endif /* HAVE_RECVMMSG */
-#endif /* NONBLOCKING_IS_BROKEN */
-
-#if (defined(NONBLOCKING_IS_BROKEN) || !defined(HAVE_RECVMMSG))
-		/* Initialize the query... */
-		query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
-
-		received = recvfrom(fd,
-				    buffer_begin(q->packet),
-				    buffer_remaining(q->packet),
-				    0,
-				    (struct sockaddr *)&q->addr,
-				    &q->addrlen);
-		if (received == -1) {
-			if (errno != EAGAIN && errno != EINTR) {
-				log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
-				STATUP(data->nsd, rxerr);
-				/* No zone statup */
-			}
-			return;
-		}
-#endif /* NONBLOCKING_IS_BROKEN || !HAVE_RECVMMSG */
-
-		/* Account... */
-		if (data->socket->addr.ai_family == AF_INET) {
-			STATUP(data->nsd, qudp);
-		} else if (data->socket->addr.ai_family == AF_INET6) {
-			STATUP(data->nsd, qudp6);
-		}
-
-		buffer_skip(q->packet, received);
-		buffer_flip(q->packet);
-#ifdef USE_DNSTAP
-		dt_collector_submit_auth_query(data->nsd, &q->addr, q->addrlen,
-			q->tcp, q->packet);
-#endif /* USE_DNSTAP */
-
-		/* Process and answer the query... */
-		if (server_process_query_udp(data->nsd, q) != QUERY_DISCARDED) {
-			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet)) {
-				STATUP(data->nsd, nona);
-				ZTATUP(data->nsd, q->zone, nona);
-			}
-
-#ifdef USE_ZONE_STATS
-			if (data->socket->fam == AF_INET) {
-				ZTATUP(data->nsd, q->zone, qudp);
-			} else if (data->socket->fam == AF_INET6) {
-				ZTATUP(data->nsd, q->zone, qudp6);
-			}
-#endif
-
-			/* Add EDNS0 and TSIG info if necessary.  */
-			query_add_optional(q, data->nsd);
-
-			buffer_flip(q->packet);
-
-			sent = sendto(fd,
-				      buffer_begin(q->packet),
-				      buffer_remaining(q->packet),
-				      0,
-				      (struct sockaddr *) &q->addr,
-				      q->addrlen);
-			if (sent == -1) {
-				const char* es = strerror(errno);
-				char a[48];
-				addr2str(&q->addr, a, sizeof(a));
-				log_msg(LOG_ERR, "sendto %s failed: %s", a, es);
-				STATUP(data->nsd, txerr);
-				ZTATUP(data->nsd, q->zone, txerr);
-			} else if ((size_t) sent != buffer_remaining(q->packet)) {
-				log_msg(LOG_ERR, "sent %d in place of %d bytes", sent, (int) buffer_remaining(q->packet));
-			} else {
-#ifdef BIND8_STATS
-				/* Account the rcode & TC... */
-				STATUP2(data->nsd, rcode, RCODE(q->packet));
-				ZTATUP2(data->nsd, q->zone, rcode, RCODE(q->packet));
-				if (TC(q->packet)) {
-					STATUP(data->nsd, truncated);
-					ZTATUP(data->nsd, q->zone, truncated);
-				}
-#endif /* BIND8_STATS */
-#ifdef USE_DNSTAP
-				dt_collector_submit_auth_response(data->nsd,
-					&q->addr, q->addrlen, q->tcp,
-					q->packet, q->zone);
-#endif /* USE_DNSTAP */
-			}
-		} else {
-			STATUP(data->nsd, dropped);
-			ZTATUP(data->nsd, q->zone, dropped);
-		}
-#ifndef NONBLOCKING_IS_BROKEN
-#ifdef HAVE_RECVMMSG
-		query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
-		iovecs[i].iov_len = buffer_remaining(queries[i]->packet);
-		msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
-#endif
-	}
-#endif
-}
-#endif /* defined(HAVE_SENDMMSG) && !defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG) */
 
 #ifdef HAVE_SSL
 /*
