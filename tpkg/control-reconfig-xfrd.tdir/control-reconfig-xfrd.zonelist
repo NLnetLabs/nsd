@@ -1,0 +1,4 @@
+# NSD zone list
+# name pattern
+add m2s.explicit. m2spat
+add s2m.explicit. s2mpat

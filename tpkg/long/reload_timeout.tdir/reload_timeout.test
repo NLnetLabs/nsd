@@ -1,0 +1,79 @@
+#!/bin/bash
+# #-- reload_timeout.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+RESULTFILE=reload_timeout.current_response
+PRE="../../.."
+TPKG_NSD="$PRE/nsd"
+TPKG_NOTIFY="ldns-notify"
+get_ldns_testns
+MINISERVER=$LDNS_TESTNS
+WAITTIME=10
+DIG="dig"
+
+function kill_mini() {
+	if [ ! -e $TPKG_NSD_PID -o -z "$TPKG_NSD_PID" ]; then
+		echo "miniserver exited ok"
+	else
+		# kill the mini server.
+		NSD_PID=`cat $TPKG_NSD_PID`
+		kill $NSD_PID 2>/dev/null
+		sleep 1 # should be really dead now - just to be sure kill it again
+		kill $NSD_PID 2>/dev/null
+	fi
+}
+
+function setup_miniserver() { # <query setup file>
+	kill_mini
+	echo ">>> setup $MINISERVER -p $MASTER_PORT $1"
+	$MINISERVER -p $MASTER_PORT $1 &
+	echo $! > $TPKG_NSD_PID
+	sleep 1 # wait for it to come up.
+}
+
+function notify_slave() { # <serial>
+	echo ">>> ldns-notify -p $SLAVE_PORT -z example.com. 127.0.0.1"
+	$TPKG_NOTIFY -p $SLAVE_PORT -z example.com. 127.0.0.1
+}
+
+function check_slave_zone() { # <testnr> <checkfile>
+	echo "-------wait-----------------------------------------"
+	# check if slave has the same zone as the check zonefile.
+	dig @127.0.0.1 -p $SLAVE_PORT example.com. AXFR | tee $RESULTFILE
+	cat $RESULTFILE | grep -v '^;' > reload_timeout.check
+	if wdiff reload_timeout.check $2 >/dev/null; then
+		echo "ZONE SOA=$1 OK"
+	else
+		echo "ZONE SOA=$1 BAD"
+		echo diff is
+		wdiff reload_timeout.check $2
+		exit 1
+	fi
+}
+
+# startup miniserver with appropriate files.
+setup_miniserver reload_timeout.qs_1
+# wait for server to come up.
+sleep 1
+$TPKG_NSD -c slave.conf -u $LOGNAME -p $SLAVE_PORT -P $TPKG_NSD_PID2
+sleep 1
+
+# first trigger a reload so that the timeout starts
+notify_slave 10
+sleep 1
+
+# now trigger the second reload.
+notify_slave 10
+# still waiting for timeout
+check_slave_zone 2 reload_timeout.zone_2 
+
+# allow timeout to happen
+echo 'waiting for reload timeout to happen'
+sleep 10
+check_slave_zone 3 reload_timeout.zone_3 
+
+exit 0

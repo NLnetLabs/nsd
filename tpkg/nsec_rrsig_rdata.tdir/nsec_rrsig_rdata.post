@@ -1,0 +1,56 @@
+# #-- nsec_rrsig_rdata.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+
+. ../common.sh
+
+echo MASTER LOGFILE
+echo
+
+cat master.log
+rm -f master.log
+
+echo
+echo SLAVE LOGFILE
+echo
+
+cat slave.log
+rm -f slave.log
+
+rm -f nsec_rrsig_rdata.master.db
+rm -f nsec_rrsig_rdata.slave.db
+rm -f nsec_rrsig_rdata.slave.zone
+rm -f nsec_rrsig_rdata.master.zone.signed
+rm -f nsec_rrsig_rdata.slave.conf2
+rm -f ixfr.master.db
+rm -f ixfr.slave.db
+rm -f xfrd.master.state
+rm -f xfrd.slave.state
+rm -f keyinfo.txt
+
+rm -f master.out
+rm -f slave.out
+
+# do your teardown here
+if [ -z $TPKG_NSD_PID ]; then
+	echo exit_ok;
+else
+	# kill NSD
+	NSD_PID=`cat $TPKG_NSD_PID`
+	kill_pid $NSD_PID
+fi
+
+if [ -z $TPKG_NSD_PID2 ]; then
+	echo exit_ok;
+else
+	# kill NSD
+	NSD_PID2=`cat $TPKG_NSD_PID2`
+	kill_pid $NSD_PID2
+fi
+
+exit 0
+

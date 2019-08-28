@@ -1,0 +1,16 @@
+$ORIGIN example.nl.
+@       IN      SOA     bla  root (
+                        2003070707              ; serial, todays date + todays serial #
+                        1H                      ; refresh, seconds
+                        8H                      ; retry, seconds
+                        4W                      ; expire, seconds
+                        1H                      ; minimum ttl, seconds
+                )
+;
+@   NS      ns0.xname.org.          ; Thanks to xname.org
+@   NS      ns1.xname.org.          ; Thanks to xname.org
+localhost               IN  A  127.0.0.1
+
+; some 8bit voodoo here
+\200\201\202\203\204\205\206\207\208\209\210    IN A 127.0.0.2
+\128\129\130    IN A 127.0.0.2

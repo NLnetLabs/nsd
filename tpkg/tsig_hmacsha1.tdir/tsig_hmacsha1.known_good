@@ -1,0 +1,4 @@
+edmundrichardson.com.   3600    IN      SOA     42dbc308.dsl.aros.net. drr.aros.net. 2003070707 3600 28800 2419200 3600
+edmundrichardson.com.   3600    IN      NS      ns0.xname.org.
+edmundrichardson.com.   3600    IN      NS      ns1.xname.org.
+edmundrichardson.com.   3600    IN      SOA     42dbc308.dsl.aros.net. drr.aros.net. 2003070707 3600 28800 2419200 3600

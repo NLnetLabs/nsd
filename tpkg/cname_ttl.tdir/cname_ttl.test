@@ -1,0 +1,36 @@
+# #-- cname_ttl.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+
+$TPKG_NSD -c nsd.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID
+
+sleep 3
+
+echo port: $TPKG_PORT
+dig @127.0.0.1 -p $TPKG_PORT a www.example.net | tee output
+
+if grep "1.2.3.4" output; then
+	echo "produced output OK"
+else
+	echo "no answer from NSD"
+	exit 1
+fi
+if grep CNAME output | grep '[^0-9]0'; then
+	echo 'Failed, 0 TTL'
+	exit 1
+fi
+exit 0

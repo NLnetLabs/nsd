@@ -1,0 +1,24 @@
+# #-- tsig_badsig.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+# the wrong secret data but right key name.
+$DIG @localhost -p $TPKG_PORT SOA edmundrichardson.com. -y blabla:m83H2x8R0zbDf3yRKhrqgw== > tsig_badsig.current_respons1
+cat tsig_badsig.current_respons1
+
+# must be ok
+# dig prints warning on bad tsig
+if grep '42dbc308.dsl.aros.net.' tsig_badsig.current_respons1; then
+	echo "Got data with bad tsig"
+	exit 1
+fi
+if grep 'tsig indicates error' tsig_badsig.current_respons1 &&
+	grep BADSIG tsig_badsig.current_respons1 &&
+	grep WARNING tsig_badsig.current_respons1 &&
+	grep NOTAUTH tsig_badsig.current_respons1; then
+	exit 0
+fi
+exit 1

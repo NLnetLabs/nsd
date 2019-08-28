@@ -1,0 +1,5 @@
+; only servfail
+ENTRY_BEGIN
+ADJUST copy_query
+REPLY SERVFAIL
+ENTRY_END

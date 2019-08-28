@@ -1,0 +1,35 @@
+# #-- cname_soa.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+get_random_port 1
+PORT=$RND_PORT
+
+PRE="../.."
+NSD="$PRE/nsd"
+
+# see if the zone compiles (it should give an error).
+$NSD -c cname_soa.conf -p $PORT
+wait_nsd_up nsd.log
+
+if dig @127.0.0.1 -p $PORT example.com SOA | grep SERVFAIL; then
+	echo OK
+else
+	cat nsd.log
+	echo "compilation succeeded for bad zone!"
+	exit 1
+fi
+kill_pid `cat nsd.pid`
+
+if grep "zone example.com file cname_soa.zone read with 3 errors" nsd.log; then
+	echo "detected the errors OK"
+else
+	cat nsd.log
+	echo "Did not detect all errors"
+	exit 1
+fi
+
+exit 0

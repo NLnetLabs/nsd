@@ -1,0 +1,4 @@
+Use the testcase from bugzilla to test a long > 246 query name.
+We expect no crashes any a normal answer.
+
+There are no arguments to the test.

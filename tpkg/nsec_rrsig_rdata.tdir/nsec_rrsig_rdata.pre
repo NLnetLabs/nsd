@@ -1,0 +1,42 @@
+# #-- nsec_rrsig_rdata.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+TPKG_PORT2=$(($TPKG_PORT + 1))
+
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD_PID2="nsd.pid2.$$"
+#TPKG_KEYGEN="ldns-keygen -a RSASHA1 -b 1024 -r /dev/urandom"
+#TPKG_SIGN="ldns-signzone"
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_PORT2=$TPKG_PORT2" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+echo "export TPKG_NSD_PID2=$TPKG_NSD_PID2" >> .tpkg.var.test
+
+sed -e "s/TPKGPORT/$TPKG_PORT/" < nsec_rrsig_rdata.slave.conf > nsec_rrsig_rdata.slave.conf2
+cat nsec_rrsig_rdata.slave.conf2
+
+# master
+# pre-stored
+#$TPKG_KEYGEN example.net. > keyinfo.txt
+#$TPKG_SIGN nsec_rrsig_rdata.master.zone `cat keyinfo.txt`
+
+cat nsec_rrsig_rdata.master.zone.signed
+
+$TPKG_NSD -c nsec_rrsig_rdata.master.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f nsec_rrsig_rdata.master.db
+# slave
+$TPKG_NSD -c nsec_rrsig_rdata.slave.conf2 -u $LOGNAME -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f nsec_rrsig_rdata.slave.db >> result.nsec_rrsig_rdata 2>&1
+
+echo master at port $TPKG_PORT $TPKG_NSD_PID = `cat $TPKG_NSD_PID`
+echo slave at port $TPKG_PORT2 $TPKG_NSD_PID2 = `cat $TPKG_NSD_PID2`
+

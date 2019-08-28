@@ -1,0 +1,12 @@
+server:
+	logfile: "log.slave"
+	difffile: ixfr_slave.db
+	xfrdfile: xfrd_slave.state
+	zonesdir: .
+	username: ""
+	chroot: ""
+	server-count: 1
+	xfrd-reload-timeout: 0
+	# for receiving the notify datagrams
+	tcp-count: 16384
+

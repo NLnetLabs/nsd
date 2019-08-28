@@ -1,0 +1,20 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply to question AXFR=1.
+ENTRY_BEGIN
+MATCH opcode qtype qname TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN AXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+www.example.com. 345600 IN A 10.11.12.13
+EXTRA_PACKET
+ADJUST packet_sleep=10
+@ 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+ENTRY_END

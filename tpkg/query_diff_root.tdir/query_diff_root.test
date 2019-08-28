@@ -1,0 +1,51 @@
+# #-- query_diff_root.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+get_pcat
+echo pcat: $PCAT
+echo pcat-diff: $PCAT_DIFF
+echo pcat-print: $PCAT_PRINT
+
+get_random_port 1
+PORT=$RND_PORT
+
+../../nsd -u $LOGNAME -p $PORT -f root.db -c query_diff_root.nsd30.conf -P nsd.pid
+if [[ $? -ne 0 ]]; then
+        exit 1
+fi
+# hope he fires up
+wait_nsd_up nsd.log
+
+$PCAT -a 127.0.0.1 -p $PORT \
+query_diff_root.20011009-134418-q50000.pcap > query_diff_root.NSD30.pcat
+
+kill_pid `cat nsd.pid`
+rm -f root.db
+
+if [[ ! -s query_diff_root.NSD30.pcat ]]; then
+        exit 1
+fi
+
+$PCAT_DIFF query_diff_root.NSD22-2006-03-13.pcat query_diff_root.NSD30.pcat > difffile 2>&1
+if test $? -ne 0; then
+	echo "pcat-diff failed!"
+	tail difffile
+	exit 1
+fi
+
+tail difffile
+
+if tail difffile | grep "Total number of differences: 0 "; then
+	echo all is OK
+else
+	echo not OK
+	#echo difffile:
+	#cat difffile
+	#echo end-of-difffile
+	#$PCAT_PRINT difffile
+	exit 1
+fi
+exit 0

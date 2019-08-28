@@ -1,0 +1,32 @@
+@       IN      SOA     42dbc308.dsl.aros.net.  drr.aros.net.   (
+                        2003070707              ; serial, todays date + todays serial #
+                        1H                      ; refresh, seconds
+                        8H                      ; retry, seconds
+                        4W                      ; expire, seconds
+                        1H                      ; minimum ttl, seconds
+                )
+;
+edmundrichardson.com.   NS      ns0.xname.org.          ; Thanks to xname.org
+edmundrichardson.com.   NS      ns1.xname.org.          ; Thanks to xname.org
+; Tis always best to have localhost defined
+localhost               IN  A  127.0.0.1
+;
+; An address for the zone itself
+edmundrichardson.com.       IN  A  66.219.195.8
+
+; Add glue test 
+; delegate
+blaat.edmundrichardson.com.     IN      NS ns.blaat.edmundrichardson.com.
+ns.blaat.edmundrichardson.com.     IN      A 127.0.0.1 ; glue!
+ns2.blaat.edmundrichardson.com.    IN      A 127.0.0.1 ; not glue! but is in the axfr
+;
+; Useful aliases
+mail         IN  CNAME        42dbc308.dsl.aros.net.
+; this would halt an axfr as edmundrichardson.com. is the sme name as the SOA
+www          IN  CNAME        edmundrichardson.com.
+; mail            IN  A           66.219.195.8
+; www             IN  A           66.219.195.8
+;
+; Who do we turn to for mail?
+edmundrichardson.com.           MX      10 mail   ; Primary Mail Exchanger
+*.edmundrichardson.com.         MX      10 mail   ; Primary Mail Exchanger

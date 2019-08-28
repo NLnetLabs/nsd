@@ -1,0 +1,733 @@
+# qfile
+query . IN NS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:13 NS:0 AR:21
+; QUERY SECTION
+.	IN	NS
+; ANSWER SECTION
+.	518400	IN	NS	a.root-servers.net.
+.	518400	IN	NS	b.root-servers.net.
+.	518400	IN	NS	c.root-servers.net.
+.	518400	IN	NS	d.root-servers.net.
+.	518400	IN	NS	e.root-servers.net.
+.	518400	IN	NS	f.root-servers.net.
+.	518400	IN	NS	g.root-servers.net.
+.	518400	IN	NS	h.root-servers.net.
+.	518400	IN	NS	i.root-servers.net.
+.	518400	IN	NS	j.root-servers.net.
+.	518400	IN	NS	k.root-servers.net.
+.	518400	IN	NS	l.root-servers.net.
+.	518400	IN	NS	m.root-servers.net.
+; ADDITIONAL SECTION
+a.root-servers.net.	518400	IN	A	198.41.0.4
+b.root-servers.net.	518400	IN	A	192.228.79.201
+c.root-servers.net.	518400	IN	A	192.33.4.12
+d.root-servers.net.	518400	IN	A	128.8.10.90
+e.root-servers.net.	518400	IN	A	192.203.230.10
+f.root-servers.net.	518400	IN	A	192.5.5.241
+g.root-servers.net.	518400	IN	A	192.112.36.4
+h.root-servers.net.	518400	IN	A	128.63.2.53
+i.root-servers.net.	518400	IN	A	192.36.148.17
+j.root-servers.net.	518400	IN	A	192.58.128.30
+k.root-servers.net.	518400	IN	A	193.0.14.129
+l.root-servers.net.	518400	IN	A	199.7.83.42
+m.root-servers.net.	518400	IN	A	202.12.27.33
+a.root-servers.net.	518400	IN	AAAA	2001:503:ba3e::2:30
+f.root-servers.net.	518400	IN	AAAA	2001:500:2f::f
+h.root-servers.net.	518400	IN	AAAA	2001:500:1::803f:235
+i.root-servers.net.	518400	IN	AAAA	2001:7fe::53
+j.root-servers.net.	518400	IN	AAAA	2001:503:c27::2:30
+k.root-servers.net.	518400	IN	AAAA	2001:7fd::1
+l.root-servers.net.	518400	IN	AAAA	2001:500:3::42
+m.root-servers.net.	518400	IN	AAAA	2001:dc3::35
+end_reply
+query_do . IN NS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:14 NS:0 AR:22
+; QUERY SECTION
+.	IN	NS
+; ANSWER SECTION
+.	518400	IN	NS	a.root-servers.net.
+.	518400	IN	NS	b.root-servers.net.
+.	518400	IN	NS	c.root-servers.net.
+.	518400	IN	NS	d.root-servers.net.
+.	518400	IN	NS	e.root-servers.net.
+.	518400	IN	NS	f.root-servers.net.
+.	518400	IN	NS	g.root-servers.net.
+.	518400	IN	NS	h.root-servers.net.
+.	518400	IN	NS	i.root-servers.net.
+.	518400	IN	NS	j.root-servers.net.
+.	518400	IN	NS	k.root-servers.net.
+.	518400	IN	NS	l.root-servers.net.
+.	518400	IN	NS	m.root-servers.net.
+.	518400	IN	RRSIG	NS 8 0 518400 20110309000000 20110301230000 21639 . vegwZejCdCxnnQ4oyQfSvuXJChOK4zIf5ZCAIOtpjuRFSnPM+rrTNoijZV/zFif5tP0EU7uDHVgGFkCtZJVdfMgZUy5OTSl13xqdzQKFMsT3/cZH1d0Lir0f2WxOUaOUofz2R68GiW77loLSgZ0MR0pScCBzotNElI6UZ3go2rM=
+; ADDITIONAL SECTION
+a.root-servers.net.	518400	IN	A	198.41.0.4
+b.root-servers.net.	518400	IN	A	192.228.79.201
+c.root-servers.net.	518400	IN	A	192.33.4.12
+d.root-servers.net.	518400	IN	A	128.8.10.90
+e.root-servers.net.	518400	IN	A	192.203.230.10
+f.root-servers.net.	518400	IN	A	192.5.5.241
+g.root-servers.net.	518400	IN	A	192.112.36.4
+h.root-servers.net.	518400	IN	A	128.63.2.53
+i.root-servers.net.	518400	IN	A	192.36.148.17
+j.root-servers.net.	518400	IN	A	192.58.128.30
+k.root-servers.net.	518400	IN	A	193.0.14.129
+l.root-servers.net.	518400	IN	A	199.7.83.42
+m.root-servers.net.	518400	IN	A	202.12.27.33
+a.root-servers.net.	518400	IN	AAAA	2001:503:ba3e::2:30
+f.root-servers.net.	518400	IN	AAAA	2001:500:2f::f
+h.root-servers.net.	518400	IN	AAAA	2001:500:1::803f:235
+i.root-servers.net.	518400	IN	AAAA	2001:7fe::53
+j.root-servers.net.	518400	IN	AAAA	2001:503:c27::2:30
+k.root-servers.net.	518400	IN	AAAA	2001:7fd::1
+l.root-servers.net.	518400	IN	AAAA	2001:500:3::42
+m.root-servers.net.	518400	IN	AAAA	2001:dc3::35
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query . IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+.	IN	DS
+; AUTHORITY SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do . IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:4 AR:1
+; QUERY SECTION
+.	IN	DS
+; AUTHORITY SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+.	86400	IN	RRSIG	SOA 8 0 86400 20110309000000 20110301230000 21639 . PndClzSv8ddlmRjdLSR/gL+O6360gX9CqQ7ztftn/1Y32wHQ0qyvDcExqBdYqadrcKdyoxLBKRkUKbD7mlVpdt7SQ2bbAHct/AOTVUDgzzim+1ktg92ZEd2IBEP4BIJluVZvrP7cIPmoAN6TmuTLOixGg06G8XnE3eCyTXO8tlE=
+.	86400	IN	NSEC	ac. NS SOA RRSIG NSEC DNSKEY
+.	86400	IN	RRSIG	NSEC 8 0 86400 20110309000000 20110301230000 21639 . Z2k3P8SRsuvDPc4XaklzVkqysRYdt9dsH1h2I+zD2fC6puQTW7SzA0BIyxXUqJEeS19t/XyQiDVYl6ut1JnQNsfF9fkYM8srhalyAQIBz6IddMIICfwIvXYg8jwzWDpcbeWCTtDx1fhV7VETdeYOdHx6bxAqEs9BH+Z1wYwPBkI=
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query . IN DNSKEY
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:2 NS:0 AR:0
+; QUERY SECTION
+.	IN	DNSKEY
+; ANSWER SECTION
+.	172800	IN	DNSKEY	256 3 8 AwEAAb5gVAzK59YHDxf/DnswfO1RmbRZ6W16JfhFecfI+EUHRXPWlXDi47t2FHaKyMMEROapL5SZ8HiCzl05lORZGGdN37WY7fkv55rs+kwHdVRSrQdl81fUnEspt67IIgaj3SrGyZqgzyixNk/8oT3yEfKDycTeJy4chKPt0JegWrjL
+.	172800	IN	DNSKEY	257 3 8 AwEAAagAIKlVZrpC6Ia7gEzahOR+9W29euxhJhVVLOyQbSEW0O8gcCjFFVQUTf6v58fLjwBd0YI0EzrAcQqBGCzh/RStIoO8g0NfnfL2MTJRkxoXbfDaUeVPQuYEhg37NZWAJQ9VnMVDxP/VHL496M/QZxkjf5/Efucp2gaDX6RS6CXpoY68LsvPVjR0ZSwzz1apAzvN9dlzEheX7ICJBBtuA6G3LQpzW5hOA2hzCTMjJPJ8LbqF6dsV6DoBQzgul0sGIcGOYl7OyQdXfZ57relSQageu+ipAdTTJ25AsRTAoub8ONGcLmqrAmRLKBP1dfwhYB4N7knNnulqQxA+Uk1ihz0=
+end_reply
+query_do . IN DNSKEY
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:3 NS:0 AR:1
+; QUERY SECTION
+.	IN	DNSKEY
+; ANSWER SECTION
+.	172800	IN	DNSKEY	256 3 8 AwEAAb5gVAzK59YHDxf/DnswfO1RmbRZ6W16JfhFecfI+EUHRXPWlXDi47t2FHaKyMMEROapL5SZ8HiCzl05lORZGGdN37WY7fkv55rs+kwHdVRSrQdl81fUnEspt67IIgaj3SrGyZqgzyixNk/8oT3yEfKDycTeJy4chKPt0JegWrjL
+.	172800	IN	DNSKEY	257 3 8 AwEAAagAIKlVZrpC6Ia7gEzahOR+9W29euxhJhVVLOyQbSEW0O8gcCjFFVQUTf6v58fLjwBd0YI0EzrAcQqBGCzh/RStIoO8g0NfnfL2MTJRkxoXbfDaUeVPQuYEhg37NZWAJQ9VnMVDxP/VHL496M/QZxkjf5/Efucp2gaDX6RS6CXpoY68LsvPVjR0ZSwzz1apAzvN9dlzEheX7ICJBBtuA6G3LQpzW5hOA2hzCTMjJPJ8LbqF6dsV6DoBQzgul0sGIcGOYl7OyQdXfZ57relSQageu+ipAdTTJ25AsRTAoub8ONGcLmqrAmRLKBP1dfwhYB4N7knNnulqQxA+Uk1ihz0=
+.	172800	IN	RRSIG	DNSKEY 8 0 172800 20110316235959 20110302000000 19036 . IGGhnsDYejuzNgbSKfuuGKEh3NV/BDazSDUxILsG256Jih24nrl3Ks7H56ay4gt3VtjoFK9wKzwKVu2vDAJ+k/SYlAM1g9bQ06dmwqSgtZbLIJo5bkumohjdsZMQossGMzdVtg1iTZrqt+1evgWPQnsol3H25MOG6zm5xPLv21jk77ShAVz4wFxKx9r5c14ufPsuYk4FCG5/CgeXzRKrpap1/6vCttO9R+wJjA8Yqs62BJnTQWogGP78jn9ER8L6c0X13iQC7dLJ788j6/TzLj7WXNlpFrlEcHJ/zEuc35F2mWjPMPuP2b/lDHA2Q30jZe6kUjMlxlFlvlAG73Rb6w==
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query . IN SOA
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:13 AR:21
+; QUERY SECTION
+.	IN	SOA
+; ANSWER SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+; AUTHORITY SECTION
+.	518400	IN	NS	a.root-servers.net.
+.	518400	IN	NS	b.root-servers.net.
+.	518400	IN	NS	c.root-servers.net.
+.	518400	IN	NS	d.root-servers.net.
+.	518400	IN	NS	e.root-servers.net.
+.	518400	IN	NS	f.root-servers.net.
+.	518400	IN	NS	g.root-servers.net.
+.	518400	IN	NS	h.root-servers.net.
+.	518400	IN	NS	i.root-servers.net.
+.	518400	IN	NS	j.root-servers.net.
+.	518400	IN	NS	k.root-servers.net.
+.	518400	IN	NS	l.root-servers.net.
+.	518400	IN	NS	m.root-servers.net.
+; ADDITIONAL SECTION
+a.root-servers.net.	518400	IN	A	198.41.0.4
+b.root-servers.net.	518400	IN	A	192.228.79.201
+c.root-servers.net.	518400	IN	A	192.33.4.12
+d.root-servers.net.	518400	IN	A	128.8.10.90
+e.root-servers.net.	518400	IN	A	192.203.230.10
+f.root-servers.net.	518400	IN	A	192.5.5.241
+g.root-servers.net.	518400	IN	A	192.112.36.4
+h.root-servers.net.	518400	IN	A	128.63.2.53
+i.root-servers.net.	518400	IN	A	192.36.148.17
+j.root-servers.net.	518400	IN	A	192.58.128.30
+k.root-servers.net.	518400	IN	A	193.0.14.129
+l.root-servers.net.	518400	IN	A	199.7.83.42
+m.root-servers.net.	518400	IN	A	202.12.27.33
+a.root-servers.net.	518400	IN	AAAA	2001:503:ba3e::2:30
+f.root-servers.net.	518400	IN	AAAA	2001:500:2f::f
+h.root-servers.net.	518400	IN	AAAA	2001:500:1::803f:235
+i.root-servers.net.	518400	IN	AAAA	2001:7fe::53
+j.root-servers.net.	518400	IN	AAAA	2001:503:c27::2:30
+k.root-servers.net.	518400	IN	AAAA	2001:7fd::1
+l.root-servers.net.	518400	IN	AAAA	2001:500:3::42
+m.root-servers.net.	518400	IN	AAAA	2001:dc3::35
+end_reply
+query_do . IN SOA
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:2 NS:14 AR:22
+; QUERY SECTION
+.	IN	SOA
+; ANSWER SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+.	86400	IN	RRSIG	SOA 8 0 86400 20110309000000 20110301230000 21639 . PndClzSv8ddlmRjdLSR/gL+O6360gX9CqQ7ztftn/1Y32wHQ0qyvDcExqBdYqadrcKdyoxLBKRkUKbD7mlVpdt7SQ2bbAHct/AOTVUDgzzim+1ktg92ZEd2IBEP4BIJluVZvrP7cIPmoAN6TmuTLOixGg06G8XnE3eCyTXO8tlE=
+; AUTHORITY SECTION
+.	518400	IN	NS	a.root-servers.net.
+.	518400	IN	NS	b.root-servers.net.
+.	518400	IN	NS	c.root-servers.net.
+.	518400	IN	NS	d.root-servers.net.
+.	518400	IN	NS	e.root-servers.net.
+.	518400	IN	NS	f.root-servers.net.
+.	518400	IN	NS	g.root-servers.net.
+.	518400	IN	NS	h.root-servers.net.
+.	518400	IN	NS	i.root-servers.net.
+.	518400	IN	NS	j.root-servers.net.
+.	518400	IN	NS	k.root-servers.net.
+.	518400	IN	NS	l.root-servers.net.
+.	518400	IN	NS	m.root-servers.net.
+.	518400	IN	RRSIG	NS 8 0 518400 20110309000000 20110301230000 21639 . vegwZejCdCxnnQ4oyQfSvuXJChOK4zIf5ZCAIOtpjuRFSnPM+rrTNoijZV/zFif5tP0EU7uDHVgGFkCtZJVdfMgZUy5OTSl13xqdzQKFMsT3/cZH1d0Lir0f2WxOUaOUofz2R68GiW77loLSgZ0MR0pScCBzotNElI6UZ3go2rM=
+; ADDITIONAL SECTION
+a.root-servers.net.	518400	IN	A	198.41.0.4
+b.root-servers.net.	518400	IN	A	192.228.79.201
+c.root-servers.net.	518400	IN	A	192.33.4.12
+d.root-servers.net.	518400	IN	A	128.8.10.90
+e.root-servers.net.	518400	IN	A	192.203.230.10
+f.root-servers.net.	518400	IN	A	192.5.5.241
+g.root-servers.net.	518400	IN	A	192.112.36.4
+h.root-servers.net.	518400	IN	A	128.63.2.53
+i.root-servers.net.	518400	IN	A	192.36.148.17
+j.root-servers.net.	518400	IN	A	192.58.128.30
+k.root-servers.net.	518400	IN	A	193.0.14.129
+l.root-servers.net.	518400	IN	A	199.7.83.42
+m.root-servers.net.	518400	IN	A	202.12.27.33
+a.root-servers.net.	518400	IN	AAAA	2001:503:ba3e::2:30
+f.root-servers.net.	518400	IN	AAAA	2001:500:2f::f
+h.root-servers.net.	518400	IN	AAAA	2001:500:1::803f:235
+i.root-servers.net.	518400	IN	AAAA	2001:7fe::53
+j.root-servers.net.	518400	IN	AAAA	2001:503:c27::2:30
+k.root-servers.net.	518400	IN	AAAA	2001:7fd::1
+l.root-servers.net.	518400	IN	AAAA	2001:500:3::42
+m.root-servers.net.	518400	IN	AAAA	2001:dc3::35
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query . IN MX
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+.	IN	MX
+; AUTHORITY SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do . IN MX
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:4 AR:1
+; QUERY SECTION
+.	IN	MX
+; AUTHORITY SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+.	86400	IN	RRSIG	SOA 8 0 86400 20110309000000 20110301230000 21639 . PndClzSv8ddlmRjdLSR/gL+O6360gX9CqQ7ztftn/1Y32wHQ0qyvDcExqBdYqadrcKdyoxLBKRkUKbD7mlVpdt7SQ2bbAHct/AOTVUDgzzim+1ktg92ZEd2IBEP4BIJluVZvrP7cIPmoAN6TmuTLOixGg06G8XnE3eCyTXO8tlE=
+.	86400	IN	NSEC	ac. NS SOA RRSIG NSEC DNSKEY
+.	86400	IN	RRSIG	NSEC 8 0 86400 20110309000000 20110301230000 21639 . Z2k3P8SRsuvDPc4XaklzVkqysRYdt9dsH1h2I+zD2fC6puQTW7SzA0BIyxXUqJEeS19t/XyQiDVYl6ut1JnQNsfF9fkYM8srhalyAQIBz6IddMIICfwIvXYg8jwzWDpcbeWCTtDx1fhV7VETdeYOdHx6bxAqEs9BH+Z1wYwPBkI=
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query 0. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+0.	IN	A
+; AUTHORITY SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do 0. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:4 AR:1
+; QUERY SECTION
+0.	IN	A
+; AUTHORITY SECTION
+.	86400	IN	NSEC	ac. NS SOA RRSIG NSEC DNSKEY
+.	86400	IN	RRSIG	NSEC 8 0 86400 20110309000000 20110301230000 21639 . Z2k3P8SRsuvDPc4XaklzVkqysRYdt9dsH1h2I+zD2fC6puQTW7SzA0BIyxXUqJEeS19t/XyQiDVYl6ut1JnQNsfF9fkYM8srhalyAQIBz6IddMIICfwIvXYg8jwzWDpcbeWCTtDx1fhV7VETdeYOdHx6bxAqEs9BH+Z1wYwPBkI=
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+.	86400	IN	RRSIG	SOA 8 0 86400 20110309000000 20110301230000 21639 . PndClzSv8ddlmRjdLSR/gL+O6360gX9CqQ7ztftn/1Y32wHQ0qyvDcExqBdYqadrcKdyoxLBKRkUKbD7mlVpdt7SQ2bbAHct/AOTVUDgzzim+1ktg92ZEd2IBEP4BIJluVZvrP7cIPmoAN6TmuTLOixGg06G8XnE3eCyTXO8tlE=
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query colo. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+colo.	IN	A
+; AUTHORITY SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do colo. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:6 AR:1
+; QUERY SECTION
+colo.	IN	A
+; AUTHORITY SECTION
+co.	86400	IN	NSEC	com. NS RRSIG NSEC
+co.	86400	IN	RRSIG	NSEC 8 1 86400 20110309000000 20110301230000 21639 . UaS9/Rur9uo6iwk1nOXggjcCw++0rna1iMo0SQZLmBLVrXVYhPtQXF7FTCJHvZcPSjLMY9TO+STBQkOPP8OqCnp5m34XIadT10/u3NGk8m8nMLkWKUQJpmjHucKlMeFkmTHrU++2eAbmg+SSkeskKeI1zb+HYH7emKLnHYIBVtY=
+.	86400	IN	NSEC	ac. NS SOA RRSIG NSEC DNSKEY
+.	86400	IN	RRSIG	NSEC 8 0 86400 20110309000000 20110301230000 21639 . Z2k3P8SRsuvDPc4XaklzVkqysRYdt9dsH1h2I+zD2fC6puQTW7SzA0BIyxXUqJEeS19t/XyQiDVYl6ut1JnQNsfF9fkYM8srhalyAQIBz6IddMIICfwIvXYg8jwzWDpcbeWCTtDx1fhV7VETdeYOdHx6bxAqEs9BH+Z1wYwPBkI=
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+.	86400	IN	RRSIG	SOA 8 0 86400 20110309000000 20110301230000 21639 . PndClzSv8ddlmRjdLSR/gL+O6360gX9CqQ7ztftn/1Y32wHQ0qyvDcExqBdYqadrcKdyoxLBKRkUKbD7mlVpdt7SQ2bbAHct/AOTVUDgzzim+1ktg92ZEd2IBEP4BIJluVZvrP7cIPmoAN6TmuTLOixGg06G8XnE3eCyTXO8tlE=
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query se. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:2 NS:0 AR:0
+; QUERY SECTION
+se.	IN	DS
+; ANSWER SECTION
+se.	86400	IN	DS	7649 5 2 ee7c340d6636ca50db126dbbf69ce4a79a76d3df830f4a6ba207caefda32f443
+se.	86400	IN	DS	39547 5 2 57d1927113224d7fbb9fc2f68394a717263ddae5f883ee461aaf8f4ed4f39e23
+end_reply
+query_do se. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:3 NS:0 AR:1
+; QUERY SECTION
+se.	IN	DS
+; ANSWER SECTION
+se.	86400	IN	DS	7649 5 2 ee7c340d6636ca50db126dbbf69ce4a79a76d3df830f4a6ba207caefda32f443
+se.	86400	IN	DS	39547 5 2 57d1927113224d7fbb9fc2f68394a717263ddae5f883ee461aaf8f4ed4f39e23
+se.	86400	IN	RRSIG	DS 8 1 86400 20110309000000 20110301230000 21639 . F8KI0bHhbF28h9tIfzWbXMOxLvO6u9GDcb4bk6N4kCvRL9fLOV6ERS1+HGGQCt5qDM67onAhU7eY1YDHMCQMFlcB4OcI+bLD2FJaWDiEF/QiFKmLZyZe4z1kG/8ycQY/+pN50lv+EkNUyHlXMyOKxOcujGlsDZ3rq3iY5HyQW4I=
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query se. IN SOA
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:10 AR:13
+; QUERY SECTION
+se.	IN	SOA
+; AUTHORITY SECTION
+se.	172800	IN	NS	a.ns.se.
+se.	172800	IN	NS	b.ns.se.
+se.	172800	IN	NS	c.ns.se.
+se.	172800	IN	NS	d.ns.se.
+se.	172800	IN	NS	e.ns.se.
+se.	172800	IN	NS	f.ns.se.
+se.	172800	IN	NS	g.ns.se.
+se.	172800	IN	NS	h.ns.se.
+se.	172800	IN	NS	i.ns.se.
+se.	172800	IN	NS	j.ns.se.
+; ADDITIONAL SECTION
+a.ns.se.	172800	IN	A	192.36.144.107
+b.ns.se.	172800	IN	A	192.36.133.107
+c.ns.se.	172800	IN	A	192.36.135.107
+d.ns.se.	172800	IN	A	81.228.8.16
+e.ns.se.	172800	IN	A	81.228.10.57
+f.ns.se.	172800	IN	A	192.71.53.53
+g.ns.se.	172800	IN	A	130.239.5.114
+h.ns.se.	172800	IN	A	199.7.49.30
+i.ns.se.	172800	IN	A	194.146.106.22
+j.ns.se.	172800	IN	A	199.254.63.1
+a.ns.se.	172800	IN	AAAA	2a01:3f0:0:301::53
+g.ns.se.	172800	IN	AAAA	2001:6b0:e:3::1
+j.ns.se.	172800	IN	AAAA	2001:500:2c::1
+end_reply
+query_do se. IN SOA
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:13 AR:14
+; QUERY SECTION
+se.	IN	SOA
+; AUTHORITY SECTION
+se.	172800	IN	NS	a.ns.se.
+se.	172800	IN	NS	b.ns.se.
+se.	172800	IN	NS	c.ns.se.
+se.	172800	IN	NS	d.ns.se.
+se.	172800	IN	NS	e.ns.se.
+se.	172800	IN	NS	f.ns.se.
+se.	172800	IN	NS	g.ns.se.
+se.	172800	IN	NS	h.ns.se.
+se.	172800	IN	NS	i.ns.se.
+se.	172800	IN	NS	j.ns.se.
+se.	86400	IN	DS	7649 5 2 ee7c340d6636ca50db126dbbf69ce4a79a76d3df830f4a6ba207caefda32f443
+se.	86400	IN	DS	39547 5 2 57d1927113224d7fbb9fc2f68394a717263ddae5f883ee461aaf8f4ed4f39e23
+se.	86400	IN	RRSIG	DS 8 1 86400 20110309000000 20110301230000 21639 . F8KI0bHhbF28h9tIfzWbXMOxLvO6u9GDcb4bk6N4kCvRL9fLOV6ERS1+HGGQCt5qDM67onAhU7eY1YDHMCQMFlcB4OcI+bLD2FJaWDiEF/QiFKmLZyZe4z1kG/8ycQY/+pN50lv+EkNUyHlXMyOKxOcujGlsDZ3rq3iY5HyQW4I=
+; ADDITIONAL SECTION
+a.ns.se.	172800	IN	A	192.36.144.107
+b.ns.se.	172800	IN	A	192.36.133.107
+c.ns.se.	172800	IN	A	192.36.135.107
+d.ns.se.	172800	IN	A	81.228.8.16
+e.ns.se.	172800	IN	A	81.228.10.57
+f.ns.se.	172800	IN	A	192.71.53.53
+g.ns.se.	172800	IN	A	130.239.5.114
+h.ns.se.	172800	IN	A	199.7.49.30
+i.ns.se.	172800	IN	A	194.146.106.22
+j.ns.se.	172800	IN	A	199.254.63.1
+a.ns.se.	172800	IN	AAAA	2a01:3f0:0:301::53
+g.ns.se.	172800	IN	AAAA	2001:6b0:e:3::1
+j.ns.se.	172800	IN	AAAA	2001:500:2c::1
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query bla.se. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:10 AR:13
+; QUERY SECTION
+bla.se.	IN	DS
+; AUTHORITY SECTION
+se.	172800	IN	NS	a.ns.se.
+se.	172800	IN	NS	b.ns.se.
+se.	172800	IN	NS	c.ns.se.
+se.	172800	IN	NS	d.ns.se.
+se.	172800	IN	NS	e.ns.se.
+se.	172800	IN	NS	f.ns.se.
+se.	172800	IN	NS	g.ns.se.
+se.	172800	IN	NS	h.ns.se.
+se.	172800	IN	NS	i.ns.se.
+se.	172800	IN	NS	j.ns.se.
+; ADDITIONAL SECTION
+a.ns.se.	172800	IN	A	192.36.144.107
+b.ns.se.	172800	IN	A	192.36.133.107
+c.ns.se.	172800	IN	A	192.36.135.107
+d.ns.se.	172800	IN	A	81.228.8.16
+e.ns.se.	172800	IN	A	81.228.10.57
+f.ns.se.	172800	IN	A	192.71.53.53
+g.ns.se.	172800	IN	A	130.239.5.114
+h.ns.se.	172800	IN	A	199.7.49.30
+i.ns.se.	172800	IN	A	194.146.106.22
+j.ns.se.	172800	IN	A	199.254.63.1
+a.ns.se.	172800	IN	AAAA	2a01:3f0:0:301::53
+g.ns.se.	172800	IN	AAAA	2001:6b0:e:3::1
+j.ns.se.	172800	IN	AAAA	2001:500:2c::1
+end_reply
+query_do bla.se. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:13 AR:14
+; QUERY SECTION
+bla.se.	IN	DS
+; AUTHORITY SECTION
+se.	172800	IN	NS	a.ns.se.
+se.	172800	IN	NS	b.ns.se.
+se.	172800	IN	NS	c.ns.se.
+se.	172800	IN	NS	d.ns.se.
+se.	172800	IN	NS	e.ns.se.
+se.	172800	IN	NS	f.ns.se.
+se.	172800	IN	NS	g.ns.se.
+se.	172800	IN	NS	h.ns.se.
+se.	172800	IN	NS	i.ns.se.
+se.	172800	IN	NS	j.ns.se.
+se.	86400	IN	DS	7649 5 2 ee7c340d6636ca50db126dbbf69ce4a79a76d3df830f4a6ba207caefda32f443
+se.	86400	IN	DS	39547 5 2 57d1927113224d7fbb9fc2f68394a717263ddae5f883ee461aaf8f4ed4f39e23
+se.	86400	IN	RRSIG	DS 8 1 86400 20110309000000 20110301230000 21639 . F8KI0bHhbF28h9tIfzWbXMOxLvO6u9GDcb4bk6N4kCvRL9fLOV6ERS1+HGGQCt5qDM67onAhU7eY1YDHMCQMFlcB4OcI+bLD2FJaWDiEF/QiFKmLZyZe4z1kG/8ycQY/+pN50lv+EkNUyHlXMyOKxOcujGlsDZ3rq3iY5HyQW4I=
+; ADDITIONAL SECTION
+a.ns.se.	172800	IN	A	192.36.144.107
+b.ns.se.	172800	IN	A	192.36.133.107
+c.ns.se.	172800	IN	A	192.36.135.107
+d.ns.se.	172800	IN	A	81.228.8.16
+e.ns.se.	172800	IN	A	81.228.10.57
+f.ns.se.	172800	IN	A	192.71.53.53
+g.ns.se.	172800	IN	A	130.239.5.114
+h.ns.se.	172800	IN	A	199.7.49.30
+i.ns.se.	172800	IN	A	194.146.106.22
+j.ns.se.	172800	IN	A	199.254.63.1
+a.ns.se.	172800	IN	AAAA	2a01:3f0:0:301::53
+g.ns.se.	172800	IN	AAAA	2001:6b0:e:3::1
+j.ns.se.	172800	IN	AAAA	2001:500:2c::1
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query bla.se. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:10 AR:13
+; QUERY SECTION
+bla.se.	IN	A
+; AUTHORITY SECTION
+se.	172800	IN	NS	a.ns.se.
+se.	172800	IN	NS	b.ns.se.
+se.	172800	IN	NS	c.ns.se.
+se.	172800	IN	NS	d.ns.se.
+se.	172800	IN	NS	e.ns.se.
+se.	172800	IN	NS	f.ns.se.
+se.	172800	IN	NS	g.ns.se.
+se.	172800	IN	NS	h.ns.se.
+se.	172800	IN	NS	i.ns.se.
+se.	172800	IN	NS	j.ns.se.
+; ADDITIONAL SECTION
+a.ns.se.	172800	IN	A	192.36.144.107
+b.ns.se.	172800	IN	A	192.36.133.107
+c.ns.se.	172800	IN	A	192.36.135.107
+d.ns.se.	172800	IN	A	81.228.8.16
+e.ns.se.	172800	IN	A	81.228.10.57
+f.ns.se.	172800	IN	A	192.71.53.53
+g.ns.se.	172800	IN	A	130.239.5.114
+h.ns.se.	172800	IN	A	199.7.49.30
+i.ns.se.	172800	IN	A	194.146.106.22
+j.ns.se.	172800	IN	A	199.254.63.1
+a.ns.se.	172800	IN	AAAA	2a01:3f0:0:301::53
+g.ns.se.	172800	IN	AAAA	2001:6b0:e:3::1
+j.ns.se.	172800	IN	AAAA	2001:500:2c::1
+end_reply
+query_do bla.se. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:13 AR:14
+; QUERY SECTION
+bla.se.	IN	A
+; AUTHORITY SECTION
+se.	172800	IN	NS	a.ns.se.
+se.	172800	IN	NS	b.ns.se.
+se.	172800	IN	NS	c.ns.se.
+se.	172800	IN	NS	d.ns.se.
+se.	172800	IN	NS	e.ns.se.
+se.	172800	IN	NS	f.ns.se.
+se.	172800	IN	NS	g.ns.se.
+se.	172800	IN	NS	h.ns.se.
+se.	172800	IN	NS	i.ns.se.
+se.	172800	IN	NS	j.ns.se.
+se.	86400	IN	DS	7649 5 2 ee7c340d6636ca50db126dbbf69ce4a79a76d3df830f4a6ba207caefda32f443
+se.	86400	IN	DS	39547 5 2 57d1927113224d7fbb9fc2f68394a717263ddae5f883ee461aaf8f4ed4f39e23
+se.	86400	IN	RRSIG	DS 8 1 86400 20110309000000 20110301230000 21639 . F8KI0bHhbF28h9tIfzWbXMOxLvO6u9GDcb4bk6N4kCvRL9fLOV6ERS1+HGGQCt5qDM67onAhU7eY1YDHMCQMFlcB4OcI+bLD2FJaWDiEF/QiFKmLZyZe4z1kG/8ycQY/+pN50lv+EkNUyHlXMyOKxOcujGlsDZ3rq3iY5HyQW4I=
+; ADDITIONAL SECTION
+a.ns.se.	172800	IN	A	192.36.144.107
+b.ns.se.	172800	IN	A	192.36.133.107
+c.ns.se.	172800	IN	A	192.36.135.107
+d.ns.se.	172800	IN	A	81.228.8.16
+e.ns.se.	172800	IN	A	81.228.10.57
+f.ns.se.	172800	IN	A	192.71.53.53
+g.ns.se.	172800	IN	A	130.239.5.114
+h.ns.se.	172800	IN	A	199.7.49.30
+i.ns.se.	172800	IN	A	194.146.106.22
+j.ns.se.	172800	IN	A	199.254.63.1
+a.ns.se.	172800	IN	AAAA	2a01:3f0:0:301::53
+g.ns.se.	172800	IN	AAAA	2001:6b0:e:3::1
+j.ns.se.	172800	IN	AAAA	2001:500:2c::1
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query bla.com. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:13 AR:15
+; QUERY SECTION
+bla.com.	IN	DS
+; AUTHORITY SECTION
+com.	172800	IN	NS	a.gtld-servers.net.
+com.	172800	IN	NS	b.gtld-servers.net.
+com.	172800	IN	NS	c.gtld-servers.net.
+com.	172800	IN	NS	d.gtld-servers.net.
+com.	172800	IN	NS	e.gtld-servers.net.
+com.	172800	IN	NS	f.gtld-servers.net.
+com.	172800	IN	NS	g.gtld-servers.net.
+com.	172800	IN	NS	h.gtld-servers.net.
+com.	172800	IN	NS	i.gtld-servers.net.
+com.	172800	IN	NS	j.gtld-servers.net.
+com.	172800	IN	NS	k.gtld-servers.net.
+com.	172800	IN	NS	l.gtld-servers.net.
+com.	172800	IN	NS	m.gtld-servers.net.
+; ADDITIONAL SECTION
+a.gtld-servers.net.	172800	IN	A	192.5.6.30
+b.gtld-servers.net.	172800	IN	A	192.33.14.30
+c.gtld-servers.net.	172800	IN	A	192.26.92.30
+d.gtld-servers.net.	172800	IN	A	192.31.80.30
+e.gtld-servers.net.	172800	IN	A	192.12.94.30
+f.gtld-servers.net.	172800	IN	A	192.35.51.30
+g.gtld-servers.net.	172800	IN	A	192.42.93.30
+h.gtld-servers.net.	172800	IN	A	192.54.112.30
+i.gtld-servers.net.	172800	IN	A	192.43.172.30
+j.gtld-servers.net.	172800	IN	A	192.48.79.30
+k.gtld-servers.net.	172800	IN	A	192.52.178.30
+l.gtld-servers.net.	172800	IN	A	192.41.162.30
+m.gtld-servers.net.	172800	IN	A	192.55.83.30
+a.gtld-servers.net.	172800	IN	AAAA	2001:503:a83e::2:30
+b.gtld-servers.net.	172800	IN	AAAA	2001:503:231d::2:30
+end_reply
+query_do bla.com. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:15 AR:16
+; QUERY SECTION
+bla.com.	IN	DS
+; AUTHORITY SECTION
+com.	172800	IN	NS	a.gtld-servers.net.
+com.	172800	IN	NS	b.gtld-servers.net.
+com.	172800	IN	NS	c.gtld-servers.net.
+com.	172800	IN	NS	d.gtld-servers.net.
+com.	172800	IN	NS	e.gtld-servers.net.
+com.	172800	IN	NS	f.gtld-servers.net.
+com.	172800	IN	NS	g.gtld-servers.net.
+com.	172800	IN	NS	h.gtld-servers.net.
+com.	172800	IN	NS	i.gtld-servers.net.
+com.	172800	IN	NS	j.gtld-servers.net.
+com.	172800	IN	NS	k.gtld-servers.net.
+com.	172800	IN	NS	l.gtld-servers.net.
+com.	172800	IN	NS	m.gtld-servers.net.
+com.	86400	IN	NSEC	coop. NS RRSIG NSEC
+com.	86400	IN	RRSIG	NSEC 8 1 86400 20110309000000 20110301230000 21639 . fFQK7U4NvhuaU7BE6i6NrI0yC+wYIWldvN6ro6vKmCuv3YC9ZCpa476CFJ4mUzoVsRSletNVII+elaatURx8WRQKW/jTXeV7AqQMkwcyqXEIIa0QtMH15tAo0/tK4RIZEZj+ZiB+SM85Fug/xzjAwA1SMY/+SAaainEGj4a3EIU=
+; ADDITIONAL SECTION
+a.gtld-servers.net.	172800	IN	A	192.5.6.30
+b.gtld-servers.net.	172800	IN	A	192.33.14.30
+c.gtld-servers.net.	172800	IN	A	192.26.92.30
+d.gtld-servers.net.	172800	IN	A	192.31.80.30
+e.gtld-servers.net.	172800	IN	A	192.12.94.30
+f.gtld-servers.net.	172800	IN	A	192.35.51.30
+g.gtld-servers.net.	172800	IN	A	192.42.93.30
+h.gtld-servers.net.	172800	IN	A	192.54.112.30
+i.gtld-servers.net.	172800	IN	A	192.43.172.30
+j.gtld-servers.net.	172800	IN	A	192.48.79.30
+k.gtld-servers.net.	172800	IN	A	192.52.178.30
+l.gtld-servers.net.	172800	IN	A	192.41.162.30
+m.gtld-servers.net.	172800	IN	A	192.55.83.30
+a.gtld-servers.net.	172800	IN	AAAA	2001:503:a83e::2:30
+b.gtld-servers.net.	172800	IN	AAAA	2001:503:231d::2:30
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query bla.com. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:13 AR:15
+; QUERY SECTION
+bla.com.	IN	A
+; AUTHORITY SECTION
+com.	172800	IN	NS	a.gtld-servers.net.
+com.	172800	IN	NS	b.gtld-servers.net.
+com.	172800	IN	NS	c.gtld-servers.net.
+com.	172800	IN	NS	d.gtld-servers.net.
+com.	172800	IN	NS	e.gtld-servers.net.
+com.	172800	IN	NS	f.gtld-servers.net.
+com.	172800	IN	NS	g.gtld-servers.net.
+com.	172800	IN	NS	h.gtld-servers.net.
+com.	172800	IN	NS	i.gtld-servers.net.
+com.	172800	IN	NS	j.gtld-servers.net.
+com.	172800	IN	NS	k.gtld-servers.net.
+com.	172800	IN	NS	l.gtld-servers.net.
+com.	172800	IN	NS	m.gtld-servers.net.
+; ADDITIONAL SECTION
+a.gtld-servers.net.	172800	IN	A	192.5.6.30
+b.gtld-servers.net.	172800	IN	A	192.33.14.30
+c.gtld-servers.net.	172800	IN	A	192.26.92.30
+d.gtld-servers.net.	172800	IN	A	192.31.80.30
+e.gtld-servers.net.	172800	IN	A	192.12.94.30
+f.gtld-servers.net.	172800	IN	A	192.35.51.30
+g.gtld-servers.net.	172800	IN	A	192.42.93.30
+h.gtld-servers.net.	172800	IN	A	192.54.112.30
+i.gtld-servers.net.	172800	IN	A	192.43.172.30
+j.gtld-servers.net.	172800	IN	A	192.48.79.30
+k.gtld-servers.net.	172800	IN	A	192.52.178.30
+l.gtld-servers.net.	172800	IN	A	192.41.162.30
+m.gtld-servers.net.	172800	IN	A	192.55.83.30
+a.gtld-servers.net.	172800	IN	AAAA	2001:503:a83e::2:30
+b.gtld-servers.net.	172800	IN	AAAA	2001:503:231d::2:30
+end_reply
+query_do bla.com. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:15 AR:16
+; QUERY SECTION
+bla.com.	IN	A
+; AUTHORITY SECTION
+com.	172800	IN	NS	a.gtld-servers.net.
+com.	172800	IN	NS	b.gtld-servers.net.
+com.	172800	IN	NS	c.gtld-servers.net.
+com.	172800	IN	NS	d.gtld-servers.net.
+com.	172800	IN	NS	e.gtld-servers.net.
+com.	172800	IN	NS	f.gtld-servers.net.
+com.	172800	IN	NS	g.gtld-servers.net.
+com.	172800	IN	NS	h.gtld-servers.net.
+com.	172800	IN	NS	i.gtld-servers.net.
+com.	172800	IN	NS	j.gtld-servers.net.
+com.	172800	IN	NS	k.gtld-servers.net.
+com.	172800	IN	NS	l.gtld-servers.net.
+com.	172800	IN	NS	m.gtld-servers.net.
+com.	86400	IN	NSEC	coop. NS RRSIG NSEC
+com.	86400	IN	RRSIG	NSEC 8 1 86400 20110309000000 20110301230000 21639 . fFQK7U4NvhuaU7BE6i6NrI0yC+wYIWldvN6ro6vKmCuv3YC9ZCpa476CFJ4mUzoVsRSletNVII+elaatURx8WRQKW/jTXeV7AqQMkwcyqXEIIa0QtMH15tAo0/tK4RIZEZj+ZiB+SM85Fug/xzjAwA1SMY/+SAaainEGj4a3EIU=
+; ADDITIONAL SECTION
+a.gtld-servers.net.	172800	IN	A	192.5.6.30
+b.gtld-servers.net.	172800	IN	A	192.33.14.30
+c.gtld-servers.net.	172800	IN	A	192.26.92.30
+d.gtld-servers.net.	172800	IN	A	192.31.80.30
+e.gtld-servers.net.	172800	IN	A	192.12.94.30
+f.gtld-servers.net.	172800	IN	A	192.35.51.30
+g.gtld-servers.net.	172800	IN	A	192.42.93.30
+h.gtld-servers.net.	172800	IN	A	192.54.112.30
+i.gtld-servers.net.	172800	IN	A	192.43.172.30
+j.gtld-servers.net.	172800	IN	A	192.48.79.30
+k.gtld-servers.net.	172800	IN	A	192.52.178.30
+l.gtld-servers.net.	172800	IN	A	192.41.162.30
+m.gtld-servers.net.	172800	IN	A	192.55.83.30
+a.gtld-servers.net.	172800	IN	AAAA	2001:503:a83e::2:30
+b.gtld-servers.net.	172800	IN	AAAA	2001:503:231d::2:30
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query bla.zzz. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+bla.zzz.	IN	A
+; AUTHORITY SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do bla.zzz. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:6 AR:1
+; QUERY SECTION
+bla.zzz.	IN	A
+; AUTHORITY SECTION
+zw.	86400	IN	NSEC	. NS RRSIG NSEC
+zw.	86400	IN	RRSIG	NSEC 8 1 86400 20110309000000 20110301230000 21639 . AqRcws4csebNC3RrXQyQ7h/MLEmBOTP0qJi0zi+PXPCDCCrwKQZfgAMl5sFwzfRx1leZxnhxIhR5dhfrRnE521Pi2n4dftqNr+bqIW/FwN3LeSsw7oUJILk7eXw9E5Fz7NpTNqbc44hiDp3xDGIJOQ3WctD/dhFEIF4ALVnPDP0=
+.	86400	IN	NSEC	ac. NS SOA RRSIG NSEC DNSKEY
+.	86400	IN	RRSIG	NSEC 8 0 86400 20110309000000 20110301230000 21639 . Z2k3P8SRsuvDPc4XaklzVkqysRYdt9dsH1h2I+zD2fC6puQTW7SzA0BIyxXUqJEeS19t/XyQiDVYl6ut1JnQNsfF9fkYM8srhalyAQIBz6IddMIICfwIvXYg8jwzWDpcbeWCTtDx1fhV7VETdeYOdHx6bxAqEs9BH+Z1wYwPBkI=
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+.	86400	IN	RRSIG	SOA 8 0 86400 20110309000000 20110301230000 21639 . PndClzSv8ddlmRjdLSR/gL+O6360gX9CqQ7ztftn/1Y32wHQ0qyvDcExqBdYqadrcKdyoxLBKRkUKbD7mlVpdt7SQ2bbAHct/AOTVUDgzzim+1ktg92ZEd2IBEP4BIJluVZvrP7cIPmoAN6TmuTLOixGg06G8XnE3eCyTXO8tlE=
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query bla.local. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+bla.local.	IN	A
+; AUTHORITY SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do bla.local. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:6 AR:1
+; QUERY SECTION
+bla.local.	IN	A
+; AUTHORITY SECTION
+lk.	86400	IN	NSEC	lr. NS DS RRSIG NSEC
+lk.	86400	IN	RRSIG	NSEC 8 1 86400 20110309000000 20110301230000 21639 . nlMx6+orPSUqJdDa2XZDRaZwo1hUmPBY3OIhzPAN6ZviZk9SLoN2LYy/RurOvY8RSJeIZV8OdU7wiouniCljxptMgdrB3vjOsDEOuEh8dk8UYwEMt/1O+68vxYtkcnqzuerupdyXk2i9b6LbDrDxqRf/6zoopNv5im0XDw8qy6Q=
+.	86400	IN	NSEC	ac. NS SOA RRSIG NSEC DNSKEY
+.	86400	IN	RRSIG	NSEC 8 0 86400 20110309000000 20110301230000 21639 . Z2k3P8SRsuvDPc4XaklzVkqysRYdt9dsH1h2I+zD2fC6puQTW7SzA0BIyxXUqJEeS19t/XyQiDVYl6ut1JnQNsfF9fkYM8srhalyAQIBz6IddMIICfwIvXYg8jwzWDpcbeWCTtDx1fhV7VETdeYOdHx6bxAqEs9BH+Z1wYwPBkI=
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+.	86400	IN	RRSIG	SOA 8 0 86400 20110309000000 20110301230000 21639 . PndClzSv8ddlmRjdLSR/gL+O6360gX9CqQ7ztftn/1Y32wHQ0qyvDcExqBdYqadrcKdyoxLBKRkUKbD7mlVpdt7SQ2bbAHct/AOTVUDgzzim+1ktg92ZEd2IBEP4BIJluVZvrP7cIPmoAN6TmuTLOixGg06G8XnE3eCyTXO8tlE=
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query com. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+com.	IN	DS
+; AUTHORITY SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do com. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:4 AR:1
+; QUERY SECTION
+com.	IN	DS
+; AUTHORITY SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+.	86400	IN	RRSIG	SOA 8 0 86400 20110309000000 20110301230000 21639 . PndClzSv8ddlmRjdLSR/gL+O6360gX9CqQ7ztftn/1Y32wHQ0qyvDcExqBdYqadrcKdyoxLBKRkUKbD7mlVpdt7SQ2bbAHct/AOTVUDgzzim+1ktg92ZEd2IBEP4BIJluVZvrP7cIPmoAN6TmuTLOixGg06G8XnE3eCyTXO8tlE=
+com.	86400	IN	NSEC	coop. NS RRSIG NSEC
+com.	86400	IN	RRSIG	NSEC 8 1 86400 20110309000000 20110301230000 21639 . fFQK7U4NvhuaU7BE6i6NrI0yC+wYIWldvN6ro6vKmCuv3YC9ZCpa476CFJ4mUzoVsRSletNVII+elaatURx8WRQKW/jTXeV7AqQMkwcyqXEIIa0QtMH15tAo0/tK4RIZEZj+ZiB+SM85Fug/xzjAwA1SMY/+SAaainEGj4a3EIU=
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query s. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+s.	IN	A
+; AUTHORITY SECTION
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do s. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:6 AR:1
+; QUERY SECTION
+s.	IN	A
+; AUTHORITY SECTION
+rw.	86400	IN	NSEC	sa. NS RRSIG NSEC
+rw.	86400	IN	RRSIG	NSEC 8 1 86400 20110309000000 20110301230000 21639 . eIl0LNkNMeZXYn5W3TtQ1s8WouZC86CaIa36QhLd8tAm6i6wqAgZd0IVua2b2uAgIGHT/uEBYe4nZuT2DdmUylCA9Q/PaMBzcBwm+1Aahc0/rfCOeTJVc3An4Tj2lxLwa75VB9VzcI7WKGDvnV8s9pJLqIUjMrONtlkxiUNrqs4=
+.	86400	IN	NSEC	ac. NS SOA RRSIG NSEC DNSKEY
+.	86400	IN	RRSIG	NSEC 8 0 86400 20110309000000 20110301230000 21639 . Z2k3P8SRsuvDPc4XaklzVkqysRYdt9dsH1h2I+zD2fC6puQTW7SzA0BIyxXUqJEeS19t/XyQiDVYl6ut1JnQNsfF9fkYM8srhalyAQIBz6IddMIICfwIvXYg8jwzWDpcbeWCTtDx1fhV7VETdeYOdHx6bxAqEs9BH+Z1wYwPBkI=
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+		2011030200 1800 900 604800 86400 )
+.	86400	IN	RRSIG	SOA 8 0 86400 20110309000000 20110301230000 21639 . PndClzSv8ddlmRjdLSR/gL+O6360gX9CqQ7ztftn/1Y32wHQ0qyvDcExqBdYqadrcKdyoxLBKRkUKbD7mlVpdt7SQ2bbAHct/AOTVUDgzzim+1ktg92ZEd2IBEP4BIJluVZvrP7cIPmoAN6TmuTLOixGg06G8XnE3eCyTXO8tlE=
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+
+bufsize 65535
+speed 0
+check 1
+write 0

@@ -1,0 +1,12 @@
+# #-- notify_nokey.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+$DIG @localhost -p $TPKG_PORT SOA example.com. -y blabla:K2tf3TRjvQkVCmJF3/Z9vA== | tee notify_nokey.current_respons1
+# cat notify_nokey.current_respons1
+
+ldns-notify -p $TPKG_PORT -y blabla:K2tf3TRjvQkVCmJF3/Z9vA== -z example.com 127.0.0.1
+exit $?

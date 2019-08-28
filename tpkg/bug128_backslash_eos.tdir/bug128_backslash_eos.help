@@ -1,0 +1,1 @@
+Tests if \ at the end of a string is lexed correctly. I.e. "name\\". It does so by making lex see \\ as _\\_.

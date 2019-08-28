@@ -1,0 +1,54 @@
+# #-- xfr_update.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+
+$TPKG_NSD -c nsd.conf -p $TPKG_PORT -V 3
+#ldns-notify -z example.net -p $TPKG_PORT -s 2 127.0.0.1
+sleep 3
+
+# now query for the update I sent and compare that with a known good one
+echo port: $TPKG_PORT
+dig @127.0.0.1 -p $TPKG_PORT example.net axfr | tee axfr
+grep -v "^;" < axfr | sort > axfr.clean
+# see that is it updated
+echo diff
+diff -u axfr.clean xfr_update.known_good
+if test $? -ne 0; then
+	echo "first xfr failed"
+        exit 1
+fi
+echo OK
+
+# stop the server
+kill_pid `cat nsd.pid`
+
+# delete ixfr file
+# and start again, (with the nsd.db), and check the changes are in nsd.db
+rm -f ixfr.db
+$TPKG_NSD -c nsd.conf -p $TPKG_PORT -l nsd.log -V 3
+wait_server_up nsd.log
+dig @127.0.0.1 -p $TPKG_PORT example.net axfr | tee axfr
+grep -v "^;" < axfr | sort > axfr.clean
+# see that is it updated
+echo diff
+diff -u axfr.clean xfr_update.known_good
+if test $? -ne 0; then
+	echo "failed to update nsd.db"
+	cat nsd.log
+        exit 1
+fi
+echo OK
+
+exit 0

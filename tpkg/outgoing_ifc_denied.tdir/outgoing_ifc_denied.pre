@@ -1,0 +1,34 @@
+# #-- outgoing_ifc_denied.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+TPKG_PORT2=$(($TPKG_PORT + 1))
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_PORT2=$TPKG_PORT2" >> .tpkg.var.test
+echo "export TPKG_NSD=$TPKG_NSD" >> .tpkg.var.test
+
+sed -e "s/TPKGPORT2/$TPKG_PORT2/" < outgoing_ifc_denied.conf > outgoing_ifc_denied.conf1
+cat outgoing_ifc_denied.conf1
+
+sed -e "s/TPKGPORT/$TPKG_PORT/" < outgoing_ifc_denied.conf2 > outgoing_ifc_denied.conf3
+cat outgoing_ifc_denied.conf3
+
+# master
+$TPKG_NSD -c outgoing_ifc_denied.conf1 -p $TPKG_PORT -4
+
+# slave
+$TPKG_NSD -c outgoing_ifc_denied.conf3 -p $TPKG_PORT2 -4 >> result.outgoing_ifc_denied 2>&1
+
+echo master at port $TPKG_PORT outgoing_ifc_denied.pid.master = `cat outgoing_ifc_denied.pid.master`
+echo master at port $TPKG_PORT2 outgoing_ifc_denied.pid.slave = `cat outgoing_ifc_denied.pid.slave`

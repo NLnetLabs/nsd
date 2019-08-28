@@ -1,0 +1,40 @@
+# #-- notify_nsdnsd.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+RESULTFILE=notify_nsdnsd.current_response
+
+PRE="../.."
+dig @127.0.0.1 -p $TPKG_PORT2 edmundrichardson.com. AXFR | tee $RESULTFILE
+
+# must be ok
+cat $RESULTFILE | grep -v '^;' > notify_nsdnsd.check
+
+if wdiff notify_nsdnsd.check notify_nsdnsd.known_good; then
+	echo first test OK.
+else
+	echo Error in first zone transfer.
+	exit 1
+fi
+
+# update the zone, see if notifies are sent.
+sleep 1  # to make sure the file is seen as 'newer'
+cp notify_nsdnsd.zone_upd notify_nsdnsd.zone
+echo updated master database. sending reload signal.
+cat notify_nsdnsd.zone
+kill -HUP `cat $TPKG_NSD_PID`
+
+# see if notifies are sent and zones are updated
+sleep 3
+dig @127.0.0.1 -p $TPKG_PORT2 edmundrichardson.com. AXFR | tee $RESULTFILE
+cat $RESULTFILE | grep -v '^;' > notify_nsdnsd.check
+if wdiff notify_nsdnsd.check notify_nsdnsd.known_good2; then
+	echo second test OK.
+else
+	echo Error in second zone transfer.
+	exit 1
+fi
+
+exit 0

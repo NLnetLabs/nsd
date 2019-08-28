@@ -1,0 +1,4 @@
+nibbler.example.com.	3600	IN	NS	ns0.vergon6.example.com.
+nibbler.example.com.	3600	IN	NS	ns1.vergon6.example.com.
+nibbler.example.com.	3600	IN	NS	ns2.vergon6.example.com.
+

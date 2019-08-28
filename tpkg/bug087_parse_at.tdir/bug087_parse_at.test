@@ -1,0 +1,21 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+. ../common.sh
+
+# we execute in a subdir, so everything in NSD is in ../../
+get_random_port 1
+
+# this crashes in NSD 2.3.1
+
+# create .db file
+../../nsd -c bug087_parse_at.conf -V 3 -p $RND_PORT
+wait_nsd_up nsd.log
+if dig @127.0.0.1 -p $RND_PORT example.com SOA | grep NOERROR; then
+	echo OK
+else
+	echo fail
+	kill_pid `cat nsd.pid`
+	exit 1
+fi
+kill_pid `cat nsd.pid`
+exit 0

@@ -1,0 +1,3 @@
+NSD should copy the rd bit from the query back to the answer.
+
+There are no arguments to the test.

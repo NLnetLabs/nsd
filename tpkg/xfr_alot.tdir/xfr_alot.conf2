@@ -1,0 +1,27 @@
+# SLAVE CONFIG
+# conf file for test tsig
+server:
+	xfrdfile: "xfrd.state.2"
+	difffile: "ixfr.db.2"
+	logfile: "slave.log"
+	zonesdir: ""
+	username: ""
+	chroot: ""
+
+key:
+	name: blabla
+	algorithm: hmac-md5
+	secret: "K2tf3TRjvQkVCmJF3/Z9vA=="
+
+zone:
+	name: huge.example.   
+	zonefile: xfr_alot.zone_empty
+	request-xfr: AXFR 127.0.0.1@TPKGPORT blabla
+	allow-notify: 127.0.0.1 blabla
+	allow-notify: ::1 blabla
+	allow-notify: ::ffff:127.0.0.1 blabla
+	#request-xfr: ::1 blabla
+	# allow axfr to check the results.
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: ::1 NOKEY
+	provide-xfr: ::ffff:127.0.0.1 NOKEY

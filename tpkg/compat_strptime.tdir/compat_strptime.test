@@ -1,0 +1,28 @@
+# #-- compat_strptime.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+cd ../../
+
+echo '
+#include <time.h>
+char *nsd_strptime(const char* s, const char* format, struct tm* tm);
+int main(void) { 
+    struct tm tm; char *res; 
+    res = nsd_strptime("20070207111842", "%Y%m%d%H%M%S", &tm);
+    if (!res) 
+        return 1; 
+    return 0; 
+}
+' > teststrptime.c
+
+gcc -o tpkg_teststrptime teststrptime.c compat/strptime.c
+./tpkg_teststrptime && echo success > teststrptime.out
+
+if grep 'success' teststrptime.out; then
+    exit 0
+fi
+echo "strptime could not parse input"
+exit 1

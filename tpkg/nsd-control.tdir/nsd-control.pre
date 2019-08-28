@@ -1,0 +1,38 @@
+# #-- nsd-control.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 3
+NSD_PORT=$RND_PORT
+TESTNS_PORT=$(($NSD_PORT + 1))
+CONTROL_PORT=$(($NSD_PORT + 2))
+
+PRE="../.."
+NSD_PID="nsd.pid.$$"
+NSD="$PRE/nsd -p $NSD_PORT -P $NSD_PID -u $LOGNAME"
+TESTNS="ldns-testns -p $TESTNS_PORT -v"
+
+# share the vars
+echo "export NSD_PORT=$NSD_PORT" >> .tpkg.var.test
+echo "export TESTNS_PORT=$TESTNS_PORT" >> .tpkg.var.test
+echo "export NSD_PID=$NSD_PID" >> .tpkg.var.test
+echo "export CONTROL_PORT=$CONTROL_PORT" >> .tpkg.var.test
+
+sed -e "s/TESTNSPORT/$TESTNS_PORT/" -e "s/CONTROLPORT/$CONTROL_PORT/" < nsd-control.conf > nsd-control.conf2
+cat nsd-control.conf2
+
+# test ns
+$TESTNS nsd-control.packet >testns.log 2>&1 &
+echo "export TESTNS_PID=$!" >> .tpkg.var.test
+echo testns at port $TESTNS_PORT
+wait_ldns_testns_up testns.log
+
+# slave
+$NSD -p $NSD_PORT -P $NSD_PID -c nsd-control.conf2 -V 5 -l nsd.log
+wait_nsd_up nsd.log
+
+echo slave at port $NSD_PORT $NSD_PID = `cat $NSD_PID`

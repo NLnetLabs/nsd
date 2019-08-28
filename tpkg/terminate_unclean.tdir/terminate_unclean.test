@@ -1,0 +1,67 @@
+# #-- terminate_unclean.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+NSD="$PRE/nsd -p $NSD_PORT -P $NSD_PID -u $LOGNAME"
+CTRL="$PRE/nsd-control -c nsd.conf"
+
+$CTRL status
+if test $? -ne 0; then
+	echo "control connection fails"
+	exit 1
+fi
+
+echo ""
+echo "test it started up okay"
+dig @127.0.0.1 -p $NSD_PORT example.com. SOA | tee result
+if grep 2011071300 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. SOA | tee result; fi
+if grep 2011071300 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. SOA | tee result; fi
+if grep 2011071300 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. SOA | tee result; fi
+if grep 2011071300 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. SOA | tee result; fi
+if grep 2011071300 result; then : ; else
+	echo "bad SOA"; exit 1; fi
+
+# stop it uncleanly
+$CTRL serverpid | tee serverpid
+if test $? -ne 0; then
+	echo "control connection fails"
+	exit 1
+fi
+kill -9 `cat serverpid`
+
+# this should stop the server
+sleep 1
+cat nsd.log
+echo "server should be stopped now (uncleanly)"
+
+# start it again!
+$NSD -p $NSD_PORT -P $NSD_PID -c nsd.conf >nsd.log 2>&1
+if test $? -ne 0; then
+	echo "nsd startup fails"
+	exit 1
+fi
+
+# check zone contents
+echo ""
+echo "test it started again"
+dig @127.0.0.1 -p $NSD_PORT example.com. SOA | tee result
+if grep 2011071300 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. SOA | tee result; fi
+if grep 2011071300 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. SOA | tee result; fi
+if grep 2011071300 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. SOA | tee result; fi
+if grep 2011071300 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. SOA | tee result; fi
+if grep 2011071300 result; then : ; else
+	echo "bad SOA"; exit 1; fi
+
+exit 0

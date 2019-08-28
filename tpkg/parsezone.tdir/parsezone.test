@@ -1,0 +1,49 @@
+# #-- parsezone.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+
+# this is a valid zone, tests must pass
+# makes sure that nsd-checkzone is working for a normal zone
+echo
+echo "***" $PRE/nsd-checkzone example.com parsezone.zone
+$PRE/nsd-checkzone example.com parsezone.zone
+r=$?
+echo "*** exit $r"
+if test $r -ne 0; then
+	echo "fails to parse valid zone"
+	exit 1
+fi
+
+# these are invalid zones.  nsd-checkzone must not crash.
+# and return status 1
+for z in b64_pton.c.global-buffer-overflow namedb.c-107.sigsegv \
+	heap-buffer-overflow namedb.c-107-third.sigsegv \
+	heap-use-after-free possible-stack-buffer-overflow \
+	namedb.c-107-second.sigsegv radtree.c-956.sigsev \
+	; do
+	echo
+	echo "***" $PRE/nsd-checkzone example.com $z
+	$PRE/nsd-checkzone example.com $z
+	r=$?
+	echo "*** exit $r"
+	if test $r -ne 0 -a $r -ne 1; then
+		echo "fails to parse zone $z"
+		# show zone contents if xxd available.
+		xxd $z
+		exit 1
+	fi
+	if test $r -ne 1; then
+		echo "zone is deemed valid? $z"
+		# show zone contents if xxd available.
+		xxd $z
+		exit 1
+	fi
+done
+echo
+
+exit 0

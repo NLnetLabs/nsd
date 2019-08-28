@@ -1,0 +1,10 @@
+; unsigned zone
+example.com.	3600    IN      SOA     ns1.c.example. reply.c.example. 1 3600 300 3600000 3600
+	NS      ns1.c.example.
+	NS      ns2.c.example.
+ns1	A       192.168.2.7
+ns2	A       192.168.2.8
+sub.example.com.	NS ns1.c.example.
+sub.example.com.	NS ns2.c.example.
+; nonworking DS record
+sub.example.com.	DS 50602 8 2 FA8EE175C47325F4BD46D8A4083C3EBEB11C977D689069F2B41F1A29 B22446B1

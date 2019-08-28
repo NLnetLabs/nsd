@@ -1,0 +1,48 @@
+# config file for I1
+server:
+	#logfile: "/dev/stdout"
+	logfile: "../i1.log"
+	database: "nsdb.i1.db"
+	xfrdfile: "xfrd.i1.db"
+	difffile: "diff.i1.db"
+	xfrd-reload-timeout: 0
+	zonesdir: ""
+
+remote-control:
+	control-enable: yes
+	control-port: CONTROLPRT_I1
+	server-key-file: "nsd_server.key"
+	server-cert-file: "nsd_server.pem"
+	control-key-file: "nsd_control.key"
+	control-cert-file: "nsd_control.pem"
+
+# include tsig keys
+include: "testplan_mess.keys"
+
+zone:
+	name: example.com
+	zonefile: testplan_mess.zone_i1
+	# is master to s1 and s2
+	provide-xfr: 127.0.0.1 key_s1
+	provide-xfr: 127.0.0.1 key_s2
+	provide-xfr: 127.0.0.1 test_xfer
+	provide-xfr: ::1 key_s1
+	provide-xfr: ::1 key_s2
+	provide-xfr: ::1 test_xfer
+	provide-xfr: ::ffff:127.0.0.1 key_s1
+	provide-xfr: ::ffff:127.0.0.1 key_s2
+	provide-xfr: ::ffff:127.0.0.1 test_xfer
+	notify: 127.0.0.1@PORT_S1 key_s1
+	notify: 127.0.0.1@PORT_S2 key_s2
+	allow-notify: 127.0.0.1 test_xfer
+	allow-notify: ::1 test_xfer
+	allow-notify: ::ffff:127.0.0.1 test_xfer
+	min-refresh-time: 0
+	min-retry-time: 0
+
+	# is a slave to m1 and m2
+	request-xfr: AXFR 127.0.0.1@PORT_M1 key_i1
+	request-xfr: AXFR 127.0.0.1@PORT_M2 key_i1
+	allow-notify: 127.0.0.1 key_i1
+	allow-notify: ::1 key_i1
+	allow-notify: ::ffff:127.0.0.1 key_i1

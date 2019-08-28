@@ -1,0 +1,39 @@
+# #-- bind8_stats.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+echo "NSD PORT: $TPKG_PORT"
+
+echo "do some queries"
+
+dig @localhost -p $TPKG_PORT node.miek.nl A
+dig @localhost -p $TPKG_PORT node2.miek.nl TXT
+dig @localhost -p $TPKG_PORT node2.miek.nl TXT
+dig @localhost -p $TPKG_PORT node3.miek.nl MX
+dig @localhost -p $TPKG_PORT node4.miek.nl NS
+dig @localhost -p $TPKG_PORT miek.nl NS
+
+# get stats up and running.
+echo "get stats"
+kill -SIGUSR1 `cat $TPKG_NSD_PID`
+# wait for the stats to appear
+wait_server_up nsd.logfile "SAns"
+
+cat nsd.logfile
+echo "logfile done"
+
+grep STATS nsd.logfile
+
+if grep "A=1 NS=2 MX=1 TXT=2" nsd.logfile && \
+	grep NSTATS nsd.logfile && grep XSTATS nsd.logfile \
+	&& grep "SAns=6" nsd.logfile && grep "SNXD=1" nsd.logfile; then
+	echo "okay stats work"
+else
+	echo "stats bad"
+	exit 1
+fi
+
+exit 0

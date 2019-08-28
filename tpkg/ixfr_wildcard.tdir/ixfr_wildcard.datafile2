@@ -1,0 +1,39 @@
+$ORIGIN tld.
+$TTL 7200
+
+ENTRY_BEGIN
+; first give MATCH lines, that say what queries are matched
+; by this entry.
+; ’opcode’ makes the query match the opcode from the reply
+; if you leave it out, any opcode matches this entry.
+; ’qtype’ makes the query match the qtype from the reply
+; ’qname’ makes the query match the qname from the reply
+; ’serial=1023’ makes the query match if ixfr serial is 1023.
+MATCH opcode qtype qname
+
+; Then the REPLY header is specified.
+REPLY QUERY
+REPLY NOERROR
+REPLY AA
+
+; any additional actions to do.
+ADJUST copy_id		; ’copy_id’ copies the ID from the query to the answer.
+
+SECTION QUESTION
+tld. IN IXFR
+SECTION ANSWER
+tld. IN SOA nibbler.example.net. leela.example.net. 3 300 400 3000 5
+tld. IN SOA nibbler.example.net. leela.example.net. 2 300 400 3000 5
+; deleted items
+*.dom.tld. IN CNAME www.tld.
+www.*.dom.tld. IN A 192.0.2.1
+tld. IN SOA nibbler.example.net. leela.example.net. 3 300 400 3000 5
+; added items
+dom.tld. IN NS ns1.dom.tld.
+dom.tld. IN NS ns2.foo.dom.tld.
+ns1.dom.tld. IN A 192.0.2.2
+tld. IN SOA nibbler.example.net. leela.example.net. 3 300 400 3000 5
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+

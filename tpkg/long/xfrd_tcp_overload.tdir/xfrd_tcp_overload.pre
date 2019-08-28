@@ -1,0 +1,83 @@
+# #-- xfrd_tcp_overload.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+# start NSD
+get_random_port 2
+MASTER_PORT=$RND_PORT
+SLAVE_PORT=$(($MASTER_PORT + 1))
+NUMZONES=20
+
+PRE="../../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD_PID2="nsd.pid2.$$"
+TPKG_NSD="$PRE/nsd"
+get_ldns_testns
+MINISERVER="$LDNS_TESTNS"
+
+function setup_miniserver() { # <query setup file>
+	#kill_mini
+	echo ">>> setup $MINISERVER -p $MASTER_PORT $1"
+	$MINISERVER -p $MASTER_PORT $1 &
+	echo $! > $TPKG_NSD_PID
+	sleep 1 # wait for it to come up.
+}
+
+
+# share the vars
+echo "export MASTER_PORT=$MASTER_PORT" >> .tpkg.var.test
+echo "export SLAVE_PORT=$SLAVE_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+echo "export TPKG_NSD_PID2=$TPKG_NSD_PID2" >> .tpkg.var.test
+echo "export NUMZONES=$NUMZONES" >> .tpkg.var.test
+
+sed -e "s/MASTERPORT/$MASTER_PORT/" < xfrd_tcp_overload.conf > slave.conf
+cp xfrd_tcp_overload.qs_1 master.qs
+# add a number of zones to the conf
+for ((i=0 ; i < $NUMZONES; i++)); do 
+	echo "Making zone $i"
+	cat >>slave.conf <<EOF
+
+zone:	name: "example$i.com"
+	# empty zone file - it will refresh, xfr immediately
+	# using AXFR, by TCP.
+	zonefile: "xfrd_tcp_overload.empty"
+	request-xfr: 127.0.0.1@$MASTER_PORT NOKEY
+	allow-notify: 127.0.0.1 NOKEY
+	allow-notify: ::1 NOKEY
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: ::1 NOKEY
+EOF
+
+	cat >>master.qs <<EOF
+	# reply to AXFR - for the zone,
+\$ORIGIN example$i.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id sleep=1
+SECTION QUESTION
+@ IN AXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+teststring IN TXT "content of test string xx $i xx"
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+ENTRY_END
+EOF
+done
+
+cat slave.conf
+cat master.qs
+
+# master first
+setup_miniserver master.qs
+
+# slave
+$TPKG_NSD -c slave.conf -u $LOGNAME -p $SLAVE_PORT -P $TPKG_NSD_PID2
+wait_nsd_up nsd.log
+
+echo master has port $MASTER_PORT $TPKG_NSD_PID
+echo slave at port $SLAVE_PORT $TPKG_NSD_PID2 = `cat $TPKG_NSD_PID2`

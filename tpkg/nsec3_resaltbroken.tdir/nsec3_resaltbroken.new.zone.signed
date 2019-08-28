@@ -1,0 +1,56 @@
+;; Zone: example.net.
+;
+example.net.	345600	IN	SOA	nibbler.example.net. leela.example.net. 2 3 4 3000 5
+example.net.	345600	IN	RRSIG	SOA 8 2 345600 20170713005000 20170615005000 17106 example.net. WcN5UF2hKAT2VzKZbpkzZa8e3j7YO7ElE+UF7Gw9ko9xQghyD3QJvg9G4i2eXAotH+Z75KlNr5L0CFbxEiRHZJ/E5R3Sd2OziEUD8jj4J9e+enUBU3KycG2tdvZ2ZgKTh8nFYEqBEw+Nt4uYVa2+4AovREfbZPfssROwDM0mO7OvL2K0Uiq+UaQajiEDXjTT7Sci1QVedDsQwz8KYaE0jU6x/ht55sx/4PKzIX3KIBZP41BaLj+Onbcdbw1BvN4VQXSa4pLvhmE2xM+BG/A+wIHKF0QwdPDnuWPHuK4OSExbpaRE0D6wrvziHqIRBogryI0YUlqZFRMkSLaL1MplDQ==
+;
+example.net.	345600	IN	NS	ns.deg1.example.net.
+example.net.	345600	IN	RRSIG	NS 8 2 345600 20170713005000 20170615005000 17106 example.net. k177oqWiQclmygw4MbWP9NNW7L2p/1gbWKmEM8fUeAkOgv0dtRow+f1YcGzc4OAbfe15WuUhQalFafK4NdhhJJlthbgZyyriGQHpfP06gwL5vqu6k/Rn7+0lLIhYIu0jwFJcm5oq9AJuvGOU2P57pcu5oC/A/M1PZNDvQUmsd2vLNP/FXhZqZtZhMxMBf6aRzCqd9dTq60gNEO21/gROKLKfziJgw8rV75b7h5HNK3cWi5HG56Cz4C5xqhaABQkkWqxTN0RznJ/yqZbeGbCm5gHwu8Cm5oVxLQyjDrlgqFL2T3l69NgX8R+LED5Euw6DNB5hH9I8kY/g/+SoFwfIng==
+example.net.	345600	IN	DNSKEY	256 3 8 AwEAAc/HUeswzmMNyI2vZ+l5z+Man3a0NTiyTwomZ1YU+AHjIdvEuPWcDDby5iaMDj+kG6k5XkRQyJ9PFIJjhanQzr+jcLk3JlI8htXBzR8pr67wqAn5qwgpR1T5cGwhygXFAy4hSp/SCdViyzQlTArPaXG3ii6DF1fCzc1MO27K/7W+V0tbtqoiQv3tQRwDrosu6aiMJzzF+Vs/cwknQUX22vHhFA5OFjGqmgP0JbtDQaZkPtk8rvH9dv0uGYkC1Au0jRuFS2e3ht2QlvQnQOyBMZmmzn3oR1zN0w1DPF4FosXWDWStXe8xxry+ZwOEokk+gTi7JIV9WcC8Fdo6oKs121U= ;{id = 17106 (zsk), size = 2048b}
+example.net.	345600	IN	DNSKEY	257 3 8 AwEAAac/rLRO/a8FaMbeOFa+5WKcm1GGDyQdJ9xGGou4TpIVGTEwyy53DEp2wTcvTrmkJJN/7Kc6wYOVEtBN9M9aU9gFjCtifdDpXdu0AcC9ZXo++/DnSs08NTk6Xs+NnvCtnZ+QJZlc51z3k6ijPRc2QiH9qG4oSULkGYJ6VfF7+ImwaVfm4LWWdvO/f/9zwMKtOCsR+dgf/ZPme5VBkO2fNf6EC56e3CqkSEfmf1KGFt/dnRSntTU+gJj0fX0VXxajVn+FAaI2bzII6HE2/y9TKqtjOHV8Je5uehpY38cq9baO5/UC2WgMOtnhFbg0QWZeXt23En4NQ2cUBN2YKASrykc= ;{id = 29947 (ksk), size = 2048b}
+example.net.	345600	IN	RRSIG	DNSKEY 8 2 345600 20170713005000 20170615005000 29947 example.net. CAV5tofQdQoy5a/V4gh+3idUL5v3GUnwclQdST/ii8NBNbzhgUxFtisx1peEw2StfjcTDsBV5tgY1HDTBFF6HgVuSLe6Hbtk0Au8cKAi7eZCLC2ZBLchh0nsJ5A+GoJ+iQolgB9LtIXTVxTvN6OmbJiAempib0hQCNoW1kQP8a9dYa3eTlJuL3B6JUJtBG16JvgSSWcqJi0P7V3O5qom8FOR11RRbWb8nQYvdDPIpYCVV1Pgd7LlxAuHiYiTPnT0BFbt9eKZ37sKPYEwKkA+bsP0TEuKbpHZMc2fHOjStLb3CQZusESCC3TIds25Yn16XZMblWZra2LX/lSAz5kxNA==
+example.net.	3600	IN	NSEC3PARAM	1 0 8 abcd 
+example.net.	3600	IN	RRSIG	NSEC3PARAM 8 2 3600 20170713005000 20170615005000 17106 example.net. D/EksleCMQa5zdc7gdoh95Gh47wYw7qSCRfWLDuQ9FhihKQSX/ReqmjXlvCmftxwe/ebvM/RYudjKUjNidCz5xC9+vVKB0twPPIiwRqt6cUgNjNNu1CLfkp+Opf1yZ5FJzWyP0/8OJi3mX5akuWsOxx9ZeaWhwlpTpJR12EAe3oeFQ0YLQXTFzGYTEfWyRtrJNCVJqjrmHVQ9MDvGtniUMFQaUrn0k/WrUZUVuOdGWcHNoV03ve4Hzsywk2RK3xb6GjinTFrBU8djifFOkk1yrZHWv3pSw2dm9DHB7Pgo+jJob5qe6rJgjVTQkO5EFrQm2T3Zf4H851ziAEoV63f3A==
+aut25u4stp3a4vpfmrpbov4ahij3o6f1.example.net.	5	IN	NSEC3	1 0 8 abcd  d2j488ef3ppbclshkdq0li7p022tbv89 NS SOA RRSIG DNSKEY NSEC3PARAM  ;{ flags: -, from: example.net. to: deg5.example.net.}
+aut25u4stp3a4vpfmrpbov4ahij3o6f1.example.net.	5	IN	RRSIG	NSEC3 8 3 5 20170713005000 20170615005000 17106 example.net. TvG7RO6BwzoW2Bileg1hGbaUy44WLx6TiEeM9QfiK1qoG1I87WkCiG3uZlDinLIZKIJDaW3pma8nLV8LP6RBAkKknNUX250aB0jiz1kLLKqABsRES50mH3ws/knzFytxSB+bgZ52NSHE6ZF5XD37r1MSoy/11H2Hqa+MSYuBEDxlP+i7Mj3/Rk9Lhm2s+rKUsiY9/jPGiz4YL1s5G8udfr+9qJaokCgdzFNAT7fdYEyIATCFKCYMUDD9KwwMRbIEqHraddMlniFeiYKrch7+PdBHFi6iHZRhHCj6NFu8pPL0ODMBpiZDswopX8zrAqHpw9hagJlNRu6RzBtleffDuA==
+;
+*.example.net.	345600	IN	A	10.1.2.4
+*.example.net.	345600	IN	RRSIG	A 8 2 345600 20170713005000 20170615005000 17106 example.net. b5n30n0Icg5gZkHKpe6pBVhH2htcAjIVKc9NEQ8VZptLEnwukHPX4dsO+6r1GMyKeG4QJ16b0yhIC0MhDD7ln8XXGV3q1G+YlNshO9Ys+pVi7iTLfw+b7AvTLzwTugSPrTol1JBtpRHL4MsfeaAwiMOHe6/rsLe9Lp5T8rQd9TcMWFbvuNe/d+qmDztNPjwIY6DrogOtYApl5SPsIw0aH1igd/xVoAiO8TqoPo2FJAo89hYzFRZ2xuPGbwduH26ITEvuQWNlPa08ic40isz0arVZhL306KH6d+qJn1e0WzSWuyc5KSr5lWzUZqvgycJdc6dVbLCKqkzdVQcrIdhuYQ==
+a8u7o7oar0fpv8rpcca28tca4hcj4m5v.example.net.	5	IN	NSEC3	1 0 8 abcd  agjj29q13pvnt8mvaoh0nfvnd0lop752 A RRSIG  ;{ flags: -, from: *.example.net. to: deg3.example.net.}
+a8u7o7oar0fpv8rpcca28tca4hcj4m5v.example.net.	5	IN	RRSIG	NSEC3 8 3 5 20170713005000 20170615005000 17106 example.net. Hbkog46y6Hx/i4tX8i+HXXR8WQrEdPD+lQCdkri8RaWjaQBXVrkJUz8tVwMI6ndtTlwZftydEfQMY5281yNxcQHVqSdEbDh0zPj23T5zMDI4/u4XSNSSN4VWdnzGYlgXFaHkZuGrs1Iaan7lPMdophbELsDAD980Kn12LV+oUBnksKZh+W+CMcnyE0mX9gEFFDIubVHQJFM5D32V6RQrkZNGQjq9KFCxDScRknvPugiuCPuvjqkCLimcfj8B7XKg0vKXkCarclDYIzBF+Z80ve+bRhTyQjMTTJ1H+Qj3ztbcAJpdsra9Z9wS8LyobDuEI/u9H7jp5CGnBI38DPIsew==
+;
+deg1.example.net.	345600	IN	NS	ns.deg1.example.net.
+4ufn6ga269ts531beugc8cpsnppvqs0l.example.net.	5	IN	NSEC3	1 0 8 abcd  a8u7o7oar0fpv8rpcca28tca4hcj4m5v NS  ;{ flags: -, from: deg1.example.net. to: *.example.net.}
+4ufn6ga269ts531beugc8cpsnppvqs0l.example.net.	5	IN	RRSIG	NSEC3 8 3 5 20170713005000 20170615005000 17106 example.net. DLctBOh6LVoXUDBvm0Z0P8FFDRoUzWtnY/ZSVdcWxY2YPthv+T3duncyiJ/zat0wAUwRmqFKHrtLjqiwTuCZED4kIOMSEatts9/wdzZDJQhiSd77zZB1gFCHvk38k9aciCk61CasgrnL8EIy6mvHd2bpTHHd4DSxzKKRIJqYHMX4AafVPiGiSVRUyX2kbwajj6UoPQoSRaiQsxdgzSYUaeowcieO5HbwtmA1gThSI+KO7kspHWZ4euSlPX6G+F0eU0vd4nBnPJIoESkigyyPXkZ5TRR6D157bmx7JqKtGCQOrIIgBbJQIfLaTfDMyVYZDtavsBuynJEnZKjAcF852w==
+;
+ns.deg1.example.net.	345600	IN	A	10.1.2.3
+;
+deg2.example.net.	345600	IN	NS	ns.deg2.example.net.
+dd57t6t76tk68vqk16fvi9gsjlpebi74.example.net.	5	IN	NSEC3	1 0 8 abcd  sq6eh4da31ffr0mk638cm92cji49st3e NS  ;{ flags: -, from: deg2.example.net. to: deg6.example.net.}
+dd57t6t76tk68vqk16fvi9gsjlpebi74.example.net.	5	IN	RRSIG	NSEC3 8 3 5 20170713005000 20170615005000 17106 example.net. LEU16BTsaXwzxp04BG+Xl3RLPQIPFKJnFvibMYFYIDxyLdIUTjkn0tAvD2vgLs9aI3aXEH97Ca8US3aNcQ17h4GfY1AsdpPZNBJeSt1Lw5cLQO2r41kgnDVUDykDB82Ryt+sLiSeYfzkSXlibBwm2idYHNuiVCNdroUMuoONkS746xO98ST3WGYTJlmAMduAnI1jvn9ZKVzzEqT5RYEYL/IpEwDXnyI0N0dM9RAIgBvR89888AxINVHs2zTqvSZ3o5h6fWtBKEFf6XaJJ8j+8zQ4gc3eb9aTI9U54Ait7SSwJA3H6smnNMj0AdMD7kkT49uUJSqL8Mc0lai22sXifw==
+;
+ns.deg2.example.net.	345600	IN	A	10.1.2.3
+;
+deg3.example.net.	345600	IN	NS	ns.deg3.example.net.
+agjj29q13pvnt8mvaoh0nfvnd0lop752.example.net.	5	IN	NSEC3	1 0 8 abcd  aut25u4stp3a4vpfmrpbov4ahij3o6f1 NS  ;{ flags: -, from: deg3.example.net. to: example.net.}
+agjj29q13pvnt8mvaoh0nfvnd0lop752.example.net.	5	IN	RRSIG	NSEC3 8 3 5 20170713005000 20170615005000 17106 example.net. H5n+HMTpPNLDKe/B6KrCl7Mo9gRZW3PE+VWc8pba6n1AIhErHGZMzFxCnr0NIxyNv209H4ppztn7o7oLoM9mQHdvit0HfEOmlRuOjpuTWuoZcC3T1g/0SgM6BXtNT2LDtkK69YGSCR2xnunDJD/HvJCuA+bcFoKg68MgLTymQeJ+omzgTZCgrEDQv9myvWfXOL8CjzgqZwmMpBlKrFWm1GxOwifh0cjpW/aiQtCiMFulVQr1gFsJFG//T45owJIIcuG25ww9+GYjW+/Oa3k3kf8vvvmJD0P/Rwlkh+rc0tOjryg9zr3QG7FiPMHXFLbAlExTzFvdYuh2tTWQ6rykyQ==
+;
+ns.deg3.example.net.	345600	IN	A	10.1.2.3
+;
+deg4.example.net.	345600	IN	NS	ns.deg4.example.net.
+tlcbng28i7q1edku4n5q4pit5iafq20p.example.net.	5	IN	NSEC3	1 0 8 abcd  4ufn6ga269ts531beugc8cpsnppvqs0l NS  ;{ flags: -, from: deg4.example.net. to: deg1.example.net.}
+tlcbng28i7q1edku4n5q4pit5iafq20p.example.net.	5	IN	RRSIG	NSEC3 8 3 5 20170713005000 20170615005000 17106 example.net. acgsz4kZdVJs0515Gp5teMmM2EaCU0zdTNLjQptL73ifAmxO7sKKjSpiM+D2OZcRHGWjnGOpSpih7kneqZRQRlQdwpElfbidafxJyVwEreITxG6ViI00p5NXijQoLaKB2qCt7Ir3a7qd7mOKADrGubQoBD99o1piphLKnodiSO2meeWts2j5DIFnY7BHYfCCAa17N3nirZF+r5uAVFv8zr0ocUrAaEiOd9ttGJsoFfDIxbK8ug7GKGX+f1W+IlWOoGfPV/jhNvkBsoQZ8xdAlzHuW0J3u13PABFV1RpLZh7k3VoiyyeGyYN03HxpDKtYG1RODI84Jhott/8H22H7JQ==
+;
+ns.deg4.example.net.	345600	IN	A	10.1.2.3
+;
+deg5.example.net.	345600	IN	NS	ns.deg5.example.net.
+d2j488ef3ppbclshkdq0li7p022tbv89.example.net.	5	IN	NSEC3	1 0 8 abcd  dd57t6t76tk68vqk16fvi9gsjlpebi74 NS  ;{ flags: -, from: deg5.example.net. to: deg2.example.net.}
+d2j488ef3ppbclshkdq0li7p022tbv89.example.net.	5	IN	RRSIG	NSEC3 8 3 5 20170713005000 20170615005000 17106 example.net. X3v0VfnAx0/VHUAlffX0eLrgh3EEeXguJnBEE04qH9pOUfmNsgu6GNIr5A2VzyW9wdwGlVLaqlBXKtSS6a9J0e4qJn4Xst31PoxKwzTecq5ThpXAK3Lte6cMTHqL7mp+n2PF3V+0K1K0uGu1jnqoNS6MzLB8GhFP2lq7YmHvh0p0oXgCk5wkhY1zdukkUXPkJUdXv/3JuXwx/ivCSWDggRnYyyEHh3N+2xu7G5tFeQUXa+02fRt4oUx9a8+GCvm8EZHCHcNkLIWh9yM8JZIYOnySYj9cq3RlI4nobueS3wLXhPaoi6lRTCCRfVj/y1eSL1q1rCXz4t5DK4fF2BmHIA==
+;
+ns.deg5.example.net.	345600	IN	A	10.1.2.3
+;
+deg6.example.net.	345600	IN	NS	ns.deg6.example.net.
+sq6eh4da31ffr0mk638cm92cji49st3e.example.net.	5	IN	NSEC3	1 0 8 abcd  tlcbng28i7q1edku4n5q4pit5iafq20p NS  ;{ flags: -, from: deg6.example.net. to: deg4.example.net.}
+sq6eh4da31ffr0mk638cm92cji49st3e.example.net.	5	IN	RRSIG	NSEC3 8 3 5 20170713005000 20170615005000 17106 example.net. jjNMzlQyfgDSJS8e8jt21jFv6p7nzKCZ7ap/ExFvIRVcRZJ+wfHdmLTtnC/ipox/EItTTO9BccpBBzVVwbmgNSFYJ+IP/295Ew82LRExgNo4zre8aqd9MA4kE3FwAwoOzwVApxnrgH/NNHJ5fU68XaHi2CJb/iTm0r+0HMiK4rubGVZwLuakYHOTtCMXijXzBzK2aNCgq9KsVZ+bt/pAH3nRZOnvg4oIZ7+9MiO/gyY3VQKguh4kR2YtNJRaoikOr0YD6u4k04m8Q+ck+GqSsA4HZ6Fd1oW3UmMz3xxHwtaBmd4oOlcQWVbloyuabS0ScjRbxb+NIEGfI3nqGFhkjw==
+;
+ns.deg6.example.net.	345600	IN	A	10.1.2.3
+;

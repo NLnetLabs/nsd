@@ -1,0 +1,24 @@
+# #-- bug095_screwy_wc.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+NOEDNS="+noedns"
+if $DIG $NOEDNS -v 2>&1 | grep "Invalid option" >/dev/null; then
+	NOEDNS=""
+fi
+
+$DIG $NOEDNS +noall +comments @localhost -p $TPKG_PORT www2.\*.example. txt| sed 's/id.*//' > bug095_screwy_wc.current_respons1
+grep -v WARNING bug095_screwy_wc.current_respons1 > bug095_screwy_wc.current_respons2
+
+echo "START CURRENT"
+cat bug095_screwy_wc.current_respons2
+echo "END CURRENT"
+
+echo "START KNOWN GOOD"
+cat bug095_screwy_wc.known_good_respons1
+echo "END KNOWN GOOD"
+
+wdiff bug095_screwy_wc.known_good_respons1 bug095_screwy_wc.current_respons2

@@ -1,0 +1,27 @@
+; File written on Thu Dec  9 16:22:56 2004
+; dnssec_signzone version 9.3.0
+; both mnemonics as numbers as alg in RRSIGs
+dnssec.			3600	IN SOA	dnssec. admin.dnssec. (
+					2004120901 ; serial
+					21600      ; refresh (6 hours)
+					7200       ; retry (2 hours)
+					604800     ; expire (1 week)
+					3600       ; minimum (1 hour)
+					)
+			3600	RRSIG	SOA RSAMD5 1 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					OhPPWZeqtcNBznhkpn2YO7cncHF0PhxhTcrZ
+					hG3ZrIsX/PFOYHkA3lJPZX9lzTLlrxqeFVFb
+					60641NNKUiq4Aw== )
+			3600	NS	ns.dnssec.
+			3600	RRSIG	NS 1 1 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					tuikgzRDd8xEdmr1W0k0eo6sAlSqhhlNIn/f
+					ksld4w9C9SC/B/WR1RP1m/c4pZ1fXEimi0Io
+					rllFZpptJU6vRQ== )
+			3600	A	127.0.0.1
+			3600	RRSIG	A 1 1 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					dukS7Rw05gRu67NswMTOhUT1xSi5YkxmC1Yx
+					26JKdO7CWRIWjvANW9dy3h7I4MGUWkb3MIST
+					vecTgPcktpdVuQ== )

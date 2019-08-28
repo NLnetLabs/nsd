@@ -1,0 +1,33 @@
+# config file for M1
+server:
+	#logfile: "/dev/stdout"
+	logfile: "../m1.log"
+	database: "nsdb.m1.db"
+	xfrdfile: "xfrd.m1.db"
+	difffile: "diff.m1.db"
+	xfrd-reload-timeout: 0
+	zonesdir: ""
+
+# include tsig keys
+include: "testplan_mess.keys"
+
+zone:
+	name: example.com
+	zonefile: testplan_mess.zone_m1
+	provide-xfr: 127.0.0.1 key_i1
+	provide-xfr: 127.0.0.1 key_i2
+	provide-xfr: 127.0.0.1 key_i3
+	provide-xfr: 127.0.0.1 test_xfer
+	provide-xfr: ::1 key_i1
+	provide-xfr: ::1 key_i2
+	provide-xfr: ::1 key_i3
+	provide-xfr: ::1 test_xfer
+	provide-xfr: ::ffff:127.0.0.1 key_i1
+	provide-xfr: ::ffff:127.0.0.1 key_i2
+	provide-xfr: ::ffff:127.0.0.1 key_i3
+	provide-xfr: ::ffff:127.0.0.1 test_xfer
+	notify: 127.0.0.1@PORT_I1 key_i1
+	notify: 127.0.0.1@PORT_I2 key_i2
+	notify: 127.0.0.1@PORT_I3 key_i3
+	min-refresh-time: 0
+	min-retry-time: 0

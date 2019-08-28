@@ -1,0 +1,44 @@
+# #-- axfr_fallback.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+
+$TPKG_NSD -c nsd_axfr.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f axfr_fallback.db -V 2 -l nsd.log
+wait_nsd_up nsd.log
+sleep 3
+
+# now query for the update I sent and compare that with a known good one
+echo port: $TPKG_PORT
+dig @127.0.0.1 -p $TPKG_PORT a www.example.net
+dig @127.0.0.1 -p $TPKG_PORT a www.example.net |grep "^www.example.net" > axfr_fallback.current
+
+echo "CURRENT:"
+cat axfr_fallback.current
+
+echo "KNOWN GOOD:"
+cat axfr_fallback.known_good
+
+diff -u axfr_fallback.current axfr_fallback.known_good
+if [[ $? -ne 0 ]]; then
+	echo testns.log
+	cat testns.log
+	echo nsd.log
+	cat nsd.log
+        exit 1
+else
+        exit 0
+fi
+

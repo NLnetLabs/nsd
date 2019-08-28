@@ -1,0 +1,13 @@
+@       IN      SOA     leela.net.  leela.futurama.net.   (
+                        2003070707              ; serial, todays date + todays serial #
+                        1H                      ; refresh, seconds
+                        8H                      ; retry, seconds
+                        4W                      ; expire, seconds
+                        1H                      ; minimum ttl, seconds
+                )
+;
+nibbler.net.   NS      ns0.nibbler.net.
+nibbler.net.   NS      ns1.nibbler.net.
+
+nibbler.net.	3600	IN	DNSKEY	256 3 5 AwEAAcQxaN2Wa9pSgzQS1iiMOybZau47jt+VILLzaqn82OEoQ+Vx36KiZQ74WPB7/qxO6Nqv22pTc6WR8TarLPEdEpnUlpO/sxTkGWKaqlLOop/y1PcrMWpA0T1uo6GygxXJtL2ONGz8tx9Qt+eiBIKz6UAVELwi1PNhbE4hE8E9qD9P ;{id = 38673 (zsk), size = 1024b}
+nibbler.net.	3600	IN	DNSKEY	257 3 5 AwEAAbuHsfXj7728DUemeaLTiYAxx5QMZKQVgRhIA0/TAuW51yRcW5F6KZw+zUn+obnghvKSFfzgAU5MFZ7STFYi8s536NWqKB4qTqH5y1T2urspFBfF5NPBTkEO5Bqe7dB799A413W7R81Xc4BryXNb4FVZjdMSEUhQ4AkgeluHuSJz ;{id = 55846 (ksk), size = 1024b}

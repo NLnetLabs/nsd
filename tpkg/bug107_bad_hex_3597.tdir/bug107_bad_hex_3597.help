@@ -1,0 +1,2 @@
+Test bogus unknown rdata. Also test correct unknown data.
+Bug 81 is thus also tested with this test.

@@ -1,0 +1,12 @@
+# #-- bug056_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+
+$DIG @localhost -p $TPKG_PORT axfr edmundrichardson.com.|grep -v '^;' > bug056_axfr.current_respons1
+
+# must be ok
+wdiff bug056_axfr.known_good_respons1 bug056_axfr.current_respons1

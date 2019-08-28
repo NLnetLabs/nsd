@@ -1,0 +1,58 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+
+# run nsd-checkconf on all files
+checkcmd="../../nsd-checkconf -vv"
+echo "start of check" > outfile.tmp
+
+# we remove rrl- stuff because we may not have been compiled with ratelimit.
+for x in *.conf; do
+	# delete rrl- lines.
+	# delete line before dnstap: tail -r|sed '/pattern/{n;d;}'|tail -r
+	# 	or awk '/dnstap:/ {f=1} !f&&NR>1 {print p} {p=$0;f=0} END {print p}'
+	# delete dnstap lines.
+	$checkcmd $x 2>&1 | grep -v "rrl-" | awk '/dnstap:/ {f=1} !f&&NR>1 {print p} {p=$0;f=0} END {print p}' | grep -v "dnstap" >>outfile.tmp
+done
+
+if diff checkconf.check outfile.tmp; then
+	echo "diff OK"
+else
+	echo "diff check one failed!"
+	# try secondary diff file.
+	if diff checkconf.check2 outfile.tmp; then
+		echo "diff OK"
+	else
+		echo "diff failed!"
+		echo "try with different reuseport setting"
+		sed -e "s/reuseport: yes/reuseport: no/" <checkconf.check >c1
+		sed -e "s/reuseport: yes/reuseport: no/" <checkconf.check2 >c2
+		if diff c1 outfile.tmp; then
+			echo "diff c1 is OK"
+		else
+			if diff c2 outfile.tmp; then
+				echo "diff c2 is OK"
+			else
+				echo "diff failed and"
+				echo "diff with changed reuseport failed"
+				exit 1
+			fi
+		fi
+	fi
+fi
+
+# wildcard include of all configs.
+$checkcmd checkconf.cwild 2>&1 | grep -v "rrl-" > outfile2.tmp
+if grep "example.com" outfile2.tmp; then
+	echo "wildcard included example.com"
+else
+	echo "wildcard include example.com failed"
+	exit 1
+fi
+if grep "example.net" outfile2.tmp; then
+	echo "wildcard included example.net"
+else
+	echo "wildcard include example.net failed"
+	exit 1
+fi
+
+exit 0

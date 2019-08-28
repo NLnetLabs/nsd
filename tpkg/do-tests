@@ -15,7 +15,7 @@ test_tool_avail "head"
 test_tool_avail "kill"
 test_tool_avail "dig"
 test_tool_avail "wdiff"
-test_tool_avail "tpkg"
+test_tool_avail "tdir"
 test_tool_avail "drill"
 # better with pcat, pcat-diff and pcat-print
 test_tool_avail "ldns-testns"
@@ -38,29 +38,29 @@ HAVE_PCAT=no
 if test -f "`which pcat-diff 2>&1`"; then HAVE_PCAT=yes; fi
 
 # run the tests
-tpkg -a ../../ fake 0000_nsd-compile.tpkg
-tpkg -a ../../ fake 0001_nsd-debug-comp.tpkg
-for i in *.tpkg; do
+tdir -a ../../ fake 0000_nsd-compile.tdir
+tdir -a ../../ fake 0001_nsd-debug-comp.tdir
+for i in *.tdir; do
 	skip=no
-	if [ $DIG9 = no ] && echo $NEED_DIG9 | grep `basename $i .tpkg` >/dev/null; then
+	if [ $DIG9 = no ] && echo $NEED_DIG9 | grep `basename $i .tdir` >/dev/null; then
 		echo ">>> skipped $i: test needs dig 9 or later"
 		skip=yes
 	fi
-	if [ $HOSTTYPE != i386 ] && [ $HOSTTYPE != x86_64 ] && echo $NEED_i386 | grep `basename $i .tpkg` >/dev/null; then
+	if [ $HOSTTYPE != i386 ] && [ $HOSTTYPE != x86_64 ] && echo $NEED_i386 | grep `basename $i .tdir` >/dev/null; then
 		echo ">>> skipped $i: test needs i386 (precompiled help prog)"
 		skip=yes
 	fi
-	if [ $HAVE_NC = no ] && echo $NEED_NC | grep `basename $i .tpkg` >/dev/null; then
+	if [ $HAVE_NC = no ] && echo $NEED_NC | grep `basename $i .tdir` >/dev/null; then
 		echo ">>> skipped $i: test needs nc (netcat)"
 		skip=yes
 	fi
-	if [ $HAVE_PCAT = no ] && echo $NEED_PCAT | grep `basename $i .tpkg` >/dev/null; then
+	if [ $HAVE_PCAT = no ] && echo $NEED_PCAT | grep `basename $i .tdir` >/dev/null; then
 		echo ">>> skipped $i: test needs pcat, pcat-print, pcat-diff."
 		skip=yes
 	fi
 	if [ $skip = no ]; then
 		echo ">>> next test $i at "`date`
-        	tpkg -a ../../ exe $i
+		tdir -a ../../ exe $i
 	fi
 done
 tpkg report
@@ -68,11 +68,11 @@ tpkg report
 
 do_long=yes
 if [ $do_long = yes ]; then
-	LONGTESTS="testplan_axfr.tpkg testplan_ixfr_pkts.tpkg testplan_mess.tpkg testplan_axfr_tsig.tpkg testplan_ixfr_remove.tpkg testplan_timeout.tpkg testplan_deadlock.tpkg testplan_ixfr.tpkg testplan_tsig_34.tpkg ixfr_rollback.tpkg reload_timeout.tpkg xfrd_connect_ip6.tpkg xfrd_tcp_overload.tpkg notify_interrupts_axfr.tpkg bug137_compile_outdir.tpkg bug145_multiple_zone_xfr.tpkg ixfr_malformed.tpkg ixfr_remove_unknown.tpkg socket10kxfr.tpkg"
+	LONGTESTS="testplan_axfr testplan_ixfr_pkts testplan_mess testplan_axfr_tsig testplan_ixfr_remove testplan_timeout testplan_deadlock testplan_ixfr testplan_tsig_34 ixfr_rollback reload_timeout xfrd_connect_ip6 xfrd_tcp_overload notify_interrupts_axfr bug137_compile_outdir bug145_multiple_zone_xfr ixfr_malformed ixfr_remove_unknown socket10kxfr"
 	cd long
 	for i in $LONGTESTS; do
 		echo ">>> next test $i at "`date`
-		tpkg -a ../../ exe $i
+		tdir -a ../../ exe $i
 	done
 	tpkg report
 	#tpkg clean

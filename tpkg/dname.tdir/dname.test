@@ -1,0 +1,37 @@
+# #-- dname.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+# test that server is up.
+if $DIG @localhost -p $TPKG_PORT SOA example. | grep NOERROR; then
+	echo "First OK"
+else
+	exit 1
+fi
+
+# test cname record works as well.
+if $DIG @localhost -p $TPKG_PORT cname.example. | grep "somewhere.else.example.net"; then
+	echo "CNAME outside of zone works OK"
+else
+	exit 1
+fi
+
+# test dname record outside of served zones.
+if $DIG @localhost -p $TPKG_PORT sub.far.example. | grep "faraway.example.net"; then
+	echo "DNAME outside of zone works OK"
+else
+	exit 1
+fi
+
+# test dname record
+if $DIG @localhost -p $TPKG_PORT a.x.example. | grep "10.0.0.10"; then
+	# test cname synthesized
+	if $DIG @localhost -p $TPKG_PORT a.x.example. | grep "CNAME"; then
+		exit 0
+	fi
+fi
+
+exit 1

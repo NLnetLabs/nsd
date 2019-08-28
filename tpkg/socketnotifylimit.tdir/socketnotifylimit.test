@@ -1,0 +1,26 @@
+# #-- socketnotifylimit.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+echo "NSD PORT: $TPKG_PORT"
+
+echo "force of reload"
+kill -1 `cat $TPKG_NSD_PID`
+sleep 60
+sleep 60
+
+if grep "error: xfrd: cannot create udp socket" log; then
+	echo "error in logfile. Bad."
+	cat log
+	exit 1
+fi
+if grep "failed with status" log; then
+	echo "crash in logfile. Bad."
+	cat log
+	exit 1
+fi
+cat log
+
+exit 0

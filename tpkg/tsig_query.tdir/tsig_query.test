@@ -1,0 +1,26 @@
+# #-- tsig_query.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+$DIG @localhost -p $TPKG_PORT SOA edmundrichardson.com. -y blabla:K2tf3TRjvQkVCmJF3/Z9vA== > tsig_query.current_respons1
+cat tsig_query.current_respons1
+
+# must be ok
+# dig prints warning on bad tsig
+if grep 'tsig indicates error' tsig_query.current_respons1; then
+	exit 1
+fi
+if test `grep WARNING tsig_query.current_respons1 | grep TSIG`; then
+	exit 1
+fi
+if test `grep NOERROR tsig_query.current_respons1 | wc -l` -eq 2; then
+	if grep '42dbc308.dsl.aros.net.' tsig_query.current_respons1; then
+		exit 0
+	fi
+	echo "No errors, but no data either"
+	exit 1
+fi
+exit 1

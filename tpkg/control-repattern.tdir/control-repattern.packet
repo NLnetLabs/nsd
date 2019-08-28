@@ -1,0 +1,22 @@
+ENTRY_BEGIN
+MATCH opcode
+MATCH qtype
+MATCH qname
+MATCH serial=0
+REPLY QUERY
+REPLY NOERROR
+REPLY AA
+ADJUST copy_id
+SECTION QUESTION
+example.net. IN AXFR
+;
+SECTION ANSWER
+example.net. IN SOA nibbler.example.net. leela.example.net. 1 600 600 360000 360000
+zoidberg.example.net IN A 1.2.3.4
+example.net. IN SOA nibbler.example.net. leela.example.net. 1 600 600 360000 360000
+;
+SECTION AUTHORITY
+;
+SECTION ADDITIONAL
+;
+ENTRY_END

@@ -1,0 +1,17 @@
+$ORIGIN nl.
+miek	3600	IN	SOA	elektron.atoom.net. miekg.atoom.net. (
+		2005060700 21600 7200 604800 3600 )
+	3600	IN	NS	elektron.atoom.net.
+	3600	IN	NULL	\# 1 aa
+	3600	IN	TYPE5050	\# 1 aa
+	3600	IN	TYPE5051	\# 2 aabb
+	3600	IN	TYPE5052	\# 3 aabbcc
+	3600	IN	TYPE5053	\# 4 aabbccdd
+	3600	IN	TYPE5054	\# 5 aabbccddee
+	3600	IN	TYPE5055	\# 6 aabbccddeeff
+	3600	IN	TYPE5056	\# 7 aabbccddeeff11
+	3600	IN	TYPE200	\# 7 aabbccddeeff11
+	3600	IN	TYPE201	\# 7 aabbccddeeff11
+	3600	IN	TYPE202	\# 7 aabbccddeeff11
+	3600	IN	TYPE202	\# 0 
+	3600	IN	TXT	"normal type here"

@@ -1,0 +1,17 @@
+# #-- bug134_manyproc.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+# test
+echo number nsd running is `ps waux | grep nsd | wc `
+$DIG @localhost -p $TPKG_PORT SOA edmundrichardson.com. > bug134_manyproc.current_respons1
+cat bug134_manyproc.current_respons1
+
+# must be ok
+if grep NOERROR bug134_manyproc.current_respons1; then
+	exit 0
+fi
+exit 1

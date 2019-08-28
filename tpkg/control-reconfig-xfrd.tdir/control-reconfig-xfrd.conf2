@@ -1,0 +1,52 @@
+# config
+server: 
+	xfrdfile: "xfrd.state"
+	#difffile: "ixfr.db"
+	database: "nsd.db"
+	logfile: "/dev/stderr"
+	zonelistfile: "control-reconfig-xfrd.zonelist"
+	zonesdir: ""
+	username: ""
+	chroot: ""
+	verbosity: 1
+
+remote-control:
+	control-enable: yes
+	control-port: CONTROLPORT
+	server-key-file: "nsd_server.key"
+	server-cert-file: "nsd_server.pem"
+	control-key-file: "nsd_control.key"
+	control-cert-file: "nsd_control.pem"
+
+# master to slave change pattern
+pattern:
+	name: "m2spat"
+	zonefile: "%szone"
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: ::ffff:127.0.0.1 NOKEY
+	request-xfr: 127.0.0.1@LDNSPORT NOKEY
+	allow-notify: 0.0.0.0/0 NOKEY
+
+# slave to master change pattern
+pattern:
+	name: "s2mpat"
+	zonefile: "%szone"
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: ::ffff:127.0.0.1 NOKEY
+
+# zone that goes from master to slave
+zone:
+	name: "m2s.implicit."
+	zonefile: "%szone"
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: ::ffff:127.0.0.1 NOKEY
+	request-xfr: 127.0.0.1@LDNSPORT NOKEY
+	allow-notify: 0.0.0.0/0 NOKEY
+
+# zone that goes from slave to master
+zone:
+	name: "s2m.implicit."
+	zonefile: "%szone"
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: ::ffff:127.0.0.1 NOKEY
+

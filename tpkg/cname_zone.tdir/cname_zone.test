@@ -1,0 +1,29 @@
+# #-- bug056_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../../"
+
+# test CNAME
+dig @127.0.0.1 -p $TPKG_PORT www.example.nl 2>&1 | tee resp
+if grep xname.org resp; then
+	if grep ohno resp; then
+		echo "bad response! too many NS records"
+		exit 1
+	fi
+fi
+
+echo
+
+# test DNAME
+dig @127.0.0.1 -p $TPKG_PORT www.zok.example.nl 2>&1 | tee resp
+if grep xname.org resp; then
+	if grep ohno resp; then
+		echo "bad response! too many NS records"
+		exit 1
+	fi
+fi
+
+exit 0

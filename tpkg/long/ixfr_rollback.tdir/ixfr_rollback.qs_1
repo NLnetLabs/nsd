@@ -1,0 +1,38 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply to question IXFR=1. -> go to TCP
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1 UDP
+REPLY QUERY NOERROR TC
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+ENTRY_END
+
+# reply to TCP for serial=1
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1 TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+EXTRA_PACKET
+# oops bad packet here
+# serials wrong... Not what the slave server has.
+@ 345600 IN SOA ns0.example.org. root 1023 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 1023 3600 28800 2419200 3600
+@	345600  IN      NS      ns0.example.org.
+@	345600  IN      NS      ns1.example.org.
+txt1    345600  IN      TXT     "text record 1"
+txt2    345600  IN      TXT     "text record 2"
+txt3    345600  IN      TXT     "text record 3"
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+ENTRY_END

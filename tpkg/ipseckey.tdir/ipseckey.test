@@ -1,0 +1,37 @@
+# #-- ipseckey.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+get_random_port 2
+CONTROLPORT=`expr $RND_PORT + 1`
+sed -e "s/CONTROLPORT/$CONTROLPORT/" < ipseckey.conf > nsd.conf
+
+# zonec must succeed on this zone
+../../nsd -c nsd.conf -V 3 -p $RND_PORT
+wait_nsd_up nsd.log
+if dig @127.0.0.1 -p $RND_PORT example.com. SOA | grep NOERROR; then
+	echo "compile zone passed."
+else
+	echo "compile zone failed."
+	kill_pid `cat nsd.pid`
+	exit 1
+fi
+mv ipseckey.zone orig.zone
+../../nsd-control -c nsd.conf write
+kill_pid `cat nsd.pid`
+cat nsd.log
+if test ! -f ipseckey.zone; then sleep 3; fi
+
+# printout the zone
+grep -v "^;" orig.zone > bak.zone
+grep -v "^;" ipseckey.zone > cmp.zone
+if diff bak.zone cmp.zone; then
+	echo "diff ok"
+else
+	echo "zone printed differently"
+	exit 1
+fi
+
+exit 0

@@ -1,0 +1,685 @@
+# qfile
+query foo.org. IN A
+;; opcode 0 ; rcode 5 REFUSED ; id 0 ; flags QR ; QD:1 AN:0 NS:0 AR:0
+; QUERY SECTION
+foo.org.	IN	A
+end_reply
+query_do foo.org. IN A
+;; opcode 0 ; rcode 5 REFUSED ; id 0 ; flags QR ; QD:1 AN:0 NS:0 AR:1
+; QUERY SECTION
+foo.org.	IN	A
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query foo.zap. IN A
+;; opcode 0 ; rcode 5 REFUSED ; id 0 ; flags QR ; QD:1 AN:0 NS:0 AR:0
+; QUERY SECTION
+foo.zap.	IN	A
+end_reply
+query_do foo.zap. IN A
+;; opcode 0 ; rcode 5 REFUSED ; id 0 ; flags QR ; QD:1 AN:0 NS:0 AR:1
+; QUERY SECTION
+foo.zap.	IN	A
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query example.org. IN SOA
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:3
+; QUERY SECTION
+example.org.	IN	SOA
+; ANSWER SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do example.org. IN SOA
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
+; QUERY SECTION
+example.org.	IN	SOA
+; ANSWER SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query example.org. IN HINFO
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+example.org.	IN	HINFO
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do example.org. IN HINFO
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+example.org.	IN	HINFO
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query example.org. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+example.org.	IN	DS
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do example.org. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+example.org.	IN	DS
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query 00.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+00.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do 00.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+00.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query www.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:3
+; QUERY SECTION
+www.example.org.	IN	A
+; ANSWER SECTION
+www.example.org.	3600	IN	A	1.5.8.8
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do www.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
+; QUERY SECTION
+www.example.org.	IN	A
+; ANSWER SECTION
+www.example.org.	3600	IN	A	1.5.8.8
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query www.example.org. IN ANY
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:0 AR:0
+; QUERY SECTION
+www.example.org.	IN	TYPE255
+; ANSWER SECTION
+www.example.org.	3600	IN	A	1.5.8.8
+end_reply
+query_do www.example.org. IN ANY
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:0 AR:1
+; QUERY SECTION
+www.example.org.	IN	TYPE255
+; ANSWER SECTION
+www.example.org.	3600	IN	A	1.5.8.8
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query www.example.org. IN PTR
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+www.example.org.	IN	PTR
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do www.example.org. IN PTR
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+www.example.org.	IN	PTR
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query www2.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+www2.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do www2.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+www2.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query nx.www.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+nx.www.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do nx.www.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+nx.www.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query example.org. IN NS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:0 AR:3
+; QUERY SECTION
+example.org.	IN	NS
+; ANSWER SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do example.org. IN NS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:0 AR:4
+; QUERY SECTION
+example.org.	IN	NS
+; ANSWER SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query www.sub.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:2 AR:2
+; QUERY SECTION
+www.sub.example.org.	IN	A
+; AUTHORITY SECTION
+sub.example.org.	3600	IN	NS	ns.sub.example.org.
+sub.example.org.	3600	IN	NS	ns2.sub.example.org.
+; ADDITIONAL SECTION
+ns.sub.example.org.	3600	IN	A	2.2.2.2
+ns2.sub.example.org.	3600	IN	A	2.2.2.3
+end_reply
+query_do www.sub.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR ; QD:1 AN:0 NS:2 AR:3
+; QUERY SECTION
+www.sub.example.org.	IN	A
+; AUTHORITY SECTION
+sub.example.org.	3600	IN	NS	ns.sub.example.org.
+sub.example.org.	3600	IN	NS	ns2.sub.example.org.
+; ADDITIONAL SECTION
+ns.sub.example.org.	3600	IN	A	2.2.2.2
+ns2.sub.example.org.	3600	IN	A	2.2.2.3
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query sub.example.org. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+sub.example.org.	IN	DS
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do sub.example.org. IN DS
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+sub.example.org.	IN	DS
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query sub2.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+sub2.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do sub2.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+sub2.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query b.c.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+b.c.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do b.c.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+b.c.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query foo.c.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+foo.c.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do foo.c.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+foo.c.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query b2.c.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+b2.c.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do b2.c.example.org. IN A
+;; opcode 0 ; rcode 3 NAME ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+b2.c.example.org.	IN	A
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query *.wc.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:3
+; QUERY SECTION
+\042.wc.example.org.	IN	A
+; ANSWER SECTION
+\042.wc.example.org.	3600	IN	A	6.7.6.7
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do *.wc.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
+; QUERY SECTION
+\042.wc.example.org.	IN	A
+; ANSWER SECTION
+\042.wc.example.org.	3600	IN	A	6.7.6.7
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query blabla.wc.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:3
+; QUERY SECTION
+blabla.wc.example.org.	IN	A
+; ANSWER SECTION
+blabla.wc.example.org.	3600	IN	A	6.7.6.7
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do blabla.wc.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
+; QUERY SECTION
+blabla.wc.example.org.	IN	A
+; ANSWER SECTION
+blabla.wc.example.org.	3600	IN	A	6.7.6.7
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query exist.wc.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:3
+; QUERY SECTION
+exist.wc.example.org.	IN	A
+; ANSWER SECTION
+exist.wc.example.org.	3600	IN	A	1.2.3.9
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do exist.wc.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
+; QUERY SECTION
+exist.wc.example.org.	IN	A
+; ANSWER SECTION
+exist.wc.example.org.	3600	IN	A	1.2.3.9
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query blablabla.wc.example.org. IN PTR
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+blablabla.wc.example.org.	IN	PTR
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do blablabla.wc.example.org. IN PTR
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+blablabla.wc.example.org.	IN	PTR
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query *.wc.example.org. IN MX
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
+; QUERY SECTION
+\042.wc.example.org.	IN	MX
+; ANSWER SECTION
+\042.wc.example.org.	3600	IN	MX	10 mx.example.org.
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+mx.example.org.	3600	IN	A	1.5.8.9
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do *.wc.example.org. IN MX
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:5
+; QUERY SECTION
+\042.wc.example.org.	IN	MX
+; ANSWER SECTION
+\042.wc.example.org.	3600	IN	MX	10 mx.example.org.
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+mx.example.org.	3600	IN	A	1.5.8.9
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query blabla.wc.example.org. IN MX
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
+; QUERY SECTION
+blabla.wc.example.org.	IN	MX
+; ANSWER SECTION
+blabla.wc.example.org.	3600	IN	MX	10 mx.example.org.
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+mx.example.org.	3600	IN	A	1.5.8.9
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do blabla.wc.example.org. IN MX
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:5
+; QUERY SECTION
+blabla.wc.example.org.	IN	MX
+; ANSWER SECTION
+blabla.wc.example.org.	3600	IN	MX	10 mx.example.org.
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+mx.example.org.	3600	IN	A	1.5.8.9
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query wcadd.example.org. IN MX
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
+; QUERY SECTION
+wcadd.example.org.	IN	MX
+; ANSWER SECTION
+wcadd.example.org.	3600	IN	MX	10 mail.wc.example.org.
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+mail.wc.example.org.	3600	IN	A	6.7.6.7
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do wcadd.example.org. IN MX
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:5
+; QUERY SECTION
+wcadd.example.org.	IN	MX
+; ANSWER SECTION
+wcadd.example.org.	3600	IN	MX	10 mail.wc.example.org.
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+mail.wc.example.org.	3600	IN	A	6.7.6.7
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query cname.example.org. IN AAAA
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:2 NS:1 AR:3
+; QUERY SECTION
+cname.example.org.	IN	AAAA
+; ANSWER SECTION
+cname.example.org.	3600	IN	CNAME	www.example.org.
+www.example.org.	3600	IN	AAAA	1::3
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do cname.example.org. IN AAAA
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:2 NS:1 AR:4
+; QUERY SECTION
+cname.example.org.	IN	AAAA
+; ANSWER SECTION
+cname.example.org.	3600	IN	CNAME	www.example.org.
+www.example.org.	3600	IN	AAAA	1::3
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query cname.example.org. IN CNAME
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:3
+; QUERY SECTION
+cname.example.org.	IN	CNAME
+; ANSWER SECTION
+cname.example.org.	3600	IN	CNAME	www.example.org.
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do cname.example.org. IN CNAME
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
+; QUERY SECTION
+cname.example.org.	IN	CNAME
+; ANSWER SECTION
+cname.example.org.	3600	IN	CNAME	www.example.org.
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query dname.example.org. IN TXT
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:3
+; QUERY SECTION
+dname.example.org.	IN	TXT
+; ANSWER SECTION
+dname.example.org.	3600	IN	TXT	"explanationforalias"
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+end_reply
+query_do dname.example.org. IN TXT
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
+; QUERY SECTION
+dname.example.org.	IN	TXT
+; ANSWER SECTION
+dname.example.org.	3600	IN	TXT	"explanationforalias"
+; AUTHORITY SECTION
+example.org.	86400	IN	NS	a.ns.example.org.
+; ADDITIONAL SECTION
+a.ns.example.org.	3600	IN	A	1.2.3.53
+a.ns.example.org.	3600	IN	A	1.2.3.54
+a.ns.example.org.	3600	IN	AAAA	1::53
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query dname.example.org. IN MX
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:0
+; QUERY SECTION
+dname.example.org.	IN	MX
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+end_reply
+query_do dname.example.org. IN MX
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:0 NS:1 AR:1
+; QUERY SECTION
+dname.example.org.	IN	MX
+; AUTHORITY SECTION
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. (
+		2011030200 1800 900 604800 86400 )
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query bla.dname.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:2 NS:0 AR:0
+; QUERY SECTION
+bla.dname.example.org.	IN	A
+; ANSWER SECTION
+dname.example.org.	3600	IN	DNAME	destination.to.the.example.com.
+bla.dname.example.org.	3600	IN	CNAME	bla.destination.to.the.example.com.
+end_reply
+query_do bla.dname.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:2 NS:0 AR:1
+; QUERY SECTION
+bla.dname.example.org.	IN	A
+; ANSWER SECTION
+dname.example.org.	3600	IN	DNAME	destination.to.the.example.com.
+bla.dname.example.org.	3600	IN	CNAME	bla.destination.to.the.example.com.
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query blabla.blabla.dname.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:2 NS:0 AR:0
+; QUERY SECTION
+blabla.blabla.dname.example.org.	IN	A
+; ANSWER SECTION
+dname.example.org.	3600	IN	DNAME	destination.to.the.example.com.
+blabla.blabla.dname.example.org.	3600	IN	CNAME	blabla.blabla.destination.to.the.example.com.
+end_reply
+query_do blabla.blabla.dname.example.org. IN A
+;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:2 NS:0 AR:1
+; QUERY SECTION
+blabla.blabla.dname.example.org.	IN	A
+; ANSWER SECTION
+dname.example.org.	3600	IN	DNAME	destination.to.the.example.com.
+blabla.blabla.dname.example.org.	3600	IN	CNAME	blabla.blabla.destination.to.the.example.com.
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+query 1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.aa.aa.aa.blabla.a.dname.example.org. IN A
+;; opcode 0 ; rcode 6 YXDOMAIN ; id 0 ; flags QR AA ; QD:1 AN:1 NS:0 AR:0
+; QUERY SECTION
+1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.aa.aa.aa.blabla.a.dname.example.org.	IN	A
+; ANSWER SECTION
+dname.example.org.	3600	IN	DNAME	destination.to.the.example.com.
+end_reply
+query_do 1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.aa.aa.aa.blabla.a.dname.example.org. IN A
+;; opcode 0 ; rcode 6 YXDOMAIN ; id 0 ; flags QR AA ; QD:1 AN:1 NS:0 AR:1
+; QUERY SECTION
+1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.aa.aa.aa.blabla.a.dname.example.org.	IN	A
+; ANSWER SECTION
+dname.example.org.	3600	IN	DNAME	destination.to.the.example.com.
+; ADDITIONAL SECTION
+. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+end_reply
+
+bufsize 4096
+speed 0
+check 1
+write 0

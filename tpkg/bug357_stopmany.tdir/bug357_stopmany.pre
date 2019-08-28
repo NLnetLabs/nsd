@@ -1,0 +1,74 @@
+# #-- socketnotifylimit.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+TPKG_PORT2=$(($TPKG_PORT + 1))
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+LDNS_TESTNS=ldns-testns
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" > .tpkg.var.test
+echo "export TPKG_PORT2=$TPKG_PORT2" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+
+cp bug357_stopmany.conf myconf
+echo "	pidfile: $TPKG_NSD_PID" >> myconf
+echo '$TTL 86400' > testns.conf
+echo '$ORIGIN tld' >> testns.conf
+echo '' >> testns.conf
+i=0
+while test $i -le 10000; do
+	# NSD config
+	echo "zone: name: $i.tld" >> myconf
+	echo "	zonefile: $i.tld" >> myconf
+	echo "	request-xfr: AXFR 127.0.0.1@$TPKG_PORT2 NOKEY" >> myconf
+	echo "" >> myconf
+
+	# initial zone file
+	echo '$TTL 86400' > $i.tld
+	echo "@ IN SOA a root 000000001 1 1 604800 1" >> $i.tld
+	echo "  IN NS a.dns.jp." >> $i.tld
+	echo "  IN A 127.0.0.1" >> $i.tld
+	echo "www IN A 127.0.0.1" >> $i.tld
+
+	# testns update file
+	echo "ENTRY_BEGIN" >> testns.conf
+	echo "MATCH qtype qname" >> testns.conf
+	echo "REPLY QR AA" >> testns.conf
+	echo "ADJUST copy_id" >> testns.conf
+	echo "SECTION QUESTION" >> testns.conf
+	echo "$i.tld. IN AXFR" >> testns.conf
+	echo "SECTION ANSWER" >> testns.conf
+	echo "$i.tld. IN SOA a root 000000002 1 1 604800 1" >> testns.conf
+	echo "$i.tld. IN NS a.dns.jp." >> testns.conf
+	echo "$i.tld.  IN A 127.0.0.1" >> testns.conf
+	echo "www.$i.tld. IN A 127.0.0.1" >> testns.conf
+	echo "$i.tld. IN SOA a root 000000002 1 1 604800 1" >> testns.conf
+	echo "ENTRY_END" >> testns.conf
+	echo "" >> testns.conf
+	i=`expr $i + 1`
+done
+
+echo "done generating config"
+
+# start ldns-testns
+$LDNS_TESTNS -p $TPKG_PORT2 testns.conf >fwd.log 2>&1 &
+TESTNS_PID=$!
+echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
+wait_ldns_testns_up fwd.log
+
+# debug echo of command.
+echo $TPKG_NSD -c myconf -u $LOGNAME -p $TPKG_PORT -f bug357_stopmany.db
+$TPKG_NSD -c myconf -u $LOGNAME -p $TPKG_PORT -f bug357_stopmany.db
+wait_logfile log " started (NSD " 500
+
+cat fwd.log
+

@@ -1,0 +1,3 @@
+This test makes use of ldns-testns, nsd and dig. 
+It takes no arguments.
+It tests whether NSD falls back nicely to AXFR if IXFR/UDP fails.

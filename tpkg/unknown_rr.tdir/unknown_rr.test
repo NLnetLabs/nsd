@@ -1,0 +1,42 @@
+# #-- zonec_tests.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+get_random_port 1
+CONTROLPORT=`expr $RND_PORT + 1`
+sed -e "s/CONTROLPORT/$CONTROLPORT/" < unknown_rr.conf > nsd.conf
+
+# run zonec
+PRE="../.."
+$PRE/nsd -c nsd.conf -V 3 -p $RND_PORT
+wait_nsd_up nsd.log
+if dig @127.0.0.1 -p $RND_PORT miek.nl SOA | grep NOERROR; then
+	echo OK
+else
+	echo fail
+	kill_pid `cat nsd.pid`
+	cat nsd.log
+	exit 1
+fi
+mv unknown_rr.zone bak.zone
+$PRE/nsd-control -c nsd.conf write
+if test ! -f unknown_rr.zone; then sleep 1; fi
+if test ! -f unknown_rr.zone; then sleep 1; fi
+if test ! -f unknown_rr.zone; then sleep 1; fi
+if test ! -f unknown_rr.zone; then sleep 1; fi
+if test ! -f unknown_rr.zone; then sleep 1; fi
+kill_pid `cat nsd.pid`
+cat nsd.log
+
+# printout the zone
+grep -v "^;" unknown_rr.zone > cmp.zone
+if diff bak.zone cmp.zone; then
+	echo "diff ok"
+else
+	echo "diff in printout"
+	exit 1
+fi
+
+exit 0

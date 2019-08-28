@@ -1,0 +1,31 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+
+# first arg is the build dir, only if no arg is given in .tpkg.var
+if [ -z $TPKG_BUILD ]; then
+        TPKG_BUILD=$1
+fi
+
+echo $TPKG_BUILD
+cd $TPKG_BUILD
+
+case $OSTYPE in
+        linux*)
+                make realclean && \
+                autoreconf && \
+                ./configure --enable-root-server --enable-checking && \
+                make 
+        ;;
+        freebsd*)
+                gmake realclean && \
+                autoconf259 && autoheader259 && \
+                ./configure --enable-root-server --enable-checking && \
+                gmake clean ; gmake 
+        ;;
+        *)
+                make realclean && \
+                autoreconf && \
+                ./configure --enable-root-server --enable-checking && \
+                make 
+        ;;
+esac

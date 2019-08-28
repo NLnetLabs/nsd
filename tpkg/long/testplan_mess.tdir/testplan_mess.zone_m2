@@ -1,0 +1,6 @@
+example.com. 345600  IN      SOA     ns0.example.org. root.example.com. 9834275 1 1 10 1
+example.com.	345600  IN      NS      ns0.example.org.
+example.com.	345600  IN      NS      ns1.example.org.
+rando872364.example.com.    345600  IN      TXT     "text kjdshfd 1"
+rando93827.example.com.    345600  IN      TXT     "text eerrth"
+rando983274.example.com.    345600  IN      TXT     "text dfdfh"

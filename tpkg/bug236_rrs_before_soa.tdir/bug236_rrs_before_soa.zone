@@ -1,0 +1,21 @@
+bug236_rrs_before_soa.net.	10200	IN	A	213.154.224.18
+bug236_rrs_before_soa.net.	10200	IN	A	213.154.224.19
+bug236_rrs_before_soa.net.	10200	IN	NS	ns1.bug236_rrs_before_soa.net.
+bug236_rrs_before_soa.net.	10200	IN	NS	ns2.bug236_rrs_before_soa.net.
+bug236_rrs_before_soa.net.	10200	IN	AAAA	2001:7b8:206:1:219:d1ff:feb1:85e8
+bug236_rrs_before_soa.net.	10200	IN	AAAA	2001:7b8:206:1:219:d1ff:feb1:85e9
+
+child2.bug236_rrs_before_soa.net.	10200	IN	NS	ns1.child.bug236_rrs_before_soa.net.
+child2.bug236_rrs_before_soa.net.	10200	IN	NS	ns2.child.bug236_rrs_before_soa.net.
+ns1.child.bug236_rrs_before_soa.net.		10200	IN	A	192.2.1.2
+ns1.child.bug236_rrs_before_soa.net.		10200	IN	AAAA  2001:7b8:206:1:219:d1ff:feb1:85e9
+ns2.child.bug236_rrs_before_soa.net.		10200	IN	A	192.2.2.2
+
+ns1.bug236_rrs_before_soa.net.	10200	IN	A	213.154.224.18
+ns1.bug236_rrs_before_soa.net.	10200	IN	AAAA	2001:7b8:206:1:219:d1ff:feb1:85e8
+
+ns2.bug236_rrs_before_soa.net.	10200	IN	A	213.154.224.18
+ns2.bug236_rrs_before_soa.net.	10200	IN	AAAA	2001:7b8:206:1:219:d1ff:feb1:85e8
+
+bug236_rrs_before_soa.net.	10200	IN	SOA	bug236_rrs_before_soa.net. matthijs.nlnetlabs.nl. 1231944945 20400 3600 604800 3600
+

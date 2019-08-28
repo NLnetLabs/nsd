@@ -1,0 +1,6 @@
+example.com. 86400 IN SOA ns0.example.com. hostmaster.example.com. 2006012401 3600 1800 86400 86400
+test.example.com. 86400 IN HINFO "one\\" "two"
+bla.example.com. 86400 IN HINFO "a\b\"de" "zup"
+bla2.example.com. 86400 IN HINFO "" "\ab"
+test2.example.com. 86400 IN HINFO "one\\two" "pp"
+test3.example.com. 86400 IN HINFO "\\three" "o0"

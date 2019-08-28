@@ -1,0 +1,19 @@
+# #-- bug253_skipns.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+
+. ../common.sh
+rm bug253_skipns.db
+
+# do your teardown here
+if [ -z $TPKG_NSD_PID ]; then
+	exit 0
+fi
+
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill_pid $NSD_PID

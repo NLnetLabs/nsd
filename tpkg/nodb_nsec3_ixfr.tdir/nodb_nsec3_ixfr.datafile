@@ -1,0 +1,115 @@
+$ORIGIN example.net.
+$TTL 7200
+
+ENTRY_BEGIN
+; first give MATCH lines, that say what queries are matched
+; by this entry.
+; ’opcode’ makes the query match the opcode from the reply
+; if you leave it out, any opcode matches this entry.
+; ’qtype’ makes the query match the qtype from the reply
+; ’qname’ makes the query match the qname from the reply
+; ’serial=1023’ makes the query match if ixfr serial is 1023.
+MATCH opcode qtype qname
+
+; Then the REPLY header is specified.
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+
+; any additional actions to do.
+ADJUST copy_id		; ’copy_id’ copies the ID from the query to the answer.
+
+SECTION QUESTION
+example.net. IN IXFR
+SECTION ANSWER
+example.net. IN SOA nibbler.example.net. leela.example.net. 2 3 4 3000 5
+example.net. IN SOA nibbler.example.net. leela.example.net. 1 3 4 3000 5
+; deleted items
+example.net.	345600	IN	RRSIG	SOA 5 2 345600 20110614103140 20110517103140 30899 example.net. gwRYKDEdESh17Ym705yKp5q8XKxG6WBWdERWrKdW2tsxA9fCpmYbEl+KE4m1gtmjED72NqAzwLBthSNIqtsiaw== ;{id = 30899}
+example.net.	3600	IN	NSEC3PARAM	1 0 2 1234 
+example.net.	3600	IN	RRSIG	NSEC3PARAM 5 2 3600 20110614103140 20110517103140 30899 example.net. WGP1TPQbNxrlkxUquOBIX6AfvNTcAAhxA8KbTAZZc9oY7d62w7eU5aTwJyDvZRJ2LFUJtX3jgmn3W3PnjFal9g== ;{id = 30899}
+bf90kigj7egkuugr9b4gkaa1lmtvueio.example.net.	5	IN	NSEC3	1 0 2 1234  dj040s47ccvrrjkaefbbib4ce94gdd48 A RRSIG 
+bf90kigj7egkuugr9b4gkaa1lmtvueio.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. DGS/mR0hKEcqL23/j4/ZqsOLbwHxKoXPPdKPQ0PYJkVlXHO/uw6XY77t6g5x8Hgahcdf94gWAhTkiGkBU+rAYQ== ;{id = 30899}
+hnh6rmnmcodldon7o9nbh0g6j64q0fbo.example.net.	5	IN	NSEC3	1 0 2 1234  oa642gb1q3q9792o4rlkgbsqc59e3e2v A TXT RRSIG 
+hnh6rmnmcodldon7o9nbh0g6j64q0fbo.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. pxJgtt6ztw3BBeFnkT5xfMF+au2rPpxWRHt2t6D41KC2uPkcqGigc2GwVCANW4k/6pqFpjMjLzE6YvBDBmwPOQ== ;{id = 30899}
+delallrrsets.example.net.	345600	IN	A	1.2.3.4
+delallrrsets.example.net.	345600	IN	A	1.2.3.5
+delallrrsets.example.net.	345600	IN	RRSIG	A 5 3 345600 20110614103140 20110517103140 30899 example.net. cPi23FwnRi9iChtvkQTtDj0mRJWRTkx6Gh9tpgvLi9KZU/m6pSUW3whoe3uxf4sGcNSIqp4dc7RGMzK9DCPAlA== ;{id = 30899}
+delallrrsets.example.net.	345600	IN	TXT	"hello"
+delallrrsets.example.net.	345600	IN	RRSIG	TXT 5 3 345600 20110614103140 20110517103140 30899 example.net. IPVhk2S01qR48I1ouG+a1IPKD/mMgDuZSfatUvpI9KqC/wM6aD9hFIiom6nLGNmd4QXww//ExRuv1Noqzm7ABQ== ;{id = 30899}
+delallrrsets.example.net.	345600	IN	AAAA	::1
+delallrrsets.example.net.	345600	IN	AAAA	::2
+delallrrsets.example.net.	345600	IN	AAAA	::3
+delallrrsets.example.net.	345600	IN	RRSIG	AAAA 5 3 345600 20110614103140 20110517103140 30899 example.net. EWNvAomah0I2JaaDkz90Q6IUtthPeMD9hmtAJ2PS1iZoavQy/jJ3UvpKmCqaMAptlKRDu387a8yc0RotFT9ZvA== ;{id = 30899}
+aans24ljtqn12gc7bolr53tvg4gfr8ka.example.net.	5	IN	NSEC3	1 0 2 1234  b8a5f8pbr3se08at94h11v2s4bg2c9b1 A TXT AAAA RRSIG 
+aans24ljtqn12gc7bolr53tvg4gfr8ka.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. OGwzDqXmrdwKNPZMA+GqSMl9ADj1t/t6epebCCAEw7nJ404wjm6K2+ns8OSgnWIVtmVZMMrwv1vayEpE8EGv1g== ;{id = 30899}
+deldomainname.example.net.	345600	IN	TXT	"delete this domain name"
+deldomainname.example.net.	345600	IN	RRSIG	TXT 5 3 345600 20110614103140 20110517103140 30899 example.net. vtxxaMweRgnQxxdfFYDh9OEBoUsarrR/8wF+PIuKKaKsP4BzMwcRFGwWGaEsjquoopqQ1VgtlbAJnsMxO2gJNA== ;{id = 30899}
+a04isihgc283bfrfcf1s3a9ov8fm6dse.example.net.	5	IN	NSEC3	1 0 2 1234  aans24ljtqn12gc7bolr53tvg4gfr8ka TXT RRSIG 
+a04isihgc283bfrfcf1s3a9ov8fm6dse.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. TWMlQq4WQOS1OyvavkYBqHCmmz0euTxIf876o9YfGW4y9CrtUcp5z5BUwsyaPaCHybB3VF7u3ZbYeKxTzfsA7g== ;{id = 30899}
+dellastrr.example.net.	345600	IN	A	1.2.3.4
+dellastrr.example.net.	345600	IN	RRSIG	A 5 3 345600 20110614103140 20110517103140 30899 example.net. YDFkYIRkkVMJ/tDiqZkzTST6MwPj28/nhJP26ahdaeJ8ZG2D/VxW3T77mn0o6bcjwRyf1misuxIT25wnMPj/SQ== ;{id = 30899}
+dj040s47ccvrrjkaefbbib4ce94gdd48.example.net.	5	IN	NSEC3	1 0 2 1234  gpfhpsusi1omiske9tel03g9on86hvho A RRSIG 
+dj040s47ccvrrjkaefbbib4ce94gdd48.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. ntLgPH1KDsVopO9O/9+unANYy6k4eg1JuPBICLrxX/EHBUd1op2Vr+w18r9tvhrheAy8HA9+TxKvlqmwYUc53A== ;{id = 30899}
+delrr.example.net.	345600	IN	A	1.2.3.4
+delrr.example.net.	345600	IN	RRSIG	A 5 3 345600 20110614103140 20110517103140 30899 example.net. D/9UvoZ1mUnPmqqzBlfitpWrybrJ0r0fKBQnL2sFcYw22TQ6PD0DfmYJ15+RJ2Rs/1lfsSyOqF2+JizEZqAQlA== ;{id = 30899}
+oa642gb1q3q9792o4rlkgbsqc59e3e2v.example.net.	5	IN	NSEC3	1 0 2 1234  a04isihgc283bfrfcf1s3a9ov8fm6dse A TXT RRSIG 
+oa642gb1q3q9792o4rlkgbsqc59e3e2v.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. avNtaTTdCfFJ5ZP7ejoOjoe9D4hXgLFD8yHE0F5bzBR97cTrj6v9OjBtp/R/HD92qL07mI3iK8inZAwXAKv8CA== ;{id = 30899}
+b8a5f8pbr3se08at94h11v2s4bg2c9b1.example.net.	5	IN	NSEC3	1 0 2 1234  bf90kigj7egkuugr9b4gkaa1lmtvueio SOA RRSIG DNSKEY NSEC3PARAM 
+b8a5f8pbr3se08at94h11v2s4bg2c9b1.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. KEwf4A54b5J/ax9V/O9nCHDzvfhKZBUsqSCzvbBS36rQMsixRexJ1WL467iNlokrDsBBUS790ufpINzzuQD4WQ== ;{id = 30899}
+gpfhpsusi1omiske9tel03g9on86hvho.example.net.	5	IN	NSEC3	1 0 2 1234  hnh6rmnmcodldon7o9nbh0g6j64q0fbo A RRSIG 
+gpfhpsusi1omiske9tel03g9on86hvho.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. n0SA45fzIhOxBi37Fg1KHVh8/u878LUk4A8f758uRTdqqCXPD8Kr9tmUq1jk1A25e//TJYsd5IqPtsj8afhJ9w== ;{id = 30899}
+example.net. IN SOA nibbler.example.net. leela.example.net. 2 3 4 3000 5
+; added items
+example.net.	345600	IN	RRSIG	SOA 5 2 345600 20110614103140 20110517103140 30899 example.net. kWEwypu8DnZ8+ncsMr9coC11LUlJVC0YdWZPhOlDIXgMCh5ipHWzZYii7qL25Pev/r1cQdZnOBBCdGhHfhw9QQ== ;{id = 30899}
+example.net.	3600	IN	NSEC3PARAM	1 0 1 5678 
+example.net.	3600	IN	RRSIG	NSEC3PARAM 5 2 3600 20110614103140 20110517103140 30899 example.net. pFl/q3sqxFLBQedyqaHvNXLMlaN3c/qfwXwKLbuJPmvzkVLOis/ku+653MuzIwZlWEgNPDeYJCWWTl9PWcWHsQ==
+addrrset.example.net.	345600	IN	AAAA	::234
+addrrset.example.net.	345600	IN	AAAA	::237
+addrrset.example.net.	345600	IN	RRSIG	AAAA 5 3 345600 20110614103140 20110517103140 30899 example.net. iExZpTJb66kQw5mF7azqydLTm6dDYsuL6TDMbiPGS4TpnVMx4awYAYUhKWG/0urK79IodjhigkWC13cYdEhWMg== ;{id = 30899}
+delrr.example.net.	345600	IN	RRSIG	A 5 3 345600 20110614103140 20110517103140 30899 example.net. w7sycbuOzst2d491WmnTXVBkiEOLB+t+InyDQs5XPfoqb20azoWaIDEAbMeAd5JL4bf49Y3nLU9huBa6n+iQ8Q== ;{id = 30899}
+newname.example.net.	345600	IN	A	1.2.3.4
+newname.example.net.	345600	IN	RRSIG	A 5 3 345600 20110614103140 20110517103140 30899 example.net. iNRDo4KIb7BUltNB7Ut1HkKTJSZtBwwd5BIjMV24TUoM+fM8sXty9+jANmvZU3G11oyc/CY1Kxkjqnrtj6/FNQ== ;{id = 30899}
+othername.example.net.	345600	IN	A	6.5.6.5
+othername.example.net.	345600	IN	RRSIG	A 5 3 345600 20110614103140 20110517103140 30899 example.net. E+KSvLS+PAsiN+mrqI73JkBUI+mlmE9MeHTcG127ZjmOITG5pi+kH8cYvq0xSi5NKFBHQkBCQE+GrlVFi82Viw== ;{id = 30899}
+othername.example.net.	345600	IN	AAAA	::65
+othername.example.net.	345600	IN	RRSIG	AAAA 5 3 345600 20110614103140 20110517103140 30899 example.net. UcvP0IJtxHCm0r+TeZGBrPEJ8afe9GunNzfva2spuD5kl7Sj5fhaPcNe+Ktuo2NyNKQB6U2JmZTxNWPWVuUTwQ== ;{id = 30899}
+5po60bl2aph4bf4v48erv35iahkrvhrg.example.net.	5	IN	NSEC3	1 0 1 5678  agvvm49tv2lfkaqu1425g0tnq5k7fkog SOA RRSIG DNSKEY NSEC3PARAM 
+5po60bl2aph4bf4v48erv35iahkrvhrg.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. WWrky6qDU+Sb89/mQK9CWTKCnC40LznOHNtJ8isaAkxBctGdhSR+6127hU2Zkb8qnWWv3ycFCM/aiWebX2dn7g==
+agvvm49tv2lfkaqu1425g0tnq5k7fkog.example.net.	5	IN	NSEC3	1 0 1 5678  cjl67onu6ucimog5rmfjodbaoc12gdnq A RRSIG 
+agvvm49tv2lfkaqu1425g0tnq5k7fkog.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. Qlp1FAstK5oOfUV+BD8FGFp6UgCIMkDH+33FuIjJ/M1tbZ2go69Vuv2o8Fzx6dsGtKcu9pVB3buVKo8cdOgCqw==
+v0kkud99rprvfjke70pbe7rq13gi131i.example.net.	5	IN	NSEC3	1 0 1 5678  5po60bl2aph4bf4v48erv35iahkrvhrg A TXT AAAA RRSIG 
+v0kkud99rprvfjke70pbe7rq13gi131i.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. C8k75o7azn+8IUy9AV430fG4i8aYepLOK/ym3piFKaYlwByDPW6Gep1V+IdPN9u64LC54bXpJbrzpVTKmBJF/A==
+gamf3vu0tv8upi87ectraflnb08fg3v4.example.net.	5	IN	NSEC3	1 0 1 5678  mn176s2t8mdrgu9s8fdvfg7qmlg6s6fb A RRSIG 
+gamf3vu0tv8upi87ectraflnb08fg3v4.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. gjFdrEpU6TxPcZllq+9uDUpTUROdN/njDX9ZBgiQS45DHfu9smPatqbhyS5sXlcRaBWS1UOuQKBdAf5QxOfmoA==
+n09c2ph48bfg29f130tafgl7s1mn972j.example.net.	5	IN	NSEC3	1 0 1 5678  v0kkud99rprvfjke70pbe7rq13gi131i A RRSIG 
+n09c2ph48bfg29f130tafgl7s1mn972j.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. c1kUJqkdcFyKKWP8/N0dbAVUGS2eozW8MegW8Qzbss+rEoIzA9PY5Qpd1VztBq+6nvGndBUkNnZ8ZbuyNsBLHw==
+mn176s2t8mdrgu9s8fdvfg7qmlg6s6fb.example.net.	5	IN	NSEC3	1 0 1 5678  n09c2ph48bfg29f130tafgl7s1mn972j A AAAA RRSIG 
+mn176s2t8mdrgu9s8fdvfg7qmlg6s6fb.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. jgfWY5ex9pcfHqbDF6M+NlqTItHN8beGe3xD1mB2or9zATZAacOkrZpmtzEc00tfRkkYhzvIC/ul4vjbLjLN5A==
+cjl67onu6ucimog5rmfjodbaoc12gdnq.example.net.	5	IN	NSEC3	1 0 1 5678  gamf3vu0tv8upi87ectraflnb08fg3v4 A TXT RRSIG 
+cjl67onu6ucimog5rmfjodbaoc12gdnq.example.net.	5	IN	RRSIG	NSEC3 5 3 5 20110614103140 20110517103140 30899 example.net. qrpjv5IF3NWK+vZxazYY4NQ6gT/uBXDZyLUy6AHcx39U7MWLa2bvQEn8M27IvRVUSeJFSrqgVMLHsE7ji25GeA==
+example.net. IN SOA nibbler.example.net. leela.example.net. 2 3 4 3000 5
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+
+
+; new nsec3param settings
+; unsigned differences
+; deleted items
+; delrr IN A 1.2.3.4
+; dellastrr IN A 1.2.3.4
+; delallrrsets IN A 1.2.3.4
+; delallrrsets IN A 1.2.3.5
+; delallrrsets IN AAAA ::1
+; delallrrsets IN AAAA ::2
+; delallrrsets IN AAAA ::3
+; delallrrsets IN TXT "hello"
+; deldomainname IN TXT "delete this domain name"
+; ; added items
+; addrrset IN AAAA ::234
+; addrrset IN AAAA ::237
+; newname IN A 1.2.3.4
+; othername IN AAAA ::65
+; othername IN A 6.5.6.5
+

@@ -1,0 +1,21 @@
+; only servfail
+ENTRY_BEGIN
+MATCH qtype
+ADJUST copy_query copy_id
+REPLY AA NOERROR
+SECTION QUESTION
+example.net. IN AXFR
+SECTION ANSWER
+; notice the new soa has longer expiry period and retry times
+example.net.	IN	SOA	nibbler.example.net. leela.example.net. 250 15 15 300 300
+www.example.net. IN A 1.2.3.5
+example.net.	IN	SOA	nibbler.example.net. leela.example.net. 250 15 15 300 300
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH qtype
+ADJUST copy_query copy_id
+REPLY AA NOTIMPL
+SECTION QUESTION
+example.net. IN IXFR
+ENTRY_END

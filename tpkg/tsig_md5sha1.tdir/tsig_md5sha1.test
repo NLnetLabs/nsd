@@ -1,0 +1,26 @@
+# #-- tsig_md5sha1.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+#PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+
+RESULTFILE=tsig_md5sha1.current_response
+
+PRE="../.."
+dig @127.0.0.1 -p $TPKG_PORT -y "hmac-md5:blabla:K2tf3TRjvQkVCmJF3/Z9vA==" edmundrichardson.com. AXFR | tee $RESULTFILE
+
+# must be ok
+cat $RESULTFILE | grep -v -e '^;' -e "TSIG" > tsig_md5sha1.check
+
+echo 
+echo difference:
+
+if wdiff tsig_md5sha1.check tsig_md5sha1.known_good; then
+	echo "matches but should not"
+	exit 1
+fi
+
+exit 0
+

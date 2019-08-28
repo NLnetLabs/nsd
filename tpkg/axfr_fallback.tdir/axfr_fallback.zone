@@ -1,0 +1,5 @@
+; nothing fancy here
+$TTL    3600
+$ORIGIN example.net.
+example.net.    IN      SOA     nibbler.example.net. leela.example.net. 1 2000 3000 4000 5000
+

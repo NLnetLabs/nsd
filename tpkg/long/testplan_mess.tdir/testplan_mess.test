@@ -1,0 +1,199 @@
+#!/bin/bash
+# #-- testplan_mess.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+RESULTFILE=testplan_mess.current_response
+PRE="../../.."
+TPKG_NSD="$PRE/nsd"
+TPKG_CONTROL="$PRE/nsd-control"
+TPKG_CHECKCONF="$PRE/nsd-checkconf"
+TPKG_NOTIFY="ldns-notify"
+WAITTIME=10
+
+HMAC=""
+if dig -h 2>&1 | grep -- "-v" | grep "hmac" >/dev/null; then
+	HMAC="hmac-md5:"
+fi
+
+function check_server_zone() { # <id> <ID> <file>
+	# check if server has the same zone as the master zonefile.
+	port=`eval echo '\$PORT_'$2`
+	echo ">> dig @127.0.0.1 -p $port -y key:secret example.com. AXFR"
+	dig @127.0.0.1 -p $port -y $HMAC"test_xfer:RKb8XLBOpvMfU3zcMq7vlw==" example.com. AXFR | tee $RESULTFILE
+	# remove duplicate SOA record from last line with head command
+	cat $RESULTFILE | grep -v '^;' | grep -v '^$' | grep -v TSIG > $RESULTFILE.2
+	lines=`wc -l $RESULTFILE.2 | awk '{print $1}' `
+	head -`expr $lines - 1` < $RESULTFILE.2 > testplan_mess.check
+	if wdiff testplan_mess.check $3 >/dev/null; then
+		echo "ZONE $1 OK"
+	else
+		echo "ZONE $1 BAD"
+		echo diff is
+		wdiff testplan_mess.check $3
+		exit 1
+	fi
+
+}
+
+function check_zones_are() { # m1file m2file restfile
+	check_server_zone m1 M1 $1
+	check_server_zone m2 M2 $2
+	check_server_zone i1 I1 $3
+	check_server_zone i2 I2 $3
+	check_server_zone i3 I3 $3
+	check_server_zone s1 S1 $3
+	check_server_zone s2 S2 $3
+}
+
+
+function send_notify() { # id ID keyname
+	port=`eval echo '\$PORT_'$2`
+	secret=`$TPKG_CHECKCONF -s $3 testplan_mess.keys`
+	echo ">>> $TPKG_NOTIFY -p $port [$2] -y $3:$secret -z example.com 127.0.0.1"
+	$TPKG_NOTIFY -p $port -y $3:$secret -z example.com 127.0.0.1
+}
+
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+# first serial should be transferred on startup.
+check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
+# everyone has the master1 zone (except master2, which has a newer zone).
+
+# update zone on master 1 (since m2 is newer, the operator fixes it).
+# and check if slaves receive it.
+cp testplan_mess.zone_m2 testplan_mess.zone_m1
+sleep 1  # make sure timestamp it updated
+touch testplan_mess.zone_m1
+echo "signalling..."
+# signal the server
+NSD_PID=`cat $TPKG_NSD_PID_M1`
+kill -s SIGHUP $NSD_PID
+
+sleep $WAITTIME
+sleep $WAITTIME
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
+
+# notify the slaves
+send_notify s1 S1 test_xfer
+send_notify s2 S2 test_xfer
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
+
+# notify the intermed servers
+send_notify i1 I1 test_xfer
+send_notify i2 I2 test_xfer
+send_notify i3 I3 test_xfer
+sleep $WAITTIME
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
+
+# notify the masters
+send_notify m1 M1 test_xfer
+send_notify m2 M2 test_xfer
+sleep $WAITTIME
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
+
+# kill i2
+echo ">>> kill i2"
+kill `cat $TPKG_NSD_PID_I2`
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+echo ">>> restart i2"
+$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
+
+# kill i2 and delete files ...
+echo ">>> kill i2"
+kill `cat $TPKG_NSD_PID_I2`
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+echo ">>> del xfrdfile: xfrd.i2.db"
+rm -f xfrd.i2.db
+# difffile: diff.i2.db
+echo ">>> restart i2"
+$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
+
+echo ">>> kill i2"
+kill `cat $TPKG_NSD_PID_I2`
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+echo ">>> del xfrdfile: diff.i2.db"
+rm -f diff.i2.db
+echo ">>> restart i2"
+$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
+
+echo ">>> kill i2"
+kill `cat $TPKG_NSD_PID_I2`
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+echo ">>> del xfrdfile: diff.i2.db and xfrd.i2.db"
+rm -f diff.i2.db xfrd.i2.db
+echo ">>> restart i2"
+$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
+
+echo ">>> nsd-control -c i1.conf write"
+if $TPKG_CONTROL -c i1.conf write; then
+	echo "nsd-control write ok"
+else
+	echo "nsd-control write failed"
+	exit 1
+fi
+cat testplan_mess.zone_i1
+
+echo ">>> kill i2"
+kill `cat $TPKG_NSD_PID_I2`
+sleep $WAITTIME
+cat xfrd.i2.db
+echo "-------wait-----------------------------------------"
+echo ">>> del xfrdfile: diff.i2.db and xfrd.i2.db"
+rm -f diff.i2.db xfrd.i2.db
+# put in old xfrd files.
+# very longggg times ago.
+cp testplan_mess.zone_i1 diff.i2.db # a mess as the diff file from bad crash.
+cat > xfrd.i2.db <<EOF
+NSDXFRD1
+filetime: 1154005682    # Thu Aug  3 16:34:42 2006
+
+numzones: 1
+zone:   name: example.com
+        state: 0 # OK
+master: 0
+next_master: -1
+round_num: -1
+next_timeout: 1154005683       
+soa_nsd_acquired: 1154005682    
+soa_nsd: 2 1 345600 18756 ns0.example.org. root.example.com. 9834275 1 1 10 1
+soa_disk_acquired: 1154005682   
+soa_disk: 2 1 345600 18756 ns0.example.org. root.example.com. 9834275 1
+1 10 1
+soa_notify_acquired: 0
+
+EOF
+echo ">>> restart i2"
+$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
+sleep $WAITTIME
+echo "-------wait-----------------------------------------"
+check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
+
+
+exit 0

@@ -1,0 +1,89 @@
+# #-- testplan_mess.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+# start NSD
+get_random_port 8
+PORT_M1=$RND_PORT
+PORT_M2=$(($PORT_M1 + 1))
+PORT_I1=$(($PORT_M1 + 2))
+PORT_I2=$(($PORT_M1 + 3))
+PORT_I3=$(($PORT_M1 + 4))
+PORT_S1=$(($PORT_M1 + 5))
+PORT_S2=$(($PORT_M1 + 6))
+CONTROLPORT_I1=$(($PORT_M1 + 7))
+
+PRE="../../.."
+TPKG_NSD_PID_M1="nsd.pid.m1.$$"
+TPKG_NSD_PID_M2="nsd.pid.m2.$$"
+TPKG_NSD_PID_I1="nsd.pid.i1.$$"
+TPKG_NSD_PID_I2="nsd.pid.i2.$$"
+TPKG_NSD_PID_I3="nsd.pid.i3.$$"
+TPKG_NSD_PID_S1="nsd.pid.s1.$$"
+TPKG_NSD_PID_S2="nsd.pid.s2.$$"
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export PORT_M1=$PORT_M1" >> .tpkg.var.test
+echo "export PORT_M2=$PORT_M2" >> .tpkg.var.test
+echo "export PORT_I1=$PORT_I1" >> .tpkg.var.test
+echo "export PORT_I2=$PORT_I2" >> .tpkg.var.test
+echo "export PORT_I3=$PORT_I3" >> .tpkg.var.test
+echo "export PORT_S1=$PORT_S1" >> .tpkg.var.test
+echo "export PORT_S2=$PORT_S2" >> .tpkg.var.test
+echo "export CONTROLPORT_I1=$CONTROLPORT_I1" >> .tpkg.var.test
+echo "export TPKG_NSD_PID_M1=$TPKG_NSD_PID_M1" >> .tpkg.var.test
+echo "export TPKG_NSD_PID_M2=$TPKG_NSD_PID_M2" >> .tpkg.var.test
+echo "export TPKG_NSD_PID_I1=$TPKG_NSD_PID_I1" >> .tpkg.var.test
+echo "export TPKG_NSD_PID_I2=$TPKG_NSD_PID_I2" >> .tpkg.var.test
+echo "export TPKG_NSD_PID_I3=$TPKG_NSD_PID_I3" >> .tpkg.var.test
+echo "export TPKG_NSD_PID_S1=$TPKG_NSD_PID_S1" >> .tpkg.var.test
+echo "export TPKG_NSD_PID_S2=$TPKG_NSD_PID_S2" >> .tpkg.var.test
+
+function convert_conf() { # <infile> <outfile>
+	echo "convert_conf $1 -> $2"
+	sed 	-e "s/PORT_M1/$PORT_M1/g" \
+		-e "s/PORT_M2/$PORT_M2/g" \
+		-e "s/CONTROLPRT_I1/$CONTROLPORT_I1/g" \
+		-e "s/PORT_I1/$PORT_I1/g" \
+		-e "s/PORT_I2/$PORT_I2/g" \
+		-e "s/PORT_I3/$PORT_I3/g" \
+		-e "s/PORT_S1/$PORT_S1/g" \
+		-e "s/PORT_S2/$PORT_S2/g" \
+		< $1 > $2
+	cat $2
+}
+
+convert_conf testplan_mess.conf_m1 m1.conf
+convert_conf testplan_mess.conf_m2 m2.conf
+convert_conf testplan_mess.conf_i1 i1.conf
+convert_conf testplan_mess.conf_i2 i2.conf
+convert_conf testplan_mess.conf_i3 i3.conf
+convert_conf testplan_mess.conf_s1 s1.conf
+convert_conf testplan_mess.conf_s2 s2.conf
+
+# zonec all the server databases.
+cp testplan_mess.zone_m2 testplan_mess.zone_m1 # masters are the same.
+
+echo "start nsd"
+$TPKG_NSD -c m1.conf -u $LOGNAME -p $PORT_M1 -P $TPKG_NSD_PID_M1
+$TPKG_NSD -c m2.conf -u $LOGNAME -p $PORT_M2 -P $TPKG_NSD_PID_M2
+$TPKG_NSD -c i1.conf -u $LOGNAME -p $PORT_I1 -P $TPKG_NSD_PID_I1
+$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
+$TPKG_NSD -c i3.conf -u $LOGNAME -p $PORT_I3 -P $TPKG_NSD_PID_I3
+$TPKG_NSD -c s1.conf -u $LOGNAME -p $PORT_S1 -P $TPKG_NSD_PID_S1
+$TPKG_NSD -c s2.conf -u $LOGNAME -p $PORT_S2 -P $TPKG_NSD_PID_S2
+echo "started"
+
+sleep 5 # wait for them to come up.
+echo master1 at port $PORT_M1 $TPKG_NSD_PID_M1 = `cat $TPKG_NSD_PID_M1`
+echo master2 at port $PORT_M2 $TPKG_NSD_PID_M2 = `cat $TPKG_NSD_PID_M2`
+echo intermed1 at port $PORT_I1 $TPKG_NSD_PID_I1 = `cat $TPKG_NSD_PID_I1`
+echo intermed2 at port $PORT_I2 $TPKG_NSD_PID_I2 = `cat $TPKG_NSD_PID_I2`
+echo intermed3 at port $PORT_I3 $TPKG_NSD_PID_I3 = `cat $TPKG_NSD_PID_I3`
+echo slave1 at port $PORT_S1 $TPKG_NSD_PID_S1 = `cat $TPKG_NSD_PID_S1`
+echo slave2 at port $PORT_S2 $TPKG_NSD_PID_S2 = `cat $TPKG_NSD_PID_S2`
+

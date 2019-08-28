@@ -1,0 +1,22 @@
+@       IN      SOA     bla  root (
+                        2003070707              ; serial, todays date + todays serial #
+                        1H                      ; refresh, seconds
+                        8H                      ; retry, seconds
+                        4W                      ; expire, seconds
+                        1H                      ; minimum ttl, seconds
+                )
+;
+@   NS      ns0.xname.org.          ; Thanks to xname.org
+@   NS      ns1.xname.org.          ; Thanks to xname.org
+
+test	TXT	"text record info"
+
+www CNAME www.deleg
+zok DNAME zok.deleg
+
+deleg NS ns1.ohno.net.
+deleg NS ns2.ohno.net.
+deleg NS ns3.ohno.net.
+ns1.ohno.net A 1.2.3.4
+ns2.ohno.net A 1.3.3.4
+ns3.ohno.net A 1.4.3.4

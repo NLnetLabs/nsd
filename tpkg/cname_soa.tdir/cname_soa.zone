@@ -1,0 +1,22 @@
+$TTL 2D
+@       1H      SOA     ns1.example.com.     hostmaster.example.com. (
+                        2006120901      ; serial
+		12H             ; refresh
+		2H              ; retry
+		4W              ; expire
+		1H)             ; minimum
+	NS              ns1.example.com.
+	NS              ns2.example.com.
+	MX      10      mx1.example.com.
+	MX      20      mx2.example.com.
+$ORIGIN example.com.
+	CNAME           www
+www             CNAME           x
+x               A               1.2.3.4
+ns1             A               1.2.3.5
+ns2             A               1.2.3.6
+mx1             A               1.2.3.7
+mx2             A               1.2.3.8
+mx2             CNAME  www
+order		CNAME  www.bla.com.
+order		A		1.2.3.4

@@ -1,0 +1,17 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+NOEDNS="+noedns"
+if dig $NOEDNS -v 2>&1 | grep "Invalid option" >/dev/null; then
+	NOEDNS=""
+fi
+
+# query with cd set, should also have it in the answer
+dig $NOEDNS +cd soa dnssec. @localhost -p $TPKG_PORT |grep flags > copy_cd.current_respons1
+
+# query without the cd bit
+dig $NOEDNS +nocd soa dnssec. @localhost -p $TPKG_PORT |grep flags > copy_cd.current_respons2
+
+wdiff copy_cd.current_respons1 copy_cd.known_good_respons1 && \
+wdiff copy_cd.current_respons2 copy_cd.known_good_respons2

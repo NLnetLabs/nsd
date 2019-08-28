@@ -1,0 +1,463 @@
+start of check
+# Read file checkconf.nsd1.conf: 2 patterns, 2 fixed-zones, 3 keys.
+# Config settings.
+server:
+	debug-mode: yes
+	ip-transparent: no
+	ip-freebind: no
+	reuseport: no
+	do-ip4: yes
+	do-ip6: yes
+	send-buffer-size: 0
+	receive-buffer-size: 0
+	hide-version: no
+	hide-identity: no
+	tcp-reject-overflow: no
+	database: "/etc/nsd.db"
+	identity: "server number 23"
+	#version:
+	nsid: "123456"
+	logfile: "/var/log/nsdlogfile.log"
+	server-count: 1
+	tcp-count: 100
+	tcp-query-count: 0
+	tcp-timeout: 120
+	tcp-mss: 0
+	outgoing-tcp-mss: 0
+	ipv4-edns-size: 4096
+	ipv6-edns-size: 1220
+	pidfile: "/var/pid/nsd.pid"
+	port: "53"
+	statistics: 60
+	#chroot:
+	username: "nsd"
+	zonesdir: "/etc/nsd"
+	xfrdfile: "/var/db/nsd/xfrd.state"
+	zonelistfile: "/var/db/nsd/zone.list"
+	xfrdir: "/tmp"
+	xfrd-reload-timeout: 1
+	log-time-ascii: yes
+	round-robin: no
+	minimal-responses: no
+	refuse-any: no
+	verbosity: 0
+	ip-address: "127.0.0.1"
+	ip-address: "10.1.2.3"
+	zonefiles-check: yes
+	zonefiles-write: 0
+	#tls-service-key:
+	#tls-service-pem:
+	#tls-service-ocsp:
+	tls-port: "853"
+
+remote-control:
+	control-enable: no
+	control-port: 8952
+	server-key-file: "/etc/nsd/nsd_server.key"
+	server-cert-file: "/etc/nsd/nsd_server.pem"
+	control-key-file: "/etc/nsd/nsd_control.key"
+	control-cert-file: "/etc/nsd/nsd_control.pem"
+
+key:
+	name: "BKEY"
+	algorithm: "hmac-sha1"
+	secret: "K2tf3TRjvQkVCmJF3/Z9vA=="
+
+key:
+	name: "DKEY"
+	algorithm: "hmac-sha1"
+	secret: "K2tf3TRjvQkVCmJF3/Z9vA=="
+
+key:
+	name: "MYKEY"
+	algorithm: "hmac-md5"
+	secret: "K2tf3TRjvQkVCmJF3/Z9vA=="
+
+zone:
+	name: "example.com"
+	zonefile: "/etc/nsd/example.com.signed.db"
+	allow-notify: 10.0.0.100 DKEY
+	# ip4 noport single addr=10.0.0.100
+	allow-notify: 10.0.0.101 DKEY
+	# ip4 noport single addr=10.0.0.101
+	allow-notify: b4d6:c587::0101 DKEY
+	# ip6 noport single addr=b4d6:c587::101
+	request-xfr: 10.0.0.100 DKEY
+	# ip4 noport single addr=10.0.0.100
+	request-xfr: AXFR b4d6:c587::0101 DKEY
+	# ip6 noport single addr=b4d6:c587::101
+	request-xfr: UDP 10.0.0.101 DKEY
+	# ip4 noport single addr=10.0.0.101
+	notify-retry: 3
+	notify: 10.0.0.1 MYKEY
+	# ip4 noport single addr=10.0.0.1
+	notify: 10.0.0.2 BKEY
+	# ip4 noport single addr=10.0.0.2
+	provide-xfr: 10.0.0.1 MYKEY
+	# ip4 noport single addr=10.0.0.1
+	provide-xfr: 10.0.0.2 BKEY
+	# ip4 noport single addr=10.0.0.2
+	provide-xfr: 0.0.0.0/0 NOKEY
+	# ip4 noport subnet addr=0.0.0.0 rangemask=0.0.0.0
+	outgoing-interface: 10.0.0.102@54321
+	outgoing-interface: ::1@54322
+	allow-axfr-fallback: no
+
+zone:
+	name: "example.net"
+	zonefile: "/etc/nsd/example.net.db"
+	outgoing-interface: 10.0.0.0
+# Read file checkconf.nsd2.conf: 1 patterns, 1 fixed-zones, 0 keys.
+# Config settings.
+server:
+	debug-mode: no
+	ip-transparent: no
+	ip-freebind: no
+	reuseport: no
+	do-ip4: yes
+	do-ip6: yes
+	send-buffer-size: 0
+	receive-buffer-size: 0
+	hide-version: no
+	hide-identity: no
+	tcp-reject-overflow: no
+	database: "/etc/nsd/nsd.db"
+	#identity:
+	#version:
+	#nsid:
+	logfile: "/var/log/nsdlogfile.log"
+	server-count: 1
+	tcp-count: 100
+	tcp-query-count: 0
+	tcp-timeout: 120
+	tcp-mss: 0
+	outgoing-tcp-mss: 0
+	ipv4-edns-size: 4096
+	ipv6-edns-size: 4096
+	pidfile: "/var/pid/nsd.pid"
+	port: "53"
+	statistics: 0
+	#chroot:
+	username: "nsd"
+	zonesdir: "/etc/nsd"
+	xfrdfile: "/var/db/nsd/xfrd.state"
+	zonelistfile: "/var/db/nsd/zone.list"
+	xfrdir: "/tmp"
+	xfrd-reload-timeout: 1
+	log-time-ascii: yes
+	round-robin: no
+	minimal-responses: no
+	refuse-any: no
+	verbosity: 0
+	zonefiles-check: yes
+	zonefiles-write: 0
+	#tls-service-key:
+	#tls-service-pem:
+	#tls-service-ocsp:
+	tls-port: "853"
+
+remote-control:
+	control-enable: no
+	control-port: 8952
+	server-key-file: "/etc/nsd/nsd_server.key"
+	server-cert-file: "/etc/nsd/nsd_server.pem"
+	control-key-file: "/etc/nsd/nsd_control.key"
+	control-cert-file: "/etc/nsd/nsd_control.pem"
+
+zone:
+	name: "example.com"
+	zonefile: "/etc/nsd/example.com.zone"
+	outgoing-interface: 1.2.3.4
+# Read file checkconf.nsd3.conf: 1 patterns, 1 fixed-zones, 1 keys.
+# Config settings.
+server:
+	debug-mode: no
+	ip-transparent: no
+	ip-freebind: no
+	reuseport: no
+	do-ip4: yes
+	do-ip6: no
+	send-buffer-size: 0
+	receive-buffer-size: 0
+	hide-version: no
+	hide-identity: no
+	tcp-reject-overflow: no
+	database: "/var/db/nsd/nsd.db"
+	#identity:
+	#version:
+	#nsid:
+	#logfile:
+	server-count: 1
+	tcp-count: 100
+	tcp-query-count: 0
+	tcp-timeout: 120
+	tcp-mss: 0
+	outgoing-tcp-mss: 0
+	ipv4-edns-size: 4096
+	ipv6-edns-size: 4096
+	pidfile: "/var/run/nsd.pid"
+	port: "53"
+	statistics: 0
+	#chroot:
+	username: "nsd"
+	zonesdir: "/etc/nsd"
+	xfrdfile: "/var/db/nsd/xfrd.state"
+	zonelistfile: "/var/db/nsd/zone.list"
+	xfrdir: "/tmp"
+	xfrd-reload-timeout: 1
+	log-time-ascii: no
+	round-robin: no
+	minimal-responses: no
+	refuse-any: no
+	verbosity: 0
+	zonefiles-check: yes
+	zonefiles-write: 0
+	#tls-service-key:
+	#tls-service-pem:
+	#tls-service-ocsp:
+	tls-port: "853"
+
+remote-control:
+	control-enable: no
+	control-port: 8952
+	server-key-file: "/etc/nsd/nsd_server.key"
+	server-cert-file: "/etc/nsd/nsd_server.pem"
+	control-key-file: "/etc/nsd/nsd_control.key"
+	control-cert-file: "/etc/nsd/nsd_control.pem"
+
+key:
+	name: "tsig.example.org."
+	algorithm: "hmac-md5"
+	secret: "aaaaaabbbbbbccccccdddddd"
+
+zone:
+	name: "example.org"
+	zonefile: "secondary/example.org.signed"
+	allow-notify: 162.0.4.49 NOKEY
+	# ip4 noport single addr=162.0.4.49
+	request-xfr: 162.0.4.49 tsig.example.org.
+	# ip4 noport single addr=162.0.4.49
+	outgoing-interface: 2001:7b8:40:1:219:d1ff:feb1:85e8
+# Read file checkconf.nsd4.conf: 1 patterns, 1 fixed-zones, 0 keys.
+# Config settings.
+server:
+	debug-mode: no
+	ip-transparent: no
+	ip-freebind: no
+	reuseport: no
+	do-ip4: yes
+	do-ip6: yes
+	send-buffer-size: 0
+	receive-buffer-size: 0
+	hide-version: no
+	hide-identity: no
+	tcp-reject-overflow: no
+	database: "/var/db/nsd/nsd.db"
+	#identity:
+	#version:
+	#nsid:
+	#logfile:
+	server-count: 1
+	tcp-count: 100
+	tcp-query-count: 0
+	tcp-timeout: 120
+	tcp-mss: 0
+	outgoing-tcp-mss: 0
+	ipv4-edns-size: 4096
+	ipv6-edns-size: 4096
+	pidfile: "/var/run/nsd.pid"
+	port: "53"
+	statistics: 0
+	#chroot:
+	username: "nsd"
+	zonesdir: "/etc/nsd"
+	xfrdfile: "/var/db/nsd/xfrd.state"
+	zonelistfile: "/var/db/nsd/zone.list"
+	xfrdir: "/tmp"
+	xfrd-reload-timeout: 1
+	log-time-ascii: yes
+	round-robin: no
+	minimal-responses: no
+	refuse-any: no
+	verbosity: 0
+	zonefiles-check: yes
+	zonefiles-write: 0
+	#tls-service-key:
+	#tls-service-pem:
+	#tls-service-ocsp:
+	tls-port: "853"
+
+remote-control:
+	control-enable: no
+	control-port: 8952
+	server-key-file: "/etc/nsd/nsd_server.key"
+	server-cert-file: "/etc/nsd/nsd_server.pem"
+	control-key-file: "/etc/nsd/nsd_control.key"
+	control-cert-file: "/etc/nsd/nsd_control.pem"
+
+zone:
+	name: "example.nl"
+	zonefile: "example.nl"
+	provide-xfr: 0::0/0 NOKEY
+	# ip6 noport subnet addr=:: rangemask=::
+checkconf.nsd5.conf:1: at 'dfd': error: syntax error
+read checkconf.nsd5.conf failed: 1 errors in configuration file
+checkconf.nsd6.conf:13: error: address range used for notify
+checkconf.nsd6.conf:14: error: address range used for notify
+checkconf.nsd6.conf:15: error: address range used for notify
+checkconf.nsd6.conf:16: error: address range used for notify
+checkconf.nsd6.conf:17: error: address range used for notify
+checkconf.nsd6.conf:18: error: address range used for notify
+checkconf.nsd6.conf:19: error: address range used for notify
+checkconf.nsd6.conf:20: error: address range used for notify
+checkconf.nsd6.conf:21: error: address range used for notify
+checkconf.nsd6.conf:22: error: address range used for notify
+checkconf.nsd6.conf:23: error: address range used for notify
+checkconf.nsd6.conf:24: error: address range used for notify
+checkconf.nsd6.conf:40: error: address range used for request-xfr
+checkconf.nsd6.conf:41: error: address range used for request-xfr
+checkconf.nsd6.conf:42: error: address range used for request-xfr
+checkconf.nsd6.conf:43: error: address range used for request-xfr
+checkconf.nsd6.conf:44: error: address range used for request-xfr
+checkconf.nsd6.conf:45: error: address range used for request-xfr
+checkconf.nsd6.conf:46: error: address range used for request-xfr
+checkconf.nsd6.conf:47: error: address range used for request-xfr
+checkconf.nsd6.conf:48: error: address range used for request-xfr
+checkconf.nsd6.conf:51: error: duplicate server: element.
+checkconf.nsd6.conf:52: error: expected yes or no.
+checkconf.nsd6.conf:56: error: blocked address used for notify
+checkconf.nsd6.conf:57: error: address range used for notify
+checkconf.nsd6.conf:58: error: address range used for notify
+checkconf.nsd6.conf:59: error: address range used for notify
+checkconf.nsd6.conf:61: error: previous zone has no name
+checkconf.nsd6.conf:61: error: previous pattern has no name
+checkconf.nsd6.conf:64: error: Bad ip4 address '1.2.3.4.5'
+checkconf.nsd6.conf:64: error: blocked address used for notify
+checkconf.nsd6.conf:66: error: blocked address used for request-xfr
+checkconf.nsd6.conf:68: error: Bad ip4 address '1.2.3'
+checkconf.nsd6.conf:72: error: Bad ip4 address '1.2.3'
+checkconf.nsd6.conf:76: error: Bad ip4 address '1.2.3'
+checkconf.nsd6.conf:85: error: address range used for notify
+checkconf.nsd6.conf:87: error: address range used for request-xfr
+checkconf.nsd6.conf:96: error: duplicate server: element.
+checkconf.nsd6.conf:97: error: expected yes or no.
+checkconf.nsd6.conf:98: error: number greater than zero expected
+checkconf.nsd6.conf:99: error: number greater than zero expected
+checkconf.nsd6.conf:101: error: number greater than zero expected
+checkconf.nsd6.conf:102: error: number greater than zero expected
+checkconf.nsd6.conf:104: error: last key has no secret blob
+checkconf.nsd6.conf:104: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
+checkconf.nsd6.conf:104: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
+checkconf.nsd6.conf:104: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
+checkconf.nsd6.conf:104: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
+read checkconf.nsd6.conf failed: 48 errors in configuration file
+checkconf.nsd7.conf:3: at 'logging': error: syntax error
+read checkconf.nsd7.conf failed: 1 errors in configuration file
+# Read file checkconf.nsd8.conf: 4 patterns, 1 fixed-zones, 0 keys.
+# Config settings.
+server:
+	debug-mode: no
+	ip-transparent: no
+	ip-freebind: no
+	reuseport: no
+	do-ip4: yes
+	do-ip6: yes
+	send-buffer-size: 0
+	receive-buffer-size: 0
+	hide-version: no
+	hide-identity: no
+	tcp-reject-overflow: no
+	database: "/var/db/nsd/nsd.db"
+	#identity:
+	#version:
+	#nsid:
+	#logfile:
+	server-count: 1
+	tcp-count: 100
+	tcp-query-count: 0
+	tcp-timeout: 120
+	tcp-mss: 0
+	outgoing-tcp-mss: 0
+	ipv4-edns-size: 4096
+	ipv6-edns-size: 4096
+	pidfile: "/var/run/nsd.pid"
+	port: "53"
+	statistics: 0
+	#chroot:
+	username: "nsd"
+	zonesdir: "/etc/nsd"
+	xfrdfile: "/var/db/nsd/xfrd.state"
+	zonelistfile: "/var/db/nsd/zone.list"
+	xfrdir: "/tmp"
+	xfrd-reload-timeout: 1
+	log-time-ascii: yes
+	round-robin: no
+	minimal-responses: no
+	refuse-any: no
+	verbosity: 0
+	zonefiles-check: yes
+	zonefiles-write: 0
+	#tls-service-key:
+	#tls-service-pem:
+	#tls-service-ocsp:
+	tls-port: "853"
+
+remote-control:
+	control-enable: no
+	control-port: 8952
+	server-key-file: "/etc/nsd/nsd_server.key"
+	server-cert-file: "/etc/nsd/nsd_server.pem"
+	control-key-file: "/etc/nsd/nsd_control.key"
+	control-cert-file: "/etc/nsd/nsd_control.pem"
+
+pattern:
+	name: "bla"
+	notify: 192.0.2.0 NOKEY
+	# ip4 noport single addr=192.0.2.0
+	notify: 192.0.2.1 NOKEY
+	# ip4 noport single addr=192.0.2.1
+
+pattern:
+	name: "blabla"
+	zonefile: "blabla.%z"
+	notify-retry: 8
+	notify: 192.0.2.0 NOKEY
+	# ip4 noport single addr=192.0.2.0
+	notify: 192.0.2.1 NOKEY
+	# ip4 noport single addr=192.0.2.1
+	notify: 192.0.2.2 NOKEY
+	# ip4 noport single addr=192.0.2.2
+	notify: 192.0.2.3 NOKEY
+	# ip4 noport single addr=192.0.2.3
+
+pattern:
+	name: "foo"
+	zonefile: "foobar.%s"
+	notify-retry: 8
+	notify: 192.0.2.66 NOKEY
+	# ip4 noport single addr=192.0.2.66
+	notify: 192.0.2.0 NOKEY
+	# ip4 noport single addr=192.0.2.0
+	notify: 192.0.2.1 NOKEY
+	# ip4 noport single addr=192.0.2.1
+	notify: 192.0.2.2 NOKEY
+	# ip4 noport single addr=192.0.2.2
+	notify: 192.0.2.3 NOKEY
+	# ip4 noport single addr=192.0.2.3
+
+zone:
+	name: "example.com"
+	zonefile: "foobar.%s"
+	request-xfr: 192.0.2.1 NOKEY
+	# ip4 noport single addr=192.0.2.1
+	notify-retry: 8
+	notify: 192.0.2.66 NOKEY
+	# ip4 noport single addr=192.0.2.66
+	notify: 192.0.2.0 NOKEY
+	# ip4 noport single addr=192.0.2.0
+	notify: 192.0.2.1 NOKEY
+	# ip4 noport single addr=192.0.2.1
+	notify: 192.0.2.2 NOKEY
+	# ip4 noport single addr=192.0.2.2
+	notify: 192.0.2.3 NOKEY
+	# ip4 noport single addr=192.0.2.3

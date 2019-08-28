@@ -1,0 +1,37 @@
+# #-- ixfr_faildel.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../../.."
+DIG=dig
+
+sleep 6
+
+$DIG @localhost -p $TPKG_PORT SOA sub.example.com > cur
+cat cur
+
+if grep "ns1.c.example. reply.c.example. 1" cur; then
+	echo "update failed"
+	cat nsd.log
+	exit 1
+fi
+if grep "ns1.c.example. reply.c.example. 2" cur; then
+	echo "update failed"
+	cat nsd.log
+	exit 1
+fi
+
+$DIG @localhost -p $TPKG_PORT RRSIG sub.example.com > cur
+cat cur
+if grep "SOA 8 3 3600 20140206110333" cur; then
+	echo "bad SOA RRSIGs still present"
+	cat nsd.log
+	exit 1
+fi
+
+cat nsd.log
+
+echo "OK"
+exit 0

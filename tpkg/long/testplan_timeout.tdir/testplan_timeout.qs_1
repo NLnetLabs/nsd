@@ -1,0 +1,43 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply to question IXFR = any.
+ENTRY_BEGIN
+MATCH opcode qtype qname UDP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 1 1 1 10 10
+ENTRY_END
+
+# reply to question axfr.
+ENTRY_BEGIN
+MATCH opcode qtype qname TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN AXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 1 1 1 10 10
+debug   345600  IN      TXT     "debug domain name data"
+@ 345600 IN SOA ns0.example.org. root 1 1 1 10 10
+ENTRY_END
+
+# reply to question with AXFR contents if IXFR asked for.
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=2 TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 1 1 1 10 10
+debug   345600  IN      TXT     "debug domain name data"
+@ 345600 IN SOA ns0.example.org. root 1 1 1 10 10
+ENTRY_END
+

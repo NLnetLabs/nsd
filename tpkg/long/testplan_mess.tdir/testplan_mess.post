@@ -1,0 +1,27 @@
+# #-- testplan_mess.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+function kill_nsd() { # <pidfile>
+	if [ -z $1 ]; then
+		echo exit_ok;
+	else
+		# kill NSD
+		NSD_PID=`cat $1`
+		kill_pid $NSD_PID
+	fi
+}
+
+
+kill_nsd $TPKG_NSD_PID_M1
+kill_nsd $TPKG_NSD_PID_M2
+kill_nsd $TPKG_NSD_PID_I1
+kill_nsd $TPKG_NSD_PID_I2
+kill_nsd $TPKG_NSD_PID_I3
+kill_nsd $TPKG_NSD_PID_S1
+kill_nsd $TPKG_NSD_PID_S2
+
+exit 0

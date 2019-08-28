@@ -1,0 +1,16 @@
+server:
+	chroot: ""
+	username: ""
+	zonesdir: ""
+	logfile: nsd.log
+	pidfile: nsd.pid
+	xfrdfile: nsd.xfrd
+	difffile: nsd.ixfr
+	database: nsd_2.db
+
+zone:
+	name: bug236_rrs_before_soa.net
+	zonefile: bug236_rrs_before_soa.zone2
+zone:
+	name: bug236_rrs_before_soa.org
+	zonefile: bug236_rrs_before_soa.zone2

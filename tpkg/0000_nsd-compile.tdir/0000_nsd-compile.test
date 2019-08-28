@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+
+# first arg is the build dir, only if no arg is given in .tpkg.var
+echo arg $1
+if [ -z $TPKG_BUILD ]; then
+	echo override $1
+        TPKG_BUILD=$1
+fi
+
+echo build-dir: $TPKG_BUILD
+cd $TPKG_BUILD
+
+autoreconf && \
+./configure --enable-checking --enable-root-server && \
+make clean && make 

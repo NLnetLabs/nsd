@@ -1,0 +1,40 @@
+# #-- outgoing_ifc.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 4
+TPKG_PORT=$RND_PORT
+TPKG_PORT2=$(($TPKG_PORT + 1))
+OUT_PORT1=$(($TPKG_PORT + 2))
+OUT_PORT2=$(($TPKG_PORT + 3))
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+TPKG_NSDC="$PRE/nsdc.sh"
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_PORT2=$TPKG_PORT2" >> .tpkg.var.test
+echo "export TPKG_NSD=$TPKG_NSD" >> .tpkg.var.test
+echo "export TPKG_ZONEC=$TPKG_ZONEC" >> .tpkg.var.test
+
+sed -e "s/TPKGPORT2/$TPKG_PORT2/" < outgoing_ifc.conf | sed -e "s/OUTPORT1/$OUT_PORT1/" | sed -e "s/OUTPORT2/$OUT_PORT2/" > outgoing_ifc.conf1
+cat outgoing_ifc.conf1
+
+sed -e "s/TPKGPORT/$TPKG_PORT/" < outgoing_ifc.conf2 | sed -e "s/OUTPORT1/$OUT_PORT1/" | sed -e "s/OUTPORT2/$OUT_PORT2/" > outgoing_ifc.conf3
+cat outgoing_ifc.conf3
+
+# master
+$TPKG_NSD -c outgoing_ifc.conf1 -p $TPKG_PORT -4
+
+# slave
+$TPKG_NSD -c outgoing_ifc.conf3 -p $TPKG_PORT2 -4 >> result.outgoing_ifc 2>&1
+
+echo master at port $TPKG_PORT
+echo slave at port $TPKG_PORT2
+echo outgoing port used by master $OUT_PORT1
+echo outgoing port used by slave $OUT_PORT2

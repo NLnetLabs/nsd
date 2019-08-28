@@ -1,0 +1,19 @@
+# #-- bug141_clear_formerr_flags.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+echo "NSD PORT: $TPKG_PORT"
+
+FLAGS=""
+if test "`uname`" = "SunOS" -o "`uname`" = "Solaris"; then
+	FLAGS="-lsocket"
+fi
+cc $FLAGS -o microdrill microdrill.c || gcc $FLAGS -o microdrill microdrill.c || (echo "compilation failed"; exit 1)
+
+echo 'default send str' | ./microdrill $TPKG_PORT | od -t x1 | tee outputfile
+
+# must be ok
+wdiff bug141_clear_formerr_flags.known_good_respons outputfile
+exit $?

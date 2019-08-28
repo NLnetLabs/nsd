@@ -1,0 +1,44 @@
+@       IN      SOA     42dbc308.dsl.aros.net.  drr.aros.net.   (
+                        2003070707              ; serial, todays date + todays serial #
+                        1H                      ; refresh, seconds
+                        8H                      ; retry, seconds
+                        4W                      ; expire, seconds
+                        1H                      ; minimum ttl, seconds
+                )
+;
+example.com.   NS      ns0.xname.org.          ; Thanks to xname.org
+example.com.   NS      ns1.xname.org.          ; Thanks to xname.org
+; Test for LOC type RFC 1876.
+
+; A record
+abbey.example.com. A 200.0.0.2
+; no vertical precision.
+abbey.example.com. LOC 40 32 24.716 N 105 04 25.770 W 1208m 609344m 2000m
+; all specced.
+allspec.example.com. LOC 40 32 24.716 N 105 04 25.770 W 1208m 609344m 2000m 23m
+; no horiz,vert precision
+nohpvp.example.com. LOC 40 32 24.716 N 105 04 25.770 W 1208m 609344m
+; no size,horiz,vert precision
+noszhpvp.example.com. LOC 40 32 24.716 N 105 04 25.770 W 1208m
+; no seconds.
+nosec.example.com. LOC 40 32 N 105 04 W 1208m
+; no minutes
+nominnosec.example.com. LOC 40 N 105 W 1208m
+; altitude with fraction
+alfrac.example.com. LOC 40 N 105 W 1208.64m
+; more fractions
+morefrac.example.com. LOC 40 N 105 W 1208.64m 0.34m 5.68m 4.86m
+; negative altitude.
+negative.example.com. LOC 40 S 105 E -9978.85m
+; max values, integer overflow possible
+abram IN LOC 40 32 24.716 N 105 04 25.770 W 42849672.91 1208m 599344m 2002m
+addie IN LOC 90 S 180 E 42849672.91m 9000000.00m 9000000.00m 9000000.00m
+addie IN LOC 90 S 180 E 42849672.91m 90000000m 90000000m 89999999m
+
+; test data from RFC
+cambridge-net.kei.com.example.com. LOC   42 21 54 N 71 06 18 W -24m 30m
+loiosh.kei.com.example.com. LOC   42 21 43.952 N 71 5 6.344 W -24m 1m 200m
+pipex.net.example.com. LOC   52 14 05 N 00 08 50 E 10m
+curtin.edu.au.example.com. LOC   32 7 19 S 116 2 25 E 10m
+rwy04L.logan-airport.boston.example.com. LOC   42 21 28.764 N 71 00 51.617 W -44m 2000m
+

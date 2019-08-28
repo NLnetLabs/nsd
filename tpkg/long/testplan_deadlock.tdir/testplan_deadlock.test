@@ -1,0 +1,80 @@
+#!/bin/bash
+# #-- testplan_deadlock.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+get_ldns_testns
+
+RESULTFILE=testplan_deadlock.current_response
+PRE="../../.."
+TPKG_NOTIFY="ldns-notify"
+MINISERVER="$LDNS_TESTNS"
+WAITTIME=3
+DIG=dig
+
+
+function kill_mini() {
+	if [ ! -e $TPKG_NSD_PID -o -z "$TPKG_NSD_PID" ]; then
+		echo "miniserver exited ok"
+	else
+		# kill the mini server.
+		NSD_PID=`cat $TPKG_NSD_PID`
+		kill $NSD_PID 2>/dev/null
+		sleep 1 # should be really dead now - just to be sure kill it again
+		kill $NSD_PID 2>/dev/null
+	fi
+}
+
+function setup_miniserver() { # <query setup file>
+	kill_mini
+	echo ">>> setup $MINISERVER -p $MASTER_PORT $1"
+	$MINISERVER -p $MASTER_PORT $1 &
+	echo $! > $TPKG_NSD_PID
+	sleep 1 # wait for it to come up.
+}
+
+function notify_slave() { # <zone number>
+	echo ">>> ldns-notify -p $SLAVE_PORT -z zone$1.example.com. 127.0.0.1"
+	$TPKG_NOTIFY -p $SLAVE_PORT -z zone$1.example.com. 127.0.0.1
+}
+
+function check_slave_alive() {
+	if $DIG @127.0.0.1 -p $SLAVE_PORT zone$1.example.com. SOA | \
+		grep "connection timed out"; then
+		echo "The server is not reachable!"
+		exit 1;
+	else
+		echo ">>> The server is still alive"
+	fi
+}
+
+# startup miniserver with appropriate files.
+setup_miniserver master.qs
+check_slave_alive
+sleep 10
+check_slave_alive
+
+# and now start flooding notifies too...
+. ./testplan_deadlock.flood $TPKG_NOTIFY $SLAVE_PORT $NUMZONES &
+NOTIFIER_PID=$!
+
+# wait and check for liveness.
+duration=2
+now=0
+while [[ $now -lt $duration ]]; do
+	sleep 10
+	check_slave_alive
+	now=`expr $now + 1`
+done
+
+# stop flooding.
+kill $NOTIFIER_PID
+kill $NOTIFIER_PID >/dev/null 2>&1   # again to make sure.
+
+# see if that made a problem.
+sleep 10
+check_slave_alive
+
+exit 0

@@ -1,0 +1,216 @@
+$ORIGIN example.
+$TTL 3600
+example.  IN  SOA     ns1.example. bugs.x.w.example. 1 3600 300 (
+                          3600000 3600 )
+                  RRSIG   SOA 133 1 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          hNIkW1xzn+c+9P3W7PUVVptI72xEmOtn+eqQ
+                          ux0BE7Pfc6ikx4m7ivOVWETjbwHjqfY0X5G+
+                          rynLZNqsbLm40Q== )
+                  NS      ns1.example.
+                  NS      ns2.example.
+                  RRSIG   NS 133 1 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          D9+iBwcbeKL5+TorTfYn4/pLr2lSFwyGYCyM
+                          gfq4TpFaZpxrCJPLxHbKjdkR18jAt7+SR7B5
+                          JpiZcff2Cj2B0w== )
+                  MX      1 xx.example.
+                  RRSIG   MX 133 1 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          jsGuTpXTTrZHzUKnViUpJ8YyGNpDd6n/sy2g
+                          HnSC0nj2jPxTC5VENLo3GxSpCSA5DlAz57p+
+                          RllUJk3DWktkjw== )
+                  DNSKEY  256 3 133 (
+                          AQO0gEmbZUL6xbD/xQczHbnwYnf+jQjwz/sU
+                          5k44rHTt0Ty+3aOdYoome9TjGMhwkkGby1TL
+                          ExXT48OGGdbfIme5 )
+                  DNSKEY  257 3 133 (
+                          AQOnsGyJvywVjYmiLbh0EwIRuWYcDiB/8blX
+                          cpkoxtpe19Oicv6Zko+8brVsTMeMOpcUeGB1
+                          zsYKWJ7BvR2894hX )
+                  RRSIG   DNSKEY 133 1 3600 20150420235959 (
+                          20051021000000 22088 example.
+                          Xpo9ptByXb8M1JR1i0KuRmKGc/YeOLcc6Ptn
+                          RJOx6ADLSL2mU6AYX5tAJRMTKTXk6waLIaxu
+                          liqUBOkCjLUZMw== )
+                  NSEC3PARAM 1 0 12 aabbccdd
+                  RRSIG   NSEC3PARAM 133 1 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          LIDOPjIUc2DtDpXUlOaLnJkHKbacDvXZlhRm
+                          g4eFGnaEd794HnjRjeT9w5QwtLDpLyyMRbGt
+                          4L0XlqhGJCcAsA== )
+0p9mhaveqvm6t7vbl5lop2u3t2rp3tom.example. NSEC3 1 1 12 aabbccdd (
+                          2t7b4g4vsa5smi47k61mv5bv1a22bojr MX DNSKEY NS
+                          SOA NSEC3PARAM RRSIG )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          Oq4uXtk4yF7nd/o/+M4h+6zGyIxS+pUcqdV7
+                          DKnF/tFkBJs0PMfwm9OdxdB+6cFv0LLYAzHu
+                          +tM22fPvu7lfXQ== )
+2t7b4g4vsa5smi47k61mv5bv1a22bojr.example. A 127.0.0.1
+                  RRSIG   A 133 2 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          Enu4zogLLDz0p/lLcuH3+jpfuWR/Uyw4fyvg
+                          lsaFNvFfs7t+f5TPEt5GLX4U2eRycWmF9ZpY
+                          McPgqAgrGZJ+jA== )
+                  NSEC3   1 1 12 aabbccdd (
+                          2vptu5timamqttgl4luu9kg21e0aor3s A RRSIG )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          MOyKYIjbWDwnme6WV5R9kY9WWCjTPxcjYo+c
+                          vWgJRnmXYZtz0bYqqELIalZtHsT2W0BOtCxS
+                          Y2gIduy/7FVk0g== )
+2vptu5timamqttgl4luu9kg21e0aor3s.example. NSEC3 1 1 12 aabbccdd (
+                          35mthgpgcu1qg68fab165klnsnk3dpvl MX RRSIG )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          oBio/cYM5olvRWV3zW+IToAT3mU0gqbU+gZu
+                          7VysaXXufogv2B0ciYH29jdrRjvcCadsy/5E
+                          Yj/THQIqFXEdOw== )
+35mthgpgcu1qg68fab165klnsnk3dpvl.example. NSEC3 1 1 12 aabbccdd (
+                          b4um86eghhds6nea196smvmlo4ors995 NS DS RRSIG )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          G4QLzK5ATuLzQOOJ8xt198+BiKLvhtkYb4jM
+                          UiL/Hz+1AWpJ1EdfzbgNR30wNqb25ua4a6G8
+                          Si8JqvOk+TRYqA== )
+a.example.     NS      ns1.a.example.
+                  NS      ns2.a.example.
+                  DS      58470 5 1 (
+                          3079F1593EBAD6DC121E202A8B766A6A4837206C )
+                  RRSIG   DS 133 2 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          qxw4j5LNe70UDu121YqAaqQjyjYbdKNd/4bE
+                          nH0kjQswuiGs9EuArCBhcWocWQDBku+A4HMH
+                          JdLqJr5p4JctLg== )
+ns1.a.example. A       192.168.2.5
+ns2.a.example. A       192.168.2.6
+ai.example.    A       192.168.2.9
+                  RRSIG   A 133 2 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          ZaXcOIABcqe1UbwBrisSfk1EBZN11ccgg81Z
+                          vZ4qVRhQRdMTprjO9boMYL3q7nz993IqSyUg
+                          jumoQ8qs1isY4Q== )
+                  HINFO   "KLH-10" "ITS"
+                  RRSIG   HINFO 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          BuDv+No06VEcIsEnvBdjdKm6kxQGrhOgKEKb
+                          Gsb8DJRjY7Lia+YG2//s6OlOIfxPmLlLiYpA
+                          i3q2sEjTJhocGQ== )
+                  AAAA    2001:db8:0:0:0:0:f00:baa9
+                  RRSIG   AAAA 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          m65zc0A16Xbx3jYb0t5vPwMzE2xS15mKh76M
+                          hSuKfiFVhBFcQ9IilEM0pXnLzt3ozrM/3X0x
+                          2ruyuN0zC+PABA== )
+b4um86eghhds6nea196smvmlo4ors995.example. NSEC3 1 1 12 aabbccdd (
+                          gjeqe526plbf1g8mklp59enfd789njgi MX RRSIG )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          E1RiKYSYiN2U5t1h29o63vWwg++iOyJxNhtp
+                          K0FRNe1uc/ZMElEuSOl1mj7n7hoZExR4j7J4
+                          xDdGSZkZZ7Np+w== )
+c.example.     NS      ns1.c.example.
+                  NS      ns2.c.example.
+ns1.c.example. A       192.168.2.7
+ns2.c.example. A       192.168.2.8
+gjeqe526plbf1g8mklp59enfd789njgi.example. NSEC3 1 1 12 aabbccdd (
+                          ji6neoaepv8b5o6k4ev33abha8ht9fgc HINFO A AAAA
+                          RRSIG )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          PC6xuuhgRizxo+NWTAL4BqOyRwGdjJNjdu7G
+                          +s8PPW9M1/FObcnaxvrFqnKVIzIOIkD66U/K
+                          09DKQD9ILCfOlw== )
+ji6neoaepv8b5o6k4ev33abha8ht9fgc.example. NSEC3 1 1 12 aabbccdd (
+                          k8udemvp1j2f7eg6jebps17vp3n8i58h )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          JbIr0ml7CyVwid1WyNbXlxmZ4s0ZPZOjSbQI
+                          wZEky0ImECHZLpa9/dASklriA6Yg8lgUzsj4
+                          bJwVGJ6LFzD1fA== )
+k8udemvp1j2f7eg6jebps17vp3n8i58h.example. NSEC3 1 1 12 aabbccdd (
+                          kohar7mbb8dc2ce8a9qvl8hon4k53uhi )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          chrf07zCt7K33AE6ZeF4Ti7CtaGePugS+I8t
+                          bEzAbluRk3BzLtCKxqDUFVl1FVgq8KrQPLgU
+                          h7mwmVDRXopnDw== )
+kohar7mbb8dc2ce8a9qvl8hon4k53uhi.example. NSEC3 1 1 12 aabbccdd (
+                          q04jkcevqvmu85r014c7dkba38o0ji5r A RRSIG )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          BHESCxzi1TT5+G1b5add7PkBqh+8UhIM2m4w
+                          mrOam5jM443iKviA2oGTYtdawPB0xTIoHZe7
+                          SbrvmdDe+bjCNg== )
+ns1.example.   A       192.168.2.1
+                  RRSIG   A 133 2 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          KS4zeGDaXO99zFfZdkH8BPj5Mm2r9NdxrW5h
+                          cwZbIngiTAlE0DcVVBNY8b0h2DZL2znQr8QJ
+                          0/QDt8ufz6tZyg== )
+ns2.example.   A       192.168.2.2
+                  RRSIG   A 133 2 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          Hc6i5zNssmqTB7zhORrMT9uvhLdQ9c3DPjuq
+                          Ujw/UOw4xJIMjhG4qDwQRav4XpyI2mvVJFR1
+                          1M07gNwzYG2Ypw== )
+q04jkcevqvmu85r014c7dkba38o0ji5r.example. NSEC3 1 1 12 aabbccdd (
+                          r53bq7cc2uvmubfu5ocmm6pers9tk9en A RRSIG )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          Tm6xntXYtTu0QNyC7JoDkBwLQ6alu+lboU/6
+                          tM86JqIJIe65XWUfSm1MTvyteWILp96LxzEu
+                          W7Zo0HsSFJJLIw== )
+r53bq7cc2uvmubfu5ocmm6pers9tk9en.example. NSEC3 1 1 12 aabbccdd (
+                          t644ebqk9bibcna874givr6joj62mlhv MX RRSIG )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          OFXtK7DkTcIHFNeChJbdCgz5lX8ZOXVE4WeU
+                          RGHgiz9VfmLiN18+S7ucSt/UXNhX2ZpYWchJ
+                          FEmSZ39hZpTN0w== )
+t644ebqk9bibcna874givr6joj62mlhv.example. NSEC3 1 1 12 aabbccdd (
+                          0p9mhaveqvm6t7vbl5lop2u3t2rp3tom HINFO A AAAA
+                          RRSIG )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          U7hZiI+Vxmcn9JLSxyOs0p4nf6+0ckmzLKX2
+                          hCte/8EVLibUfvzyN8sP1k4nIYmMfciwV+dB
+                          1HnaArgp+4wgOw== )
+*.w.example.   MX      1 ai.example.
+                  RRSIG   MX 133 2 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          DnT0Y6dRBM8f3v8HdKmZUsGVkXh+b+htujCR
+                          c423x6c8erEMGVnxcrmcrZ53qGXcMYJ+TDkq
+                          a7Xfz/f9xzvSTw== )
+x.w.example.   MX      1 xx.example.
+                  RRSIG   MX 133 3 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          BLSDMos8kYR7+2U7iwwdqdhU82hzq0s57xtw
+                          F08tWU/d19jrNO6LdWfBL/FJ8zL8ZpEjhh6b
+                          8cj0f5yQOUyShw== )
+x.y.w.example. MX      1 xx.example.
+                  RRSIG   MX 133 4 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          GPzELyUCxrnyep8uMcqthUXjTqYBmgeaveb9
+                          2vQgzUyPLLamNN/YqMHr6tGQNxeMAhclxUSQ
+                          eoCggUBVhFfB1Q== )
+xx.example.    A       192.168.2.10
+                  RRSIG   A 133 2 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          qxwCQAqdWxq4bDNPKyOVG679cSJwKVv/Q5Rj
+                          9WKymDOhOPTmEs8xDxbiM4EXyv0ig50I3Wvb
+                          kmyw4sQ5CspOcA== )
+                  HINFO   "KLH-10" "TOPS-20"
+                  RRSIG   HINFO 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          YJFwmD0By0NpGEvO1nE1ZTH10XrmpKnVuAEI
+                          cAxLLHyPs3qyGQdDEG7sQX5+PfiOGZrNmZef
+                          8NgQhW8kGEgN1Q== )
+                  AAAA    2001:db8:0:0:0:0:f00:baaa
+                  RRSIG   AAAA 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          VAJBlXoTOScrIM6yPlDsd9o05v39qIzFnemR
+                          2vgw1s4l8maJVWi9IHEg8oiypJvGwSCP1nFs
+                          EOlXyNFQJ0fWGA== )
+

@@ -1,0 +1,194 @@
+# #-- socket10kxfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+echo "NSD PORT: $TPKG_PORT"
+echo "NSD PORT (SLAVE): $TPKG_PORT2"
+echo "NSD PIDFILE: $TPKG_NSD_PID"
+echo "NSD PIDFILE (SLAVE): $TPKG_NSD_PID2"
+echo "NUMZONES: $NUMZONES"
+
+# wait for servers to stabilize first
+echo waiting zones
+if test $TPKG_HAVE_PERL = 1
+then
+	if ! perl socket10kxfr.serial_in_log.pl log.slave $NUMZONES 1
+	then
+		echo Timeout waiting for zones to have serial 1 on slave
+	fi
+else
+	i=0
+	while test $i -le $NUMZONES; do
+		echo wait for $i.tld
+		wait_logfile log.slave "Zone $i.tld serial 0 is updated to 1" 1000
+		i=`expr $i + 1`
+	done
+fi
+echo done waiting zones
+
+echo "log"; cat log
+echo "log.slave"; cat log.slave
+
+echo "check for correct transfer of initial zone files"
+if test $TPKG_HAVE_NET_DNS = 1
+then
+	if ! perl socket10kxfr.query_soas.pl $TPKG_PORT2 $NUMZONES 1
+	then
+		echo Timeout querying zones to have serial 1 on slave
+	fi
+else
+	i=0
+	while test $i -le $NUMZONES; do
+		dig @127.0.0.1 -p $TPKG_PORT2 $i.tld. SOA > diglog
+		if grep "root.dns.jp. 1 3600" diglog >/dev/null; then
+			echo "zone $i.tld is OK"
+		else
+			echo "retry dig 1"
+			mv core* ..
+			dig @127.0.0.1 -p $TPKG_PORT2 $i.tld. SOA > diglog
+
+			if grep "root.dns.jp. 1 3600" diglog >/dev/null; then
+				echo "zone $i.tld is OK"
+			else
+				echo "retry dig 2"
+				dig @127.0.0.1 -p $TPKG_PORT2 $i.tld. SOA > diglog
+
+				if grep "root.dns.jp. 1 3600" diglog >/dev/null; then
+					echo "zone $i.tld is OK"
+				else
+					echo "retry dig 3"
+					dig @127.0.0.1 -p $TPKG_PORT2 $i.tld. SOA > diglog
+					if grep "root.dns.jp. 1 3600" diglog >/dev/null; then
+						echo "zone $i.tld is OK"
+					else
+						echo "zone $i.tld did not xfr OK"
+						cat diglog
+						tail -200 log.slave
+						echo "and again"
+						dig @127.0.0.1 -p $TPKG_PORT2 $i.tld. SOA
+						exit 1
+					fi
+				fi
+			fi
+		fi
+		i=`expr $i + 1`
+	done
+fi
+echo "done check correct transfer initial zone files"
+
+echo "force of reload; sleep $WAITTIME"
+kill -1 `cat $TPKG_NSD_PID`
+echo waiting zones
+if test $TPKG_HAVE_PERL = 1
+then
+	if ! perl socket10kxfr.serial_in_log.pl log.slave $NUMZONES 2
+	then
+		echo Timeout waiting for zones to have serial 2 on slave
+	fi
+else
+	i=0
+	while test $i -le $NUMZONES; do
+		echo wait for $i.tld
+		wait_logfile log.slave "Zone $i.tld serial 1 is updated to 2" 1000
+		i=`expr $i + 1`
+	done
+fi
+echo done waiting zones
+starttime="`grep 'serial 1 is updated to 2' log.slave | head -1 | awk '{print $1;}' | sed -e 's/\[//' -e 's/\]//'`"
+endtime="`grep 'serial 1 is updated to 2' log.slave | tail -1 | awk '{print $1;}' | sed -e 's/\[//' -e 's/\]//'`"
+echo it took `expr $endtime - $starttime` seconds for $NUMZONES
+
+echo "log"; cat log
+echo "log.slave"; cat log.slave
+
+echo "check for correct transfer of updated zone files"
+if test $TPKG_HAVE_NET_DNS = 1
+then
+	if ! perl socket10kxfr.query_soas.pl $TPKG_PORT2 $NUMZONES 2
+	then
+		echo Timeout querying zones to have serial 2 on slave
+	fi
+else
+	i=0
+	while test $i -le $NUMZONES; do
+		dig @127.0.0.1 -p $TPKG_PORT2 $i.tld. SOA > diglog
+		if grep "root.dns.jp. 2 3600" diglog >/dev/null; then
+			echo "zone $i.tld is OK"
+		else
+			echo "retry 1"
+			mv core* ..
+			dig @127.0.0.1 -p $TPKG_PORT2 $i.tld. SOA > diglog
+			if grep "root.dns.jp. 2 3600" diglog >/dev/null; then
+				echo "zone $i.tld is OK"
+			else
+				echo "retry 2"
+				mv core* ..
+				dig @127.0.0.1 -p $TPKG_PORT2 $i.tld. SOA > diglog
+				if grep "root.dns.jp. 2 3600" diglog >/dev/null; then
+					echo "zone $i.tld is OK"
+				else
+					echo "retry 3"
+					mv core* ..
+					dig @127.0.0.1 -p $TPKG_PORT2 $i.tld. SOA > diglog
+					if grep "root.dns.jp. 2 3600" diglog >/dev/null; then
+						echo "zone $i.tld is OK"
+					else
+						echo "retry 4"
+						mv core* ..
+						dig @127.0.0.1 -p $TPKG_PORT2 $i.tld. SOA > diglog
+						if grep "root.dns.jp. 2 3600" diglog >/dev/null; then
+							echo "zone $i.tld is OK"
+						else
+							echo "zone $i.tld did not notify/xfr OK"
+							cat diglog
+							tail -200 log.slave
+							echo "and again"
+							dig @127.0.0.1 -p $TPKG_PORT2 $i.tld. SOA
+							exit 1
+						fi
+					fi
+				fi
+			fi
+		fi
+		i=`expr $i + 1`
+	done
+fi
+echo "done check correct transfer updated zone files"
+
+if grep "error: xfrd: cannot create udp socket" log log.slave; then
+	echo "error in logfile. Bad."
+	echo "log"; cat log
+	echo "log.slave"; cat log.slave
+	exit 1
+fi
+if grep "failed with status" log log.slave; then
+	echo "crash in logfile. Bad."
+	echo "log"; cat log
+	echo "log.slave"; cat log.slave
+	exit 1
+fi
+if grep "Resource temporarily unavailable" log log.slave; then
+	echo "error in logfile. Bad."
+	echo "log"; cat log
+	echo "log.slave"; cat log.slave
+	exit 1
+fi
+if grep "Bad file descriptor" log log.slave; then
+	echo "error in logfile. Bad."
+	echo "log"; cat log
+	echo "log.slave"; cat log.slave
+	exit 1
+fi
+if grep "Socket is not connected" log log.slave; then
+	echo "error in logfile. Bad."
+	echo "log"; cat log
+	echo "log.slave"; cat log.slave
+	exit 1
+fi
+echo "all OK"
+echo it took `expr $endtime - $starttime` seconds for $NUMZONES
+
+exit 0

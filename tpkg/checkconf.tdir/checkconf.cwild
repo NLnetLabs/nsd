@@ -1,0 +1,5 @@
+server:
+	username: ""
+	chroot: ""
+
+include: "checkconf.*.cwildinc"

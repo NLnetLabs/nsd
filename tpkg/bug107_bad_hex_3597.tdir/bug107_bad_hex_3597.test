@@ -1,0 +1,24 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+. ../common.sh
+
+# we execute in a subdir, so everything in NSD is in ../../
+get_random_port 1
+
+# this crashes in NSD 2.3.1
+
+# create .db file
+../../nsd -c bug107_bad_hex_3597.conf -V 3 -p $RND_PORT
+wait_nsd_up nsd.log
+if dig @127.0.0.1 -p $RND_PORT interop3597.rfc.se. TYPE731 | grep SERVFAIL; then
+        # this should happen, as there a mistake in the zone
+	cat nsd.log
+	echo OK
+else
+	echo fail
+	kill_pid `cat nsd.pid`
+	cat nsd.log
+	exit 1
+fi
+kill_pid `cat nsd.pid`
+exit 0

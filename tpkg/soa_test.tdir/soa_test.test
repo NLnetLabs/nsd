@@ -1,0 +1,54 @@
+# #-- soa_test.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+get_random_port 1
+
+# should not fail
+../../nsd -c soa_test.conf -V 3 -p $RND_PORT
+wait_nsd_up nsd.log
+
+if dig @127.0.0.1 -p $RND_PORT example1.com SOA | grep NOERROR; then
+	echo OK
+else
+	echo fail
+	kill_pid `cat nsd.pid`
+	exit 1
+fi
+
+if dig @127.0.0.1 -p $RND_PORT example2.com SOA | grep NOERROR; then
+	echo OK
+else
+	echo fail
+	kill_pid `cat nsd.pid`
+	exit 1
+fi
+
+if dig @127.0.0.1 -p $RND_PORT example3.com SOA | grep NOERROR; then
+	echo OK
+else
+	echo fail
+	kill_pid `cat nsd.pid`
+	exit 1
+fi
+
+if dig @127.0.0.1 -p $RND_PORT example4.com SOA | grep NOERROR; then
+	echo OK
+else
+	echo fail
+	kill_pid `cat nsd.pid`
+	exit 1
+fi
+
+if dig @127.0.0.1 -p $RND_PORT example5.com SOA | grep NOERROR; then
+	echo OK
+else
+	echo fail
+	kill_pid `cat nsd.pid`
+	exit 1
+fi
+
+kill_pid `cat nsd.pid`
+exit 0

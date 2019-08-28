@@ -1,0 +1,47 @@
+# #-- kill_nsd.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+echo "NSD PORT: $TPKG_PORT"
+PSFLAG="waux"
+if ps -w 2>&1 | grep "illegal option" >/dev/null; then PSFLAG="-Af"; fi
+
+# check if the pid file is already created (i.e. NSD has started)
+MAX_SLEEP=10
+i=0
+while [[ ! -f $TPKG_NSD_PID ]]; do
+	echo no $TPKG_NSD_PID yet, waiting $i...
+	sleep 5
+	i=$(($i+1));
+	if [[ $i -ge $MAX_SLEEP ]]; then
+		echo Error no $TPKG_NSD_PID after this wait.
+		exit 1
+	fi
+done
+
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+echo kill $NSD_PID
+kill $NSD_PID 2>/dev/null
+
+# wait for NSD to exit.
+MAX_WAIT=10
+i=0
+while ps $PSFLAG | awk ' { print $2 } ' | grep -v grep | grep "^$NSD_PID$"; do
+	echo NSD did not exit yet, waiting $i...
+	sleep 5
+	i=$(($i+1));
+	if [[ $i -ge $MAX_SLEEP ]]; then
+		echo Error NSD did not exit after this wait.
+		exit 1
+	fi
+done
+
+ps $PSFLAG | awk ' { print $2 } ' | grep -v grep | grep "^$NSD_PID$"
+if [[ $? -eq 0 ]]; then
+        exit 1
+else
+        exit 0
+fi

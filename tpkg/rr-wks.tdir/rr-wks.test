@@ -1,0 +1,53 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+. ../common.sh
+get_random_port 2
+CONTROLPORT=`expr $RND_PORT + 1`
+
+# create .db file
+sed -e "s/CONTROLPORT/$CONTROLPORT/" < rr-wks.conf > nsd.conf
+../../nsd -c nsd.conf -p $RND_PORT
+wait_nsd_up nsd.log
+touch rr-wks.zone
+../../nsd-control -c nsd.conf reload
+touch rr-wks.zone
+../../nsd-control -c nsd.conf reload
+touch rr-wks.zone
+../../nsd-control -c nsd.conf reload
+touch rr-wks.zone
+../../nsd-control -c nsd.conf reload
+touch rr-wks.zone
+../../nsd-control -c nsd.conf reload
+touch rr-wks.zone
+../../nsd-control -c nsd.conf reload
+touch rr-wks.zone
+../../nsd-control -c nsd.conf reload
+touch rr-wks.zone
+../../nsd-control -c nsd.conf reload
+mv rr-wks.zone rr-wks.orig_zone
+../../nsd-control -c nsd.conf write
+if test ! -f rr-wks.zone; then sleep 1; fi
+if test ! -f rr-wks.zone; then sleep 1; fi
+if test ! -f rr-wks.zone; then sleep 1; fi
+if test ! -f rr-wks.zone; then sleep 1; fi
+if test ! -f rr-wks.zone; then sleep 1; fi
+if test ! -f rr-wks.zone; then sleep 1; fi
+if test ! -f rr-wks.zone; then sleep 1; fi
+if test ! -f rr-wks.zone; then sleep 1; fi
+if test ! -f rr-wks.zone; then sleep 1; fi
+if test ! -f rr-wks.zone; then sleep 1; fi
+kill_pid `cat nsd.pid`
+
+# printout the zone
+cp rr-wks.zone cmp.zone
+cat cmp.zone
+
+if test -f cmp.zone; then
+	echo "ok"
+else
+	echo "zone did not print, failure"
+	cat nsd.log
+	exit 1
+fi
+
+exit 0

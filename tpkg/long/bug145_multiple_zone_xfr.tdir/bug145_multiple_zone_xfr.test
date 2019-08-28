@@ -1,0 +1,170 @@
+#!/bin/bash
+# #-- bug145_multiple_zone_xfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+# description of this test:
+#
+# Simultaneous transfers to NSD to have reload handle partial xfrs in diffile.
+#
+# so the plan is:
+#
+# we have two zones: xfr.fast and xfr.slow
+# load serial numbers xfr.fast 1, xfr.slow 1.
+# startup with masters (two testns) for both, with no updates on the master.
+#
+# 1.    test xfr.fast 1, xfr.slow 1.
+#
+# 2.    loadup master for xfr.fast, and axfr half of it, wait 10 seconds.
+#       wait 3 seconds
+#
+# 3.    loadup master for xfr.slow, and axfr half of it, wait 15 seconds.
+#       wait 3 seconds
+#
+# 4.	test xfr.fast 1, xfr.slow 1.
+#	wait 4 seconds
+#	(xfr.fast complete,reload has to skip over incomplete xfr.slow)
+#		diff file now is:
+#			first packet of xfr.fast << will be skipped over
+#			first packet of xfr.slow
+#			final packet of xfr.fast
+#			commit packet of xfr.fast
+#	wait 3 seconds
+#
+# 5.	test xfr.fast 2, xfr.slow 1.
+#	wait 5 seconds
+#	(xfr.slow complete,reload has to do the skip over first entry diffile)
+#	wait 3 seconds
+#
+# 6.	test xfr.fast 2, xfr.slow 2.
+#       wait 2 seconds
+#
+# 7.    loadup new master for xfr.fast and xfr it. (skip to end of diffile)
+#       wait 3 seconds
+#
+# 8.    test xfr.fast 3, xfr.slow 2. 
+
+
+
+RESULTFILE=bug145_multiple_zone_xfr.current_response
+PRE="../../.."
+TPKG_NSD="$PRE/nsd"
+TPKG_NOTIFY="ldns-notify"
+if test -f "`which ldns-testns`"; then
+	MINISERVER=`which ldns-testns`
+else
+	MINISERVER="$PRE/tpkg/pcat/ldns-testns.linux"
+fi
+DIG="dig"
+
+
+function kill_mini() {
+	if [ ! -e "$1" -o -z "$1" ]; then
+		echo "miniserver exited ok"
+	else
+		# kill the mini server.
+		NSD_PID=`cat $1`
+		kill $NSD_PID 2>/dev/null
+		sleep 1 # should be really dead now - just to be sure kill it again
+		kill $NSD_PID 2>/dev/null
+	fi
+}
+
+function setup_miniserver() { # <query setup file> <port> <pidfile>
+	kill_mini $3
+	echo ">>> setup $MINISERVER -p "$2" $1 on pidfile=$3"
+	$MINISERVER -v -p "$2" $1 &
+	echo $! > $3
+}
+
+function notify_slave() { # <zone>
+	echo ">>> nsd-notify -p $SLAVE_PORT -z $1 127.0.0.1"
+	$TPKG_NOTIFY -p $SLAVE_PORT -z "$1" 127.0.0.1
+}
+
+function check_slave_zone() { # <zone> <testnr> <checkfile>
+	# check if slave has the same zone as the check zonefile.
+	dig @127.0.0.1 -p $SLAVE_PORT $1 AXFR | tee $RESULTFILE
+	cat $RESULTFILE | grep -v '^;' > bug145_multiple_zone_xfr.check
+	if wdiff bug145_multiple_zone_xfr.check $3 >/dev/null; then
+		echo "ZONE $1 SOA=$2 OK"
+	else
+		echo "ZONE $1 SOA=$2 BAD"
+		echo diff is
+		wdiff bug145_multiple_zone_xfr.check $3
+		exit 1
+	fi
+}
+
+# init
+setup_miniserver bug145_multiple_zone_xfr.qs_fast_1 $MASTER_PORT $TPKG_NSD_PID
+setup_miniserver bug145_multiple_zone_xfr.qs_slow_1 $MASTER2_PORT $TPKG_NSD_PID3
+#list_diff
+sleep 2
+# startup NSD slave now that the masters are available.
+# so it can check that both zones are OK.
+$TPKG_NSD -c slave.conf -p $SLAVE_PORT -P $TPKG_NSD_PID2
+sleep 2
+
+# 1.
+echo ">>> at 1."
+check_slave_zone "xfr.fast." 1 bug145_multiple_zone_xfr.zone_fast_1
+check_slave_zone "xfr.slow." 1 bug145_multiple_zone_xfr.zone_slow_1
+
+# 2.
+echo ">>> at 2."
+setup_miniserver bug145_multiple_zone_xfr.qs_fast_2 $MASTER_PORT $TPKG_NSD_PID
+sleep 1 # wait for it to come up.
+notify_slave "xfr.fast."
+sleep 2
+#list_diff
+
+# 3.
+echo ">>> at 3."
+setup_miniserver bug145_multiple_zone_xfr.qs_slow_2 $MASTER2_PORT $TPKG_NSD_PID3
+sleep 1 # wait for it to come up.
+notify_slave "xfr.slow."
+sleep 2
+#list_diff
+
+# 4.
+echo ">>> at 4."
+check_slave_zone "xfr.fast." 1 bug145_multiple_zone_xfr.zone_fast_1
+check_slave_zone "xfr.slow." 1 bug145_multiple_zone_xfr.zone_slow_1
+sleep 4
+# xfr.fast completes around now.
+sleep 3
+#list_diff
+
+# 5.
+echo ">>> at 5."
+check_slave_zone "xfr.fast." 2 bug145_multiple_zone_xfr.zone_fast_2
+check_slave_zone "xfr.slow." 1 bug145_multiple_zone_xfr.zone_slow_1
+sleep 5
+# xfr.slow completes around now.
+sleep 3
+#list_diff
+
+# 6.
+echo ">>> at 6."
+check_slave_zone "xfr.fast." 2 bug145_multiple_zone_xfr.zone_fast_2
+check_slave_zone "xfr.slow." 2 bug145_multiple_zone_xfr.zone_slow_2
+sleep 2
+
+# 7.
+echo ">>> at 7."
+setup_miniserver bug145_multiple_zone_xfr.qs_fast_3 $MASTER_PORT $TPKG_NSD_PID
+sleep 1 # wait for it to come up.
+notify_slave "xfr.fast."
+sleep 2
+#list_diff
+
+# 8.
+echo ">>> at 8."
+check_slave_zone "xfr.fast." 3 bug145_multiple_zone_xfr.zone_fast_3
+check_slave_zone "xfr.slow." 2 bug145_multiple_zone_xfr.zone_slow_2
+
+echo ">>> test completed successfully."
+exit 0

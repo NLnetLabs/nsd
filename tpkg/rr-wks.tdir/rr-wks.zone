@@ -1,0 +1,28 @@
+types.wb.sidnlabs.nl.	86400	IN	SOA	nsd.sidnlabs.nl. hostmaster.sidnlabs.nl. 1384270487 3600 600 1814400 3600
+types.wb.sidnlabs.nl.	60	IN	NS	yadifa.sidnlabs.nl.
+types.wb.sidnlabs.nl.	60	IN	NS	powerdns.sidnlabs.nl.
+types.wb.sidnlabs.nl.	60	IN	NS	knot.sidnlabs.nl.
+types.wb.sidnlabs.nl.	60	IN	NS	bind10.sidnlabs.nl.
+types.wb.sidnlabs.nl.	60	IN	NS	bind9.sidnlabs.nl.
+types.wb.sidnlabs.nl.	60	IN	NS	nsd4.sidnlabs.nl.
+types.wb.sidnlabs.nl.	60	IN	NS	nsd.sidnlabs.nl.
+
+;type56.types.wb.sidnlabs.nl.	60	IN	TYPE56	\# 27 1a54686973207a6f6e65206973206578706572696d656e74616c2e
+;ninfo.types.wb.sidnlabs.nl.	60	IN	TYPE56	\# 27 1a54686973207a6f6e65206973206578706572696d656e74616c2e
+
+cname.types.wb.sidnlabs.nl.	60	IN	CNAME	www.types.wb.sidnlabs.nl.
+
+afsdb.types.wb.sidnlabs.nl.	60	IN	AFSDB	12345 afsnode.types.wb.sidnlabs.nl.
+
+type7.types.wb.sidnlabs.nl.	60	IN	TXT	"Removed because NSD4 refuses to load it"
+mb.types.wb.sidnlabs.nl.	60	IN	TXT	"Removed because NSD4 refuses to load it"
+
+type12.types.wb.sidnlabs.nl.	60	IN	PTR	types.wb.sidnlabs.nl.
+ptr01.types.wb.sidnlabs.nl.	60	IN	PTR	types.wb.sidnlabs.nl.
+
+type11.types.wb.sidnlabs.nl.	60	IN	WKS	10.0.0.1 tcp 0 tcpmux 2 ftp telnet smtp 26 
+wks.types.wb.sidnlabs.nl.	60	IN	WKS	10.0.0.1 tcp 0 tcpmux 2 ftp telnet smtp 26 33 34 
+wks01.types.wb.sidnlabs.nl.	60	IN	WKS	10.0.0.1 tcp 0 tcpmux 2 ftp telnet smtp 26 33 34 
+
+type9.types.wb.sidnlabs.nl.	60	IN	MR	mailrename.types.wb.sidnlabs.nl.
+

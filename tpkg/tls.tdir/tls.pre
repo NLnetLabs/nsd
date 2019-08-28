@@ -1,0 +1,25 @@
+# #-- tls.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+TPKG_PORT2=`expr $RND_PORT + 1`
+
+PRE="../.."
+TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_PORT2=$TPKG_PORT2" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+
+sed -e "s/TLSPORT/$TPKG_PORT2/" < tls.conf > edit.conf
+
+$TPKG_NSD -c edit.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID
+wait_nsd_up nsd.log

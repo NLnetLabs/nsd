@@ -1,0 +1,33 @@
+$ORIGIN example.net.
+$TTL 7200
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY
+REPLY NOTIMPL
+REPLY AA AD
+ADJUST copy_id          ; copy_id copies the ID from the query to the answer.
+SECTION QUESTION
+example.net. IN IXFR
+SECTION ANSWER
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+MATCH TCP
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+ADJUST copy_id          ; copy_id copies the ID from the query to the answer.
+SECTION QUESTION
+example.net. IN AXFR
+SECTION ANSWER
+example.net. IN SOA nibbler.example.net. leela.example.net. 2 2000 3000 4000 5000
+www.example.net. IN A 127.0.0.2
+example.net. IN SOA nibbler.example.net. leela.example.net. 2 2000 3000 4000 5000
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+

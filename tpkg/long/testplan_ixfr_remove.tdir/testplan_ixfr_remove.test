@@ -1,0 +1,110 @@
+#!/bin/bash
+# #-- testplan_ixfr_remove.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+RESULTFILE=testplan_ixfr_remove.current_response
+PRE="../../.."
+TPKG_NOTIFY="ldns-notify"
+get_ldns_testns
+MINISERVER=$LDNS_TESTNS
+DIG="dig"
+
+
+function kill_mini() {
+	if [ ! -e $TPKG_NSD_PID -o -z "$TPKG_NSD_PID" ]; then
+		echo "miniserver exited ok"
+	else
+		# kill the mini server.
+		NSD_PID=`cat $TPKG_NSD_PID`
+		kill $NSD_PID 2>/dev/null
+		#sleep 1 # should be really dead now - just to be sure kill it again
+		kill $NSD_PID 2>/dev/null
+	fi
+}
+
+function setup_miniserver() { # <query setup file>
+	kill_mini
+	echo ">>> setup $MINISERVER -p $MASTER_PORT $1"
+	$MINISERVER -p $MASTER_PORT $1 >fwd.log 2>&1 &
+	echo $! > $TPKG_NSD_PID
+	wait_ldns_testns_up fwd.log
+}
+
+function notify_slave() { # <serial>
+	echo ">>> ldns-notify -p $SLAVE_PORT -z example.com. 127.0.0.1"
+	$TPKG_NOTIFY -p $SLAVE_PORT -z example.com. 127.0.0.1
+}
+
+function check_slave_zone() { # <testnr> <checkfile>
+	echo "-------wait-----------------------------------------"
+	# check if slave has the same zone as the check zonefile.
+	dig @127.0.0.1 -p $SLAVE_PORT example.com. AXFR | tee $RESULTFILE
+	cat $RESULTFILE | grep -v '^;' > testplan_ixfr_remove.check
+	if wdiff testplan_ixfr_remove.check $2 >/dev/null; then
+		echo "ZONE SOA=$1 OK"
+	else
+		echo "ZONE SOA=$1 BAD"
+		echo diff is
+		wdiff testplan_ixfr_remove.check $2
+		cat fwd.log
+		cat nsd.log
+		exit 1
+	fi
+}
+
+# startup miniserver with appropriate files.
+# check zone at start.
+check_slave_zone 1 testplan_ixfr_remove.zone_1
+
+# update the zone with an IXFR
+setup_miniserver testplan_ixfr_remove.qs_2
+notify_slave 2
+wait_logfile nsd.log "updated to 2" 120
+check_slave_zone 2 testplan_ixfr_remove.zone_2
+
+# check empty nonterminals
+echo ">>> dig b.c.example.com TXT"
+if $DIG @127.0.0.1 -p $SLAVE_PORT b.c.example.com TXT | tee -a /dev/stderr \
+	| grep "NOERROR" >/dev/null; then
+	echo "correct"
+else
+	echo "Error. Incorrect empty nonterminal."
+	cat fwd.log
+	cat nsd.log
+	exit 1
+fi
+
+# check wildcard
+echo ">>> dig del.example.com TXT"
+if $DIG @127.0.0.1 -p $SLAVE_PORT del.example.com TXT | tee -a /dev/stderr \
+	| grep '"wildcard name"' >/dev/null; then
+	echo "correct"
+else
+	echo "Error. wildcard no longer works."
+	cat fwd.log
+	cat nsd.log
+	exit 1
+fi
+
+setup_miniserver testplan_ixfr_remove.qs_3
+notify_slave 3
+wait_logfile nsd.log "updated to 3" 120
+check_slave_zone 3 testplan_ixfr_remove.zone_3
+
+# check empty nonterminals
+echo ">>> dig b.c.example.com TXT"
+if $DIG @127.0.0.1 -p $SLAVE_PORT b.c.example.com TXT | tee -a /dev/stderr \
+	| grep "NXDOMAIN" >/dev/null; then
+	echo "correct"
+else
+	echo "Error. Incorrect empty nonterminal."
+	cat fwd.log
+	cat nsd.log
+	exit 1
+fi
+
+exit 0

@@ -1,0 +1,23 @@
+# #-- nsid_ascii.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+dig @localhost -p $TPKG_PORT +norec +nsid +qr @localhost soa example.com &> out
+
+# 66 6f 6f 62 61 72 = "foobar"
+if grep "NSID: 66 6f 6f 62 61 72" out; then
+	echo OK
+elif grep "Invalid option: +nsid" out; then
+	echo NSID not supported by dig
+else
+	echo NSID not in response
+
+	cat out
+	rm -f out
+	exit 1
+fi
+
+rm -f out
+exit 0

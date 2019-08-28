@@ -1,0 +1,51 @@
+# #-- nsid.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+dig @localhost -p $TPKG_PORT +norec +nsid @localhost soa example.com &> out
+cat out
+
+if grep "NSID: 65 43 21" out; then
+	echo OK
+elif grep "Invalid option: +nsid" out; then
+	echo NSID not supported by dig
+	exit 0
+else
+	echo NSID not in response
+
+	cat out
+	rm -f out
+	exit 1
+fi
+rm -f out
+
+# large response and nsid
+# start at 675 (truncated authority to TCP), to higher (truncate optional), to max(821+ all)
+i=685
+while test $i -lt 835; do
+
+	echo "bufsize $i"
+	dig @localhost -p $TPKG_PORT +norec +nsid +bufsize=$i @localhost txt large.example.com &> out
+	cat out
+
+	if grep "NSID: 65 43 21" out; then
+		echo OK
+	elif grep "Invalid option: +nsid" out; then
+		echo NSID not supported by dig
+		exit 0
+	else
+		echo NSID not in shortened response $i
+
+		cat out
+		rm -f out
+		exit 1
+	fi
+	rm -f out
+
+	i=`expr $i + 1`
+done
+
+
+exit 0

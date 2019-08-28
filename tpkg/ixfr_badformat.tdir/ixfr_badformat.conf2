@@ -1,0 +1,22 @@
+server:
+	logfile: "nsd.log"
+	difffile: ixfr.db
+	xfrdfile: xfrd.state
+	zonesdir: ""
+	username: ""
+	chroot: ""
+	pidfile: nsd.pid
+	database: nsd.db
+
+zone:
+	name: example.net
+	zonefile: ixfr_badformat.zone2
+	request-xfr: UDP 127.0.0.1@RANDOM NOKEY
+	allow-notify: 0.0.0.0/0 NOKEY
+	allow-notify: 127.0.0.1 NOKEY
+	allow-notify: ::1 NOKEY
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: ::1 NOKEY
+	min-refresh-time: 0
+	min-retry-time: 0
+

@@ -1,0 +1,36 @@
+# #-- bug056_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../../"
+
+# should fail
+if dig @localhost -p $TPKG_PORT example.nl. AXFR 2>&1 | \
+	grep "Transfer failed"; then
+	echo "OK xfer refused"
+else
+	echo "xfer not refused like it should."
+        exit 1
+fi
+
+# ask for non-existant zone
+if dig @localhost -p $TPKG_PORT example.net. AXFR 2>&1 | \
+	grep "Transfer failed"; then
+	echo "OK xfer refused"
+else
+	echo "xfer not refused like it should."
+        exit 1
+fi
+
+# ixfr from the server.
+if dig @localhost -p $TPKG_PORT example.nl. ixfr=2005030300 2>&1 | \
+	grep "Transfer failed"; then
+	echo "IXFR refused like it should"
+else
+	echo "IXFR not refused like it should"
+	exit 1
+fi
+
+exit 0

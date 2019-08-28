@@ -1,0 +1,38 @@
+# #-- ct-repat-interrupt.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+. ../common.sh
+
+echo nsd.log
+cat nsd.log
+echo testns.log
+cat testns.log
+echo testns2.log
+cat testns2.log
+
+rm -f nsd.db
+rm -f nsd.log
+rm -f xfrd.state
+rm -f nsd.zonelist
+rm -f ixfr.db
+
+if test -f $NSD_PID; then
+	# see if the server exits anyway
+	sleep 1
+	if test -f $NSD_PID; then
+		sleep 2
+		if test -f $NSD_PID; then
+			# the test must have failed
+			kill_pid `cat $NSD_PID`
+		fi
+	fi
+fi
+echo testnspid $TESTNS_PID $TESTNS2_PID
+kill_pid $TESTNS_PID
+if kill -0 $TESTNS2_PID 2>/dev/null; then
+	kill_pid $TESTNS2_PID
+fi

@@ -1,0 +1,62 @@
+# #-- bug013_truncate.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+NOEDNS="+noedns"
+if $DIG $NOEDNS -v 2>&1 | grep "Invalid option" >/dev/null; then
+        NOEDNS=""
+fi
+
+# truncated
+$DIG $NOEDNS +ignore +bufsize=100 @127.0.0.1 -p $TPKG_PORT mx miek.nl | grep flags | \
+grep -v EDNS > bug013_truncate.current_respons_truncated
+
+echo '>> truncated is'
+cat bug013_truncate.current_respons_truncated
+echo '>> truncated(known_good) is'
+cat bug013_truncate.known_good_respons_truncated
+
+wdiff bug013_truncate.known_good_respons_truncated bug013_truncate.current_respons_truncated
+if test $? -ne 0; then
+	echo "truncated is wrong"
+	exit 1
+fi
+
+# full answer
+$DIG $NOEDNS +noall +answer +noignore +bufsize=700 @127.0.0.1 -p $TPKG_PORT mx miek.nl > \
+bug013_truncate.current_respons_full_answer
+
+echo '>> full is'
+cat bug013_truncate.current_respons_full_answer
+echo '>> full(known good) is'
+cat bug013_truncate.known_good_respons_full_answer
+
+wdiff bug013_truncate.known_good_respons_full_answer bug013_truncate.current_respons_full_answer
+if test $? -ne 0; then
+	echo "full answer is wrong"
+	exit 1
+fi
+
+# a before aaaa
+$DIG +noall +additional @127.0.0.1 -p $TPKG_PORT mx miek.nl > \
+bug013_truncate.current_respons_a_before_aaaa
+
+echo '>> a_before_aaaa is'
+cat bug013_truncate.current_respons_a_before_aaaa
+echo '>> a_before_aaaa(known_good) is'
+cat bug013_truncate.known_good_respons_a_before_aaaa
+echo '>> a_before_aaaa(known_good2) is'
+cat bug013_truncate.known_good_respons_a_before_aaaa2
+
+(
+wdiff bug013_truncate.known_good_respons_a_before_aaaa bug013_truncate.current_respons_a_before_aaaa || \
+wdiff bug013_truncate.known_good_respons_a_before_aaaa2 bug013_truncate.current_respons_a_before_aaaa )
+if test $? -ne 0; then
+	echo "a before aaaa is wrong"
+	exit 1
+fi
+
+$DIG +bufsize=4096 @127.0.0.1 -p $TPKG_PORT mx miek.nl

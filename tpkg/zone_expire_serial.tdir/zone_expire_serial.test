@@ -1,0 +1,61 @@
+# #-- zone_expire_serial.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+NSD_OPTS="-V 5"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+
+$TPKG_NSD -c nsd.conf -p $TPKG_PORT $NSD_OPTS
+###wait_nsd_up nsd.log
+# example.net should be expired
+echo "waiting on nsd.log"
+wait_logfile nsd.log "expired" 12
+sleep 2
+
+echo port: $TPKG_PORT
+dig @127.0.0.1 -p $TPKG_PORT example.net SOA | tee data
+if grep SERVFAIL data; then
+	echo OK
+else
+	echo "zone was not expired"
+	cat nsd.log
+	exit 1
+fi
+
+# stop the master server and reload with older SOA record
+kill_pid $TESTNS_PID
+echo "Stopped the master and made it work at `date`"
+ldns-testns -v -p $LDNS_PORT zone_expire_serial.datafile2 >master2.log 2>&1 &
+echo "export TESTNS_PID=$!" >> .tpkg.var.test
+wait_ldns_testns_up master2.log
+
+# wait for it to retry the transfer
+ldns-notify -z example.net -p $TPKG_PORT 127.0.0.1
+wait_logfile nsd.log "is updated" 12
+sleep 2
+# but it should retry the transfer and accept older serial number.
+
+dig @127.0.0.1 -p $TPKG_PORT example.net SOA | tee data
+if grep SERVFAIL data; then
+	echo "zone was still expired and did not accept older serial"
+	cat nsd.log
+	exit 1
+else
+	echo "OK"
+fi
+
+cat nsd.log
+#cat master.log
+#cat master2.log
+
+exit 0

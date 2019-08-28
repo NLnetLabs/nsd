@@ -1,0 +1,58 @@
+# #-- xfr_alot.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+RESULTFILE=xfr_alot.current_response
+
+wait_logfile slave.log "is updated to 2003070707" 500
+
+# xfer a lot more
+cp xfr_alot.zone_2 xfr_alot.master.zone
+sleep 2
+touch xfr_alot.master.zone
+kill -HUP `cat $TPKG_NSD_PID`
+wait_logfile slave.log "is updated to 2003070708" 500
+
+cp xfr_alot.zone_3 xfr_alot.master.zone
+sleep 2
+touch xfr_alot.master.zone
+kill -HUP `cat $TPKG_NSD_PID`
+wait_logfile slave.log "is updated to 2003070709" 500
+
+cp xfr_alot.zone_4 xfr_alot.master.zone
+sleep 2
+touch xfr_alot.master.zone
+kill -HUP `cat $TPKG_NSD_PID`
+wait_logfile slave.log "is updated to 2003070710" 500
+
+cp xfr_alot.zone_5 xfr_alot.master.zone
+sleep 2
+touch xfr_alot.master.zone
+kill -HUP `cat $TPKG_NSD_PID`
+wait_logfile slave.log "is updated to 2003070717" 500
+
+echo "done"
+# must be ok
+dig @127.0.0.1 -p $TPKG_PORT2 huge.example. AXFR > $RESULTFILE
+echo ">>> head $RESULTFILE "
+head $RESULTFILE 
+cat $RESULTFILE | grep -v '^;' > xfr_alot.check
+if wdiff xfr_alot.check xfr_alot.known_good >/dev/null; then
+	echo "transfer 1 ok"
+else
+	cat master.log
+	cat slave.log
+	echo "transfer failed"
+	exit 1
+fi
+
+ls -l master.log
+ls -l slave.log
+
+echo "summary"
+grep -e "[Mm]emory" -e "[rR]ecycle" slave.log
+
+exit 0

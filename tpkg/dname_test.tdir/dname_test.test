@@ -1,0 +1,12 @@
+# #-- dname_test.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+# see if the test works.
+if bash test.sh -v; then
+	exit 0
+else
+	exit 1
+fi

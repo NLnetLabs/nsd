@@ -1,0 +1,6 @@
+$TTL    4D
+$ORIGIN example.com.
+example.com.	IN	SOA	nibbler.example.net. leela.example.net. 1 3 4 3000 5
+example.com.	IN NS		ns1
+hostname	IN A		1.2.3.4
+www		IN CNAME	hostname

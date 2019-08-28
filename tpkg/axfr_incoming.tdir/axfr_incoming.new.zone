@@ -1,0 +1,28 @@
+; nothing fancy here
+$TTL    4D
+$ORIGIN example.net.
+example.net.	IN	SOA	nibbler.example.net. leela.example.net. 2 3 4 3000 5
+
+delrr IN A 1.2.3.5
+delrr IN A 1.2.3.6
+
+addrr IN A 1.2.3.4
+addrr IN A 2.3.4.5
+
+addrrset IN A 1.2.3.4
+addrrset IN A 1.2.3.5
+addrrset IN AAAA ::234
+addrrset IN AAAA ::237
+addrrset IN TXT "this is an rrset"
+
+newname IN A 1.2.3.4
+
+othername IN AAAA ::65
+othername IN A 6.5.6.5
+
+unmodified IN A 8.8.8.8
+unmodified IN A 8.8.8.7
+unmodified IN A 8.8.8.6
+unmodified IN A 8.8.8.6
+unmodified IN TXT "this entry has not been modified"
+

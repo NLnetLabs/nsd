@@ -1,0 +1,51 @@
+# #-- ixfr_wildcard.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd -V 5"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+
+$TPKG_NSD -c nsd.conf -p $TPKG_PORT -V 3
+ldns-notify -z tld. -p $TPKG_PORT -s 2 127.0.0.1
+sleep 3
+
+dig @127.0.0.1 -p $TPKG_PORT tld. SOA | grep SOA
+dig @127.0.0.1 -p $TPKG_PORT www.bla.dom.tld. A | tee out1
+if grep CNAME out1; then echo OK; else echo noCNAME; exit 1; fi
+
+# next ixfr datafile.
+kill_pid $TESTNS_PID
+ldns-testns -p $LDNS_PORT ixfr_wildcard.datafile2 &
+TESTNS_PID=$!
+echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
+sleep 1
+ldns-notify -z tld. -p $TPKG_PORT -s 3 127.0.0.1
+sleep 3
+
+dig @127.0.0.1 -p $TPKG_PORT tld. SOA | grep SOA
+dig @127.0.0.1 -p $TPKG_PORT www.bla.dom.tld. A | tee out2
+if grep foo.dom out2; then echo OK; else echo noNS; exit 1; fi
+
+# next ixfr datafile.
+kill_pid $TESTNS_PID
+ldns-testns -p $LDNS_PORT ixfr_wildcard.datafile3 &
+TESTNS_PID=$!
+echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
+sleep 1
+ldns-notify -z tld. -p $TPKG_PORT -s 4 127.0.0.1
+sleep 3
+
+dig @127.0.0.1 -p $TPKG_PORT tld. SOA | grep SOA
+dig @127.0.0.1 -p $TPKG_PORT www.bla.dom.tld. A | tee out3
+if grep CNAME out3; then echo OK; else echo noCNAME; exit 1; fi
+
+exit 0

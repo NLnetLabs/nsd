@@ -1,0 +1,31 @@
+# #-- tsig_hmacsha1.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+
+. ../common.sh
+rm tsig_hmacsha1.db
+rm tsig_hmacsha1.2.db
+
+# do your teardown here
+if [ -z $TPKG_NSD_PID ]; then
+	echo exit_ok;
+else
+	# kill NSD
+	NSD_PID=`cat $TPKG_NSD_PID`
+	kill_pid $NSD_PID
+fi
+
+if [ -z $TPKG_NSD_PID2 ]; then
+	echo exit_ok;
+else
+	# kill NSD
+	NSD_PID2=`cat $TPKG_NSD_PID2`
+	kill_pid $NSD_PID2
+fi
+
+exit 0
+

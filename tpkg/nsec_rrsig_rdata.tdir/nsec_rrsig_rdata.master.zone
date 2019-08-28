@@ -1,0 +1,7 @@
+$TTL    4D
+$ORIGIN example.NET.
+@    IN      SOA     nibbler.example.NET. leela.example.NET. 1 3 4 3000 5
+
+Aap		IN	A	1.2.3.4
+Noot		IN	A	1.2.3.5
+Mies		IN	A	1.2.3.6

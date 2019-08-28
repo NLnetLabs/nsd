@@ -1,0 +1,3 @@
+@	SOA	open.nlnetlabs.nl. hostmaster.nlnetlabs.nl. 2014032501 28800 7200 604800 3600
+@	NS	open.nlnetlabs.nl
+www	A	213.154.224.1

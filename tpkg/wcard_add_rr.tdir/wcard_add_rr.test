@@ -1,0 +1,16 @@
+# #-- bug056_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+dig @localhost -p $TPKG_PORT sub.example.nl SOA | tee out
+
+if grep "ns0.name.example.nl.	3600	IN	A	10.11.13.14" out; then
+	echo "added additional data OK"
+else
+	echo "additional not added from wildcard"
+	exit 1
+fi
+
+exit 0

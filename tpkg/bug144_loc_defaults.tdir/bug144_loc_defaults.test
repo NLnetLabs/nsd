@@ -1,0 +1,23 @@
+# #-- bug144_loc_defaults.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+# test
+echo "dig"
+$DIG @localhost -p $TPKG_PORT example.com. AXFR > bug144_loc_defaults.current_respons1
+cat bug144_loc_defaults.current_respons1
+echo "enddig"
+
+grep -v '^;' bug144_loc_defaults.current_respons1 > bug144.compare
+
+# must be ok
+if wdiff bug144.compare bug144_loc_defaults.known_good; then
+	echo "No differences in output"
+else
+	echo "Differing zone output"
+	exit 1
+fi
+exit 0

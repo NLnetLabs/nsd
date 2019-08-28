@@ -1,0 +1,71 @@
+#!/bin/bash
+# #-- ixfr_malformed.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+RESULTFILE=ixfr_malformed.current_response
+PRE="../../.."
+TPKG_NOTIFY="ldns-notify"
+get_ldns_testns
+MINISERVER="$LDNS_TESTNS"
+WAITTIME=10
+DIG="/usr/bin/dig"
+
+
+function kill_mini() {
+	if [ ! -e $TPKG_NSD_PID -o -z "$TPKG_NSD_PID" ]; then
+		echo "miniserver exited ok"
+	else
+		# kill the mini server.
+		NSD_PID=`cat $TPKG_NSD_PID`
+		kill $NSD_PID 2>/dev/null
+		sleep 1 # should be really dead now - just to be sure kill it again
+		kill $NSD_PID 2>/dev/null
+	fi
+}
+
+function setup_miniserver() { # <query setup file>
+	kill_mini
+	echo ">>> setup $MINISERVER -p $MASTER_PORT $1"
+	$MINISERVER -p $MASTER_PORT $1 >testns.log 2>&1 &
+	echo $! > $TPKG_NSD_PID
+	wait_ldns_testns_up testns.log
+}
+
+function notify_slave() { # <serial>
+	echo ">>> ldns-notify -p $SLAVE_PORT -z example.com. 127.0.0.1"
+	$TPKG_NOTIFY -p $SLAVE_PORT -z example.com. 127.0.0.1
+}
+
+function check_slave_zone() { # <testnr> <checkfile>
+	echo "-------wait-----------------------------------------"
+	# check if slave has the same zone as the check zonefile.
+	dig @127.0.0.1 -p $SLAVE_PORT example.com. AXFR | tee $RESULTFILE
+	cat $RESULTFILE | grep -v '^;' > ixfr_malformed.check
+	if wdiff ixfr_malformed.check $2 >/dev/null; then
+		echo "ZONE SOA=$1 OK"
+	else
+		echo "ZONE SOA=$1 BAD"
+		echo diff is
+		wdiff ixfr_malformed.check $2
+		exit 1
+	fi
+}
+
+# startup miniserver with appropriate files.
+setup_miniserver ixfr_malformed.qs_1
+notify_slave 10
+sleep $WAITTIME
+
+# force reload to happen with rollback in the ixfr.db
+kill -SIGHUP `cat $TPKG_NSD_PID2`
+sleep $WAITTIME
+# check that the transfer did not happen.
+check_slave_zone 1 ixfr_malformed.zone_1 
+echo $PRE/nsd-patch -c slave.conf -l
+
+cat testns.log
+exit 0

@@ -1,0 +1,29 @@
+# #-- readpid.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+echo "NSD PORT: $TPKG_PORT"
+
+echo "10240" > $TPKG_NSD_PID
+
+$TPKG_NSD -c readpid.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f readpid.db
+wait_nsd_up nsd.logfile
+
+cat nsd.logfile
+
+if grep "...stale pid file from process 10240" nsd.logfile; then
+	echo "read pid works"
+	exit 0
+fi
+
+if grep "nsd is already running as 10240" nsd.logfile; then
+	echo "read pid works (other process with same id running)"
+	exit 0
+fi
+
+exit 1

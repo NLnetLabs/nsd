@@ -1,0 +1,57 @@
+# #-- nsec3_dname.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../../.."
+DIG=dig
+$DIG @localhost -p $TPKG_PORT SOA example. > cur
+cat cur
+if grep "bugs.x.w.example." cur >/dev/null; 
+then echo SOA ok.; else exit 1; fi
+
+$DIG @localhost +dnssec -p $TPKG_PORT AAAA example. > cur
+cat cur
+if grep "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom.example." cur >/dev/null; 
+then echo "SOA NODATA test"; else exit 1; fi
+
+dig @127.0.0.1 -p $TPKG_PORT example. AXFR | tee xferred
+
+# Does not check RRSIGs.
+# but only owner names. So Dig can be nsec3 unaware. Only hashfunc has to stay.
+
+# get some redirection happennin'
+$DIG @localhost -p $TPKG_PORT zazazaza.example. A > cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 2" cur >/dev/null &&
+grep "DNAME" cur >/dev/null &&
+grep "CNAME" cur >/dev/null &&
+grep "zazazaza.faraway.island." cur >/dev/null ;
+then echo "DNAME works unsigned"; else exit 1; fi
+
+$DIG @localhost +dnssec -p $TPKG_PORT agagaga.example. A > cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 3" cur >/dev/null &&
+grep "DNAME" cur >/dev/null &&
+grep "CNAME" cur >/dev/null &&
+grep "VAJBlXoTOScrIM6yPlDsd9o05v39qI" cur >/dev/null && # rrsig on dname
+grep "agagaga.faraway.island." cur >/dev/null ;
+then echo "DNAME works signed"; else exit 1; fi
+
+# try the nsec3 ownername (uh oh)
+QUERY="$DIG @localhost +dnssec -p $TPKG_PORT"
+$QUERY 0p9mhaveqvm6t7vbl5lop2u3t2rp3tom.example. A >cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 3" cur >/dev/null &&
+grep "DNAME" cur >/dev/null &&
+grep "CNAME" cur >/dev/null &&
+grep "VAJBlXoTOScrIM6yPlDsd9o05v39qI" cur >/dev/null && # rrsig on dname
+grep "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom.faraway.island." cur >/dev/null ;
+then echo "ok"; else exit 1; fi
+
+echo "NSEC3 and DNAME OK"
+exit 0

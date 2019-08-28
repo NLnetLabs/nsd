@@ -1,0 +1,4 @@
+xfr.slow.               345600  IN      SOA     ns0.example.org. root.example.com. 1 3600 28800 2419200 3600
+svc.xfr.slow.           345600  IN      TXT     "slow serial 1"
+www.xfr.slow.           345600  IN      A       10.20.30.40
+xfr.slow.               345600  IN      SOA     ns0.example.org. root.example.com. 1 3600 28800 2419200 3600

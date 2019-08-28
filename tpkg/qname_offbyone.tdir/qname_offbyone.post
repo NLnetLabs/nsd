@@ -1,0 +1,24 @@
+# #-- qname_offbyone.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+
+. ../common.sh
+
+rm -f qname_offbyone.db
+rm -f qname_offbyone.log
+
+# do your teardown here
+if [ -z $TPKG_NSD_PID ]; then
+	echo exit_ok;
+else
+	# kill NSD
+	NSD_PID=`cat $TPKG_NSD_PID`
+	kill_pid $NSD_PID
+fi
+
+exit 0
+

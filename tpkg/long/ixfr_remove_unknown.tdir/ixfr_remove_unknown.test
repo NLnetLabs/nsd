@@ -1,0 +1,67 @@
+#!/bin/bash
+# #-- ixfr_remove_unknown.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+RESULTFILE=ixfr_remove_unknown.current_response
+PRE="../../.."
+TPKG_NOTIFY="ldns-notify"
+get_ldns_testns
+MINISERVER="$LDNS_TESTNS"
+WAITTIME=10
+DIG="/usr/bin/dig"
+
+
+function kill_mini() {
+	if [ ! -e $TPKG_NSD_PID -o -z "$TPKG_NSD_PID" ]; then
+		echo "miniserver exited ok"
+	else
+		# kill the mini server.
+		NSD_PID=`cat $TPKG_NSD_PID`
+		kill $NSD_PID 2>/dev/null
+		sleep 1 # should be really dead now - just to be sure kill it again
+		kill $NSD_PID 2>/dev/null
+	fi
+}
+
+function setup_miniserver() { # <query setup file>
+	kill_mini
+	echo ">>> setup $MINISERVER -p $MASTER_PORT $1"
+	$MINISERVER -p $MASTER_PORT $1 &
+	echo $! > $TPKG_NSD_PID
+	sleep 1 # wait for it to come up.
+}
+
+function notify_slave() { # <serial>
+	echo ">>> ldns-notify -p $SLAVE_PORT -z example.com. 127.0.0.1"
+	$TPKG_NOTIFY -p $SLAVE_PORT -z example.com. 127.0.0.1
+}
+
+function check_slave_zone() { # <testnr> <checkfile>
+	echo "-------wait-----------------------------------------"
+	# check if slave has the same zone as the check zonefile.
+	dig @127.0.0.1 -p $SLAVE_PORT example.com. AXFR | tee $RESULTFILE
+	cat $RESULTFILE | grep -v '^;' > ixfr_remove_unknown.check
+	if wdiff ixfr_remove_unknown.check $2 >/dev/null; then
+		echo "ZONE SOA=$1 OK"
+	else
+		echo "ZONE SOA=$1 BAD"
+		echo diff is
+		wdiff ixfr_remove_unknown.check $2
+		exit 1
+	fi
+}
+
+check_slave_zone 1 ixfr_remove_unknown.zone_1
+
+# startup miniserver with appropriate files.
+setup_miniserver ixfr_remove_unknown.qs_1
+notify_slave 2
+sleep $WAITTIME
+
+check_slave_zone 2 ixfr_remove_unknown.zone_2
+
+exit 0

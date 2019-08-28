@@ -1,0 +1,66 @@
+# #-- outgoing_ifc_denied.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+
+. ../common.sh
+
+echo MASTER LOGFILE
+echo
+cat master.log
+echo
+
+echo SLAVE LOGFILE
+echo
+cat slave.log
+echo
+
+echo removing temp files.
+cp outgoing_ifc_denied.tmp outgoing_ifc_denied.zone
+rm -f outgoing_ifc_denied.tmp
+
+rm -f outgoing_ifc_denied.conf1
+rm -f outgoing_ifc_denied.conf3
+
+rm -f outgoing_ifc_denied.bak
+rm -f outgoing_ifc_denied.masterdig
+rm -f outgoing_ifc_denied.slavedig
+rm -f outgoing_ifc_denied.outputmaster
+rm -f outgoing_ifc_denied.outputslave
+
+rm -f ixfr.db
+rm -f ixfr.db.2
+
+rm -f outgoing_ifc_denied.db
+rm -f outgoing_ifc_denied.db.2
+
+rm -f xfrd.state
+rm -f xfrd.state.2
+
+rm -f master.log
+rm -f slave.log
+
+echo killing off nsds.
+rm -f outgoing_ifc_denied.db
+rm -f outgoing_ifc_denied.db.2
+
+# do your teardown here
+if test ! -s outgoing_ifc_denied.pid.master; then
+	echo exit_ok;
+else
+        # kill NSD
+	NSD_PID=`cat outgoing_ifc_denied.pid.master`
+	kill_pid $NSD_PID
+fi
+
+if test ! -s outgoing_ifc_denied.pid.slave; then
+	echo exit_ok;
+else
+	# kill NSD
+	NSD_PID2=`cat outgoing_ifc_denied.pid.slave`
+	kill_pid $NSD_PID2
+fi
+

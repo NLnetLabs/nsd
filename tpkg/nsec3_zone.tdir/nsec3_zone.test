@@ -1,0 +1,92 @@
+# #-- nsec3_zone.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../../.."
+DIG=dig
+$DIG @localhost -p $TPKG_PORT SOA example. > cur
+cat cur
+if grep "bugs.x.w.example." cur >/dev/null; 
+then echo SOA ok.; else exit 1; fi
+
+$DIG @localhost +dnssec -p $TPKG_PORT MB example. > cur
+cat cur
+if grep "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom.example." cur >/dev/null; 
+then echo "SOA NODATA test"; else exit 1; fi
+
+# $PRE/nsd-xfer -p $TPKG_PORT -f xferred -z example. 127.0.0.1
+# cat xferred
+
+# check example queries from draft-09. Does not check RRSIGs.
+# but only owner names. So Dig can be nsec3 unaware. Only hashfunc has to stay.
+
+QUERY="$DIG @localhost +dnssec -p $TPKG_PORT"
+$QUERY a.c.x.w.example. A >cur
+cat cur
+if grep "NXDOMAIN" cur >/dev/null &&
+grep "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom.example." cur >/dev/null &&
+grep "b4um86eghhds6nea196smvmlo4ors995.example." cur >/dev/null &&
+grep "35mthgpgcu1qg68fab165klnsnk3dpvl.example." cur >/dev/null ;
+then echo "query B.1 ok"; else exit 1; fi
+
+$QUERY ns1.example. MX >cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 0" cur >/dev/null &&
+grep "2t7b4g4vsa5smi47k61mv5bv1a22bojr.example." cur >/dev/null ;
+then echo "query B.2 ok"; else exit 1; fi
+
+$QUERY y.w.example. A >cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 0" cur >/dev/null &&
+grep "ji6neoaepv8b5o6k4ev33abha8ht9fgc.example." cur >/dev/null ;
+then echo "query B.2.1 ok"; else exit 1; fi
+
+$QUERY mc.c.example. MX >cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 0" cur >/dev/null &&
+grep "AUTHORITY: 6" cur >/dev/null &&
+grep "ns1.c.example" cur >/dev/null &&
+grep "ns2.c.example" cur >/dev/null &&
+grep "192.168.2.7" cur >/dev/null &&
+grep "192.168.2.8" cur >/dev/null &&
+grep "35mthgpgcu1qg68fab165klnsnk3dpvl.example." cur >/dev/null &&
+grep "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom.example." cur >/dev/null ;
+then echo "query B.3 ok"; else exit 1; fi
+
+$QUERY a.z.w.example. MX >cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 2" cur >/dev/null &&
+grep "AUTHORITY: 5" cur >/dev/null &&
+grep "1 ai.example" cur >/dev/null &&
+grep "192.168.2.9" cur >/dev/null &&
+grep ":f00:baa9" cur >/dev/null &&
+grep "q04jkcevqvmu85r014c7dkba38o0ji5r.example." cur >/dev/null ;
+then echo "query B.4 ok"; else exit 1; fi
+
+$QUERY a.z.w.example. AAAA >cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 0" cur >/dev/null &&
+grep "AUTHORITY: 8" cur >/dev/null &&
+grep "k8udemvp1j2f7eg6jebps17vp3n8i58h.example." cur >/dev/null &&
+grep "q04jkcevqvmu85r014c7dkba38o0ji5r.example." cur >/dev/null &&
+grep "r53bq7cc2uvmubfu5ocmm6pers9tk9en.example." cur >/dev/null ;
+then echo "query B.5 ok"; else exit 1; fi
+
+$QUERY example. DS >cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 0" cur >/dev/null &&
+grep "AUTHORITY: 4" cur >/dev/null &&
+grep "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom.example." cur >/dev/null &&
+grep "bugs.x.w.example." cur >/dev/null ;
+then echo "query B.6 ok"; else exit 1; fi
+
+echo "NSEC3 OK"
+exit 0

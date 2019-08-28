@@ -1,0 +1,15 @@
+
+edmundrichardson.com.	3600	IN	SOA	42dbc308.dsl.aros.net. drr.aros.net. 2003070707 3600 28800 2419200 3600
+edmundrichardson.com.	3600	IN	NS	ns0.xname.org.
+edmundrichardson.com.	3600	IN	NS	ns1.xname.org.
+edmundrichardson.com.	3600	IN	A	66.219.195.8
+edmundrichardson.com.	3600	IN	MX	10 mail.edmundrichardson.com.
+*.edmundrichardson.com.	3600	IN	MX	10 mail.edmundrichardson.com.
+blaat.edmundrichardson.com. 3600 IN	NS	ns.blaat.edmundrichardson.com.
+ns.blaat.edmundrichardson.com. 3600 IN	A	127.0.0.1
+ns2.blaat.edmundrichardson.com.	3600 IN	A	127.0.0.1
+localhost.edmundrichardson.com.	3600 IN	A	127.0.0.1
+mail.edmundrichardson.com. 3600	IN	CNAME	42dbc308.dsl.aros.net.
+www.edmundrichardson.com. 3600	IN	CNAME	edmundrichardson.com.
+edmundrichardson.com.	3600	IN	SOA	42dbc308.dsl.aros.net. drr.aros.net. 2003070707 3600 28800 2419200 3600
+

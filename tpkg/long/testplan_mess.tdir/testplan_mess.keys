@@ -1,0 +1,28 @@
+# keys config file (shared keys)
+
+# keys for intermed i1 i2 i3 servers
+# used for master-intermed communications
+key: 	name: key_i1
+	algorithm: hmac-md5
+	secret: "mzk9GiUimhMf8RQEQ5OBVw=="
+key: 	name: key_i2
+	algorithm: hmac-md5
+	secret: "qqsMyg3Vlsqdn+0nXFm/FQ=="
+key: 	name: key_i3
+	algorithm: hmac-md5
+	secret: "GOT+PbF5OBY5NWfejfRbzA=="
+
+# keys for slave s1 s2 servers
+# used for intermed-slave communications
+key: 	name: key_s1
+	algorithm: hmac-md5
+	secret: "pyw6LNIjeVTz1Oc09ygT8w=="
+key: 	name: key_s2
+	algorithm: hmac-md5
+	secret: "fL1wUA/ML1yfY69Ym04mww=="
+
+# key for testing xfer from all hosts.
+key:
+	name: test_xfer
+	algorithm: hmac-md5
+	secret: "RKb8XLBOpvMfU3zcMq7vlw=="

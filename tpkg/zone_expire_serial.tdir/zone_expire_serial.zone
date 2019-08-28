@@ -1,0 +1,6 @@
+; we want this zone to expire.
+$TTL    4D
+$ORIGIN example.net.
+example.net.	IN	SOA	nibbler.example.net. leela.example.net. 400 1 1 0 300
+www.example.net. IN A 1.2.3.4
+

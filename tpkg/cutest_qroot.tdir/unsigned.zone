@@ -1,0 +1,42 @@
+; zone file with an unsigned zone
+example.org.	86400	IN	SOA	a.ns.example.org. hostmaster.example.org. 2011030200 1800 900 604800 86400
+
+; NS set
+example.org. 86400 IN NS a.ns.example.org.
+a.ns.example.org. 3600 IN A 1.2.3.53
+a.ns.example.org. 3600 IN A 1.2.3.54
+a.ns.example.org. 3600 IN AAAA 1::53
+
+; wildcard under wc, the MX has additional section processing.
+wc.example.org. 36800 IN A 1.2.3.56
+*.wc.example.org. 3600 IN A 6.7.6.7
+*.wc.example.org. 3600 IN MX 10 mx.example.org.
+exist.wc.example.org. 3600 IN A 1.2.3.9
+
+; data element with wildcard as additional
+wcadd.example.org. 3600 IN MX 10 mail.wc.example.org.
+
+; a plain data element
+www.example.org. IN A 1.5.8.8
+www.example.org. IN AAAA 1::3
+
+mx.example.org. IN A 1.5.8.9
+
+
+; CNAME
+cname.example.org. 3600 IN CNAME www.example.org.
+
+; DNAME
+dname.example.org. 3600 IN DNAME destination.to.the.example.com.
+dname.example.org. 3600 IN TXT "explanationforalias"
+
+; empty nonterminal
+data.a.b.c.example.org. 3600 IN A 1.6.8.8
+
+; referral
+sub.example.org. 3600 IN NS ns.sub.example.org.
+sub.example.org. 3600 IN NS ns2.sub.example.org.
+; glue
+ns.sub.example.org. 3600 IN A 2.2.2.2
+ns2.sub.example.org. 3600 IN A 2.2.2.3
+

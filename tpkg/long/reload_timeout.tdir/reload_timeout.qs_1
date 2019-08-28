@@ -1,0 +1,69 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply to question IXFR=1. -> go to TCP
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1 UDP
+REPLY QUERY NOERROR TC
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+ENTRY_END
+
+# reply to TCP for serial=1
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1 TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+txt4    345600  IN      TXT     "text record 4"
+txt5    345600  IN      TXT     "text record 5"
+txt6    345600  IN      TXT     "text record 6"
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+@	345600  IN      NS      ns0.example.org.
+@	345600  IN      NS      ns1.example.org.
+txt1    345600  IN      TXT     "text record 1"
+txt2    345600  IN      TXT     "text record 2"
+txt3    345600  IN      TXT     "text record 3"
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+ENTRY_END
+
+# reply to question IXFR=2. -> go to TCP
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=2 UDP
+REPLY QUERY NOERROR TC
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+ENTRY_END
+
+# reply to TCP for serial=2
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=2 TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+txt1    345600  IN      TXT     "text record 1"
+txt2    345600  IN      TXT     "text record 2"
+txt3    345600  IN      TXT     "text record 3"
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+txt6    345600  IN      TXT     "text record 6"
+txt7    345600  IN      TXT     "text record 7"
+txt8    345600  IN      TXT     "text record 8"
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+ENTRY_END

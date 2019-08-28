@@ -1,0 +1,13 @@
+$TTL    4D
+$ORIGIN miek.nl.
+@       IN      SOA     open.nlnetlabs.nl. miekg.atoom.net. (
+                         2005061300         ; Serial
+                             4H         ; Refresh
+                             1H         ; Retry
+                             7D         ; Expire
+                             1D )       ; Negative Cache TTL
+@	NS	open.nlnetlabs.nl.
+node	A 127.0.0.1
+node2	TXT "text record"
+node3 	MX  20 open.nlnetlabs.nl.
+

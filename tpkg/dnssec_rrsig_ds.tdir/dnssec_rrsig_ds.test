@@ -1,0 +1,47 @@
+# #-- bug056_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../../"
+
+dig @localhost -p $TPKG_PORT +dnssec example.com SOA | tee out
+if grep "345600	IN	SOA" out && grep "345600	IN	RRSIG	SOA" out; then
+	echo OK
+else
+	echo "not secured"
+	exit 1
+fi
+dig @localhost -p $TPKG_PORT +dnssec example.com DS | tee out
+if grep "example.com.*IN	NSEC" out && grep "3600	IN	RRSIG	NSEC" out; then
+	echo OK
+else
+	echo "not secured"
+	exit 1
+fi
+
+dig @localhost -p $TPKG_PORT +dnssec www.example.com A | tee out
+if grep "3600	IN	A" out && grep "3600	IN	RRSIG	A" out; then
+	echo OK
+else
+	echo "not secured"
+	exit 1
+fi
+
+dig @localhost -p $TPKG_PORT +dnssec blablabla.example.com A | tee out
+if grep "NXDOMAIN" out && grep "IN	NSEC" out; then
+	echo OK
+else
+	echo "not secured"
+	exit 1
+fi
+
+dig @localhost -p $TPKG_PORT CH version.bind. TXT | tee out
+if grep "status: NOERROR" out; then
+	echo "version.bind works"
+else
+	echo "version query failed"
+	exit 1
+fi
+exit 0

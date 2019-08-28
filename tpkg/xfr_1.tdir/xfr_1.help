@@ -1,0 +1,4 @@
+No arguments are used.
+The test is slightly complicated, because we need
+to patch the config file for NSD to insert the port
+we listen on

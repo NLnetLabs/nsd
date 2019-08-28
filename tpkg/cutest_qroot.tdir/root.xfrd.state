@@ -1,0 +1,24 @@
+NSDXFRD1
+# This file is written on exit by nsd xfr daemon.
+# This file contains slave zone information:
+# 	* timeouts (when was zone data acquired)
+# 	* state (OK, refreshing, expired)
+# 	* which master transfer to attempt next
+# The file is read on start (but not on reload) by nsd xfr daemon.
+# You can edit; but do not change statement order
+# and no fancy stuff (like quoted "strings").
+#
+# If you remove a zone entry, it will be refreshed.
+# This can be useful for an expired zone; it revives
+# the zone temporarily, from refresh-expiry time.
+# If you delete the file all slave zones are updated.
+#
+# Note: if you edit this file while nsd is running,
+#       it will be overwritten on exit by nsd.
+
+filetime: 1301576372	# Thu Mar 31 14:59:32 2011
+
+# The number of zone entries in this file
+numzones: 0
+
+NSDXFRD1

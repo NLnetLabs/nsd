@@ -1,0 +1,91 @@
+# qfile with handmade queries for the root zone.
+# to check the answer format.
+bufsize 65535
+check 0
+speed 0
+write 1
+
+query . IN NS
+end_reply
+query_do . IN NS
+end_reply
+
+query . IN DS
+end_reply
+query_do . IN DS
+end_reply
+
+query . IN DNSKEY
+end_reply
+query_do . IN DNSKEY
+end_reply
+
+query . IN SOA
+end_reply
+query_do . IN SOA
+end_reply
+
+query . IN MX
+end_reply
+query_do . IN MX
+end_reply
+
+query 0. IN A
+end_reply
+query_do 0. IN A
+end_reply
+
+query colo. IN A
+end_reply
+query_do colo. IN A
+end_reply
+
+query se. IN DS
+end_reply
+query_do se. IN DS
+end_reply
+
+query se. IN SOA
+end_reply
+query_do se. IN SOA
+end_reply
+
+query bla.se. IN DS
+end_reply
+query_do bla.se. IN DS
+end_reply
+
+query bla.se. IN A
+end_reply
+query_do bla.se. IN A
+end_reply
+
+query bla.com. IN DS
+end_reply
+query_do bla.com. IN DS
+end_reply
+
+query bla.com. IN A
+end_reply
+query_do bla.com. IN A
+end_reply
+
+query bla.zzz. IN A
+end_reply
+query_do bla.zzz. IN A
+end_reply
+
+query bla.local. IN A
+end_reply
+query_do bla.local. IN A
+end_reply
+
+query com. IN DS
+end_reply
+query_do com. IN DS
+end_reply
+
+query s. IN A
+end_reply
+query_do s. IN A
+end_reply

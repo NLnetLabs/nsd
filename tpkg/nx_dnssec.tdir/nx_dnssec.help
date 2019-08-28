@@ -1,0 +1,6 @@
+No arguments are needed for this test
+
+When patching the 106 bug, I forgot to add a ->zone pointer to 
+the soa_nx_rrset. When a dnssec query comes in NSD used this
+pointer to check if a zone is secure or not. Without this pointer
+you have a null pointer ref, which crashed NSD... oops!

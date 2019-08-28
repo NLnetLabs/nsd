@@ -1,0 +1,57 @@
+# #-- nsec3_parentds.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../../.."
+DIG=dig
+$DIG @localhost -p $TPKG_PORT SOA example. > cur
+cat cur
+if grep "bugs.x.w.example." cur >/dev/null; 
+then echo SOA ok.; else exit 1; fi
+
+$DIG @localhost +dnssec -p $TPKG_PORT MB example. > cur
+cat cur
+if grep "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom.example." cur >/dev/null; 
+then echo "SOA NODATA test"; else exit 1; fi
+
+# $PRE/nsd-xfer -p $TPKG_PORT -f xferred -z example. 127.0.0.1
+# cat xferred
+
+# Does not check RRSIGs.
+# but only owner names. So Dig can be nsec3 unaware. Only hashfunc has to stay.
+
+# first signed delegation
+QUERY="$DIG @localhost +dnssec -p $TPKG_PORT"
+$QUERY foo.a.example. A >cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 0" cur >/dev/null &&
+grep "AUTHORITY: 4" cur >/dev/null &&
+grep "ns1.a.example." cur >/dev/null &&
+grep "ns2.a.example." cur >/dev/null &&
+grep "192.168.2.5" cur >/dev/null &&
+grep "192.168.2.6" cur >/dev/null &&
+grep "3079F1593EBAD6DC121E20" cur >/dev/null ; #DS signature
+then echo "query signed delegation ok"; else exit 1; fi
+
+# DS query
+$QUERY a.example. DS >cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 2" cur >/dev/null &&
+grep "3079F1593EBAD6DC121E20" cur >/dev/null ; #DS signature
+then echo "query DS ok"; else exit 1; fi
+
+# DS query but NODATA
+$QUERY c.example. DS >cur
+cat cur
+if grep "NOERROR" cur >/dev/null &&
+grep "ANSWER: 0" cur >/dev/null &&
+grep "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom.example." cur >/dev/null && # closest encloser (example.)
+grep "35mthgpgcu1qg68fab165klnsnk3dpvl.example." cur >/dev/null ; # and more.
+then echo "query noDS ok"; else exit 1; fi
+
+echo "NSEC3 OK"
+exit 0

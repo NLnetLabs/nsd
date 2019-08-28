@@ -1,0 +1,31 @@
+#!
+# premade query answers
+
+$ORIGIN xfr.fast.
+$TTL 3600
+
+# reply to question IXFR=2.
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=2 UDP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+ENTRY_END
+
+# reply to question IXFR=2. (TCP)
+# contains an AXFR in the answer section.
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=2 TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+svc 345600  IN  TXT     "fast serial 3"
+www 345600  IN  A       10.20.30.43
+@ 345600 IN SOA ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+ENTRY_END

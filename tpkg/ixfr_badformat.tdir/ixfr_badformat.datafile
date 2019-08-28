@@ -1,0 +1,131 @@
+$ORIGIN example.net.
+$TTL 7200
+
+;;IXFR serial=2 to serial=4
+ENTRY_BEGIN
+; first give MATCH lines, that say what queries are matched
+; by this entry.
+; ’opcode’ makes the query match the opcode from the reply
+; if you leave it out, any opcode matches this entry.
+; ’qtype’ makes the query match the qtype from the reply
+; ’qname’ makes the query match the qname from the reply
+; ’serial=1023’ makes the query match if ixfr serial is 1023.
+MATCH opcode qtype qname
+MATCH serial=2
+
+; Then the REPLY header is specified.
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+
+; any additional actions to do.
+ADJUST copy_id		; ’copy_id’ copies the ID from the query to the answer.
+
+SECTION QUESTION
+example.net. IN IXFR
+SECTION ANSWER
+example.net. IN SOA nibbler.example.net. leela.example.net. 4 3 4 3000 5
+example.net. IN SOA nibbler.example.net. leela.example.net. 2 3 4 3000 5
+; deleted items
+example.net. IN SOA nibbler.example.net. leela.example.net. 1 3 4 3000 5
+example.net. IN SOA nibbler.example.net. leela.example.net. 3 3 4 3000 5
+delrr IN A 1.2.3.4
+dellastrr IN A 1.2.3.4
+delallrrsets IN A 1.2.3.4
+delallrrsets IN A 1.2.3.5
+delallrrsets IN AAAA ::1
+delallrrsets IN AAAA ::2
+delallrrsets IN AAAA ::3
+delallrrsets IN TXT "hello"
+example.net. IN SOA nibbler.example.net. leela.example.net. 4 3 4 3000 5
+; added items
+example.net. IN SOA nibbler.example.net. leela.example.net. 2 3 4 3000 5
+example.net. IN SOA nibbler.example.net. leela.example.net. 3 3 4 3000 5
+example.net. IN SOA nibbler.example.net. leela.example.net. 4 3 4 3000 5
+addrrset IN AAAA ::234
+addrrset IN AAAA ::237
+newname IN A 1.2.3.4
+othername IN AAAA ::65
+othername IN A 6.5.6.5
+example.net. IN SOA nibbler.example.net. leela.example.net. 4 3 4 3000 5
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+
+;;IXFR serial=1 to serial=2
+ENTRY_BEGIN
+; first give MATCH lines, that say what queries are matched
+; by this entry.
+; ’opcode’ makes the query match the opcode from the reply
+; if you leave it out, any opcode matches this entry.
+; ’qtype’ makes the query match the qtype from the reply
+; ’qname’ makes the query match the qname from the reply
+; ’serial=1023’ makes the query match if ixfr serial is 1023.
+MATCH opcode qtype qname
+MATCH serial=1
+
+; Then the REPLY header is specified.
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+MATCH serial=1
+
+; any additional actions to do.
+ADJUST copy_id		; ’copy_id’ copies the ID from the query to the answer.
+
+SECTION QUESTION
+example.net. IN IXFR
+SECTION ANSWER
+example.net. IN SOA nibbler.example.net. leela.example.net. 2 3 4 3000 5
+addrr.example.net.      345600  IN      A       1.2.3.4
+addrr.example.net.      345600  IN      A       2.3.4.5
+addrrset.example.net.   345600  IN      A       1.2.3.4
+addrrset.example.net.   345600  IN      A       1.2.3.5
+addrrset.example.net.   345600  IN      TXT     "this is an rrset"
+addrrset.example.net.   7200    IN      AAAA    ::234
+addrrset.example.net.   7200    IN      AAAA    ::237
+delrr.example.net.      345600  IN      A       1.2.3.6
+delrr.example.net.      345600  IN      A       1.2.3.5
+newname.example.net.    7200    IN      A       1.2.3.4
+othername.example.net.  7200    IN      AAAA    ::65
+othername.example.net.  7200    IN      A       6.5.6.5
+unmodified.example.net. 345600  IN      A       8.8.8.8
+unmodified.example.net. 345600  IN      A       8.8.8.7
+unmodified.example.net. 345600  IN      A       8.8.8.6
+unmodified.example.net. 345600  IN      TXT     "this entry has not been modified"
+example.net. IN SOA nibbler.example.net. leela.example.net. 2 3 4 3000 5
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+
+
+;;AXFR serial=2
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+ADJUST copy_id
+SECTION QUESTION
+example.net. IN AXFR
+SECTION ANSWER
+example.net. IN SOA nibbler.example.net. leela.example.net. 2 3 4 3000 5
+addrr.example.net.      345600  IN      A       1.2.3.4
+addrr.example.net.      345600  IN      A       2.3.4.5
+addrrset.example.net.   345600  IN      A       1.2.3.4
+addrrset.example.net.   345600  IN      A       1.2.3.5
+addrrset.example.net.   345600  IN      TXT     "this is an rrset"
+addrrset.example.net.   7200    IN      AAAA    ::234
+addrrset.example.net.   7200    IN      AAAA    ::237
+delrr.example.net.      345600  IN      A       1.2.3.6
+delrr.example.net.      345600  IN      A       1.2.3.5
+newname.example.net.    7200    IN      A       1.2.3.4
+othername.example.net.  7200    IN      AAAA    ::65
+othername.example.net.  7200    IN      A       6.5.6.5
+unmodified.example.net. 345600  IN      A       8.8.8.8
+unmodified.example.net. 345600  IN      A       8.8.8.7
+unmodified.example.net. 345600  IN      A       8.8.8.6
+unmodified.example.net. 345600  IN      TXT     "this entry has not been modified"
+example.net. IN SOA nibbler.example.net. leela.example.net. 2 3 4 3000 5
+ENTRY_END
+

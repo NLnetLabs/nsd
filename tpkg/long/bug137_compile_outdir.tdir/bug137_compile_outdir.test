@@ -1,0 +1,43 @@
+# #-- bug137_compile_outdir.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+# where is the source
+SRCDIR="../../.."
+get_make
+
+bakcon=$SRCDIR/config.h.$$
+mv $SRCDIR/config.h $bakcon
+
+mkdir obj;
+cd obj;
+args=`../$SRCDIR/config.status --config`
+# for config.status fron autoconf 2.59:
+if test -z "$args"; then
+	echo "notice: config.status --config does not work, using --version"
+	args=`../$SRCDIR/config.status --version | grep "with options" | sed -e "s/with options//"`
+	args=`echo $args | sed -e 's/"//g'`
+fi
+# get rid of quotes 
+args=`echo $args | sed -e "s/'//g"`
+
+echo "../$SRCDIR/configure $args"
+../$SRCDIR/configure $args
+if test $? -ne 0; then
+	echo "configure failed"
+	mv ../$bakcon ../$SRCDIR/config.h
+	exit 1
+fi
+
+echo "$MAKE"
+$MAKE
+if test $? -ne 0; then
+	echo "make failed"
+	mv ../$bakcon ../$SRCDIR/config.h
+	exit 1
+fi
+
+mv ../$bakcon ../$SRCDIR/config.h

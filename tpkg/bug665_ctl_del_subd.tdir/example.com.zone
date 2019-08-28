@@ -1,0 +1,6 @@
+@ IN SOA ns.com.com. hostmaster 1 1800 900 604800 86400
+  IN NS ns.foo.com.
+  IN NS ns2.foo.com.
+  IN A 192.0.2.1
+subdomain.example.com. IN A 10.0.0.1
+subdomain.example.com. IN NS ns.some.net.

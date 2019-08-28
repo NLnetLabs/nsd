@@ -1,0 +1,44 @@
+# #-- control-reconfig-xfrd.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 3
+NSD_PORT=$RND_PORT
+CONTROL_PORT=$(($NSD_PORT + 1))
+LDNS_PORT=$(($NSD_PORT + 2))
+
+PRE="../.."
+NSD_PID="nsd.pid.$$"
+NSD="$PRE/nsd -p $NSD_PORT -P $NSD_PID -u $LOGNAME"
+
+# share the vars
+echo "export NSD_PORT=$NSD_PORT" >> .tpkg.var.test
+echo "export NSD_PID=$NSD_PID" >> .tpkg.var.test
+echo "export CONTROL_PORT=$CONTROL_PORT" >> .tpkg.var.test
+echo "export LDNS_PORT=$LDNS_PORT" >> .tpkg.var.test
+
+# start ldns-testns, be extra verbose
+ldns-testns -vvv -p $LDNS_PORT control-reconfig-xfrd.datafile >testns.log 2>&1 &
+echo "export TESTNS_PID=$!" >> .tpkg.var.test
+wait_ldns_testns_up testns.log
+echo testns at port $LDNS_PORT
+
+sed -e "s/CONTROLPORT/$CONTROL_PORT/" -e "s/LDNSPORT/$LDNS_PORT/g" < control-reconfig-xfrd.conf > nsd.conf
+sed -e "s/CONTROLPORT/$CONTROL_PORT/"  -e "s/LDNSPORT/$LDNS_PORT/g"< control-reconfig-xfrd.conf2 > nsd.conf2
+cat nsd.conf
+
+# master zone contents
+echo "@ SOA @ @ 876001 28800 7200 604800 3600" > m2s.explicit.zone
+echo "@ SOA @ @ 876001 28800 7200 604800 3600" > m2s.implicit.zone
+
+$NSD -p $NSD_PORT -P $NSD_PID -c nsd.conf >nsd.log 2>&1
+wait_nsd_up nsd.log
+#$NSD -p $NSD_PORT -P $NSD_PID -c nsd.conf -V 5 -F -1 -L 1 2>&1 >/dev/stdout
+#sleep 2
+
+echo slave at port $NSD_PORT $NSD_PID = `cat $NSD_PID`
+

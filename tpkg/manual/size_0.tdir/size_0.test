@@ -1,0 +1,34 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+PATH=$PATH:"/usr/sbin"
+export PATH
+HPING=`which hping`
+
+get_random_port 1
+TPKG_PORT=$RND_PORT
+TPKG_NSD_PID="nsd.pid.$$"
+echo "export TPKG_NSD_PID=nsd.pid.$$" >> .tpkg.var.test
+chmod a+rx .
+echo ../../../nsd -c size_0.conf -d -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID &
+../../../nsd -c size_0.conf -d -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID &
+wait_nsd_up nsd.log
+
+if test -x $HPING; then
+	echo $HPING found
+else
+	echo "no $HPING"
+	exit 1
+fi
+
+$HPING -c 1 -p $TPKG_PORT --udp localhost
+
+cat nsd.log
+# $TPKG_NSD_PID should still be alive
+NSD_PID=`echo x | cat $TPKG_NSD_PID`
+# are we alive, this will also be the exit code
+# for the test
+ps aux| awk ' { print $2 } ' | grep $NSD_PID
+
