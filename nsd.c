@@ -212,6 +212,8 @@ writepid(struct nsd *nsd)
 {
 	FILE * fd;
 	char pidbuf[32];
+	if(!nsd->pidfile || !nsd->pidfile[0])
+		return 0;
 
 	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid);
 
@@ -244,7 +246,7 @@ unlinkpid(const char* file)
 {
 	int fd = -1;
 
-	if (file) {
+	if (file && file[0]) {
 		/* truncate pidfile */
 		fd = open(file, O_WRONLY | O_TRUNC, 0644);
 		if (fd == -1) {
@@ -897,20 +899,22 @@ main(int argc, char *argv[])
 	log_msg(LOG_NOTICE, "%s starting (%s)", argv0, PACKAGE_STRING);
 
 	/* Do we have a running nsd? */
-	if ((oldpid = readpid(nsd.pidfile)) == -1) {
-		if (errno != ENOENT) {
-			log_msg(LOG_ERR, "can't read pidfile %s: %s",
-				nsd.pidfile, strerror(errno));
-		}
-	} else {
-		if (kill(oldpid, 0) == 0 || errno == EPERM) {
-			log_msg(LOG_WARNING,
-				"%s is already running as %u, continuing",
-				argv0, (unsigned) oldpid);
+	if(nsd.pidfile && nsd.pidfile[0]) {
+		if ((oldpid = readpid(nsd.pidfile)) == -1) {
+			if (errno != ENOENT) {
+				log_msg(LOG_ERR, "can't read pidfile %s: %s",
+					nsd.pidfile, strerror(errno));
+			}
 		} else {
-			log_msg(LOG_ERR,
-				"...stale pid file from process %u",
-				(unsigned) oldpid);
+			if (kill(oldpid, 0) == 0 || errno == EPERM) {
+				log_msg(LOG_WARNING,
+					"%s is already running as %u, continuing",
+					argv0, (unsigned) oldpid);
+			} else {
+				log_msg(LOG_ERR,
+					"...stale pid file from process %u",
+					(unsigned) oldpid);
+			}
 		}
 	}
 
@@ -1026,7 +1030,7 @@ main(int argc, char *argv[])
 			if (nsd.log_filename[0] == '/')
 				nsd.log_filename += l;
 		}
-		if (nsd.pidfile[0] == '/')
+		if (nsd.pidfile && nsd.pidfile[0] == '/')
 			nsd.pidfile += l;
 		if (nsd.dbfile[0] == '/')
 			nsd.dbfile += l;

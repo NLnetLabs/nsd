@@ -3,6 +3,8 @@ NSD RELEASE NOTES
 4.2.3 (in development)
 ================
 FEATURES:
+	- For #21: pidfile "" allows to run NSD without a pidfile, for
+	  startup management tools like daemontools.
 BUG FIXES:
 
 

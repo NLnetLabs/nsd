@@ -1,3 +1,7 @@
+2 September 2019: Wouter
+	- For #21: pidfile "" allows to run NSD without a pidfile, for
+	  startup management tools like daemontools.
+
 28 August 2019: Wouter
 	- In tests check for tls test tool availability.
 

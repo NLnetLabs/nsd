@@ -290,6 +290,8 @@ Use the pid file instead of the platform specific default, usually
 .IR @pidfile@. 
 Same as commandline option 
 .BR \-P .
+With "" there is no pidfile, for some startup management setups,
+where a pidfile is not useful to have.
 .TP
 .B port:\fR <number>
 Answer queries on the specified port. Default is 53. Same as 
