@@ -1,3 +1,7 @@
+4 September 2019: Wouter
+	- Fix #35: excessive logging of ixfr failures, it stops the log when
+	  fallback to axfr is possible. log is enabled at high verbosity.
+
 2 September 2019: Wouter
 	- For #21: pidfile "" allows to run NSD without a pidfile, for
 	  startup management tools like daemontools.

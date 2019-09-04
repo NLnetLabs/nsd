@@ -6,6 +6,8 @@ FEATURES:
 	- For #21: pidfile "" allows to run NSD without a pidfile, for
 	  startup management tools like daemontools.
 BUG FIXES:
+	- Fix #35: excessive logging of ixfr failures, it stops the log when
+	  fallback to axfr is possible. log is enabled at high verbosity.
 
 
 4.2.2
