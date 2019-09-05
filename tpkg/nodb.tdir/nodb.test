@@ -17,8 +17,9 @@ echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 echo port: $TPKG_PORT
 
-$TPKG_NSD -c nsd_1.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -V 5
+$TPKG_NSD -c nsd_1.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -L 5 -F 0xFFFF
 wait_nsd_up nsd.log
+wait_logfile nsd.log "serial 1 is updated to 2" 5
 
 # query for the master and the slave zone.
 dig @127.0.0.1 -p $TPKG_PORT example.com SOA | tee result

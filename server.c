@@ -1557,7 +1557,8 @@ add_all_soa_to_task(struct nsd* nsd, struct udb_base* taskudb)
 	/* add all SOA INFO to mytask */
 	udb_ptr_init(&task_last, taskudb);
 	for(n=radix_first(nsd->db->zonetree); n; n=radix_next(n)) {
-		task_new_soainfo(taskudb, &task_last, (zone_type*)n->elem, 0);
+		task_new_soainfo(
+			taskudb, &task_last, (zone_type*)n->elem, 0U, xfrd_xfr_new);
 	}
 	udb_ptr_unlink(&task_last, taskudb);
 }
@@ -2143,6 +2144,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int ret;
 	udb_ptr last_task;
 	struct sigaction old_sigchld, ign_sigchld;
+	struct zone *zone;
+	struct radnode *node;
+
 	/* ignore SIGCHLD from the previous server_main that used this pid */
 	memset(&ign_sigchld, 0, sizeof(ign_sigchld));
 	ign_sigchld.sa_handler = SIG_IGN;
@@ -2183,6 +2187,18 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	server_zonestat_realloc(nsd); /* realloc for new children */
 	server_zonestat_switch(nsd);
 #endif
+
+	for(node = radix_first(nsd->db->zonetree);
+	    node != NULL;
+	    node = radix_next(node))
+	{
+		zone = (zone_type *)node->elem;
+		if(zone->is_updated) {
+			task_new_soainfo(
+					nsd->task[nsd->mytask], &last_task, zone, 0U, xfrd_xfr_ok);
+			zone->is_updated = 0;
+		}
+	}
 
 	/* listen for the signals of failed children again */
 	sigaction(SIGCHLD, &old_sigchld, NULL);
@@ -2363,6 +2379,7 @@ server_main(struct nsd *nsd)
 					       (int) child_pid, status);
 					reload_pid = -1;
 					if(reload_listener.fd != -1) close(reload_listener.fd);
+					netio_remove_handler(netio, &reload_listener);
 					reload_listener.fd = -1;
 					reload_listener.event_types = NETIO_EVENT_NONE;
 					task_process_sync(nsd->task[nsd->mytask]);
@@ -2423,6 +2440,7 @@ server_main(struct nsd *nsd)
 				       (int) reload_pid);
 				reload_pid = -1;
 				if(reload_listener.fd != -1) close(reload_listener.fd);
+				netio_remove_handler(netio, &reload_listener);
 				reload_listener.fd = -1;
 				reload_listener.event_types = NETIO_EVENT_NONE;
 				task_process_sync(nsd->task[nsd->mytask]);

@@ -24,6 +24,7 @@
 #include "xfrd.h"
 #include "xfrd-disk.h"
 #include "util.h"
+#include "difffile.h"
 
 /* sort tcppipe, first on IP address, for an IPaddresss, sort on num_unused */
 static int
@@ -593,14 +594,17 @@ void
 xfrd_tcp_setup_write_packet(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 {
 	struct xfrd_tcp* tcp = tp->tcp_w;
+
 	assert(zone->tcp_conn != -1);
 	assert(zone->tcp_waiting == 0);
+
 	/* start AXFR or IXFR for the zone */
-	if(zone->soa_disk_acquired == 0 || zone->master->use_axfr_only ||
-		zone->master->ixfr_disabled ||
+	if(zone->master->use_axfr_only || zone->master->ixfr_disabled ||
+		(zone->state == xfrd_zone_expired && zone->round_num != 0) ||
+		(zone->soa_xfr_acquired == 0 && zone->soa_nsd_acquired == 0))
+	{
 		/* if zone expired, after the first round, do not ask for
 		 * IXFR any more, but full AXFR (of any serial number) */
-		(zone->state == xfrd_zone_expired && zone->round_num != 0)) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request full zone transfer "
 						"(AXFR) for %s to %s",
 			zone->apex_str, zone->master->ip_address_spec));
@@ -608,6 +612,13 @@ xfrd_tcp_setup_write_packet(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 		xfrd_setup_packet(tcp->packet, TYPE_AXFR, CLASS_IN, zone->apex,
 			zone->query_id);
 	} else {
+		xfrd_soa_type *soa;
+		if(zone->soa_xfr_acquired != 0) {
+			soa = &zone->soa_xfr;
+		} else {
+			soa = &zone->soa_nsd;
+		}
+
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request incremental zone "
 						"transfer (IXFR) for %s to %s",
 			zone->apex_str, zone->master->ip_address_spec));
@@ -615,15 +626,13 @@ xfrd_tcp_setup_write_packet(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 		xfrd_setup_packet(tcp->packet, TYPE_IXFR, CLASS_IN, zone->apex,
 			zone->query_id);
         	NSCOUNT_SET(tcp->packet, 1);
-		xfrd_write_soa_buffer(tcp->packet, zone->apex, &zone->soa_disk);
+		xfrd_write_soa_buffer(tcp->packet, zone->apex, soa);
 	}
-	/* old transfer needs to be removed still? */
-	if(zone->msg_seq_nr)
-		xfrd_unlink_xfrfile(xfrd->nsd, zone->xfrfilenumber);
-	zone->msg_seq_nr = 0;
-	zone->msg_rr_count = 0;
+
+	xfrd_prepare_zone_xfr(zone);
 	if(zone->master->key_options && zone->master->key_options->tsig_key) {
-		xfrd_tsig_sign_request(tcp->packet, &zone->tsig, zone->master);
+		xfrd_tsig_sign_request(
+			tcp->packet, &zone->latest_xfr->tsig, zone->master);
 	}
 	buffer_flip(tcp->packet);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "sent tcp query with ID %d", zone->query_id));

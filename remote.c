@@ -970,7 +970,7 @@ force_transfer_zone(xfrd_zone_type* zone)
 		xfrd_udp_release(zone);
 	/* pretend we not longer have it and force any
 	 * zone to be downloaded (even same serial, w AXFR) */
-	zone->soa_disk_acquired = 0;
+	zone->soa_xfr_acquired = 0;
 	zone->soa_nsd_acquired = 0;
 	xfrd_handle_notify_and_start_xfr(zone, NULL);
 }
@@ -1059,8 +1059,8 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 	if(!print_soa_status(ssl, "served-serial", &xz->soa_nsd,
 		xz->soa_nsd_acquired))
 		return 0;
-	if(!print_soa_status(ssl, "commit-serial", &xz->soa_disk,
-		xz->soa_disk_acquired))
+	if(!print_soa_status(ssl, "commit-serial", &xz->soa_xfr,
+		xz->soa_xfr_acquired))
 		return 0;
 	if(xz->round_num != -1) {
 		if(!print_soa_status(ssl, "notified-serial", &xz->soa_notified,

@@ -62,6 +62,11 @@ setup_miniserver ixfr_remove_unknown.qs_1
 notify_slave 2
 sleep $WAITTIME
 
-check_slave_zone 2 ixfr_remove_unknown.zone_2
+check_slave_zone 1 ixfr_remove_unknown.zone_1
+# Behaviour for so-called inconsistent updates, updates that remove records
+# that do not exist or add records that do exists, has changed. NSD now aborts
+# the reload, discards the update and requests an AXFR. Previously xfrd
+# requested an AXFR too, but the reload would continue.
+#check_slave_zone 2 ixfr_remove_unknown.zone_2
 
 exit 0
