@@ -13,11 +13,17 @@
 #include "namedb.h"
 #include "options.h"
 #include "udb.h"
+#include "xfrd.h"
 struct nsd;
 struct nsdst;
 
 #define DIFF_PART_XXFR ('X'<<24 | 'X'<<16 | 'F'<<8 | 'R')
 #define DIFF_PART_XFRF ('X'<<24 | 'F'<<16 | 'R'<<8 | 'F')
+
+#define DIFF_NOT_COMMITTED (0u) /* XFR not (yet) committed to disk */
+#define DIFF_COMMITTED (1u<<0) /* XFR committed to disk */
+#define DIFF_CORRUPT (1u<<1) /* XFR corrupt */
+#define DIFF_INCONSISTENT (1u<<2) /* IXFR cannot be applied */
 
 /* write an xfr packet data to the diff file, type=IXFR.
    The diff file is created if necessary, with initial header(notcommitted). */
@@ -33,6 +39,12 @@ void diff_write_commit(const char* zone, uint32_t old_serial,
 	uint32_t new_serial, uint32_t num_parts, uint8_t commit,
 	const char* log_msg, struct nsd* nsd, uint64_t filenumber);
 
+/*
+ * Overwrite committed value of diff file with discarded to ensure diff
+ * file is not reapplied on reload.
+ */
+void diff_write_commit_status(const char* zone, struct nsd* nsd,
+	uint8_t commit, uint64_t filenumber);
 /*
  * These functions read parts of the diff file.
  */
@@ -106,7 +118,9 @@ struct udb_base* task_file_create(const char* file);
 void task_remap(udb_base* udb);
 void task_process_sync(udb_base* udb);
 void task_clear(udb_base* udb);
-void task_new_soainfo(udb_base* udb, udb_ptr* last, struct zone* z, int gone);
+
+void task_new_soainfo(udb_base* udb, udb_ptr* last, struct zone* z,
+	uint32_t serial, xfrd_xfr_state_type state);
 void task_new_expire(udb_base* udb, udb_ptr* last,
 	const struct dname* z, int expired);
 void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,

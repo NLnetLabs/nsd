@@ -20,6 +20,7 @@
 #include "buffer.h"
 #include "nsd.h"
 #include "options.h"
+#include "difffile.h"
 
 /* quick tokenizer, reads words separated by whitespace.
    No quoted strings. Comments are skipped (#... eol). */
@@ -327,7 +328,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		incoming_soa = zone->soa_nsd;
 		incoming_acquired = zone->soa_nsd_acquired;
 		zone->soa_nsd = soa_nsd_read;
-		zone->soa_disk = soa_disk_read;
+		zone->soa_xfr = soa_disk_read;
 		zone->soa_notified = soa_notified_read;
 		zone->soa_nsd_acquired = soa_nsd_acquired_read;
 		/* we had better use what we got from starting NSD, not
@@ -339,8 +340,13 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		{
 			xfrd_send_expire_notification(zone);
 		}
-		if(incoming_acquired != 0)
-			xfrd_handle_incoming_soa(zone, &incoming_soa, incoming_acquired);
+		if(incoming_acquired != 0) {
+			xfrd_handle_incoming_soa(zone,
+			                        &incoming_soa,
+			                         incoming_soa.serial,
+			                         incoming_acquired,
+			                         xfrd_xfr_new);
+		}
 	}
 
 	if(!xfrd_read_check_str(in, XFRD_FILE_MAGIC)) {
@@ -502,8 +508,8 @@ xfrd_write_state(struct xfrd_state* xfrd)
 		fprintf(out, "\tbackoff: %d\n", zone->fresh_xfr_timeout/XFRD_TRANSFER_TIMEOUT_START);
 		xfrd_write_state_soa(out, "soa_nsd", &zone->soa_nsd,
 			zone->soa_nsd_acquired, zone->apex);
-		xfrd_write_state_soa(out, "soa_disk", &zone->soa_disk,
-			zone->soa_disk_acquired, zone->apex);
+		xfrd_write_state_soa(out, "soa_disk", &zone->soa_xfr,
+			zone->soa_xfr_acquired, zone->apex);
 		xfrd_write_state_soa(out, "soa_notify", &zone->soa_notified,
 			zone->soa_notified_acquired, zone->apex);
 		fprintf(out, "\n");
@@ -568,6 +574,7 @@ xfrd_open_xfrfile(struct nsd* nsd, uint64_t number, char* mode)
 {
 	char fname[1200];
 	FILE* xfr;
+	assert(number != 0);
 	tempxfrname(fname, sizeof(fname), nsd, number);
 	xfr = fopen(fname, mode);
 	if(!xfr && errno == ENOENT) {
@@ -588,7 +595,7 @@ xfrd_unlink_xfrfile(struct nsd* nsd, uint64_t number)
 {
 	char fname[1200];
 	tempxfrname(fname, sizeof(fname), nsd, number);
-	if(unlink(fname) == -1) {
+	if(number != 0 && unlink(fname) == -1) {
 		log_msg(LOG_WARNING, "could not unlink %s: %s", fname,
 			strerror(errno));
 	}

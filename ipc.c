@@ -587,8 +587,12 @@ xfrd_send_reload_req(xfrd_state_type* xfrd)
 	udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
 	assert(udb_base_get_userdata(xfrd->nsd->task[xfrd->nsd->mytask])->data == 0);
 
-	xfrd_prepare_zones_for_reload();
-	xfrd->reload_cmd_last_sent = xfrd_time();
+	/* increment the current time by one second to ensure times on zones
+	   are before the current */
+	xfrd->reload_cmd_last_sent = xfrd_time() + 1;
+	if(!xfrd->reload_cmd_first_sent) {
+		xfrd->reload_cmd_first_sent = xfrd->reload_cmd_last_sent;
+	}
 	xfrd->need_to_send_reload = 0;
 	xfrd->can_send_reload = 0;
 }
@@ -757,9 +761,13 @@ xfrd_handle_ipc_read(struct event* handler, xfrd_state_type* xfrd)
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: main sent shutdown cmd."));
 		xfrd->shutdown = 1;
 		break;
+	case NSD_RELOAD_FAILED:
+		/* reload left the database in a corrupt or inconsistent state.
+		   remove bad updates and trigger a reload (again). */
 	case NSD_RELOAD_DONE:
 		/* reload has finished */
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv RELOAD_DONE"));
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv %s",
+			cmd == NSD_RELOAD_FAILED ? "RELOAD_FAILED": "RELOAD_DONE"));
 		if(block_read(NULL, handler->ev_fd, &xfrd->reload_pid,
 			sizeof(pid_t), -1) != sizeof(pid_t)) {
 			log_msg(LOG_ERR, "xfrd cannot get reload_pid");
@@ -767,13 +775,21 @@ xfrd_handle_ipc_read(struct event* handler, xfrd_state_type* xfrd)
 		/* read the not-mytask for the results and soainfo */
 		xfrd_process_task_result(xfrd,
 			xfrd->nsd->task[1-xfrd->nsd->mytask]);
+		/* discard zone transfers that: failed to apply, failed
+		   verification and were applied (if reload was successful) */
+		xfrd_process_xfrs(cmd != NSD_RELOAD_FAILED);
+		if(cmd == NSD_RELOAD_FAILED) {
+			/* make reload happen, right away */
+			xfrd_set_reload_now(xfrd);
+		} else {
+			xfrd->reload_cmd_first_sent = 0;
+		}
 		/* reset the IPC, (and the nonblocking ipc write;
 		   the new parent does not want half a packet) */
 		xfrd->can_send_reload = 1;
 		xfrd->ipc_send_blocked = 0;
 		ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ|EV_WRITE);
 		xfrd_reopen_logfile();
-		xfrd_check_failed_updates();
 		break;
 	case NSD_PASS_TO_XFRD:
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv PASS_TO_XFRD"));

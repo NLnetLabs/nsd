@@ -37,6 +37,9 @@ struct udb_ptr;
 typedef struct xfrd_state xfrd_state_type;
 typedef struct xfrd_zone xfrd_zone_type;
 typedef struct xfrd_soa xfrd_soa_type;
+typedef struct xfrd_xfr xfrd_xfr_type;
+typedef enum xfrd_xfr_state xfrd_xfr_state_type;
+
 /*
  * The global state for the xfrd daemon process.
  * The time_t times are epochs in secs since 1970, absolute times.
@@ -78,6 +81,9 @@ struct xfrd_state {
 	int reload_added;
 	/* last reload must have caught all zone updates before this time */
 	time_t reload_cmd_last_sent;
+	/* first time reload that caught zone updates before this time was sent */
+	time_t reload_cmd_first_sent;
+
 	uint8_t can_send_reload;
 	pid_t reload_pid;
 	/* timeout for lost sigchild and reaping children */
@@ -150,16 +156,16 @@ struct xfrd_zone {
 	const char* apex_str;
 
 	/* Three types of soas:
-	 * NSD: in use by running server
-	 * disk: stored on disk in db/diff file
+	 * nsd: stored in db and in use by running server
+	 * xfr: stored on disk diff file
 	 * notified: from notification, could be available on a master.
 	 * And the time the soa was acquired (start time for timeouts).
 	 * If the time==0, no SOA is available.
 	 */
 	xfrd_soa_type soa_nsd;
 	time_t soa_nsd_acquired;
-	xfrd_soa_type soa_disk;
-	time_t soa_disk_acquired;
+	xfrd_soa_type soa_xfr;
+	time_t soa_xfr_acquired;
 	xfrd_soa_type soa_notified;
 	time_t soa_notified_acquired;
 
@@ -210,15 +216,38 @@ struct xfrd_zone {
 	/* xfr message handling data */
 	/* query id */
 	uint16_t query_id;
+	xfrd_xfr_type* latest_xfr;
+
+	int multi_master_first_master; /* >0: first check master_num */
+	int multi_master_update_check; /* -1: not update >0: last update master_num */
+} ATTR_PACKED;
+
+/*
+ * State for a single zone XFR
+ */
+enum xfrd_xfr_state {
+	xfrd_xfr_new = 0,
+	xfrd_xfr_corrupt = (1<<0),
+	xfrd_xfr_inconsistent = (1<<1),
+	xfrd_xfr_ok = (1<<2)
+};
+
+/*
+ * Single XFR for a zone
+ */
+struct xfrd_xfr {
+	xfrd_xfr_type *next;
+	xfrd_xfr_type *prev;
+	xfrd_soa_type soa; /* soa information for transfer */
+	time_t acquired; /* time zone transfer completed */
 	uint32_t msg_seq_nr; /* number of messages already handled */
 	uint32_t msg_old_serial, msg_new_serial; /* host byte order */
 	size_t msg_rr_count;
 	uint8_t msg_is_ixfr; /* 1:IXFR detected. 2:middle IXFR SOA seen. */
 	tsig_record_type tsig; /* tsig state for IXFR/AXFR */
-	uint64_t xfrfilenumber; /* identifier for file to store xfr into,
-				valid if msg_seq_nr nonzero */
-	int multi_master_first_master; /* >0: first check master_num */
-	int multi_master_update_check; /* -1: not update >0: last update master_num */
+	uint64_t filenr; /* identifier for file to xfr into, valid if
+	                    msg_seq_nr nonzero */
+	xfrd_xfr_state_type state; /* state of this xfr, e.g. new or retry. */
 } ATTR_PACKED;
 
 enum xfrd_packet_result {
@@ -323,7 +352,7 @@ void xfrd_tsig_sign_request(buffer_type* packet, struct tsig_record* tsig,
    Pass soa=NULL,acquired=now if NSD has nothing loaded for the zone
    (i.e. zonefile was deleted). */
 void xfrd_handle_incoming_soa(xfrd_zone_type* zone, xfrd_soa_type* soa,
-	time_t acquired);
+	uint32_t serial, time_t acquired, xfrd_xfr_state_type state);
 /* handle a packet passed along ipc route. acl is the one that accepted
    the packet. The packet is the network blob received. acl_xfr is 
    provide-xfr acl matching notify sender or -1 */
@@ -339,15 +368,9 @@ void xfrd_free_namedb(struct nsd* nsd);
 /* copy SOA info from rr to soa struct. */
 void xfrd_copy_soa(xfrd_soa_type* soa, rr_type* rr);
 
-/* check for failed updates - it is assumed that now the reload has
-   finished, and all zone SOAs have been sent. */
-void xfrd_check_failed_updates(void);
-
-/*
- * Prepare zones for a reload, this sets the times on the zones to be
- * before the current time, so the reload happens after.
- */
-void xfrd_prepare_zones_for_reload(void);
+/* process updates - it is assumed that now the reload has finished, and all
+   zone SOAs have been sent. */
+void xfrd_process_xfrs(int committed);
 
 /* Bind a local interface to a socket descriptor, return 1 on success */
 int xfrd_bind_local_interface(int sockd, struct acl_options* ifc,
@@ -369,5 +392,8 @@ void xfrd_handle_notify_and_start_xfr(xfrd_zone_type* zone, xfrd_soa_type* soa);
 void xfrd_handle_zone(int fd, short event, void* arg);
 
 const char* xfrd_pretty_time(time_t v);
+
+/* allocate (or reuse) and initialize a space for zone transfer data  */
+xfrd_xfr_type *xfrd_prepare_zone_xfr(xfrd_zone_type* zone);
 
 #endif /* XFRD_H */
