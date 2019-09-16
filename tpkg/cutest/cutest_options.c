@@ -210,6 +210,7 @@ static void acl_6(CuTest *tc)
 	CuAssert(tc, "check acl_same_host", acl_same_host(x, y) == 1);
 	CuAssert(tc, "check acl_same_host", acl_same_host(y, x) == 1);
 
+#ifdef INET6
 	x = parse_acl_info(region, "10.20.30.40", "NOKEY");
 	y = parse_acl_info(region, "10ff:20ff:30ff:40ff::", "NOKEY");
 	CuAssert(tc, "check acl_same_host", acl_same_host(x, y) == 0);
@@ -230,6 +231,7 @@ static void acl_6(CuTest *tc)
 	y = parse_acl_info(region, "10ff:20ff:30ff:40ff::", "NOKEY");
 	CuAssert(tc, "check acl_same_host", acl_same_host(x, y) == 0);
 	CuAssert(tc, "check acl_same_host", acl_same_host(y, x) == 0);
+#endif /* INET6 */
 
 	x = parse_acl_info(region, 
 		region_strdup(region, "10.20.30.40-30.40.50.60"), "NOKEY");

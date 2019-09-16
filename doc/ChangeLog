@@ -1,5 +1,6 @@
 16 September 2019: Wouter
 	- Fixup warnings during --disable-ipv6 compile.
+	- Fixup unit test executable to run without IPv6.
 
 4 September 2019: Wouter
 	- Fix #35: excessive logging of ixfr failures, it stops the log when
