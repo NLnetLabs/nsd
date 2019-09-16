@@ -2628,7 +2628,13 @@ server_child(struct nsd *nsd)
 				data->tls_accept = 1;
 				if(verbosity >= 2) {
 					char buf[48];
-					addrport2str((struct sockaddr_storage*)data->socket->addr->ai_addr, buf, sizeof(buf));
+					addrport2str(
+#ifdef INET6
+					(struct sockaddr_storage*)
+#else
+					(struct sockaddr_in*)
+#endif
+					data->socket->addr->ai_addr, buf, sizeof(buf));
 					VERBOSITY(2, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
 				}
 			}

@@ -8,6 +8,7 @@ FEATURES:
 BUG FIXES:
 	- Fix #35: excessive logging of ixfr failures, it stops the log when
 	  fallback to axfr is possible. log is enabled at high verbosity.
+	- Fixup warnings during --disable-ipv6 compile.
 
 
 4.2.2

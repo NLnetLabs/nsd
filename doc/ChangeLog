@@ -1,3 +1,6 @@
+16 September 2019: Wouter
+	- Fixup warnings during --disable-ipv6 compile.
+
 4 September 2019: Wouter
 	- Fix #35: excessive logging of ixfr failures, it stops the log when
 	  fallback to axfr is possible. log is enabled at high verbosity.
