@@ -1,3 +1,7 @@
+25 September 2019: Wouter
+	- The nsd.conf includes are sorted ascending, for include statements
+	  with a '*' from glob.
+
 16 September 2019: Wouter
 	- Fixup warnings during --disable-ipv6 compile.
 	- Fixup unit test executable to run without IPv6.
