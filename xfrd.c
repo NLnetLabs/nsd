@@ -1857,8 +1857,8 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 		"got query with ID %d and %d needed", ID(packet), zone->query_id));
 	if(ID(packet) != zone->query_id) {
 		log_msg(LOG_ERR, "xfrd: zone %s received bad query id from %s, "
-				 "dropped",
-			zone->apex_str, zone->master->ip_address_spec);
+				 "dropped", zone->apex_str,
+			(zone->master?zone->master->ip_address_spec:"none"));
 		return xfrd_packet_bad;
 	}
 	/* check RCODE in all response messages */
@@ -1871,7 +1871,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 			log_msg(LOG_ERR, "xfrd: zone %s received error code %s from "
 				 	"%s",
 				zone->apex_str, rcode2str(RCODE(packet)),
-				zone->master->ip_address_spec);
+				(zone->master?zone->master->ip_address_spec:"none"));
 		}
 		if (RCODE(packet) == RCODE_IMPL ||
 			RCODE(packet) == RCODE_FORMAT) {

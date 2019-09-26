@@ -13,6 +13,8 @@ BUG FIXES:
 	  with a '*' from glob.
 	- Fix #38: log address and failure reason with tls handshake errors,
 	  squelches (the same as unbound) some unless high verbosity is used.
+	- Fixup clang analysis warning in xfrd_parse_received_xfr_packet
+	  master dereference.
 
 
 4.2.2
