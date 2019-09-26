@@ -11,6 +11,8 @@ BUG FIXES:
 	- Fixup warnings during --disable-ipv6 compile.
 	- The nsd.conf includes are sorted ascending, for include statements
 	  with a '*' from glob.
+	- Fix #38: log address and failure reason with tls handshake errors,
+	  squelches (the same as unbound) some unless high verbosity is used.
 
 
 4.2.2

@@ -1515,18 +1515,51 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 }
 
 #ifdef HAVE_SSL
-void
-log_crypto_err(const char* str)
+static void
+log_crypto_from_err(const char* str, unsigned long err)
 {
 	/* error:[error code]:[library name]:[function name]:[reason string] */
 	char buf[128];
 	unsigned long e;
-	ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
+	ERR_error_string_n(err, buf, sizeof(buf));
 	log_msg(LOG_ERR, "%s crypto %s", str, buf);
 	while( (e=ERR_get_error()) ) {
 		ERR_error_string_n(e, buf, sizeof(buf));
 		log_msg(LOG_ERR, "and additionally crypto %s", buf);
 	}
+}
+
+void
+log_crypto_err(const char* str)
+{
+	log_crypto_from_err(str, ERR_get_error());
+}
+
+/** true if the ssl handshake error has to be squelched from the logs */
+static int
+squelch_err_ssl_handshake(unsigned long err)
+{
+	if(verbosity >= 3)
+		return 0; /* only squelch on low verbosity */
+	/* this is very specific, we could filter on ERR_GET_REASON()
+	 * (the third element in ERR_PACK) */
+	if(err == ERR_PACK(ERR_LIB_SSL, SSL_F_SSL3_GET_RECORD, SSL_R_HTTPS_PROXY_REQUEST) ||
+		err == ERR_PACK(ERR_LIB_SSL, SSL_F_SSL3_GET_RECORD, SSL_R_HTTP_REQUEST) ||
+		err == ERR_PACK(ERR_LIB_SSL, SSL_F_SSL3_GET_RECORD, SSL_R_WRONG_VERSION_NUMBER) ||
+		err == ERR_PACK(ERR_LIB_SSL, SSL_F_SSL3_READ_BYTES, SSL_R_SSLV3_ALERT_BAD_CERTIFICATE)
+#ifdef SSL_F_TLS_POST_PROCESS_CLIENT_HELLO
+		|| err == ERR_PACK(ERR_LIB_SSL, SSL_F_TLS_POST_PROCESS_CLIENT_HELLO, SSL_R_NO_SHARED_CIPHER)
+#endif
+#ifdef SSL_F_TLS_EARLY_POST_PROCESS_CLIENT_HELLO
+		|| err == ERR_PACK(ERR_LIB_SSL, SSL_F_TLS_EARLY_POST_PROCESS_CLIENT_HELLO, SSL_R_UNKNOWN_PROTOCOL)
+		|| err == ERR_PACK(ERR_LIB_SSL, SSL_F_TLS_EARLY_POST_PROCESS_CLIENT_HELLO, SSL_R_UNSUPPORTED_PROTOCOL)
+#  ifdef SSL_R_VERSION_TOO_LOW
+		|| err == ERR_PACK(ERR_LIB_SSL, SSL_F_TLS_EARLY_POST_PROCESS_CLIENT_HELLO, SSL_R_VERSION_TOO_LOW)
+#  endif
+#endif
+		)
+		return 1;
+	return 0;
 }
 
 void
@@ -3630,8 +3663,16 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 		} else {
 			if(r == 0)
 				VERBOSITY(3, (LOG_ERR, "TLS handshake: connection closed prematurely"));
+			else {
+				unsigned long err = ERR_get_error();
+				if(!squelch_err_ssl_handshake(err)) {
+					char a[64], s[256];
+					addr2str(&data->query->addr, a, sizeof(a));
+					snprintf(s, sizeof(s), "TLS handshake failed from %s", a);
+					log_crypto_from_err(s, err);
+				}
+			}
 			cleanup_tcp_handler(data);
-			VERBOSITY(3, (LOG_ERR, "TLS handshake failed"));
 			return 0;
 		}
 	}
