@@ -669,6 +669,22 @@ initialize_dname_compression_tables(struct nsd *nsd)
 }
 
 static int
+set_cloexec(struct nsd_socket *sock)
+{
+	assert(sock != NULL);
+
+	if(fcntl(sock->s, F_SETFD, O_CLOEXEC) == -1) {
+		const char *socktype =
+			sock->addr.ai_family == SOCK_DGRAM ? "udp" : "tcp";
+		log_msg(LOG_ERR, "fcntl(..., O_CLOEXEC) failed for %s: %s",
+			socktype, strerror(errno));
+		return -1;
+	}
+
+	return 1;
+}
+
+static int
 set_reuseport(struct nsd_socket *sock)
 {
 #ifdef SO_REUSEPORT
@@ -1086,6 +1102,8 @@ open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 		return -1;
 	}
 
+	set_cloexec(sock);
+
 	if(nsd->reuseport && reuseport_works && *reuseport_works)
 		*reuseport_works = (set_reuseport(sock) == 1);
 
@@ -1157,6 +1175,8 @@ open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 		log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
 		return -1;
 	}
+
+	set_cloexec(sock);
 
 	if(nsd->reuseport && reuseport_works && *reuseport_works)
 		*reuseport_works = (set_reuseport(sock) == 1);
