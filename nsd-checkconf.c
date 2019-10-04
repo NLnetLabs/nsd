@@ -534,7 +534,7 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\tlog-time-ascii: %s\n", opt->log_time_ascii?"yes":"no");
 	printf("\tround-robin: %s\n", opt->round_robin?"yes":"no");
 	printf("\tminimal-responses: %s\n", opt->minimal_responses?"yes":"no");
-	printf("\tadditonal-from-auth: %s\n",
+	printf("\tadditional-from-auth: %s\n",
 		opt->additional_from_auth ? "yes" : "no");
 	printf("\trefuse-any: %s\n", opt->refuse_any?"yes":"no");
 	printf("\tverbosity: %d\n", opt->verbosity);
