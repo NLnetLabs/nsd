@@ -1240,7 +1240,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	 * information for a zone with a different apex from the query zone.
 	*/
 	if (!nsd->options->additional_from_auth &&
-	   (origzone != NULL &&(origzone->apex->dname != q->zone->apex->dname))) {
+	   (origzone != NULL && (origzone->apex->dname != q->zone->apex->dname))) {
 		return;
 	}
 
