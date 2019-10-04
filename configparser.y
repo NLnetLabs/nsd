@@ -71,7 +71,7 @@ extern config_parser_state_type* cfg_parser;
 %token VAR_ROUND_ROBIN VAR_ZONESTATS VAR_REUSEPORT VAR_VERSION
 %token VAR_MAX_REFRESH_TIME VAR_MIN_REFRESH_TIME
 %token VAR_MAX_RETRY_TIME VAR_MIN_RETRY_TIME
-%token VAR_MULTI_MASTER_CHECK VAR_MINIMAL_RESPONSES VAR_REFUSE_ANY
+%token VAR_MULTI_MASTER_CHECK VAR_MINIMAL_RESPONSES VAR_ADDITIONAL_FROM_AUTH VAR_REFUSE_ANY
 %token VAR_USE_SYSTEMD VAR_DNSTAP VAR_DNSTAP_ENABLE VAR_DNSTAP_SOCKET_PATH
 %token VAR_DNSTAP_SEND_IDENTITY VAR_DNSTAP_SEND_VERSION VAR_DNSTAP_IDENTITY
 %token VAR_DNSTAP_VERSION VAR_DNSTAP_LOG_AUTH_QUERY_MESSAGES
@@ -111,7 +111,7 @@ content_server: server_ip_address | server_ip_transparent | server_debug_mode | 
 	server_zonefiles_write | server_log_time_ascii | server_round_robin |
 	server_reuseport | server_version | server_ip_freebind |
 	server_tls_service_key | server_tls_service_pem | server_tls_port |
-	server_minimal_responses | server_refuse_any | server_use_systemd |
+	server_minimal_responses | server_additional_from_auth | server_refuse_any | server_use_systemd |
 	server_hide_identity | server_tls_service_ocsp |
 	server_send_buffer_size | server_receive_buffer_size |
 	server_tcp_reject_overflow;
@@ -343,6 +343,17 @@ server_minimal_responses: VAR_MINIMAL_RESPONSES STRING
 		else {
 			cfg_parser->opt->minimal_responses = (strcmp($2, "yes")==0);
 			minimal_responses = cfg_parser->opt->minimal_responses;
+		}
+	}
+	;
+server_additional_from_auth: VAR_ADDITIONAL_FROM_AUTH STRING
+	{
+		OUTYY(("P(server_additional_from_auth:%s)\n", $2));
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0) {
+			yyerror("additional-from-auth: expected yes or no.");
+		} else {
+			cfg_parser->opt->additional_from_auth =
+				(strcmp($2, "yes")==0);
 		}
 	}
 	;

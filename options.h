@@ -76,6 +76,7 @@ struct nsd_options {
 	int server_count;
 	int tcp_count;
 	int tcp_reject_overflow;
+	int additional_from_auth;
 	int tcp_query_count;
 	int tcp_timeout;
 	int tcp_mss;
