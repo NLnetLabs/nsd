@@ -1236,11 +1236,11 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	}
 
 	/*
-	 * If additional-from-auth is set to no do not return additional
+	 * If confine-to-zone is set to no do not return additional
 	 * information for a zone with a different apex from the query zone.
 	*/
-	if (!nsd->options->additional_from_auth &&
-	   (origzone != NULL && (origzone->apex->dname != q->zone->apex->dname))) {
+	if (nsd->options->confine_to_zone &&
+	   (origzone != NULL && dname_compare(origzone->apex->dname, q->zone->apex->dname))) {
 		return;
 	}
 

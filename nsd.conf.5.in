@@ -392,10 +392,10 @@ that reduces packets, but exactly to the fragmentation length, the nsd.conf
 option reduces packets as small as possible.
 The default is no.
 .TP
-.B additional\-from\-auth:\fR <yes or no>
-If set to no, additional information will not be added to the response if the
+.B confine\-to\-zone:\fR <yes or no>
+If set to yes, additional information will not be added to the response if the
 apex zone of the additional information does not match the apex zone of the
-initial query (E.G. CNAME resolution). Default is yes. 
+initial query (E.G. CNAME resolution). Default is no. 
 .TP
 .B refuse\-any:\fR <yes or no>
 Refuse queries of type ANY.  This is useful to stop query floods trying

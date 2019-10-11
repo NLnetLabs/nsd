@@ -289,7 +289,7 @@ dnstap-log-auth-response-messages{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VA
 log-time-ascii{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_LOG_TIME_ASCII;}
 round-robin{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ROUND_ROBIN;}
 minimal-responses{COLON} { LEXOUT(("v(%s) ", yytext)); return VAR_MINIMAL_RESPONSES;}
-additional-from-auth{COLON} { LEXOUT(("v(%s) ", yytext)); return VAR_ADDITIONAL_FROM_AUTH;}
+confine-to-zone{COLON} { LEXOUT(("v(%s) ", yytext)); return VAR_CONFINE_TO_ZONE;}
 refuse-any{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_REFUSE_ANY;}
 max-refresh-time{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_MAX_REFRESH_TIME;}
 min-refresh-time{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_MIN_REFRESH_TIME;}

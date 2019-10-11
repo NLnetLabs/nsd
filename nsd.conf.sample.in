@@ -151,10 +151,10 @@ server:
 	# minimal-responses only emits extra data for referrals.
 	# minimal-responses: no
 
-	# Return additional information if the apex zone of the additional
-	# information is configured but does not match the apex zone of the
-	# initial query.
-	# additional-from-auth: yes
+	# Do not return additional information if the apex zone of the
+	# additional information is configured but does not match the apex zone
+	# of the initial query.
+	# confine-to-zone: no
 
 	# refuse queries of type ANY.  For stopping floods.
 	# refuse-any: no
