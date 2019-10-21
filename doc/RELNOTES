@@ -5,6 +5,10 @@ NSD RELEASE NOTES
 FEATURES:
 	- For #21: pidfile "" allows to run NSD without a pidfile, for
 	  startup management tools like daemontools.
+	- For #21 add
+	  contrib/patch_for_s6_startup_and_other_service_supervisors.diff
+	  that adds support for readiness notification with READY_FD from
+	  Cameron Nemo.
 BUG FIXES:
 	- Fix #35: excessive logging of ixfr failures, it stops the log when
 	  fallback to axfr is possible. log is enabled at high verbosity.
