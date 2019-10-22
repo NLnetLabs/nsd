@@ -1240,7 +1240,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	 * information for a zone with a different apex from the query zone.
 	*/
 	if (nsd->options->confine_to_zone &&
-	   (origzone != NULL && dname_compare(origzone->apex->dname, q->zone->apex->dname) != 0)) {
+	   (origzone != NULL && dname_compare(domain_dname(origzone->apex), domain_dname(q->zone->apex)) != 0)) {
 		return;
 	}
 

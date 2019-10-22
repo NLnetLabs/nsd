@@ -1144,7 +1144,7 @@ open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 	}
 
 #ifdef USE_TCP_FASTOPEN
-	(void)set_tcp_fastopen(nsd->tcp[i].s);
+	(void)set_tcp_fastopen(sock);
 #endif
 
 	if(listen(sock->s, TCP_BACKLOG) == -1) {
@@ -1179,8 +1179,12 @@ server_init(struct nsd *nsd)
 		/* increase the size of the interface arrays, there are going
 		 * to be separate interface file descriptors for every server
 		 * instance */
+		region_remove_cleanup(nsd->region, free, nsd->udp);
+		region_remove_cleanup(nsd->region, free, nsd->tcp);
 		nsd->udp = xrealloc(nsd->udp, ifs * sizeof(*nsd->udp));
 		nsd->tcp = xrealloc(nsd->tcp, ifs * sizeof(*nsd->tcp));
+		region_add_cleanup(nsd->region, free, nsd->udp);
+		region_add_cleanup(nsd->region, free, nsd->tcp);
 
 		for(i = nsd->ifs; i < ifs; i++) {
 			nsd->udp[i].addr = nsd->udp[i%nsd->ifs].addr;
@@ -3062,9 +3066,9 @@ handle_udp(int fd, short event, void* arg)
 			}
 
 #ifdef USE_ZONE_STATS
-			if (data->socket->fam == AF_INET) {
+			if (data->socket->addr.ai_family == AF_INET) {
 				ZTATUP(data->nsd, q->zone, qudp);
-			} else if (data->socket->fam == AF_INET6) {
+			} else if (data->socket->addr.ai_family == AF_INET6) {
 				ZTATUP(data->nsd, q->zone, qudp6);
 			}
 #endif

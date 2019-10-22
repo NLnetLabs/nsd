@@ -6,7 +6,7 @@
 # basic: grep, grep, tail, head, cp, rm, kill ...
 # dig   - version 9 or later.
 # wdiff
-# tpkg
+# tdir
 # pcat, pcat-diff, pcat-print, ldns-testns
 # nc and printf for tcp_* tests.
 test_tool_avail "grep"
@@ -63,8 +63,8 @@ for i in *.tdir; do
 		tdir -a ../../ exe $i
 	fi
 done
-tpkg report
-#tpkg clean
+tdir report
+#tdir clean
 
 do_long=yes
 if [ $do_long = yes ]; then
@@ -74,7 +74,7 @@ if [ $do_long = yes ]; then
 		echo ">>> next test $i at "`date`
 		tdir -a ../../ exe $i
 	done
-	tpkg report
-	#tpkg clean
+	tdir report
+	#tdir clean
 	cd ..
 fi
