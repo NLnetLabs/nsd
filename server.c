@@ -1179,8 +1179,12 @@ server_init(struct nsd *nsd)
 		/* increase the size of the interface arrays, there are going
 		 * to be separate interface file descriptors for every server
 		 * instance */
+		region_remove_cleanup(nsd->region, free, nsd->udp);
+		region_remove_cleanup(nsd->region, free, nsd->tcp);
 		nsd->udp = xrealloc(nsd->udp, ifs * sizeof(*nsd->udp));
 		nsd->tcp = xrealloc(nsd->tcp, ifs * sizeof(*nsd->tcp));
+		region_add_cleanup(nsd->region, free, nsd->udp);
+		region_add_cleanup(nsd->region, free, nsd->tcp);
 
 		for(i = nsd->ifs; i < ifs; i++) {
 			nsd->udp[i].addr = nsd->udp[i%nsd->ifs].addr;
