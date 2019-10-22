@@ -3,6 +3,8 @@ NSD RELEASE NOTES
 4.2.3 (in development)
 ================
 FEATURES:
+	- For #39: confine-to-zone configures NSD to not return out-of-zone
+	  additional information. Contributed by Greg Bock.
 	- For #21: pidfile "" allows to run NSD without a pidfile, for
 	  startup management tools like daemontools.
 	- For #21 add
@@ -19,6 +21,15 @@ BUG FIXES:
 	  squelches (the same as unbound) some unless high verbosity is used.
 	- Fixup clang analysis warning in xfrd_parse_received_xfr_packet
 	  master dereference.
+CHANGES:
+	- Number of different UDP handlers has been reduced to one. recvmmsg
+	  and sendmmsg implementations are now used on all platforms.
+	  Compatible implementations are in place for systems that lack the
+	  system calls.
+	- Socket options are now set in designated functions for easy reuse.
+	- Socket setup has been simplified for easy reuse.
+	- Configuration parser is now aware of the context in which an option
+	  was specified.
 
 
 4.2.2

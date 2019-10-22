@@ -1,8 +1,24 @@
+22 October 2019: Jeroen
+	- Number of different UDP handlers has been reduced to one. recvmmsg
+	  and sendmmsg implementations are now used on all platforms.
+	  Compatible implementations are in place for systems that lack the
+	  system calls.
+	- Socket options are now set in designated functions for easy reuse.
+	- Socket setup has been simplified for easy reuse.
+	- Configuration parser is now aware of the context in which an option
+	  was specified.
+
 21 October 2019: Wouter
 	- For #21 add
 	  contrib/patch_for_s6_startup_and_other_service_supervisors.diff
 	  that adds support for readiness notification with READY_FD from
 	  Cameron Nemo.
+
+17 October 2019: Jeroen
+	- Fix #40: Merge small fixes for confine-to-zone by Greg Bock.
+
+15 October 2019: Jeroen
+	- For #39: Merge confine-to-zone feature contributes by Greg Bock.
 
 26 September 2019: Wouter
 	- Fix #38: log address and failure reason with tls handshake errors,
