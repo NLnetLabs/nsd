@@ -430,8 +430,6 @@ xfrd_shutdown()
 			signal_del(xfrd_sig_evs[i]);
 			free(xfrd_sig_evs[i]);
 		}
-		free(nsd.udp);
-		free(nsd.tcp);
 	}
 #ifdef RATELIMIT
 	rrl_mmap_deinit();
