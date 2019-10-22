@@ -41,6 +41,7 @@ server:
 	log-time-ascii: yes
 	round-robin: no
 	minimal-responses: no
+	confine-to-zone: no
 	refuse-any: no
 	verbosity: 0
 	ip-address: "127.0.0.1"
@@ -149,6 +150,7 @@ server:
 	log-time-ascii: yes
 	round-robin: no
 	minimal-responses: no
+	confine-to-zone: no
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
@@ -210,6 +212,7 @@ server:
 	log-time-ascii: no
 	round-robin: no
 	minimal-responses: no
+	confine-to-zone: no
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
@@ -280,6 +283,7 @@ server:
 	log-time-ascii: yes
 	round-robin: no
 	minimal-responses: no
+	confine-to-zone: no
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
@@ -394,6 +398,7 @@ server:
 	log-time-ascii: yes
 	round-robin: no
 	minimal-responses: no
+	confine-to-zone: no
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
