@@ -430,12 +430,8 @@ xfrd_shutdown()
 			signal_del(xfrd_sig_evs[i]);
 			free(xfrd_sig_evs[i]);
 		}
-		for(i=0; i<(int)nsd.ifs; i++) {
-			if(nsd.udp[i].s != -1 && nsd.udp[i].addr)
-				freeaddrinfo(nsd.udp[i].addr);
-			if(nsd.tcp[i].s != -1 && nsd.tcp[i].addr)
-				freeaddrinfo(nsd.tcp[i].addr);
-		}
+		free(nsd.udp);
+		free(nsd.tcp);
 	}
 #ifdef RATELIMIT
 	rrl_mmap_deinit();

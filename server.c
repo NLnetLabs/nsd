@@ -1144,7 +1144,7 @@ open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 	}
 
 #ifdef USE_TCP_FASTOPEN
-	(void)set_tcp_fastopen(nsd->tcp[i].s);
+	(void)set_tcp_fastopen(sock);
 #endif
 
 	if(listen(sock->s, TCP_BACKLOG) == -1) {
@@ -3062,9 +3062,9 @@ handle_udp(int fd, short event, void* arg)
 			}
 
 #ifdef USE_ZONE_STATS
-			if (data->socket->fam == AF_INET) {
+			if (data->socket->addr.ai_family == AF_INET) {
 				ZTATUP(data->nsd, q->zone, qudp);
-			} else if (data->socket->fam == AF_INET6) {
+			} else if (data->socket->addr.ai_family == AF_INET6) {
 				ZTATUP(data->nsd, q->zone, qudp6);
 			}
 #endif
