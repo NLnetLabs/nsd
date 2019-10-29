@@ -568,7 +568,7 @@ static void test_add_remove(CuTest *tc, rbtree_type* tree, const int* insert, co
 		CuAssert(tc, "rbtree_search(tree, &insert[remove[i]]) == 0", (rbtree_search(tree, &insert[remove[i]]) == 0));
 
 		/* stop on any errors */
-		if(tc->failed > 0) {
+		if(tc->result == CuFailed) {
 			printf("Errors, stop \n");
 			tree_print(tc, tree);
 			return;
@@ -699,7 +699,7 @@ static void rbtree_9(CuTest *tc)
 			{
 				test_add_remove(tc, t, perm[i], perm[j]);
 				/* stop on any errors */
-				if (tc->failed > 0) {
+				if (tc->result == CuFailed) {
 					printf("Errors, stop \n");
 					return;
 				}
