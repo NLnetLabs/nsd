@@ -11,4 +11,5 @@ else
 fi
 
 # run the unit tests.
+export POPEN3_ECHO=../../popen3_echo
 ../../cutest
