@@ -29,6 +29,7 @@ CuSuite * reg_cutest_bitset(void);
 #ifdef RATELIMIT
 CuSuite * reg_cutest_rrl(void);
 #endif
+CuSuite * reg_cutest_popen3(void);
 
 /* dummy functions to link */
 struct nsd nsd;

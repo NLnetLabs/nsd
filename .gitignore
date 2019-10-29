@@ -28,6 +28,7 @@
 /nsd.conf.sample
 /nsd-mem
 /cutest
+/popen3_echo
 /udb-inspect
 /xfr-inspect
 /dnstap/dnstap.pb-c.c

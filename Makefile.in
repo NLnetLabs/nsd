@@ -81,7 +81,7 @@ ALL_OBJ=$(NSD_OBJ) nsd-checkconf.o nsd-checkzone.o nsd-control.o nsd-mem.o
 NSD_CHECKCONF_OBJ=$(COMMON_OBJ) nsd-checkconf.o
 NSD_CHECKZONE_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o nsd-checkzone.o
 NSD_CONTROL_OBJ=$(COMMON_OBJ) nsd-control.o
-CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_rrl.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest_bitset.o cutest.o qtest.o
+CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_rrl.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest_bitset.o cutest_popen3.o cutest.o qtest.o
 NSD_MEM_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o nsd-mem.o
 all:	$(TARGETS) $(MANUALS)
 
@@ -164,7 +164,7 @@ nsd-control:	$(NSD_CONTROL_OBJ) $(LIBOBJS)
 nsd-mem:	$(NSD_MEM_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_MEM_OBJ) $(LIBOBJS) $(SSL_LIBS) $(LIBS)
 
-cutest:	$(CUTEST_OBJ) $(LIBOBJS)
+cutest:	$(CUTEST_OBJ) $(LIBOBJS) popen3_echo
 	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) $(SSL_LIBS) $(LIBS)
 
 udb-inspect:	udb-inspect.o $(COMMON_OBJ) $(LIBOBJS)
@@ -173,8 +173,11 @@ udb-inspect:	udb-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 xfr-inspect:	xfr-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ xfr-inspect.o $(COMMON_OBJ) $(LIBOBJS) $(LIBS)
 
+popen3_echo: popen3.o popen3_echo.o
+	$(LINK) -o $@ popen3.o popen3_echo.o
+
 clean:
-	rm -f *.o $(TARGETS) $(MANUALS) cutest udb-inspect xfr-inspect nsd-mem
+	rm -f *.o $(TARGETS) $(MANUALS) cutest popen3_echo udb-inspect xfr-inspect nsd-mem
 
 distclean: clean
 	rm -f Makefile config.h config.log config.status dnstap/dnstap_config.h
@@ -290,6 +293,12 @@ cutest_util.o:	$(srcdir)/tpkg/cutest/cutest_util.c
 
 cutest_bitset.o: $(srcdir)/tpkg/cutest/cutest_bitset.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_bitset.c
+
+cutest_popen3.o: $(srcdir)/tpkg/cutest/cutest_popen3.c
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_popen3.c
+
+popen3_echo.o: $(srcdir)/tpkg/cutest/popen3_echo.c
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/popen3_echo.c
 
 cutest.o:	$(srcdir)/tpkg/cutest/cutest.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest.c
