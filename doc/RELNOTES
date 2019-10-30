@@ -50,6 +50,8 @@ BUG FIXES:
 	  in the response.
 	- Merge PR#60: Minor portability fixes from michaelforney, with
 	  avoid pointer arithmetic on void* and avoid unnecessary VLA.
+CHANGES:
+	- Set FD_CLOEXEC on opened sockets.
 
 
 4.2.4

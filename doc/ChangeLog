@@ -11,6 +11,12 @@
 21 January 2020: Wouter
 	- Fix leak in server bitset setup.
 
+16 January 2020: Jeroen
+	- Add zone resource record iterator for future zone-verification port.
+	- Set FD_CLOEXEC on opened sockets.
+	- Add popen3 implementation for future zone-verification port.
+	- Add -r option to cutest so that a subset of tests can be run.
+
 15 January 2020: Jeroen
 	- Add feature to pin server proccesses to specific cpus.
 	- Add feature to pin IP addresses to selected server processes.
