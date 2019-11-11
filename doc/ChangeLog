@@ -1,6 +1,7 @@
 11 November 2019: Wouter
 	- Fix #44: document that remote-control is a top-level nsd.conf
 	  attribute.
+	- Fix compile on OSX.
 
 22 October 2019: Jeroen
 	- Number of different UDP handlers has been reduced to one. recvmmsg

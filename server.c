@@ -736,7 +736,7 @@ set_rcvbuf(struct nsd_socket *sock, int rcv)
 		return 0;
 	}
 	log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, ...) failed: %s",
-		strerror(err));
+		strerror(errno));
 	return -1;
 #endif /* SO_RCVBUFFORCE */
 #endif /* SO_RCVBUF */
@@ -847,6 +847,8 @@ set_ipv6_use_min_mtu(struct nsd_socket *sock)
 	log_msg(LOG_ERR, "setsockopt(..., %s, ...) failed: %s",
 		optname, strerror(errno));
 	return -1;
+#else
+	(void)sock;
 #endif /* INET6 */
 
 	return 0;
@@ -902,6 +904,8 @@ set_ipv4_no_pmtu_disc(struct nsd_socket *sock)
 	log_msg(LOG_ERR, "setsockopt(..., IP_DONTFRAG, ...) failed: %s",
 		strerror(errno));
 	ret = -1;
+#else
+	(void)sock;
 #endif
 
 	return ret;
@@ -921,6 +925,8 @@ set_ip_freebind(struct nsd_socket *sock)
 	log_msg(LOG_ERR, "setsockopt(..., IP_FREEBIND, ...) failed for %s: %s",
 		socktype, strerror(errno));
 	return -1;
+#else
+	(void)sock;
 #endif /* IP_FREEBIND */
 
 	return 0;
@@ -929,11 +935,10 @@ set_ip_freebind(struct nsd_socket *sock)
 static int
 set_ip_transparent(struct nsd_socket *sock)
 {
+#if defined(IP_TRANSPARENT)
 	int on = 1;
 	const char *socktype =
 		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
-
-#if defined(IP_TRANSPARENT)
 	if(0 == setsockopt(
 		sock->s, IPPROTO_IP, IP_TRANSPARENT, &on, sizeof(on)))
 	{
@@ -944,6 +949,9 @@ set_ip_transparent(struct nsd_socket *sock)
 		"IP_TRANSPARENT", socktype, strerror(errno));
 	return -1;
 #elif defined(SO_BINDANY)
+	int on = 1;
+	const char *socktype =
+		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
 	if(0 == setsockopt(
 		sock->s, SOL_SOCKET, SO_BINDANY, &on, sizeof(on)))
 	{
@@ -953,6 +961,8 @@ set_ip_transparent(struct nsd_socket *sock)
 	log_msg(LOG_ERR, "setsockopt(..., %s, ...) failed for %s: %s",
 		"SO_BINDANY", socktype, strerror(errno));
 	return -1;
+#else
+	(void)sock;
 #endif
 
 	return 0;
