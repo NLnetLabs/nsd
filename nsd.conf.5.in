@@ -100,25 +100,13 @@ with a colon ':'. An attribute is followed by its containing
 attributes, or a value. 
 .P
 At the top level only 
-.B server:
-and
-.B key: 
-and 
-.B pattern:
-and
-.B zone: 
+.BR server: ,
+.BR key: ,
+.BR pattern: ,
+.BR zone: ,
 and
 .B remote-control:
-are allowed. These are followed by their attributes or the start of 
-a new 
-.B server:
-or 
-.B key: 
-or
-.B pattern:
-or
-.B zone: 
-clause. The 
+are allowed. These are followed by their attributes or a new top-level keyword. The
 .B zone:
 attribute is followed by zone options. The 
 .B server: 
