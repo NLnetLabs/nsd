@@ -30,6 +30,8 @@ CHANGES:
 	- Socket setup has been simplified for easy reuse.
 	- Configuration parser is now aware of the context in which an option
 	  was specified.
+	- Fix #44: document that remote-control is a top-level nsd.conf
+	  attribute.
 
 
 4.2.2

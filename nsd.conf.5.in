@@ -107,6 +107,8 @@ and
 .B pattern:
 and
 .B zone: 
+and
+.B remote-control:
 are allowed. These are followed by their attributes or the start of 
 a new 
 .B server:
