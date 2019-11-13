@@ -31,6 +31,7 @@ CuSuite * reg_cutest_rrl(void);
 #endif
 CuSuite * reg_cutest_popen3(void);
 CuSuite * reg_cutest_iter(void);
+CuSuite * reg_cutest_event(void);
 
 /* dummy functions to link */
 struct nsd nsd;
@@ -83,6 +84,7 @@ int runalltests(const char *regex)
 	CuSuiteAddSuite(suite, reg_cutest_bitset());
 	CuSuiteAddSuite(suite, reg_cutest_popen3());
 	CuSuiteAddSuite(suite, reg_cutest_iter());
+	CuSuiteAddSuite(suite, reg_cutest_event());
 
 	if(CuSuiteRunRegexDisplay(suite, regex, disp_callback) == -1) {
 		fprintf(stderr, "invalid regular expression");
