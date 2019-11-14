@@ -1,7 +1,5 @@
 start of check
-checkconf.nsd10.conf:10: error: expected a number
-read checkconf.nsd10.conf failed: 1 errors in configuration file
-# Read file checkconf.nsd1.conf: 2 patterns, 2 fixed-zones, 3 keys.
+# Read file checkconf.nsd01.conf: 2 patterns, 2 fixed-zones, 3 keys.
 # Config settings.
 server:
 	debug-mode: yes
@@ -110,7 +108,7 @@ zone:
 	name: "example.net"
 	zonefile: "/etc/nsd/example.net.db"
 	outgoing-interface: 10.0.0.0
-# Read file checkconf.nsd2.conf: 1 patterns, 1 fixed-zones, 0 keys.
+# Read file checkconf.nsd02.conf: 1 patterns, 1 fixed-zones, 0 keys.
 # Config settings.
 server:
 	debug-mode: no
@@ -172,7 +170,7 @@ zone:
 	name: "example.com"
 	zonefile: "/etc/nsd/example.com.zone"
 	outgoing-interface: 1.2.3.4
-# Read file checkconf.nsd3.conf: 1 patterns, 1 fixed-zones, 1 keys.
+# Read file checkconf.nsd03.conf: 1 patterns, 1 fixed-zones, 1 keys.
 # Config settings.
 server:
 	debug-mode: no
@@ -243,7 +241,7 @@ zone:
 	request-xfr: 162.0.4.49 tsig.example.org.
 	# ip4 noport single addr=162.0.4.49
 	outgoing-interface: 2001:7b8:40:1:219:d1ff:feb1:85e8
-# Read file checkconf.nsd4.conf: 1 patterns, 1 fixed-zones, 0 keys.
+# Read file checkconf.nsd04.conf: 1 patterns, 1 fixed-zones, 0 keys.
 # Config settings.
 server:
 	debug-mode: no
@@ -306,59 +304,59 @@ zone:
 	zonefile: "example.nl"
 	provide-xfr: 0::0/0 NOKEY
 	# ip6 noport subnet addr=:: rangemask=::
-checkconf.nsd5.conf:1: at 'dfd': error: syntax error
-read checkconf.nsd5.conf failed: 1 errors in configuration file
-checkconf.nsd6.conf:13: error: address range used for notify
-checkconf.nsd6.conf:14: error: address range used for notify
-checkconf.nsd6.conf:15: error: address range used for notify
-checkconf.nsd6.conf:16: error: address range used for notify
-checkconf.nsd6.conf:17: error: address range used for notify
-checkconf.nsd6.conf:18: error: address range used for notify
-checkconf.nsd6.conf:19: error: address range used for notify
-checkconf.nsd6.conf:20: error: address range used for notify
-checkconf.nsd6.conf:21: error: address range used for notify
-checkconf.nsd6.conf:22: error: address range used for notify
-checkconf.nsd6.conf:23: error: address range used for notify
-checkconf.nsd6.conf:24: error: address range used for notify
-checkconf.nsd6.conf:40: error: address range used for request-xfr
-checkconf.nsd6.conf:41: error: address range used for request-xfr
-checkconf.nsd6.conf:42: error: address range used for request-xfr
-checkconf.nsd6.conf:43: error: address range used for request-xfr
-checkconf.nsd6.conf:44: error: address range used for request-xfr
-checkconf.nsd6.conf:45: error: address range used for request-xfr
-checkconf.nsd6.conf:46: error: address range used for request-xfr
-checkconf.nsd6.conf:47: error: address range used for request-xfr
-checkconf.nsd6.conf:48: error: address range used for request-xfr
-checkconf.nsd6.conf:52: error: blocked address used for notify
-checkconf.nsd6.conf:53: error: address range used for notify
-checkconf.nsd6.conf:54: error: address range used for notify
-checkconf.nsd6.conf:55: error: address range used for notify
-checkconf.nsd6.conf:57: error: zone has no name
-checkconf.nsd6.conf:60: error: Bad ip4 address '1.2.3.4.5'
-checkconf.nsd6.conf:60: error: blocked address used for notify
-checkconf.nsd6.conf:62: error: blocked address used for request-xfr
-checkconf.nsd6.conf:64: error: Bad ip4 address '1.2.3'
-checkconf.nsd6.conf:68: error: Bad ip4 address '1.2.3'
-checkconf.nsd6.conf:72: error: Bad ip4 address '1.2.3'
-checkconf.nsd6.conf:81: error: address range used for notify
-checkconf.nsd6.conf:83: error: address range used for request-xfr
-checkconf.nsd6.conf:92: error: key icky has no secret blob
-checkconf.nsd6.conf:92: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
-checkconf.nsd6.conf:92: error: key icky in pattern _implicit_key_block_nokey_check.zone could not be found
-checkconf.nsd6.conf:92: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
-checkconf.nsd6.conf:92: error: key icky in pattern _implicit_key_block_nokey_check.zone could not be found
-checkconf.nsd6.conf:92: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
-checkconf.nsd6.conf:92: error: key icky in pattern _implicit_key_block_nokey_check.zone could not be found
-checkconf.nsd6.conf:92: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
-checkconf.nsd6.conf:92: error: key icky in pattern _implicit_key_block_nokey_check.zone could not be found
-checkconf.nsd6.conf:92: error: key icky in pattern _implicit_try_ranges.zone could not be found
-checkconf.nsd6.conf:92: error: key icky in pattern _implicit_try_ranges.zone could not be found
-checkconf.nsd6.conf:92: error: key icky in pattern _implicit_try_ranges.zone could not be found
-checkconf.nsd6.conf:92: error: key icky in pattern _implicit_try_ranges.zone could not be found
-read checkconf.nsd6.conf failed: 47 errors in configuration file
-checkconf.nsd7.conf:3: at 'logging': error: syntax error
-read checkconf.nsd7.conf failed: 1 errors in configuration file
-# Read file checkconf.nsd8.conf: 4 patterns, 1 fixed-zones, 0 keys.
+checkconf.nsd05.conf:1: at 'dfd': error: syntax error
+read checkconf.nsd05.conf failed: 1 errors in configuration file
+checkconf.nsd06.conf:13: error: address range used for notify
+checkconf.nsd06.conf:14: error: address range used for notify
+checkconf.nsd06.conf:15: error: address range used for notify
+checkconf.nsd06.conf:16: error: address range used for notify
+checkconf.nsd06.conf:17: error: address range used for notify
+checkconf.nsd06.conf:18: error: address range used for notify
+checkconf.nsd06.conf:19: error: address range used for notify
+checkconf.nsd06.conf:20: error: address range used for notify
+checkconf.nsd06.conf:21: error: address range used for notify
+checkconf.nsd06.conf:22: error: address range used for notify
+checkconf.nsd06.conf:23: error: address range used for notify
+checkconf.nsd06.conf:24: error: address range used for notify
+checkconf.nsd06.conf:40: error: address range used for request-xfr
+checkconf.nsd06.conf:41: error: address range used for request-xfr
+checkconf.nsd06.conf:42: error: address range used for request-xfr
+checkconf.nsd06.conf:43: error: address range used for request-xfr
+checkconf.nsd06.conf:44: error: address range used for request-xfr
+checkconf.nsd06.conf:45: error: address range used for request-xfr
+checkconf.nsd06.conf:46: error: address range used for request-xfr
+checkconf.nsd06.conf:47: error: address range used for request-xfr
+checkconf.nsd06.conf:48: error: address range used for request-xfr
+checkconf.nsd06.conf:52: error: blocked address used for notify
+checkconf.nsd06.conf:53: error: address range used for notify
+checkconf.nsd06.conf:54: error: address range used for notify
+checkconf.nsd06.conf:55: error: address range used for notify
+checkconf.nsd06.conf:57: error: zone has no name
+checkconf.nsd06.conf:60: error: Bad ip4 address '1.2.3.4.5'
+checkconf.nsd06.conf:60: error: blocked address used for notify
+checkconf.nsd06.conf:62: error: blocked address used for request-xfr
+checkconf.nsd06.conf:64: error: Bad ip4 address '1.2.3'
+checkconf.nsd06.conf:68: error: Bad ip4 address '1.2.3'
+checkconf.nsd06.conf:72: error: Bad ip4 address '1.2.3'
+checkconf.nsd06.conf:81: error: address range used for notify
+checkconf.nsd06.conf:83: error: address range used for request-xfr
+checkconf.nsd06.conf:92: error: key icky has no secret blob
+checkconf.nsd06.conf:92: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
+checkconf.nsd06.conf:92: error: key icky in pattern _implicit_key_block_nokey_check.zone could not be found
+checkconf.nsd06.conf:92: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
+checkconf.nsd06.conf:92: error: key icky in pattern _implicit_key_block_nokey_check.zone could not be found
+checkconf.nsd06.conf:92: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
+checkconf.nsd06.conf:92: error: key icky in pattern _implicit_key_block_nokey_check.zone could not be found
+checkconf.nsd06.conf:92: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
+checkconf.nsd06.conf:92: error: key icky in pattern _implicit_key_block_nokey_check.zone could not be found
+checkconf.nsd06.conf:92: error: key icky in pattern _implicit_try_ranges.zone could not be found
+checkconf.nsd06.conf:92: error: key icky in pattern _implicit_try_ranges.zone could not be found
+checkconf.nsd06.conf:92: error: key icky in pattern _implicit_try_ranges.zone could not be found
+checkconf.nsd06.conf:92: error: key icky in pattern _implicit_try_ranges.zone could not be found
+read checkconf.nsd06.conf failed: 47 errors in configuration file
+checkconf.nsd07.conf:3: at 'logging': error: syntax error
+read checkconf.nsd07.conf failed: 1 errors in configuration file
+# Read file checkconf.nsd08.conf: 4 patterns, 1 fixed-zones, 0 keys.
 # Config settings.
 server:
 	debug-mode: no
@@ -467,5 +465,7 @@ zone:
 	# ip4 noport single addr=192.0.2.2
 	notify: 192.0.2.3 NOKEY
 	# ip4 noport single addr=192.0.2.3
-checkconf.nsd9.conf:9: error: expected yes or no
-read checkconf.nsd9.conf failed: 1 errors in configuration file
+checkconf.nsd09.conf:9: error: expected yes or no
+read checkconf.nsd09.conf failed: 1 errors in configuration file
+checkconf.nsd10.conf:10: error: expected a number
+read checkconf.nsd10.conf failed: 1 errors in configuration file
