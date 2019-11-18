@@ -1,6 +1,11 @@
 18 November 2019: Wouter
 	- Detect fixed time memcmp for openssl 0.9.8 compatibility.
 	- Detect EC_KEY_new_by_curve_name for openssl 0.9.8.
+	- include limits.h for UINT_MAX.
+	- If no recvmmsg, dont use msg_flags member, but errno for error,
+	  where our fallback function left it, msg_flags also does not exist
+	  on some systems.
+	- Remove unused variable warning for portability.
 
 14 November 2019: Wouter
 	- Fix checkconf test with filenames that sort in the same order.

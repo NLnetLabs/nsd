@@ -11,6 +11,7 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
+#include <limits.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <sys/wait.h>
@@ -690,6 +691,8 @@ set_reuseport(struct nsd_socket *sock)
 			optname, strerror(errno));
 	}
 	return -1;
+#else
+	(void)sock;
 #endif /* SO_REUSEPORT */
 
 	return 0;
@@ -2954,7 +2957,7 @@ nsd_recvmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
 		if(rcvd < 0) {
 			break;
 		} else {
-			assert(rcvd <= UINT_MAX);
+			assert((unsigned long long)rcvd <= (unsigned long long)UINT_MAX);
 			msgvec[vpos].msg_len = (unsigned int)rcvd;
 			vpos++;
 		}
@@ -3043,7 +3046,12 @@ handle_udp(int fd, short event, void* arg)
 		q = queries[i];
 		if (received == -1) {
 			log_msg(LOG_ERR, "recvmmsg %d failed %s", i, strerror(
-				msgs[i].msg_hdr.msg_flags));
+#if defined(HAVE_RECVMMSG)
+				msgs[i].msg_hdr.msg_flags
+#else
+				errno
+#endif
+				));
 			STATUP(data->nsd, rxerr);
 			/* No zone statup */
 			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
