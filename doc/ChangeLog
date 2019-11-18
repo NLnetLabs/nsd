@@ -1,3 +1,6 @@
+18 November 2019: Wouter
+	- Detect fixed time memcmp for openssl 0.9.8 compatibility.
+
 14 November 2019: Wouter
 	- Fix checkconf test with filenames that sort in the same order.
 	- Tag for 4.2.3rc1.
