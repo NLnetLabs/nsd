@@ -1717,7 +1717,7 @@ listen_sslctx_setup_2(void* ctxt)
 	if(!SSL_CTX_set_ecdh_auto(ctx,1)) {
 		log_crypto_err("Error in SSL_CTX_ecdh_auto, not enabling ECDHE");
 	}
-#elif defined(HAVE_DECL_SSL_CTX_SET_TMP_ECDH) && defined(NID_X9_62_prime256v1)
+#elif defined(HAVE_DECL_SSL_CTX_SET_TMP_ECDH) && defined(NID_X9_62_prime256v1) && defined(HAVE_EC_KEY_NEW_BY_CURVE_NAME)
 	if(1) {
 		EC_KEY *ecdh = EC_KEY_new_by_curve_name (NID_X9_62_prime256v1);
 		if (!ecdh) {
