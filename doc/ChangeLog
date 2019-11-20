@@ -9,7 +9,7 @@
 
 14 November 2019: Wouter
 	- Fix checkconf test with filenames that sort in the same order.
-	- Tag for 4.2.3rc1.
+	- Tag for 4.2.3rc1.  Branch master is 4.2.4 in development.
 
 11 November 2019: Wouter
 	- Fix #44: document that remote-control is a top-level nsd.conf
