@@ -182,6 +182,10 @@ realclean: clean
 	rm -f zlexer.c zparser.h zparser.c zparser.stamp
 	rm -f configlexer.c configparser.h configparser.c configparser.stamp
 
+distclean: clean
+	rm -f Makefile config.h config.log config.status
+	rm -f dnstap/dnstap_config.h
+
 devclean: realclean
 	rm -f config.h.in configure
 
