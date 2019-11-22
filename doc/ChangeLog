@@ -1,5 +1,5 @@
 22 November 2019: Wouter
-	- Add make distclean that removes config.h made by configure.
+	- Fix #48: Add make distclean that removes config.h made by configure.
 
 18 November 2019: Wouter
 	- Detect fixed time memcmp for openssl 0.9.8 compatibility.
