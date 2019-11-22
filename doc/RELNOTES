@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- Fix #48: Add make distclean that removes config.h made by configure.
+	  And add maintainer-clean that removes bison and flex output.
 BUG FIXES:
 	- Detect fixed time memcmp for openssl 0.9.8 compatibility.
 	- Detect EC_KEY_new_by_curve_name for openssl 0.9.8.
