@@ -5,3 +5,4 @@ steps:
     - ./configure --enable-checking --disable-flto
     - make
     - make cutest && ./cutest
+    - echo "Third party PR"
