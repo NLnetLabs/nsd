@@ -2,6 +2,9 @@
 	- Fix #52: do not log transient network full errors unless higher
 	  verbosity is set.
 
+27 November 2017 Jeroen
+	- Fix regressions in configparser.y
+
 22 November 2019: Wouter
 	- Fix #48: Add make distclean that removes config.h made by configure.
 	  And add maintainer-clean that removes bison and flex output.
