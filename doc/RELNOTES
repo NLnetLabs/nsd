@@ -15,6 +15,8 @@ BUG FIXES:
 	- Remove unused variable warning for portability.
 	- Fix #52: do not log transient network full errors unless higher
 	  verbosity is set.
+	- Fix regressions in configparser.y where global variables were not
+	  set for minimal-responses, round-robin and log-time-ascii.
 
 
 4.2.3

@@ -372,11 +372,20 @@ server_option:
   | VAR_ZONEFILES_WRITE number
     { cfg_parser->opt->zonefiles_write = (int)$2; }
   | VAR_LOG_TIME_ASCII boolean
-    { cfg_parser->opt->log_time_ascii = $2; }
+    {
+      cfg_parser->opt->log_time_ascii = $2;
+      log_time_asc = cfg_parser->opt->log_time_ascii;
+    }
   | VAR_ROUND_ROBIN boolean
-    { cfg_parser->opt->round_robin = $2; }
+    {
+      cfg_parser->opt->round_robin = $2;
+      round_robin = cfg_parser->opt->round_robin;
+    }
   | VAR_MINIMAL_RESPONSES boolean
-    { cfg_parser->opt->minimal_responses = $2; }
+    {
+      cfg_parser->opt->minimal_responses = $2;
+      minimal_responses = cfg_parser->opt->minimal_responses;
+    }
   | VAR_CONFINE_TO_ZONE boolean
     { cfg_parser->opt->confine_to_zone = $2; }
   | VAR_REFUSE_ANY boolean
@@ -470,13 +479,13 @@ key:
     {
       struct key_options *key = cfg_parser->key;
       if(key->name == NULL) {
-        yyerror("key has no name");
+        yyerror("tsig key has no name");
       } else if(key->algorithm == NULL) {
-        yyerror("key %s has no algorithm", key->name);
+        yyerror("tsig key %s has no algorithm", key->name);
       } else if(key->secret == NULL) {
-        yyerror("key %s has no secret blob", key->name);
+        yyerror("tsig key %s has no secret blob", key->name);
       } else if(key_options_find(cfg_parser->opt, key->name)) {
-        yyerror("duplicate key %s", key->name);
+        yyerror("duplicate tsig key %s", key->name);
       } else {
         key_options_insert(cfg_parser->opt, key);
         cfg_parser->key = NULL;
@@ -488,11 +497,21 @@ key_block:
 
 key_option:
     VAR_NAME STRING
-    { cfg_parser->key->name = region_strdup(cfg_parser->opt->region, $2);  }
+    {
+      dname_type *dname;
+
+      dname = (dname_type *)dname_parse(cfg_parser->opt->region, $2);
+      cfg_parser->key->name = region_strdup(cfg_parser->opt->region, $2);
+      if(dname == NULL) {
+        yyerror("bad tsig key name %s", $2);
+      } else {
+        region_recycle(cfg_parser->opt->region, dname, dname_total_size(dname));
+      }
+    }
   | VAR_ALGORITHM STRING
     {
       if(tsig_get_algorithm_by_name($2) == NULL) {
-        yyerror("Bad tsig algorithm %s", $2);
+        yyerror("bad tsig key algorithm %s", $2);
       } else {
         cfg_parser->key->algorithm = region_strdup(cfg_parser->opt->region, $2);
       }
@@ -505,7 +524,7 @@ key_option:
       cfg_parser->key->secret = region_strdup(cfg_parser->opt->region, $2);
       size = b64_pton($2, data, sizeof(data));
       if(size == -1) {
-        yyerror("Cannot base64 decode tsig secret %s",
+        yyerror("cannot base64 decode tsig secret %s",
           cfg_parser->key->name?
           cfg_parser->key->name:"");
       } else if(size != 0) {
@@ -580,7 +599,12 @@ pattern_block:
 
 pattern_option:
     VAR_NAME STRING
-    { cfg_parser->pattern->pname = region_strdup(cfg_parser->opt->region, $2); }
+    {
+      if(strchr($2, ' ')) {
+        yyerror("space is not allowed in pattern name: '%s'", $2);
+      }
+      cfg_parser->pattern->pname = region_strdup(cfg_parser->opt->region, $2);
+    }
   | pattern_or_zone_option ;
 
 pattern_or_zone_option:
