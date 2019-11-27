@@ -1,0 +1,24 @@
+# #-- minimal_responses.pre --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+get_random_port 1
+NSD_PORT=${RND_PORT}
+
+echo "NSD_PORT=${NSD_PORT}" >> .tpkg.var.test
+
+sed -e "s/NSD_PORT/${NSD_PORT}/g" \
+    -e "s/NSD_MINIMAL_RESPONSES/no/g" \
+    minimal_responses.conf > minimal_responses_no.conf
+
+[[ ${?} -eq 0 ]] || exit 1
+
+sed -e "s/NSD_PORT/${NSD_PORT}/g" \
+    -e "s/NSD_MINIMAL_RESPONSES/yes/g" \
+    minimal_responses.conf > minimal_responses_yes.conf
+
+[[ ${?} -eq 0 ]] || exit 1
+
