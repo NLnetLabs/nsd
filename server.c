@@ -3140,10 +3140,18 @@ handle_udp(int fd, short event, void* arg)
 	while(i<recvcount) {
 		sent = nsd_sendmmsg(fd, &msgs[i], recvcount-i, 0);
 		if(sent == -1) {
-			const char* es = strerror(errno);
-			char a[48];
-			addr2str(&queries[i]->addr, a, sizeof(a));
-			log_msg(LOG_ERR, "sendmmsg [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
+			/* don't log transient network full errors, unless
+			 * on higher verbosity */
+			if(!(errno == ENOBUFS && verbosity < 1) &&
+#ifdef EWOULDBLOCK
+			   !(errno == EWOULDBLOCK && verbosity < 1) &&
+#endif
+			   !(errno == EAGAIN && verbosity < 1)) {
+				const char* es = strerror(errno);
+				char a[48];
+				addr2str(&queries[i]->addr, a, sizeof(a));
+				log_msg(LOG_ERR, "sendmmsg [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
+			}
 #ifdef BIND8_STATS
 			data->nsd->st.txerr += recvcount-i;
 #endif /* BIND8_STATS */

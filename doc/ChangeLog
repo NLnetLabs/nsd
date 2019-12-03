@@ -1,3 +1,7 @@
+3 December 2019: Wouter
+	- Fix #52: do not log transient network full errors unless higher
+	  verbosity is set.
+
 22 November 2019: Wouter
 	- Fix #48: Add make distclean that removes config.h made by configure.
 	  And add maintainer-clean that removes bison and flex output.

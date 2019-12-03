@@ -13,6 +13,8 @@ BUG FIXES:
 	  where our fallback function left it, msg_flags also does not exist
 	  on some systems.
 	- Remove unused variable warning for portability.
+	- Fix #52: do not log transient network full errors unless higher
+	  verbosity is set.
 
 
 4.2.3
