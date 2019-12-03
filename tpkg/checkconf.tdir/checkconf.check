@@ -340,7 +340,7 @@ checkconf.nsd06.conf:68: error: Bad ip4 address '1.2.3'
 checkconf.nsd06.conf:72: error: Bad ip4 address '1.2.3'
 checkconf.nsd06.conf:81: error: address range used for notify
 checkconf.nsd06.conf:83: error: address range used for request-xfr
-checkconf.nsd06.conf:92: error: key icky has no secret blob
+checkconf.nsd06.conf:92: error: tsig key icky has no secret blob
 checkconf.nsd06.conf:92: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
 checkconf.nsd06.conf:92: error: key icky in pattern _implicit_key_block_nokey_check.zone could not be found
 checkconf.nsd06.conf:92: error: key zlurp-key in pattern _implicit_key_block_nokey_check.zone could not be found
