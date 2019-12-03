@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.2.4 (in development)
+4.2.4
 ================
 FEATURES:
 	- Fix #48: Add make distclean that removes config.h made by configure.
