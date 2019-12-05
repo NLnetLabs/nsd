@@ -1432,8 +1432,8 @@ query_process(query_type *q, nsd_type *nsd)
 		(q->qtype!=TYPE_IXFR && NSCOUNT(q->packet) != 0)) {
 		return query_formerr(q, nsd);
 	}
-	if(q->qtype==TYPE_IXFR && NSCOUNT(q->packet) > 0) {
-		int i; /* skip ixfr soa information data here */
+	if(q->qtype==TYPE_IXFR && NSCOUNT(q->packet) > 0U) {
+		unsigned int i; /* skip ixfr soa information data here */
 		for(i=0; i< NSCOUNT(q->packet); i++)
 			if(!packet_skip_rr(q->packet, 0))
 				return query_formerr(q, nsd);
