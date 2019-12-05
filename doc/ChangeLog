@@ -1,3 +1,6 @@
+5 December 2019: Wouter
+	- Fix fname null check of fname in namedb_read_zonefile.
+
 3 December 2019: Wouter
 	- Fix #52: do not log transient network full errors unless higher
 	  verbosity is set.

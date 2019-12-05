@@ -527,6 +527,7 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 	mtime.tv_sec = 0;
 	mtime.tv_nsec = 0;
 	fname = config_make_zonefile(zone->opts, nsd);
+	assert(fname);
 	if(!file_get_mtime(fname, &mtime, &nonexist)) {
 		if(nonexist) {
 			VERBOSITY(2, (LOG_INFO, "zonefile %s does not exist",
@@ -559,8 +560,7 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 
 		/* if zone_fname, then the file was acquired from reading it,
 		 * and see if filename changed or mtime newer to read it */
-		} else if(zone_fname && fname &&
-		   strcmp(zone_fname, fname) == 0 &&
+		} else if(zone_fname && strcmp(zone_fname, fname) == 0 &&
 		   timespec_compare(&zone_mtime, &mtime) == 0) {
 			VERBOSITY(3, (LOG_INFO, "zonefile %s is not modified",
 				fname));
