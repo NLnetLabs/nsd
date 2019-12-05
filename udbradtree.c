@@ -266,7 +266,7 @@ static int udb_radnode_array_grow(udb_base* udb, udb_ptr* n, size_t want)
 		RADARRAY(&a)->array[i].len = lookup_len(n, i);
 	}
 	memmove(&RADARRAY(&a)->array[ns], lookup_string(n, 0),
-		lookup(n)->len * lookup(n)->str_cap);
+		((size_t)lookup(n)->len) * ((size_t)lookup(n)->str_cap));
 	udb_radarray_zero_ptrs(udb, n);
 	udb_rel_ptr_free_space(&RADNODE(n)->lookup, udb, size_of_lookup(n));
 	udb_rptr_set_ptr(&RADNODE(n)->lookup, udb, &a);
