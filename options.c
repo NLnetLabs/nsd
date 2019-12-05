@@ -346,6 +346,7 @@ parse_zone_list_file(struct nsd_options* opt)
 	add foo.bar.nl slave
 	add rutabaga.uk config
 	*/
+	char hdr[64];
 	char buf[1024];
 	
 	/* create empty data structures */
@@ -364,15 +365,16 @@ parse_zone_list_file(struct nsd_options* opt)
 		return 0;
 	}
 	/* read header */
-	buf[strlen(ZONELIST_HEADER)] = 0;
-	if(fread(buf, 1, strlen(ZONELIST_HEADER), opt->zonelist) !=
-		strlen(ZONELIST_HEADER) || strncmp(buf, ZONELIST_HEADER,
+	hdr[strlen(ZONELIST_HEADER)] = 0;
+	if(fread(hdr, 1, strlen(ZONELIST_HEADER), opt->zonelist) !=
+		strlen(ZONELIST_HEADER) || strncmp(hdr, ZONELIST_HEADER,
 		strlen(ZONELIST_HEADER)) != 0) {
 		log_msg(LOG_ERR, "zone list %s contains bad header\n", opt->zonelistfile);
 		fclose(opt->zonelist);
 		opt->zonelist = NULL;
 		return 0;
 	}
+	buf[sizeof(buf)-1]=0;
 
 	/* read entries in file */
 	while(fgets(buf, sizeof(buf), opt->zonelist)) {
