@@ -840,14 +840,14 @@ get_zone_arg(RES* ssl, xfrd_state_type* xfrd, char* arg,
 	}
 	dname = dname_parse(xfrd->region, arg);
 	if(!dname) {
-		ssl_printf(ssl, "error cannot parse zone name '%s'\n", arg);
+		(void)ssl_printf(ssl, "error cannot parse zone name '%s'\n", arg);
 		*zo = NULL;
 		return 0;
 	}
 	*zo = zone_options_find(xfrd->nsd->options, dname);
 	region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
 	if(!*zo) {
-		ssl_printf(ssl, "error zone %s not configured\n", arg);
+		(void)ssl_printf(ssl, "error zone %s not configured\n", arg);
 		return 0;
 	}
 	return 1;
@@ -914,7 +914,7 @@ do_notify(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			xfrd_notify_start(n, xfrd);
 			send_ok(ssl);
 		} else {
-			ssl_printf(ssl, "error zone does not have notify\n");
+			(void)ssl_printf(ssl, "error zone does not have notify\n");
 		}
 	} else {
 		struct notify_zone* n;
@@ -940,13 +940,13 @@ do_transfer(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			xfrd_handle_notify_and_start_xfr(zone, NULL);
 			send_ok(ssl);
 		} else {
-			ssl_printf(ssl, "error zone not slave\n");
+			(void)ssl_printf(ssl, "error zone not slave\n");
 		}
 	} else {
 		RBTREE_FOR(zone, xfrd_zone_type*, xfrd->zones) {
 			xfrd_handle_notify_and_start_xfr(zone, NULL);
 		}
-		ssl_printf(ssl, "ok, %lu zones\n", (unsigned long)xfrd->zones->count);
+		(void)ssl_printf(ssl, "ok, %lu zones\n", (unsigned long)xfrd->zones->count);
 	}
 }
 
@@ -981,13 +981,13 @@ do_force_transfer(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			force_transfer_zone(zone);
 			send_ok(ssl);
 		} else {
-			ssl_printf(ssl, "error zone not slave\n");
+			(void)ssl_printf(ssl, "error zone not slave\n");
 		}
 	} else {
 		RBTREE_FOR(zone, xfrd_zone_type*, xfrd->zones) {
 			force_transfer_zone(zone);
 		}
-		ssl_printf(ssl, "ok, %lu zones\n", (unsigned long)xfrd->zones->count);
+		(void)ssl_printf(ssl, "ok, %lu zones\n", (unsigned long)xfrd->zones->count);
 	}
 }
 
@@ -1109,11 +1109,11 @@ do_verbosity(RES* ssl, char* str)
 {
 	int val = atoi(str);
 	if(strcmp(str, "") == 0) {
-		ssl_printf(ssl, "verbosity %d\n", verbosity);
+		(void)ssl_printf(ssl, "verbosity %d\n", verbosity);
 		return;
 	}
 	if(val == 0 && strcmp(str, "0") != 0) {
-		ssl_printf(ssl, "error in verbosity number syntax: %s\n", str);
+		(void)ssl_printf(ssl, "error in verbosity number syntax: %s\n", str);
 		return;
 	}
 	verbosity = val;
@@ -1137,7 +1137,7 @@ find_arg2(RES* ssl, char* arg, char** arg2)
 		return 1;
 	}
 	*arg2 = NULL;
-	ssl_printf(ssl, "error could not find next argument "
+	(void)ssl_printf(ssl, "error could not find next argument "
 		"after %s\n", arg);
 	return 0;
 }
@@ -1386,8 +1386,7 @@ perform_delzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		region_recycle(xfrd->region, (void*)dname,
 			dname_total_size(dname));
 		/* nothing to do */
-		if(!ssl_printf(ssl, "warning zone %s not present\n", arg))
-			return 0;
+		(void)ssl_printf(ssl, "warning zone %s not present\n", arg);
 		return 0;
 	}
 
@@ -1866,7 +1865,7 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 		while(l>0 && xfrd->nsd->chrootdir[l-1] == '/')
 			--l;
 		if(strncmp(xfrd->nsd->chrootdir, cfgfile, l) != 0) {
-			ssl_printf(ssl, "error %s is not relative to %s: "
+			(void)ssl_printf(ssl, "error %s is not relative to %s: "
 				"chroot prevents reread of config\n",
 				cfgfile, xfrd->nsd->chrootdir);
 			region_destroy(region);
@@ -1875,7 +1874,7 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 		cfgfile += l;
 	}
 
-	ssl_printf(ssl, "reconfig start, read %s\n", cfgfile);
+	(void)ssl_printf(ssl, "reconfig start, read %s\n", cfgfile);
 	opt = nsd_options_create(region);
 	if(!parse_options_file(opt, cfgfile, &print_ssl_cfg_err, &ssl)) {
 		/* error already printed */
@@ -2286,7 +2285,7 @@ handle_req(struct daemon_remote* rc, struct rc_state* s, RES* res)
 	if(strcmp(magic, pre) != 0) {
 		VERBOSITY(2, (LOG_INFO, "control connection had bad "
 			"version %s, cmd: %s", magic, buf));
-		ssl_printf(res, "error version mismatch\n");
+		(void)ssl_printf(res, "error version mismatch\n");
 		return;
 	}
 	VERBOSITY(2, (LOG_INFO, "control cmd: %s", buf));
