@@ -1912,12 +1912,10 @@ do_print_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	} else {
 		struct key_options* key_opts = key_options_find(xfrd->nsd->options, arg);
 		if(!key_opts) {
-			if(!ssl_printf(ssl, "error: no such key with name: %s\n", arg))
-				return;
+			(void)ssl_printf(ssl, "error: no such key with name: %s\n", arg);
 			return;
 		} else {
-			if(!ssl_printf(ssl, "key: name: \"%s\" secret: \"%s\" algorithm: %s\n", arg, key_opts->secret, key_opts->algorithm))
-				return;
+			(void)ssl_printf(ssl, "key: name: \"%s\" secret: \"%s\" algorithm: %s\n", arg, key_opts->secret, key_opts->algorithm);
 		}
 	}
 }
@@ -1932,25 +1930,21 @@ do_update_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	struct key_options* key_opt;
 
 	if(*arg == '\0') {
-		if(!ssl_printf(ssl, "error: missing argument (keyname)\n"))
-			return;
+		(void)ssl_printf(ssl, "error: missing argument (keyname)\n");
 		return;
 	}
 	if(!find_arg2(ssl, arg, &arg2)) {
-		if(!ssl_printf(ssl, "error: missing argument (secret)\n"))
-			return;
+		(void)ssl_printf(ssl, "error: missing argument (secret)\n");
 		return;
 	}
 	key_opt = key_options_find(xfrd->nsd->options, arg);
 	if(!key_opt) {
-		if(!ssl_printf(ssl, "error: no such key with name: %s\n", arg))
-			return;
+		(void)ssl_printf(ssl, "error: no such key with name: %s\n", arg);
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
 	}
 	if(b64_pton(arg2, data, sizeof(data)) == -1) {
-		if(!ssl_printf(ssl, "error: the secret: %s is not in b64 format\n", arg2))
-			return;
+		(void)ssl_printf(ssl, "error: the secret: %s is not in b64 format\n", arg2);
 		memset(data, 0xdd, sizeof(data)); /* wipe secret */
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
@@ -1990,8 +1984,7 @@ do_add_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	struct key_options* new_key_opt;
 
 	if(*arg == '\0') {
-		if(!ssl_printf(ssl, "error: missing argument (keyname)\n"))
-			return;
+		(void)ssl_printf(ssl, "error: missing argument (keyname)\n");
 		return;
 	}
 	if(!find_arg3(ssl, arg, &arg2, &arg3)) {
@@ -2000,33 +1993,28 @@ do_add_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		strlcpy(algo, arg3, sizeof(algo));
 	}
 	if(!arg2) {
-		if(!ssl_printf(ssl, "error: missing argument (secret)\n"))
-			return;
+		(void)ssl_printf(ssl, "error: missing argument (secret)\n");
 		return;
 	}
 	if(key_options_find(xfrd->nsd->options, arg)) {
-		if(!ssl_printf(ssl, "error: key %s already exists\n", arg))
-			return;
+		(void)ssl_printf(ssl, "error: key %s already exists\n", arg);
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
 	}
 	if(b64_pton(arg2, data, sizeof(data)) == -1) {
-		if(!ssl_printf(ssl, "error: the secret: %s is not in b64 format\n", arg2))
-			return;
+		(void)ssl_printf(ssl, "error: the secret: %s is not in b64 format\n", arg2);
 		memset(data, 0xdd, sizeof(data)); /* wipe secret */
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
 	}
 	memset(data, 0xdd, sizeof(data)); /* wipe secret from temp buffer */
 	if(!dname_parse_wire(dname, arg)) {
-		if(!ssl_printf(ssl, "error: could not parse key name: %s\n", arg))
-			return;
+		(void)ssl_printf(ssl, "error: could not parse key name: %s\n", arg);
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
 	}
 	if(tsig_get_algorithm_by_name(algo) == NULL) {
-		if(!ssl_printf(ssl, "error: unknown algorithm: %s\n", algo))
-			return;
+		(void)ssl_printf(ssl, "error: unknown algorithm: %s\n", algo);
 		memset(arg2, 0xdd, strlen(arg2));
 		return;
 	}
@@ -2072,27 +2060,23 @@ do_assoc_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	struct key_options* key_opt;
 
 	if(*arg == '\0') {
-		if(!ssl_printf(ssl, "error: missing argument (zonename)\n"))
-			return;
+		(void)ssl_printf(ssl, "error: missing argument (zonename)\n");
 		return;
 	}
 	if(!find_arg2(ssl, arg, &arg2)) {
-		if(!ssl_printf(ssl, "error: missing argument (keyname)\n"))
-			return;
+		(void)ssl_printf(ssl, "error: missing argument (keyname)\n");
 		return;
 	}
 
 	if(!get_zone_arg(ssl, xfrd, arg, &zone))
 		return;
 	if(!zone) {
-		if(!ssl_printf(ssl, "error: missing argument (zone)\n"))
-			return;
+		(void)ssl_printf(ssl, "error: missing argument (zone)\n");
 		return;
 	}
 	key_opt = key_options_find(xfrd->nsd->options, arg2);
 	if(!key_opt) {
-		if(!ssl_printf(ssl, "error: key: %s does not exist\n", arg2))
-			return;
+		(void)ssl_printf(ssl, "error: key: %s does not exist\n", arg2);
 		return;
 	}
 
@@ -2131,14 +2115,12 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 	struct key_options* key_opt;
 
 	if(*arg == '\0') {
-		if(!ssl_printf(ssl, "error: missing argument (keyname)\n"))
-			return;
+		(void)ssl_printf(ssl, "error: missing argument (keyname)\n");
 		return;
 	}
 	key_opt = key_options_find(xfrd->nsd->options, arg);
 	if(!key_opt) {
-		if(!ssl_printf(ssl, "key %s does not exist, nothing to be deleted\n", arg))
-			return;
+		(void)ssl_printf(ssl, "key %s does not exist, nothing to be deleted\n", arg);
 		return;
 	}
 	RBTREE_FOR(zone, struct zone_options*, xfrd->nsd->options->zone_options)
@@ -2156,8 +2138,7 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 	}
 
 	if(used_key) {
-		if(!ssl_printf(ssl, "error: key: %s is in use and cannot be deleted\n", arg))
-			return;
+		(void)ssl_printf(ssl, "error: key: %s is in use and cannot be deleted\n", arg);
 		return;
 	} else {
 		remove_key(xfrd, arg);
