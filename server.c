@@ -35,6 +35,9 @@
 #include <signal.h>
 #include <netdb.h>
 #include <poll.h>
+#ifdef HAVE_SYS_RANDOM_H
+#include <sys/random.h>
+#endif
 #ifndef SHUT_WR
 #define SHUT_WR 1
 #endif
@@ -1227,7 +1230,14 @@ server_prepare(struct nsd *nsd)
 {
 #ifdef RATELIMIT
 	/* set secret modifier for hashing (udb ptr buckets and rate limits) */
-#ifdef HAVE_ARC4RANDOM
+#ifdef HAVE_GETRANDOM
+	uint32_t v;
+	if(getrandom(&v, sizeof(v), 0) == -1) {
+		log_msg(LOG_ERR, "getrandom failed: %s", strerror(errno));
+		exit(1);
+	}
+	hash_set_raninit(v);
+#elif defined(HAVE_ARC4RANDOM)
 	hash_set_raninit(arc4random());
 #else
 	uint32_t v = getpid() ^ time(NULL);

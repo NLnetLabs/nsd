@@ -3,6 +3,7 @@
 	- Fix implicit cast of size in udb_radnode_array_grow.
 	- Fix ignore of return value of ssl_printf in remote.c.
 	- Fix unused check of fd in parent_handle_reload_command.
+	- Fix to use getrandom() for randomness, if available.
 
 3 December 2019: Wouter
 	- Fix #52: do not log transient network full errors unless higher

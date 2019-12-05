@@ -20,6 +20,9 @@
 #include <syslog.h>
 #endif /* HAVE_SYSLOG_H */
 #include <unistd.h>
+#ifdef HAVE_SYS_RANDOM_H
+#include <sys/random.h>
+#endif
 
 #include "util.h"
 #include "region-allocator.h"
@@ -923,8 +926,15 @@ compare_serial(uint32_t a, uint32_t b)
 uint16_t
 qid_generate(void)
 {
+#ifdef HAVE_GETRANDOM
+	uint16_t r;
+	if(getrandom(&r, sizeof(r), 0) == -1) {
+		log_msg(LOG_ERR, "getrandom failed: %s", strerror(errno));
+		exit(1);
+	}
+	return r;
+#elif defined(HAVE_ARC4RANDOM)
     /* arc4random_uniform not needed because range is a power of 2 */
-#ifdef HAVE_ARC4RANDOM
     return (uint16_t) arc4random();
 #else
     return (uint16_t) random();
@@ -934,9 +944,16 @@ qid_generate(void)
 int
 random_generate(int max)
 {
-#ifdef HAVE_ARC4RANDOM_UNIFORM
+#ifdef HAVE_GETRANDOM
+	int r;
+	if(getrandom(&r, sizeof(r), 0) == -1) {
+		log_msg(LOG_ERR, "getrandom failed: %s", strerror(errno));
+		exit(1);
+	}
+	return r%max;
+#elif defined(HAVE_ARC4RANDOM_UNIFORM)
     return (int) arc4random_uniform(max);
-#elif HAVE_ARC4RANDOM
+#elif defined(HAVE_ARC4RANDOM)
     return (int) (arc4random() % max);
 #else
     return (int) ((unsigned)random() % max);
