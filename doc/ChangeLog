@@ -6,6 +6,7 @@
 	- Fix to use getrandom() for randomness, if available.
 	- Attempt to fix signedness of nscount lookup in ixfr query_process.
 	- Fix identical branches for ssl_print of errors in remote.c.
+	- Fix type cast bounds, signedness of opt_rdlen in edns_parse_record.
 
 3 December 2019: Wouter
 	- Fix #52: do not log transient network full errors unless higher
