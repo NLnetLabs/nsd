@@ -3,6 +3,7 @@
 	  spend time on.
 	- Fix size of string len and capacity type cast in udbradtree.
 	- Fix to protect rrcount in tsig_find_rr from overflow.
+	- Annotate radix_find_prefix_node not reachable trail code.
 
 5 December 2019: Wouter
 	- Fix fname null check of fname in namedb_read_zonefile.
