@@ -8,6 +8,7 @@
 	- Fix to close socket on error in create_tcp_accept_sock.
 	- Fix to log on failure to chmod for socket for remote control.
 	- Fix to remove unneeded if in open of socket for remote control.
+	- Fix to restore input parameter on call failure in create_dirs.
 
 5 December 2019: Wouter
 	- Fix fname null check of fname in namedb_read_zonefile.
