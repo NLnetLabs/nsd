@@ -348,7 +348,7 @@ int packet_find_notify_serial(buffer_type *packet, uint32_t* serial)
 {
 	size_t saved_position = buffer_position(packet);
 	/* count of further RRs after question section */
-	size_t rrcount = ANCOUNT(packet) + NSCOUNT(packet) + ARCOUNT(packet);
+	size_t rrcount = (size_t)ANCOUNT(packet) + (size_t)NSCOUNT(packet) + (size_t)ARCOUNT(packet);
 	size_t i;
 	buffer_set_position(packet, QHEADERSZ);
 
