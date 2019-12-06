@@ -361,7 +361,7 @@ static int udb_radnode_array_space(udb_base* udb, udb_ptr* n, uint8_t byte,
 				lookup_node(n, i+need)->pidx = i+need;
 		}
 		memmove(lookup_string(n, need), lookup_string(n, 0),
-			lookup(n)->len*lookup(n)->str_cap);
+			((size_t)lookup(n)->len)*((size_t)lookup(n)->str_cap));
 		/* zero the first */
 		for(i = 0; i < (int)need; i++) {
 			udb_rptr_zero(&lookup(n)->array[i].node, udb);
