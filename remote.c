@@ -450,9 +450,11 @@ add_open(struct daemon_remote* rc, struct nsd_options* cfg, const char* ip,
 	} else {
 		hints.ai_socktype = SOCK_STREAM;
 		hints.ai_flags = AI_PASSIVE | AI_NUMERICHOST;
+		/* if we had no interface ip name, "default" is what we
+		 * would do getaddrinfo for. */
 		if((r = getaddrinfo(ip, port, &hints, &res)) != 0 || !res) {
 			log_msg(LOG_ERR, "control interface %s:%s getaddrinfo: %s %s",
-				ip?ip:"default", port, gai_strerror(r),
+				ip, port, gai_strerror(r),
 #ifdef EAI_SYSTEM
 				r==EAI_SYSTEM?(char*)strerror(errno):""
 #else
