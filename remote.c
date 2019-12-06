@@ -440,7 +440,9 @@ add_open(struct daemon_remote* rc, struct nsd_options* cfg, const char* ip,
 					  (unsigned)nsd.uid, (unsigned)nsd.gid,
 					  ip, strerror(errno)));
 			}
-			chmod(ip, (mode_t)(S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP));
+			if(chmod(ip, (mode_t)(S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)) == -1) {
+				VERBOSITY(3, (LOG_INFO, "cannot chmod control socket %s: %s", ip, strerror(errno)));
+			}
 #else
 			(void)cfg;
 #endif
