@@ -778,6 +778,8 @@ ssl_read_line(RES* res, char* buf, size_t max)
 	if(!res)
 		return 0;
 	while(len < max) {
+		buf[len] = 0; /* terminate for safety and please checkers */
+		/* this byte is written if we read a byte from the input */
 		if(res->ssl) {
 			ERR_clear_error();
 			if((r=SSL_read(res->ssl, buf+len, 1)) <= 0) {

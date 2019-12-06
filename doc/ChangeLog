@@ -9,6 +9,8 @@
 	- Fix to log on failure to chmod for socket for remote control.
 	- Fix to remove unneeded if in open of socket for remote control.
 	- Fix to restore input parameter on call failure in create_dirs.
+	- Please checker by terminating and initialising string read
+	  by remote control.
 
 5 December 2019: Wouter
 	- Fix fname null check of fname in namedb_read_zonefile.
