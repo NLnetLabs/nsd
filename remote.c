@@ -375,6 +375,7 @@ create_tcp_accept_sock(struct addrinfo* addr, int* noproto)
 		setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
 	{
 		log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s", strerror(errno));
+		close(s);
 		return -1;
 	}
 #endif
@@ -387,11 +388,13 @@ create_tcp_accept_sock(struct addrinfo* addr, int* noproto)
 	/* Bind it... */
 	if (bind(s, (struct sockaddr *)addr->ai_addr, addr->ai_addrlen) != 0) {
 		log_msg(LOG_ERR, "can't bind tcp socket: %s", strerror(errno));
+		close(s);
 		return -1;
 	}
 	/* Listen to it... */
 	if (listen(s, TCP_BACKLOG_REMOTE) == -1) {
 		log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
+		close(s);
 		return -1;
 	}
 	return s;
