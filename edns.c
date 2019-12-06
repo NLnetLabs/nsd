@@ -128,6 +128,9 @@ edns_parse_record(edns_record_type *edns, buffer_type *packet,
 	if (opt_rdlen > 0U) {
 		if(!buffer_available(packet, opt_rdlen))
 			return 0;
+		/* please checkers, define max number of EDNS records
+		 * we are willing to spend time on */
+		assert(opt_rdlen < 65530 && opt_rdlen <= buffer_remaining(packet));
 		/* there is more to come, read opt code */
 		while(opt_rdlen >= 4U) {
 			uint16_t optcode = buffer_read_u16(packet);

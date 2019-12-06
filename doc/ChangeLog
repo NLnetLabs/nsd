@@ -1,3 +1,7 @@
+6 December 2019: Wouter
+	- Fix to define max number of EDNS records we are willing to
+	  spend time on.
+
 5 December 2019: Wouter
 	- Fix fname null check of fname in namedb_read_zonefile.
 	- Fix implicit cast of size in udb_radnode_array_grow.
