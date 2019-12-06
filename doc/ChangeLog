@@ -2,6 +2,7 @@
 	- Fix to define max number of EDNS records we are willing to
 	  spend time on.
 	- Fix size of string len and capacity type cast in udbradtree.
+	- Fix to protect rrcount in tsig_find_rr from overflow.
 
 5 December 2019: Wouter
 	- Fix fname null check of fname in namedb_read_zonefile.

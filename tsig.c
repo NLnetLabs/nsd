@@ -546,10 +546,10 @@ int
 tsig_find_rr(tsig_record_type *tsig, buffer_type *packet)
 {
 	size_t saved_position = buffer_position(packet);
-	size_t rrcount = (QDCOUNT(packet)
-			  + ANCOUNT(packet)
-			  + NSCOUNT(packet)
-			  + ARCOUNT(packet));
+	size_t rrcount = ((size_t)QDCOUNT(packet)
+			  + (size_t)ANCOUNT(packet)
+			  + (size_t)NSCOUNT(packet)
+			  + (size_t)ARCOUNT(packet));
 	size_t i;
 	int result;
 
