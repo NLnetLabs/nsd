@@ -950,7 +950,7 @@ random_generate(int max)
 		log_msg(LOG_ERR, "getrandom failed: %s", strerror(errno));
 		exit(1);
 	}
-	return r%max;
+	return (int)(((unsigned)r)%max);
 #elif defined(HAVE_ARC4RANDOM_UNIFORM)
     return (int) arc4random_uniform(max);
 #elif defined(HAVE_ARC4RANDOM)
