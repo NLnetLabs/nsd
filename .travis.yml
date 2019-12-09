@@ -3,12 +3,13 @@ language: c
 
 linux_gcc: &linux_gcc
   os: linux
-  dist: xenial
+  dist: bionic
   compiler: gcc
   addons:
     apt:
       update: true
-      sources: [ ubuntu-toolchain-r-test ]
+      sources:
+        - sourceline: 'ppa:ubuntu-toolchain-r/test'
       packages: [ autoconf bison flex libssl-dev libevent-dev clang gcc-9 ]
   before_install:
     - eval "export CC=gcc-9"
