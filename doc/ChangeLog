@@ -2,6 +2,8 @@
 	- Fix to define upper bounds on rr counts read from untrusted packet
 	  data.
 	- Try different annotation for radix_find_prefix_node not reachable.
+	- Separate acl_addr_match_range functions for ip4 and ip6, to
+	  please checkers.
 
 6 December 2019: Wouter
 	- Fix to define max number of EDNS records we are willing to

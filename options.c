@@ -1416,7 +1416,7 @@ acl_addr_matches_ipv6host(struct acl_options* acl, struct sockaddr_storage* addr
 			return 0;
 		break;
 	case acl_range_minmax:
-		if(!acl_addr_match_range((uint32_t*)&acl->addr.addr6, (uint32_t*)&addr->sin6_addr,
+		if(!acl_addr_match_range_v6((uint32_t*)&acl->addr.addr6, (uint32_t*)&addr->sin6_addr,
 			(uint32_t*)&acl->range_mask.addr6, sizeof(struct in6_addr)))
 			return 0;
 		break;
@@ -1444,7 +1444,7 @@ acl_addr_matches_ipv4host(struct acl_options* acl, struct sockaddr_in* addr, uns
 			return 0;
 		break;
 	case acl_range_minmax:
-		if(!acl_addr_match_range((uint32_t*)&acl->addr.addr, (uint32_t*)&addr->sin_addr,
+		if(!acl_addr_match_range_v4((uint32_t*)&acl->addr.addr, (uint32_t*)&addr->sin_addr,
 			(uint32_t*)&acl->range_mask.addr, sizeof(struct in_addr)))
 			return 0;
 		break;
@@ -1524,7 +1524,23 @@ acl_addr_match_mask(uint32_t* a, uint32_t* b, uint32_t* mask, size_t sz)
 }
 
 int
-acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz)
+acl_addr_match_range_v4(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz)
+{
+	assert(sz == 4);
+	/* check treats x as one huge number */
+
+	/* if outside bounds, we are done */
+	if(*minval > *x)
+		return 0;
+	if(*maxval < *x)
+		return 0;
+
+	return 1;
+}
+
+#ifdef INET6
+int
+acl_addr_match_range_v6(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz)
 {
 	size_t i;
 	uint8_t checkmin = 1, checkmax = 1;
@@ -1552,6 +1568,7 @@ acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz)
 	}
 	return 1;
 }
+#endif /* INET6 */
 
 int
 acl_key_matches(struct acl_options* acl, struct query* q)

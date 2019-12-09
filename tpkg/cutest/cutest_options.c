@@ -53,7 +53,7 @@ static void acl_1(CuTest *tc)
 	uint32_t c[4] = {0,0,0,0};
 	/* check 32-bit performance */
 #define CHK CuAssert(tc, "check acl_range", \
-	exp==acl_addr_match_range(&min, &x, &max, sizeof(uint32_t)));
+	exp==acl_addr_match_range_v4(&min, &x, &max, sizeof(uint32_t)));
 	min=0x00000000; max=0xffffffff; x=0x00000001; exp=1; CHK;
 	min=0x00000000; max=0xffffffff; x=0x00000000; exp=1; CHK;
 	min=0x00000000; max=0xffffffff; x=0xffffffff; exp=1; CHK;
@@ -74,7 +74,7 @@ static void acl_1(CuTest *tc)
 
 	/* check multi word performance */
 #define CHK CuAssert(tc, "check acl_range longcontents", \
-	exp==acl_addr_match_range(a, b, c, 4*sizeof(uint32_t)));
+	exp==acl_addr_match_range_v6(a, b, c, 4*sizeof(uint32_t)));
 	exp=1; CHK;
 	a[2]=10; b[2]=0; c[2]=20; exp=0; CHK;
 	a[2]=10; b[2]=10; c[2]=20; exp=1; CHK;
