@@ -73,6 +73,7 @@ static void acl_1(CuTest *tc)
 #undef CHK
 
 	/* check multi word performance */
+#ifdef INET6
 #define CHK CuAssert(tc, "check acl_range longcontents", \
 	exp==acl_addr_match_range_v6(a, b, c, 4*sizeof(uint32_t)));
 	exp=1; CHK;
@@ -103,6 +104,7 @@ static void acl_1(CuTest *tc)
 	a[3]=50; b[3]=60; c[3]=60; exp=1; CHK;
 	a[3]=50; b[3]=80; c[3]=60; exp=1; CHK;
 #undef CHK
+#endif /* INET6 */
 }
 
 static void acl_2(CuTest *tc)
