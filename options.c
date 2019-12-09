@@ -1526,7 +1526,7 @@ acl_addr_match_mask(uint32_t* a, uint32_t* b, uint32_t* mask, size_t sz)
 int
 acl_addr_match_range_v4(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz)
 {
-	assert(sz == 4);
+	assert(sz == 4); (void)sz;
 	/* check treats x as one huge number */
 
 	/* if outside bounds, we are done */
