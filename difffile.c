@@ -1042,6 +1042,12 @@ apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
 	qcount = QDCOUNT(packet);
 	ancount = ANCOUNT(packet);
 	buffer_skip(packet, QHEADERSZ);
+	/* qcount should be 0 or 1 really, ancount limited by 64k packet */
+	if(qcount > 64 || ancount > 65530) {
+		log_msg(LOG_ERR, "RR count impossibly high");
+		region_destroy(region);
+		return 0;
+	}
 
 	/* skip queries */
 	for(i=0; i<qcount; ++i)

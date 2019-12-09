@@ -1432,9 +1432,16 @@ query_process(query_type *q, nsd_type *nsd)
 		(q->qtype!=TYPE_IXFR && NSCOUNT(q->packet) != 0)) {
 		return query_formerr(q, nsd);
 	}
-	if(q->qtype==TYPE_IXFR && NSCOUNT(q->packet) > 0U) {
+	if(q->qtype==TYPE_IXFR && NSCOUNT(q->packet) > 0) {
 		unsigned int i; /* skip ixfr soa information data here */
-		for(i=0; i< NSCOUNT(q->packet); i++)
+		unsigned int nscount = (unsigned)NSCOUNT(q->packet);
+		/* define a bound on the number of extraneous records allowed,
+		 * we expect 1, a SOA serial record, and no more.
+		 * perhaps RRSIGs (but not needed), otherwise we do not
+		 * understand what this means.  We do not want too many
+		 * because the high iteration counts slow down. */
+		if(nscount > 64) return query_formerr(q, nsd);
+		for(i=0; i< nscount; i++)
 			if(!packet_skip_rr(q->packet, 0))
 				return query_formerr(q, nsd);
 	}

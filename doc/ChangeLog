@@ -1,3 +1,8 @@
+9 December 2019: Wouter
+	- Fix to define upper bounds on rr counts read from untrusted packet
+	  data.
+	- Try different annotation for radix_find_prefix_node not reachable.
+
 6 December 2019: Wouter
 	- Fix to define max number of EDNS records we are willing to
 	  spend time on.

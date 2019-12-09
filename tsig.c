@@ -557,6 +557,11 @@ tsig_find_rr(tsig_record_type *tsig, buffer_type *packet)
 		tsig->status = TSIG_NOT_PRESENT;
 		return 1;
 	}
+	if(rrcount > 65530) {
+		/* impossibly high number of records in 64k, reject packet */
+		buffer_set_position(packet, saved_position);
+		return 0;
+	}
 
 	buffer_set_position(packet, QHEADERSZ);
 
@@ -631,6 +636,12 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	tsig->signed_time_fudge = buffer_read_u16(packet);
 	tsig->mac_size = buffer_read_u16(packet);
 	if (!buffer_available(packet, tsig->mac_size)) {
+		buffer_set_position(packet, tsig->position);
+		tsig->mac_size = 0;
+		return 0;
+	}
+	if(tsig->mac_size > 16384) {
+		/* the hash should not be too big, really 512/8=64 bytes */
 		buffer_set_position(packet, tsig->position);
 		tsig->mac_size = 0;
 		return 0;

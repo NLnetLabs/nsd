@@ -1876,6 +1876,12 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 	}
 
 	buffer_skip(packet, QHEADERSZ);
+	if(qdcount > 64 || ancount > 65530 || nscount > 65530) {
+		/* 0 or 1 question section rr, and 64k limits other counts */
+		DEBUG(DEBUG_XFRD,1, (LOG_ERR, "dropping xfr reply, impossibly "
+			"high record count"));
+		return xfrd_packet_bad;
+	}
 
 	/* skip question section */
 	for(rr_count = 0; rr_count < qdcount; ++rr_count) {
