@@ -1,5 +1,7 @@
 11 December 2019: Wouter
 	- Fix whitespace in nsd.conf.sample.in, patch from Paul Wouters.
+	- use-systemd is ignored in nsd.conf, when NSD is compiled with
+	  libsystemd it always signals readiness, if possible.
 
 9 December 2019: Wouter
 	- Fix to define upper bounds on rr counts read from untrusted packet
