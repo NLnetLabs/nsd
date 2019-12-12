@@ -366,6 +366,10 @@ queries.  Default is no.
 Prevent NSD from replying with the identity string on CHAOS class 
 queries.  Default is no.
 .TP
+.B use\-systemd:\fR <yes or no>
+This option is deprecated and ignored.  If compiled with libsystemd,
+NSD signals readiness to systemd and use of the option is not necessary.
+.TP
 .B log\-time\-ascii:\fR <yes or no>
 Log time in ascii, if "no" then in seconds epoch.  Default is yes.
 This chooses the format when logging to file.  The printout via syslog
