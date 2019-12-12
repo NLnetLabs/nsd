@@ -45,7 +45,8 @@
 	- Fix #52: do not log transient network full errors unless higher
 	  verbosity is set.
 	- Fix checkconf test for new error output string.
-	- tag for 4.2.4rc1 release.
+	- tag for 4.2.4rc1 release.  This became the 4.2.4 release,
+	  and the master branch continues with 4.2.5 in development.
 
 27 November 2017 Jeroen
 	- Fix regressions in configparser.y

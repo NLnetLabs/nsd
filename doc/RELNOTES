@@ -1,5 +1,41 @@
 NSD RELEASE NOTES
 
+4.2.5 (upcoming)
+================
+FEATURES:
+	- Fix to use getrandom() for randomness, if available.
+BUG FIXES:
+	- Fix fname null check of fname in namedb_read_zonefile.
+	- Fix implicit cast of size in udb_radnode_array_grow.
+	- Fix ignore of return value of ssl_printf in remote.c.
+	- Fix unused check of fd in parent_handle_reload_command.
+	- Attempt to fix signedness of nscount lookup in ixfr query_process.
+	- Fix identical branches for ssl_print of errors in remote.c.
+	- Fix type cast bounds, signedness of opt_rdlen in edns_parse_record.
+	- Fix to separate header and data lines in parse_zone_list_file.
+	- Fix to define max number of EDNS records we are willing to
+	  spend time on.
+	- Fix size of string len and capacity type cast in udbradtree.
+	- Fix to protect rrcount in tsig_find_rr from overflow.
+	- Annotate radix_find_prefix_node not reachable trail code.
+	- Fix to protect rrcount in packet_find_notify_serial from overflow.
+	- Fix to close socket on error in create_tcp_accept_sock.
+	- Fix to log on failure to chmod for socket for remote control.
+	- Fix to remove unneeded if in open of socket for remote control.
+	- Fix to restore input parameter on call failure in create_dirs.
+	- Please checker by terminating and initialising string read
+	  by remote control.
+	- Fix to define upper bounds on rr counts read from untrusted packet
+	  data.
+	- Separate acl_addr_match_range functions for ip4 and ip6, to
+	  please checkers.
+	- Avoid unused variable warning in new match_range_v4 function.
+	- Fix whitespace in nsd.conf.sample.in, patch from Paul Wouters.
+	- use-systemd is ignored in nsd.conf, when NSD is compiled with
+	  libsystemd it always signals readiness, if possible.
+	- Note that use-systemd is not necessary and ignored in man page.
+
+
 4.2.4
 ================
 FEATURES:
