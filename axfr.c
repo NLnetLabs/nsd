@@ -14,7 +14,8 @@
 #include "packet.h"
 #include "options.h"
 
-#define AXFR_TSIG_SIGN_EVERY_NTH	96	/* tsig sign every N packets. */
+/* draft-ietf-dnsop-rfc2845bis-06, section 5.3.1 says to sign every packet */
+#define AXFR_TSIG_SIGN_EVERY_NTH	0	/* tsig sign every N packets. */
 
 query_state_type
 query_axfr(struct nsd *nsd, struct query *query)
@@ -150,9 +151,13 @@ return_answer:
 
 	/* check if it needs tsig signatures */
 	if(query->tsig.status == TSIG_OK) {
+#if AXFR_TSIG_SIGN_EVERY_NTH > 0
 		if(query->tsig.updates_since_last_prepare >= AXFR_TSIG_SIGN_EVERY_NTH) {
+#endif
 			query->tsig_sign_it = 1;
+#if AXFR_TSIG_SIGN_EVERY_NTH > 0
 		}
+#endif
 	}
 	query_clear_compression_tables(query);
 	return QUERY_IN_AXFR;
