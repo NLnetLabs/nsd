@@ -1122,6 +1122,9 @@ main(int argc, char *argv[])
 		}
 	}
 
+#ifdef HAVE_SETPROCTITLE
+	setproctitle("main");
+#endif
 #ifdef HAVE_CPUSET_T
 	if(nsd.use_cpu_affinity) {
 		set_cpu_affinity(nsd.cpuset);

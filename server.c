@@ -1498,6 +1498,9 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		 * restarted, the reload is using nsd->mytask */
 		nsd->mytask = 1 - nsd->mytask;
 
+#ifdef HAVE_SETPROCTITLE
+		setproctitle("xfrd");
+#endif
 #ifdef HAVE_CPUSET_T
 		if(nsd->use_cpu_affinity) {
 			set_cpu_affinity(nsd->xfrd_cpuset);
@@ -2125,6 +2128,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	ign_sigchld.sa_handler = SIG_IGN;
 	sigaction(SIGCHLD, &ign_sigchld, &old_sigchld);
 
+#ifdef HAVE_SETPROCTITLE
+	setproctitle("main");
+#endif
 #ifdef HAVE_CPUSET_T
 	if(nsd->use_cpu_affinity) {
 		set_cpu_affinity(nsd->cpuset);
@@ -2736,6 +2742,9 @@ server_child(struct nsd *nsd)
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
 	DEBUG(DEBUG_IPC, 2, (LOG_INFO, "child process started"));
 
+#ifdef HAVE_SETPROCTITLE
+	setproctitle("server %d", nsd->this_child->child_num + 1);
+#endif
 #ifdef HAVE_CPUSET_T
 	if(nsd->use_cpu_affinity) {
 		set_cpu_affinity(nsd->this_child->cpuset);
