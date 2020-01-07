@@ -514,6 +514,26 @@ config_test_print_server(nsd_options_type* opt)
 	print_string_var("nsid:", opt->nsid);
 	print_string_var("logfile:", opt->logfile);
 	printf("\tserver-count: %d\n", opt->server_count);
+	if(opt->cpu_affinity) {
+		cpu_option_type *n;
+		printf("\tcpu-affinity:");
+		for(n = opt->cpu_affinity; n; n = n->next) {
+			printf(" %d", n->cpu);
+		}
+		printf("\n");
+	}
+	if(opt->cpu_affinity && opt->service_cpu_affinity) {
+		cpu_map_option_type *n;
+		for(n = opt->service_cpu_affinity; n; n = n->next) {
+			if(n->service > 0) {
+				printf("\tserver-%d-cpu-affinity: %d\n",
+				       n->service, n->cpu);
+			} else if(n->service == -1) {
+				printf("\txfrd-cpu-affinity: %d\n",
+				       n->cpu);
+			}
+		}
+	}
 	printf("\ttcp-count: %d\n", opt->tcp_count);
 	printf("\ttcp-query-count: %d\n", opt->tcp_query_count);
 	printf("\ttcp-timeout: %d\n", opt->tcp_timeout);
@@ -540,7 +560,18 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\tverbosity: %d\n", opt->verbosity);
 	for(ip = opt->ip_addresses; ip; ip=ip->next)
 	{
-		print_string_var("ip-address:", ip->address);
+		printf("\tip-address: %s", ip->address);
+		if(ip->servers) {
+			struct range_option *n;
+			for(n = ip->servers; n; n = n->next) {
+				if(n->first == n->last) {
+					printf(" %d", n->first);
+				} else {
+					printf(" %d-%d", n->first, n->last);
+				}
+			}
+		}
+		printf("\n");
 	}
 #ifdef RATELIMIT
 	printf("\trrl-size: %d\n", (int)opt->rrl_size);

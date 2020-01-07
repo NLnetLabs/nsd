@@ -130,7 +130,9 @@ copyaddrinfo(struct nsd_addrinfo *dest, struct addrinfo *src)
 }
 
 static void
-setup_socket(struct nsd_socket *sock, const char *node, const char *port, struct addrinfo *hints)
+setup_socket(
+	struct nsd_socket *sock, const char *node, const char *port,
+	struct addrinfo *hints)
 {
 	int ret;
 	char *sep = NULL;
@@ -171,10 +173,64 @@ setup_socket(struct nsd_socket *sock, const char *node, const char *port, struct
 }
 
 static void
+figure_socket_servers(
+	struct nsd_socket *sock, struct ip_address_option *ip, int server_count)
+{
+	int i;
+	struct range_option *server;
+
+	sock->servers = xalloc_zero(nsd_bitset_size(server_count));
+	region_add_cleanup(nsd.region, free, sock->servers);
+	nsd_bitset_init(sock->servers, server_count);
+
+	if(!ip || !ip->servers) {
+		/* every server must listen on this socket */
+		int i;
+		for(i = 0; i < server_count; i++) {
+			nsd_bitset_set(sock->servers, i);
+		}
+		return;
+	}
+
+	/* only specific servers must listen on this socket */
+	for(server = ip->servers; server; server = server->next) {
+		if(server->first == server->last) {
+			if(server->first <= 0) {
+				error("server %d specified for ip-address %s "
+				      "is invalid; server ranges are 1-based",
+				      server->first, ip->address);
+			} else if(server->last > server_count) {
+				error("server %d specified for ip-address %s "
+				      "exceeds number of servers configured "
+				      "in server-count",
+				      server->first, ip->address);
+			}
+		} else {
+			/* parse_range must ensure range itself is valid */
+			assert(server->first < server->last);
+			if(server->first <= 0) {
+				error("server range %d-%d specified for "
+				      "ip-address %s is invalid; server "
+				      "ranges are 1-based",
+				      server->first, server->last, ip->address);
+			} else if(server->last > server_count) {
+				error("server range %d-%d specified for "
+				      "ip-address %s exceeds number of servers "
+				      "configured in server-count",
+				      server->first, server->last, ip->address);
+			}
+		}
+		for(i = server->first - 1; i < server->last; i++) {
+			nsd_bitset_set(sock->servers, i);
+		}
+	}
+}
+
+static void
 figure_default_sockets(
 	struct nsd_socket **udp, struct nsd_socket **tcp, size_t *ifs,
 	const char *udp_port, const char *tcp_port,
-	const struct addrinfo *hints)
+	const struct addrinfo *hints, int server_count)
 {
 	int r;
 	size_t i = 0, n = 1;
@@ -224,8 +280,10 @@ figure_default_sockets(
 		{
 			(*udp)[i].flags |= NSD_SOCKET_IS_OPTIONAL;
 			copyaddrinfo(&(*udp)[i].addr, addrs[0]);
+			figure_socket_servers(&(*udp)[i], NULL, server_count);
 			(*tcp)[i].flags |= NSD_SOCKET_IS_OPTIONAL;
 			copyaddrinfo(&(*tcp)[i].addr, addrs[1]);
+			figure_socket_servers(&(*tcp)[i], NULL, server_count);
 			i++;
 		} else {
 			log_msg(LOG_WARNING, "No IPv6, fallback to IPv4. getaddrinfo: %s",
@@ -245,7 +303,9 @@ figure_default_sockets(
 
 	*ifs = i + 1;
 	setup_socket(&(*udp)[i], NULL, udp_port, &ai[0]);
+	figure_socket_servers(&(*udp)[i], NULL, server_count);
 	setup_socket(&(*tcp)[i], NULL, tcp_port, &ai[1]);
+	figure_socket_servers(&(*tcp)[i], NULL, server_count);
 }
 
 static void
@@ -253,14 +313,15 @@ figure_sockets(
 	struct nsd_socket **udp, struct nsd_socket **tcp, size_t *ifs,
 	struct ip_address_option *ips,
 	const char *udp_port, const char *tcp_port,
-	const struct addrinfo *hints)
+	const struct addrinfo *hints, int server_count)
 {
 	size_t i = 0;
 	struct addrinfo ai = *hints;
 	struct ip_address_option *ip;
 
 	if(!ips) {
-		figure_default_sockets(udp, tcp, ifs, udp_port, tcp_port, hints);
+		figure_default_sockets(
+			udp, tcp, ifs, udp_port, tcp_port, hints, server_count);
 		return;
 	}
 
@@ -278,12 +339,22 @@ figure_sockets(
 	for(ip = ips, i = 0; ip; ip = ip->next, i++) {
 		ai.ai_socktype = SOCK_DGRAM;
 		setup_socket(&(*udp)[i], ip->address, udp_port, &ai);
+		figure_socket_servers(&(*udp)[i], ip, server_count);
 		ai.ai_socktype = SOCK_STREAM;
 		setup_socket(&(*tcp)[i], ip->address, tcp_port, &ai);
+		figure_socket_servers(&(*tcp)[i], ip, server_count);
 	}
 
 	assert(i == *ifs);
 }
+
+#ifdef HAVE_CPUSET_T
+static void free_cpuset(void *ptr)
+{
+	cpuset_t *set = (cpuset_t *)ptr;
+	cpuset_destroy(set);
+}
+#endif
 
 /*
  * Fetch the nsd parent process id from the nsd pidfile
@@ -764,6 +835,7 @@ main(int argc, char *argv[])
 	if(nsd.child_count == 0) {
 		nsd.child_count = nsd.options->server_count;
 	}
+
 #ifdef SO_REUSEPORT
 	if(nsd.options->reuseport && nsd.child_count > 1) {
 		nsd.reuseport = nsd.child_count;
@@ -845,6 +917,54 @@ main(int argc, char *argv[])
 	edns_init_nsid(&nsd.edns_ipv6, nsd.nsid_len);
 #endif /* defined(INET6) */
 
+#ifdef HAVE_CPUSET_T
+	nsd.use_cpu_affinity = (nsd.options->cpu_affinity != NULL);
+	if(nsd.use_cpu_affinity) {
+		int ncpus;
+		struct cpu_option* opt = nsd.options->cpu_affinity;
+
+		if((ncpus = number_of_cpus()) == -1) {
+			error("cannot retrieve number of cpus: %s",
+			      strerror(errno));
+		}
+		nsd.cpuset = cpuset_create();
+		region_add_cleanup(nsd.region, free_cpuset, nsd.cpuset);
+		for(; opt; opt = opt->next) {
+			assert(opt->cpu >= 0);
+			if(opt->cpu >= ncpus) {
+				error("invalid cpu %d specified in "
+				      "cpu-affinity", opt->cpu);
+			}
+			cpuset_set((cpuid_t)opt->cpu, nsd.cpuset);
+		}
+	}
+	if(nsd.use_cpu_affinity) {
+		int cpu;
+		struct cpu_map_option *opt
+			= nsd.options->service_cpu_affinity;
+
+		cpu = -1;
+		for(; opt && cpu == -1; opt = opt->next) {
+			if(opt->service == -1) {
+				cpu = opt->cpu;
+				assert(cpu >= 0);
+			}
+		}
+		nsd.xfrd_cpuset = cpuset_create();
+		region_add_cleanup(nsd.region, free_cpuset, nsd.xfrd_cpuset);
+		if(cpu == -1) {
+			cpuset_or(nsd.xfrd_cpuset,
+			          nsd.cpuset);
+		} else {
+			if(!cpuset_isset(cpu, nsd.cpuset)) {
+				error("cpu %d specified in xfrd-cpu-affinity "
+				      "is not specified in cpu-affinity", cpu);
+			}
+			cpuset_set((cpuid_t)cpu, nsd.xfrd_cpuset);
+		}
+	}
+#endif /* HAVE_CPUSET_T */
+
 	/* Number of child servers to fork.  */
 	nsd.children = (struct nsd_child *) region_alloc_array(
 		nsd.region, nsd.child_count, sizeof(struct nsd_child));
@@ -858,15 +978,49 @@ main(int argc, char *argv[])
 		nsd.children[i].need_to_send_QUIT = 0;
 		nsd.children[i].need_to_exit = 0;
 		nsd.children[i].has_exited = 0;
-#ifdef  BIND8_STATS
+#ifdef BIND8_STATS
 		nsd.children[i].query_count = 0;
 #endif
+
+#ifdef HAVE_CPUSET_T
+		if(nsd.use_cpu_affinity) {
+			int cpu, server;
+			struct cpu_map_option *opt
+				= nsd.options->service_cpu_affinity;
+
+			cpu = -1;
+			server = i+1;
+			for(; opt && cpu == -1; opt = opt->next) {
+				if(opt->service == server) {
+					cpu = opt->cpu;
+					assert(cpu >= 0);
+				}
+			}
+			nsd.children[i].cpuset = cpuset_create();
+			region_add_cleanup(nsd.region,
+			                   free_cpuset,
+			                   nsd.children[i].cpuset);
+			if(cpu == -1) {
+				cpuset_or(nsd.children[i].cpuset,
+				          nsd.cpuset);
+			} else {
+				if(!cpuset_isset((cpuid_t)cpu, nsd.cpuset)) {
+					error("cpu %d specified in "
+					      "server-%d-cpu-affinity is not "
+					      "specified in cpu-affinity",
+					      cpu, server);
+				}
+				cpuset_set(
+					(cpuid_t)cpu, nsd.children[i].cpuset);
+			}
+		}
+#endif /* HAVE_CPUSET_T */
 	}
 
 	nsd.this_child = NULL;
 
 	figure_sockets(&nsd.udp, &nsd.tcp, &nsd.ifs,
-		nsd.options->ip_addresses, udp_port, tcp_port, &hints);
+		nsd.options->ip_addresses, udp_port, tcp_port, &hints, nsd.child_count);
 
 	/* Parse the username into uid and gid */
 	nsd.gid = getgid();
@@ -967,6 +1121,12 @@ main(int argc, char *argv[])
 			}
 		}
 	}
+
+#ifdef HAVE_CPUSET_T
+	if(nsd.use_cpu_affinity) {
+		set_cpu_affinity(nsd.cpuset);
+	}
+#endif
 
 	/* Setup the signal handling... */
 	action.sa_handler = sig_handler;

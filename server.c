@@ -1227,6 +1227,7 @@ server_init(struct nsd *nsd)
 		 * instance */
 		region_remove_cleanup(nsd->region, free, nsd->udp);
 		region_remove_cleanup(nsd->region, free, nsd->tcp);
+
 		nsd->udp = xrealloc(nsd->udp, ifs * sizeof(*nsd->udp));
 		nsd->tcp = xrealloc(nsd->tcp, ifs * sizeof(*nsd->tcp));
 		region_add_cleanup(nsd->region, free, nsd->udp);
@@ -1234,6 +1235,7 @@ server_init(struct nsd *nsd)
 
 		for(i = nsd->ifs; i < ifs; i++) {
 			nsd->udp[i].addr = nsd->udp[i%nsd->ifs].addr;
+			nsd->udp[i].servers = nsd->udp[i%nsd->ifs].servers;
 			if(open_udp_socket(nsd, &nsd->udp[i], &reuseport) == -1) {
 				return -1;
 			}
@@ -1337,6 +1339,15 @@ server_start_children(struct nsd *nsd, region_type* region, netio_type* netio,
 	return restart_child_servers(nsd, region, netio, xfrd_sock_p);
 }
 
+static void
+server_close_socket(struct nsd_socket *sock)
+{
+	if(sock->s != -1) {
+		close(sock->s);
+		sock->s = -1;
+	}
+}
+
 void
 server_close_all_sockets(struct nsd_socket sockets[], size_t n)
 {
@@ -1344,10 +1355,7 @@ server_close_all_sockets(struct nsd_socket sockets[], size_t n)
 
 	/* Close all the sockets... */
 	for (i = 0; i < n; ++i) {
-		if (sockets[i].s != -1) {
-			close(sockets[i].s);
-			sockets[i].s = -1;
-		}
+		server_close_socket(&sockets[i]);
 	}
 }
 
@@ -1489,6 +1497,13 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		/* use other task than I am using, since if xfrd died and is
 		 * restarted, the reload is using nsd->mytask */
 		nsd->mytask = 1 - nsd->mytask;
+
+#ifdef HAVE_CPUSET_T
+		if(nsd->use_cpu_affinity) {
+			set_cpu_affinity(nsd->xfrd_cpuset);
+		}
+#endif
+
 		xfrd_init(sockets[1], nsd, del_db, reload_active, pid);
 		/* ENOTREACH */
 		break;
@@ -2110,6 +2125,12 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	ign_sigchld.sa_handler = SIG_IGN;
 	sigaction(SIGCHLD, &ign_sigchld, &old_sigchld);
 
+#ifdef HAVE_CPUSET_T
+	if(nsd->use_cpu_affinity) {
+		set_cpu_affinity(nsd->cpuset);
+	}
+#endif
+
 	/* see what tasks we got from xfrd */
 	task_remap(nsd->task[nsd->mytask]);
 	udb_ptr_init(&last_task, nsd->task[nsd->mytask]);
@@ -2715,6 +2736,12 @@ server_child(struct nsd *nsd)
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
 	DEBUG(DEBUG_IPC, 2, (LOG_INFO, "child process started"));
 
+#ifdef HAVE_CPUSET_T
+	if(nsd->use_cpu_affinity) {
+		set_cpu_affinity(nsd->this_child->cpuset);
+	}
+#endif
+
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
 		server_close_all_sockets(nsd->tcp, nsd->ifs);
 	}
@@ -2754,6 +2781,7 @@ server_child(struct nsd *nsd)
 	}
 
 	if (nsd->server_kind & NSD_SERVER_UDP) {
+		int child = nsd->this_child->child_num;
 		memset(msgs, 0, sizeof(msgs));
 		for (i = 0; i < NUM_RECV_PER_SELECT; i++) {
 			queries[i] = query_create(server_region,
@@ -2761,17 +2789,27 @@ server_child(struct nsd *nsd)
 				compression_table_size, compressed_dnames);
 			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
 			iovecs[i].iov_base          = buffer_begin(queries[i]->packet);
-			iovecs[i].iov_len           = buffer_remaining(queries[i]->packet);;
+			iovecs[i].iov_len           = buffer_remaining(queries[i]->packet);
 			msgs[i].msg_hdr.msg_iov     = &iovecs[i];
 			msgs[i].msg_hdr.msg_iovlen  = 1;
 			msgs[i].msg_hdr.msg_name    = &queries[i]->addr;
 			msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
 		}
 
-		for (i = from; i < from+numifs; ++i) {
-			struct udp_handler_data *data =	region_alloc_zero(
-				nsd->server_region, sizeof(*data));
-			add_udp_handler(nsd, &nsd->udp[i], data);
+		for (i = 0; i < nsd->ifs; i++) {
+			int listen;
+			struct udp_handler_data *data;
+
+			listen = nsd_bitset_isset(nsd->udp[i].servers, child);
+
+			if(i >= from && i < (from + numifs) && listen) {
+				data = region_alloc_zero(
+					nsd->server_region, sizeof(*data));
+				add_udp_handler(nsd, &nsd->udp[i], data);
+			} else {
+				/* close sockets intended for other servers */
+				server_close_socket(&nsd->udp[i]);
+			}
 		}
 	}
 
@@ -2781,15 +2819,25 @@ server_child(struct nsd *nsd)
 	 * connections.
 	 */
 	if (nsd->server_kind & NSD_SERVER_TCP) {
+		int child = nsd->this_child->child_num;
 		tcp_accept_handler_count = numifs;
 		tcp_accept_handlers = region_alloc_array(server_region,
 			numifs, sizeof(*tcp_accept_handlers));
 
-		for (i = from; i < numifs; i++) {
-			struct tcp_accept_handler_data *data =
-				&tcp_accept_handlers[i-from];
-			memset(data, 0, sizeof(*data));
-			add_tcp_handler(nsd, &nsd->tcp[i], data);
+		for (i = 0; i < nsd->ifs; i++) {
+			int listen;
+			struct tcp_accept_handler_data *data;
+
+			listen = nsd_bitset_isset(nsd->tcp[i].servers, child);
+
+			if(i >= from && i < (from + numifs) && listen) {
+				data = &tcp_accept_handlers[i-from];
+				memset(data, 0, sizeof(*data));
+				add_tcp_handler(nsd, &nsd->tcp[i], data);
+			} else {
+				/* close sockets intended for other servers */
+				server_close_socket(&nsd->tcp[i]);
+			}
 		}
 	} else {
 		tcp_accept_handler_count = 0;

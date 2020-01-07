@@ -15,7 +15,27 @@ server:
 	# Number of NSD servers to fork.  Put the number of CPUs to use here.
 	# server-count: 1
 
-	# uncomment to specify specific interfaces to bind (default are the
+	# Set overall CPU affinity for NSD processes on Linux and FreeBSD.
+	# Any server/xfrd CPU affinity value will be masked by this value.
+	# cpu-affinity: 0 1 2 3
+
+	# Bind NSD server(s), configured by server-count (1-based), to a
+	# dedicated core. Single core affinity improves L1/L2 cache hits and
+	# reduces pipeline stalls/flushes. Have NIC interrupts handled by a
+	# core on which no NSD servers run, improves performance too.
+	#
+	# Note that CPU affinity is only required in very specific scenarios
+	# and must only be enabled after careful consideration.
+	#
+	# server-1-cpu-affinity: 0
+	# server-2-cpu-affinity: 1
+	# ...
+	# server-N-cpu-affinity: 2
+
+	# Bind xfrd to a dedicated core.
+	# xfrd-cpu-affinity: 3
+
+	# Uncomment to specify specific interfaces to bind (default are the
 	# wildcard interfaces 0.0.0.0 and ::0).
 	# For servers with multiple IP addresses, list them one by one,
 	# or the source address of replies could be wrong.
@@ -23,6 +43,19 @@ server:
 	# ip-address: 1.2.3.4
 	# ip-address: 1.2.3.4@5678
 	# ip-address: 12fe::8ef0
+	#
+	# IP addresses can be configured per-server to avoid waking up more
+	# than one server when a packet comes in (thundering herd problem) or
+	# to partition sockets across servers to improve select/poll
+	# performance.
+	#
+	# Note that socket partitioning is only required in very specific
+	# scenarios and must only be enabled after careful consideration. To
+	# assign one or more sockets to a specific server, specify the server
+	# identifier(s) after the IP address.
+	#
+	# ip-address: 1.2.3.4       1-2 3
+	# ip-address: 1.2.3.4@5678  4-5 6
 
 	# Allow binding to non local addresses. Default no.
 	# ip-transparent: no
