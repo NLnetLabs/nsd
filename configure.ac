@@ -720,6 +720,7 @@ AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
 AC_REPLACE_FUNCS(pselect)
 AC_REPLACE_FUNCS(memmove)
+AC_REPLACE_FUNCS(setproctitle)
 AC_MSG_CHECKING([for reallocarray])
 AC_LINK_IFELSE([AC_LANG_SOURCE(AC_INCLUDES_DEFAULT
 [[
@@ -1198,6 +1199,13 @@ char *nsd_strptime(const char *s, const char *format, struct tm *tm);
 #endif
 #if (HAVE_CPU_SET_T || HAVE_CPUSET_T)
 #include "compat/cpuset.h"
+#endif
+#ifndef HAVE_SETPROCTITLE
+#ifdef __linux__
+#define HAVE_SETPROCTITLE 1
+#include <stdarg.h>
+void setproctitle(char *fmt, ...);
+#endif
 #endif
 ])
 AH_BOTTOM(
