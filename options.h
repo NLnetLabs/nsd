@@ -23,10 +23,14 @@ struct nsd;
 typedef struct nsd_options nsd_options_type;
 typedef struct pattern_options pattern_options_type;
 typedef struct zone_options zone_options_type;
+typedef struct range_option range_option_type;
 typedef struct ip_address_option ip_address_option_type;
+typedef struct cpu_option cpu_option_type;
+typedef struct cpu_map_option cpu_map_option_type;
 typedef struct acl_options acl_options_type;
 typedef struct key_options key_options_type;
 typedef struct config_parser_state config_parser_state_type;
+
 /*
  * Options global for nsd.
  */
@@ -74,6 +78,8 @@ struct nsd_options {
 	const char* version;
 	const char* logfile;
 	int server_count;
+	struct cpu_option* cpu_affinity;
+	struct cpu_map_option* service_cpu_affinity;
 	int tcp_count;
 	int tcp_reject_overflow;
 	int confine_to_zone;
@@ -159,9 +165,27 @@ struct nsd_options {
 	region_type* region;
 };
 
+struct range_option {
+	struct range_option* next;
+	int first;
+	int last;
+};
+
 struct ip_address_option {
 	struct ip_address_option* next;
+	struct range_option *servers;
 	char* address;
+};
+
+struct cpu_option {
+	struct cpu_option* next;
+	int cpu;
+};
+
+struct cpu_map_option {
+	struct cpu_map_option* next;
+	int service;
+	int cpu;
 };
 
 /*

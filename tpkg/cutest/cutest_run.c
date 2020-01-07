@@ -24,6 +24,7 @@ CuSuite * reg_cutest_region(void);
 CuSuite * reg_cutest_udb(void);
 CuSuite * reg_cutest_udb_radtree(void);
 CuSuite * reg_cutest_namedb(void);
+CuSuite * reg_cutest_bitset(void);
 #ifdef RATELIMIT
 CuSuite * reg_cutest_rrl(void);
 #endif
@@ -74,6 +75,7 @@ int runalltests(void)
 #ifdef RATELIMIT
 	CuSuiteAddSuite(suite, reg_cutest_rrl());
 #endif
+	CuSuiteAddSuite(suite, reg_cutest_bitset());
 
 	CuSuiteRunDisplay(suite, disp_callback);
 	fprintf(stderr, "\n");

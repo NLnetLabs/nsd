@@ -681,6 +681,30 @@ if echo $target_os | grep darwin8 > /dev/null; then
 	AC_DEFINE(DARWIN_BROKEN_SETREUID, 1, [Define this if on macOSX10.4-darwin8 and setreuid and setregid do not work])
 fi
 
+AC_CHECK_HEADERS([sched.h sys/cpuset.h])
+
+# Check for cpu_set_t (Linux) and cpuset_t (FreeBSD and NetBSD)
+AC_CHECK_TYPES([cpu_set_t, cpuset_t, cpuid_t],,,[
+AC_INCLUDES_DEFAULT
+#if HAVE_SCHED_H
+# include <sched.h>
+#endif
+#if HAVE_SYS_CPUSET_H
+# include <sys/cpuset.h>
+#endif
+])
+
+AS_IF([test x"$ac_cv_type_cpuset_t" = xyes -o x"$ac_cv_type_cpu_set_t" = xyes ],[
+	AC_CHECK_FUNC(cpuset_create)
+	AC_CHECK_FUNC(cpuset_destroy)
+	AC_CHECK_FUNC(cpuset_zero)
+	AC_CHECK_FUNC(cpuset_set)
+	AC_CHECK_FUNC(cpuset_clr)
+	AC_CHECK_FUNC(cpuset_isset)
+	AC_CHECK_FUNC(cpuset_size)
+	AC_LIBOBJ(cpuset)
+])
+
 #
 # Checking for missing functions we can replace
 #
@@ -1171,6 +1195,9 @@ char *strptime(const char *s, const char *format, struct tm *tm);
 #define STRPTIME_WORKS 1
 char *nsd_strptime(const char *s, const char *format, struct tm *tm); 
 #define strptime(a,b,c) nsd_strptime((a),(b),(c))
+#endif
+#if (HAVE_CPU_SET_T || HAVE_CPUSET_T)
+#include "compat/cpuset.h"
 #endif
 ])
 AH_BOTTOM(

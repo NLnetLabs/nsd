@@ -15,6 +15,7 @@
 #include "tsig.h"
 #include "difffile.h"
 #include "rrl.h"
+#include "bitset.h"
 
 #include "configyyrename.h"
 #include "configparser.h"
@@ -70,6 +71,8 @@ nsd_options_create(region_type* region)
 	opt->confine_to_zone = 0;
 	opt->refuse_any = 0;
 	opt->server_count = 1;
+	opt->cpu_affinity = NULL;
+	opt->service_cpu_affinity = NULL;
 	opt->tcp_count = 100;
 	opt->tcp_reject_overflow = 0;
 	opt->tcp_query_count = 0;

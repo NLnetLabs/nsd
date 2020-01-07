@@ -32,6 +32,9 @@ extern "C"
 extern config_parser_state_type *cfg_parser;
 
 static void append_acl(struct acl_options **list, struct acl_options *acl);
+static int parse_boolean(const char *str, int *bln);
+static int parse_number(const char *str, long long *num);
+static int parse_range(const char *str, long long *low, long long *high);
 %}
 
 %union {
@@ -39,12 +42,17 @@ static void append_acl(struct acl_options **list, struct acl_options *acl);
   long long llng;
   int bln;
   struct ip_address_option *ip;
+  struct range_option *range;
+  struct cpu_option *cpu;
 }
 
 %token <str> STRING
 %type <llng> number
 %type <bln> boolean
 %type <ip> ip_address
+%type <llng> service_cpu_affinity
+%type <range> server_ranges;
+%type <cpu> cpus
 
 /* server */
 %token VAR_SERVER
@@ -105,6 +113,9 @@ static void append_acl(struct acl_options **list, struct acl_options *acl);
 %token VAR_TLS_SERVICE_PEM
 %token VAR_TLS_SERVICE_OCSP
 %token VAR_TLS_PORT
+%token VAR_CPU_AFFINITY
+%token VAR_XFRD_CPU_AFFINITY
+%token <llng> VAR_SERVER_CPU_AFFINITY
 
 /* dnstap */
 %token VAR_DNSTAP
@@ -179,9 +190,11 @@ server_block:
     server_block server_option | ;
 
 server_option:
-    VAR_IP_ADDRESS ip_address
+    VAR_IP_ADDRESS ip_address server_ranges
     {
       struct ip_address_option *ip = cfg_parser->opt->ip_addresses;
+      $2->servers = $3;
+
       if(ip == NULL) {
         cfg_parser->opt->ip_addresses = $2;
       } else {
@@ -402,6 +415,123 @@ server_option:
       char buf[16];
       (void)snprintf(buf, sizeof(buf), "%lld", $2);
       cfg_parser->opt->tls_port = region_strdup(cfg_parser->opt->region, buf);
+    }
+  | VAR_CPU_AFFINITY cpus
+    {
+      cfg_parser->opt->cpu_affinity = $2;
+    }
+  | service_cpu_affinity number
+    {
+      if($2 < 0) {
+        yyerror("expected a non-negative number");
+        YYABORT;
+      } else {
+        struct cpu_map_option *opt, *tail;
+
+        opt = cfg_parser->opt->service_cpu_affinity;
+        while(opt && opt->service != $1) { opt = opt->next; }
+
+        if(opt) {
+          opt->cpu = $2;
+        } else {
+          opt = region_alloc_zero(cfg_parser->opt->region, sizeof(*opt));
+          opt->service = (int)$1;
+          opt->cpu = (int)$2;
+
+          tail = cfg_parser->opt->service_cpu_affinity;
+          if(tail) {
+            while(tail->next) { tail = tail->next; }
+            tail->next = opt;
+          } else {
+            cfg_parser->opt->service_cpu_affinity = opt;
+          }
+        }
+      }
+    }
+  ;
+
+server_ranges:
+    { $$ = NULL; }
+  | server_ranges STRING
+    {
+      char *tok, *ptr, *str;
+      struct range_option *tail;
+      long long first, last;
+
+      str = $2;
+      $$ = tail = $1;
+      if(tail) {
+        while(tail->next) { tail = tail->next; }
+      }
+
+      /* User may specify "0 1", "0" "1", 0 1 or a combination thereof. */
+      for(str = $2; (tok = strtok_r(str, " \t", &ptr)); str = NULL) {
+        struct range_option *opt =
+          region_alloc(cfg_parser->opt->region, sizeof(*opt));
+        first = last = 0;
+        if(!parse_range(tok, &first, &last)) {
+          yyerror("invalid server range '%s'", tok);
+          YYABORT;
+        }
+        assert(first >= 0);
+        assert(last >= 0);
+        opt->first = (int)first;
+        opt->last = (int)last;
+        if(tail) {
+          tail->next = opt;
+          tail = opt;
+        } else {
+          $$ = tail = opt;
+        }
+      }
+    }
+  ;
+
+cpus:
+    { $$ = NULL; }
+  | cpus STRING
+    {
+      char *tok, *ptr, *str;
+      struct cpu_option *tail;
+      long long cpu;
+
+      str = $2;
+      $$ = tail = $1;
+      if(tail) {
+        while(tail->next) { tail = tail->next; }
+      }
+
+      /* Users may specify "0 1", "0" "1", 0 1 or a combination thereof. */
+      for(str = $2; (tok = strtok_r(str, " \t", &ptr)); str = NULL) {
+        struct cpu_option *opt =
+          region_alloc(cfg_parser->opt->region, sizeof(*opt));
+        cpu = 0;
+        if(!parse_number(tok, &cpu) || opt->cpu < 0) {
+          yyerror("expected a positive number");
+          YYABORT;
+        }
+        assert(cpu >=0);
+        opt->cpu = (int)cpu;
+        if(tail) {
+          tail->next = opt;
+          tail = opt;
+        } else {
+          $$ = tail = opt;
+        }
+      }
+    }
+  ;
+
+service_cpu_affinity:
+    VAR_XFRD_CPU_AFFINITY
+    { $$ = -1; }
+  | VAR_SERVER_CPU_AFFINITY
+    {
+      if($1 <= 0) {
+        yyerror("invalid server identifier");
+        YYABORT;
+      }
+      $$ = $1;
     }
   ;
 
@@ -726,20 +856,7 @@ ip_address:
 number:
     STRING
     {
-      /* ensure string consists entirely of digits */
-      const char *str = $1;
-      size_t pos = 0;
-      while(str[pos] >= '0' && str[pos] <= '9') {
-        pos++;
-      }
-
-      $$ = 0;
-      if(pos > 0 && str[pos] == '\0') {
-        int err = errno;
-        errno = 0;
-        $$ = strtoll(str, NULL, 10);
-        errno = err;
-      } else {
+      if(!parse_number($1, &$$)) {
         yyerror("expected a number");
         YYABORT; /* trigger a parser error */
       }
@@ -748,12 +865,7 @@ number:
 boolean:
     STRING
     {
-      $$ = 0;
-      if(strcmp($1, "yes") == 0) {
-        $$ = 1;
-      } else if(strcmp($1, "no") == 0) {
-        $$ = 0;
-      } else {
+      if(!parse_boolean($1, &$$)) {
         yyerror("expected yes or no");
         YYABORT; /* trigger a parser error */
       }
@@ -776,3 +888,78 @@ append_acl(struct acl_options **list, struct acl_options *acl)
 	}
 }
 
+static int
+parse_boolean(const char *str, int *bln)
+{
+	if(strcmp(str, "yes") == 0) {
+		*bln = 1;
+	} else if(strcmp(str, "no") == 0) {
+		*bln = 0;
+	} else {
+		return 0;
+	}
+
+	return 1;
+}
+
+static int
+parse_number(const char *str, long long *num)
+{
+	/* ensure string consists entirely of digits */
+	size_t pos = 0;
+	while(str[pos] >= '0' && str[pos] <= '9') {
+		pos++;
+	}
+
+	if(pos != 0 && str[pos] == '\0') {
+		*num = strtoll(str, NULL, 10);
+		return 1;
+	}
+
+	return 0;
+}
+
+static int
+parse_range(const char *str, long long *low, long long *high)
+{
+	const char *ptr = str;
+	long long num[2];
+
+	/* require range to begin with a number */
+	if(*ptr < '0' || *ptr > '9') {
+		return 0;
+	}
+
+	num[0] = strtoll(ptr, (char **)&ptr, 10);
+
+	/* require number to be followed by nothing at all or a dash */
+	if(*ptr == '\0') {
+		*low = num[0];
+		*high = num[0];
+		return 1;
+	} else if(*ptr != '-') {
+		return 0;
+	}
+
+	++ptr;
+	/* require dash to be followed by a number */
+	if(*ptr < '0' || *ptr > '9') {
+		return 0;
+	}
+
+	num[1] = strtoll(ptr, (char **)&ptr, 10);
+
+	/* require number to be followed by nothing at all */
+	if(*ptr == '\0') {
+		if(num[0] < num[1]) {
+			*low = num[0];
+			*high = num[1];
+		} else {
+			*low = num[1];
+			*high = num[0];
+		}
+		return 1;
+	}
+
+	return 0;
+}

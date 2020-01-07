@@ -17,6 +17,7 @@
 
 #include "dns.h"
 #include "edns.h"
+#include "bitset.h"
 struct netio_handler;
 struct nsd_options;
 struct udb_base;
@@ -123,14 +124,20 @@ struct nsd_addrinfo
 
 struct nsd_socket
 {
-	struct nsd_addrinfo	addr;
-	int			s;
-	int			flags;
+	struct nsd_addrinfo addr;
+	int s;
+	int flags;
+	struct nsd_bitset *servers;
 };
 
 struct nsd_child
 {
-	 /* The type of child process (UDP or TCP handler). */
+#ifdef HAVE_CPUSET_T
+	/* Processor(s) that child process must run on (if applicable). */
+	cpuset_t *cpuset;
+#endif
+
+	/* The type of child process (UDP or TCP handler). */
 	int kind;
 
 	/* The child's process id.  */
@@ -222,6 +229,12 @@ struct	nsd
 	uint16_t		nsid_len;
 	unsigned char		*nsid;
 	uint8_t 		file_rotation_ok;
+
+#ifdef HAVE_CPUSET_T
+	int			use_cpu_affinity;
+	cpuset_t*		cpuset;
+	cpuset_t*		xfrd_cpuset;
+#endif
 
 	/* number of interfaces */
 	size_t	ifs;
