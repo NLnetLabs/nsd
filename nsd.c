@@ -348,6 +348,117 @@ figure_sockets(
 	assert(i == *ifs);
 }
 
+/* print server affinity for given socket. "*" if socket has no affinity with
+   any specific server, "x-y" if socket has affinity with more than two
+   consecutively numbered servers, "x" if socket has affinity with a specific
+   server number, which is not necessarily just one server. e.g. "1 3" is
+   printed if socket has affinity with servers number one and three, but not
+   server number two. */
+static ssize_t
+print_socket_servers(struct nsd_socket *sock, char *buf, size_t bufsz)
+{
+	int i, x, y, z, n = (int)(sock->servers->size);
+	char *sep = "";
+	size_t off, tot;
+	ssize_t cnt = 0;
+
+	assert(bufsz != 0);
+
+	off = tot = 0;
+	x = y = z = -1;
+	for (i = 0; i <= n; i++) {
+		if (i == n || !nsd_bitset_isset(sock->servers, i)) {
+			cnt = 0;
+			if (i == n && x == -1) {
+				assert(y == -1);
+				assert(z == -1);
+				cnt = snprintf(buf, bufsz, "-");
+			} else if (y > z) {
+				assert(x > z);
+				if (x == 0 && y == (n - 1)) {
+					assert(z == -1);
+					cnt = snprintf(buf+off, bufsz-off,
+					               "*");
+				} else if (x == y) {
+					cnt = snprintf(buf+off, bufsz-off,
+					               "%s%d", sep, x+1);
+				} else if (x == (y - 1)) {
+					cnt = snprintf(buf+off, bufsz-off,
+					               "%s%d %d", sep, x+1, y+1);
+				} else {
+					assert(y > (x + 1));
+					cnt = snprintf(buf+off, bufsz-off,
+					               "%s%d-%d", sep, x+1, y+1);
+				}
+			}
+			z = i;
+			if (cnt > 0) {
+				tot += (size_t)cnt;
+				off = (tot < bufsz) ? tot : bufsz - 1;
+				sep = " ";
+			} else if (cnt < 0) {
+				return -1;
+			}
+		} else if (x <= z) {
+			x = y = i;
+		} else {
+			assert(x > z);
+			y = i;
+		}
+	}
+
+	return tot;
+}
+
+static void
+print_sockets(
+	struct nsd_socket *udp, struct nsd_socket *tcp, size_t ifs)
+{
+	char sockbuf[INET6_ADDRSTRLEN + 6 + 1];
+	char *serverbuf;
+	size_t i, serverbufsz, servercnt;
+	const char *fmt = "listen on ip-address %s (%s) with server(s): %s";
+	struct nsd_bitset *servers;
+
+	if(ifs == 0) {
+		return;
+	}
+
+	assert(udp != NULL);
+	assert(tcp != NULL);
+
+	servercnt = udp[0].servers->size;
+	serverbufsz = (((servercnt / 10) * servercnt) + servercnt) + 1;
+	serverbuf = xalloc(serverbufsz);
+
+	/* warn user of unused servers */
+	servers = xalloc(nsd_bitset_size(servercnt));
+	nsd_bitset_init(servers, (size_t)servercnt);
+
+	for(i = 0; i < ifs; i++) {
+		assert(udp[i].servers->size == servercnt);
+		addrport2str(&udp[i].addr.ai_addr, sockbuf, sizeof(sockbuf));
+		print_socket_servers(&udp[i], serverbuf, serverbufsz);
+		nsd_bitset_or(servers, servers, udp[i].servers);
+		log_msg(LOG_NOTICE, fmt, sockbuf, "udp", serverbuf);
+		assert(tcp[i].servers->size == servercnt);
+		addrport2str(&tcp[i].addr.ai_addr, sockbuf, sizeof(sockbuf));
+		print_socket_servers(&tcp[i], serverbuf, serverbufsz);
+		nsd_bitset_or(servers, servers, tcp[i].servers);
+		log_msg(LOG_NOTICE, fmt, sockbuf, "tcp", serverbuf);
+	}
+
+
+	/* warn user of unused servers */
+	for(i = 0; i < servercnt; i++) {
+		if(!nsd_bitset_isset(servers, i)) {
+			log_msg(LOG_WARNING, "server %zu will not listen on "
+			                     "any specified ip-address", i+1);
+		}
+	}
+	free(serverbuf);
+}
+
 #ifdef HAVE_CPUSET_T
 static void free_cpuset(void *ptr)
 {
@@ -1130,6 +1241,8 @@ main(int argc, char *argv[])
 		set_cpu_affinity(nsd.cpuset);
 	}
 #endif
+
+	print_sockets(nsd.udp, nsd.tcp, nsd.ifs);
 
 	/* Setup the signal handling... */
 	action.sa_handler = sig_handler;
