@@ -26,6 +26,7 @@ NEED_DIG9="bug009_soa_alone bug013_truncate bug034_any bug052_ent bug054_rd bug0
 NEED_i386="xfr_1 xfr_2"
 NEED_NC="tcp_underrun"
 NEED_PCAT="query_diff_root"
+NEED_CPU_AFFINITY="bad_cpu_affinity no_cpu_affinity cpu_affinity"
 
 # do we have dig9?
 DIG9=no
@@ -36,6 +37,8 @@ if test -f "`which nc 2>&1`"; then HAVE_NC=yes; fi
 # do we have ldns pcat, pcat-print, pcat-diff?
 HAVE_PCAT=no
 if test -f "`which pcat-diff 2>&1`"; then HAVE_PCAT=yes; fi
+CPU_AFFINITY=no
+if [ -n "$(cpu_count)" ] && [ "$(cpu_count)" -gt 1 ]; then CPU_AFFINITY=yes; fi
 
 # run the tests
 tdir -a ../../ fake 0000_nsd-compile.tdir
@@ -58,6 +61,10 @@ for i in *.tdir; do
 		echo ">>> skipped $i: test needs pcat, pcat-print, pcat-diff."
 		skip=yes
 	fi
+	if [ $CPU_AFFINITY = no ] && echo $NEED_CPU_AFFINITY | grep `basename $i .tdir` >/dev/null; then
+		echo ">>> skipped $i: test needs cpu affinity and more than one cpu"
+		skip=yes
+        fi
 	if [ $skip = no ]; then
 		echo ">>> next test $i at "`date`
 		tdir -a ../../ exe $i
