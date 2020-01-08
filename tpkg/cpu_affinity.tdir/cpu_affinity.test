@@ -1,0 +1,50 @@
+# #-- cpu_affinity.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+$TPKG_NSD -c cpu_affinity.conf -L 5 -F 0xFFFF -p $NSD_PORT
+wait_nsd_up nsd.log
+wait_logfile nsd.log "child process started"
+
+cat nsd.log
+
+# retrieve pid of main, xfrd and server processes
+main_pid=$(sed -n 's/^.* nsd.\([0-9]\{1,\}\).: notice: nsd started.*$/\1/p' nsd.log)
+child_pid=$(sed -n 's/^.* nsd.\([0-9]\{1,\}\).: info: child .*$/\1/p' nsd.log)
+xfrd_pid=$(sed -n 's/^.* nsd.\([0-9]\{1,\}\).: info: xfrd startup.*$/\1/p' nsd.log)
+
+main_cpus=$(process_cpu_list ${main_pid})
+child_cpus=$(process_cpu_list ${child_pid})
+xfrd_cpus=$(process_cpu_list ${xfrd_pid})
+
+echo "main: pid=${main_pid}, cpus=${main_cpus}"
+echo "child: pid=${child_pid}, cpus=${child_cpus}"
+echo "xfrd: pid=${xfrd_pid}, cpus=${xfrd_cpus}"
+
+match="true"
+
+if [ "${main_cpus}" != "0 1" ]; then
+  echo "cpu affinity for main does not match config"
+  match="false"
+fi
+
+if [ "${child_cpus}" != "0" ]; then
+  echo "cpu affinity for server does not match config"
+  match="false"
+fi
+
+if [ "${xfrd_cpus}" != "1" ]; then
+  echo "cpu affinity for server does not match config"
+  match="false"
+fi
+
+if [ "${match}" != "true" ]; then
+  exit 1
+fi

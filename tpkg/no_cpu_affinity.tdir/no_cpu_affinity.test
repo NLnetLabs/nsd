@@ -1,0 +1,25 @@
+# #-- no_cpu_affinity.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+$TPKG_NSD -c no_cpu_affinity.conf -L 5 -F 0xFFFF -p $NSD_PORT
+wait_nsd_up nsd.log
+cat nsd.log
+
+echo $(seq -s ' ' 0 $(expr $(cpu_count) - 1)) > all.cpus
+process_cpu_list $(cat nsd.pid) | sed -e 's/^[[:space:]]*//' > process.cpus
+
+echo "===== all.cpus ====="
+cat all.cpus
+echo "===== process.cpus ====="
+cat process.cpus
+
+diff all.cpus process.cpus
+exit $?
