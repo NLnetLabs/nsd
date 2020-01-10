@@ -1,5 +1,6 @@
 10 January 2020: Wouter
 	- Fix unreachable code in ssl set options code.
+	- Fix bad shift in assertion code analyzer complaint.
 
 6 January 2020: Wouter
 	- Fix #56: Drop sparse TSIG signing support in NSD.

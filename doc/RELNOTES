@@ -38,6 +38,7 @@ BUG FIXES:
 	  libsystemd it always signals readiness, if possible.
 	- Note that use-systemd is not necessary and ignored in man page.
 	- Fix unreachable code in ssl set options code.
+	- Fix bad shift in assertion code analyzer complaint.
 
 
 4.2.4

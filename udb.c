@@ -630,7 +630,7 @@ int udb_exp_size(uint64_t a)
 	}
 	assert( x>=0 && x<=63);
 	assert( ((uint64_t)1<<x) >= a);
-	assert( x==0 || ((uint64_t)1<<(x-1)) < a);
+	assert( x==0 || /* <<x-1 without negative number analyzer complaints: */ (((uint64_t)1<<x)>>1) < a);
 	return x;
 }
 
