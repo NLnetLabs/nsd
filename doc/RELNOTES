@@ -37,6 +37,7 @@ BUG FIXES:
 	- use-systemd is ignored in nsd.conf, when NSD is compiled with
 	  libsystemd it always signals readiness, if possible.
 	- Note that use-systemd is not necessary and ignored in man page.
+	- Fix unreachable code in ssl set options code.
 
 
 4.2.4

@@ -1,8 +1,10 @@
+10 January 2020: Wouter
+	- Fix unreachable code in ssl set options code.
+
 6 January 2020: Wouter
 	- Fix #56: Drop sparse TSIG signing support in NSD.
 	  Sign every axfr packet with TSIG, according to the latest
 	  draft-ietf-dnsop-rfc2845bis-06, Section 5.3.1.
-	- Fix unreachable code in ssl set options code.
 
 12 December 2019: Wouter
 	- Note that use-systemd is not necessary and ignored in man page.
