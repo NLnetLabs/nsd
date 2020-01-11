@@ -941,34 +941,64 @@ set_ip_freebind(struct nsd_socket *sock)
 static int
 set_ip_transparent(struct nsd_socket *sock)
 {
+	/*
+	The scandalous preprocessor blob here calls for some explanation :)
+	POSIX does not specify an option to bind non-local IPs, so
+	platforms developed several implementation-specific options,
+	all set in the same way, but with different names.
+	For additional complexity, some platform manage this setting
+	differently for different address families (IPv4 vs IPv6).
+	This scandalous preprocessor blob below abstracts such variability
+	in the way which leaves the C code as lean and clear as possible.
+	*/
+
 #if defined(IP_TRANSPARENT)
-	int on = 1;
-	const char *socktype =
-		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
-	if(0 == setsockopt(
-		sock->s, IPPROTO_IP, IP_TRANSPARENT, &on, sizeof(on)))
-	{
-		return 1;
-	}
-
-	log_msg(LOG_ERR, "setsockopt(..., %s, ...) failed for %s: %s",
-		"IP_TRANSPARENT", socktype, strerror(errno));
-	return -1;
+#	define NSD_SOCKET_OPTION_TRANSPARENT 						IP_TRANSPARENT
+#	define NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL		IPPROTO_IP
+#	define NSD_SOCKET_OPTION_TRANSPARENT_NAME 			"IP_TRANSPARENT"
+// as of 2020-01, Linux does not support this on IPv6 programmatically
 #elif defined(SO_BINDANY)
+#	define NSD_SOCKET_OPTION_TRANSPARENT						SO_BINDANY
+#	define NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL		SOL_SOCKET
+#	define NSD_SOCKET_OPTION_TRANSPARENT_NAME 			"SO_BINDANY"
+#elif defined(IP_BINDANY)
+#	define NSD_SOCKET_OPTION_TRANSPARENT 						IP_BINDANY
+#	define NSD_SOCKET_OPTION_TRANSPARENT6						IPV6_BINDANY
+#	define NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL		IPPROTO_IP
+#	define NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL6	IPPROTO_IPV6
+#	define NSD_SOCKET_OPTION_TRANSPARENT_NAME 			"IP_BINDANY"
+#endif
+
+#ifndef NSD_SOCKET_OPTION_TRANSPARENT
+	(void)sock;
+#else
+#	ifndef NSD_SOCKET_OPTION_TRANSPARENT6
+#		define NSD_SOCKET_OPTION_TRANSPARENT6 NSD_SOCKET_OPTION_TRANSPARENT
+#	endif
+#	ifndef NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL6
+#		define NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL6 NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL
+#	endif
+#	ifndef NSD_SOCKET_OPTION_TRANSPARENT_NAME6
+#		define NSD_SOCKET_OPTION_TRANSPARENT_NAME6 NSD_SOCKET_OPTION_TRANSPARENT_NAME
+#	endif
+
 	int on = 1;
 	const char *socktype =
 		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
+	const int is_ip6 = (sock->addr.ai_family == AF_INET6);
+
 	if(0 == setsockopt(
-		sock->s, SOL_SOCKET, SO_BINDANY, &on, sizeof(on)))
+		sock->s,
+		is_ip6 ? NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL6 : NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL,
+		is_ip6 ? NSD_SOCKET_OPTION_TRANSPARENT6 : NSD_SOCKET_OPTION_TRANSPARENT,
+		&on, sizeof(on)))
 	{
 		return 1;
 	}
 
 	log_msg(LOG_ERR, "setsockopt(..., %s, ...) failed for %s: %s",
-		"SO_BINDANY", socktype, strerror(errno));
+		is_ip6 ? NSD_SOCKET_OPTION_TRANSPARENT_NAME6 : NSD_SOCKET_OPTION_TRANSPARENT_NAME, socktype, strerror(errno));
 	return -1;
-#else
-	(void)sock;
 #endif
 
 	return 0;
