@@ -7,6 +7,8 @@ FEATURES:
 	- Fix #56: Drop sparse TSIG signing support in NSD.
 	  Sign every axfr packet with TSIG, according to the latest
 	  draft-ietf-dnsop-rfc2845bis-06, Section 5.3.1.
+	- Merge pull request #59 from buddyns: add FreeBSD support
+	  for conf key ip-transparent.
 BUG FIXES:
 	- Fix fname null check of fname in namedb_read_zonefile.
 	- Fix implicit cast of size in udb_radnode_array_grow.

@@ -1,3 +1,7 @@
+13 January 2020: Wouter
+	- Merge pull request #59 from buddyns: add FreeBSD support
+	  for conf key ip-transparent.
+
 10 January 2020: Wouter
 	- Fix unreachable code in ssl set options code.
 	- Fix bad shift in assertion code analyzer complaint.
