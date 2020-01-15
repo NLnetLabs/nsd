@@ -9,6 +9,9 @@ FEATURES:
 	  draft-ietf-dnsop-rfc2845bis-06, Section 5.3.1.
 	- Merge pull request #59 from buddyns: add FreeBSD support
 	  for conf key ip-transparent.
+	- Add feature to pin server processes to specific cpus.
+	- Add feature to pin IP addresses to selected server processes.
+	- Set process title to identify individual processes.
 BUG FIXES:
 	- Fix fname null check of fname in namedb_read_zonefile.
 	- Fix implicit cast of size in udb_radnode_array_grow.
