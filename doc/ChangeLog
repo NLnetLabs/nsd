@@ -1,3 +1,8 @@
+15 January 2020: Jeroen
+	- Add feature to pin server proccesses to specific cpus.
+	- Add feature to pin IP addresses to selected server processes.
+	- Set process title to identify individual processes.
+
 13 January 2020: Wouter
 	- Merge pull request #59 from buddyns: add FreeBSD support
 	  for conf key ip-transparent.
