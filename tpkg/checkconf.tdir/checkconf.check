@@ -42,8 +42,8 @@ server:
 	confine-to-zone: no
 	refuse-any: no
 	verbosity: 0
-	ip-address: "127.0.0.1"
-	ip-address: "10.1.2.3"
+	ip-address: 127.0.0.1
+	ip-address: 10.1.2.3
 	zonefiles-check: yes
 	zonefiles-write: 0
 	#tls-service-key:
