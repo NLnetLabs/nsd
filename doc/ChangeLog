@@ -1,3 +1,6 @@
+21 January 2020: Wouter
+	- Fix leak in server bitset setup.
+
 15 January 2020: Jeroen
 	- Add feature to pin server proccesses to specific cpus.
 	- Add feature to pin IP addresses to selected server processes.

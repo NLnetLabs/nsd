@@ -44,6 +44,7 @@ BUG FIXES:
 	- Note that use-systemd is not necessary and ignored in man page.
 	- Fix unreachable code in ssl set options code.
 	- Fix bad shift in assertion code analyzer complaint.
+	- Fix leak in server bitset setup.
 
 
 4.2.4

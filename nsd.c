@@ -457,6 +457,7 @@ print_sockets(
 		}
 	}
 	free(serverbuf);
+	free(servers);
 }
 
 #ifdef HAVE_CPUSET_T
