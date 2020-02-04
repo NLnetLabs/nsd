@@ -205,9 +205,17 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			}
 			return query_axfr(nsd, q);
 		}
-		/** Fallthrough: AXFR over UDP queries are discarded. */
-		/* fallthrough */
+		/* AXFR over UDP queries are discarded. */
+		RCODE_SET(q->packet, RCODE_IMPL);
+		return QUERY_PROCESSED;
 	case TYPE_IXFR:
+		/* get rid of authority section, if present */
+		NSCOUNT_SET(q->packet, 0);
+		if(QDCOUNT(q->packet) > 0 && (size_t)QHEADERSZ+4+
+			q->qname->name_size <= buffer_limit(q->packet)) {
+			buffer_set_position(q->packet, QHEADERSZ+4+
+				q->qname->name_size);
+		}
 		RCODE_SET(q->packet, RCODE_IMPL);
 		return QUERY_PROCESSED;
 	default:
