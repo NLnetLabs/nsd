@@ -12,6 +12,8 @@ FEATURES:
 	- Add feature to pin server processes to specific cpus.
 	- Add feature to pin IP addresses to selected server processes.
 	- Set process title to identify individual processes.
+	- Merge PR#22: minimise-any: prefer polular and not large RRset,
+	  from Daisuke Higashi.
 BUG FIXES:
 	- Fix fname null check of fname in namedb_read_zonefile.
 	- Fix implicit cast of size in udb_radnode_array_grow.

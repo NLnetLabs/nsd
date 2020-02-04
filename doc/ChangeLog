@@ -1,3 +1,7 @@
+4 February 2020: Wouter
+	- Merge PR#22: minimise-any: prefer polular and not large RRset,
+	  from Daisuke Higashi.
+
 21 January 2020: Wouter
 	- Fix leak in server bitset setup.
 
