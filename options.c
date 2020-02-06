@@ -52,6 +52,7 @@ nsd_options_create(region_type* region)
 	opt->ip_addresses = NULL;
 	opt->ip_transparent = 0;
 	opt->ip_freebind = 0;
+	opt->bindtodevice = 0;
 	opt->send_buffer_size = 0;
 	opt->receive_buffer_size = 0;
 	opt->debug_mode = 0;

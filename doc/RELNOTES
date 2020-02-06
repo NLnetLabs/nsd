@@ -14,6 +14,8 @@ FEATURES:
 	- Set process title to identify individual processes.
 	- Merge PR#22: minimise-any: prefer polular and not large RRset,
 	  from Daisuke Higashi.
+	- Add support for SO_BINDTODEVICE on Linux.
+	- Add support for SO_SETFIB on FreeBSD.
 BUG FIXES:
 	- Fix fname null check of fname in namedb_read_zonefile.
 	- Fix implicit cast of size in udb_radnode_array_grow.

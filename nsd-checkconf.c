@@ -562,14 +562,20 @@ config_test_print_server(nsd_options_type* opt)
 	{
 		printf("\tip-address: %s", ip->address);
 		if(ip->servers) {
+			const char *sep;
 			struct range_option *n;
-			for(n = ip->servers; n; n = n->next) {
+			printf(" servers=\"");
+			for(n=ip->servers, sep=""; n; n = n->next, sep=" ") {
 				if(n->first == n->last) {
-					printf(" %d", n->first);
+					printf("%s%d", sep, n->first);
 				} else {
-					printf(" %d-%d", n->first, n->last);
+					printf("%s%d-%d", sep, n->first, n->last);
 				}
 			}
+			printf("\"");
+		}
+		if(ip->fib != -1) {
+			printf(" setfib=%d", ip->fib);
 		}
 		printf("\n");
 	}

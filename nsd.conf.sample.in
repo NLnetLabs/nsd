@@ -54,17 +54,40 @@ server:
 	# assign one or more sockets to a specific server, specify the server
 	# identifier(s) after the IP address.
 	#
-	# ip-address: 1.2.3.4       1-2 3
-	# ip-address: 1.2.3.4@5678  4-5 6
+	# ip-address: 1.2.3.4       servers="1-2 3"
+	# ip-address: 1.2.3.4@5678  servers="4-5 6"
+	#
+	# When several interfaces are configured to listen on the same subnet,
+	# care must be taken to ensure responses go out the same interface the
+	# corresponding query came in on to avoid problems with load balancers
+	# and VLAN tagged interfaces. Linux offers the SO_BINDTODEVICE socket
+	# option to bind a socket to a specified device. The IP_SENDIF socket
+	# option is in the works(?) for FreeBSD to achieve the same result,
+	# for now alternate routing tables are used as fallback. Specify the
+	# routing table to use after the IP address.
+	#
+	# The IP_SENDSRCADDR socket option can in theory be used, but
+	# routing table isolation offers performance benefits as the kernel
+	# does not have to select an outgoing interface.
+	#
+	# Complement with socket partitioning and CPU affinity for attack
+	# mitigation benefits. i.e. only a single core is maxed out if a
+	# specific IP address is under attack.
+	#
+	# ip-address: 1.2.3.4       setfib=0
+	# ip-address: 1.2.3.4@5678  setfib=1
 
 	# Allow binding to non local addresses. Default no.
 	# ip-transparent: no
 
-	# Allow binding to addresses that are down.  Default no.
+	# Allow binding to addresses that are down. Default no.
 	# ip-freebind: no
 
-	# use the reuseport socket option for performance. Default no.
+	# Use SO_REUSEPORT socket option for performance. Default no.
 	# reuseport: no
+
+	# Use SO_BINDTODEVICE socket option for performance. Default no.
+	# bindtodevice: no
 
 	# override maximum socket send buffer size.  Default of 0 results in
 	# send buffer size being set to 1048576 (bytes).

@@ -41,6 +41,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <ifaddrs.h>
 
 #include "nsd.h"
 #include "options.h"
@@ -174,19 +175,18 @@ setup_socket(
 
 static void
 figure_socket_servers(
-	struct nsd_socket *sock, struct ip_address_option *ip, int server_count)
+	struct nsd_socket *sock, struct ip_address_option *ip)
 {
 	int i;
 	struct range_option *server;
 
-	sock->servers = xalloc_zero(nsd_bitset_size(server_count));
+	sock->servers = xalloc_zero(nsd_bitset_size(nsd.child_count));
 	region_add_cleanup(nsd.region, free, sock->servers);
-	nsd_bitset_init(sock->servers, server_count);
+	nsd_bitset_init(sock->servers, nsd.child_count);
 
 	if(!ip || !ip->servers) {
 		/* every server must listen on this socket */
-		int i;
-		for(i = 0; i < server_count; i++) {
+		for(i = 0; i < (int)nsd.child_count; i++) {
 			nsd_bitset_set(sock->servers, i);
 		}
 		return;
@@ -199,7 +199,7 @@ figure_socket_servers(
 				error("server %d specified for ip-address %s "
 				      "is invalid; server ranges are 1-based",
 				      server->first, ip->address);
-			} else if(server->last > server_count) {
+			} else if(server->last > (int)nsd.child_count) {
 				error("server %d specified for ip-address %s "
 				      "exceeds number of servers configured "
 				      "in server-count",
@@ -213,7 +213,7 @@ figure_socket_servers(
 				      "ip-address %s is invalid; server "
 				      "ranges are 1-based",
 				      server->first, server->last, ip->address);
-			} else if(server->last > server_count) {
+			} else if(server->last > (int)nsd.child_count) {
 				error("server range %d-%d specified for "
 				      "ip-address %s exceeds number of servers "
 				      "configured in server-count",
@@ -230,7 +230,7 @@ static void
 figure_default_sockets(
 	struct nsd_socket **udp, struct nsd_socket **tcp, size_t *ifs,
 	const char *udp_port, const char *tcp_port,
-	const struct addrinfo *hints, int server_count)
+	const struct addrinfo *hints)
 {
 	int r;
 	size_t i = 0, n = 1;
@@ -280,10 +280,10 @@ figure_default_sockets(
 		{
 			(*udp)[i].flags |= NSD_SOCKET_IS_OPTIONAL;
 			copyaddrinfo(&(*udp)[i].addr, addrs[0]);
-			figure_socket_servers(&(*udp)[i], NULL, server_count);
+			figure_socket_servers(&(*udp)[i], NULL);
 			(*tcp)[i].flags |= NSD_SOCKET_IS_OPTIONAL;
 			copyaddrinfo(&(*tcp)[i].addr, addrs[1]);
-			figure_socket_servers(&(*tcp)[i], NULL, server_count);
+			figure_socket_servers(&(*tcp)[i], NULL);
 			i++;
 		} else {
 			log_msg(LOG_WARNING, "No IPv6, fallback to IPv4. getaddrinfo: %s",
@@ -303,9 +303,63 @@ figure_default_sockets(
 
 	*ifs = i + 1;
 	setup_socket(&(*udp)[i], NULL, udp_port, &ai[0]);
-	figure_socket_servers(&(*udp)[i], NULL, server_count);
+	figure_socket_servers(&(*udp)[i], NULL);
 	setup_socket(&(*tcp)[i], NULL, tcp_port, &ai[1]);
-	figure_socket_servers(&(*tcp)[i], NULL, server_count);
+	figure_socket_servers(&(*tcp)[i], NULL);
+}
+
+static int
+find_device(
+	struct nsd_socket *sock,
+	const struct ifaddrs *ifa)
+{
+	for(; ifa != NULL; ifa = ifa->ifa_next) {
+		if((ifa->ifa_addr == NULL) ||
+		   (ifa->ifa_addr->sa_family != sock->addr.ai_family) ||
+		   ((ifa->ifa_flags & IFF_UP) == 0 ||
+		    (ifa->ifa_flags & IFF_LOOPBACK) != 0 ||
+		    (ifa->ifa_flags & IFF_RUNNING) == 0))
+		{
+			continue;
+		}
+
+#ifdef INET6
+		if(ifa->ifa_addr->sa_family == AF_INET6) {
+			struct sockaddr_in6 *sa1, *sa2;
+			size_t sz = sizeof(struct in6_addr);
+			sa1 = (struct sockaddr_in6 *)ifa->ifa_addr;
+			sa2 = (struct sockaddr_in6 *)&sock->addr.ai_addr;
+			if(memcmp(&sa1->sin6_addr, &sa2->sin6_addr, sz) == 0) {
+				break;
+			}
+		} else
+#endif
+		if(ifa->ifa_addr->sa_family == AF_INET) {
+			struct sockaddr_in *sa1, *sa2;
+			sa1 = (struct sockaddr_in *)ifa->ifa_addr;
+			sa2 = (struct sockaddr_in *)&sock->addr.ai_addr;
+			if(sa1->sin_addr.s_addr == sa2->sin_addr.s_addr) {
+				break;
+			}
+		}
+	}
+
+	if(ifa != NULL) {
+		char *colon;
+		size_t len;
+
+		if((colon = strchr(ifa->ifa_name, ':')) != NULL) {
+			len = (size_t)((uintmax_t)colon - (uintmax_t)ifa->ifa_name);
+		} else {
+			len  = strlen(ifa->ifa_name);
+		}
+		if (len < sizeof(sock->device)) {
+			strlcpy(sock->device, ifa->ifa_name, len);
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 static void
@@ -313,16 +367,21 @@ figure_sockets(
 	struct nsd_socket **udp, struct nsd_socket **tcp, size_t *ifs,
 	struct ip_address_option *ips,
 	const char *udp_port, const char *tcp_port,
-	const struct addrinfo *hints, int server_count)
+	const struct addrinfo *hints)
 {
 	size_t i = 0;
 	struct addrinfo ai = *hints;
 	struct ip_address_option *ip;
+	struct ifaddrs *ifa = NULL;
 
 	if(!ips) {
 		figure_default_sockets(
-			udp, tcp, ifs, udp_port, tcp_port, hints, server_count);
+			udp, tcp, ifs, udp_port, tcp_port, hints);
 		return;
+	}
+
+	if(nsd.options->bindtodevice && getifaddrs(&ifa) == -1) {
+		error("getifaddrs failed: %s", strerror(errno));
 	}
 
 	*ifs = 0;
@@ -339,13 +398,26 @@ figure_sockets(
 	for(ip = ips, i = 0; ip; ip = ip->next, i++) {
 		ai.ai_socktype = SOCK_DGRAM;
 		setup_socket(&(*udp)[i], ip->address, udp_port, &ai);
-		figure_socket_servers(&(*udp)[i], ip, server_count);
+		figure_socket_servers(&(*udp)[i], ip);
 		ai.ai_socktype = SOCK_STREAM;
 		setup_socket(&(*tcp)[i], ip->address, tcp_port, &ai);
-		figure_socket_servers(&(*tcp)[i], ip, server_count);
+		figure_socket_servers(&(*tcp)[i], ip);
+		if(ip->fib != -1) {
+			(*udp)[i].fib = ip->fib;
+			(*tcp)[i].fib = ip->fib;
+		}
+		if(ifa != NULL && (find_device(&(*udp)[i], ifa) == 0 ||
+		                   find_device(&(*tcp)[i], ifa) == 0))
+		{
+			error("cannot find device for ip-address %s", ip->address);
+		}
 	}
 
 	assert(i == *ifs);
+
+	if(ifa != NULL) {
+		freeifaddrs(ifa);
+	}
 }
 
 /* print server affinity for given socket. "*" if socket has no affinity with
@@ -1132,7 +1204,7 @@ main(int argc, char *argv[])
 	nsd.this_child = NULL;
 
 	figure_sockets(&nsd.udp, &nsd.tcp, &nsd.ifs,
-		nsd.options->ip_addresses, udp_port, tcp_port, &hints, nsd.child_count);
+		nsd.options->ip_addresses, udp_port, tcp_port, &hints);
 
 	/* Parse the username into uid and gid */
 	nsd.gid = getgid();

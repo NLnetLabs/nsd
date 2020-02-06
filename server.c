@@ -1081,6 +1081,44 @@ set_tcp_fastopen(struct nsd_socket *sock)
 #endif /* USE_TCP_FASTOPEN */
 
 static int
+set_bindtodevice(struct nsd_socket *sock)
+{
+#if defined(SO_BINDTODEVICE)
+	if(setsockopt(sock->s, SOL_SOCKET, SO_BINDTODEVICE,
+		sock->device, strlen(sock->device)) == -1)
+	{
+		log_msg(LOG_ERR, "setsockopt(..., %s, %s, ...) failed: %s",
+		                 "SO_BINDTODEVICE", sock->device, strerror(errno));
+		return -1;
+	}
+
+	return 1;
+#else
+	(void)sock;
+	return 0;
+#endif
+}
+
+static int
+set_setfib(struct nsd_socket *sock)
+{
+#if defined(SO_SETFIB)
+	if(setsockopt(sock->s, SOL_SOCKET, SO_SETFIB,
+	              (const void *)sock->fib, sizeof(sock->fib)) == -1)
+	{
+		log_msg(LOG_ERR, "setsockopt(..., %s, %d, ...) failed: %s",
+		                 "SO_SETFIB", sock->fib, strerror(errno));
+		return -1;
+	}
+
+	return 1;
+#else
+	(void)sock;
+	return 0;
+#endif
+}
+
+static int
 open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 {
 	int rcv = 1*1024*1024, snd = 1*1024*1024;
@@ -1138,6 +1176,10 @@ open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 		(void)set_ip_freebind(sock);
 	if(nsd->options->ip_transparent)
 		(void)set_ip_transparent(sock);
+	if(nsd->options->bindtodevice && set_bindtodevice(sock) == -1)
+		return -1;
+	if(sock->fib != -1 && set_setfib(sock) == -1)
+		return -1;
 
 	if(bind(sock->s, (struct sockaddr *)&sock->addr.ai_addr, sock->addr.ai_addrlen) == -1) {
 		char buf[256];
@@ -1200,6 +1242,10 @@ open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 		(void)set_ip_freebind(sock);
 	if(nsd->options->ip_transparent)
 		(void)set_ip_transparent(sock);
+	if(nsd->options->bindtodevice && set_bindtodevice(sock) == -1)
+		return -1;
+	if(sock->fib != -1 && set_setfib(sock) == -1)
+		return -1;
 
 	if(bind(sock->s, (struct sockaddr *)&sock->addr.ai_addr, sock->addr.ai_addrlen) == -1) {
 		char buf[256];
