@@ -210,19 +210,19 @@ static void read_zone_recurse(udb_base* udb, namedb_type* db,
 		/* pre-order process of node->elem, for radix tree this is
 		 * also in-order processing (identical to order tree_next()) */
 		read_node_elem(udb, db, dname_region, zone, (struct domain_d*)
-			(udb->base + node->elem.data));
+			((char*)udb->base + node->elem.data));
 	}
 	if(node->lookup.data) {
 		uint16_t i;
 		struct udb_radarray_d* a = (struct udb_radarray_d*)
-			(udb->base + node->lookup.data);
+			((char*)udb->base + node->lookup.data);
 		/* we do not care for what the exact radix key is, we want
 		 * to add all of them and the read routine does not need
 		 * the radix-key, it has it stored */
 		for(i=0; i<a->len; i++) {
 			if(a->array[i].node.data) {
 				read_zone_recurse(udb, db, dname_region, zone,
-					(struct udb_radnode_d*)(udb->base +
+					(struct udb_radnode_d*)((char*)udb->base +
 						a->array[i].node.data));
 			}
 		}
@@ -240,7 +240,7 @@ read_zone_data(udb_base* udb, namedb_type* db, region_type* dname_region,
 	if(RADTREE(&dtree)->root.data)
 		read_zone_recurse(udb, db, dname_region, zone,
 			(struct udb_radnode_d*)
-			(udb->base + RADTREE(&dtree)->root.data));
+			((char*)udb->base + RADTREE(&dtree)->root.data));
 	udb_ptr_unlink(&dtree, udb);
 }
 
