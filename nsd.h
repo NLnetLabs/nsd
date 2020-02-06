@@ -11,6 +11,7 @@
 #define	_NSD_H_
 
 #include <signal.h>
+#include <net/if.h>
 #ifdef HAVE_OPENSSL_SSL_H
 #include <openssl/ssl.h>
 #endif
@@ -128,6 +129,8 @@ struct nsd_socket
 	int s;
 	int flags;
 	struct nsd_bitset *servers;
+	char device[IFNAMSIZ];
+	int fib;
 };
 
 struct nsd_child

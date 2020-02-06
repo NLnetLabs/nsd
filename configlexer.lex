@@ -203,6 +203,7 @@ ip-address{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_IP_ADDRESS;}
 interface{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_IP_ADDRESS;}
 ip-transparent{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_IP_TRANSPARENT;}
 ip-freebind{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_IP_FREEBIND;}
+bindtodevice{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_BINDTODEVICE; }
 send-buffer-size{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_SEND_BUFFER_SIZE;}
 receive-buffer-size{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_RECEIVE_BUFFER_SIZE;}
 debug-mode{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DEBUG_MODE;}
@@ -299,6 +300,17 @@ tls-service-ocsp{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_TLS_SERVICE_OCS
 tls-service-pem{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_TLS_SERVICE_PEM;}
 tls-port{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_TLS_PORT;}
 {NEWLINE}		{ LEXOUT(("NL\n")); cfg_parser->line++;}
+
+servers={UNQUOTEDLETTER}*	{
+	yyless(yyleng - (yyleng - 8));
+	LEXOUT(("v(%s) ", yytext));
+	return VAR_SERVERS;
+}
+setfib={UNQUOTEDLETTER}*	{
+	yyless(yyleng - (yyleng - 7));
+	LEXOUT(("v(%s) ", yytext));
+	return VAR_SETFIB;
+}
 
 cpu-affinity{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_CPU_AFFINITY; }
 xfrd-cpu-affinity{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_XFRD_CPU_AFFINITY; }

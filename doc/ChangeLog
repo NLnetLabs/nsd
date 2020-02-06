@@ -1,3 +1,11 @@
+6 February 2020: Jeroen
+	- Support SO_BINDTODEVICE on Linux. Specify bindtodevice: yes
+	  to bind sockets directly to the network interface.
+	- Support SO_SETFIB on FreeBSD. Add setfib=<FIB> after an ip-address
+	  option to use the specified FIB for that socket.
+	- Require user to add servers=<range> after an ip-address option to
+	  specify the servers that must listen on that socket.
+
 6 February 2020: Wouter
 	- Merge PR#60: Minor portability fixes from michaelforney, with
 	  avoid pointer arithmetic on void* and avoid unnecessary VLA.

@@ -51,7 +51,6 @@ static int parse_range(const char *str, long long *low, long long *high);
 %type <bln> boolean
 %type <ip> ip_address
 %type <llng> service_cpu_affinity
-%type <range> server_ranges;
 %type <cpu> cpus
 
 /* server */
@@ -169,6 +168,11 @@ static int parse_range(const char *str, long long *low, long long *high);
 %token VAR_ZONE
 %token VAR_RRL_WHITELIST
 
+/* socket options */
+%token VAR_SERVERS
+%token VAR_BINDTODEVICE
+%token VAR_SETFIB
+
 %%
 
 blocks:
@@ -190,17 +194,22 @@ server_block:
     server_block server_option | ;
 
 server_option:
-    VAR_IP_ADDRESS ip_address server_ranges
-    {
-      struct ip_address_option *ip = cfg_parser->opt->ip_addresses;
-      $2->servers = $3;
+    VAR_IP_ADDRESS ip_address
+      {
+        struct ip_address_option *ip = cfg_parser->opt->ip_addresses;
 
-      if(ip == NULL) {
-        cfg_parser->opt->ip_addresses = $2;
-      } else {
-        while(ip->next) { ip = ip->next; }
-        ip->next = $2;
+        if(ip == NULL) {
+          cfg_parser->opt->ip_addresses = $2;
+        } else {
+          while(ip->next) { ip = ip->next; }
+          ip->next = $2;
+        }
+
+        cfg_parser->ip = $2;
       }
+    socket_options
+    {
+      cfg_parser->ip = NULL;
     }
   | VAR_SERVER_COUNT number
     {
@@ -211,9 +220,11 @@ server_option:
       }
     }
   | VAR_IP_TRANSPARENT boolean
-    { cfg_parser->opt->ip_transparent = (int)$2; }
+    { cfg_parser->opt->ip_transparent = $2; }
   | VAR_IP_FREEBIND boolean
     { cfg_parser->opt->ip_freebind = $2; }
+  | VAR_BINDTODEVICE boolean
+    { cfg_parser->opt->bindtodevice = $2; }
   | VAR_SEND_BUFFER_SIZE number
     { cfg_parser->opt->send_buffer_size = (int)$2; }
   | VAR_RECEIVE_BUFFER_SIZE number
@@ -450,21 +461,14 @@ server_option:
     }
   ;
 
-server_ranges:
-    { $$ = NULL; }
-  | server_ranges STRING
+socket_options:
+  | VAR_SERVERS STRING
     {
       char *tok, *ptr, *str;
-      struct range_option *tail;
+      struct range_option *servers = NULL;
       long long first, last;
 
-      str = $2;
-      $$ = tail = $1;
-      if(tail) {
-        while(tail->next) { tail = tail->next; }
-      }
-
-      /* User may specify "0 1", "0" "1", 0 1 or a combination thereof. */
+      /* user may specify "0 1", "0" "1", 0 1 or a combination thereof */
       for(str = $2; (tok = strtok_r(str, " \t", &ptr)); str = NULL) {
         struct range_option *opt =
           region_alloc(cfg_parser->opt->region, sizeof(*opt));
@@ -475,16 +479,18 @@ server_ranges:
         }
         assert(first >= 0);
         assert(last >= 0);
+        opt->next = NULL;
         opt->first = (int)first;
         opt->last = (int)last;
-        if(tail) {
-          tail->next = opt;
-          tail = opt;
+        if(servers) {
+          servers = servers->next = opt;
         } else {
-          $$ = tail = opt;
+          servers = cfg_parser->ip->servers = opt;
         }
       }
     }
+  | VAR_SETFIB number
+    { cfg_parser->ip->fib = $2; }
   ;
 
 cpus:
@@ -850,6 +856,7 @@ ip_address:
       struct ip_address_option *ip = region_alloc_zero(
         cfg_parser->opt->region, sizeof(*ip));
       ip->address = region_strdup(cfg_parser->opt->region, $1);
+      ip->fib = -1;
       $$ = ip;
     } ;
 

@@ -65,6 +65,7 @@ struct nsd_options {
 
 	int ip_transparent;
 	int ip_freebind;
+	int bindtodevice;
 	int send_buffer_size;
 	int receive_buffer_size;
 	int debug_mode;
@@ -173,8 +174,9 @@ struct range_option {
 
 struct ip_address_option {
 	struct ip_address_option* next;
-	struct range_option *servers;
 	char* address;
+	struct range_option* servers;
+	int fib;
 };
 
 struct cpu_option {
@@ -324,12 +326,10 @@ struct config_parser_state {
 	int line;
 	int errors;
 	struct nsd_options* opt;
-	/* pointer to memory where options for the configuration block that is
-	   currently parsed must be stored. memory is dynamically allocated,
-	   the block is promoted once it is closed. */
 	struct pattern_options *pattern;
 	struct zone_options *zone;
 	struct key_options *key;
+	struct ip_address_option *ip;
 	void (*err)(void*,const char*);
 	void* err_arg;
 };
