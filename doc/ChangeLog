@@ -1,3 +1,7 @@
+6 February 2020: Wouter
+	- Merge PR#60: Minor portability fixes from michaelforney, with
+	  avoid pointer arithmetic on void* and avoid unnecessary VLA.
+
 4 February 2020: Wouter
 	- Merge PR#22: minimise-any: prefer polular and not large RRset,
 	  from Daisuke Higashi.
