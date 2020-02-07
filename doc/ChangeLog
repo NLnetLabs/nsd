@@ -1,3 +1,6 @@
+7 February 2020: Jeroen
+	- Add feature to drop queries with opcode UPDATE.
+
 6 February 2020: Jeroen
 	- Support SO_BINDTODEVICE on Linux. Specify bindtodevice: yes
 	  to bind sockets directly to the network interface.

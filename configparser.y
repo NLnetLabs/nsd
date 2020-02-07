@@ -115,6 +115,7 @@ static int parse_range(const char *str, long long *low, long long *high);
 %token VAR_CPU_AFFINITY
 %token VAR_XFRD_CPU_AFFINITY
 %token <llng> VAR_SERVER_CPU_AFFINITY
+%token VAR_DROP_UPDATES
 
 /* dnstap */
 %token VAR_DNSTAP
@@ -237,6 +238,8 @@ server_option:
     { cfg_parser->opt->hide_version = $2; }
   | VAR_HIDE_IDENTITY boolean
     { cfg_parser->opt->hide_identity = $2; }
+  | VAR_DROP_UPDATES boolean
+    { cfg_parser->opt->drop_updates = $2; }
   | VAR_IP4_ONLY boolean
     { if($2) { cfg_parser->opt->do_ip4 = 1; cfg_parser->opt->do_ip6 = 0; } }
   | VAR_IP6_ONLY boolean

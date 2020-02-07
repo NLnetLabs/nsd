@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.2.5 (upcoming)
+4.3.0 (upcoming)
 ================
 FEATURES:
 	- Fix to use getrandom() for randomness, if available.
@@ -16,6 +16,7 @@ FEATURES:
 	  from Daisuke Higashi.
 	- Add support for SO_BINDTODEVICE on Linux.
 	- Add support for SO_SETFIB on FreeBSD.
+	- Add feature to drop queries with opcode UPDATE.
 BUG FIXES:
 	- Fix fname null check of fname in namedb_read_zonefile.
 	- Fix implicit cast of size in udb_radnode_array_grow.

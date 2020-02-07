@@ -210,6 +210,7 @@ debug-mode{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DEBUG_MODE;}
 use-systemd{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_USE_SYSTEMD;}
 hide-version{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_HIDE_VERSION;}
 hide-identity{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_HIDE_IDENTITY;}
+drop-updates{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DROP_UPDATES; }
 ip4-only{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_IP4_ONLY;}
 ip6-only{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_IP6_ONLY;}
 do-ip4{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_DO_IP4;}
