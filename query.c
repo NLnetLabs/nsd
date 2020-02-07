@@ -1424,6 +1424,8 @@ query_process(query_type *q, nsd_type *nsd)
 	if(q->opcode != OPCODE_QUERY && q->opcode != OPCODE_NOTIFY) {
 		if(query_ratelimit_err(nsd))
 			return QUERY_DISCARDED;
+		if(nsd->options->drop_updates && q->opcode == OPCODE_UPDATE)
+			return QUERY_DISCARDED;
 		return query_error(q, NSD_RC_IMPL);
 	}
 
