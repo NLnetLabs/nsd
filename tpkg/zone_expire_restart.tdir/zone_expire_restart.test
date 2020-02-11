@@ -18,7 +18,7 @@ echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 $TPKG_NSD -c nsd.conf -p $TPKG_PORT $NSD_OPTS
 wait_nsd_up nsd.log
 # example.net should be expired
-sleep 2
+wait_logfile nsd.log "zone example.net has expired" 10
 
 echo port: $TPKG_PORT
 dig @127.0.0.1 -p $TPKG_PORT example.net SOA | tee data
@@ -32,7 +32,10 @@ fi
 
 echo "stop server"
 kill_pid `cat nsd.pid`
-sleep 1
+
+# cleanup left-overs
+rm -f nsd.log nsd.pid
+
 echo "xfrd.state"
 cat xfrd.state
 # now start the server again and check the zone is expired
@@ -40,7 +43,7 @@ echo "restart server"
 $TPKG_NSD -c nsd.conf -p $TPKG_PORT $NSD_OPTS
 wait_nsd_up nsd.log
 # wait for a second to have the expire propagate
-sleep 2
+wait_logfile nsd.log "zone example.net has expired" 10
 
 dig @127.0.0.1 -p $TPKG_PORT example.net SOA | tee data
 if grep SERVFAIL data; then
