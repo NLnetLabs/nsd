@@ -1,0 +1,65 @@
+$ORIGIN baz.foo.
+$TTL 7200
+
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+ADJUST copy_id
+SECTION QUESTION
+baz.foo. IN IXFR
+SECTION ANSWER
+baz.foo. IN SOA    ns.baz.foo. hostmaster.baz.foo. 2 300 4 3000 5
+; deleted items
+baz.foo. IN SOA    ns.baz.foo. hostmaster.baz.foo. 1 3   4 3000 5
+baz.foo. IN SOA    ns.baz.foo. hostmaster.baz.foo. 2 300 4 3000 5
+; added items
+web1     IN A      4.5.6.7
+web2     IN A      5.6.7.8
+baz.foo. IN SOA    ns.baz.foo. hostmaster.baz.foo. 2 300 4 3000 5
+ENTRY_END
+
+
+$ORIGIN bar.foo.
+$TTL 7200
+
+ENTRY_BEGIN
+; bad IXFR to trigger AXFR for bar.foo.
+MATCH opcode qtype qname serial=1
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+ADJUST copy_id
+SECTION QUESTION
+bar.foo. IN IXFR
+SECTION ANSWER
+bar.foo. IN SOA    ns.bar.foo. hostmaster.bar.foo. 2 300 4 3000 5
+; deleted items
+bar.foo. IN SOA    ns.bar.foo. hostmaster.bar.foo. 1 3   4 3000 5
+www      IN A      1.2.3.4
+bar.foo. IN SOA    ns.bar.foo. hostmaster.bar.foo. 2 300 4 3000 5
+; added items
+web1     IN A      4.5.6.8
+web2     IN A      5.6.7.8
+bar.foo. IN SOA    ns.bar.foo. hostmaster.bar.foo. 2 300 4 3000 5
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+ADJUST copy_id
+SECTION QUESTION
+bar.foo. IN AXFR
+SECTION ANSWER
+bar.foo. IN SOA    ns.bar.foo. hostmaster.bar.foo. 2 300 4 3000 5
+         IN NS     ns.bar.foo.
+         IN MX  10 mx.bar.foo.
+ns       IN A      1.2.3.4
+mx       IN A      2.3.4.5
+web1     IN A      3.4.5.6
+web2     IN A      5.6.7.8
+bar.foo. IN SOA    ns.bar.foo. hostmaster.bar.foo. 2 300 4 3000 5
+ENTRY_END
