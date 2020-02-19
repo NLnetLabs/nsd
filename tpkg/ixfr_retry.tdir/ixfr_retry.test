@@ -1,0 +1,68 @@
+# #-- ixfr_retry.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# ixfr_retry uses two zones bar.foo. and baz.foo. NSD consistently issues IXFR
+# requests for baz.foo. before bar.foo. This ensures that changes are
+# processed in the same order. This behavior is used to the advantage of this
+# test because the initial reload must discard the set of changes for the
+# second zone to verify whether the set of changes for the first zone are kept
+# around.
+
+NSD="../../nsd"
+
+if ! ${NSD} -h 2>&1 | grep "L level" >/dev/null; then
+  echo "Debug output not available, skipping test"
+  exit 0
+fi
+
+#valgrind $NSD -c nsd.conf -L 5 -F 0xFFFF -p $NSD_PORT
+$NSD -c nsd.conf -L 5 -F 0xFFFF -p $NSD_PORT
+wait_nsd_up nsd.log
+wait_logfile nsd.log 'SOAINFO for bar.foo. 2' 45
+sleep 2 # allow some extra time to finish up reload
+
+# verify events happened in the right order
+while IFS='' read -r line; do
+  case $line in
+    *:\ info:\ SOAINFO\ for\ bar.foo.\ 1)
+      EVENTS="${EVENTS}1"
+      ;;
+    *:\ info:\ SOAINFO\ for\ baz.foo.\ 1)
+      EVENTS="${EVENTS}2"
+      ;;
+    *:\ info:\ reloading...)
+      EVENTS="${EVENTS}R"
+      ;;
+    *:\ error:\ *\ bar.foo.\ contents\ is\ different\ from\ master*)
+      EVENTS="${EVENTS}3"
+      ;;
+    # reload
+    *:\ error:\ diff\ file\ bar.foo.\ was\ inconsistent)
+      EVENTS="${EVENTS}4"
+      ;;
+    *:\ info:\ SOAINFO\ for\ bar.foo.\ lost\ zone)
+      EVENTS="${EVENTS}5"
+      ;;
+    *:\ info:\ SOAINFO\ for\ baz.foo.\ 2)
+      EVENTS="${EVENTS}6"
+      ;;
+    # reload
+    *:\ info:\ SOAINFO\ for\ bar.foo.\ 2)
+      EVENTS="${EVENTS}7"
+      ;;
+  esac
+done < nsd.log
+
+EXPECTED_EVENTS="12R3R456R7"
+if [ "${EVENTS}" != "${EXPECTED_EVENTS}" ]; then
+  echo "Expected events did not happen, or happened out of order"
+  echo "Events: '${EVENTS}', Expected events: '${EXPECTED_EVENTS}'"
+  cat nsd.log testns.log
+  exit 1
+fi
+
+echo "Expected events happened in the right order"
