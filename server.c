@@ -85,6 +85,7 @@
 #ifdef USE_DNSTAP
 #include "dnstap/dnstap_collector.h"
 #endif
+#include "verify.h"
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 
@@ -1378,6 +1379,15 @@ server_init(struct nsd *nsd)
 		nsd->reuseport = 0;
 	}
 
+	/* open server interface ports for verifiers */
+	for(i = 0; i < nsd->verify_ifs; i++) {
+		if(open_udp_socket(nsd, &nsd->verify_udp[i], NULL) == -1 ||
+		   open_tcp_socket(nsd, &nsd->verify_tcp[i], NULL) == -1)
+		{
+			return -1;
+		}
+	}
+
 	return 0;
 }
 
@@ -2246,6 +2256,8 @@ reload_do_stats(int cmdfd, struct nsd* nsd, udb_ptr* last)
 }
 #endif /* BIND8_STATS */
 
+void server_verify(struct nsd *nsd, int cmdsocket);
+
 /*
  * Reload the database, stop parent, re-fork children and continue.
  * as server_main.
@@ -2259,6 +2271,8 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int ret;
 	udb_ptr last_task;
 	struct sigaction old_sigchld, ign_sigchld;
+	struct radnode* node;
+	zone_type* zone;
 	/* ignore SIGCHLD from the previous server_main that used this pid */
 	memset(&ign_sigchld, 0, sizeof(ign_sigchld));
 	ign_sigchld.sa_handler = SIG_IGN;
@@ -2299,6 +2313,32 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	server_zonestat_realloc(nsd); /* realloc for new children */
 	server_zonestat_switch(nsd);
 #endif
+
+	if(nsd->options->verify_enable) {
+		/* spin-up server and execute verifiers for each zone */
+		server_verify(nsd, cmdsocket);
+	}
+
+	for(node = radix_first(nsd->db->zonetree);
+	    node != NULL;
+	    node = radix_next(node))
+	{
+		enum soainfo_hint hint = soainfo_ok;
+		zone = (zone_type *)node->elem;
+		if(zone->is_updated) {
+			if(zone->is_bad) {
+				nsd->mode = NSD_RELOAD_FAILED;
+				hint = soainfo_bad;
+			}
+			task_new_soainfo(
+				nsd->task[nsd->mytask], &last_task, zone, hint);
+			zone->is_updated = 0;
+		}
+	}
+
+	if(nsd->mode == NSD_RELOAD_FAILED) {
+		exit(NSD_RELOAD_FAILED);
+	}
 
 	/* listen for the signals of failed children again */
 	sigaction(SIGCHLD, &old_sigchld, NULL);
@@ -2949,6 +2989,115 @@ add_tcp_handler(
 	if(event_add(handler, NULL) != 0)
 		log_msg(LOG_ERR, "nsd tcp: event_add failed");
 	data->event_added = 1;
+}
+
+/*
+ * Serve DNS request to verifiers (short-lived)
+ */
+void server_verify(struct nsd *nsd, int cmdsocket)
+{
+	size_t size = 0;
+	struct event cmd_event, sigchld_event;
+	struct zone *zone;
+
+	assert(nsd != NULL);
+
+	zone = verify_next_zone(nsd, NULL);
+	if(zone == NULL)
+		return;
+
+	nsd->server_region = region_create(xalloc, free);
+	nsd->event_base = nsd_child_event_base();
+
+	nsd->next_zone_to_verify = zone;
+	nsd->verifier_count = 0;
+	nsd->verifier_limit = nsd->options->verifier_count;
+	size = sizeof(struct verifier) * nsd->verifier_limit;
+	nsd->verifiers = region_alloc_zero(nsd->server_region, size);
+
+	for(size_t i = 0; i < nsd->verifier_limit; i++) {
+		nsd->verifiers[i].nsd = nsd;
+		nsd->verifiers[i].zone = NULL;
+		nsd->verifiers[i].pid = -1;
+		nsd->verifiers[i].output_stream.fd = -1;
+		nsd->verifiers[i].output_stream.priority = LOG_INFO;
+		nsd->verifiers[i].error_stream.fd = -1;
+		nsd->verifiers[i].error_stream.priority = LOG_ERR;
+	}
+
+	event_set(&cmd_event, cmdsocket, EV_READ|EV_PERSIST, verify_handle_command, nsd);
+	if(event_base_set(nsd->event_base, &cmd_event) != 0 ||
+	   event_add(&cmd_event, NULL) != 0)
+	{
+		log_msg(LOG_ERR, "verify: could not add command event");
+		goto fail;
+	}
+
+	event_set(&sigchld_event, SIGCHLD, EV_SIGNAL|EV_PERSIST, verify_handle_exit, nsd);
+	if(event_base_set(nsd->event_base, &sigchld_event) != 0 ||
+	   event_add(&sigchld_event, NULL) != 0)
+	{
+		log_msg(LOG_ERR, "verify: could not add SIGCHLD event");
+		goto fail;
+	}
+
+	memset(msgs, 0, sizeof(msgs));
+	for (int i = 0; i < NUM_RECV_PER_SELECT; i++) {
+		queries[i] = query_create(nsd->server_region,
+			compressed_dname_offsets,
+			compression_table_size, compressed_dnames);
+		query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
+		iovecs[i].iov_base = buffer_begin(queries[i]->packet);
+		iovecs[i].iov_len = buffer_remaining(queries[i]->packet);
+		msgs[i].msg_hdr.msg_iov = &iovecs[i];
+		msgs[i].msg_hdr.msg_iovlen = 1;
+		msgs[i].msg_hdr.msg_name = &queries[i]->addr;
+		msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
+	}
+
+	for (size_t i = 0; i < nsd->verify_ifs; i++) {
+		struct udp_handler_data *data;
+		data = region_alloc_zero(
+			nsd->server_region, sizeof(*data));
+		add_udp_handler(nsd, &nsd->verify_udp[i], data);
+	}
+
+	tcp_accept_handler_count = nsd->verify_ifs;
+	tcp_accept_handlers = region_alloc_array(nsd->server_region,
+		nsd->verify_ifs, sizeof(*tcp_accept_handlers));
+
+	for (size_t i = 0; i < nsd->verify_ifs; i++) {
+		struct tcp_accept_handler_data *data;
+		data = &tcp_accept_handlers[i];
+		memset(data, 0, sizeof(*data));
+		add_tcp_handler(nsd, &nsd->verify_tcp[i], data);
+	}
+
+	while(nsd->next_zone_to_verify != NULL &&
+	      nsd->verifier_count < nsd->verifier_limit)
+	{
+		verify_zone(nsd, nsd->next_zone_to_verify);
+		nsd->next_zone_to_verify
+			= verify_next_zone(nsd, nsd->next_zone_to_verify);
+	}
+
+	/* short-lived main loop */
+	event_base_dispatch(nsd->event_base);
+
+	/* remove command and exit event handlers */
+	event_del(&sigchld_event);
+	event_del(&cmd_event);
+
+	assert(nsd->next_zone_to_verify == NULL);
+	assert(nsd->verifier_count == 0);
+fail:
+	event_base_free(nsd->event_base);
+	region_destroy(nsd->server_region);
+
+	nsd->event_base = NULL;
+	nsd->server_region = NULL;
+	nsd->verifier_limit = 0;
+	nsd->verifiers = NULL;
 }
 
 /*

@@ -274,6 +274,16 @@ struct	nsd
 	/* UDP specific configuration (array size ifs) */
 	struct nsd_socket* udp;
 
+	/* Interfaces used for zone verification */
+	size_t verify_ifs;
+	struct nsd_socket *verify_tcp;
+	struct nsd_socket *verify_udp;
+
+	struct zone *next_zone_to_verify;
+	size_t verifier_count; /* Number of active verifiers */
+	size_t verifier_limit; /* Maximum number of active verifiers */
+	struct verifier *verifiers;
+
 	edns_data_type edns_ipv4;
 #if defined(INET6)
 	edns_data_type edns_ipv6;

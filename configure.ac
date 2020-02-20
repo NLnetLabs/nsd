@@ -909,6 +909,7 @@ AC_DEFINE_UNQUOTED([TLS_PORT], ["853"], [Define to the default DNS over TLS port
 AC_DEFINE_UNQUOTED([MAXSYSLOGMSGLEN], [512], [Define to the maximum message length to pass to syslog.])
 AC_DEFINE_UNQUOTED([NSD_CONTROL_PORT], [8952], [Define to the default nsd-control port.])
 AC_DEFINE_UNQUOTED([NSD_CONTROL_VERSION], [1], [Define to nsd-control proto version.])
+AC_DEFINE_UNQUOTED([VERIFY_PORT], ["5347"], [Define to the default zone verification udp port.])
 
 dnl
 dnl Determine the syslog facility to use
