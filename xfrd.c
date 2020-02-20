@@ -573,16 +573,16 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 	xfrd_xfr_type* xfr;
 	xfrd_xfr_type* prev_xfr;
 	enum soainfo_hint hint;
-	time_t before;
+	time_t before, now;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: process SOAINFO %s",
 		dname_to_string(task->zname, 0)));
 	zone = (xfrd_zone_type*)rbtree_search(xfrd->zones, task->zname);
 	hint = (enum soainfo_hint)task->yesno;
 	if(task->size <= sizeof(struct task_list_d)+dname_total_size(
 		task->zname)+sizeof(uint32_t)*6 + sizeof(uint8_t)*2) {
-		/* NSD has zone without any info */
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s lost zone",
-			dname_to_string(task->zname,0)));
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s %s zone",
+			dname_to_string(task->zname,0),
+			hint == soainfo_bad ? "kept" : "lost"));
 		soa_ptr = NULL;
 		/* discard all updates */
 		before = xfrd_time();
@@ -647,12 +647,56 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 
 	/* update zone state */
 	switch(hint) {
+	case soainfo_bad:
+		/* "rollback" on-disk soa information */
+		now = xfrd_time();
+		zone->soa_disk_acquired = zone->soa_nsd_acquired;
+		zone->soa_disk = zone->soa_nsd;
+
+		if(now - zone->soa_disk_acquired
+			>= (time_t)ntohl(zone->soa_disk.expire))
+		{
+			/* zone expired */
+			xfrd_set_zone_state(zone, xfrd_zone_expired);
+			xfrd_set_refresh_now(zone);
+		} else {
+			/* zone still ok, temporarily update refresh and retry
+			   intervals to avoid flooding the primary with IXFR
+			   and AXFR requests and reset timer */
+			uint32_t refresh, retry;
+			refresh =
+				ntohl(zone->soa_disk.refresh) +
+				(now - zone->soa_disk_acquired);
+			retry =
+				ntohl(zone->soa_disk.retry) +
+				(now - zone->soa_disk_acquired);
+			zone->soa_disk.refresh = htonl(refresh);
+			zone->soa_disk.retry = htonl(retry);
+			xfrd_set_timer_refresh(zone);
+			zone->soa_disk = zone->soa_nsd;
+		}
+
+		if(zone->soa_notified_acquired != 0 &&
+			(zone->soa_notified.serial == 0 ||
+			 compare_serial(ntohl(zone->soa_disk.serial),
+			                ntohl(zone->soa_notified.serial)) >= 0))
+		{	/* read was in response to this notification */
+			zone->soa_notified_acquired = 0;
+		}
+		if(zone->soa_notified_acquired && zone->state == xfrd_zone_ok)
+		{
+			/* refresh because of notification */
+			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
+			xfrd_set_refresh_now(zone);
+		}
+		break;
 	case soainfo_ok:
 		if(xfrd->reload_failed)
 			break;
 		/* fall through */
 	case soainfo_gone:
 		xfrd_handle_incoming_soa(zone, soa_ptr, xfrd_time());
+		break;
 	}
 }
 
@@ -2527,10 +2571,9 @@ xfrd_check_failed_updates(void)
 			/* delete all pending updates */
 			xfr = zone->latest_xfr;
 			while(xfr) {
-				if(!xfr->acquired)
-					continue;
 				prev_xfr = xfr->prev;
-				xfrd_delete_zone_xfr(zone, xfr);
+				if(xfr->acquired)
+					xfrd_delete_zone_xfr(zone, xfr);
 				xfr = prev_xfr;
 			}
 		}
@@ -2559,7 +2602,7 @@ xfrd_prepare_zones_for_reload(void)
 		while(xfr && xfr->acquired) {
 			/* skip updates that arrived after failed reload */
 			if(xfrd->reload_cmd_first_sent && !xfr->sent)
-				continue;
+				break;
 			assert(!xfrd->reload_cmd_first_sent ||
 			        xfrd->reload_cmd_first_sent >= xfr->acquired);
 			if(send) {

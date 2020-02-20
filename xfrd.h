@@ -219,6 +219,9 @@ struct xfrd_zone {
 	int multi_master_update_check; /* -1: not update >0: last update master_num */
 } ATTR_PACKED;
 
+/*
+ * State for a single zone XFR
+ */
 struct xfrd_xfr {
 	xfrd_xfr_type *next;
 	xfrd_xfr_type *prev;

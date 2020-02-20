@@ -1459,6 +1459,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 		if(zonedb) prehash_zone(nsd->db, zonedb);
 #endif /* NSEC3 */
 		zonedb->is_changed = 1;
+		zonedb->is_updated = 1;
 		if(nsd->db->udb) {
 			assert(z.base);
 			ZONE(&z)->is_changed = 1;
@@ -1485,11 +1486,9 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 				"Zone %s contents is different from master, "
 				"starting AXFR. Transfer %s", zone_buf, log_buf);
 			/* add/del failures in IXFR, get an AXFR */
-			task_new_soainfo(
-				taskudb, last_task, zonedb, soainfo_gone);
-		} else if(taskudb) {
-			task_new_soainfo(
-				taskudb, last_task, zonedb, soainfo_ok);
+			diff_update_commit(
+				zone_buf, DIFF_INCONSISTENT, nsd, xfrfilenr);
+			exit(1);
 		}
 		if(ixfr_store)
 			ixfr_store_finish(ixfr_store, nsd, log_buf);
@@ -2200,6 +2199,7 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	if(!apply_ixfr_for_zone(nsd, zone, df, nsd->options, udb,
 		last_task, TASKLIST(task)->yesno)) {
 		/* there is no branch for xfrd failed-update */
+		task_new_soainfo(udb, last_task, zone, soainfo_gone);
 	}
 
 	fclose(df);
