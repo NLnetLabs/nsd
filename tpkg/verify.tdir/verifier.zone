@@ -1,0 +1,8 @@
+example.net.	7200	IN	SOA	ns.example.net. hostmaster.example.net. 2 300 4 3000 5
+example.net.	345600	IN	NS	ns.example.net.
+example.net.	345600	IN	MX	10 mx.example.net.
+example.net.	345600	IN	A	1.2.3.4
+mx.example.net.	345600	IN	A	3.4.5.6
+ns.example.net.	345600	IN	A	2.3.4.5
+web1.example.net.	7200	IN	A	4.5.6.7
+web2.example.net.	7200	IN	A	5.6.7.8
