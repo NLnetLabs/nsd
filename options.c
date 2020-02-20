@@ -133,6 +133,16 @@ nsd_options_create(region_type* region)
 	opt->server_cert_file = CONFIGDIR"/nsd_server.pem";
 	opt->control_key_file = CONFIGDIR"/nsd_control.key";
 	opt->control_cert_file = CONFIGDIR"/nsd_control.pem";
+
+	opt->verify_enable = 0;
+	opt->verify_ip_addresses = NULL;
+	opt->verify_port = VERIFY_PORT;
+	opt->verify_zones = 1;
+	opt->verifier = NULL;
+	opt->verifier_count = 1;
+	opt->verifier_feed_zone = 1;
+	opt->verifier_timeout = 0;
+
 	return opt;
 }
 
@@ -821,6 +831,12 @@ pattern_options_create(region_type* region)
 	p->rrl_whitelist = 0;
 #endif
 	p->multi_master_check = 0;
+
+	p->verify_zone = VERIFY_ZONE_INHERIT;
+	p->verifier = NULL;
+	p->verifier_feed_zone = VERIFIER_FEED_ZONE_INHERIT;
+	p->verifier_timeout = VERIFIER_TIMEOUT_INHERIT;
+
 	return p;
 }
 
@@ -870,6 +886,16 @@ pattern_options_remove(struct nsd_options* opt, const char* name)
 	acl_list_delete(opt->region, p->notify);
 	acl_list_delete(opt->region, p->provide_xfr);
 	acl_list_delete(opt->region, p->outgoing_interface);
+
+	if(p->verifier != NULL) {
+		size_t n = 0;
+		while(p->verifier[n] != NULL) {
+			region_recycle(
+				opt->region, p->verifier[n], strlen(p->verifier[n]) + 1);
+			n++;
+		}
+		region_recycle(opt->region, p->verifier, (n + 1) * sizeof(char *));
+	}
 
 	region_recycle(opt->region, p, sizeof(struct pattern_options));
 }
@@ -1170,6 +1196,49 @@ unmarshal_acl_list(region_type* r, struct buffer* b)
 	return list;
 }
 
+static void
+marshal_strv(struct buffer* b, char **strv)
+{
+	uint32_t i, n;
+
+	assert(b != NULL);
+
+	if (strv == NULL) {
+		marshal_u32(b, 0);
+		return;
+	}
+	for(n = 0; strv[n]; n++) {
+		/* do nothing */
+	}
+	marshal_u32(b, n);
+	for(i = 0; strv[i] != NULL; i++) {
+		marshal_str(b, strv[i]);
+	}
+	marshal_u8(b, 0);
+}
+
+static char **
+unmarshal_strv(region_type* r, struct buffer* b)
+{
+	uint32_t i, n;
+	char **strv;
+
+	assert(r != NULL);
+	assert(b != NULL);
+
+	if ((n = unmarshal_u32(b)) == 0) {
+		return NULL;
+	}
+	strv = region_alloc_zero(r, (n + 1) * sizeof(char *));
+	for(i = 0; i <= n; i++) {
+		strv[i] = unmarshal_str(r, b);
+	}
+	assert(i == n);
+	assert(strv[i] == NULL);
+
+	return strv;
+}
+
 void
 pattern_options_marshal(struct buffer* b, struct pattern_options* p)
 {
@@ -1199,6 +1268,10 @@ pattern_options_marshal(struct buffer* b, struct pattern_options* p)
 	marshal_u32(b, p->min_retry_time);
 	marshal_u8(b, p->min_retry_time_is_default);
 	marshal_u8(b, p->multi_master_check);
+	marshal_u8(b, p->verify_zone);
+	marshal_strv(b, p->verifier);
+	marshal_u8(b, p->verifier_feed_zone);
+	marshal_u32(b, p->verifier_timeout);
 }
 
 struct pattern_options*
@@ -1231,6 +1304,10 @@ pattern_options_unmarshal(region_type* r, struct buffer* b)
 	p->min_retry_time = unmarshal_u32(b);
 	p->min_retry_time_is_default = unmarshal_u8(b);
 	p->multi_master_check = unmarshal_u8(b);
+	p->verify_zone = unmarshal_u8(b);
+	p->verifier = unmarshal_strv(r, b);
+	p->verifier_feed_zone = unmarshal_u8(b);
+	p->verifier_timeout = unmarshal_u32(b);
 	return p;
 }
 

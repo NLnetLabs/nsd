@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+4.4.0 (future release with zone-verification)
+================
+FEATURES:
+	- Port zone-verification from CreDNS to NSD4.
+
+
 4.3.2 (in development)
 ================
 FEATURES:

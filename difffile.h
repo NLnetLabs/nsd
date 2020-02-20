@@ -67,7 +67,8 @@ int add_RR(namedb_type* db, const dname_type* dname,
 
 enum soainfo_hint {
 	soainfo_ok,
-	soainfo_gone
+	soainfo_gone,
+	soainfo_bad
 };
 
 /* task udb structure */

@@ -486,6 +486,32 @@ static void print_zone_content_elems(pattern_options_type* pat)
 	if(pat->size_limit_xfr != 0)
 		printf("\tsize-limit-xfr: %llu\n",
 			(long long unsigned)pat->size_limit_xfr);
+	if(pat->verify_zone != VERIFY_ZONE_INHERIT) {
+		printf("\tverify-zone: ");
+		if(pat->verify_zone) {
+			printf("yes\n");
+		} else {
+			printf("no\n");
+		}
+	}
+	if(pat->verifier) {
+		printf("\tverifier:");
+		for(char *const *s = pat->verifier; *s; s++) {
+			printf(" \"%s\"", *s);
+		}
+		printf("\n");
+	}
+	if(pat->verifier_feed_zone != VERIFIER_FEED_ZONE_INHERIT) {
+		printf("\tverifier-feed-zone: ");
+		if(pat->verifier_feed_zone) {
+			printf("yes\n");
+		} else {
+			printf("no\n");
+		}
+	}
+	if(pat->verifier_timeout != VERIFIER_TIMEOUT_INHERIT) {
+		printf("\tverifier-timeout: %d\n", pat->verifier_timeout);
+	}
 }
 
 void
@@ -619,6 +645,24 @@ config_test_print_server(nsd_options_type* opt)
 	print_string_var("server-cert-file:", opt->server_cert_file);
 	print_string_var("control-key-file:", opt->control_key_file);
 	print_string_var("control-cert-file:", opt->control_cert_file);
+
+	printf("\nverify:\n");
+	printf("\tenable: %s\n", opt->verify_enable?"yes":"no");
+	for(ip = opt->verify_ip_addresses; ip; ip=ip->next) {
+		print_string_var("ip-address:", ip->address);
+	}
+	printf("\tport: %s\n", opt->verify_port);
+	printf("\tverify-zones: %s\n", opt->verify_zones?"yes":"no");
+	if(opt->verifier) {
+		printf("\tverifier:");
+		for(char **s = opt->verifier; *s; s++) {
+			printf(" \"%s\"", *s);
+		}
+		printf("\n");
+	}
+	printf("\tverifier-count: %d\n", opt->verifier_count);
+	printf("\tverifier-feed-zone: %s\n", opt->verifier_feed_zone?"yes":"no");
+	printf("\tverifier-timeout: %d\n", opt->verifier_timeout);
 
 	RBTREE_FOR(key, key_options_type*, opt->keys)
 	{
