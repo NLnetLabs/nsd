@@ -21,22 +21,18 @@ server:
 
 	# Bind NSD server(s), configured by server-count (1-based), to a
 	# dedicated core. Single core affinity improves L1/L2 cache hits and
-	# reduces pipeline stalls/flushes. Have NIC interrupts handled by a
-	# core on which no NSD servers run, improves performance too.
-	#
-	# Note that CPU affinity is only required in very specific scenarios
-	# and must only be enabled after careful consideration.
+	# reduces pipeline stalls/flushes.
 	#
 	# server-1-cpu-affinity: 0
 	# server-2-cpu-affinity: 1
 	# ...
-	# server-N-cpu-affinity: 2
+	# server-<N>-cpu-affinity: 2
 
 	# Bind xfrd to a dedicated core.
 	# xfrd-cpu-affinity: 3
 
-	# Uncomment to specify specific interfaces to bind (default are the
-	# wildcard interfaces 0.0.0.0 and ::0).
+	# Specify specific interfaces to bind (default are the wildcard
+	# interfaces 0.0.0.0 and ::0).
 	# For servers with multiple IP addresses, list them one by one,
 	# or the source address of replies could be wrong.
 	# Use ip-transparent to be able to list addresses that turn on later.
@@ -49,30 +45,12 @@ server:
 	# to partition sockets across servers to improve select/poll
 	# performance.
 	#
-	# Note that socket partitioning is only required in very specific
-	# scenarios and must only be enabled after careful consideration. To
-	# assign one or more sockets to a specific server, specify the server
-	# identifier(s) after the IP address.
-	#
 	# ip-address: 1.2.3.4       servers="1-2 3"
 	# ip-address: 1.2.3.4@5678  servers="4-5 6"
 	#
-	# When several interfaces are configured to listen on the same subnet,
-	# care must be taken to ensure responses go out the same interface the
-	# corresponding query came in on to avoid problems with load balancers
-	# and VLAN tagged interfaces. Linux offers the SO_BINDTODEVICE socket
-	# option to bind a socket to a specified device. The IP_SENDIF socket
-	# option is in the works(?) for FreeBSD to achieve the same result,
-	# for now alternate routing tables are used as fallback. Specify the
-	# routing table to use after the IP address.
-	#
-	# The IP_SENDSRCADDR socket option can in theory be used, but
-	# routing table isolation offers performance benefits as the kernel
-	# does not have to select an outgoing interface.
-	#
-	# Complement with socket partitioning and CPU affinity for attack
-	# mitigation benefits. i.e. only a single core is maxed out if a
-	# specific IP address is under attack.
+	# IP addresses take setfib on FreeBSD to ensure responses are pushed
+	# out the same interface the corresponding query came in on when there
+	# are multiple interfaces configured on the same subnet.
 	#
 	# ip-address: 1.2.3.4       setfib=0
 	# ip-address: 1.2.3.4@5678  setfib=1
