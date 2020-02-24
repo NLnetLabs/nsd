@@ -1,0 +1,4 @@
+PS1="validate $VERIFY_ZONE> "
+echo $$ > "$PROXY/proxyout"
+trap "exit 251" 15
+

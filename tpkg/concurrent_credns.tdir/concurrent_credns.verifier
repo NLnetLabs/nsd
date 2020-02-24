@@ -1,0 +1,4 @@
+echo + `date +%s` >> verifiers.log
+sleep 1
+echo - `date +%s` >> verifiers.log
+
