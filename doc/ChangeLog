@@ -1,3 +1,12 @@
+25 February 2020: Wouter
+	- Fix event unit test, signal has to be registered with signal_add,
+	  event_add not for every backend for signals.  The event_initialized
+	  is not possible for every backend, so event_added variable.  The
+	  agent write event fires after a timeout, instead of on event write
+	  so that it does not trigger a sigpipe event when the handlers stop.
+	  Timeout shorted to 0.1 second.  event_get_fd was not implemented,
+	  so used ev_fd.  Debug output printfs added to see what happens.
+
 7 February 2020: Jeroen
 	- Add feature to drop queries with opcode UPDATE.
 

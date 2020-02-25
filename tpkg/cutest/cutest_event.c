@@ -27,6 +27,7 @@ struct proc {
 	int fdin;
 	int fdout;
 	struct event event;
+	int event_added;
 	short events;
 };
 
@@ -40,6 +41,9 @@ struct testvars {
 	unsigned int sigchld_count;
 };
 
+/** verbosity for test to tell what is going on */
+static int verb = 0;
+
 static void
 child(int fdin, int fdout)
 {
@@ -47,18 +51,21 @@ child(int fdin, int fdout)
 	ssize_t cnt;
 	ssize_t discard;
 
+	if(verb) log_msg(LOG_INFO, "child start\n");
 	/* FIXME: maybe necessary to register signal handler? */
 	discard = read(fdin, buf, sizeof(buf));
 	(void)discard;
 	cnt = snprintf(buf, sizeof(buf), "%d\n", getpid());
 	discard = write(fdout, buf, (size_t)(cnt >= 0 ? cnt : 0));
 	(void)discard;
+	if(verb) log_msg(LOG_INFO, "child end\n");
 	exit(0);
 }
 
 static void
 sigterm_handler(int signo)
 {
+	if(verb) log_msg(LOG_INFO, "sigterm_handler\n");
 	(void)signo;
 	exit(0);
 }
@@ -70,6 +77,7 @@ agent(int fdin, int fdout, struct testvars *vars, void(*func)(struct proc *))
 	ssize_t cnt;
 	ssize_t discard;
 
+	if(verb) log_msg(LOG_INFO, "agent start\n");
 	signal(SIGTERM, sigterm_handler);
 	discard = read(fdin, buf, sizeof(buf));
 	(void)discard;
@@ -79,6 +87,7 @@ agent(int fdin, int fdout, struct testvars *vars, void(*func)(struct proc *))
 	cnt = snprintf(buf, sizeof(buf), "%d\n", getpid());
 	discard = write(fdout, buf, (size_t)(cnt >= 0 ? cnt : 0));
 	(void)discard;
+	if(verb) log_msg(LOG_INFO, "agent end\n");
 	exit(0);
 }
 
@@ -93,12 +102,16 @@ agent_callback(int fd, short event, void *arg)
 	assert(arg != NULL);
 
 	if (event & EV_TIMEOUT) {
+		if(verb) log_msg(LOG_INFO, "agent_callback: timeout\n");
 		discard = write(fd, buf, strlen(buf));
 		(void)discard;
 	} else if(event & EV_WRITE) {
+		if(verb) log_msg(LOG_INFO, "agent_callback: write\n");
 		discard = write(fd, buf, strlen(buf));
 		(void)discard;
 		proc->events |= EV_WRITE;
+	} else {
+		if(verb) log_msg(LOG_INFO, "agent_callback: other\n");
 	}
 }
 
@@ -109,6 +122,8 @@ child_callback(int fd, short event, void *arg)
 
 	(void)fd;
 	assert(arg != NULL);
+	if(verb && (proc->events&EV_READ) == 0)
+		log_msg(LOG_INFO, "child_callback\n");
 
 	if (event & EV_READ) {
 		proc->events |= EV_READ;
@@ -126,16 +141,19 @@ sigchld_callback(int sig, short event, void *arg)
 	assert(sig == SIGCHLD);
 	assert(event & EV_SIGNAL);
 	assert(arg != NULL);
+	if(verb) log_msg(LOG_INFO, "sigchld_callback\n");
 
 	do {
 		pid = waitpid(-1, &wstatus, WNOHANG);
 		proc = NULL;
 		if(vars->agent.pid == pid) {
 			proc = &vars->agent;
+			if(verb) log_msg(LOG_INFO, "sigchld_callback: agent exited\n");
 		} else if(pid > 0) {
 			for(int i = 0; i < NUM_CHILDREN; i++) {
 				if(vars->children[i].pid == pid) {
 					proc = &vars->children[i];
+					if(verb) log_msg(LOG_INFO, "sigchld_callback: child %d exited\n", (int)i);
 				}
 			}
 		}
@@ -188,7 +206,8 @@ fork_agent(struct testvars *vars, void(*func)(struct proc *))
 {
 	pid_t pid;
 	int ret, fdin[2], fdout[2];
-	struct timeval timeout = { 1, 0 };
+	/* 0.1 second timeout, speeds up test compared to 1 second timeout */
+	struct timeval timeout = { 0, 100000 };
 	ret = pipe(fdin);
 	assert(ret == 0);
 	ret = pipe(fdout);
@@ -207,11 +226,12 @@ fork_agent(struct testvars *vars, void(*func)(struct proc *))
 	event_set(
 		&vars->agent.event,
 		 vars->agent.fdin,
-		 EV_WRITE,
+		 EV_TIMEOUT,
 		&agent_callback,
 		 vars);
 	event_base_set(vars->event_base, &vars->agent.event);
 	event_add(&vars->agent.event, &timeout);
+	vars->agent.event_added = 1;
 }
 
 static void
@@ -225,7 +245,7 @@ event_setup(struct testvars *vars)
 	event_set(&vars->event_sigchld, SIGCHLD, EV_SIGNAL | EV_PERSIST, sigchld_callback, vars);
 	ret = event_base_set(vars->event_base, &vars->event_sigchld);
 	assert(ret == 0);
-	ret = event_add(&vars->event_sigchld, NULL);
+	ret = signal_add(&vars->event_sigchld, NULL);
 	assert(ret == 0);
 
 	for(int i = 0; i < NUM_CHILDREN; i++) {
@@ -240,8 +260,8 @@ static void
 event_teardown(struct testvars *vars)
 {
 	if(vars->agent.fdin != -1 &&
-	   event_initialized(&vars->agent.event) &&
-	   event_get_fd(&vars->agent.event) == vars->agent.fdin)
+	   vars->agent.event_added &&
+	   vars->agent.event.ev_fd == vars->agent.fdin)
 	{
 		event_del(&vars->agent.event);
 	}
@@ -254,7 +274,7 @@ event_teardown(struct testvars *vars)
 		}
 	}
 
-	event_del(&vars->event_sigchld);
+	signal_del(&vars->event_sigchld);
 	event_base_free(vars->event_base);
 
 	(void)vars;
@@ -287,6 +307,7 @@ event_wait_for_children(CuTest *tc)
 	int ret;
 	struct testvars vars;
 
+	if(verb) log_msg(LOG_INFO, "event_wait_for_children start\n");
 	event_setup(&vars);
 
 	fork_children(&vars);
@@ -301,6 +322,7 @@ event_wait_for_children(CuTest *tc)
 	}
 
 	event_teardown(&vars);
+	if(verb) log_msg(LOG_INFO, "event_wait_for_children end\n");
 }
 
 static void
@@ -309,6 +331,7 @@ event_terminate_children(CuTest *tc)
 	int ret;
 	struct testvars vars;
 
+	if(verb) log_msg(LOG_INFO, "event_terminate_children start\n");
 	event_setup(&vars);
 
 	fork_children(&vars);
@@ -323,6 +346,7 @@ event_terminate_children(CuTest *tc)
 	}
 
 	event_teardown(&vars);
+	if(verb) log_msg(LOG_INFO, "event_terminate_children end\n");
 }
 
 static void
@@ -331,6 +355,7 @@ event_kill_children(CuTest *tc)
 	int ret;
 	struct testvars vars;
 
+	if(verb) log_msg(LOG_INFO, "event_kill_children start\n");
 	event_setup(&vars);
 
 	fork_children(&vars);
@@ -345,11 +370,13 @@ event_kill_children(CuTest *tc)
 	}
 
 	event_teardown(&vars);
+	if(verb) log_msg(LOG_INFO, "event_kill_children end\n");
 }
 
 CuSuite *reg_cutest_event(void)
 {
 	CuSuite *suite = CuSuiteNew();
+	verb = 0; /* local debug output verbosity */
 	SUITE_ADD_TEST(suite, &event_wait_for_children);
 	SUITE_ADD_TEST(suite, &event_terminate_children);
 	SUITE_ADD_TEST(suite, &event_kill_children);
