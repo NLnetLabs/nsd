@@ -12,6 +12,7 @@ server:
 	receive-buffer-size: 0
 	hide-version: no
 	hide-identity: no
+	drop-updates: no
 	tcp-reject-overflow: no
 	database: "/etc/nsd.db"
 	identity: "server number 23"
@@ -121,6 +122,7 @@ server:
 	receive-buffer-size: 0
 	hide-version: no
 	hide-identity: no
+	drop-updates: no
 	tcp-reject-overflow: no
 	database: "/etc/nsd/nsd.db"
 	#identity:
@@ -183,6 +185,7 @@ server:
 	receive-buffer-size: 0
 	hide-version: no
 	hide-identity: no
+	drop-updates: no
 	tcp-reject-overflow: no
 	database: "/var/db/nsd/nsd.db"
 	#identity:
@@ -254,6 +257,7 @@ server:
 	receive-buffer-size: 0
 	hide-version: no
 	hide-identity: no
+	drop-updates: no
 	tcp-reject-overflow: no
 	database: "/var/db/nsd/nsd.db"
 	#identity:
@@ -369,6 +373,7 @@ server:
 	receive-buffer-size: 0
 	hide-version: no
 	hide-identity: no
+	drop-updates: no
 	tcp-reject-overflow: no
 	database: "/var/db/nsd/nsd.db"
 	#identity:

@@ -6,6 +6,7 @@
 	  so that it does not trigger a sigpipe event when the handlers stop.
 	  Timeout shorted to 0.1 second.  event_get_fd was not implemented,
 	  so used ev_fd.  Debug output printfs added to see what happens.
+	- Fix checkconf test for new drop-updates config option.
 
 7 February 2020: Jeroen
 	- Add feature to drop queries with opcode UPDATE.
