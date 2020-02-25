@@ -7,6 +7,8 @@
 	  Timeout shorted to 0.1 second.  event_get_fd was not implemented,
 	  so used ev_fd.  Debug output printfs added to see what happens.
 	- Fix checkconf test for new drop-updates config option.
+	- Fix errors with reuseport and TCP file descriptors, it was
+	  closing them for server-1 in server-2 and server-3..
 
 7 February 2020: Jeroen
 	- Add feature to drop queries with opcode UPDATE.
