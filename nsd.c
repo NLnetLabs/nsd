@@ -373,6 +373,7 @@ figure_sockets(
 	struct addrinfo ai = *hints;
 	struct ip_address_option *ip;
 	struct ifaddrs *ifa = NULL;
+	int bind_device = 0;
 
 	if(!ips) {
 		figure_default_sockets(
@@ -380,13 +381,14 @@ figure_sockets(
 		return;
 	}
 
-	if(nsd.options->bindtodevice && getifaddrs(&ifa) == -1) {
-		error("getifaddrs failed: %s", strerror(errno));
-	}
-
 	*ifs = 0;
 	for(ip = ips; ip; ip = ip->next) {
 		(*ifs)++;
+		bind_device |= (ip->dev != 0);
+	}
+
+	if(bind_device && getifaddrs(&ifa) == -1) {
+		error("getifaddrs failed: %s", strerror(errno));
 	}
 
 	*udp = xalloc_zero((*ifs + 1) * sizeof(struct nsd_socket));
@@ -406,10 +408,15 @@ figure_sockets(
 			(*udp)[i].fib = ip->fib;
 			(*tcp)[i].fib = ip->fib;
 		}
-		if(ifa != NULL && (find_device(&(*udp)[i], ifa) == 0 ||
-		                   find_device(&(*tcp)[i], ifa) == 0))
-		{
-			error("cannot find device for ip-address %s", ip->address);
+		if(ip->dev != 0) {
+			(*udp)[i].flags |= NSD_BIND_DEVICE;
+			(*tcp)[i].flags |= NSD_BIND_DEVICE;
+			if(ifa != NULL && (find_device(&(*udp)[i], ifa) == 0 ||
+			                   find_device(&(*tcp)[i], ifa) == 0))
+			{
+				error("cannot find device for ip-address %s",
+				      ip->address);
+			}
 		}
 	}
 

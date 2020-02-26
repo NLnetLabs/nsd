@@ -1176,7 +1176,7 @@ open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 		(void)set_ip_freebind(sock);
 	if(nsd->options->ip_transparent)
 		(void)set_ip_transparent(sock);
-	if(nsd->options->bindtodevice && set_bindtodevice(sock) == -1)
+	if((sock->flags & NSD_BIND_DEVICE) && set_bindtodevice(sock) == -1)
 		return -1;
 	if(sock->fib != -1 && set_setfib(sock) == -1)
 		return -1;
@@ -1242,7 +1242,7 @@ open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 		(void)set_ip_freebind(sock);
 	if(nsd->options->ip_transparent)
 		(void)set_ip_transparent(sock);
-	if(nsd->options->bindtodevice && set_bindtodevice(sock) == -1)
+	if((sock->flags & NSD_BIND_DEVICE) && set_bindtodevice(sock) == -1)
 		return -1;
 	if(sock->fib != -1 && set_setfib(sock) == -1)
 		return -1;

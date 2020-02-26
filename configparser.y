@@ -224,8 +224,6 @@ server_option:
     { cfg_parser->opt->ip_transparent = $2; }
   | VAR_IP_FREEBIND boolean
     { cfg_parser->opt->ip_freebind = $2; }
-  | VAR_BINDTODEVICE boolean
-    { cfg_parser->opt->bindtodevice = $2; }
   | VAR_SEND_BUFFER_SIZE number
     { cfg_parser->opt->send_buffer_size = (int)$2; }
   | VAR_RECEIVE_BUFFER_SIZE number
@@ -465,7 +463,10 @@ server_option:
   ;
 
 socket_options:
-  | VAR_SERVERS STRING
+  | socket_options socket_option ;
+
+socket_option:
+    VAR_SERVERS STRING
     {
       char *tok, *ptr, *str;
       struct range_option *servers = NULL;
@@ -492,6 +493,8 @@ socket_options:
         }
       }
     }
+  | VAR_BINDTODEVICE boolean
+    { cfg_parser->ip->dev = $2; }
   | VAR_SETFIB number
     { cfg_parser->ip->fib = $2; }
   ;

@@ -65,7 +65,6 @@ struct nsd_options {
 
 	int ip_transparent;
 	int ip_freebind;
-	int bindtodevice;
 	int send_buffer_size;
 	int receive_buffer_size;
 	int debug_mode;
@@ -177,6 +176,7 @@ struct ip_address_option {
 	struct ip_address_option* next;
 	char* address;
 	struct range_option* servers;
+	int dev;
 	int fib;
 };
 

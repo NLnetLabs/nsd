@@ -113,6 +113,7 @@ typedef	unsigned long stc_type;
 #endif /* USE_ZONE_STATS */
 
 #define NSD_SOCKET_IS_OPTIONAL (1<<0)
+#define NSD_BIND_DEVICE (1<<1)
 
 struct nsd_addrinfo
 {

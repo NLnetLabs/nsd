@@ -48,12 +48,20 @@ server:
 	# ip-address: 1.2.3.4       servers="1-2 3"
 	# ip-address: 1.2.3.4@5678  servers="4-5 6"
 	#
-	# IP addresses take setfib on FreeBSD to ensure responses are pushed
-	# out the same interface the corresponding query came in on when there
-	# are multiple interfaces configured on the same subnet.
+	# When several interfaces are configured to listen on the same subnet,
+	# care must be taken to ensure responses go out the same interface the
+	# corresponding query came in on to avoid problems with load balancers
+	# and VLAN tagged interfaces. Linux offers the SO_BINDTODEVICE socket
+	# option to bind a socket to a specified device. For FreeBSD, to
+	# achieve the same result, specify the routing table to use after the
+	# IP address to use SO_SETFIB.
 	#
-	# ip-address: 1.2.3.4       setfib=0
-	# ip-address: 1.2.3.4@5678  setfib=1
+	# Complement with socket partitioning and CPU affinity for attack
+	# mitigation benefits. i.e. only a single core is maxed out if a
+	# specific IP address is under attack.
+	#
+	# ip-address: 1.2.3.4       setfib=0  bindtodevice=yes
+	# ip-address: 1.2.3.5@6789  setfib=1  bindtodevice=yes
 
 	# Allow binding to non local addresses. Default no.
 	# ip-transparent: no
@@ -63,9 +71,6 @@ server:
 
 	# Use SO_REUSEPORT socket option for performance. Default no.
 	# reuseport: no
-
-	# Use SO_BINDTODEVICE socket option for performance. Default no.
-	# bindtodevice: no
 
 	# override maximum socket send buffer size.  Default of 0 results in
 	# send buffer size being set to 1048576 (bytes).
