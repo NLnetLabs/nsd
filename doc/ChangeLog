@@ -1,3 +1,8 @@
+26 February 2020: Wouter
+	- Fixup fix of reuseport TCP for server close of sockets not used
+	  by it.  And the unit test skips when the necessary debug output
+	  is not enabled.
+
 25 February 2020: Wouter
 	- Fix event unit test, signal has to be registered with signal_add,
 	  event_add not for every backend for signals.  The event_initialized

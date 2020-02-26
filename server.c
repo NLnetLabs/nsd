@@ -2920,6 +2920,9 @@ server_child(struct nsd *nsd)
 				 * in server_init().
 				server_close_socket(&nsd->tcp[i]);
 				*/
+				/* close sockets not meant for this server*/
+				if(!listen)
+					server_close_socket(&nsd->tcp[i]);
 			}
 		}
 	} else {

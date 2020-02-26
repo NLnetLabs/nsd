@@ -5,6 +5,16 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 . ../common.sh
 
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+if $TPKG_NSD -h 2>&1 | grep -- "-L"; then
+	echo "debug enabled"
+else
+	echo "debug not enabled, skip test"
+	exit 0
+fi
+
 # start NSD
 get_random_port 2
 NSD_PORT1=$RND_PORT
