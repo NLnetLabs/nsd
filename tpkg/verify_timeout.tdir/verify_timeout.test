@@ -1,0 +1,27 @@
+# #-- verify_timeout.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+NSD="$PRE/nsd"
+
+if ! ${NSD} -h 2>&1 | grep "L level" >/dev/null; then
+  echo "Debug output not available, skipping test"
+  exit 0
+fi
+
+${NSD} -c nsd.conf -L 5 -F 0xFFFF -p ${NSD_PORT}
+wait_nsd_up nsd.log
+wait_logfile nsd.log "SOAINFO for example.net. kept zone" 45
+
+if !grep "verifier for zone example.net .* timed out" nsd.log; then
+  cat nsd.log
+  exit 1
+fi
