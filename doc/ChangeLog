@@ -1,3 +1,6 @@
+27 February 2020: Wouter
+	- Fix warning on FreeBSD about pointer size cast.
+
 26 February 2020: Wouter
 	- Fixup fix of reuseport TCP for server close of sockets not used
 	  by it.  And the unit test skips when the necessary debug output
