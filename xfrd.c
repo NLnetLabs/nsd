@@ -784,6 +784,8 @@ xfrd_set_timer_refresh(xfrd_zone_type* zone)
 	if(set < xfrd_time())
 		set = 0;
 	else	set -= xfrd_time();
+	if(set > XFRD_TRANSFER_TIMEOUT_MAX)
+		set = XFRD_TRANSFER_TIMEOUT_MAX;
 	xfrd_set_timer(zone, set);
 }
 
@@ -817,6 +819,8 @@ xfrd_set_timer_retry(xfrd_zone_type* zone)
 	{
 		set_retry = ntohl(zone->soa_disk.retry);
 		set_retry *= mult;
+		if(set_retry > XFRD_TRANSFER_TIMEOUT_MAX)
+			set_retry = XFRD_TRANSFER_TIMEOUT_MAX;
 		if(set_retry > (time_t)zone->zone_options->pattern->max_retry_time)
 			set_retry = zone->zone_options->pattern->max_retry_time;
 		else if(set_retry < (time_t)zone->zone_options->pattern->min_retry_time)
@@ -826,6 +830,8 @@ xfrd_set_timer_retry(xfrd_zone_type* zone)
 		xfrd_set_timer(zone, set_retry);
 	} else {
 		set_retry = ntohl(zone->soa_disk.expire);
+		if(set_retry > XFRD_TRANSFER_TIMEOUT_MAX)
+			set_retry = XFRD_TRANSFER_TIMEOUT_MAX;
 		if(set_retry < XFRD_LOWERBOUND_RETRY)
 			xfrd_set_timer(zone, XFRD_LOWERBOUND_RETRY);
 		else {

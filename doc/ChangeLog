@@ -1,3 +1,6 @@
+3 March 2020: Wouter
+	- Fix that the retry wait does not exceed one day for zone transfers.
+
 27 February 2020: Wouter
 	- Fix warning on FreeBSD about pointer size cast.
 
