@@ -334,7 +334,7 @@ domain_table_create(region_type* region)
 	origin = dname_make(region, (uint8_t *) "", 0);
 
 	root = (domain_type *) region_alloc(region, sizeof(domain_type));
-#ifdef USE_RADIX_TREE
+#if defined(USE_RADIX_TREE) || defined(USE_NAMETREE)
 	root->dname
 #else
 	root->node.key

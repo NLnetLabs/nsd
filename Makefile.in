@@ -80,12 +80,12 @@ MANUALS=nsd.8 nsd-checkconf.8 nsd-checkzone.8 nsd-control.8 nsd.conf.5
 
 COMMON_OBJ=answer.o axfr.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o rrl.o tsig.o tsig-openssl.o udb.o udbradtree.o udbzone.o util.o bitset.o popen3.o
 XFRD_OBJ=xfrd-disk.o xfrd-notify.o xfrd-tcp.o xfrd.o remote.o $(DNSTAP_OBJ)
-NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o mini_event.o netio.o nsd.o server.o dbaccess.o dbcreate.o zlexer.o zonec.o zparser.o
+NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o mini_event.o netio.o nsd.o server.o dbaccess.o dbcreate.o zlexer.o zonec.o zparser.o nametree.o
 ALL_OBJ=$(NSD_OBJ) nsd-checkconf.o nsd-checkzone.o nsd-control.o nsd-mem.o
 NSD_CHECKCONF_OBJ=$(COMMON_OBJ) nsd-checkconf.o
 NSD_CHECKZONE_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o nsd-checkzone.o
 NSD_CONTROL_OBJ=$(COMMON_OBJ) nsd-control.o
-CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_rrl.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest_bitset.o cutest_popen3.o cutest_iter.o cutest_event.o cutest.o qtest.o
+CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_nametree.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_rrl.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest_bitset.o cutest_popen3.o cutest_iter.o cutest_event.o cutest.o qtest.o
 NSD_MEM_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o nsd-mem.o
 all:	$(TARGETS) $(MANUALS)
 
@@ -288,6 +288,9 @@ cutest_rbtree.o:	$(srcdir)/tpkg/cutest/cutest_rbtree.c
 cutest_radtree.o:	$(srcdir)/tpkg/cutest/cutest_radtree.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_radtree.c
 
+cutest_nametree.o:	$(srcdir)/nametree.c $(srcdir)/tpkg/cutest/cutest_nametree.c
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_nametree.c
+
 cutest_namedb.o:	$(srcdir)/tpkg/cutest/cutest_namedb.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_namedb.c
 
@@ -476,6 +479,7 @@ popen3.o: $(srcdir)/popen3.c $(srcdir)/popen3.h
 query.o: $(srcdir)/query.c config.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/rbtree.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/nsd.h \
  $(srcdir)/edns.h $(srcdir)/tsig.h $(srcdir)/axfr.h $(srcdir)/options.h $(srcdir)/nsec3.h
+nametree.o: $(srcdir)/nametree.c config.h $(srcdir)/nametree.h $(srcdir)/region-allocator.h $(srcdir)/dname.h
 radtree.o: $(srcdir)/radtree.c config.h $(srcdir)/radtree.h $(srcdir)/util.h $(srcdir)/region-allocator.h
 rbtree.o: $(srcdir)/rbtree.c config.h $(srcdir)/rbtree.h $(srcdir)/region-allocator.h
 rdata.o: $(srcdir)/rdata.c config.h $(srcdir)/rdata.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
@@ -564,6 +568,8 @@ cutest_options.o: $(srcdir)/tpkg/cutest/cutest_options.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/options.h config.h \
  $(srcdir)/region-allocator.h $(srcdir)/rbtree.h $(srcdir)/util.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/nsd.h $(srcdir)/dns.h \
  $(srcdir)/edns.h
+cutest_nametree.o: $(srcdir)/tpkg/cutest/cutest_nametree.c config.h \
+ $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/nametree.h $(srcdir)/region-allocator.h
 cutest_radtree.o: $(srcdir)/tpkg/cutest/cutest_radtree.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/radtree.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 cutest_rbtree.o: $(srcdir)/tpkg/cutest/cutest_rbtree.c config.h \

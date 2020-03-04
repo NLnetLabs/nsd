@@ -94,8 +94,10 @@ struct nsec3_domain_data {
 
 struct domain
 {
-#ifdef USE_RADIX_TREE
+#if defined(USE_RADIX_TREE) || defined(USE_NAMETREE)
+#if !defined(USE_NAMETREE)
 	struct radnode* rnode;
+#endif
 	const dname_type* dname;
 #else
 	rbnode_type     node;
