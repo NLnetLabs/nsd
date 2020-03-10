@@ -1,3 +1,6 @@
+10 March 2020: Wouter
+	- repository has version number 4.3.0.  Tag for 4.3.0rc1.
+
 3 March 2020: Wouter
 	- Fix that the retry wait does not exceed one day for zone transfers.
 
