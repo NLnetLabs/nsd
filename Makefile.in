@@ -36,7 +36,7 @@ DNSTAP_OBJ=@DNSTAP_OBJ@
 # K&R C compilers), but causes problems if $U is defined in the env).
 U=
 
-CC		= @CC@
+CC      	= @CC@
 CPPFLAGS	= @CPPFLAGS@
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
@@ -47,12 +47,20 @@ INSTALL		= $(srcdir)/install-sh -c
 INSTALL_PROGRAM	= $(INSTALL)
 INSTALL_DATA	= $(INSTALL) -m 644
 
+# hardening flags set in configure.ac
+NSD_CPPFLAGS	= @NSD_CPPFLAGS@
+NSD_CFLAGS		= @NSD_CFLAGS@
+NSD_ASFLAGS		= @NSD_ASFLAGS@
+NSD_LDFLAGS		= @NSD_LDFLAGS@
+BIN_CFLAGS		= @BIN_CFLAGS@
+BIN_LDFLAGS		= @BIN_LDFLAGS@
+
 YACC		= @YACC@
 LEX		= @LEX@
 PROTOC_C	= @PROTOC_C@
 
-COMPILE		= $(CC) $(CPPFLAGS) $(CFLAGS)
-LINK		= $(CC) $(CFLAGS) $(LDFLAGS)
+COMPILE		= $(CC) $(NSD_CPPFLAGS) $(CPPFLAGS) $(NSD_CFLAGS) $(BIN_CFLAGS) $(NSD_ASFLAGS) $(CFLAGS)
+LINK		= $(CC) $(NSD_ASFLAGS) $(BIN_CFLAGS) $(CFLAGS) $(BIN_LDFLAGS) $(NSD_LDFLAGS) $(LDFLAGS)
 EDIT		= sed \
 			-e 's,@prefix\@,$(prefix),g' \
 			-e 's,@exec_prefix\@,$(exec_prefix),g' \
@@ -91,7 +99,7 @@ $(ALL_OBJ):
 nsd-control-setup.sh:	$(srcdir)/nsd-control-setup.sh.in config.h
 	rm -f nsd-control-setup.sh
 	$(EDIT) $(srcdir)/nsd-control-setup.sh.in > nsd-control-setup.sh
-	chmod +x nsd-control-setup.sh
+	chmod a+x nsd-control-setup.sh
 
 nsd.conf.sample:	$(srcdir)/nsd.conf.sample.in config.h
 	rm -f nsd.conf.sample
@@ -175,6 +183,18 @@ xfr-inspect:	xfr-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 
 popen3_echo: popen3.o popen3_echo.o
 	$(LINK) -o $@ popen3.o popen3_echo.o
+
+checksec: nsd
+	wget -q -O checksec https://raw.githubusercontent.com/slimm609/checksec.sh/master/checksec \
+	&& chmod a+x checksec
+
+test check: cutest checksec nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem
+	./cutest
+	./checksec --file=nsd
+	./checksec --file=nsd-checkconf
+	./checksec --file=nsd-checkzone
+	./checksec --file=nsd-control
+	./checksec --file=nsd-mem
 
 clean:
 	rm -f *.o $(TARGETS) $(MANUALS) cutest popen3_echo udb-inspect xfr-inspect nsd-mem
