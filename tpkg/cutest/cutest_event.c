@@ -74,6 +74,7 @@ static void
 agent(int fdin, int fdout, struct testvars *vars, void(*func)(struct proc *))
 {
 	char buf[32];
+	size_t i;
 	ssize_t cnt;
 	ssize_t discard;
 
@@ -81,7 +82,7 @@ agent(int fdin, int fdout, struct testvars *vars, void(*func)(struct proc *))
 	signal(SIGTERM, sigterm_handler);
 	discard = read(fdin, buf, sizeof(buf));
 	(void)discard;
-	for (size_t i = 0; i < NUM_CHILDREN; i++) {
+	for (i = 0; i < NUM_CHILDREN; i++) {
 		func(&vars->children[i]);
 	}
 	cnt = snprintf(buf, sizeof(buf), "%d\n", getpid());
