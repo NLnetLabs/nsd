@@ -7,6 +7,7 @@ BUG FIXES:
 	- Fix #70: error: 'fd_set' undeclared.
 	- Fix #71: error: 'for' loop initial declaration used outside C99
 	  mode.
+	- Fix to move declarations out of for loops in event test too.
 
 
 4.3.0
