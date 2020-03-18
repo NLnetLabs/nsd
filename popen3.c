@@ -1,8 +1,12 @@
+#include "config.h"
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/time.h>
 
 #include "popen3.h"
 
