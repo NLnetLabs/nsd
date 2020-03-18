@@ -306,7 +306,7 @@ int CuSuiteRunRegex(CuSuite* testSuite, const char *regex)
 
 int CuSuiteRunRegexDisplay(CuSuite* testSuite, const char *regex, void (*callback)(CuTestResult))
 {
-	int err;
+	int i, err;
 	regex_t preg;
 	regmatch_t pmatch[1];
 
@@ -315,7 +315,7 @@ int CuSuiteRunRegexDisplay(CuSuite* testSuite, const char *regex, void (*callbac
 		return -1;
 	}
 
-	for (int i = 0; i < testSuite->count ; ++i)
+	for (i = 0; i < testSuite->count ; ++i)
 	{
 		CuTest* testCase = testSuite->list[i];
 		if (regexec(&preg, testCase->name, 0, pmatch, 0) == 0)
