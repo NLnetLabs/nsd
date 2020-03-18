@@ -1,5 +1,7 @@
 18 March 2020: Wouter
 	- Fix #70: error: 'fd_set' undeclared.
+	- Fix #71: error: 'for' loop initial declaration used outside C99
+	  mode.
 
 17 March 2020: Wouter
 	- tag for 4.3.0 release and master branch has version 4.3.1.
