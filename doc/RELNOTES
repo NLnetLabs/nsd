@@ -8,6 +8,7 @@ BUG FIXES:
 	- Fix #71: error: 'for' loop initial declaration used outside C99
 	  mode.
 	- Fix to move declarations out of for loops in event test too.
+	- Fix #76: cpuid typedef for Hurd, DragonflyBSD compile.
 
 
 4.3.0

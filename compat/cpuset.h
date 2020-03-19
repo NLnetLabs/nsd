@@ -40,8 +40,9 @@ typedef cpu_set_t cpuset_t;
 #ifndef HAVE_CPUID_T
 #ifdef __linux__
 typedef int cpuid_t;
-#endif
-#ifdef __FreeBSD__
+#elif defined(__FreeBSD__) || defined(__gnu_hurd__) || defined(__DragonFly__)
+typedef size_t cpuid_t;
+#else
 typedef size_t cpuid_t;
 #endif
 #endif
