@@ -349,7 +349,7 @@ find_device(
 		size_t len;
 
 		if((colon = strchr(ifa->ifa_name, ':')) != NULL) {
-			len = (size_t)((uintmax_t)colon - (uintmax_t)ifa->ifa_name);
+			len = (size_t)((uintptr_t)colon - (uintptr_t)ifa->ifa_name);
 		} else {
 			len  = strlen(ifa->ifa_name);
 		}

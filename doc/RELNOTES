@@ -11,6 +11,7 @@ BUG FIXES:
 	- Fix #76: cpuid typedef for Hurd, DragonflyBSD compile.
 	- Fix #75: configure test for sched_setaffinity, and use
 	  cpuset_setaffinity otherwise.  Also test for presence of sysconf.
+	- Fix #74: GNU Hurd fix cast from pointer to integer of different size.
 
 
 4.3.0
