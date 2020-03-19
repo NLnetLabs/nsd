@@ -12,6 +12,7 @@ BUG FIXES:
 	- Fix #75: configure test for sched_setaffinity, and use
 	  cpuset_setaffinity otherwise.  Also test for presence of sysconf.
 	- Fix #74: GNU Hurd fix cast from pointer to integer of different size.
+	- Fix for #74, #75: cpuset test for header contents and provide code.
 
 
 4.3.0

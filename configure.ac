@@ -694,6 +694,36 @@ AC_INCLUDES_DEFAULT
 #endif
 ])
 
+AC_DEFUN([AC_CHECK_CPU_OR],
+[AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(whether CPU_OR works with three arguments)
+AC_TRY_COMPILE(
+[#if HAVE_SCHED_H
+# include <sched.h>
+#endif
+#if HAVE_SYS_CPUSET_H
+# include <sys/cpuset.h>
+#endif
+#include <string.h>
+#ifndef HAVE_CPUSET_T
+#ifdef HAVE_CPU_SET_T
+typedef cpu_set_t cpuset_t;
+#endif
+#endif
+void testing (void) {
+	cpu_set_t a, b;
+	memset(&a, 0, sizeof(a));
+	memset(&b, 0, sizeof(b));
+	CPU_OR(&a, &a, &b);
+}], [
+        testing();
+], [
+	AC_MSG_RESULT(yes)
+	AC_DEFINE([CPU_OR_THREE_ARGS], 1, [number of arguments for CPU_OR is three])
+], [
+	AC_MSG_RESULT(no)
+])])
+
 AS_IF([test x"$ac_cv_type_cpuset_t" = xyes -o x"$ac_cv_type_cpu_set_t" = xyes ],[
 	AC_CHECK_FUNC(cpuset_create)
 	AC_CHECK_FUNC(cpuset_destroy)
@@ -704,6 +734,7 @@ AS_IF([test x"$ac_cv_type_cpuset_t" = xyes -o x"$ac_cv_type_cpu_set_t" = xyes ],
 	AC_CHECK_FUNC(cpuset_size)
 	AC_LIBOBJ(cpuset)
 	AC_CHECK_FUNCS([sysconf sched_setaffinity])
+	AC_CHECK_CPU_OR
 ])
 
 #
