@@ -142,6 +142,7 @@ setup_socket(
 	char service_buf[6 + 1 /* '\0' */]; /* 65535 */
 	struct addrinfo *addr = NULL;
 
+	sock->fib = -1;
 	if(node) {
 		host = host_buf;
 		sep = strchr(node, '@');
@@ -279,9 +280,11 @@ figure_default_sockets(
 		   (r = getaddrinfo(NULL, tcp_port, &ai[1], &addrs[1])) == 0)
 		{
 			(*udp)[i].flags |= NSD_SOCKET_IS_OPTIONAL;
+			(*udp)[i].fib = -1;
 			copyaddrinfo(&(*udp)[i].addr, addrs[0]);
 			figure_socket_servers(&(*udp)[i], NULL);
 			(*tcp)[i].flags |= NSD_SOCKET_IS_OPTIONAL;
+			(*tcp)[i].fib = -1;
 			copyaddrinfo(&(*tcp)[i].addr, addrs[1]);
 			figure_socket_servers(&(*tcp)[i], NULL);
 			i++;
