@@ -4,6 +4,7 @@
 	  cpuset_setaffinity otherwise.  Also test for presence of sysconf.
 	- Fix #74: GNU Hurd fix cast from pointer to integer of different size.
 	- Fix for #74, #75: cpuset test for header contents and provide code.
+	- Fix #78: Fix SO_SETFIB error on FreeBSD.
 
 18 March 2020: Wouter
 	- Fix #70: error: 'fd_set' undeclared.
