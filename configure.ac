@@ -703,6 +703,7 @@ AS_IF([test x"$ac_cv_type_cpuset_t" = xyes -o x"$ac_cv_type_cpu_set_t" = xyes ],
 	AC_CHECK_FUNC(cpuset_isset)
 	AC_CHECK_FUNC(cpuset_size)
 	AC_LIBOBJ(cpuset)
+	AC_CHECK_FUNCS([sysconf sched_setaffinity])
 ])
 
 #

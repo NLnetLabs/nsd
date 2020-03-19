@@ -1,5 +1,7 @@
 19 March 2020: Wouter
 	- Fix #76: cpuid typedef for Hurd, DragonflyBSD compile.
+	- Fix #75: configure test for sched_setaffinity, and use
+	  cpuset_setaffinity otherwise.  Also test for presence of sysconf.
 
 18 March 2020: Wouter
 	- Fix #70: error: 'fd_set' undeclared.

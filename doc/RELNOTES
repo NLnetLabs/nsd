@@ -9,6 +9,8 @@ BUG FIXES:
 	  mode.
 	- Fix to move declarations out of for loops in event test too.
 	- Fix #76: cpuid typedef for Hurd, DragonflyBSD compile.
+	- Fix #75: configure test for sched_setaffinity, and use
+	  cpuset_setaffinity otherwise.  Also test for presence of sysconf.
 
 
 4.3.0

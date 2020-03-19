@@ -1167,20 +1167,27 @@ error(const char *format, ...)
 }
 
 #ifdef HAVE_CPUSET_T
-#if __linux__ || __FreeBSD__
+#if defined(HAVE_SYSCONF) && defined(_SC_NPROCESSORS_CONF)
+/* exists on Linux and FreeBSD */
 int number_of_cpus(void)
 {
 	return (int)sysconf(_SC_NPROCESSORS_CONF);
 }
+#else
+int number_of_cpus(void)
+{
+	return -1;
+}
 #endif
-#if __linux__
+#ifdef HAVE_SCHED_SETAFFINITY
+/* Linux */
 int set_cpu_affinity(cpuset_t *set)
 {
 	assert(set != NULL);
 	return sched_setaffinity(getpid(), sizeof(*set), set);
 }
-#endif
-#if __FreeBSD__
+#else
+/* FreeBSD */
 int set_cpu_affinity(cpuset_t *set)
 {
 	assert(set != NULL);
