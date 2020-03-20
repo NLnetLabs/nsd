@@ -3,6 +3,7 @@
 	- Fix #82: print error when system does not have setaffinity.
 	- Fix #80: NetBSD and implicit declaration of reallocarray.
 	- Fix for #80: Fix reallocarray test to define before include.
+	- Fix for #80: Define alternatives for IFNAMSIZ if it does not exist.
 
 19 March 2020: Wouter
 	- Fix #76: cpuid typedef for Hurd, DragonflyBSD compile.
