@@ -1185,8 +1185,16 @@ int number_of_cpus(void)
 	return -1;
 }
 #endif
-#ifdef HAVE_SCHED_SETAFFINITY
-/* Linux and HURD */
+#ifdef __gnu_hurd__
+/* HURD has no sched_setaffinity implementation, but links an always fail,
+ * with a linker error, we print an error when it is used */
+int set_cpu_affinity(cpuset_t *ATTR_UNUSED(set))
+{
+	log_err("sched_setaffinity: not available on this system");
+	return -1;
+}
+#elif defined(HAVE_SCHED_SETAFFINITY)
+/* Linux */
 int set_cpu_affinity(cpuset_t *set)
 {
 	assert(set != NULL);
