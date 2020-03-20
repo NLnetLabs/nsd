@@ -791,11 +791,14 @@ AC_REPLACE_FUNCS(pselect)
 AC_REPLACE_FUNCS(memmove)
 AC_REPLACE_FUNCS(setproctitle)
 AC_MSG_CHECKING([for reallocarray])
-AC_LINK_IFELSE([AC_LANG_SOURCE(AC_INCLUDES_DEFAULT
+AC_LINK_IFELSE([AC_LANG_SOURCE(
 [[
 #ifndef _OPENBSD_SOURCE
 #define _OPENBSD_SOURCE 1
 #endif
+]]
+AC_INCLUDES_DEFAULT
+[[
 #include <stdlib.h>
 int main(void) {
 	void* p = reallocarray(NULL, 10, 100);
@@ -804,19 +807,11 @@ int main(void) {
 }
 ]])], [AC_MSG_RESULT(yes)
 	AC_DEFINE(HAVE_REALLOCARRAY, 1, [If we have reallocarray(3)])
-	AC_MSG_CHECKING([if reallocarray needs defines])
-	AC_LINK_IFELSE([AC_LANG_SOURCE(AC_INCLUDES_DEFAULT
-	[[
-#include <stdlib.h>
-int main(void) {
-	void* p = reallocarray(NULL, 10, 100);
-	free(p);
-	return 0;
-}
-	]])], [AC_MSG_RESULT(no)
-	], [
-		AC_MSG_RESULT(yes)
+	AC_CHECK_DECLS([reallocarray], [], [
 		AC_DEFINE(REALLOCARRAY_NEEDS_DEFINES, 1, [If reallocarray needs defines to appear in the headers])
+	], [
+AC_INCLUDES_DEFAULT
+#include <stdlib.h>
 	])
 ], [
 	AC_MSG_RESULT(no)
