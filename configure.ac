@@ -790,6 +790,25 @@ AC_REPLACE_FUNCS(b64_ntop)
 AC_REPLACE_FUNCS(pselect)
 AC_REPLACE_FUNCS(memmove)
 AC_REPLACE_FUNCS(setproctitle)
+
+AC_MSG_CHECKING([for reallocarr])
+AC_LINK_IFELSE([AC_LANG_SOURCE(AC_INCLUDES_DEFAULT
+[[
+#include <stdlib.h>
+int main(void) {
+	void* p = NULL;
+	int rc;
+	rc = reallocarr(&p, 10, 100);
+	if (p)
+		free(p);
+	return rc;
+}
+]])], [AC_MSG_RESULT(yes)
+	AC_DEFINE(HAVE_REALLOCARR, 1, [If we have reallocarr(3)])
+], [
+	AC_MSG_RESULT(no)
+])
+
 AC_MSG_CHECKING([for reallocarray])
 AC_LINK_IFELSE([AC_LANG_SOURCE(
 [[

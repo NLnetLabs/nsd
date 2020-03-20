@@ -270,7 +270,19 @@ xalloc(size_t size)
 void *
 xmallocarray(size_t num, size_t size)
 {
+#if defined(HAVE_REALLOCARR)
+        void *result = NULL;
+        int rc = 0;
+        rc = reallocarr(&result, num, size);
+
+        if (rc) {
+            if (result)
+                free(result);
+            result = NULL;
+        }
+#else
         void *result = reallocarray(NULL, num, size);
+#endif
 
         if (!result) {
                 log_msg(LOG_ERR, "reallocarray failed: %s", strerror(errno));
