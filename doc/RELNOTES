@@ -14,6 +14,7 @@ BUG FIXES:
 	- Fix #74: GNU Hurd fix cast from pointer to integer of different size.
 	- Fix for #74, #75: cpuset test for header contents and provide code.
 	- Fix #78: Fix SO_SETFIB error on FreeBSD.
+	- Merge PR #83 from noloader: Fix GNU HURD sched_setaffinity compile.
 
 
 4.3.0

@@ -717,9 +717,6 @@ AC_TRY_COMPILE(
 #ifdef HAVE_CPU_SET_T
 #define MY_CPUSET_TYPE cpu_set_t
 #endif
-#ifdef HAVE_CPUID_T
-#define MY_CPUSET_TYPE cpuid_t
-#endif
 void testing (void) {
 	MY_CPUSET_TYPE a, b;
 	memset(&a, 0, sizeof(a));
@@ -766,9 +763,6 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
     #endif
     #ifdef HAVE_CPU_SET_T
     #define MY_CPUSET_TYPE cpu_set_t
-    #endif
-    #ifdef HAVE_CPUID_T
-    #define MY_CPUSET_TYPE cpuid_t
     #endif
     void testing (void) {
       MY_CPUSET_TYPE set;
