@@ -804,6 +804,20 @@ int main(void) {
 }
 ]])], [AC_MSG_RESULT(yes)
 	AC_DEFINE(HAVE_REALLOCARRAY, 1, [If we have reallocarray(3)])
+	AC_MSG_CHECKING([if reallocarray needs defines])
+	AC_LINK_IFELSE([AC_LANG_SOURCE(AC_INCLUDES_DEFAULT
+	[[
+#include <stdlib.h>
+int main(void) {
+	void* p = reallocarray(NULL, 10, 100);
+	free(p);
+	return 0;
+}
+	]])], [AC_MSG_RESULT(no)
+	], [
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(REALLOCARRAY_NEEDS_DEFINES, 1, [If reallocarray needs defines to appear in the headers])
+	])
 ], [
 	AC_MSG_RESULT(no)
 	AC_LIBOBJ(reallocarray)
@@ -1107,7 +1121,7 @@ AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
 #if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
 	|| !defined (HAVE_CTIME_R_PROTO) \
-	|| defined (STRPTIME_NEEDS_DEFINES)
+	|| defined (STRPTIME_NEEDS_DEFINES) || defined(REALLOCARRAY_NEEDS_DEFINES)
 #  ifndef _XOPEN_SOURCE
 #    define _XOPEN_SOURCE 600
 #  endif

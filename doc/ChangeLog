@@ -1,6 +1,7 @@
 20 March 2020: Wouter
 	- Merge PR #83 from noloader: Fix GNU HURD sched_setaffinity compile.
 	- Fix #82: print error when system does not have setaffinity.
+	- Fix #80: NetBSD and implicit declaration of reallocarray.
 
 19 March 2020: Wouter
 	- Fix #76: cpuid typedef for Hurd, DragonflyBSD compile.
