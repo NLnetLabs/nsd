@@ -14,7 +14,7 @@
 #include <net/if.h>
 #ifndef IFNAMSIZ
 #ifdef IF_NAMESIZE
-#define IFNAMSIZE IF_NAMESIZE
+#define IFNAMSIZ IF_NAMESIZE
 #else
 #define IFNAMSIZ 16
 #endif
