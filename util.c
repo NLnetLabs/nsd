@@ -16,6 +16,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_SCHED_H
+#include <sched.h>
+#endif /* HAVE_SCHED_H */
+#ifdef HAVE_SYS_CPUSET_H
+#include <sys/cpuset.h>
+#endif /* HAVE_SYS_CPUSET_H */
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
 #endif /* HAVE_SYSLOG_H */
@@ -263,9 +269,9 @@ xalloc(size_t size)
 
 void *
 xmallocarray(size_t num, size_t size)
-{  
+{
         void *result = reallocarray(NULL, num, size);
-   
+
         if (!result) {
                 log_msg(LOG_ERR, "reallocarray failed: %s", strerror(errno));
                 exit(1);
@@ -1180,7 +1186,7 @@ int number_of_cpus(void)
 }
 #endif
 #ifdef HAVE_SCHED_SETAFFINITY
-/* Linux */
+/* Linux and HURD */
 int set_cpu_affinity(cpuset_t *set)
 {
 	assert(set != NULL);
