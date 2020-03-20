@@ -1,6 +1,6 @@
 20 March 2020: Wouter
 	- Merge PR #83 from noloader: Fix GNU HURD sched_setaffinity compile.
-	- Fix to print error when system does not have setaffinity.
+	- Fix #82: print error when system does not have setaffinity.
 
 19 March 2020: Wouter
 	- Fix #76: cpuid typedef for Hurd, DragonflyBSD compile.
