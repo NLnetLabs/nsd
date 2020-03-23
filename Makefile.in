@@ -176,6 +176,20 @@ xfr-inspect:	xfr-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 popen3_echo: popen3.o popen3_echo.o
 	$(LINK) -o $@ popen3.o popen3_echo.o
 
+checksec:
+	wget -q -O checksec https://raw.githubusercontent.com/slimm609/checksec.sh/master/checksec
+	-chmod a+x checksec && xattr -d com.apple.quarantine checksec 2>/dev/null
+
+audit: nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem checksec
+	./checksec --file=nsd
+	./checksec --file=nsd-checkconf
+	./checksec --file=nsd-checkzone
+	./checksec --file=nsd-control
+	./checksec --file=nsd-mem
+
+test check: cutest
+	./cutest
+
 clean:
 	rm -f *.o $(TARGETS) $(MANUALS) cutest popen3_echo udb-inspect xfr-inspect nsd-mem
 
