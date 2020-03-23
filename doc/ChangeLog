@@ -1,5 +1,6 @@
 23 March 2020: Wouter
 	- Fix unterminated ifdef in nsd.h.
+	- Fix unknown u_long in util.c for Issue #80 .
 
 20 March 2020: Wouter
 	- Merge PR #83 from noloader: Fix GNU HURD sched_setaffinity compile.
