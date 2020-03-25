@@ -47,13 +47,17 @@ INSTALL		= $(srcdir)/install-sh -c
 INSTALL_PROGRAM	= $(INSTALL)
 INSTALL_DATA	= $(INSTALL) -m 644
 
-YACC		= @YACC@
+SED 	= @SED@
+AWK 	= @AWK@
+GREP	= @GREP@
+EGREP	= @EGREP@
+YACC 	= @YACC@
 LEX		= @LEX@
 PROTOC_C	= @PROTOC_C@
 
 COMPILE		= $(CC) $(CPPFLAGS) $(CFLAGS)
 LINK		= $(CC) $(CFLAGS) $(LDFLAGS)
-EDIT		= sed \
+EDIT		= $(SED) \
 			-e 's,@prefix\@,$(prefix),g' \
 			-e 's,@exec_prefix\@,$(exec_prefix),g' \
 			-e 's,@sbindir\@,$(sbindir),g' \
@@ -95,11 +99,11 @@ nsd-control-setup.sh:	$(srcdir)/nsd-control-setup.sh.in config.h
 
 nsd.conf.sample:	$(srcdir)/nsd.conf.sample.in config.h
 	rm -f nsd.conf.sample
-	$(EDIT) $(srcdir)/nsd.conf.sample.in | awk '/RRLconfig'@ratelimit@'/ { while($$0 !~ /.*RRLend.*/) { getline; } getline; } {print} ' > nsd.conf.sample
+	$(EDIT) $(srcdir)/nsd.conf.sample.in | $(AWK) '/RRLconfig'@ratelimit@'/ { while($$0 !~ /.*RRLend.*/) { getline; } getline; } {print} ' > nsd.conf.sample
 
 nsd.conf.5:	$(srcdir)/nsd.conf.5.in config.h
 	rm -f nsd.conf.5
-	$(EDIT) $(srcdir)/nsd.conf.5.in | awk '/rrlstart'@ratelimit@'/ { while($$0 !~ /.*rrlend.*/) { getline; } getline; } {print} ' > nsd.conf.5
+	$(EDIT) $(srcdir)/nsd.conf.5.in | $(AWK) '/rrlstart'@ratelimit@'/ { while($$0 !~ /.*rrlend.*/) { getline; } getline; } {print} ' > nsd.conf.5
 
 nsd.8:	$(srcdir)/nsd.8.in config.h
 	rm -f nsd.8
@@ -368,8 +372,8 @@ DEPEND_TARGET=Makefile
 DEPEND_TARGET2=Makefile.in
 depend:
 	(cd $(srcdir) ; $(CC) -MM $(CPPFLAGS) *.c compat/*.c `if test -d tpkg/cutest; then echo tpkg/cutest/*.c; fi`) | \
-		sed -e 's? *\([^ ]*\.[ch]\)? $$(srcdir)/\1?g' | \
-		sed -e 's?$$(srcdir)/config.h?config.h?g' \
+		$(SED) -e 's? *\([^ ]*\.[ch]\)? $$(srcdir)/\1?g' | \
+		$(SED) -e 's?$$(srcdir)/config.h?config.h?g' \
 			-e 's?$$(srcdir)/configlexer.c?configlexer.c?g' \
 			-e 's?$$(srcdir)/configparser.c?configparser.c?g' \
 			-e 's?$$(srcdir)/configparser.h?configparser.h?g' \
@@ -381,12 +385,12 @@ depend:
 			-e 's?$$(srcdir)/zparser.h?zparser.h?g' \
 			> $(DEPEND_TMP)
 	cp $(DEPEND_TARGET) $(DEPEND_TMP2)
-	head -`egrep -n "# Dependencies" $(DEPEND_TARGET) | tail -1 | sed -e 's/:.*$$//'` $(DEPEND_TMP2) > $(DEPEND_TARGET)
+	head -`$(EGREP) -n "# Dependencies" $(DEPEND_TARGET) | tail -1 | $(SED) -e 's/:.*$$//'` $(DEPEND_TMP2) > $(DEPEND_TARGET)
 	cat $(DEPEND_TMP) >> $(DEPEND_TARGET)
 	@if diff $(DEPEND_TARGET) $(DEPEND_TMP2); then echo "	$(DEPEND_TARGET) unchanged"; else echo "	Updated $(DEPEND_TARGET))"; fi
 	@if test -f $(DEPEND_TARGET2); then \
 		cp $(DEPEND_TARGET2) $(DEPEND_TMP2); \
-		head -`egrep -n "# Dependencies" $(DEPEND_TARGET2) | tail -1 | sed -e 's/:.*$$//'` $(DEPEND_TMP2) > $(DEPEND_TARGET2); \
+		head -`$(EGREP) -n "# Dependencies" $(DEPEND_TARGET2) | tail -1 | $(SED) -e 's/:.*$$//'` $(DEPEND_TMP2) > $(DEPEND_TARGET2); \
 		cat $(DEPEND_TMP) >> $(DEPEND_TARGET2); \
 		if diff $(DEPEND_TARGET2) $(DEPEND_TMP2); then echo "	$(DEPEND_TARGET2) unchanged"; else echo "	Updated $(DEPEND_TARGET2))"; fi; \
 	fi
