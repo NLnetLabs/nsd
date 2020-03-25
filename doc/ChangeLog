@@ -6,6 +6,7 @@
 	  special flags from that.  Fix that lex only needs to support -i
 	  if actually defined, otherwise the output included in the source
 	  tarball can be used.
+	- Merge PR #72 from noloader: Increase Travis testing coverage
 
 23 March 2020: Wouter
 	- Fix unterminated ifdef in nsd.h.

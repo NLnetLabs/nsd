@@ -1,5 +1,15 @@
-sudo: false
 language: c
+
+git:
+  depth: 5
+
+addons:
+  apt:
+    update: true
+    packages: [ autoconf automake libtool bison flex libssl-dev libevent-dev clang gcc ]
+  homebrew:
+    update: true
+    packages: [ autoconf automake libtool bison flex openssl libevent ]
 
 linux_gcc: &linux_gcc
   os: linux
@@ -10,10 +20,10 @@ linux_gcc: &linux_gcc
       update: true
       sources:
         - sourceline: 'ppa:ubuntu-toolchain-r/test'
-      packages: [ autoconf bison flex libssl-dev libevent-dev clang gcc-9 ]
-  before_install:
-    - eval "export CC=gcc-9"
-    - eval "export COV_COMPTYPE=gcc COV_PLATFORM=linux64"
+      packages: [ autoconf automake libtool pkg-config bison flex libssl-dev libevent-dev clang gcc-9 ]
+    homebrew:
+      update: true
+      packages: [ autoconf automake libtool openssl libevent ]
 
 install_coverity: &install_coverity
   if [ "${COVERITY_SCAN}" = "true" ]; then
@@ -47,21 +57,150 @@ submit_to_coverity_scan: &submit_to_coverity_scan
 install:
   - *install_coverity
 
+before_script:
+  - |
+    if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+      autoreconf
+    else
+      autoreconf
+    fi
+
 script:
-  - autoconf && autoheader
-  - ./configure --enable-checking --disable-flto
-  - ${SCAN_BUILD} make
-  - make cutest && ./cutest
-  - (cd tpkg; cd clang-analysis.tdir; bash clang-analysis.test)
+  - |
+    if [[ "${COVERITY_SCAN}" == true ]]; then
+      ./configure ${CONFIG_OPTS}
+      ${SCAN_BUILD} make -j 2
+    elif [[ "${TEST_UBSAN}" == true ]]; then
+      export CFLAGS="-DNDEBUG -g2 -O2 -fsanitize=undefined -fno-sanitize-recover"
+      ./configure ${CONFIG_OPTS}
+      make -j 2 && make cutest && ./cutest
+    elif [[ "${TEST_ASAN}" == true ]]; then
+      export CFLAGS="-DNDEBUG -g2 -O2 -fsanitize=address"
+      ./configure ${CONFIG_OPTS}
+      make -j 2 && make cutest && ./cutest
+    elif [[ "${TEST_CHECKSEC}" == true ]]; then
+      ./configure ${CONFIG_OPTS}
+      make -j 2 audit
+    elif [[ "${TEST_ANALYZE}" == true ]]; then
+      ./configure ${CONFIG_OPTS}
+      make -j 2 && make cutest && ./cutest
+      (cd tpkg; cd clang-analysis.tdir; bash clang-analysis.test)
+    else
+      ./configure ${CONFIG_OPTS}
+      make -j 2 && make cutest && ./cutest
+    fi
 
 after_success:
-  - *submit_to_coverity_scan
+  - |
+    if [[ "${COVERITY_SCAN}" == true ]]; then
+      *submit_to_coverity_scan
+    fi
 
 jobs:
   include:
     - <<: *linux_gcc
-      env: [ COVERITY_SCAN=true ]
-      if: type = cron
+      name: Coverity, GCC-9, Linux, Amd64
+      env:
+        - COVERITY_SCAN=true
+        - CC=gcc-9
+        - COV_COMPTYPE=gcc
+        - COV_PLATFORM=linux64
+        - CONFIG_OPTS="--enable-checking --disable-flto"
+      if: env(TRAVIS_EVENT_TYPE) = cron
     - <<: *linux_gcc
-      env: [ COVERITY_SCAN=false ]
-
+      name: No Coverity, GCC-9, Linux, Amd64
+      env:
+        - COVERITY_SCAN=false
+        - CC=gcc-9
+        - CONFIG_OPTS="--enable-checking --disable-flto"
+    - name: GCC, Linux, Amd64
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CONFIG_OPTS=
+    - name: Clang, Linux, Amd64
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - CONFIG_OPTS=
+    - name: Clang, OS X, Amd64
+      os: osx
+      compiler: clang
+      env:
+        - CONFIG_OPTS="--with-ssl=/usr/local/opt/openssl --with-libevent=/usr/local/opt/libevent"
+    - name: Checksec, GCC, Linux, Amd64
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - TEST_CHECKSEC=true
+        - CONFIG_OPTS="--enable-checking --disable-flto"
+    - name: Checksec, Clang, Linux, Amd64
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - TEST_CHECKSEC=true
+        - CONFIG_OPTS="--enable-checking --disable-flto"
+    - name: UBsan, GCC, Linux, Amd64
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - TEST_UBSAN=true
+        - CONFIG_OPTS="--enable-checking --disable-flto"
+    - name: UBsan, Clang, Linux, Amd64
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - TEST_UBSAN=true
+        - CONFIG_OPTS="--enable-checking --disable-flto"
+    - name: UBsan, Clang, OS X, Amd64
+      os: osx
+      compiler: clang
+      env:
+        - TEST_UBSAN=true
+        - CONFIG_OPTS="--enable-checking --disable-flto --with-ssl=/usr/local/opt/openssl --with-libevent=/usr/local/opt/libevent"
+    - name: Asan, GCC, Linux, Amd64
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - TEST_ASAN=true
+        - CONFIG_OPTS="--enable-checking --disable-flto"
+    - name: Asan, Clang, Linux, Amd64
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - TEST_ASAN=true
+        - CONFIG_OPTS="--enable-checking --disable-flto"
+    - name: Asan, Clang, OS X, Amd64
+      os: osx
+      compiler: clang
+      env:
+        - TEST_ASAN=true
+        - CONFIG_OPTS="--enable-checking --disable-flto --with-ssl=/usr/local/opt/openssl --with-libevent=/usr/local/opt/libevent"
+    - name: Anazlyze, GCC, Linux, Amd64
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - TEST_ANALYZE=true
+        - CONFIG_OPTS="--enable-checking --disable-flto"
+    - name: Anazlyze, Clang, Linux, Amd64
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - TEST_ANALYZE=true
+        - CONFIG_OPTS="--enable-checking --disable-flto"
+    - name: Anazlyze, Clang, OS X, Amd64
+      os: osx
+      compiler: clang
+      env:
+        - TEST_ANALYZE=true
+        - CONFIG_OPTS="--enable-checking --disable-flto --with-ssl=/usr/local/opt/openssl --with-libevent=/usr/local/opt/libevent"
