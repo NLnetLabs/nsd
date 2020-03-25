@@ -19,16 +19,6 @@ AC_ARG_VAR(EGREP, [location of the egrep program])
 AC_ARG_VAR(LEX, [location of the lex program with GNU extensions (flex)])
 AC_ARG_VAR(YACC, [location of the yacc program with GNU extensions (bison)])
 
-AC_PROG_CC
-AC_PROG_SED
-AC_PROG_AWK
-AC_PROG_GREP
-AC_PROG_EGREP
-AC_PROG_LEX
-AC_PROG_YACC
-AC_PROG_LN_S
-AC_PROG_INSTALL
-
 CFLAGS="$CFLAGS"
 AC_AIX
 if test "$ac_cv_header_minix_config_h" = "yes"; then
@@ -184,6 +174,17 @@ AC_ARG_WITH([user],
 AC_SUBST(user)
 AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop privileges to])
 
+AC_PROG_CC
+AC_PROG_SED
+AC_PROG_AWK
+AC_PROG_GREP
+AC_PROG_EGREP
+AC_PROG_LEX
+AC_PROG_YACC
+AC_PROG_LN_S
+AC_PROG_INSTALL
+
+if test "$LEX" != ":" -a "$LEX" != ""; then
 # Solaris provides anemic tools, and they don't offer GNU extensions like
 # 'flex -i'. Solaris also does not offer GNU replacements in /usr/gnu/bin.
 AC_MSG_CHECKING([whether lex accepts -i])
@@ -197,7 +198,6 @@ AS_IF([echo "%%" | $LEX -i -t >/dev/null 2>&1],
   ]
 )
 
-if test "$LEX" != ":" -a "$LEX" != ""; then
   # Check if lex defines yy_current_buffer, because 2.4.6 and older use it,
   # but later could define it as a macro and then we should not redefine it.
   AC_MSG_CHECKING(if lex defines yy_current_buffer)
