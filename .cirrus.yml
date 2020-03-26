@@ -1,0 +1,101 @@
+# https://cirrus-ci.org/examples/
+# https://github.com/curl/curl/blob/master/.cirrus.yml
+# https://github.com/weidai11/cryptopp/blob/master/.cirrus.yml
+
+env:
+  CIRRUS_CLONE_DEPTH: 5
+
+task:
+  matrix:
+    - name: Standard build, FreeBSD 12.1
+      freebsd_instance:
+        image_family: freebsd-12-1
+      pkginstall_script:
+        - pkg update -f
+        - pkg install -y gmake autoconf automake libevent
+      configure_script:
+        - autoconf && autoheader
+        - ./configure --enable-checking
+      compile_script:
+        - make -j 3
+        - make cutest
+      test_script:
+        - ./cutest
+    - name: Standard build, No LTO, FreeBSD 12.1
+      freebsd_instance:
+        image_family: freebsd-12-1
+      pkginstall_script:
+        - pkg update -f
+        - pkg install -y gmake autoconf automake libevent
+      configure_script:
+        - autoconf && autoheader
+        - ./configure --enable-checking --disable-flto
+      compile_script:
+        - make -j 3
+        - make cutest
+      test_script:
+        - ./cutest
+    - name: Checksec audit, FreeBSD 12.1
+      freebsd_instance:
+        image_family: freebsd-12-1
+      pkginstall_script:
+        - pkg update -f
+        - pkg install -y bash gmake autoconf automake libevent wget
+      configure_script:
+        - autoconf && autoheader
+        - ./configure --enable-checking
+      compile_script:
+        - make nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem -j 3
+        - make checksec
+      test_script:
+        - ./checksec --file=nsd
+        - ./checksec --file=nsd-checkconf
+        - ./checksec --file=nsd-checkzone
+        - ./checksec --file=nsd-control
+        - ./checksec --file=nsd-mem
+    - name: Standard build, FreeBSD 13.0 (snap)
+      freebsd_instance:
+        image_family: freebsd-13-0-snap
+      pkginstall_script:
+        - pkg update -f
+        - pkg install -y gmake autoconf automake libevent
+      configure_script:
+        - autoconf && autoheader
+        - ./configure --enable-checking --disable-flto
+      compile_script:
+        - make -j 3
+        - make cutest
+      test_script:
+        - ./cutest
+    - name: Standard build, No LTO, FreeBSD 13.0 (snap)
+      freebsd_instance:
+        image_family: freebsd-13-0-snap
+      pkginstall_script:
+        - pkg update -f
+        - pkg install -y gmake autoconf automake libevent
+      configure_script:
+        - autoconf && autoheader
+        - ./configure --enable-checking
+      compile_script:
+        - make -j 3
+        - make cutest
+      test_script:
+        - ./cutest
+    - name: Checksec audit, FreeBSD 13.0 (snap)
+      freebsd_instance:
+        image_family: freebsd-13-0-snap
+      pkginstall_script:
+        - pkg update -f
+        - pkg install -y bash gmake autoconf automake libevent wget
+      configure_script:
+        - autoconf && autoheader
+        - ./configure --enable-checking
+      compile_script:
+        - make nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem -j 3
+        - make checksec
+      test_script:
+        - ./checksec --file=nsd
+        - ./checksec --file=nsd-checkconf
+        - ./checksec --file=nsd-checkzone
+        - ./checksec --file=nsd-control
+        - ./checksec --file=nsd-mem
