@@ -10,7 +10,7 @@
 int main(int argc, char *argv[])
 {
 	int i, fds = 0;
-	char buf[512], hdr[512], *ptr;
+	char buf[512], hdr[512];
 	struct { FILE *fh; const char *str; } io[3] = {
 		{ stdin, "stdin" }, { stdout, "stdout" }, { stderr, "stderr" }
 	};
@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 		memcpy(hdr + strlen(hdr), str, strlen(str) + 1);
 	}
 
-	if((ptr = fgets(buf, sizeof(buf), stdin)) == NULL) {
+	if(fgets(buf, sizeof(buf), stdin) == NULL) {
 		buf[0] = '\0';
 	}
 	if(fds & (1<<1)) {

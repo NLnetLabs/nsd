@@ -1257,7 +1257,7 @@ int udb_radix_find_less_equal(udb_base* udb, udb_ptr* rt, uint8_t* k,
 			/* must match additional string */
 			if(pos+lookup_len(&n, byte) > len) {
 				/* the additional string is longer than key*/
-				if( (r=memcmp(&k[pos], lookup_string(&n, byte),
+				if( (memcmp(&k[pos], lookup_string(&n, byte),
 					len-pos)) <= 0) {
 					/* and the key is before this node */
 					udb_ptr_set_rptr(result, udb,
