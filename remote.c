@@ -1345,7 +1345,7 @@ perform_addzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	}
 
 	/* see if zone is a duplicate */
-	if( (zopt=zone_options_find(xfrd->nsd->options, dname)) ) {
+	if( zone_options_find(xfrd->nsd->options, dname) ) {
 		region_recycle(xfrd->region, (void*)dname,
 			dname_total_size(dname));
 		(void)ssl_printf(ssl, "zone %s already exists\n", arg);

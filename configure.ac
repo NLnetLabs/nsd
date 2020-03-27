@@ -357,14 +357,14 @@ AC_CHECK_CTIME_R
 AC_DEFUN([CHECK_SSL], [
     AC_ARG_WITH(ssl, AC_HELP_STRING([--with-ssl=pathname],
                 [enable SSL (will check /usr/local/ssl
-                /usr/lib/ssl /usr/ssl /usr/pkg /usr/sfw /usr/local /usr)]),[
+                /usr/lib/ssl /usr/ssl /usr/pkg /usr/sfw /usr/local /usr /usr/local/opt/openssl)]),[
         ],[
             withval="yes"
         ])
     if test x_$withval != x_no; then
         AC_MSG_CHECKING(for SSL)
         if test x_$withval = x_ -o x_$withval = x_yes; then
-            withval="/usr/local/ssl /usr/lib/ssl /usr/ssl /usr/pkg /usr/sfw /usr/local /usr"
+            withval="/usr/local/ssl /usr/lib/ssl /usr/ssl /usr/pkg /usr/sfw /usr/local /usr /usr/local/opt/openssl"
         fi
         for dir in $withval; do
             ssldir="$dir"
@@ -395,12 +395,12 @@ AC_DEFUN([CHECK_SSL], [
 
 # check for libevent
 AC_ARG_WITH(libevent, AC_HELP_STRING([--with-libevent=pathname],
-    [use libevent (will check /usr/local /opt/local /usr/lib /usr/pkg /usr/sfw /usr  or you can specify an explicit path), useful when the zone count is high.]),
+    [use libevent (will check /usr/local /opt/local /usr/lib /usr/pkg /usr/sfw /usr /usr/local/opt/libevent or you can specify an explicit path), useful when the zone count is high.]),
     [ ],[ withval="yes" ])
 if test x_$withval = x_yes -o x_$withval != x_no; then
         AC_MSG_CHECKING(for libevent)
         if test x_$withval = x_ -o x_$withval = x_yes; then
-            withval="/usr/local /opt/local /usr/lib /usr/pkg /usr/sfw /usr"
+            withval="/usr/local /opt/local /usr/lib /usr/pkg /usr/sfw /usr /usr/local/opt/libevent"
         fi
         for dir in $withval; do
             thedir="$dir"

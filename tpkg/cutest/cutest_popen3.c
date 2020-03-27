@@ -18,7 +18,7 @@ static int popen3_echo(const char *str, int fds)
 	int ret, wret, wstatus, status;
 	FILE *fin, *fout, *ferr;
 	FILE **finptr, **foutptr, **ferrptr;
-	char *ptr, *cmd[] = { NULL, NULL };
+	char *cmd[] = { NULL, NULL };
 	pid_t pid;
 	char *buf = NULL;
 	size_t len, size = 128;
@@ -85,7 +85,7 @@ static int popen3_echo(const char *str, int fds)
 	}
 
 	if(use_stdout(fds)) {
-		if((ptr = fgets(buf, size, fout)) == NULL) {
+		if(fgets(buf, size, fout) == NULL) {
 			fprintf(stderr, "%s: Could not read header from stdout\n", __func__);
 			goto bail;
 		}
@@ -96,7 +96,7 @@ static int popen3_echo(const char *str, int fds)
 	}
 
 	if(use_stderr(fds)) {
-		if((ptr = fgets(buf, size, ferr)) == NULL) {
+		if(fgets(buf, size, ferr) == NULL) {
 			fprintf(stderr, "%s: Could not read header from stderr\n", __func__);
 			goto bail;
 		}

@@ -306,11 +306,11 @@ int CuSuiteRunRegex(CuSuite* testSuite, const char *regex)
 
 int CuSuiteRunRegexDisplay(CuSuite* testSuite, const char *regex, void (*callback)(CuTestResult))
 {
-	int i, err;
+	int i;
 	regex_t preg;
 	regmatch_t pmatch[1];
 
-	if ((err = regcomp(&preg, regex, REG_EXTENDED | REG_NOSUB)) != 0)
+	if (regcomp(&preg, regex, REG_EXTENDED | REG_NOSUB) != 0)
 	{
 		return -1;
 	}
