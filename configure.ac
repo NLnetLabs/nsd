@@ -1084,13 +1084,18 @@ case "$enable_mmap" in
 esac
 
 AC_ARG_ENABLE(radix-tree, AC_HELP_STRING([--disable-radix-tree], [You can disable the radix tree and use the red-black tree for the main lookups, the red-black tree uses less memory, but uses some more CPU.]))
-case "$enable_radix_tree" in
-        no)
-	;;
-	yes|*)
-	AC_DEFINE_UNQUOTED([USE_RADIX_TREE], [], [Define this to configure to use the radix tree.])
-	;;
-esac
+
+AC_ARG_ENABLE(nametree, AC_HELP_STRING([--enable-nametree], [You can enable the nametree to use it for the main lookups, the nametree uses less memory than the red-black tree and is more CPU efficient than the radix tree. Experimental.]))
+
+AS_IF(
+	[test "X$enable_nametree" = "Xyes"],
+	[
+		AC_DEFINE_UNQUOTED([USE_NAMETREE], [], [Define this to configure to use the nametree.])
+	],
+	[test "X$enable_radix_tree" != "Xno"],
+	[
+		AC_DEFINE_UNQUOTED([USE_RADIX_TREE], [], [Define this to configure to use the radix tree.])
+	])
 
 AC_ARG_ENABLE(packed, AC_HELP_STRING([--enable-packed], [Enable packed structure alignment, uses less memory, but unaligned reads.]))
 case "$enable_packed" in
