@@ -13,10 +13,12 @@ ${NSD} -c $(pwd)/minimal_responses_no.conf -p ${NSD_PORT} -V 5
 wait_nsd_up nsd.log
 
 dig @127.0.0.1 -p ${NSD_PORT} example.net mx | \
+  sed -e 's/	/ /g' | sed -e 's/  */ /g' | \
   sed -e '/^;.*$/d' -e '/^\s*$/d' -e 's/\s\+/ /g' | \
   sort > minimal_responses_no.dig
 
 ldns-read-zone -e SOA minimal_responses.zone | \
+  sed -e 's/	/ /g' | sed -e 's/  */ /g' | \
   sed -e 's/\s\+/ /g' | \
   sort > minimal_responses_no.ldns-read-zone
 
@@ -29,7 +31,7 @@ if [ ${?} -eq 0 ]; then
   echo "Response with minimal_responses turned off was correct"
 else
   exit_code=1
-  echo "Response with minimal_responses turned on was incorrect"
+  echo "Response with minimal_responses turned off was incorrect"
   echo "dig:"
   cat minimal_responses_no.dig
   echo "ldns-read-zone:"
@@ -44,10 +46,12 @@ ${NSD} -c $(pwd)/minimal_responses_yes.conf -p ${NSD_PORT} -V 5
 wait_nsd_up nsd.log
 
 dig @127.0.0.1 -p ${NSD_PORT} example.net mx | \
+  sed -e 's/	/ /g' | sed -e 's/  */ /g' | \
   sed -e '/^;.*$/d' -e '/^\s*$/d' -e 's/\s\+/ /g' | \
   sort > minimal_responses_yes.dig
 
 ldns-read-zone minimal_responses.zone | \
+  sed -e 's/	/ /g' | sed -e 's/  */ /g' | \
   sed -n -e 's/\s\+/ /g' -e '/MX/p' | \
   sort > minimal_responses_yes.ldns-read-zone
 
