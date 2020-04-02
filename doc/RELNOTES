@@ -1,8 +1,7 @@
 NSD RELEASE NOTES
 
-4.3.1 (upcoming)
+4.3.1
 ================
-FEATURES:
 BUG FIXES:
 	- Fix #70: error: 'fd_set' undeclared.
 	- Fix #71: error: 'for' loop initial declaration used outside C99
