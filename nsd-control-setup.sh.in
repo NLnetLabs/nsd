@@ -5,22 +5,22 @@
 # Copyright (c) 2011, NLnet Labs. All rights reserved.
 #
 # This software is open source.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
 # are met:
-# 
+#
 # Redistributions of source code must retain the above copyright notice,
 # this list of conditions and the following disclaimer.
-# 
+#
 # Redistributions in binary form must reproduce the above copyright notice,
 # this list of conditions and the following disclaimer in the documentation
 # and/or other materials provided with the distribution.
-# 
+#
 # Neither the name of the NLNET LABS nor the names of its contributors may
 # be used to endorse or promote products derived from this software without
 # specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -117,10 +117,15 @@ commonName=$SERVERNAME
 EOF
 test -f request.cfg || error "could not create request.cfg"
 
-echo "create $SVR_BASE.pem (self signed certificate)"
-openssl req -key $SVR_BASE.key -config request.cfg  -new -x509 -days $DAYS -out $SVR_BASE.pem || error "could not create $SVR_BASE.pem"
-# create trusted usage pem
-openssl x509 -in $SVR_BASE.pem -addtrust serverAuth -out $SVR_BASE"_trust.pem"
+if test -f $SVR_BASE.pem; then
+	echo "$SVR_BASE.pem exists"
+else
+  echo "create $SVR_BASE.pem (self signed certificate)"
+  openssl req -key $SVR_BASE.key -config request.cfg  -new -x509 -days $DAYS -out $SVR_BASE.pem || error "could not create $SVR_BASE.pem"
+
+  # create trusted usage pem
+  openssl x509 -in $SVR_BASE.pem -addtrust serverAuth -out $SVR_BASE"_trust.pem"
+fi
 
 # create client request and sign it, piped
 cat >request.cfg <<EOF
@@ -135,8 +140,13 @@ commonName=$CLIENTNAME
 EOF
 test -f request.cfg || error "could not create request.cfg"
 
-echo "create $CTL_BASE.pem (signed client certificate)"
-openssl req -key $CTL_BASE.key -config request.cfg -new | openssl x509 -req -days $DAYS -CA $SVR_BASE"_trust.pem" -CAkey $SVR_BASE.key -CAcreateserial -$HASH -out $CTL_BASE.pem
+if test -f $CTL_BASE.pem; then
+	echo "$CTL_BASE.pem exists"
+else
+  echo "create $CTL_BASE.pem (signed client certificate)"
+  openssl req -key $CTL_BASE.key -config request.cfg -new | openssl x509 -req -days $DAYS -CA $SVR_BASE"_trust.pem" -CAkey $SVR_BASE.key -CAcreateserial -$HASH -out $CTL_BASE.pem
+fi
+
 test -f $CTL_BASE.pem || error "could not create $CTL_BASE.pem"
 # create trusted usage pem
 # openssl x509 -in $CTL_BASE.pem -addtrust clientAuth -out $CTL_BASE"_trust.pem"
@@ -156,5 +166,3 @@ rm -f request.cfg
 rm -f $CTL_BASE"_trust.pem" $SVR_BASE"_trust.pem" $SVR_BASE"_trust.srl"
 
 echo "Setup success. Certificates created. Enable in nsd.conf file to use"
-
-exit 0
