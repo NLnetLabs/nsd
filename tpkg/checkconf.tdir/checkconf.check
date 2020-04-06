@@ -66,6 +66,14 @@ remote-control:
 	control-key-file: "/etc/nsd/nsd_control.key"
 	control-cert-file: "/etc/nsd/nsd_control.pem"
 
+verify:
+	enable: no
+	port: 5347
+	verify-zones: yes
+	verifier-count: 1
+	verifier-feed-zone: yes
+	verifier-timeout: 0
+
 key:
 	name: "BKEY"
 	algorithm: "hmac-sha1"
@@ -192,6 +200,14 @@ remote-control:
 	control-key-file: "/etc/nsd/nsd_control.key"
 	control-cert-file: "/etc/nsd/nsd_control.pem"
 
+verify:
+	enable: no
+	port: 5347
+	verify-zones: yes
+	verifier-count: 1
+	verifier-feed-zone: yes
+	verifier-timeout: 0
+
 zone:
 	name: "example.com"
 	zonefile: "/etc/nsd/example.com.zone"
@@ -260,6 +276,14 @@ remote-control:
 	server-cert-file: "/etc/nsd/nsd_server.pem"
 	control-key-file: "/etc/nsd/nsd_control.key"
 	control-cert-file: "/etc/nsd/nsd_control.pem"
+
+verify:
+	enable: no
+	port: 5347
+	verify-zones: yes
+	verifier-count: 1
+	verifier-feed-zone: yes
+	verifier-timeout: 0
 
 key:
 	name: "tsig.example.org."
@@ -338,6 +362,14 @@ remote-control:
 	server-cert-file: "/etc/nsd/nsd_server.pem"
 	control-key-file: "/etc/nsd/nsd_control.key"
 	control-cert-file: "/etc/nsd/nsd_control.pem"
+
+verify:
+	enable: no
+	port: 5347
+	verify-zones: yes
+	verifier-count: 1
+	verifier-feed-zone: yes
+	verifier-timeout: 0
 
 zone:
 	name: "example.nl"
@@ -460,6 +492,14 @@ remote-control:
 	server-cert-file: "/etc/nsd/nsd_server.pem"
 	control-key-file: "/etc/nsd/nsd_control.key"
 	control-cert-file: "/etc/nsd/nsd_control.pem"
+
+verify:
+	enable: no
+	port: 5347
+	verify-zones: yes
+	verifier-count: 1
+	verifier-feed-zone: yes
+	verifier-timeout: 0
 
 pattern:
 	name: "bla"
