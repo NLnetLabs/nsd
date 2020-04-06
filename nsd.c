@@ -186,7 +186,7 @@ setup_verifier_environment(void)
 			setenv("VERIFY_IPV6_ADDRESS", host, 1);
 			setenv("VERIFY_IPV6_PORT", serv, 1);
 			setenv("VERIFY_IP_ADDRESS", host, 1);
-			setenv("VERIFY_IP_PORT", serv, 1);
+			setenv("VERIFY_PORT", serv, 1);
 			ip6 = 1;
 		} else
 #endif
@@ -196,7 +196,7 @@ setup_verifier_environment(void)
 			setenv("VERIFY_IPV4_PORT", serv, 1);
 			if (!ip6) {
 				setenv("VERIFY_IP_ADDRESS", host, 1);
-				setenv("VERIFY_IP_PORT", serv, 1);
+				setenv("VERIFY_PORT", serv, 1);
 			}
 			ip4 = 1;
 		}
