@@ -601,15 +601,17 @@ previous_child16(const struct namenode16 *node, uint8_t key)
 static inline struct namenode **
 previous_child4(const struct namenode4 *node, uint8_t key)
 {
-  if (key > 0u) {
-    for (int32_t idx = 0; idx < node->base.width; idx++) {
-      if (node->keys[idx] >= key) {
-        idx -= (node->keys[idx] == key ? 1 : 2);
+  assert(node->base.width != 0);
+  if (key > node->keys[0]) {
+    int32_t idx;
+    for (idx = 1; idx < node->base.width; idx++) {
+      if (node->keys[idx] > key) {
+        idx -= (node->keys[idx - 1] == key ? 2 : 1);
         return idx >= 0 ? (struct namenode **)&node->children[idx] : NULL;
       }
     }
-    assert(node->base.width != 0);
-    return (struct namenode **)&node->children[node->base.width - 1];
+    idx = node->base.width - (node->keys[node->base.width - 1] == key ? 2 : 1);
+    return idx >= 0 ? (struct namenode **)&node->children[idx] : NULL;
   }
   return NULL;
 }
@@ -1040,9 +1042,9 @@ nametree_search(
         depth += node->prefix_len;
       } else {
         if (flags < 0) {
-          cmp < 0 ? maximum_leaf(tree, path) : previous_leaf(tree, path);
+          cmp > 0 ? maximum_leaf(tree, path) : previous_leaf(tree, path);
         } else if (flags > 0) {
-          cmp > 0 ? minimum_leaf(tree, path) : next_leaf(tree, path);
+          cmp < 0 ? minimum_leaf(tree, path) : next_leaf(tree, path);
         } else {
           path->height--;
         }
@@ -1485,7 +1487,7 @@ split_node(
        * used to create a temporary key and the number of matched characters
        * is greater than the current prefix */
       cnt = compare_keys(
-        key + depth, buf + depth, min((key_len-1) - depth, node->prefix_len));
+        key + depth, buf + depth, min((key_len-1) - depth, child->prefix_len));
       node->prefix_len = cnt;
       memcpy(node->prefix, buf + depth, min(cnt, NAMETREE_MAX_PREFIX));
       /* update edge */
@@ -1514,7 +1516,7 @@ split_node(
       }
       /* fill prefix */
       cnt = compare_keys(
-        key + depth, node->prefix, min((key_len-1) - depth, node->prefix_len));
+        key + depth, child->prefix, min((key_len-1) - depth, child->prefix_len));
       node->prefix_len = cnt;
       memcpy(node->prefix, child->prefix, min(cnt, NAMETREE_MAX_PREFIX));
       /* update edge */
