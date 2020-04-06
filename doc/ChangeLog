@@ -1,5 +1,6 @@
 6 April 2020: Wouter
 	- Merge PR #90 by phicoh: O_CLOEXEC should be FD_CLOEXEC.
+	- Merge PR #92 by tonysgi: Fix typo.
 
 2 April 2020: Wouter
 	- Tag for 4.3.1rc1.
