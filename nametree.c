@@ -1060,7 +1060,7 @@ nametree_search(
           noderef = next_child(node, key[depth]);
         }
         if (noderef != NULL) {
-          path->levels[path->height].depth = depth;
+          path->levels[path->height].depth = ++depth;
           path->levels[path->height].noderef = noderef;
           path->height++;
           flags < 0 ? maximum_leaf(tree, path) : minimum_leaf(tree, path);
@@ -1071,10 +1071,9 @@ nametree_search(
       return NULL;
     }
 
-    path->levels[path->height].depth = depth;
+    path->levels[path->height].depth = ++depth;
     path->levels[path->height].noderef = noderef;
     path->height++;
-    depth++;
   }
 
   return nametree_untag_leaf(node);
@@ -1512,7 +1511,7 @@ split_node(
       struct namenode *child = *noderef;
 
       if ((node = alloc_node(tree, NAMENODE4)) == NULL) {
-        return 0;
+        return -1;
       }
       /* fill prefix */
       cnt = compare_keys(
@@ -1595,10 +1594,9 @@ nametree_insert(
     childref = find_child(node, key[depth]);
     if (childref != NULL) {
       noderef = childref;
-      path->levels[path->height].depth = depth;
+      path->levels[path->height].depth = ++depth;
       path->levels[path->height].noderef = noderef;
       path->height++;
-      depth++;
     } else {
 add_leaf:
       node = nametree_tag_leaf(leaf);
@@ -1606,7 +1604,7 @@ add_leaf:
       if (childref == NULL) {
         return NULL;
       }
-      path->levels[path->height].depth = depth;
+      path->levels[path->height].depth = key_len;
       path->levels[path->height].noderef = childref;
       path->height++;
       break;
@@ -1958,10 +1956,9 @@ nametree_delete(
       return NULL;
     }
 
-    path->levels[path->height].depth = depth;
+    path->levels[path->height].depth = ++depth;
     path->levels[path->height].noderef = noderef;
     path->height++;
-    depth++;
   }
 
   assert(path->height > 0);
@@ -1971,7 +1968,7 @@ nametree_delete(
     tree->root = NULL;
     path->height = 0;
   } else {
-    depth = path->levels[path->height - 1].depth;
+    depth = path->levels[path->height - 2].depth;
     noderef = path->levels[path->height - 2].noderef;
     /* update height beforehand as nodes may be merged */
     path->height -= 1 + ((*noderef)->width <= 2);
