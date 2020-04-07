@@ -1,3 +1,8 @@
+7 April 2020: Wouter
+	- Merge PR #91 by gearnode: nsd-control-setup recreate certificates.
+	  The '-r' option recreates certificates.  Without it it creates them
+	  if they do not exist, and does not modify them otherwise.
+
 6 April 2020: Wouter
 	- Merge PR #90 by phicoh: O_CLOEXEC should be FD_CLOEXEC.
 	- Merge PR #92 by tonysgi: Fix typo.
