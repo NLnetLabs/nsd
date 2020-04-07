@@ -37,7 +37,19 @@ TSIG_ALGORITHM	= hmac-sha256
 TSIG_SIZE	= 256
 TSIGS		= @TSIGS@
 
-all: $(MASTER_DB) $(TSIGS)
+all: $(MASTER_DB) $(TSIGS) $(MASTER)-control.sh $(PROXY)-control.sh $(SLAVE)-control.sh
+
+$(MASTER)-control.sh:
+	@printf "#!/bin/sh\n\n$(NSDC) -c $(MASTER_CONFIG) \$$*\n" > $@
+	@chmod +x $@
+
+$(PROXY)-control.sh:
+	@printf "#!/bin/sh\n\n$(NSDC) -c $(PROXY_CONFIG) \$$*\n" > $@
+	@chmod +x $@
+
+$(SLAVE)-control.sh:
+	@printf "#!/bin/sh\n\n$(NSDC) -c $(SLAVE_CONFIG) \$$*\n" > $@
+	@chmod +x $@
 
 $(ZONE_FILES) $(MASTER_CONFIG) $(PROXY_CONFIG) $(SLAVE_CONFIG):
 	./config.status
