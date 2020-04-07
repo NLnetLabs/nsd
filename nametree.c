@@ -674,7 +674,6 @@ previous_node(struct namenode *node, struct namenode **noderef)
 
   idx = ((uintptr_t)noderef - (uintptr_t)nodes) / sizeof(*nodes);
   assert(idx < UINT8_MAX);
-  assert(idx < node->width);
 
   while (idx > 0) {
     if (nodes[--idx] != NULL) {
@@ -719,7 +718,6 @@ next_node(struct namenode *node, struct namenode **noderef)
 
   idx = ((uintptr_t)noderef - (uintptr_t)nodes) / sizeof(*nodes);
   assert(idx < UINT8_MAX);
-  assert(idx < node->width);
 
   while (idx < node->width) {
     if (nodes[++idx] != NULL) {
