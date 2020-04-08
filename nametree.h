@@ -57,7 +57,13 @@
 
 typedef uint8_t namekey[NAMETREE_MAX_HEIGHT];
 
-uint8_t nametree_make_key(namekey key, const struct dname *dname);
+uint8_t nametree_make_key(
+  namekey key, const struct dname *dname)
+__attribute__((nonnull));
+
+uint8_t nametree_make_prefix(
+  namekey key, const struct dname *dname, uint8_t depth, uint8_t prefix_len)
+__attribute__((nonnull(1,2)));
 
 #define NAMENODE4 (0)
 #define NAMENODE16 (1)

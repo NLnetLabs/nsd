@@ -1322,6 +1322,61 @@ static void test_nametree_make_key(CuTest *tc)
   teardown(tc);
 }
 
+static void test_nametree_make_prefix(CuTest *tc)
+{
+  const struct dname *dname;
+  namekey prefix;
+  uint8_t prefix_len;
+
+  setup(tc);
+
+  dname = dname_parse(region, "BaZ.bAr.FoO.");
+  /* key: foo0bar0baz00 */
+  CuAssertTrue(tc, dname != NULL);
+  prefix_len = nametree_make_prefix(prefix, dname, 0, 0);
+  CuAssertTrue(tc, prefix_len == 13);
+  CuAssertTrue(tc, prefix[ 0] == 0x4du && /* f */
+                   prefix[ 1] == 0x56u && /* o */
+                   prefix[ 2] == 0x56u && /* o */
+                   prefix[ 3] == 0x00u && /* end of label */
+                   prefix[ 4] == 0x49u && /* b */
+                   prefix[ 5] == 0x48u && /* a */
+                   prefix[ 6] == 0x59u && /* r */
+                   prefix[ 7] == 0x00u && /* end of label */
+                   prefix[ 8] == 0x49u && /* b */
+                   prefix[ 9] == 0x48u && /* a */
+                   prefix[10] == 0x61u && /* z */
+                   prefix[11] == 0x00u && /* end of label */
+                   prefix[12] == 0x00u);  /* end of key */
+  prefix_len = nametree_make_prefix(prefix, dname, 1, 4);
+  CuAssertTrue(tc, prefix_len == 4);
+  CuAssertTrue(tc, prefix[0] == xlat('o'));
+  CuAssertTrue(tc, prefix[1] == xlat('o'));
+  CuAssertTrue(tc, prefix[2] == 0x00u);
+  CuAssertTrue(tc, prefix[3] == xlat('b'));
+  prefix_len = nametree_make_prefix(prefix, dname, 0, 1);
+  CuAssertTrue(tc, prefix_len == 1);
+  CuAssertTrue(tc, prefix[0] == xlat('f'));
+  prefix_len = nametree_make_prefix(prefix, dname, 12, 0);
+  CuAssertTrue(tc, prefix_len == 1);
+  CuAssertTrue(tc, prefix[0] == 0x00u);
+  prefix_len = nametree_make_prefix(prefix, dname, 12, 1);
+  CuAssertTrue(tc, prefix_len == 1);
+  CuAssertTrue(tc, prefix[0] == 0x00u);
+  prefix_len = nametree_make_prefix(prefix, dname, 3, 5);
+  CuAssertTrue(tc, prefix_len == 5);
+  CuAssertTrue(tc, prefix[0] == 0x00u);
+  CuAssertTrue(tc, prefix[1] == xlat('b'));
+  CuAssertTrue(tc, prefix[2] == xlat('a'));
+  CuAssertTrue(tc, prefix[3] == xlat('r'));
+  CuAssertTrue(tc, prefix[4] == 0x00u);
+  prefix_len = nametree_make_prefix(prefix, dname, 3, 1);
+  CuAssertTrue(tc, prefix_len == 1);
+  CuAssertTrue(tc, prefix[0] == 0x00u);
+
+  teardown(tc);
+}
+
 static void test_nametree_insert_single_leaf(CuTest *tc)
 {
   struct nametree *tree;
@@ -2442,6 +2497,7 @@ CuSuite* reg_cutest_nametree(void)
   SUITE_ADD_TEST(suite, test_nametree_add_child38);
   SUITE_ADD_TEST(suite, test_nametree_add_child48);
   SUITE_ADD_TEST(suite, test_nametree_make_key);
+  SUITE_ADD_TEST(suite, test_nametree_make_prefix);
   SUITE_ADD_TEST(suite, test_nametree_minimum_leaf);
   SUITE_ADD_TEST(suite, test_nametree_maximum_leaf);
   SUITE_ADD_TEST(suite, test_nametree_insert_single_leaf);

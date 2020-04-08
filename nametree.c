@@ -10,6 +10,7 @@
 
 #include <limits.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/types.h>
 #if defined(__i386__) || defined(__x86_64__)
 # include <cpuid.h> /* detect if SSE2 and AVX2 extensions are available */
@@ -306,6 +307,72 @@ uint8_t nametree_make_key(namekey key, const struct dname *dname)
     key[cnt++] = 0x00u;
   }
   key[cnt++] = 0x00u;
+
+  return cnt;
+}
+
+uint8_t nametree_make_prefix(
+  namekey key, const struct dname *dname, uint8_t depth, uint8_t prefix_len)
+{
+  uint8_t cnt, lim;
+  uint8_t labno, laboff, labcnt, lablen;
+  const uint8_t *label, *laboffs;
+
+  /* keys are reversed names, length is maintained */
+  if (depth >= dname->name_size) {
+    return 0;
+  } else if (prefix_len == 0) {
+    lim = dname->name_size - depth;
+  } else if (dname->name_size - depth < prefix_len) {
+    return 0;
+  } else {
+    lim = prefix_len;
+  }
+
+  cnt = 0;
+
+  /* determine from which label to start */
+  labno = 0;
+  laboffs = dname_label_offsets(dname);
+  /* keys are reversed names, calculate depth from end of name */
+  depth = dname->name_size - (depth + 1);
+  if (depth != 0) {
+    while (labno < dname->label_count && depth <= laboffs[labno]) {
+      labno++;
+    }
+
+    assert(labno != 0);
+    assert(labno < dname->label_count);
+
+    /* determine relative offset within label */
+    label = dname_label(dname, labno);
+    if (label_is_pointer(label)) {
+      return 0;
+    }
+    lablen = label[0] + 1;
+    laboff = (laboffs[labno] + lablen) - depth;
+
+    for (;;) {
+      assert(labno < dname->label_count);
+      for (labcnt = laboff + 1; labcnt < lablen; labcnt++) {
+        key[cnt++] = xlat(label[labcnt]);
+        if (cnt >= lim)
+          return cnt;
+      }
+      key[cnt++] = 0x00u;
+      if (cnt >= lim)
+        return cnt;
+      labno++;
+      if (labno >= dname->label_count)
+        break;
+      label = dname_label(dname, labno);
+      if (label_is_pointer(label))
+        return 0;
+      lablen = label[0] + 1;
+      laboff = 0;
+    }
+  }
+  key[cnt++] = 0x00;
 
   return cnt;
 }
@@ -980,10 +1047,11 @@ match_node(
     uint8_t len;
 
     noderef = find_leaf(node);
-    len = nametree_make_key(buf, nametree_leaf_name(tree, *noderef));
-    assert(len >= depth);
+    len = nametree_make_prefix(
+      buf, nametree_leaf_name(tree, *noderef), depth, node->prefix_len);
+    assert(len >= node->prefix_len);
     return memcmp(
-      key + depth, buf + depth, min((key_len-1) - depth, node->prefix_len));
+      key + depth, buf, min((key_len-1) - depth, node->prefix_len));
   } else {
     /* fast path */
     return memcmp(
@@ -1428,14 +1496,13 @@ split_leaf(
       return -1;
     }
     /* fill prefix */
-    len = nametree_make_key(buf, nametree_leaf_name(tree, child));
-    assert(len >= depth);
-    cnt = compare_keys(
-      key + depth, buf + depth, min(key_len - 1, len - 1) - depth);
+    len = nametree_make_prefix(
+      buf, nametree_leaf_name(tree, child), depth, 0);
+    cnt = compare_keys(key + depth, buf, min((key_len-1) - depth, (len-1)));
     node->prefix_len = cnt;
-    memcpy(node->prefix, buf + depth, min(cnt, NAMETREE_MAX_PREFIX));
+    memcpy(node->prefix, buf, min(cnt, NAMETREE_MAX_PREFIX));
     /* update edges */
-    add_child(tree, &node, buf[depth + cnt], child);
+    add_child(tree, &node, buf[cnt], child);
     *noderef = node;
     return 1;
   }
@@ -1466,10 +1533,11 @@ split_node(
     uint8_t len;
 
     leafref = find_leaf(node);
-    len = nametree_make_key(buf, nametree_leaf_name(tree, *leafref));
-    assert(len > depth);
+    len = nametree_make_prefix(
+      buf, nametree_leaf_name(tree, *leafref), depth, node->prefix_len + 1);
+    assert(len >= node->prefix_len);
     cmp = memcmp(
-      key + depth, buf + depth, min((key_len-1) - depth, node->prefix_len));
+      key + depth, buf, min((key_len-1) - depth, node->prefix_len));
     if (cmp != 0) {
       /* mismatch, split node */
       uint8_t cnt;
@@ -1484,16 +1552,16 @@ split_node(
        * used to create a temporary key and the number of matched characters
        * is greater than the current prefix */
       cnt = compare_keys(
-        key + depth, buf + depth, min((key_len-1) - depth, child->prefix_len));
+        key + depth, buf, min((key_len-1) - depth, child->prefix_len));
       node->prefix_len = cnt;
-      memcpy(node->prefix, buf + depth, min(cnt, NAMETREE_MAX_PREFIX));
+      memcpy(node->prefix, buf, min(cnt, NAMETREE_MAX_PREFIX));
       /* update edge */
-      add_child(tree, &node, buf[depth + cnt], child);
+      add_child(tree, &node, buf[cnt], child);
       /* adjust prefix */
       child->prefix_len -= cnt + 1;
       if (child->prefix_len != 0) {
         memcpy(child->prefix,
-               buf + (depth + cnt + 1),
+               buf + (cnt + 1),
                min(child->prefix_len, NAMETREE_MAX_PREFIX));
       }
       *noderef = node;
