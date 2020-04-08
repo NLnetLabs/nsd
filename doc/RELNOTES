@@ -23,6 +23,11 @@ BUG FIXES:
 	  special flags from that.  Fix that lex only needs to support -i
 	  if actually defined, otherwise the output included in the source
 	  tarball can be used.
+	- Merge PR #90 by phicoh: O_CLOEXEC should be FD_CLOEXEC.
+	- Merge PR #92 by tonysgi: Fix typo.
+	- Merge PR #91 by gearnode: nsd-control-setup recreate certificates.
+	  The '-r' option recreates certificates.  Without it it creates them
+	  if they do not exist, and does not modify them otherwise.
 
 
 4.3.0
