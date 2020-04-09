@@ -210,10 +210,12 @@ nametree_create(
 
 /* FIXME: implement nametree_destroy */
 
+/** Return closest enclosing node if no node with the given key exists */
+#define NAMETREE_CLOSEST_ENCLOSER (1)
 /** Return closest previous node if no node with the given key exists */
-#define NAMETREE_PREVIOUS (-1)
+#define NAMETREE_PREVIOUS_CLOSEST (2)
 /** Return closest next node if no node with the given key exists */
-#define NAMETREE_NEXT (1)
+#define NAMETREE_NEXT_CLOSEST (3)
 
 /**
  * @brief Search tree for leaf matching key
@@ -223,10 +225,13 @@ nametree_create(
  * @param[in]      key      ..
  * @param[in]      key_len  ..
  * @param[in]      name     ..
- * @param[in]      flags    Specify 0 to record maximum path up to leaf
- *                          (default), NAMETREE_PREVIOUS or NAMETREE_NEXT to
- *                          record the path to the corresponding closest leaf
- *                          if the actual leaf does not exist
+ * @param[in]      closest  Specify 0 to record maximum path up to leaf
+ *                          (default), NAMETREE_PREVIOUS_CLOSEST or
+ *                          NAMETREE_NEXT_CLOSEST to record the path to the
+ *                          corresponding closest leaf, or
+ *                          NAMETREE_CLOSEST_ENCLOSER to record the path to
+ *                          the closest encloser if the actual leaf does not
+ *                          exist
  *
  * @returns Leaf (without tag) or NULL if no such leaf exists
  */
@@ -237,8 +242,65 @@ nametree_search(
   const namekey key,
   uint8_t key_len,
   const struct dname *name,
-  int32_t flags)
+  uint8_t closest)
 __attribute__((nonnull(1,2,3,5)));
+
+/**
+ * @brief Return logical parent node in tree (closest encloser)
+ *
+ * @param[in]      tree     ..
+ * @param[in,out]  path     ..
+ * @param[in]      key      ..
+ * @param[in]      key_len  ..
+ *
+ * @returns Leaf (without tag)
+ */
+nameleaf *
+nametree_closest_encloser(
+  const struct nametree *tree,
+  struct namepath *path,
+  const namekey key,
+  uint8_t key_len,
+  const struct dname *name)
+__attribute__((nonnull(1,2,3)));
+
+/**
+ * @brief .. document ..
+ *
+ * @param[in]      tree     ..
+ * @param[in,out]  path     ..
+ * @param[in]      key      ..
+ * @param[in]      key_len  ..
+ *
+ * @returns
+ */
+nameleaf *
+nametree_previous_closest(
+  const struct nametree *tree,
+  struct namepath *path,
+  const namekey key,
+  uint8_t key_len,
+  const struct dname *name)
+__attribute__((nonnull(1,2,3)));
+
+/**
+ * @brief .. document ..
+ *
+ * @param[in]      tree     ..
+ * @param[in,out]  path     ..
+ * @param[in]      key      ..
+ * @param[in]      key_len  ..
+ *
+ * @returns
+ */
+nameleaf *
+nametree_next_closest(
+  const struct nametree *tree,
+  struct namepath *path,
+  const namekey key,
+  uint8_t key_len,
+  const struct dname *name)
+__attribute__((nonnull(1,2,3)));
 
 /**
  * @brief Return previous node in tree (canonical name order)

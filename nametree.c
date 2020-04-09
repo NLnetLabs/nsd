@@ -8,6 +8,7 @@
  */
 #include "config.h"
 
+#include <assert.h>
 #include <limits.h>
 #include <stdint.h>
 #include <string.h>
@@ -282,6 +283,20 @@ static inline uint8_t node38_unxlat(uint8_t key)
 
   return (uint8_t)-1;
 }
+
+#define assert_path(tree, path) \
+  do { \
+    assert(tree != NULL); \
+    assert(path != NULL); \
+    if (tree->root == NULL) { \
+      path->height = 0; \
+      return NULL; \
+    } else if (path->height == 0) { \
+      path->levels[0].depth = 0; \
+      path->levels[0].noderef = (struct namenode **)&tree->root; \
+      path->height = 1; \
+    } \
+  } while (0)
 
 uint8_t nametree_make_key(namekey key, const struct dname *dname)
 {
@@ -1033,15 +1048,40 @@ nametree_next_leaf(const struct nametree *tree, struct namepath *path)
 }
 
 static inline int
+match_leaf(
+  const struct nametree *tree,
+  const struct namenode *node,
+  const namekey key,
+  uint8_t key_len,
+  const struct dname *name,
+  uint8_t depth)
+{
+  if (name == NULL) {
+    /* slow path, recreate leaf key */
+    namekey buf;
+    uint8_t len;
+    len = nametree_make_prefix(
+      buf, nametree_leaf_name(tree, node), depth, key_len - depth);
+    return memcmp(key + depth, buf, len);
+  } else {
+    /* fast path */
+    return dname_compare(name, nametree_leaf_name(tree, node));
+  }
+}
+
+static inline int
 match_node(
   const struct nametree *tree,
   const struct namenode *node,
   const namekey key,
   uint8_t key_len,
+  const struct dname *dname,
   uint8_t depth)
 {
+  (void)dname;
+
   if (node->prefix_len > NAMETREE_MAX_PREFIX) {
-    /* slow path (optimistic path compression) */
+    /* slow path, optimistic path compression */
     struct namenode **noderef;
     namekey buf;
     uint8_t len;
@@ -1059,82 +1099,54 @@ match_node(
   }
 }
 
-nameleaf *
-nametree_search(
+/**
+ * @brief  Search tree for node matching key.
+ *
+ * @private
+ *
+ * @param[in]      tree     ..
+ * @param[in,out]  path     ..
+ * @param[in]      key      ..
+ * @param[in]      key_len  ..
+ * @param[in]      name     ..
+ *
+ * @returns  An integer value if a exact match is found.
+ * @retval 0   Last node recorded in path is an exact match for key.
+ * @retval <0  Name of last node recorded in path is greater than name encoded
+ *             in key. -1 if depth is not relevant, -1 - depth if it is.
+ * @retval >0  Name of last node recorded in path is smaller than name encoded
+ *             in key. +1 if depth is not relevant, +1 + depth if it is.
+ */
+static inline int
+search_path(
   const struct nametree *tree,
   struct namepath *path,
   const namekey key,
   uint8_t key_len,
-  const struct dname *name,
-  int32_t flags)
+  const struct dname *name)
 {
   int cmp;
   uint8_t depth;
   struct namenode *node, **noderef;
 
-  if (tree->root == NULL) {
-    path->height = 0;
-    return NULL;
-  } else if (path->height == 0) {
-    path->levels[0].depth = 0;
-    path->levels[0].noderef = (struct namenode **)&tree->root;
-    path->height++;
-  }
-
-  assert(path->levels[0].depth == 0);
-  assert(path->levels[0].noderef == &tree->root);
-  noderef = path->levels[path->height - 1].noderef;
   depth = path->levels[path->height - 1].depth;
-  assert(depth < key_len);
+  noderef = path->levels[path->height - 1].noderef;
 
   for (node = *noderef; depth < key_len; node = *noderef) {
     if (nametree_is_leaf(node)) {
-      cmp = dname_compare(name, nametree_leaf_name(tree, node));
-      if (cmp == 0) {
-        break;
-      } else {
-        if (cmp < 0 && flags < 0) {
-          previous_leaf(tree, path);
-        } else if (cmp > 0 && flags > 0) {
-          next_leaf(tree, path);
-        } else if (flags == 0) {
-          path->height--;
-        }
-        return NULL;
-      }
+      cmp = match_leaf(tree, node, key, key_len, name, depth);
+      return cmp == 0 ? 0 : (cmp < 0 ? -1 : +1);
     } else if (node->prefix_len != 0) {
-      cmp = match_node(tree, node, key, key_len, depth);
+      cmp = match_node(tree, node, key, key_len, name, depth);
       if (cmp == 0) {
         depth += node->prefix_len;
       } else {
-        if (flags < 0) {
-          cmp > 0 ? maximum_leaf(tree, path) : previous_leaf(tree, path);
-        } else if (flags > 0) {
-          cmp < 0 ? minimum_leaf(tree, path) : next_leaf(tree, path);
-        } else {
-          path->height--;
-        }
-        return NULL;
+        return cmp < 0 ? -1 : +1;
       }
     }
 
     if ((noderef = find_child(node, key[depth])) == NULL) {
-      if (flags != 0) {
-        if (flags < 0) {
-          noderef = previous_child(node, key[depth]);
-        } else {
-          noderef = next_child(node, key[depth]);
-        }
-        if (noderef != NULL) {
-          path->levels[path->height].depth = ++depth;
-          path->levels[path->height].noderef = noderef;
-          path->height++;
-          flags < 0 ? maximum_leaf(tree, path) : minimum_leaf(tree, path);
-        } else {
-          flags < 0 ? previous_leaf(tree, path) : next_leaf(tree, path);
-        }
-      }
-      return NULL;
+      return 1 + (int)depth;
     }
 
     path->levels[path->height].depth = ++depth;
@@ -1142,7 +1154,237 @@ nametree_search(
     path->height++;
   }
 
-  return nametree_untag_leaf(node);
+  return 0;
+}
+
+static nameleaf *
+closest_encloser(
+  const struct nametree *tree,
+  struct namepath *path,
+  const namekey key,
+  uint8_t key_len)
+{
+  namekey buf;
+  uint8_t cnt = 0, len;
+  uint8_t depth, closest = 0;
+  struct namenode *node;
+
+  node = *path->levels[path->height - 1].noderef;
+  depth = path->levels[path->height - 1].depth;
+
+  assert(depth < key_len);
+
+  /* labels are equal up to depth */
+  len = depth;
+  for (; cnt < len; cnt++) {
+    if (key[cnt] == 0x00u) {
+      closest = cnt;
+    }
+  }
+
+  if (nametree_is_leaf(node)) {
+    /* slow path, recreate leaf key */
+    len += nametree_make_prefix(
+      buf + depth, nametree_leaf_name(tree, node), depth, (key_len-1) - depth);
+  } else if (node->prefix_len > NAMETREE_MAX_PREFIX) {
+    /* slower path, find leaf to recreate key */
+    struct namenode **leafref;
+    leafref = find_leaf(node);
+    len += nametree_make_prefix(
+      buf + depth, nametree_leaf_name(tree, *leafref), depth, (key_len-1) - depth);
+  } else {
+    /* fast path */
+    len += min((key_len-1) - depth, node->prefix_len);
+    memcpy(buf + depth, node->prefix, len);
+  }
+
+  for (; cnt < len && key[cnt] == buf[cnt]; cnt++) {
+    if (key[cnt] == 0x00u)
+      closest = cnt;
+  }
+
+  if (closest == 0) {
+    path->height = (path->height != 0);
+  } else {
+    assert(key[closest] == 0x00u);
+    /* rewind path if necessary */
+    for (; closest <= path->levels[path->height - 1].depth; path->height--) ;
+    closest++;
+  }
+
+  buf[closest++] = 0x00;
+
+  return search_path(tree, path, buf, closest, NULL) == 0
+    ? nametree_untag_leaf(*path->levels[path->height - 1].noderef) : NULL;
+}
+
+nameleaf *
+nametree_closest_encloser(
+  const struct nametree *tree,
+  struct namepath *path,
+  const namekey key,
+  uint8_t key_len,
+  const struct dname *name)
+{
+  assert_path(tree, path);
+
+  search_path(tree, path, key, key_len, name);
+  return closest_encloser(tree, path, key, key_len);
+}
+
+nameleaf *
+nametree_previous_closest(
+  const struct nametree *tree,
+  struct namepath *path,
+  const namekey key,
+  uint8_t key_len,
+  const struct dname *name)
+{
+  int cmp;
+  nameleaf *leaf;
+
+  assert_path(tree, path);
+
+  cmp = search_path(tree, path, key, key_len, name);
+  assert(path->height > 0);
+  if (cmp == 0) {
+    leaf = previous_leaf(tree, path);
+  } else {
+    struct namenode *node, **noderef;
+
+    node = *path->levels[path->height - 1].noderef;
+    if (nametree_is_leaf(node)) {
+      leaf = cmp < 0 ? previous_leaf(tree, path) : nametree_untag_leaf(node);
+    } else if (node->prefix_len != 0) {
+      leaf = cmp < 0 ? previous_leaf(tree, path) : maximum_leaf(tree, path);
+    } else {
+      assert(cmp > 0);
+      cmp--;
+      assert(cmp < NAMETREE_MAX_HEIGHT);
+      noderef = previous_child(node, key[cmp]);
+      if (noderef != NULL) {
+        path->levels[path->height].depth = (uint8_t)cmp;
+        path->levels[path->height].noderef = noderef;
+        path->height++;
+        leaf = maximum_leaf(tree, path);
+      } else {
+        leaf = previous_leaf(tree, path);
+      }
+    }
+  }
+
+  return leaf;
+}
+
+nameleaf *
+nametree_next_closest(
+  const struct nametree *tree,
+  struct namepath *path,
+  const namekey key,
+  uint8_t key_len,
+  const struct dname *name)
+{
+  int cmp;
+  nameleaf *leaf;
+
+  assert_path(tree, path);
+
+  cmp = search_path(tree, path, key, key_len, name);
+  assert(path->height > 0);
+  if (cmp == 0) {
+    leaf = next_leaf(tree, path);
+  } else {
+    struct namenode *node, **noderef;
+
+    node = *path->levels[path->height - 1].noderef;
+    if (nametree_is_leaf(node)) {
+      leaf = cmp > 0 ? next_leaf(tree, path) : nametree_untag_leaf(node);
+    } else if (node->prefix_len != 0) {
+      leaf = cmp > 0 ? next_leaf(tree, path) : minimum_leaf(tree, path);
+    } else {
+      assert(cmp > 0);
+      cmp--;
+      assert(cmp < NAMETREE_MAX_HEIGHT);
+      noderef = next_child(node, key[cmp]);
+      if (noderef != NULL) {
+        path->levels[path->height].depth = (uint8_t)cmp;
+        path->levels[path->height].noderef = noderef;
+        path->height++;
+        leaf = minimum_leaf(tree, path);
+      } else {
+        leaf = next_leaf(tree, path);
+      }
+    }
+  }
+
+  return leaf;
+}
+
+nameleaf *
+nametree_search(
+  const struct nametree *tree,
+  struct namepath *path,
+  const namekey key,
+  uint8_t key_len,
+  const struct dname *name,
+  uint8_t closest)
+{
+  int cmp;
+
+  assert_path(tree, path);
+  cmp = search_path(tree, path, key, key_len, name);
+  assert(path->height > 0);
+  if (cmp != 0) {
+    struct namenode *node, **noderef;
+
+    node = *path->levels[path->height - 1].noderef;
+    if (nametree_is_leaf(node)) {
+      if (closest == NAMETREE_CLOSEST_ENCLOSER) {
+        closest_encloser(tree, path, key, key_len);
+      } else if (closest == NAMETREE_PREVIOUS_CLOSEST && cmp < 0) {
+        previous_leaf(tree, path);
+      } else if (closest == NAMETREE_NEXT_CLOSEST && cmp > 0) {
+        next_leaf(tree, path);
+      }
+      return NULL;
+    } else if (node->prefix_len != 0) {
+      if (closest == NAMETREE_CLOSEST_ENCLOSER) {
+        closest_encloser(tree, path, key, key_len);
+      } else if (closest == NAMETREE_PREVIOUS_CLOSEST) {
+        cmp > 0 ? maximum_leaf(tree, path) : previous_leaf(tree, path);
+      } else if (closest == NAMETREE_NEXT_CLOSEST) {
+        cmp < 0 ? minimum_leaf(tree, path) : next_leaf(tree, path);
+      }
+      return NULL;
+    } else {
+      assert(cmp > 1);
+      cmp--;
+      assert(cmp < NAMETREE_MAX_HEIGHT);
+      if (closest == NAMETREE_CLOSEST_ENCLOSER) {
+        closest_encloser(tree, path, key, key_len);
+      } else if (closest != 0) {
+        if (closest == NAMETREE_PREVIOUS_CLOSEST) {
+          noderef = previous_child(node, key[cmp]);
+        } else {
+          noderef = next_child(node, key[cmp]);
+        }
+        if (noderef != NULL) {
+          path->levels[path->height].depth = (uint8_t)cmp;
+          path->levels[path->height].noderef = noderef;
+          path->height++;
+          closest == NAMETREE_PREVIOUS_CLOSEST
+            ? maximum_leaf(tree, path) : minimum_leaf(tree, path);
+        } else {
+          closest == NAMETREE_PREVIOUS_CLOSEST
+            ? previous_leaf(tree, path) : next_leaf(tree, path);
+        }
+      }
+      return NULL;
+    }
+  }
+
+  assert(nametree_is_leaf(*path->levels[path->height - 1].noderef));
+  return nametree_untag_leaf(*path->levels[path->height - 1].noderef);
 }
 
 static inline struct namenode **
@@ -1793,7 +2035,7 @@ remove_child48(struct nametree *tree, struct namenode **noderef, uint8_t key)
   } else if (node48->base.width < 35) {
     struct namenode38 *node38;
 
-    for (idx = 0; idx < 38; idx++) {
+    for (idx = 0, cnt = 0; idx < 38; idx++) {
       if (node48->keys[node38_unxlat(idx)] != 0) {
         if (++cnt == node48->base.width) {
            break;
@@ -1984,21 +2226,11 @@ nametree_delete(
   int32_t cmp;
   struct namenode *node, **noderef;
 
-  if (tree->root == NULL) {
-    path->height = 0;
-    return NULL;
-  } else if (path->height == 0) {
-    path->levels[0].depth = 0;
-    path->levels[0].noderef = &tree->root;
-    path->height++;
-  }
+  assert_path(tree, path);
 
-  assert(path->levels[0].depth == 0);
-  assert(path->levels[0].noderef == &tree->root);
   depth = path->levels[path->height - 1].depth;
   noderef = path->levels[path->height - 1].noderef;
   assert(depth < key_len);
-
   for (node = *noderef; depth < key_len; node = *noderef) {
     if (nametree_is_leaf(node)) {
       cmp = dname_compare(name, nametree_leaf_name(tree, node));
@@ -2009,7 +2241,7 @@ nametree_delete(
         return NULL;
       }
     } else if (node->prefix_len != 0) {
-      cmp = match_node(tree, node, key, key_len, depth);
+      cmp = match_node(tree, node, key, key_len, name, depth);
       if (cmp == 0) {
         depth += node->prefix_len;
       } else {
@@ -2070,13 +2302,13 @@ nametree_create(
 //}
 
 const struct dname *
-nametree_domain_dname(const nameleaf *leaf)
+nametree_domain_name(const nameleaf *leaf)
 {
   return domain_dname((struct domain *)leaf);
 }
 
 const struct dname *
-nametree_zone_dname(const nameleaf *leaf)
+nametree_zone_name(const nameleaf *leaf)
 {
   return domain_dname(((struct zone *)leaf)->apex);
 }

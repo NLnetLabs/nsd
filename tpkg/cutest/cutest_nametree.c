@@ -52,9 +52,9 @@ static void teardown(CuTest *tc)
 static struct nametree *create_tree(CuTest *tc)
 {
   struct nametree *tree;
-  tree = nametree_create(region, &nametree_domain_dname);
+  tree = nametree_create(region, &nametree_domain_name);
   CuAssertTrue(tc, tree != NULL);
-  CuAssertTrue(tc, tree->leaf_name == &nametree_domain_dname);
+  CuAssertTrue(tc, tree->leaf_name == &nametree_domain_name);
   CuAssertTrue(tc, tree->region == region);
   CuAssertTrue(tc, tree->root == NULL);
   return tree;
@@ -1439,7 +1439,7 @@ static void test_nametree_insert_single(CuTest *tc)
   CuAssertTrue(tc, path.levels[0].depth == 0);
   CuAssertTrue(tc, !nametree_is_leaf(*path.levels[0].noderef));
   CuAssertTrue(tc, (*path.levels[0].noderef)->prefix_len == 0);
-  CuAssertTrue(tc, path.levels[1].depth == 0);
+  CuAssertTrue(tc, path.levels[1].depth == key_len);
   CuAssertTrue(tc, nametree_is_leaf(*path.levels[1].noderef));
   CuAssertTrue(tc, nametree_untag_leaf(*path.levels[1].noderef) == foo);
   CuAssertTrue(tc, leaf == foo);
@@ -1478,7 +1478,7 @@ static void test_nametree_insert_single_comp(CuTest *tc)
   CuAssertTrue(tc, (*path.levels[0].noderef)->prefix_len == 10);
   CuAssertTrue(tc, (*path.levels[0].noderef)->prefix_len > NAMETREE_MAX_PREFIX);
   CuAssertTrue(tc, memcmp((*path.levels[0].noderef)->prefix, key, NAMETREE_MAX_PREFIX) == 0);
-  CuAssertTrue(tc, path.levels[1].depth == 10);
+  CuAssertTrue(tc, path.levels[1].depth == key_len);
   CuAssertTrue(tc, nametree_is_leaf(*path.levels[1].noderef));
   CuAssertTrue(tc, nametree_untag_leaf(*path.levels[1].noderef) == domains[1]);
   CuAssertTrue(tc, leaf == domains[1]);
@@ -1731,7 +1731,7 @@ static void test_nametree_search_non_existing(CuTest *tc)
   memset(&path, 0, sizeof(path));
   leaf = nametree_search(tree, &path, key, key_len, domains[4]->dname, 0);
   CuAssertTrue(tc, leaf == NULL);
-  CuAssertTrue(tc, path.height == 0);
+  CuAssertTrue(tc, path.height == 1);
 
   key_len = nametree_make_key(key, domains[5]->dname);
   memset(&path, 0, sizeof(path));
@@ -1753,7 +1753,7 @@ static void test_nametree_search_previous(CuTest *tc)
   namekey key;
   uint8_t key_len;
   nameleaf *leaf;
-  int32_t cmp = NAMETREE_PREVIOUS;
+  int32_t cmp = NAMETREE_PREVIOUS_CLOSEST;
 
   setup(tc);
 
@@ -1827,7 +1827,7 @@ static void test_nametree_search_next(CuTest *tc)
   namekey key;
   uint8_t key_len;
   nameleaf *leaf;
-  int32_t cmp = NAMETREE_NEXT;
+  int32_t cmp = NAMETREE_NEXT_CLOSEST;
 
   setup(tc);
 
