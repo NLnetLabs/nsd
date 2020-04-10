@@ -872,6 +872,7 @@ static void test_nametree_next_child48(CuTest *tc)
   noderef = next_child48(node, NAMETREE_MAX_WIDTH - 1);
   CuAssertTrue(tc, noderef == NULL);
   noderef = next_child48(node, NAMETREE_MAX_WIDTH - 2);
+  CuAssertTrue(tc, noderef == NULL);
   /* verify nothing is found if no next node exists */
   node->keys[NAMETREE_MAX_WIDTH - 3] = 1;
   node->children[0] = &dummies[0];
@@ -1465,6 +1466,7 @@ static void test_nametree_insert_single_comp(CuTest *tc)
 
   memset(&path, 0, sizeof(path));
   leaf = nametree_insert(tree, &path, key, key_len, domains[0]);
+  CuAssertTrue(tc, leaf == domains[0]);
 
   domains[1] = create_domain(tc, "lorumipsumdolor.");
   key_len = nametree_make_key(key, domains[1]->dname);

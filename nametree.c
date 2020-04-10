@@ -327,19 +327,17 @@ uint8_t nametree_make_key(namekey key, const struct dname *dname)
 }
 
 uint8_t nametree_make_prefix(
-  namekey key, const struct dname *dname, uint8_t depth, uint8_t prefix_len)
+  namekey key, const struct dname *name, uint8_t depth, uint8_t prefix_len)
 {
   uint8_t cnt, lim;
   uint8_t labno, laboff, labcnt, lablen;
   const uint8_t *label, *laboffs;
 
+  assert(depth < name->name_size);
+
   /* keys are reversed names, length is maintained */
-  if (depth >= dname->name_size) {
-    return 0;
-  } else if (prefix_len == 0) {
-    lim = dname->name_size - depth;
-  } else if (dname->name_size - depth < prefix_len) {
-    return 0;
+  if (prefix_len == 0 || prefix_len > name->name_size - depth) {
+    lim = name->name_size - depth;
   } else {
     lim = prefix_len;
   }
@@ -348,27 +346,25 @@ uint8_t nametree_make_prefix(
 
   /* determine from which label to start */
   labno = 0;
-  laboffs = dname_label_offsets(dname);
+  laboffs = dname_label_offsets(name);
   /* keys are reversed names, calculate depth from end of name */
-  depth = dname->name_size - (depth + 1);
+  depth = name->name_size - (depth + 1);
   if (depth != 0) {
-    while (labno < dname->label_count && depth <= laboffs[labno]) {
+    while (labno < name->label_count && depth <= laboffs[labno]) {
       labno++;
     }
 
     assert(labno != 0);
-    assert(labno < dname->label_count);
+    assert(labno < name->label_count);
 
     /* determine relative offset within label */
-    label = dname_label(dname, labno);
-    if (label_is_pointer(label)) {
-      return 0;
-    }
+    label = dname_label(name, labno);
+    assert(!label_is_pointer(label));
     lablen = label[0] + 1;
     laboff = (laboffs[labno] + lablen) - depth;
 
     for (;;) {
-      assert(labno < dname->label_count);
+      assert(labno < name->label_count);
       for (labcnt = laboff + 1; labcnt < lablen; labcnt++) {
         key[cnt++] = xlat(label[labcnt]);
         if (cnt >= lim)
@@ -378,16 +374,15 @@ uint8_t nametree_make_prefix(
       if (cnt >= lim)
         return cnt;
       labno++;
-      if (labno >= dname->label_count)
+      if (labno >= name->label_count)
         break;
-      label = dname_label(dname, labno);
-      if (label_is_pointer(label))
-        return 0;
+      label = dname_label(name, labno);
+      assert(!label_is_pointer(label));
       lablen = label[0] + 1;
       laboff = 0;
     }
   }
-  key[cnt++] = 0x00;
+  key[cnt++] = 0x00u;
 
   return cnt;
 }
@@ -860,7 +855,7 @@ find_leaf(const struct namenode *node)
 static nameleaf *
 minimum_leaf(const struct nametree *tree, struct namepath *path)
 {
-  struct namenode *node, **noderef;
+  struct namenode *node, **noderef = NULL;
 
   (void)tree;
   node = *path->levels[path->height - 1].noderef;
@@ -897,7 +892,7 @@ minimum_leaf(const struct nametree *tree, struct namepath *path)
         break;
     }
 
-    assert(!(*noderef == NULL || *noderef == node));
+    assert(!(noderef == NULL || *noderef == NULL || *noderef == node));
 
     path->levels[path->height].depth =
       path->levels[path->height - 1].depth + node->prefix_len + 1;
@@ -914,7 +909,7 @@ minimum_leaf(const struct nametree *tree, struct namepath *path)
 static nameleaf *
 maximum_leaf(const struct nametree *tree, struct namepath *path)
 {
-  struct namenode *node, **noderef;
+  struct namenode *node, **noderef = NULL;
 
   (void)tree;
   node = *path->levels[path->height - 1].noderef;
@@ -951,7 +946,7 @@ maximum_leaf(const struct nametree *tree, struct namepath *path)
         break;
     }
 
-    assert(!(*noderef == NULL || *noderef == node));
+    assert(!(noderef == NULL || *noderef == NULL || *noderef == node));
 
     path->levels[path->height].depth =
       path->levels[path->height - 1].depth + node->prefix_len + 1;
@@ -1442,7 +1437,9 @@ add_child48(
   assert(node48->base.width < 48);
   /* nametree sorts nodes of type NAMENODE48 to ensure the tree can be
    * iterated with previous/next without a key */
-  if (key < NAMETREE_MAX_WIDTH) {
+  if (node48->base.width == 0) {
+    idx = 0;
+  } else {
     for (cnt = key; cnt < NAMETREE_MAX_WIDTH && !node48->keys[cnt]; cnt++) ;
 
     if (cnt == NAMETREE_MAX_WIDTH) {
@@ -1739,8 +1736,9 @@ split_leaf(
     }
     /* fill prefix */
     len = nametree_make_prefix(
-      buf, nametree_leaf_name(tree, child), depth, 0);
-    cnt = compare_keys(key + depth, buf, min((key_len-1) - depth, (len-1)));
+      buf, nametree_leaf_name(tree, child), depth, key_len - depth);
+    assert(len + depth <= key_len);
+    cnt = compare_keys(key + depth, buf, len-1);
     node->prefix_len = cnt;
     memcpy(node->prefix, buf, min(cnt, NAMETREE_MAX_PREFIX));
     /* update edges */
