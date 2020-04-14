@@ -336,6 +336,27 @@ if test "x$CFLAGS" = "x" ; then
 	ACX_CHECK_PIE
 	ACX_CHECK_RELRO_NOW
 fi
+
+ACX_CHECK_COMPILER_FLAG_NEEDED(-mavx2,
+  [[
+    #if (defined(__i386__) || defined(__x86_64__))
+    #include <immintrin.h>
+    void testing(void) {
+      char a = 0, b[32] = { 0,  1,  2,  3,  4,  5,  6,  7,
+                            8,  9,  10, 11, 12, 13, 14, 15,
+                            16, 17, 18, 19, 20, 21, 22, 23,
+                            24, 25, 26, 27, 28, 29, 31, 31 };
+      _mm256_cmpeq_epi8(_mm256_set1_epi8(a), _mm256_loadu_si256((__m256i*)&b));
+      _mm256_cmpgt_epi8(_mm256_set1_epi8(a), _mm256_loadu_si256((__m256i*)&b));
+    }
+    #else
+    #error "neither i386 nor x86_64"
+    #endif
+  ]],
+  [ CFLAGS="$CFLAGS -mavx2"
+    AC_DEFINE(HAVE_AVX2, 1, [Define this if AVX2 extensions are supported])],
+  [ AC_DEFINE(HAVE_AVX2, 1, [Define this if AVX2 extensions are supported])])
+
 AC_C_CONST
 AC_C_INLINE
 AC_TYPE_UID_T

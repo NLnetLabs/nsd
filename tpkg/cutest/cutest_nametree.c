@@ -198,7 +198,7 @@ static void test_nametree_findeq_32u8(CuTest *tc)
   CuAssert(tc, "findeq_16u8_non_simd: existent out-of-bounds value",
     findeq_16u8_non_simd(vec, 0x11u, 16) == 0);
 
-#if defined(__i386__) || defined(__x86_64__)
+#if (defined(__i386__) || defined(__x86_64__)) && defined(HAVE_AVX2)
   if (have_simd256) {
     CuAssert(tc, "findeq_32u8_simd: 1st byte",
       findeq_16u8_simd(vec, 0x01u, 32) == 0x01u);
@@ -254,7 +254,7 @@ static void test_nametree_findgt_32u8(CuTest *tc)
   CuAssert(tc, "findgt_32u8_non_simd: smaller than 17th, but maximum at 16th",
     findgt_32u8_non_simd(vec, 0x11u, 16) == 0x00u);
 
-#if defined(__i386__) || defined(__x86_64__)
+#if (defined(__i386__) || defined(__x86_64__)) && defined(HAVE_AVX2)
   if (have_simd256) {
     CuAssert(tc, "findgt_32u8_non_simd: larger than 32nd",
       findgt_32u8_non_simd(vec, 0x21u, 32) == 0x00u);

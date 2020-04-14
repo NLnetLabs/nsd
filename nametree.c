@@ -77,6 +77,7 @@ findgt_16u8_simd(const uint8_t vec[16], uint8_t chr, uint8_t cnt)
   return mask ? __builtin_ctz(mask) + 1 : 0;
 }
 
+#if defined(HAVE_AVX2)
 static inline uint8_t
 findeq_32u8_simd(const uint8_t vec[32], uint8_t chr, uint8_t cnt)
 {
@@ -100,6 +101,7 @@ findgt_32u8_simd(const uint8_t vec[32], uint8_t chr, uint8_t cnt)
   mask = _mm256_movemask_epi8(cmp) & (cnt < 32u ? (1u<<cnt) - 1u : UINT32_MAX);
   return mask ? __builtin_ctz(mask) + 1 : 0;
 }
+#endif /* HAVE_AVX2 */
 #endif
 
 static inline uint8_t
@@ -173,7 +175,7 @@ findgt_32u8_non_simd(const uint8_t vec[32], uint8_t chr, uint8_t cnt)
 static uint8_t
 findeq_32u8(const uint8_t vec[32], uint8_t chr, uint8_t cnt)
 {
-#if defined(__i386__) || defined(__x86_64__)
+#if (defined(__i386__) || defined(__x86_64__)) && defined(HAVE_AVX2)
   if (have_simd256 == 1) {
     return findeq_32u8_simd(vec, chr, cnt);
   }
@@ -184,7 +186,7 @@ findeq_32u8(const uint8_t vec[32], uint8_t chr, uint8_t cnt)
 static inline uint8_t
 findgt_32u8(const uint8_t vec[32], uint8_t chr, uint8_t cnt)
 {
-#if defined(__i386__) || defined(__x86_64__)
+#if (defined(__i386__) || defined(__x86_64__)) && defined(HAVE_AVX2)
   if (have_simd256 == 1) {
     return findgt_32u8_simd(vec, chr, cnt);
   }
