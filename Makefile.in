@@ -86,6 +86,7 @@ NSD_CHECKCONF_OBJ=$(COMMON_OBJ) nsd-checkconf.o
 NSD_CHECKZONE_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o nsd-checkzone.o
 NSD_CONTROL_OBJ=$(COMMON_OBJ) nsd-control.o
 CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_nametree.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_rrl.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest_bitset.o cutest_popen3.o cutest_iter.o cutest_event.o cutest.o qtest.o
+TREEPERF_OBJ=dname.o talloc.o util.o region-allocator.o buffer.o dns.o rdata.o
 NSD_MEM_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o zparser.o zlexer.o nsd-mem.o
 all:	$(TARGETS) $(MANUALS)
 
@@ -179,6 +180,17 @@ xfr-inspect:	xfr-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 
 popen3_echo: popen3.o popen3_echo.o
 	$(LINK) -o $@ popen3.o popen3_echo.o
+
+treeperf: nametreeperf radtreeperf rbtreeperf
+
+nametreeperf: treeperf-nametree.o namedb-nametree.o nametree.o $(TREEPERF_OBJ) $(LIBOBJS)
+	$(LINK) -o $@ treeperf-nametree.o namedb-nametree.o nametree.o $(TREEPERF_OBJ) $(LIBOBJS)
+
+radtreeperf: treeperf-radtree.o namedb-radtree.o radtree.o $(TREEPERF_OBJ) $(LIBOBJS)
+	$(LINK) -o $@ treeperf-radtree.o namedb-radtree.o radtree.o $(TREEPERF_OBJ) $(LIBOBJS)
+
+rbtreeperf: treeperf-rbtree.o namedb-rbtree.o rbtree.o $(TREEPERF_OJB) $(LIBOBJS)
+	$(LINK) -o $@ treeperf-rbtree.o namedb-rbtree.o rbtree.o $(TREEPERF_OBJ) $(LIBOBJS)
 
 checksec:
 	wget -q -O checksec https://raw.githubusercontent.com/slimm609/checksec.sh/master/checksec
@@ -335,6 +347,50 @@ qtest.o:	$(srcdir)/tpkg/cutest/qtest.c
 
 udb-inspect.o:	$(srcdir)/tpkg/cutest/udb-inspect.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/udb-inspect.c
+
+talloc.o:	$(srcdir)/tpkg/treeperf/talloc.c \
+		$(srcdir)/tpkg/treeperf/talloc.h \
+		$(srcdir)/util.h
+	$(COMPILE) -c $(srcdir)/tpkg/treeperf/talloc.c
+
+treeperf-nametree.o:	$(srcdir)/tpkg/treeperf/treeperf.c \
+			$(srcdir)/tpkg/treeperf/namedb-treeperf.h \
+			$(srcdir)/tpkg/treeperf/talloc.h \
+			$(srcdir)/dname.h
+	$(COMPILE) -o $@ -c -DTREEPERF_USE_NAMETREE $(srcdir)/tpkg/treeperf/treeperf.c
+
+treeperf-radtree.o:	$(srcdir)/tpkg/treeperf/treeperf.c \
+			$(srcdir)/tpkg/treeperf/namedb-treeperf.h \
+			$(srcdir)/tpkg/treeperf/talloc.h \
+			$(srcdir)/dname.h
+	$(COMPILE) -o $@ -c -DTREEPERF_USE_RADTREE $(srcdir)/tpkg/treeperf/treeperf.c
+
+treeperf-rbtree.o:	$(srcdir)/tpkg/treeperf/treeperf.c \
+			$(srcdir)/tpkg/treeperf/namedb-treeperf.h \
+			$(srcdir)/tpkg/treeperf/talloc.h \
+			$(srcdir)/dname.h
+	$(COMPILE) -o $@ -c -DTREEPERF_USE_RBTREE $(srcdir)/tpkg/treeperf/treeperf.c
+
+namedb-nametree.o:	$(srcdir)/tpkg/treeperf/namedb-treeperf.c \
+			$(srcdir)/tpkg/treeperf/namedb-treeperf.h \
+			$(srcdir)/dname.h \
+			$(srcdir)/nametree.h \
+			$(srcdir)/region-allocator.h
+	$(COMPILE) -o $@ -c -DTREEPERF_USE_NAMETREE $(srcdir)/tpkg/treeperf/namedb-treeperf.c
+
+namedb-radtree.o:	$(srcdir)/tpkg/treeperf/namedb-treeperf.c \
+			$(srcdir)/tpkg/treeperf/namedb-treeperf.h \
+			$(srcdir)/dname.h \
+			$(srcdir)/radtree.h \
+			$(srcdir)/region-allocator.h
+	$(COMPILE) -o $@ -c -DTREEPERF_USE_RADTREE $(srcdir)/tpkg/treeperf/namedb-treeperf.c
+
+namedb-rbtree.o:	$(srcdir)/tpkg/treeperf/namedb-treeperf.c \
+			$(srcdir)/tpkg/treeperf/namedb-treeperf.h \
+			$(srcdir)/dname.h \
+			$(srcdir)/rbtree.h \
+			$(srcdir)/region-allocator.h
+	$(COMPILE) -o $@ -c -DTREEPERF_USE_RBTREE $(srcdir)/tpkg/treeperf/namedb-treeperf.c
 
 zlexer.c:	$(srcdir)/zlexer.lex
 	if test "$(LEX)" != ":"; then rm -f $@ ;\
