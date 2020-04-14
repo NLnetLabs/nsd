@@ -1179,6 +1179,7 @@ closest_encloser(
     }
   }
 
+  memcpy(buf, key, depth);
   if (nametree_is_leaf(node)) {
     /* slow path, recreate leaf key */
     len += nametree_make_prefix(
@@ -1209,7 +1210,7 @@ closest_encloser(
     closest++;
   }
 
-  buf[closest++] = 0x00;
+  buf[closest++] = 0x00u;
 
   return search_path(tree, path, buf, closest, NULL) == 0
     ? nametree_untag_leaf(*path->levels[path->height - 1].noderef) : NULL;
@@ -1354,7 +1355,7 @@ nametree_search(
       }
       return NULL;
     } else {
-      assert(cmp > 1);
+      assert(cmp > 0);
       cmp--;
       assert(cmp < NAMETREE_MAX_HEIGHT);
       if (closest == NAMETREE_CLOSEST_ENCLOSER) {
