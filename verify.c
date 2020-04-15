@@ -121,7 +121,6 @@ static void verify_handle_stream(int fd, short event, void *arg)
 				*end = '\0';
 				log_msg(stream->priority, fmt, len, ptr);
 				ptr += len;
-				len = 0;
 			}
 			if(cnt <= 0) {
 				break;
