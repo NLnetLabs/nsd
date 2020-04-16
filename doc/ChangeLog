@@ -1,5 +1,6 @@
 16 April 2020: Wouter
 	- Tag for 4.3.1 release and track 4.3.2 release in code repository.
+	- note sha256 digest algo use in makedist.sh.
 
 8 April 2020: Wouter
 	- Tag for 4.3.1rc2.
