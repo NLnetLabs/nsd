@@ -3,6 +3,8 @@
 	- note sha256 digest algo use in makedist.sh.
 	- Fix for posix shell syntax for trap in nsd-control-setup.
 	- Fix to omit the listen-on lines from log at startup, unless verbose.
+	- Fix uninitialised values for bindtodevice option at startup with
+	  reuseport and multiple interfaces.
 
 8 April 2020: Wouter
 	- Tag for 4.3.1rc2.

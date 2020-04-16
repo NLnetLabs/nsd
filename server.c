@@ -1298,6 +1298,12 @@ server_init(struct nsd *nsd)
 		nsd->tcp = xrealloc(nsd->tcp, ifs * sizeof(*nsd->tcp));
 		region_add_cleanup(nsd->region, free, nsd->udp);
 		region_add_cleanup(nsd->region, free, nsd->tcp);
+		if(ifs > nsd->ifs) {
+			memset(&nsd->udp[nsd->ifs], 0,
+				(ifs-nsd->ifs)*sizeof(*nsd->udp));
+			memset(&nsd->tcp[nsd->ifs], 0,
+				(ifs-nsd->ifs)*sizeof(*nsd->tcp));
+		}
 
 		for(i = nsd->ifs; i < ifs; i++) {
 			nsd->udp[i].addr = nsd->udp[i%nsd->ifs].addr;
