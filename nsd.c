@@ -522,12 +522,12 @@ print_sockets(
 		addrport2str(&udp[i].addr.ai_addr, sockbuf, sizeof(sockbuf));
 		print_socket_servers(&udp[i], serverbuf, serverbufsz);
 		nsd_bitset_or(servers, servers, udp[i].servers);
-		log_msg(LOG_NOTICE, fmt, sockbuf, "udp", serverbuf);
+		VERBOSITY(3, (LOG_NOTICE, fmt, sockbuf, "udp", serverbuf));
 		assert(tcp[i].servers->size == servercnt);
 		addrport2str(&tcp[i].addr.ai_addr, sockbuf, sizeof(sockbuf));
 		print_socket_servers(&tcp[i], serverbuf, serverbufsz);
 		nsd_bitset_or(servers, servers, tcp[i].servers);
-		log_msg(LOG_NOTICE, fmt, sockbuf, "tcp", serverbuf);
+		VERBOSITY(3, (LOG_NOTICE, fmt, sockbuf, "tcp", serverbuf));
 	}
 
 

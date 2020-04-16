@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix for posix shell syntax for trap in nsd-control-setup
+	- Fix to omit the listen-on lines from log at startup, unless verbose.
 
 
 4.3.1
