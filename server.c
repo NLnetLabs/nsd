@@ -3003,7 +3003,7 @@ server_child(struct nsd *nsd)
 static void remaining_tcp_timeout(int ATTR_UNUSED(fd), short event, void* arg)
 {
 	int* timed_out = (int*)arg;
-        assert(event & EV_TIMEOUT);
+        assert(event & EV_TIMEOUT); (void)event;
 	/* wake up the service tcp thread, note event is no longer
 	 * registered */
 	*timed_out = 1;
@@ -3125,7 +3125,7 @@ nsd_recvmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
 	ssize_t rcvd;
 
 	/* timeout is ignored, ensure caller does not expect it to work */
-	assert(timeout == NULL);
+	assert(timeout == NULL); (void)timeout;
 
 	orig_errno = errno;
 	errno = 0;

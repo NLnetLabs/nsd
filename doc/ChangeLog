@@ -1,6 +1,7 @@
 20 April 2020: Wouter
 	- Fix #95: Removed make test check because tpkg not included in
 	  release tarballs.
+	- Fix unused parameter compile warnings.
 
 16 April 2020: Wouter
 	- Tag for 4.3.1 release and track 4.3.2 release in code repository.
