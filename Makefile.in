@@ -191,9 +191,6 @@ audit: nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem checksec
 	./checksec --file=nsd-control
 	./checksec --file=nsd-mem
 
-test check: cutest
-	./cutest
-
 clean:
 	rm -f *.o $(TARGETS) $(MANUALS) cutest popen3_echo udb-inspect xfr-inspect nsd-mem
 

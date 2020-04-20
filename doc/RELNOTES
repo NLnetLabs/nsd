@@ -8,6 +8,8 @@ BUG FIXES:
 	- Fix to omit the listen-on lines from log at startup, unless verbose.
 	- Fix uninitialised values for bindtodevice option at startup with
 	  reuseport and multiple interfaces.
+	- Fix #95: Removed make test check because tpkg not included in
+	  release tarballs.
 
 
 4.3.1
