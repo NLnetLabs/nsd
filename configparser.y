@@ -76,6 +76,7 @@ static int parse_range(const char *str, long long *low, long long *high);
 %token VAR_ZONELISTFILE
 %token VAR_DATABASE
 %token VAR_LOGFILE
+%token VAR_LOG_ONLY_SYSLOG
 %token VAR_PIDFILE
 %token VAR_DIFFFILE
 %token VAR_XFRDFILE
@@ -291,6 +292,8 @@ server_option:
     }
   | VAR_LOGFILE STRING
     { cfg_parser->opt->logfile = region_strdup(cfg_parser->opt->region, $2); }
+  | VAR_LOG_ONLY_SYSLOG boolean
+    { cfg_parser->opt->log_only_syslog = $2; }
   | VAR_TCP_COUNT number
     {
       if ($2 > 0) {

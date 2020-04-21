@@ -78,6 +78,7 @@ struct nsd_options {
 	const char* identity;
 	const char* version;
 	const char* logfile;
+	int log_only_syslog;
 	int server_count;
 	struct cpu_option* cpu_affinity;
 	struct cpu_map_option* service_cpu_affinity;

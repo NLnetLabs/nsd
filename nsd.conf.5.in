@@ -241,6 +241,12 @@ Log messages to the logfile. The default is to log to stderr and
 syslog (with facility LOG_DAEMON). Same as commandline option 
 .BR \-l .
 .TP
+.B log\-only\-syslog:\fR <yes or no>
+Log messages only to syslog.  Useful with systemd so that print to stderr
+does not cause duplicate log strings in journald.  Before syslog has
+been opened, the server uses stderr.  Stderr is also used if syslog is
+not available.  Default is no.
+.TP
 .B server\-count:\fR <number>
 Start this many NSD servers. Default is 1. Same as commandline 
 option 

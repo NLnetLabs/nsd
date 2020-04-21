@@ -1287,7 +1287,9 @@ main(int argc, char *argv[])
 
 	/* Set up the logging */
 	log_open(LOG_PID, FACILITY, nsd.log_filename);
-	if (!nsd.log_filename)
+	if(nsd.options->log_only_syslog)
+		log_set_log_function(log_only_syslog);
+	else if (!nsd.log_filename)
 		log_set_log_function(log_syslog);
 	else if (nsd.uid && nsd.gid) {
 		if(chown(nsd.log_filename, nsd.uid, nsd.gid) != 0)

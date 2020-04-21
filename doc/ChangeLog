@@ -1,3 +1,8 @@
+21 April 2020: Wouter
+	- Fix #96: log-only-syslog: yes sets to only use syslog, fixes
+	  that the default configuration and systemd results in duplicate
+	  log messages.
+
 20 April 2020: Wouter
 	- Fix #95: Removed make test check because tpkg not included in
 	  release tarballs.

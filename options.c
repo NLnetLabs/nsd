@@ -66,6 +66,7 @@ nsd_options_create(region_type* region)
 	opt->version = 0;
 	opt->nsid = 0;
 	opt->logfile = 0;
+	opt->log_only_syslog = 0;
 	opt->log_time_ascii = 1;
 	opt->round_robin = 0; /* also packet.h::round_robin */
 	opt->minimal_responses = 0; /* also packet.h::minimal_responses */

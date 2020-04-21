@@ -118,6 +118,9 @@ server:
 	# facility LOG_DAEMON).  stderr disappears when daemon goes to bg.
 	# logfile: "@logfile@"
 
+	# log only to syslog.
+	# log-only-syslog: no
+
 	# File to store pid for nsd in.
 	# pidfile: "@pidfile@"
 

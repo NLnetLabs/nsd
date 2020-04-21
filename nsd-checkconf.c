@@ -375,6 +375,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_BIN(confine_to_zone, o);
 		SERV_GET_BIN(refuse_any, o);
 		SERV_GET_BIN(tcp_reject_overflow, o);
+		SERV_GET_BIN(log_only_syslog, o);
 		/* str */
 		SERV_GET_PATH(final, database, o);
 		SERV_GET_STR(identity, o);
@@ -515,6 +516,7 @@ config_test_print_server(nsd_options_type* opt)
 	print_string_var("version:", opt->version);
 	print_string_var("nsid:", opt->nsid);
 	print_string_var("logfile:", opt->logfile);
+	printf("\tlog-only-syslog: %s\n", opt->log_only_syslog?"yes":"no");
 	printf("\tserver-count: %d\n", opt->server_count);
 	if(opt->cpu_affinity) {
 		cpu_option_type *n;
