@@ -1,3 +1,6 @@
+24 April 2020: Wouter
+	- Fix #97: EDNS unknown version: query not in response.
+
 21 April 2020: Wouter
 	- Fix #96: log-only-syslog: yes sets to only use syslog, fixes
 	  that the default configuration and systemd results in duplicate

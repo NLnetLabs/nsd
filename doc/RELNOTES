@@ -14,6 +14,7 @@ BUG FIXES:
 	- Fix #95: Removed make test check because tpkg not included in
 	  release tarballs.
 	- Fix unused parameter compile warnings.
+	- Fix #97: EDNS unknown version: query not in response.
 
 
 4.3.1
