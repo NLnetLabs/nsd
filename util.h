@@ -143,6 +143,7 @@ lookup_table_type *lookup_by_id(lookup_table_type table[], int id);
  * could not be allocated and exit the program.  These functions never
  * return NULL.
  */
+char *xstrdup(const char *src);
 void *xalloc(size_t size);
 void *xmallocarray(size_t num, size_t size);
 void *xalloc_zero(size_t size);
@@ -400,7 +401,7 @@ struct state_pretty_rr {
 struct state_pretty_rr* create_pretty_rr(struct region* region);
 /* print rr to file, returns 0 on failure(nothing is written) */
 int print_rr(FILE *out, struct state_pretty_rr* state, struct rr *record,
-	struct region* tmp_region, struct buffer* tmp_buffer); 
+	struct region* tmp_region, struct buffer* tmp_buffer);
 
 /*
  * Convert a numeric rcode value to a human readable string
