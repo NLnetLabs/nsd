@@ -2484,13 +2484,14 @@ server_main(struct nsd *nsd)
 					restart_child_servers(nsd, server_region, netio,
 						&nsd->xfrd_listener->fd);
 				} else if (child_pid == reload_pid) {
-					sig_atomic_t cmd = NSD_RELOAD_DONE;
+					sig_atomic_t cmd = NSD_RELOAD_FAILED;
 					pid_t mypid;
 					log_msg(LOG_WARNING,
 					       "Reload process %d failed with status %d, continuing with old database",
 					       (int) child_pid, status);
 					reload_pid = -1;
 					if(reload_listener.fd != -1) close(reload_listener.fd);
+					netio_remove_handler(netio, &reload_listener);
 					reload_listener.fd = -1;
 					reload_listener.event_types = NETIO_EVENT_NONE;
 					task_process_sync(nsd->task[nsd->mytask]);
@@ -2580,7 +2581,7 @@ server_main(struct nsd *nsd)
 				nsd->restart_children = 0;
 			}
 			if(nsd->reload_failed) {
-				sig_atomic_t cmd = NSD_RELOAD_DONE;
+				sig_atomic_t cmd = NSD_RELOAD_FAILED;
 				pid_t mypid;
 				nsd->reload_failed = 0;
 				log_msg(LOG_WARNING,
@@ -2588,6 +2589,7 @@ server_main(struct nsd *nsd)
 				       (int) reload_pid);
 				reload_pid = -1;
 				if(reload_listener.fd != -1) close(reload_listener.fd);
+				netio_remove_handler(netio, &reload_listener);
 				reload_listener.fd = -1;
 				reload_listener.event_types = NETIO_EVENT_NONE;
 				task_process_sync(nsd->task[nsd->mytask]);
