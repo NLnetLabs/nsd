@@ -74,6 +74,13 @@ struct dt_collector;
  * port53 is free when all of nsd's processes have exited at shutdown time
  */
 #define NSD_QUIT_CHILD 11
+/*
+ * This is the exit code of a nsd "new master" child process to indicate to
+ * the master process that some zones failed verification and that it should
+ * reload again, reprocessing the difffiles. The master process will resend
+ * the command to xfrd so it will not reload from xfrd yet.
+ */
+#define NSD_RELOAD_FAILED 14
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U
