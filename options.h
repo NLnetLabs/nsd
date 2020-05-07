@@ -287,9 +287,12 @@ struct pattern_options {
 	uint8_t create_ixfr;
 	uint8_t create_ixfr_is_default;
 	uint8_t verify_zone;
+	uint8_t verify_zone_is_default;
 	char **verifier;
 	uint8_t verifier_feed_zone;
+	uint8_t verifier_feed_zone_is_default;
 	int32_t verifier_timeout;
+	uint8_t verifier_timeout_is_default;
 } ATTR_PACKED;
 
 #define PATTERN_IMPLICIT_MARKER "_implicit_"
