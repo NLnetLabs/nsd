@@ -1,0 +1,40 @@
+server:
+	xfrdfile: "xfrd.state"
+	difffile: "ixfr.db"
+	database: ""
+	pidfile: nsd.pid
+	logfile: nsd.log
+	zonelistfile: "control-repat-zone-verifier.zonelist"
+	zonesdir: ""
+	username: ""
+	chroot: ""
+	verbosity: 1
+
+remote-control:
+	control-enable: yes
+	control-port: NSD_CONTROL_PORT
+	server-key-file: "nsd_server.key"
+	server-cert-file: "nsd_server.pem"
+	control-key-file: "nsd_control.key"
+	control-cert-file: "nsd_control.pem"
+
+verify:
+	enable: yes
+	port: NSD_VERIFY_PORT
+	verifier-feed-zone: no
+
+pattern:
+	name: verifier.pattern
+	request-xfr: UDP 127.0.0.1@TESTNS_PORT NOKEY
+	allow-notify: 127.0.0.1 NOKEY
+	allow-notify: ::1 NOKEY
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: ::1 NOKEY
+	min-refresh-time: 0
+	min-retry-time: 0
+	verifier: NSD_VERIFIER
+
+zone:
+	name: example.net
+	zonefile: verify_repat.zone
+	include-pattern: verifier.pattern
