@@ -658,7 +658,11 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 		{
 			/* zone expired */
 			xfrd_set_zone_state(zone, xfrd_zone_expired);
-			xfrd_set_refresh_now(zone);
+			/* do not refresh right away, like with corrupt or
+			   inconsistent updates, because the zone is (probably)
+			   not fixed on the primary yet. an immediate refresh
+			   can therefore potentially trigger an update loop */
+			xfrd_set_timer_retry(zone);
 		} else {
 			/* zone still ok, temporarily update refresh and retry
 			   intervals to avoid flooding the primary with IXFR
