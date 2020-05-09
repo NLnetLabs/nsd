@@ -169,7 +169,8 @@ diff_update_commit(
 	assert(commit == DIFF_NOT_COMMITTED ||
 	       commit == DIFF_COMMITTED ||
 	       commit == DIFF_CORRUPT ||
-	       commit == DIFF_INCONSISTENT);
+	       commit == DIFF_INCONSISTENT ||
+	       commit == DIFF_VERIFIED);
 
 	df = xfrd_open_xfrfile(nsd, filenumber, "r+");
 	if(!df) {
@@ -1380,6 +1381,9 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 	case DIFF_INCONSISTENT:
 		log_msg(LOG_ERR, "diff file %s was inconsistent", zone_buf);
 		return 0;
+	case DIFF_VERIFIED:
+		log_msg(LOG_INFO, "diff file %s already verified", zone_buf);
+		break;
 	default:
 		break;
 	}
@@ -1460,6 +1464,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 #endif /* NSEC3 */
 		zonedb->is_changed = 1;
 		zonedb->is_updated = 1;
+		zonedb->is_good = (committed == DIFF_VERIFIED);
 		if(nsd->db->udb) {
 			assert(z.base);
 			ZONE(&z)->is_changed = 1;
