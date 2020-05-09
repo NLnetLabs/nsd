@@ -1,0 +1,16 @@
+#!/bin/sh
+# source the master var file when it's there
+if [ -f "../.tpkg.var.master" ]; then
+  source "../.tpkg.var.master"
+fi
+# use .tpkg.var.test for in test variable passing
+if [ -f ".tpkg.var.test" ]; then
+  source "./.tpkg.var.test"
+fi
+
+if [ -p ${NSD_VERIFIER_IN} ]; then
+  echo "verifier for ${VERIFY_ZONE} will block on fifo"
+  read -t ${NSD_VERIFIER_TIMEOUT} line <${NSD_VERIFIER_IN}
+  echo "verifier for ${VERIFY_ZONE} woke up"
+  rm -f ${NSD_VERIFIER_IN}
+fi
