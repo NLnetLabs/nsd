@@ -23,6 +23,7 @@ struct nsdst;
 #define DIFF_COMMITTED (1u<<0) /* XFR committed to disk */
 #define DIFF_CORRUPT (1u<<1) /* XFR corrupt */
 #define DIFF_INCONSISTENT (1u<<2) /* IXFR cannot be applied */
+#define DIFF_VERIFIED (1u<<3) /* XFR already verified */
 
 /* write an xfr packet data to the diff file, type=IXFR.
    The diff file is created if necessary, with initial header(notcommitted). */

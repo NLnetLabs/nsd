@@ -145,6 +145,7 @@ struct zone
 	unsigned     is_ok : 1; /* zone has not expired */
 	unsigned     is_changed : 1; /* zone changes must be written to disk */
 	unsigned     is_updated : 1; /* zone was changed by XFR */
+	unsigned     is_good : 1; /* zone already verified */
 	unsigned     is_bad : 1; /* zone failed verification */
 } ATTR_PACKED;
 
