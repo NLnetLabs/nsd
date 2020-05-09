@@ -573,7 +573,7 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 	xfrd_xfr_type* xfr;
 	xfrd_xfr_type* prev_xfr;
 	enum soainfo_hint hint;
-	time_t before, now;
+	time_t before, acquired = 0;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: process SOAINFO %s",
 		dname_to_string(task->zname, 0)));
 	zone = (xfrd_zone_type*)rbtree_search(xfrd->zones, task->zname);
@@ -642,6 +642,13 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 				"delete soa serial %u update",
 				zone->apex_str, xfr->msg_new_serial));
 			xfrd_delete_zone_xfr(zone, xfr);
+			/* updates are applied in-order, acquired time of
+			   most-recent update is used as a baseline */
+			if(!acquired) {
+				acquired = xfr->acquired;
+				assert(!soa_ptr ||
+				        soa_ptr->serial == htonl(xfr->msg_new_serial));
+			}
 		}
 	}
 
@@ -649,36 +656,20 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 	switch(hint) {
 	case soainfo_bad:
 		/* "rollback" on-disk soa information */
-		now = xfrd_time();
 		zone->soa_disk_acquired = zone->soa_nsd_acquired;
 		zone->soa_disk = zone->soa_nsd;
 
-		if(now - zone->soa_disk_acquired
+		if(xfrd_time() - zone->soa_disk_acquired
 			>= (time_t)ntohl(zone->soa_disk.expire))
 		{
 			/* zone expired */
 			xfrd_set_zone_state(zone, xfrd_zone_expired);
-			/* do not refresh right away, like with corrupt or
-			   inconsistent updates, because the zone is (probably)
-			   not fixed on the primary yet. an immediate refresh
-			   can therefore potentially trigger an update loop */
-			xfrd_set_timer_retry(zone);
-		} else {
-			/* zone still ok, temporarily update refresh and retry
-			   intervals to avoid flooding the primary with IXFR
-			   and AXFR requests and reset timer */
-			uint32_t refresh, retry;
-			refresh =
-				ntohl(zone->soa_disk.refresh) +
-				(now - zone->soa_disk_acquired);
-			retry =
-				ntohl(zone->soa_disk.retry) +
-				(now - zone->soa_disk_acquired);
-			zone->soa_disk.refresh = htonl(refresh);
-			zone->soa_disk.retry = htonl(retry);
-			xfrd_set_timer_refresh(zone);
-			zone->soa_disk = zone->soa_nsd;
 		}
+		/* do not refresh right away, like with corrupt or inconsistent
+		   updates, because the zone is likely not fixed on the primary
+		   yet. an immediate refresh can therefore potentially trigger
+		   an update loop */
+		xfrd_set_timer_retry(zone);
 
 		if(zone->soa_notified_acquired != 0 &&
 			(zone->soa_notified.serial == 0 ||
@@ -699,7 +690,7 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 			break;
 		/* fall through */
 	case soainfo_gone:
-		xfrd_handle_incoming_soa(zone, soa_ptr, xfrd_time());
+		xfrd_handle_incoming_soa(zone, soa_ptr, acquired);
 		break;
 	}
 }
@@ -1286,55 +1277,82 @@ xfrd_handle_incoming_soa(xfrd_zone_type* zone,
 	if(zone->soa_nsd_acquired && soa->serial == zone->soa_nsd.serial)
 		return;
 
-	if(zone->soa_disk_acquired && soa->serial == zone->soa_disk.serial)
-	{
+	if(zone->soa_disk_acquired) {
+		int cmp = compare_serial(soa->serial, zone->soa_disk.serial);
+
+		/* soa is from an update if serial equals soa_disk.serial or
+		   serial is less than soa_disk.serial and the acquired time is
+		   before the reload was first requested */
+		if(!((cmp == 0) || (cmp < 0 && acquired != 0))) {
+			goto zonefile;
+		}
+
+		/* acquired time of an update may not match time registered in
+		   in soa_disk_acquired as a refresh indicating the current
+		   serial may have occurred before the reload finished */
+		if(cmp == 0) {
+			acquired = zone->soa_disk_acquired;
+		}
+
 		/* soa in disk has been loaded in memory */
 		log_msg(LOG_INFO, "zone %s serial %u is updated to %u",
 			zone->apex_str, (unsigned)ntohl(zone->soa_nsd.serial),
 			(unsigned)ntohl(soa->serial));
-		zone->soa_nsd = zone->soa_disk;
-		zone->soa_nsd_acquired = zone->soa_disk_acquired;
+		zone->soa_nsd = *soa;
+		zone->soa_nsd_acquired = acquired;
 		xfrd->write_zonefile_needed = 1;
-		/* reset exponential backoff, we got a normal timer now */
-		zone->fresh_xfr_timeout = 0;
 		seconds_since_acquired =
 			  xfrd_time() > zone->soa_disk_acquired
 			? xfrd_time() - zone->soa_disk_acquired : 0;
+
 		if(seconds_since_acquired < bound_soa_disk_refresh(zone))
 		{
-			/* zone ok, wait for refresh time */
 			xfrd_set_zone_state(zone, xfrd_zone_ok);
-			zone->round_num = -1;
-			xfrd_set_timer_refresh(zone);
-		} else if(seconds_since_acquired < bound_soa_disk_expire(zone))
-		{
-			/* zone refreshing */
-			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
-			xfrd_set_refresh_now(zone);
-		}
-		if(seconds_since_acquired >= bound_soa_disk_expire(zone)) {
-			/* zone expired */
-			xfrd_set_zone_state(zone, xfrd_zone_expired);
-			xfrd_set_refresh_now(zone);
 		}
 
-		if(zone->soa_notified_acquired != 0 &&
-			(zone->soa_notified.serial == 0 ||
-		   	compare_serial(ntohl(zone->soa_disk.serial),
-				ntohl(zone->soa_notified.serial)) >= 0))
-		{	/* read was in response to this notification */
-			zone->soa_notified_acquired = 0;
-		}
-		if(zone->soa_notified_acquired && zone->state == xfrd_zone_ok)
-		{
-			/* refresh because of notification */
-			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
-			xfrd_set_refresh_now(zone);
+		/* update refresh timers based on disk soa, unless there are
+		   pending updates. i.e. serial != soa_disk.serial */
+		if (cmp == 0) {
+			/* reset exponential backoff, we got a normal timer now */
+			zone->fresh_xfr_timeout = 0;
+			if(seconds_since_acquired < bound_soa_disk_refresh(zone))
+			{
+				/* zone ok, wait for refresh time */
+				zone->round_num = -1;
+				xfrd_set_timer_refresh(zone);
+			} else if(seconds_since_acquired < bound_soa_disk_expire(zone))
+			{
+				/* zone refreshing */
+				xfrd_set_zone_state(zone, xfrd_zone_refreshing);
+				xfrd_set_refresh_now(zone);
+			}
+			if(seconds_since_acquired >= bound_soa_disk_expire(zone))
+			{
+				/* zone expired */
+				xfrd_set_zone_state(zone, xfrd_zone_expired);
+				xfrd_set_refresh_now(zone);
+			}
+
+			if(zone->soa_notified_acquired != 0 &&
+				(zone->soa_notified.serial == 0 ||
+				 compare_serial(ntohl(zone->soa_disk.serial),
+				                ntohl(zone->soa_notified.serial)) >= 0))
+			{	/* read was in response to this notification */
+				zone->soa_notified_acquired = 0;
+			}
+			if(zone->soa_notified_acquired && zone->state == xfrd_zone_ok)
+			{
+				/* refresh because of notification */
+				xfrd_set_zone_state(zone, xfrd_zone_refreshing);
+				xfrd_set_refresh_now(zone);
+			}
 		}
 		xfrd_send_notify(xfrd->notify_zones, zone->apex, &zone->soa_nsd);
 		return;
 	}
 
+zonefile:
+	acquired = xfrd_time();
 	/* user must have manually provided zone data */
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 		"xfrd: zone %s serial %u from zonefile. refreshing",
@@ -2080,7 +2098,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 			return xfrd_packet_drop;
 		}
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "IXFR reply has ok serial (have \
-%u, reply %u).", (unsigned)ntohl(zone->soa_disk.serial), (unsigned)ntohl(soa->serial)));
+%u, reply %u).", (unsigned)zone->soa_disk_acquired ? ntohl(zone->soa_disk.serial) : 0, (unsigned)ntohl(soa->serial)));
 		/* serial is newer than soa_disk */
 		if(ancount == 1) {
 			/* single record means it is like a notify */
