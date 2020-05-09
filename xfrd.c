@@ -620,11 +620,7 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 			(unsigned)ntohl(soa.serial)));
 		/* discard all updates received before initial reload unless
 		   reload was successful */
-		if(xfrd->reload_failed) {
-			before = 0;
-		} else {
-			before = xfrd->reload_cmd_first_sent;
-		}
+		before = xfrd->reload_cmd_first_sent;
 	}
 
 	if(!zone) {
@@ -637,18 +633,34 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 
 	for(xfr = zone->latest_xfr; xfr; xfr = prev_xfr) {
 		prev_xfr = xfr->prev;
-		if(xfr->sent && xfr->acquired && xfr->acquired <= before) {
-			DEBUG(DEBUG_IPC, 1, (LOG_INFO, "xfrd: for zone %s "
-				"delete soa serial %u update",
-				zone->apex_str, xfr->msg_new_serial));
-			xfrd_delete_zone_xfr(zone, xfr);
-			/* updates are applied in-order, acquired time of
-			   most-recent update is used as a baseline */
-			if(!acquired) {
-				acquired = xfr->acquired;
-				assert(!soa_ptr ||
-				        soa_ptr->serial == htonl(xfr->msg_new_serial));
+		/* skip non-queued and incomplete updates */
+		if(!xfr->sent || !xfr->acquired || xfr->acquired > before) {
+			continue;
+		}
+		/* updates are applied in-order, acquired time of most-recent
+		   update is used as baseline */
+		if(!acquired) {
+			acquired = xfr->acquired;
+			assert(!soa_ptr ||
+			        soa_ptr->serial == htonl(xfr->msg_new_serial));
+			if(xfrd->reload_failed && hint == soainfo_ok) {
+				DEBUG(DEBUG_IPC, 1,
+					(LOG_INFO, "xfrd: zone %s mark update "
+					           "to serial %u verified",
+					           zone->apex_str,
+					           xfr->msg_new_serial));
+				diff_update_commit(
+					zone->apex_str, DIFF_VERIFIED,
+					xfrd->nsd, xfr->xfrfilenumber);
 			}
+		}
+		if(!xfrd->reload_failed || hint != soainfo_ok) {
+			DEBUG(DEBUG_IPC, 1,
+				(LOG_INFO, "xfrd: zone %s delete update to "
+				           "serial %u",
+				           zone->apex_str,
+				           xfr->msg_new_serial));
+			xfrd_delete_zone_xfr(zone, xfr);
 		}
 	}
 
