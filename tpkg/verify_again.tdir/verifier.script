@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ "${VERIFY_ZONE}" = "example.com." ]; then
+  # verification must fail for serial 2
+  serial=$(dig @${VERIFY_IP_ADDRESS} -p ${VERIFY_PORT} SOA example.com | \
+           sed -n -e 's/[[:space:]]\{1,\}/ /g' -e '/^[^;[:space:]]/p' | \
+           cut -d ' ' -f 7)
+  if [ "${serial}" = "2" ]; then
+    echo "verifier will fail for example.com. update to serial ${serial}"
+    exit 1
+  fi
+fi

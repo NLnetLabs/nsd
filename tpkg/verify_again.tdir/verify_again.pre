@@ -1,0 +1,29 @@
+# #-- verify_again.pre --#
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# Use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+get_random_port 3
+TESTNS_PORT=${RND_PORT}
+NSD_PORT=$((${RND_PORT} + 1))
+NSD_VERIFY_PORT=$((${RND_PORT} +2))
+
+NSD_VERIFIER="$(realpath $(dirname ${0}))/verifier.script"
+
+# generate configuration files
+sed -e "s#TESTNS_PORT#${TESTNS_PORT}#" \
+    -e "s#NSD_PORT#${NSD_PORT}#" \
+    -e "s#NSD_VERIFY_PORT#${NSD_VERIFY_PORT}#" \
+    -e "s#NSD_VERIFIER#${NSD_VERIFIER}#" \
+    verify_again.conf > nsd.conf
+
+# share the vars
+echo "TESTNS_PORT=${TESTNS_PORT}" >> .tpkg.var.test
+echo "NSD_PORT=${NSD_PORT}" >> .tpkg.var.test
+echo "NSD_VERIFY_PORT=${NSD_VERIFY_PORT}" >> .tpkg.var.test
+echo "NSD_VERIFIER=${NSD_VERIFIER}" >> .tpkg.var.test
+
+ldns-testns -v -p ${TESTNS_PORT} verify_again.datafile >ldns.log 2>&1 &
+echo "TESTNS_PID=${!}" >> .tpkg.var.test
+wait_ldns_testns_up ldns.log
