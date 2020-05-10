@@ -1,0 +1,62 @@
+$ORIGIN example.com.
+$TTL 7200
+
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=0
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+ADJUST copy_id
+SECTION QUESTION
+example.com. IN IXFR
+SECTION ANSWER
+example.com. IN SOA    ns.example.com. hostmaster.example.com. 1 300 4 3000 5
+web1         IN A      4.5.6.7
+example.com. IN SOA    ns.example.com. hostmaster.example.com. 1 300 4 3000 5
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+ADJUST copy_id
+SECTION QUESTION
+example.com. IN IXFR
+SECTION ANSWER
+example.com. IN SOA    ns.example.com. hostmaster.example.com. 2 300 4 3000 5
+web2         IN A      5.6.7.8
+example.com. IN SOA    ns.example.com. hostmaster.example.com. 2 300 4 3000 5
+ENTRY_END
+
+
+$ORIGIN example.net.
+$TTL 7200
+
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=0
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+ADJUST copy_id
+SECTION QUESTION
+example.net. IN IXFR
+SECTION ANSWER
+example.net. IN SOA    ns.example.net. hostmaster.example.net. 1 300 4 3000 5
+web1         IN A      4.5.6.7
+example.net. IN SOA    ns.example.net. hostmaster.example.net. 1 300 4 3000 5
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+ADJUST copy_id
+SECTION QUESTION
+example.net. IN IXFR
+SECTION ANSWER
+example.net. IN SOA    ns.example.net. hostmaster.example.net. 2 300 4 3000 5
+web2         IN A      5.6.7.8
+example.net. IN SOA    ns.example.net. hostmaster.example.net. 2 300 4 3000 5
+ENTRY_END
