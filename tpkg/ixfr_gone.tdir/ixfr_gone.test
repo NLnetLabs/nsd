@@ -38,6 +38,14 @@ rm -v ${xfrfile}
 # unblock verifier
 echo "continue" > ${NSD_VERIFIER_IN}
 
-wait_logfile nsd.log "soa serial 2 update failed" 10
+wait_logfile nsd.log "serial 1 is updated to 2" 10
+
+count=$(grep 'xfrd:.*received update to serial 2' nsd.log | wc -l)
+if [ ${count} -eq 2 ]; then
+  exit_code=0
+else
+  exit_code=1
+fi
 
 cat nsd.log
+exit ${exit_code}
