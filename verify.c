@@ -48,7 +48,7 @@ struct zone *verify_next_zone(struct nsd *nsd, struct zone *zone)
 		if(verify == VERIFY_ZONE_INHERIT) {
 			verify = nsd->options->verify_zones;
 		}
-		if(verify && zone->is_updated && !zone->is_good) {
+		if(verify && zone->is_updated && !zone->is_checked) {
 			return zone;
 		}
 		node = radix_next(node);
