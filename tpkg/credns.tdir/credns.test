@@ -111,7 +111,7 @@ else
 	echo "** Slave has serial 4."
 fi
 
-if test "`awk '{t+=$0}END{print t}' verifier.log`" = "10"
+if test "`uniq verifier.log | awk '{t+=$0}END{print t}'`" = "10"
 then
 	echo "** Verifier saw all serials"
 	echo "** Test is done"
