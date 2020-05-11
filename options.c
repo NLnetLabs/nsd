@@ -1107,7 +1107,7 @@ copy_pat_fixed(region_type* region, struct pattern_options* orig,
 	orig->verify_zone = p->verify_zone;
 	orig->verify_zone_is_default = p->verify_zone_is_default;
 	orig->verifier_timeout = p->verifier_timeout;
-	orig->verifier_timeout_is_default = p->verifier_feed_zone_is_default;
+	orig->verifier_timeout_is_default = p->verifier_timeout_is_default;
 	orig->verifier_feed_zone = p->verifier_feed_zone;
 	orig->verifier_feed_zone_is_default = p->verifier_feed_zone_is_default;
 }
@@ -2371,7 +2371,7 @@ config_apply_pattern(struct pattern_options *dest, const char* name)
 		if(dest->verifier != NULL) {
 			size_t size;
 			for(cnt = 0; dest->verifier[cnt] != NULL; cnt++) {
-				size = strlen(dest->verifier[cnt]);
+				size = strlen(dest->verifier[cnt]) + 1;
 				region_recycle(
 					region, dest->verifier[cnt], size);
 			}
