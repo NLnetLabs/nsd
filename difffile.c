@@ -1397,7 +1397,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 		return 1;
 	}
 
-	if(committed)
+	if(!zonedb->is_skipped)
 	{
 		int is_axfr=0, delete_mode=0, rr_count=0, softfail=0;
 		const dname_type* apex = domain_dname_const(zonedb->apex);
@@ -1464,10 +1464,11 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 #endif /* NSEC3 */
 		zonedb->is_changed = 1;
 		zonedb->is_updated = 1;
-		zonedb->is_good = (committed == DIFF_VERIFIED);
+		zonedb->is_checked = (committed == DIFF_VERIFIED);
 		if(nsd->db->udb) {
 			assert(z.base);
 			ZONE(&z)->is_changed = 1;
+			/* FIXME: need to set is_updated here? */
 			ZONE(&z)->mtime = time_end_0;
 			ZONE(&z)->mtime_nsec = time_end_1*1000;
 			udb_zone_set_log_str(nsd->db->udb, &z, log_buf);
@@ -2191,20 +2192,23 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		 * still waiting to be processed */
 		return;
 	}
+
 	/* apply the XFR */
 	/* oldserial, newserial, yesno is filenumber */
 	df = xfrd_open_xfrfile(nsd, TASKLIST(task)->yesno, "r");
 	if(!df) {
 		/* could not open file to update */
-		/* there is no reply to xfrd failed-update,
-		 * because xfrd has a scan for apply-failures. */
+		/* soainfo_gone will be communicated from server_reload, unless
+		   preceding updates have been applied */
+		zone->is_skipped = 1;
 		return;
 	}
 	/* read and apply zone transfer */
 	if(!apply_ixfr_for_zone(nsd, zone, df, nsd->options, udb,
 		last_task, TASKLIST(task)->yesno)) {
-		/* there is no branch for xfrd failed-update */
-		task_new_soainfo(udb, last_task, zone, soainfo_gone);
+		/* soainfo_gone will be communicated from server_reload, unless
+		   preceding updates have been applied  */
+		zone->is_skipped = 1;
 	}
 
 	fclose(df);

@@ -2273,6 +2273,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	struct sigaction old_sigchld, ign_sigchld;
 	struct radnode* node;
 	zone_type* zone;
+	enum soainfo_hint hint;
 	/* ignore SIGCHLD from the previous server_main that used this pid */
 	memset(&ign_sigchld, 0, sizeof(ign_sigchld));
 	ign_sigchld.sa_handler = SIG_IGN;
@@ -2323,17 +2324,27 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	    node != NULL;
 	    node = radix_next(node))
 	{
-		enum soainfo_hint hint = soainfo_ok;
 		zone = (zone_type *)node->elem;
 		if(zone->is_updated) {
 			if(zone->is_bad) {
 				nsd->mode = NSD_RELOAD_FAILED;
 				hint = soainfo_bad;
+			} else {
+				hint = soainfo_ok;
 			}
-			task_new_soainfo(
-				nsd->task[nsd->mytask], &last_task, zone, hint);
-			zone->is_updated = 0;
+			/* update(s), verified or not, possibly with subsequent
+			   skipped update(s). skipped update(s) are picked up
+			   by failed update check in xfrd */
+			task_new_soainfo(nsd->task[nsd->mytask], &last_task,
+			                 zone, hint);
+		} else if(zone->is_skipped) {
+			/* corrupt or inconsistent update without preceding
+			   update(s), communicate soainfo_gone */
+			task_new_soainfo(nsd->task[nsd->mytask], &last_task,
+			                 zone, soainfo_gone);
 		}
+		zone->is_updated = 0;
+		zone->is_skipped = 0;
 	}
 
 	if(nsd->mode == NSD_RELOAD_FAILED) {

@@ -631,19 +631,31 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 		return;
 	}
 
+	/* soainfo_gone and soainfo_bad are straightforward, delete all updates
+	   that were transfered, i.e. acquired != 0. soainfo_ok is more
+	   complicated as it is possible that there are subsequent corrupt or
+	   inconsistent updates */
 	for(xfr = zone->latest_xfr; xfr; xfr = prev_xfr) {
 		prev_xfr = xfr->prev;
-		/* skip non-queued and incomplete updates */
-		if(!xfr->sent || !xfr->acquired || xfr->acquired > before) {
+		/* skip incomplete updates */
+		if(!xfr->acquired) {
 			continue;
 		}
-		/* updates are applied in-order, acquired time of most-recent
-		   update is used as baseline */
-		if(!acquired) {
-			acquired = xfr->acquired;
-			assert(!soa_ptr ||
-			        soa_ptr->serial == htonl(xfr->msg_new_serial));
-			if(xfrd->reload_failed && hint == soainfo_ok) {
+		if(hint == soainfo_ok) {
+			/* skip non-queued updates */
+			if(!xfr->sent)
+				continue;
+			assert(xfr->acquired <= before);
+			/* skip non-applied updates */
+			if(!soa_ptr ||
+			    soa_ptr->serial != htonl(xfr->msg_new_serial))
+				continue;
+			/* updates are applied in-order, acquired time of
+			   most-recent update is used as baseline */
+			if(!acquired) {
+				acquired = xfr->acquired;
+			}
+			if(xfrd->reload_failed) {
 				DEBUG(DEBUG_IPC, 1,
 					(LOG_INFO, "xfrd: zone %s mark update "
 					           "to serial %u verified",
@@ -652,16 +664,14 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 				diff_update_commit(
 					zone->apex_str, DIFF_VERIFIED,
 					xfrd->nsd, xfr->xfrfilenumber);
+				return;
 			}
 		}
-		if(!xfrd->reload_failed || hint != soainfo_ok) {
-			DEBUG(DEBUG_IPC, 1,
-				(LOG_INFO, "xfrd: zone %s delete update to "
-				           "serial %u",
-				           zone->apex_str,
-				           xfr->msg_new_serial));
-			xfrd_delete_zone_xfr(zone, xfr);
-		}
+		DEBUG(DEBUG_IPC, 1,
+			(LOG_INFO, "xfrd: zone %s delete update to serial %u",
+			           zone->apex_str,
+			           xfr->msg_new_serial));
+		xfrd_delete_zone_xfr(zone, xfr);
 	}
 
 	/* update zone state */
@@ -2603,12 +2613,17 @@ xfrd_check_failed_updates(void)
 			xfrd_handle_incoming_notify(zone, &soa);
 			xfrd_set_timer_refresh(zone);
 			/* delete all pending updates */
-			xfr = zone->latest_xfr;
-			while(xfr) {
+			for(xfr = zone->latest_xfr; xfr; xfr = prev_xfr) {
 				prev_xfr = xfr->prev;
-				if(xfr->acquired)
-					xfrd_delete_zone_xfr(zone, xfr);
-				xfr = prev_xfr;
+				/* skip incomplete updates */
+				if(!xfr->acquired)
+					continue;
+				DEBUG(DEBUG_IPC, 1,
+					(LOG_INFO, "xfrd: zone %s delete "
+					           "update to serial %u",
+					           zone->apex_str,
+					           xfr->msg_new_serial));
+				xfrd_delete_zone_xfr(zone, xfr);
 			}
 		}
 	}
