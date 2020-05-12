@@ -1306,8 +1306,8 @@ server_init(struct nsd *nsd)
 		}
 
 		for(i = nsd->ifs; i < ifs; i++) {
-			nsd->udp[i].addr = nsd->udp[i%nsd->ifs].addr;
-			nsd->udp[i].servers = nsd->udp[i%nsd->ifs].servers;
+			nsd->udp[i] = nsd->udp[i%nsd->ifs];
+			nsd->udp[i].s = -1;
 			if(open_udp_socket(nsd, &nsd->udp[i], &reuseport) == -1) {
 				return -1;
 			}
