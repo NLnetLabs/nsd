@@ -357,7 +357,7 @@ find_device(
 			len  = strlen(ifa->ifa_name);
 		}
 		if (len < sizeof(sock->device)) {
-			strlcpy(sock->device, ifa->ifa_name, len);
+			strlcpy(sock->device, ifa->ifa_name, len+1);
 			return 1;
 		}
 	}
