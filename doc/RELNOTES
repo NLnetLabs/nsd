@@ -15,6 +15,7 @@ BUG FIXES:
 	  release tarballs.
 	- Fix unused parameter compile warnings.
 	- Fix #97: EDNS unknown version: query not in response.
+	- Fix #99: Fix copying of socket properties with reuseport enabled.
 
 
 4.3.1
