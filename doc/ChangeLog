@@ -1,3 +1,6 @@
+14 May 2020: Wouter
+	- Document default value for tcp-timeout.
+
 13 May 2020: Jeroen
 	- Fix #99: Fix copying of socket properties with reuseport enabled.
 

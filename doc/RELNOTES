@@ -16,6 +16,7 @@ BUG FIXES:
 	- Fix unused parameter compile warnings.
 	- Fix #97: EDNS unknown version: query not in response.
 	- Fix #99: Fix copying of socket properties with reuseport enabled.
+	- Document default value for tcp-timeout.
 
 
 4.3.1
