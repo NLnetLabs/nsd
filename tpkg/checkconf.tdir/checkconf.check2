@@ -19,6 +19,7 @@ server:
 	#version:
 	nsid: "123456"
 	logfile: "/var/log/nsdlogfile.log"
+	log-only-syslog: no
 	server-count: 1
 	tcp-count: 100
 	tcp-query-count: 0
@@ -129,6 +130,7 @@ server:
 	#version:
 	#nsid:
 	logfile: "/var/log/nsdlogfile.log"
+	log-only-syslog: no
 	server-count: 1
 	tcp-count: 100
 	tcp-query-count: 0
@@ -192,6 +194,7 @@ server:
 	#version:
 	#nsid:
 	#logfile:
+	log-only-syslog: no
 	server-count: 1
 	tcp-count: 100
 	tcp-query-count: 0
@@ -264,6 +267,7 @@ server:
 	#version:
 	#nsid:
 	#logfile:
+	log-only-syslog: no
 	server-count: 1
 	tcp-count: 100
 	tcp-query-count: 0
@@ -380,6 +384,7 @@ server:
 	#version:
 	#nsid:
 	#logfile:
+	log-only-syslog: no
 	server-count: 1
 	tcp-count: 100
 	tcp-query-count: 0
