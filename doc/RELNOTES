@@ -17,6 +17,8 @@ BUG FIXES:
 	- Fix #97: EDNS unknown version: query not in response.
 	- Fix #99: Fix copying of socket properties with reuseport enabled.
 	- Document default value for tcp-timeout.
+	- Merge PR#102 from and0x000: add missing default in documentation
+	  for drop-updates.
 
 
 4.3.1
