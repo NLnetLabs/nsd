@@ -8,6 +8,7 @@ WantedBy=multi-user.target
 [Service]
 ExecReload=/bin/kill -HUP $MAINPID
 ExecStart=/usr/local/sbin/nsd
+ExecStartPre=-/bin/chown --quiet root:root /var/log/nsd.log
 NotifyAccess=main
 Type=notify
 CapabilityBoundingSet=CAP_IPC_LOCK CAP_NET_BIND_SERVICE CAP_SETGID CAP_SETUID CAP_SYS_CHROOT
@@ -20,7 +21,7 @@ ProtectControlGroups=true
 ProtectKernelModules=true
 ProtectKernelTunables=true
 ProtectSystem=strict
-ReadWritePaths=/usr/local/etc /usr/local/var /run /usr/local/etc/nsd
+ReadWritePaths=/usr/local/etc /usr/local/var /run /usr/local/etc/nsd /var/log
 RestrictAddressFamilies=AF_INET AF_UNIX
 RestrictRealtime=true
 SystemCallArchitectures=native

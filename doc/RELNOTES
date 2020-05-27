@@ -21,6 +21,8 @@ BUG FIXES:
 	  for drop-updates.
 	- Fix unlink of pidfile warning if not possible due to permissions,
 	  nsd can display the message at high verbosity levels.
+	- Update contrib/nsd.service for chown of nsd.log and /var/log in
+	  ReadWritePaths.
 
 
 4.3.1
