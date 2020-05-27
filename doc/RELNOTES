@@ -19,6 +19,8 @@ BUG FIXES:
 	- Document default value for tcp-timeout.
 	- Merge PR#102 from and0x000: add missing default in documentation
 	  for drop-updates.
+	- Fix unlink of pidfile warning if not possible due to permissions,
+	  nsd can display the message at high verbosity levels.
 
 
 4.3.1

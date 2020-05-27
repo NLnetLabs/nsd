@@ -641,9 +641,14 @@ unlinkpid(const char* file)
 			close(fd);
 
 		/* unlink pidfile */
-		if (unlink(file) == -1)
-			log_msg(LOG_WARNING, "failed to unlink pidfile %s: %s",
-				file, strerror(errno));
+		if (unlink(file) == -1) {
+			/* this unlink may not work if the pidfile is located
+			 * outside of the chroot/workdir or we no longer
+			 * have permissions */
+			VERBOSITY(3, (LOG_WARNING,
+				"failed to unlink pidfile %s: %s",
+				file, strerror(errno)));
+		}
 	}
 }
 
