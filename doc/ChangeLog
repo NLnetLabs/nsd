@@ -3,6 +3,8 @@
 	  nsd can display the message at high verbosity levels.
 	- Update contrib/nsd.service for chown of nsd.log and /var/log in
 	  ReadWritePaths.
+	- Removed contrib/nsd.service, example is too complicated and not
+	  useful.
 
 15 May 2020: Wouter
 	- Merge PR#102 from and0x000: add missing default in documentation
