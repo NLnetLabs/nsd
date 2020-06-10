@@ -401,7 +401,6 @@ nsec3_chain_find_prev(struct zone* zone, struct domain* domain)
 static void
 hash_tree_clear(rbtree_type* tree)
 {
-	rbnode_type* n;
 	if(!tree) return;
 
 	/* Previously (before commit 4ca61188b3f7a0e077476875810d18a5d439871f
@@ -413,6 +412,7 @@ hash_tree_clear(rbtree_type* tree)
 	 * necessary as currently the prehash structs are simply recycled and 
 	 * NULLed.
 	 *
+	 * rbnode_type* n;
 	 * for(n=rbtree_first(tree); n!=RBTREE_NULL; n=rbtree_next(n)) {
 	 *	n->key = NULL;
 	 * }
