@@ -246,6 +246,8 @@ enum xfrd_packet_result {
 
 #define XFRD_TRANSFER_TIMEOUT_START 10 /* empty zone timeout is between x and 2*x seconds */
 #define XFRD_TRANSFER_TIMEOUT_MAX 86400 /* empty zone timeout max expbackoff */
+#define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
+#define XFRD_LOWERBOUND_RETRY 1 /* seconds, smallest retry timeout */
 
 extern xfrd_state_type* xfrd;
 

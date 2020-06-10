@@ -40,8 +40,6 @@
 
 #define XFRD_UDP_TIMEOUT 10 /* seconds, before a udp request times out */
 #define XFRD_NO_IXFR_CACHE 172800 /* 48h before retrying ixfr's after notimpl */
-#define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
-#define XFRD_LOWERBOUND_RETRY 1 /* seconds, smallest retry timeout */
 #define XFRD_MAX_ROUNDS 1 /* max number of rounds along the masters */
 #define XFRD_TSIG_MAX_UNSIGNED 103 /* max number of packets without tsig in a tcp stream. */
 			/* rfc recommends 100, +3 for offbyone errors/interoperability. */
@@ -786,6 +784,8 @@ xfrd_set_timer_refresh(xfrd_zone_type* zone)
 	else	set -= xfrd_time();
 	if(set > XFRD_TRANSFER_TIMEOUT_MAX)
 		set = XFRD_TRANSFER_TIMEOUT_MAX;
+	else if (set < XFRD_LOWERBOUND_REFRESH)
+		set = XFRD_LOWERBOUND_REFRESH;
 	xfrd_set_timer(zone, set);
 }
 
@@ -811,8 +811,11 @@ xfrd_set_timer_retry(xfrd_zone_type* zone)
 	/* set timer for next retry or expire timeout if earlier. */
 	if(zone->soa_disk_acquired == 0) {
 		/* if no information, use reasonable timeout */
-		xfrd_set_timer(zone, zone->fresh_xfr_timeout
-			+ random_generate(zone->fresh_xfr_timeout));
+		set_retry = zone->fresh_xfr_timeout
+			+ random_generate(zone->fresh_xfr_timeout);
+		if(set_retry < XFRD_LOWERBOUND_RETRY)
+			set_retry = XFRD_LOWERBOUND_RETRY;
+		xfrd_set_timer(zone, set_retry);
 	} else if(zone->state == xfrd_zone_expired ||
 		xfrd_time() + (time_t)ntohl(zone->soa_disk.retry)*mult <
 		zone->soa_disk_acquired + (time_t)ntohl(zone->soa_disk.expire))
@@ -835,7 +838,8 @@ xfrd_set_timer_retry(xfrd_zone_type* zone)
 		if(set_retry < XFRD_LOWERBOUND_RETRY)
 			xfrd_set_timer(zone, XFRD_LOWERBOUND_RETRY);
 		else {
-			if(zone->soa_disk_acquired + set_retry < xfrd_time())
+			if(zone->soa_disk_acquired + set_retry
+					< xfrd_time() + XFRD_LOWERBOUND_RETRY)
 				xfrd_set_timer(zone, XFRD_LOWERBOUND_RETRY);
 			else xfrd_set_timer(zone, zone->soa_disk_acquired +
 				set_retry - xfrd_time());
