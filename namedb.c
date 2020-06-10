@@ -289,21 +289,6 @@ domain_table_deldomain(namedb_type* db, domain_type* domain)
 	}
 }
 
-/** clear hash tree */
-void
-hash_tree_clear(rbtree_type* tree)
-{
-	rbnode_type* n;
-	if(!tree) return;
-
-	/* note that elements are no longer in the tree */
-	for(n=rbtree_first(tree); n!=RBTREE_NULL; n=rbtree_next(n)) {
-		n->key = NULL;
-	}
-	tree->count = 0;
-	tree->root = RBTREE_NULL;
-}
-
 void hash_tree_delete(region_type* region, rbtree_type* tree)
 {
 	region_recycle(region, tree, sizeof(rbtree_type));
