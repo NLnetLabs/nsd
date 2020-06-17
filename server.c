@@ -2713,6 +2713,51 @@ server_process_query_udp(struct nsd *nsd, struct query *query)
 #endif
 }
 
+const char*
+nsd_event_vs(void)
+{
+#ifdef USE_MINI_EVENT
+	return "";
+#else
+	return event_get_version();
+#endif
+}
+
+#if !defined(USE_MINI_EVENT) && defined(EV_FEATURE_BACKENDS)
+static const char* ub_ev_backend2str(int b)
+{
+	switch(b) {
+	case EVBACKEND_SELECT:	return "select";
+	case EVBACKEND_POLL:	return "poll";
+	case EVBACKEND_EPOLL:	return "epoll";
+	case EVBACKEND_KQUEUE:	return "kqueue";
+	case EVBACKEND_DEVPOLL: return "devpoll";
+	case EVBACKEND_PORT:	return "evport";
+	}
+	return "unknown";
+}
+#endif
+
+const char*
+nsd_event_method(void)
+{
+#ifdef USE_MINI_EVENT
+	return "select";
+#else
+	struct event_base* b = nsd_child_event_base();
+	const char* m = "?";
+#  ifdef EV_FEATURE_BACKENDS
+	m = ub_ev_backend2str(ev_backend((struct ev_loop*)b));
+#  elif defined(HAVE_EVENT_BASE_GET_METHOD)
+	m = event_base_get_method(b);
+#  endif
+#  ifdef MEMCLEAN
+	event_base_free(b);
+#  endif
+	return m;
+#endif
+}
+
 struct event_base*
 nsd_child_event_base(void)
 {

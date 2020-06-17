@@ -113,6 +113,31 @@ version(void)
 {
 	fprintf(stderr, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 	fprintf(stderr, "Written by NLnet Labs.\n\n");
+	fprintf(stderr, "Configure line: %s\n", CONFCMDLINE);
+#ifdef USE_MINI_EVENT
+	fprintf(stderr, "Event loop: internal (uses select)\n");
+#else
+#  if defined(HAVE_EV_LOOP) || defined(HAVE_EV_DEFAULT_LOOP)
+	fprintf(stderr, "Event loop: %s %s (uses %s)\n",
+		"libev",
+		nsd_event_vs(),
+		nsd_event_method());
+#  else
+	fprintf(stderr, "Event loop: %s %s (uses %s)\n",
+		"libevent",
+		nsd_event_vs(),
+		nsd_event_method());
+#  endif
+#endif
+#ifdef HAVE_SSL
+	fprintf(stderr, "Linked with %s\n\n",
+#  ifdef SSLEAY_VERSION
+		SSLeay_version(SSLEAY_VERSION)
+#  else
+		OpenSSL_version(OPENSSL_VERSION)
+#  endif
+		);
+#endif
 	fprintf(stderr,
 		"Copyright (C) 2001-2006 NLnet Labs.  This is free software.\n"
 		"There is NO warranty; not even for MERCHANTABILITY or FITNESS\n"
