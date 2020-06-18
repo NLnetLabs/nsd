@@ -738,9 +738,9 @@ SOA record is used, but this option restricts that value.
 Limit refresh time for secondary zones.
 .TP
 .B max\-retry\-time:\fR <seconds>
-Limit retry time for secondary zones.  This is the timeout after a failed
-fetch attempt for the zone.  Normally the value from the SOA record is used,
-but this option restricts that value.
+Limit retry time for secondary zones.  This is the timer which retries after
+a failed fetch attempt for the zone.  Normally the value from the SOA record is
+used, followed by an exponential backoff, but this option restricts that value.
 .TP
 .B min\-retry\-time:\fR <seconds>
 Limit retry time for secondary zones.
