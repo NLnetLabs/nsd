@@ -24,6 +24,7 @@ BUG FIXES:
 	  nsd can display the message at high verbosity levels.
 	- Removed contrib/nsd.service, example is too complicated and not
 	  useful.
+	- Do not log EAGAIN errors for sendmmsg, to stop log spam on OpenBSD.
 
 
 4.3.1

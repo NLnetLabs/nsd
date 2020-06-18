@@ -3371,9 +3371,9 @@ handle_udp(int fd, short event, void* arg)
 			 * on higher verbosity */
 			if(!(errno == ENOBUFS && verbosity < 1) &&
 #ifdef EWOULDBLOCK
-			   !(errno == EWOULDBLOCK && verbosity < 1) &&
+			   errno != EWOULDBLOCK &&
 #endif
-			   !(errno == EAGAIN && verbosity < 1)) {
+			   errno != EAGAIN) {
 				const char* es = strerror(errno);
 				char a[48];
 				addr2str(&queries[i]->addr, a, sizeof(a));
