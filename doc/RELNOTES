@@ -25,6 +25,7 @@ BUG FIXES:
 	- Removed contrib/nsd.service, example is too complicated and not
 	  useful.
 	- Do not log EAGAIN errors for sendmmsg, to stop log spam on OpenBSD.
+	- Merge #108 from Nomis: Make the max-retry-time description clearer.
 
 
 4.3.1
