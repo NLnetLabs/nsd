@@ -26,6 +26,8 @@ BUG FIXES:
 	  useful.
 	- Do not log EAGAIN errors for sendmmsg, to stop log spam on OpenBSD.
 	- Merge #108 from Nomis: Make the max-retry-time description clearer.
+	- Retry when udp send buffer is full to wait until buffer space is
+	  available.
 
 
 4.3.1

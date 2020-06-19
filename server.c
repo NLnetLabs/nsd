@@ -3367,6 +3367,29 @@ handle_udp(int fd, short event, void* arg)
 	while(i<recvcount) {
 		sent = nsd_sendmmsg(fd, &msgs[i], recvcount-i, 0);
 		if(sent == -1) {
+			if(errno == ENOBUFS ||
+#ifdef EWOULDBLOCK
+				errno == EWOULDBLOCK ||
+#endif
+				errno == EAGAIN) {
+				/* block to wait until send buffer avail */
+				int flag;
+				if((flag = fcntl(fd, F_GETFL)) == -1) {
+					log_msg(LOG_ERR, "cannot fcntl F_GETFL: %s", strerror(errno));
+					flag = 0;
+				}
+				flag &= ~O_NONBLOCK;
+				if(fcntl(fd, F_SETFL, flag) == -1)
+					log_msg(LOG_ERR, "cannot fcntl F_SETFL 0: %s", strerror(errno));
+				sent = nsd_sendmmsg(fd, &msgs[i], recvcount-i, 0);
+				flag |= O_NONBLOCK;
+				if(fcntl(fd, F_SETFL, flag) == -1)
+					log_msg(LOG_ERR, "cannot fcntl F_SETFL O_NONBLOCK: %s", strerror(errno));
+				if(sent != -1) {
+					i += sent;
+					continue;
+				}
+			}
 			/* don't log transient network full errors, unless
 			 * on higher verbosity */
 			if(!(errno == ENOBUFS && verbosity < 1) &&

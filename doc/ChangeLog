@@ -1,5 +1,7 @@
 19 June 2020: Wouter
 	- Merge #108 from Nomis: Make the max-retry-time description clearer.
+	- Retry when udp send buffer is full to wait until buffer space is
+	  available.
 
 18 June 2020: Wouter
 	- Do not log EAGAIN errors for sendmmsg, to stop log spam on OpenBSD.
