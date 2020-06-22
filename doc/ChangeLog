@@ -1,3 +1,7 @@
+22 June 2020: Wouter
+	- Remove errno reset behaviour from sendmmsg and recvmmsg
+	  replacement functions.
+
 19 June 2020: Wouter
 	- Merge #108 from Nomis: Make the max-retry-time description clearer.
 	- Retry when udp send buffer is full to wait until buffer space is

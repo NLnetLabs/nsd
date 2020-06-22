@@ -3165,15 +3165,12 @@ static int
 nsd_recvmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
              int flags, struct timespec *timeout)
 {
-	int orig_errno;
 	unsigned int vpos = 0;
 	ssize_t rcvd;
 
 	/* timeout is ignored, ensure caller does not expect it to work */
 	assert(timeout == NULL); (void)timeout;
 
-	orig_errno = errno;
-	errno = 0;
 	while(vpos < vlen) {
 		rcvd = recvfrom(sockfd,
 		                msgvec[vpos].msg_hdr.msg_iov->iov_base,
@@ -3194,7 +3191,6 @@ nsd_recvmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
 		/* error will be picked up next time */
 		return (int)vpos;
 	} else if(errno == 0) {
-		errno = orig_errno;
 		return 0;
 	} else if(errno == EAGAIN) {
 		return 0;
@@ -3211,12 +3207,9 @@ nsd_recvmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
 static int
 nsd_sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen, int flags)
 {
-	int orig_errno;
 	unsigned int vpos = 0;
 	ssize_t snd;
 
-	orig_errno = errno;
-	errno = 0;
 	while(vpos < vlen) {
 		assert(msgvec[vpos].msg_hdr.msg_iovlen == 1);
 		snd = sendto(sockfd,
@@ -3236,7 +3229,6 @@ nsd_sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen, int flags)
 	if(vpos) {
 		return (int)vpos;
 	} else if(errno == 0) {
-		errno = orig_errno;
 		return 0;
 	}
 

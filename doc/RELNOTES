@@ -28,6 +28,8 @@ BUG FIXES:
 	- Merge #108 from Nomis: Make the max-retry-time description clearer.
 	- Retry when udp send buffer is full to wait until buffer space is
 	  available.
+	- Remove errno reset behaviour from sendmmsg and recvmmsg
+	  replacement functions.
 
 
 4.3.1
