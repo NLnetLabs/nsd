@@ -30,6 +30,7 @@ BUG FIXES:
 	  available.
 	- Remove errno reset behaviour from sendmmsg and recvmmsg
 	  replacement functions.
+	- Fix unit test for different nsd-control-setup -h exit code.
 
 
 4.3.1

@@ -20,6 +20,6 @@ if [ $? -ne 1 ]; then exit 1; fi
 
 echo nsd-control-setup.sh -h
 ./nsd-control-setup.sh -h
-if [ $? -ne 1 ]; then exit 1; fi
+if [ $? -ne 0 ]; then exit 1; fi
 
 exit 0
