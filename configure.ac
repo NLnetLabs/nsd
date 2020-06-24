@@ -19,6 +19,9 @@ AC_ARG_VAR(EGREP, [location of the egrep program])
 AC_ARG_VAR(LEX, [location of the lex program with GNU extensions (flex)])
 AC_ARG_VAR(YACC, [location of the yacc program with GNU extensions (bison)])
 
+cmdln="`echo $@ | sed -e 's/\\\\/\\\\\\\\/g' | sed -e 's/"/\\\\"/'g`"
+AC_DEFINE_UNQUOTED(CONFCMDLINE, ["$cmdln"], [Command line arguments used with configure])
+
 CFLAGS="$CFLAGS"
 AC_AIX
 if test "$ac_cv_header_minix_config_h" = "yes"; then

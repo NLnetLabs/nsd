@@ -1,3 +1,19 @@
+22 June 2020: Wouter
+	- Remove errno reset behaviour from sendmmsg and recvmmsg
+	  replacement functions.
+	- Fix unit test for different nsd-control-setup -h exit code.
+
+19 June 2020: Wouter
+	- Merge #108 from Nomis: Make the max-retry-time description clearer.
+	- Retry when udp send buffer is full to wait until buffer space is
+	  available.
+
+18 June 2020: Wouter
+	- Do not log EAGAIN errors for sendmmsg, to stop log spam on OpenBSD.
+
+17 June 2020: Wouter
+	- Fix #107: nsd -v shows configure line, openssl version and libevent version.
+
 27 May 2020: Wouter
 	- Fix unlink of pidfile warning if not possible due to permissions,
 	  nsd can display the message at high verbosity levels.
