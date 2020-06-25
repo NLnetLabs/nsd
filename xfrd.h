@@ -249,6 +249,63 @@ enum xfrd_packet_result {
 #define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
 #define XFRD_LOWERBOUND_RETRY 1 /* seconds, smallest retry timeout */
 
+/*
+ * return refresh period
+ * within configured and defined lower and upper bound limits
+ */
+static inline time_t
+within_refresh_limits(xfrd_zone_type* zone, time_t refresh)
+{
+	return (time_t)zone->zone_options->pattern->max_refresh_time < refresh
+	     ? (time_t)zone->zone_options->pattern->max_refresh_time
+	     : (time_t)zone->zone_options->pattern->min_refresh_time > refresh
+	     ? (time_t)zone->zone_options->pattern->min_refresh_time
+	     : XFRD_LOWERBOUND_REFRESH > refresh
+	     ? XFRD_LOWERBOUND_REFRESH : refresh;
+}
+
+/*
+ * return the zone's refresh period (from the on disk stored SOA)
+ * within configured and defined lower and upper bound limits
+ */
+static inline time_t
+limited_soa_disk_refresh(xfrd_zone_type* zone)
+{
+	return within_refresh_limits(zone, ntohl(zone->soa_disk.refresh));
+}
+
+/*
+ * return retry period
+ * within configured and defined lower and upper bound limits
+ */
+static inline time_t
+within_retry_limits(xfrd_zone_type* zone, time_t retry)
+{
+	return (time_t)zone->zone_options->pattern->max_retry_time < retry
+	     ? (time_t)zone->zone_options->pattern->max_retry_time
+	     : (time_t)zone->zone_options->pattern->min_retry_time > retry
+	     ? (time_t)zone->zone_options->pattern->min_retry_time
+	     : XFRD_LOWERBOUND_RETRY > retry
+	     ? XFRD_LOWERBOUND_RETRY : retry;
+}
+
+/*
+ * return the zone's retry period (from the on disk stored SOA)
+ * within configured and defined lower and upper bound limits
+ */
+static inline time_t
+limited_soa_disk_retry(xfrd_zone_type* zone)
+{
+	return within_retry_limits(zone, ntohl(zone->soa_disk.retry));
+}
+
+/* return the zone's expire period (from the on disk stored SOA) */
+static inline time_t
+soa_disk_expire(xfrd_zone_type* zone)
+{
+	return ntohl(zone->soa_disk.expire);
+}
+
 extern xfrd_state_type* xfrd;
 
 /* start xfrd, new start. Pass socket to server_main. */

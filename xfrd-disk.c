@@ -311,8 +311,8 @@ xfrd_read_state(struct xfrd_state* xfrd)
 			&& zone->soa_nsd.serial == soa_nsd_read.serial) {
 			xfrd_deactivate_zone(zone);
 			zone->state = state;
-			xfrd_set_timer(zone, timeout > XFRD_LOWERBOUND_REFRESH
-			                   ? timeout : XFRD_LOWERBOUND_REFRESH);
+			xfrd_set_timer(zone,
+				within_refresh_limits(zone, timeout));
 		}	
 		if((zone->soa_nsd_acquired == 0 && soa_nsd_acquired_read == 0 &&
 			soa_disk_acquired_read == 0) ||
@@ -321,8 +321,8 @@ xfrd_read_state(struct xfrd_state* xfrd)
 			 * storm of attempts on some master servers */
 			xfrd_deactivate_zone(zone);
 			zone->state = state;
-			xfrd_set_timer(zone, timeout > XFRD_LOWERBOUND_RETRY
-			                   ? timeout : XFRD_LOWERBOUND_RETRY);
+			xfrd_set_timer(zone,
+				within_retry_limits(zone, timeout));
 		}
 
 		/* handle as an incoming SOA. */
