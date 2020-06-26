@@ -771,7 +771,7 @@ xfrd_set_timer_refresh(xfrd_zone_type* zone)
 	                                ? set_refresh : set_expire );
 
 	/* set point in time to period for xfrd_set_timer() */
-	xfrd_set_timer(zone, within_refresh_limits(zone,
+	xfrd_set_timer(zone, within_refresh_bounds(zone,
 		  set > xfrd_time()
 		? set - xfrd_time() : XFRD_LOWERBOUND_REFRESH));
 }
@@ -799,15 +799,15 @@ xfrd_set_timer_retry(xfrd_zone_type* zone)
 	/* set timer for next retry or expire timeout if earlier. */
 	if(zone->soa_disk_acquired == 0) {
 		/* if no information, use reasonable timeout
-		 * within configured and defined limits
+		 * within configured and defined bounds
 		 */
 		xfrd_set_timer(zone,
-			within_retry_limits(zone, zone->fresh_xfr_timeout
+			within_retry_bounds(zone, zone->fresh_xfr_timeout
 				+ random_generate(zone->fresh_xfr_timeout)));
 		return;
 	}
-	/* exponential backoff within configured and defined limits */
-	set_retry = within_retry_limits(zone,
+	/* exponential backoff within configured and defined bounds */
+	set_retry = within_retry_bounds(zone,
 			ntohl(zone->soa_disk.retry * mult));
 	if(zone->state == xfrd_zone_expired) {
 		xfrd_set_timer(zone, set_retry);
@@ -821,11 +821,11 @@ xfrd_set_timer_retry(xfrd_zone_type* zone)
 	}
 	/* Not expired, but next retry will be > than expire timeout.
 	 * Retry when the expire timeout runs out.
-	 * set_expire is below retry upper bound limits (if statement above),
-	 * but not necessarily above lower bound limits,
-	 * so use within_retry_limits() again.
+	 * set_expire is below retry upper bounds (if statement above),
+	 * but not necessarily above lower bounds,
+	 * so use within_retry_bounds() again.
 	 */
-	xfrd_set_timer(zone, within_retry_limits(zone,
+	xfrd_set_timer(zone, within_retry_bounds(zone,
 		  set_expire > xfrd_time()
 		? set_expire - xfrd_time() : XFRD_LOWERBOUND_RETRY));
 }

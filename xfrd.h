@@ -251,10 +251,10 @@ enum xfrd_packet_result {
 
 /*
  * return refresh period
- * within configured and defined lower and upper bound limits
+ * within configured and defined lower and upper bounds
  */
 static inline time_t
-within_refresh_limits(xfrd_zone_type* zone, time_t refresh)
+within_refresh_bounds(xfrd_zone_type* zone, time_t refresh)
 {
 	return (time_t)zone->zone_options->pattern->max_refresh_time < refresh
 	     ? (time_t)zone->zone_options->pattern->max_refresh_time
@@ -266,20 +266,20 @@ within_refresh_limits(xfrd_zone_type* zone, time_t refresh)
 
 /*
  * return the zone's refresh period (from the on disk stored SOA)
- * within configured and defined lower and upper bound limits
+ * within configured and defined lower and upper bounds
  */
 static inline time_t
 limited_soa_disk_refresh(xfrd_zone_type* zone)
 {
-	return within_refresh_limits(zone, ntohl(zone->soa_disk.refresh));
+	return within_refresh_bounds(zone, ntohl(zone->soa_disk.refresh));
 }
 
 /*
  * return retry period
- * within configured and defined lower and upper bound limits
+ * within configured and defined lower and upper bounds
  */
 static inline time_t
-within_retry_limits(xfrd_zone_type* zone, time_t retry)
+within_retry_bounds(xfrd_zone_type* zone, time_t retry)
 {
 	return (time_t)zone->zone_options->pattern->max_retry_time < retry
 	     ? (time_t)zone->zone_options->pattern->max_retry_time
@@ -291,12 +291,12 @@ within_retry_limits(xfrd_zone_type* zone, time_t retry)
 
 /*
  * return the zone's retry period (from the on disk stored SOA)
- * within configured and defined lower and upper bound limits
+ * within configured and defined lower and upper bounds
  */
 static inline time_t
 limited_soa_disk_retry(xfrd_zone_type* zone)
 {
-	return within_retry_limits(zone, ntohl(zone->soa_disk.retry));
+	return within_retry_bounds(zone, ntohl(zone->soa_disk.retry));
 }
 
 /* return the zone's expire period (from the on disk stored SOA) */

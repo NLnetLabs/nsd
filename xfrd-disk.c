@@ -312,7 +312,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 			xfrd_deactivate_zone(zone);
 			zone->state = state;
 			xfrd_set_timer(zone,
-				within_refresh_limits(zone, timeout));
+				within_refresh_bounds(zone, timeout));
 		}	
 		if((zone->soa_nsd_acquired == 0 && soa_nsd_acquired_read == 0 &&
 			soa_disk_acquired_read == 0) ||
@@ -322,7 +322,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 			xfrd_deactivate_zone(zone);
 			zone->state = state;
 			xfrd_set_timer(zone,
-				within_retry_limits(zone, timeout));
+				within_retry_bounds(zone, timeout));
 		}
 
 		/* handle as an incoming SOA. */
