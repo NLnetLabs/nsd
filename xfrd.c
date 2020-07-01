@@ -765,7 +765,7 @@ xfrd_set_timer_refresh(xfrd_zone_type* zone)
 		return;
 	}
 	/* refresh or expire timeout, whichever is earlier */
-	set_refresh = limited_soa_disk_refresh(zone);
+	set_refresh = bound_soa_disk_refresh(zone);
 	set_expire  = soa_disk_expire(zone);
 	set = zone->soa_disk_acquired + ( set_refresh < set_expire
 	                                ? set_refresh : set_expire );
@@ -884,7 +884,7 @@ xfrd_handle_zone(int ATTR_UNUSED(fd), short event, void* arg)
 		}
 		else if(zone->state == xfrd_zone_ok &&
 			xfrd_time() >= zone->soa_disk_acquired
-			               + limited_soa_disk_refresh(zone)) {
+			               + bound_soa_disk_refresh(zone)) {
 			/* zone goes to refreshing state. */
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s is refreshing", zone->apex_str));
 			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
@@ -1196,7 +1196,7 @@ xfrd_handle_incoming_soa(xfrd_zone_type* zone,
 		seconds_since_acquired =
 			  xfrd_time() > zone->soa_disk_acquired
 			? xfrd_time() - zone->soa_disk_acquired : 0;
-		if(seconds_since_acquired < limited_soa_disk_refresh(zone))
+		if(seconds_since_acquired < bound_soa_disk_refresh(zone))
 		{
 			/* zone ok, wait for refresh time */
 			xfrd_set_zone_state(zone, xfrd_zone_ok);

@@ -269,7 +269,7 @@ within_refresh_bounds(xfrd_zone_type* zone, time_t refresh)
  * within configured and defined lower and upper bounds
  */
 static inline time_t
-limited_soa_disk_refresh(xfrd_zone_type* zone)
+bound_soa_disk_refresh(xfrd_zone_type* zone)
 {
 	return within_refresh_bounds(zone, ntohl(zone->soa_disk.refresh));
 }
@@ -294,7 +294,7 @@ within_retry_bounds(xfrd_zone_type* zone, time_t retry)
  * within configured and defined lower and upper bounds
  */
 static inline time_t
-limited_soa_disk_retry(xfrd_zone_type* zone)
+bound_soa_disk_retry(xfrd_zone_type* zone)
 {
 	return within_retry_bounds(zone, ntohl(zone->soa_disk.retry));
 }
