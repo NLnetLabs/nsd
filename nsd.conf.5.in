@@ -745,6 +745,14 @@ used, followed by an exponential backoff, but this option restricts that value.
 .B min\-retry\-time:\fR <seconds>
 Limit retry time for secondary zones.
 .TP
+.B min\-expire\-time:\fR <seconds or refresh+retry+1>
+Limit expire time for secondary zones.  The value can be expressed either by a
+number of seconds, or the string "refresh+retry+1".  With the latter the expire
+time will be lower bound to the refresh plus the retry value from the SOA
+record, plus 1.  The refresh and retry values will be subject to the bounds
+configured with max\-refresh\-time, min\-refresh\-time, max\-retry\-time and
+min\-retry\-time if given.
+.TP
 .B zonestats:\fR <name>
 When compiled with \-\-enable\-zone\-stats NSD can collect statistics per zone.
 This name gives the group where statistics are added to.  The groups are

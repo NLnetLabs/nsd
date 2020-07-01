@@ -766,7 +766,7 @@ xfrd_set_timer_refresh(xfrd_zone_type* zone)
 	}
 	/* refresh or expire timeout, whichever is earlier */
 	set_refresh = bound_soa_disk_refresh(zone);
-	set_expire  = soa_disk_expire(zone);
+	set_expire  = bound_soa_disk_expire(zone);
 	set = zone->soa_disk_acquired + ( set_refresh < set_expire
 	                                ? set_refresh : set_expire );
 
@@ -814,7 +814,7 @@ xfrd_set_timer_retry(xfrd_zone_type* zone)
 		return;
 	}
 	/* retry or expire timeout, whichever is earlier */
-	set_expire = zone->soa_disk_acquired + soa_disk_expire(zone);
+	set_expire = zone->soa_disk_acquired + bound_soa_disk_expire(zone);
 	if(xfrd_time() + set_retry < set_expire) {
 		xfrd_set_timer(zone, set_retry);
 		return;
@@ -877,7 +877,7 @@ xfrd_handle_zone(int ATTR_UNUSED(fd), short event, void* arg)
 	{
 		if (zone->state != xfrd_zone_expired &&
 			xfrd_time() >= zone->soa_disk_acquired
-					+ soa_disk_expire(zone)) {
+					+ bound_soa_disk_expire(zone)) {
 			/* zone expired */
 			log_msg(LOG_ERR, "xfrd: zone %s has expired", zone->apex_str);
 			xfrd_set_zone_state(zone, xfrd_zone_expired);
@@ -1202,13 +1202,13 @@ xfrd_handle_incoming_soa(xfrd_zone_type* zone,
 			xfrd_set_zone_state(zone, xfrd_zone_ok);
 			zone->round_num = -1;
 			xfrd_set_timer_refresh(zone);
-		} else if(seconds_since_acquired < soa_disk_expire(zone))
+		} else if(seconds_since_acquired < bound_soa_disk_expire(zone))
 		{
 			/* zone refreshing */
 			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
 			xfrd_set_refresh_now(zone);
 		}
-		if(seconds_since_acquired >= soa_disk_expire(zone)) {
+		if(seconds_since_acquired >= bound_soa_disk_expire(zone)) {
 			/* zone expired */
 			xfrd_set_zone_state(zone, xfrd_zone_expired);
 			xfrd_set_refresh_now(zone);
