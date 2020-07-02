@@ -808,7 +808,7 @@ xfrd_set_timer_retry(xfrd_zone_type* zone)
 	}
 	/* exponential backoff within configured and defined bounds */
 	set_retry = within_retry_bounds(zone,
-			ntohl(zone->soa_disk.retry * mult));
+			ntohl(zone->soa_disk.retry) * mult);
 	if(zone->state == xfrd_zone_expired) {
 		xfrd_set_timer(zone, set_retry);
 		return;
