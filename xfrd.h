@@ -312,8 +312,8 @@ within_expire_bounds(xfrd_zone_type* zone, time_t expire)
 		     ? (time_t)zone->zone_options->pattern->min_expire_time : expire;
 
 	case REFRESHPLUSRETRYPLUS1:
-		return bound_soa_disk_refresh(zone)
-		     + bound_soa_disk_retry(zone) + 1;
+		return bound_soa_disk_refresh(zone) + bound_soa_disk_retry(zone) + 1 > expire
+		     ? bound_soa_disk_refresh(zone) + bound_soa_disk_retry(zone) + 1 : expire;
 	default:
 		return expire;
 	}
