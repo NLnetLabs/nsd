@@ -8,6 +8,8 @@ server:
 	pidfile: outgoing_ifc_denied.pid.slave
 	username: ""
 	chroot: ""
+	zonelistfile: "zone2.list"
+	interface: 127.0.0.1
 
 zone:
 	name: nibbler.example.com.

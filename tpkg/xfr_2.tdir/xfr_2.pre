@@ -5,6 +5,12 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 . ../common.sh
 
+# check if possible
+if [ $HOSTTYPE != i386 ] && [ $HOSTTYPE != x86_64 ]; then
+	echo "skipped: test needs i386 (precompiled help prog)"
+	exit 0;
+fi
+
 # start NSD
 get_random_port 1
 LDNS_PORT=$RND_PORT

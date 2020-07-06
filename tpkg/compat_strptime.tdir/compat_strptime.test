@@ -18,7 +18,7 @@ int main(void) {
 }
 ' > teststrptime.c
 
-gcc -o tpkg_teststrptime teststrptime.c compat/strptime.c
+gcc -o tpkg_teststrptime teststrptime.c compat/strptime.c || cc -o tpkg_teststrptime teststrptime.c compat/strptime.c || (echo "compilation failed"; exit 1)
 ./tpkg_teststrptime && echo success > teststrptime.out
 
 if grep 'success' teststrptime.out; then

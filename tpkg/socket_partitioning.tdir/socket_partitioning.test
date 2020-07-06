@@ -33,13 +33,24 @@ echo "XFRD: ${xfrd_pid}"
 echo "CHILD 1: ${child1_pid}"
 echo "CHILD 2: ${child2_pid}"
 
-lsof -i :${NSD_PORT1} -i :${NSD_PORT2}
+if which lsof >/dev/null 2>&1; then
+	lsof -i :${NSD_PORT1} -i :${NSD_PORT2}
+
+	main_sock_cnt=$(lsof -p ${main_pid} -a -i :${NSD_PORT1} -i :${NSD_PORT2} | tail -n +2 | wc -l)
+	child1_sock_cnt=$(lsof -p ${child1_pid} -a -i :${NSD_PORT1} -i :${NSD_PORT2} | tail -n +2 | wc -l)
+	child2_sock_cnt=$(lsof -p ${child2_pid} -a -i :${NSD_PORT1} -i :${NSD_PORT2} | tail -n +2 | wc -l)
+
+else
+	# freeBSD sockstat
+	sockstat -4 -p "${NSD_PORT1},${NSD_PORT2}"
+
+	main_sock_cnt=$(sockstat -q -4 -p "${NSD_PORT1},${NSD_PORT2}" | grep " ${main_pid}" | wc -l)
+	child1_sock_cnt=$(sockstat -q -4 -p "${NSD_PORT1},${NSD_PORT2}" | grep " ${child1_pid}" | wc -l)
+	child2_sock_cnt=$(sockstat -q -4 -p "${NSD_PORT1},${NSD_PORT2}" | grep " ${child2_pid}" | wc -l)
+
+fi
 
 # verify main process listens on both ports, child processes only listen on one port
-main_sock_cnt=$(lsof -p ${main_pid} -a -i :${NSD_PORT1} -i :${NSD_PORT2} | tail -n +2 | wc -l)
-child1_sock_cnt=$(lsof -p ${child1_pid} -a -i :${NSD_PORT1} -i :${NSD_PORT2} | tail -n +2 | wc -l)
-child2_sock_cnt=$(lsof -p ${child2_pid} -a -i :${NSD_PORT1} -i :${NSD_PORT2} | tail -n +2 | wc -l)
-
 echo "main socket count: ${main_sock_cnt}"
 echo "child1 socket count: ${child1_sock_cnt}"
 echo "child2 socket count: ${child2_sock_cnt}"
@@ -57,8 +68,13 @@ if [ -z "${child2_sock_cnt}" ] || [ ${child2_sock_cnt} -ne 2 ]; then
 fi
 
 # verify child processes listen on the right port
-child1_sock_cnt=$(lsof -p ${child1_pid} -a -i :${NSD_PORT1} | tail -n +2 | wc -l)
-child2_sock_cnt=$(lsof -p ${child2_pid} -a -i :${NSD_PORT2} | tail -n +2 | wc -l)
+if which lsof >/dev/null 2>&1; then
+	child1_sock_cnt=$(lsof -p ${child1_pid} -a -i :${NSD_PORT1} | tail -n +2 | wc -l)
+	child2_sock_cnt=$(lsof -p ${child2_pid} -a -i :${NSD_PORT2} | tail -n +2 | wc -l)
+else
+	child1_sock_cnt=$(sockstat -q -4 -p "${NSD_PORT1}" | grep " ${child1_pid}" | wc -l)
+	child2_sock_cnt=$(sockstat -q -4 -p "${NSD_PORT2}" | grep " ${child2_pid}" | wc -l)
+fi
 
 if [ -z "${child1_sock_cnt}" ] || [ ${child1_sock_cnt} -ne 2 ]; then
   error "child 1 did not listen on the right port"

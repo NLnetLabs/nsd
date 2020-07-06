@@ -6,6 +6,12 @@
 
 . ../common.sh
 
+# check if possible
+if [ $HOSTTYPE != i386 ] && [ $HOSTTYPE != x86_64 ]; then
+	echo "skipped: test needs i386 (precompiled help prog)"
+	exit 0;
+fi
+
 if kill -0 $LDNSD_PID >/dev/null 2>&1; then
 	kill_pid $LDNSD_PID
 fi

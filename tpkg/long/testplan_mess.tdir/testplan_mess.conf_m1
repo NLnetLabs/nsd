@@ -7,6 +7,8 @@ server:
 	difffile: "diff.m1.db"
 	xfrd-reload-timeout: 0
 	zonesdir: ""
+	zonelistfile: "zone.m1.list"
+	interface: 127.0.0.1
 
 # include tsig keys
 include: "testplan_mess.keys"

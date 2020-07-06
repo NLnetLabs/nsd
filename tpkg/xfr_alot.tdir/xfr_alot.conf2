@@ -7,6 +7,8 @@ server:
 	zonesdir: ""
 	username: ""
 	chroot: ""
+	zonelistfile: "zone2.list"
+	interface: 127.0.0.1
 
 key:
 	name: blabla

@@ -5,6 +5,8 @@ server:
 	difffile: "ixfr.db.2"
 	logfile: "slave.log"
 	zonesdir: ""
+	zonelistfile: "zone2.list"
+	interface: 127.0.0.1
 
 key:
 	name: blabla

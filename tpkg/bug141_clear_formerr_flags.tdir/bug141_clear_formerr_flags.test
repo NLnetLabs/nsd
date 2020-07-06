@@ -12,7 +12,7 @@ if test "`uname`" = "SunOS" -o "`uname`" = "Solaris"; then
 fi
 cc $FLAGS -o microdrill microdrill.c || gcc $FLAGS -o microdrill microdrill.c || (echo "compilation failed"; exit 1)
 
-echo 'default send str' | ./microdrill $TPKG_PORT | od -t x1 | tee outputfile
+echo 'default send str' | ./microdrill 127.0.0.1@$TPKG_PORT | od -t x1 | tee outputfile
 
 # must be ok
 wdiff bug141_clear_formerr_flags.known_good_respons outputfile

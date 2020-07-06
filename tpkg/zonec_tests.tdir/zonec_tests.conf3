@@ -7,6 +7,8 @@ server:
 	database: nsd.db
 	xfrdfile: nsd.xfrd
 	difffile: nsd.ixfr
+	zonelistfile: zone2.list
+	interface: 127.0.0.1
 zone:
 	name: "example.net"
 	zonefile: "zonec_tests.offbyone"

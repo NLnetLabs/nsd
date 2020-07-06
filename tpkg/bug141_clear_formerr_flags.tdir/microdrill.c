@@ -19,16 +19,56 @@ void error(const char* e)
 	exit(1);
 }
 
-/* create UDP socket to localhost */
-int makefd(char* port)
+/* parseip4 */
+int parseip(char* s)
 {
+	int ip = 0;
+	if(strchr(s, '.')) {
+		int i;
+		uint8_t b[4];
+		char* p, *n;
+		n = s;
+		for(i=0; i<4; i++) {
+			p = strchr(n, '.');
+			if(p)
+				*p = 0;
+			b[i] = atoi(n);
+			if(p)
+				*p = '.';
+			if(p)
+				n = p+1;
+		}
+		ip = (b[0]<<24) | (b[1]<<16) | (b[2]<<8) | (b[3]);
+	} else {
+		ip = atoi(s);
+	}
+	return ip;
+}
+
+/* create UDP socket to localhost@port, ip@port, ip@53 */
+int makefd(char* spec)
+{
+	int port = 53;
+	int ip4 = 0x7f000001; /* 127.0.0.1 */
 	struct sockaddr_in sa;
-	int fd = socket(AF_INET, SOCK_DGRAM, 0);
+	int fd = -1;
+	if(strchr(spec, '@')) {
+		char* p = strchr(spec, '@');
+		port = atoi(p+1);
+		*p = 0;
+		ip4 = parseip(spec);
+		*p = '@';
+	} else if(strchr(spec, '.')) {
+		ip4 = parseip(spec);
+	} else {
+		port = atoi(spec);
+	}
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if(fd == -1) error("socket() failed");
 	memset(&sa, 0, sizeof(sa));
 	sa.sin_family = AF_INET;
-	sa.sin_port = htons(atoi(port));
-	sa.sin_addr.s_addr = htonl(0x7f000001); /* 127.0.0.1 */
+	sa.sin_port = htons(port);
+	sa.sin_addr.s_addr = htonl(ip4);
 	if(connect(fd, (struct sockaddr*)&sa, sizeof(sa)) == -1)
 		error("connect() failed");
 	return fd;
@@ -79,8 +119,8 @@ int main(int argc, char* argv[])
 {
 	int fd;
 	if(argc != 2)
-		error("usage: <portnr> <inputfile >outputfile\n"
-			"connects over UDP to 127.0.0.1@portnr");
+		error("usage: <dest> <inputfile >outputfile\n"
+			"connects over UDP to dest: portnr, ip@port, ip");
 	fd = makefd(argv[1]);
 	sendpkt(fd, stdin);
 	waitpkt(fd, 5);

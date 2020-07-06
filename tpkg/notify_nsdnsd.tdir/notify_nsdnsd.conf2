@@ -9,6 +9,8 @@ server:
 	username: ""
 	chroot: ""
 	verbosity: 1
+	zonelistfile: "zone2.list"
+	interface: 127.0.0.1
 
 key:
 	name: blabla

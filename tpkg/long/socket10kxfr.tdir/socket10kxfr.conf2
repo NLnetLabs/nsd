@@ -9,4 +9,6 @@ server:
 	xfrd-reload-timeout: 0
 	# for receiving the notify datagrams
 	tcp-count: 16384
+	zonelistfile: "zone2.list"
+	interface: 127.0.0.1
 
