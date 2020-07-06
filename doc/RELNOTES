@@ -31,6 +31,8 @@ BUG FIXES:
 	- Remove errno reset behaviour from sendmmsg and recvmmsg
 	  replacement functions.
 	- Fix unit test for different nsd-control-setup -h exit code.
+	- Merge #112 from jaredmauch: log old and new serials when NSD
+	  rejects an IXFR due to an old serial number.
 
 
 4.3.1

@@ -1,6 +1,8 @@
 6 July 2020: Wouter
 	- Fix compile includes for xfr-inspect tool on FreeBSD.
 	- Add tpkg/run_vm.sh that runs test when in a virtual machine.
+	- Merge #112 from jaredmauch: log old and new serials when NSD
+	  rejects an IXFR due to an old serial number.
 
 22 June 2020: Wouter
 	- Remove errno reset behaviour from sendmmsg and recvmmsg
