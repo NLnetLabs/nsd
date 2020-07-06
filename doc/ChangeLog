@@ -1,3 +1,6 @@
+6 July 2020: Wouter
+	- Fix compile includes for xfr-inspect tool on FreeBSD.
+
 22 June 2020: Wouter
 	- Remove errno reset behaviour from sendmmsg and recvmmsg
 	  replacement functions.
