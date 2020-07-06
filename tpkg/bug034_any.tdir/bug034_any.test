@@ -3,7 +3,7 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 # normal query
-dig +noall +auth @localhost -p $TPKG_PORT any example.nl > bug034_any.current_respons1
+dig +noall +auth @127.0.0.1 -p $TPKG_PORT any example.nl > bug034_any.current_respons1
 
 # the current_respons1 should be empty - as is the known_good one
 wdiff bug034_any.known_good_respons1 bug034_any.current_respons1
