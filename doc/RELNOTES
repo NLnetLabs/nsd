@@ -7,6 +7,9 @@ FEATURES:
 	  that the default configuration and systemd results in duplicate
 	  log messages.
 	- Fix #107: nsd -v shows configure line, openssl version and libevent version.
+	- Fix #103 with #110: min-expire-time option.  To provide a lower
+	  bound for expire period.  Expressed in number of seconds or
+	  refresh+retry+1.
 BUG FIXES:
 	- Fix for posix shell syntax for trap in nsd-control-setup
 	- Fix to omit the listen-on lines from log at startup, unless verbose.
@@ -33,6 +36,8 @@ BUG FIXES:
 	- Fix unit test for different nsd-control-setup -h exit code.
 	- Merge #112 from jaredmauch: log old and new serials when NSD
 	  rejects an IXFR due to an old serial number.
+	- Fix #106: Adhere better to xfrd bounds.  Refresh and retry times.
+	- Fix #105: Clearing hash_tree means just emptying the tree.
 
 
 4.3.1
