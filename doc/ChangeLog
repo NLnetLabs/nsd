@@ -1,3 +1,6 @@
+7 July 2020: Wouter
+	- Tag for 4.3.2rc1.
+
 6 July 2020: Wouter
 	- Fix compile includes for xfr-inspect tool on FreeBSD.
 	- Add tpkg/run_vm.sh that runs test when in a virtual machine.

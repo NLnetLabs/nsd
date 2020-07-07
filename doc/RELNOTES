@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.3.2 (in development)
+4.3.2
 ================
 FEATURES:
 	- Fix #96: log-only-syslog: yes sets to only use syslog, fixes
