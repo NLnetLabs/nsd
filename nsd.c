@@ -113,7 +113,7 @@ version(void)
 {
 	fprintf(stderr, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 	fprintf(stderr, "Written by NLnet Labs.\n\n");
-	fprintf(stderr, "Configure line: %s\n", CONFCMDLINE);
+    fprintf(stderr, "Configure line: %s\n", CONFCMDLINE);
 #ifdef USE_MINI_EVENT
 	fprintf(stderr, "Event loop: internal (uses select)\n");
 #else
@@ -399,13 +399,22 @@ resolve_ifa_name(struct ifaddrs *ifas, const char *search_ifa, char ***ip_addres
 
     for(ifa = ifas; ifa != NULL; ifa = ifa->ifa_next) {
         sa_family_t family;
-        struct sockaddr_in *in;
+        struct sockaddr_in *in4;
+#ifdef INET6
+        struct sockaddr_in6 *in6;
+#endif
         const void *addr;
         const char *str;
+#ifdef INET6      /* |   address ip    | % |  ifa name  | TODO: @gearnode ensure the IFA_NAMESIZE is not already in the ADDRSTRLEN*/
+        char addr_buf[INET6_ADDRSTRLEN + 1 + IF_NAMESIZE];
+        char if_index_name[IF_NAMESIZE] = "";
+#else
         char addr_buf[INET_ADDRSTRLEN];
+#endif
 
         if(strcmp(ifa->ifa_name, search_ifa) != 0)
             continue;
+
 
         if(ifa->ifa_addr == NULL)
             continue;
@@ -414,9 +423,16 @@ resolve_ifa_name(struct ifaddrs *ifas, const char *search_ifa, char ***ip_addres
 
         switch(family) {
         case AF_INET:
-            in = (struct sockaddr_in *)ifa->ifa_addr;
-            addr = &in->sin_addr;
+            in4 = (struct sockaddr_in *)ifa->ifa_addr;
+            addr = &in4->sin_addr;
             break;
+#ifdef INET6
+        case AF_INET6:
+            in6 = (struct sockaddr_in6 *)ifa->ifa_addr;
+            addr = &in6->sin6_addr;
+            if_indextoname(in6->sin6_scope_id, (char *)if_index_name);
+            break;
+#endif
         default:
             continue;
         }
@@ -425,8 +441,15 @@ resolve_ifa_name(struct ifaddrs *ifas, const char *search_ifa, char ***ip_addres
         if (!str)
             error("inet_ntop");
 
+#ifdef INET6
+        if (strlen(if_index_name) != 0) {
+          (void)strncat(addr_buf, "%", sizeof(addr_buf) - strlen(addr_buf) - 1);
+          (void)strncat(addr_buf, if_index_name, sizeof(addr_buf) - strlen(addr_buf) - 1);
+        }
+#endif
+
         *ip_addresses = xrealloc(*ip_addresses, sizeof(char *) * *ip_addresses_size + 1);
-        (*ip_addresses)[*ip_addresses_size] = xstrdup(str);
+        (*ip_addresses)[*ip_addresses_size] = xstrdup(addr_buf);
         (*ip_addresses_size)++;
     }
 
@@ -1292,7 +1315,7 @@ main(int argc, char *argv[])
 
     struct ifaddrs *addrs;
 	struct ip_address_option *ip_addr;
-    struct ip_address_option *last;
+    struct ip_address_option *last = NULL;
     struct ip_address_option *first = NULL;
 
     if(getifaddrs(&addrs) == -1)
@@ -1310,8 +1333,10 @@ main(int argc, char *argv[])
         current->address = ip_addresses[i];
         current->next = NULL;
 
-        if(first == NULL)
-            first = current;
+        if(first == NULL) {
+            first = last = current;
+            continue;
+        }
 
         last->next = current;
         last = current;
