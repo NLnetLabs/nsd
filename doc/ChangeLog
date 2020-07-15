@@ -1,3 +1,6 @@
+15 July 2020: Wouter
+	- Fix make install with --with-pidfile="".
+
 14 July 2020: Wouter
 	- Tag for 4.3.2 release.  Master branch contains the next version
 	  in development, 4.3.3.

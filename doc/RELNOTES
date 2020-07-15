@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix make install with --with-pidfile="".
 
 
 4.3.2
