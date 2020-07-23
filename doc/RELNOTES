@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix make install with --with-pidfile="".
+	- Merge #115 from millert: Fix strlcpy() usage. From OpenBSD.
 
 
 4.3.2
