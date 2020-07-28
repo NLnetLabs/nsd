@@ -1139,7 +1139,7 @@ main(int argc, char *argv[])
 		}
 		nsd.cookie_secret_len = len;
 	} else {
-		int i;
+		size_t i;
 
 		/* Calculate a new random secret */
 		srandom(getpid() ^ time(NULL));

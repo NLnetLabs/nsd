@@ -106,6 +106,7 @@ edns_handle_option(uint16_t optcode, uint16_t optlen, buffer_type* packet,
 		} else {
 			buffer_skip(packet, optlen);
 		}
+		break;
 	default:
 		buffer_skip(packet, optlen);
 		break;
@@ -244,9 +245,9 @@ void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p)
 	
 	now_uint32 = *now_p ? *now_p : (*now_p = (uint32_t)time(NULL));
 
-	if(compare_1982(now_uint32, cookie_time) > 0)
+	if(compare_1982(now_uint32, cookie_time) > 0) {
                 /* ignore cookies > 1 hour in past */
-		if (subtract_1982(cookie_time, now_uint32) > 3600) {
+		if (subtract_1982(cookie_time, now_uint32) > 3600)
 			return;
 	} else if (subtract_1982(now_uint32, cookie_time) > 300)
                 /* ignore cookies > 5 minutes in future */
