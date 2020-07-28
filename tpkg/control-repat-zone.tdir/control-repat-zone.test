@@ -1,0 +1,65 @@
+# #-- control-repat-zone.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+CTRL="../../nsd-control -c nsd.conf"
+
+$CTRL status
+if test $? -ne 0; then
+	echo "control connection fails"
+	exit 1
+fi
+
+# update config file
+cp nsd.conf nsd.conf.orig
+cp nsd.conf2 nsd.conf
+
+$CTRL repattern
+if test $? -ne 0; then
+	echo "control repattern fails"
+	exit 1
+fi
+
+dig @127.0.0.1 -p $NSD_PORT example.com. AXFR | tee result
+# and try and wait if needed
+if grep hostmaster.example.com result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. AXFR | tee result; fi
+if grep hostmaster.example.com result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. AXFR | tee result; fi
+if grep hostmaster.example.com result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. AXFR | tee result; fi
+if grep hostmaster.example.com result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. AXFR | tee result; fi
+if grep hostmaster.example.com result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT example.com. AXFR | tee result; fi
+
+# the added zone
+if grep hostmaster.example.com result; then
+	echo "OK"
+else
+	echo "zone not accessible"
+	exit 1
+fi
+
+# the new zone
+dig @127.0.0.1 -p $NSD_PORT static.net. AXFR | tee result
+if grep hostmaster.static.net result; then
+	echo "OK"
+else
+	echo "zone not accessible"
+	exit 1
+fi
+
+# the deleted zone must be gone
+dig @127.0.0.1 -p $NSD_PORT deleted.net. SOA | tee result
+if grep REFUSED result; then
+	echo "OK"
+else
+	echo "zone not deleted"
+	exit 1
+fi
+
+exit 0

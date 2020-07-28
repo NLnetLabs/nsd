@@ -1,0 +1,10 @@
+example.com.       86400 IN SOA            dns.denic.de. ops.denic.de. (
+                                        2002031701      ; serial
+                                        10800   ; refresh
+                                        7200    ; retry
+                                        36000   ; expire
+                                        3600)   ; minimum
+test IN A 127.3.2.1
+testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest IN TXT "test"
+foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo.at. IN A 127.1.2.3
+barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar.at. IN NS ns1.foobar.at

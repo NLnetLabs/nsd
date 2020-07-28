@@ -1,0 +1,28 @@
+# #-- bug253_skipns.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+$DIG @localhost -p $TPKG_PORT DNSKEY nibbler.net > bug253_skipns.current_respons1
+cat bug253_skipns.current_respons1
+
+# must be ok
+if grep 'NOERROR' bug253_skipns.current_respons1; then
+	echo "no error"
+	if grep 'Truncated, retrying in TCP mode' bug253_skipns.current_respons1; then
+		echo "truncated"
+		exit 1
+	fi
+
+	if grep 'AUTHORITY SECTION' bug253_skipns.current_respons1; then
+		echo "non-empty authority section"
+		exit 1
+	fi
+	echo "ok answer"
+    exit 0
+fi
+echo "error status"
+exit 1
+

@@ -1,0 +1,87 @@
+# #-- drop_updates.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+exit_code=0
+
+
+#
+# drop-updates: no
+#
+$TPKG_NSD -c $(pwd)/drop_updates_no.conf -V 5 -a 127.0.0.1 -p $TPKG_PORT
+wait_nsd_up nsd.log
+
+dig @127.0.0.1 -p ${TPKG_PORT} +timeout=1 +noedns www.example.net \
+  > drop_updates_no.query 2>&1
+if [ ${?} -eq 0 ] && grep 'status: NOERROR' drop_updates_no.query >/dev/null \
+                  && grep 'www\.example\.net\.' drop_updates_no.query >/dev/null; then
+  echo "QUERY result with drop-updates: no was correct"
+else
+  exit_code=1
+  echo "QUERY result with drop-updates: no was incorrect"
+  echo "dig:"
+  cat drop_updates_no.query
+fi
+
+dig @127.0.0.1 -p ${TPKG_PORT} +timeout=1 +noedns +opcode=UPDATE www.example.net \
+  > drop_updates_no.update 2>&1
+if [ ${?} -eq 0 ] && grep 'status: NOTIMP' drop_updates_no.update >/dev/null; then
+  echo "UPDATE result with drop-updates: no was correct"
+else
+  exit_code=1
+  echo "UPDATE result with drop-updates: no was incorrect"
+  echo "dig:"
+  cat drop_updates_no.update
+fi
+
+if test -f nsd.pid; then
+  kill_pid $(head -n 1 nsd.pid)
+fi
+
+cat nsd.log
+rm -f nsd.log nsd.pid
+
+
+#
+# drop-updates: yes
+#
+$TPKG_NSD -c $(pwd)/drop_updates_yes.conf -V 5 -a 127.0.0.1 -p $TPKG_PORT
+wait_nsd_up nsd.log
+
+dig @127.0.0.1 -p ${TPKG_PORT} +timeout=1 +noedns www.example.net \
+  > drop_updates_yes.query 2>&1
+if [ ${?} -eq 0 ] && grep 'status: NOERROR' drop_updates_yes.query >/dev/null \
+                  && grep 'www\.example\.net\.' drop_updates_yes.query >/dev/null; then
+  echo "QUERY result with drop-updates: yes was correct"
+else
+  exit_code=1
+  echo "QUERY result with drop-updates: yes was incorrect"
+  echo "dig:"
+  cat drop_updates_yes.query
+fi
+
+dig @127.0.0.1 -p ${TPKG_PORT} +noedns +opcode=UPDATE +timeout=1 www.example.net \
+  > drop_updates_yes.update 2>&1
+if [ ${?} -eq 9 ] && grep 'connection timed out' drop_updates_yes.update >/dev/null; then
+  echo "UPDATE result with drop-updates: yes was correct"
+else
+  exit_code=1
+  echo "UPDATE result with drop-updates: yes was incorrect"
+  echo "dig:"
+  cat drop_updates_yes.update
+fi
+
+if test -f nsd.pid; then
+  kill_pid $(head -n 1 nsd.pid)
+fi
+
+cat nsd.log
+rm -f nsd.log nsd.pid
+
+exit ${exit_code}

@@ -1,0 +1,45 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# fall over to TCP
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=5 UDP
+REPLY QUERY NOERROR TC
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 7 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=5 TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 7 3600 28800 2419200 3600
+EXTRA_PACKET
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+EXTRA_PACKET
+txt2    345600  IN      TXT     "updated BBB 2"
+EXTRA_PACKET
+txt5    345600  IN      TXT     "text record 5"
+EXTRA_PACKET
+@ 345600 IN SOA ns0.example.org. root 7 3600 28800 2419200 3600
+EXTRA_PACKET
+txt2    345600  IN      TXT     "updated CCC 2"
+EXTRA_PACKET
+txt6    345600  IN      TXT     "text record 6"
+EXTRA_PACKET
+ooz8	345600	IN	A	192.0.2.224
+EXTRA_PACKET
+ooz8	345600	IN	DNAME	zaza.example.net.
+EXTRA_PACKET
+@ 345600 IN SOA ns0.example.org. root 7 3600 28800 2419200 3600
+ENTRY_END

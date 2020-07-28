@@ -1,0 +1,28 @@
+# SLAVE CONFIG
+# conf file for test tsig
+server:
+	xfrdfile: "xfrd.state.slave"
+	difffile: "ixfr.db.slave"
+	logfile: "/dev/stdout"
+	database: "slave.db"
+	xfrd-reload-timeout: 0
+	zonesdir: ""
+	zonelistfile: "zone2.list"
+	interface: 127.0.0.1
+
+key:
+	name: blabla
+	algorithm: hmac-md5
+	secret: "K2tf3TRjvQkVCmJF3/Z9vA=="
+
+zone:
+	name: example.com.
+	zonefile: testplan_axfr.zone_empty
+	request-xfr: AXFR 127.0.0.1@MASTERPORT NOKEY
+	allow-notify: 127.0.0.1 NOKEY
+	allow-notify: ::ffff:127.0.0.1 NOKEY
+	allow-notify: ::1 NOKEY
+	# allow axfr to check the results.
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: ::1 NOKEY
+	provide-xfr: ::ffff:127.0.0.1 NOKEY

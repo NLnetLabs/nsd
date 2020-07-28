@@ -1,0 +1,5 @@
+; a simple valid zone
+@ IN SOA ns.com.com. hostmaster 2011071300 1800 900 604800 86400
+  IN NS ns.foo.com.
+  IN NS ns2.foo.com.
+  IN A 192.0.2.1

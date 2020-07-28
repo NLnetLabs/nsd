@@ -1,0 +1,24 @@
+# #-- socket_partitioning.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+if $TPKG_NSD -h 2>&1 | grep -- "-L"; then
+	echo "debug enabled"
+else
+	echo "debug not enabled, skip test"
+	exit 0
+fi
+
+# do your teardown here
+if ! test -e nsd.pid ; then
+	exit 0
+fi
+
+# kill NSD
+kill_pid `cat nsd.pid`

@@ -1,0 +1,22 @@
+# #-- xfr_huge.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+RESULTFILE=xfr_huge.current_response
+wait_logfile slave.log "is updated to 2003070707" 500
+
+dig @127.0.0.1 -p $TPKG_PORT2 huge.example. AXFR > $RESULTFILE
+echo head $RESULTFILE 
+head $RESULTFILE 
+echo tail $RESULTFILE 
+tail $RESULTFILE 
+
+cat master.log
+cat slave.log
+
+# must be ok
+cat $RESULTFILE | grep -v '^;' > xfr_huge.check
+wdiff --no-common xfr_huge.check xfr_huge.known_good

@@ -75,6 +75,11 @@ log_function_type log_file;
 log_function_type log_syslog;
 
 /*
+ * The function used to log to syslog only.
+ */
+log_function_type log_only_syslog;
+
+/*
  * Set the logging function to use (log_file or log_syslog).
  */
 void log_set_log_function(log_function_type *log_function);
@@ -428,5 +433,10 @@ int file_inside_chroot(const char* fname, const char* chr);
 
 /** Something went wrong, give error messages and exit. */
 void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
+
+#if HAVE_CPUSET_T
+int number_of_cpus(void);
+int set_cpu_affinity(cpuset_t *set);
+#endif
 
 #endif /* _UTIL_H_ */

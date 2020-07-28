@@ -1,0 +1,17 @@
+@	IN	SOA	mainserv.example.net. root.example. (
+				2003070707 ; serial
+				1H ; refresh
+				8H ; retry
+				4W ; expire
+				1H ; minimum ttl
+	)
+;
+example.	NS ns0.xname.org.
+example.	NS ns1.xname.org.
+;
+x.example. 	DNAME	y.example.
+
+a.y.example.	A	10.0.0.10
+
+; ILLEGAL data, below DNAME
+a.b.x.example.	A	10.0.0.12

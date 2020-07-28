@@ -1,0 +1,22 @@
+# SLAVE CONFIG
+server:
+	logfile: "slave.log"
+	difffile: "ixfr.db.2"
+	xfrdfile: "xfrd.state.2"
+	database: outgoing_ifc.db.2
+	zonesdir: ""
+	pidfile: outgoing_ifc.pid.slave
+	username: ""
+	chroot: ""
+	zonelistfile: "zone2.list"
+	interface: 127.0.0.1
+
+zone:
+	name: nibbler.example.com.
+	zonefile: outgoing_ifc.bak
+
+	request-xfr: AXFR 127.0.0.1@TPKGPORT NOKEY
+	allow-notify: 127.0.0.1@OUTPORT1 NOKEY
+
+	outgoing-interface: 127.0.0.1@OUTPORT2
+

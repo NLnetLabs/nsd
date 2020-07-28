@@ -1,0 +1,2 @@
+This test test if no unnecessary NS RRsets are added if QTYPE=DNSKEY.
+This test runs without arguments.

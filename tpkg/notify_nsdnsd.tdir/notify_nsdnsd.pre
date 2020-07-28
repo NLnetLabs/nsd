@@ -1,0 +1,36 @@
+# #-- notify_nsdnsd.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+TPKG_PORT2=$(($TPKG_PORT + 1))
+
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD_PID2="nsd.pid2.$$"
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_PORT2=$TPKG_PORT2" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+echo "export TPKG_NSD_PID2=$TPKG_NSD_PID2" >> .tpkg.var.test
+
+sed -e "s/TPKGPORT/$TPKG_PORT/" < notify_nsdnsd.conf2 > notify_nsdnsd.conf2_r
+sed -e "s/TPKGPORT/$TPKG_PORT2/" < notify_nsdnsd.conf > notify_nsdnsd.conf1_r
+cat notify_nsdnsd.conf?_r
+
+# master
+$TPKG_NSD -c notify_nsdnsd.conf1_r -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f notify_nsdnsd.db
+# slave
+$TPKG_NSD -c notify_nsdnsd.conf2_r -u $LOGNAME -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f notify_nsdnsd.2.db
+
+sleep 3
+echo master at port $TPKG_PORT $TPKG_NSD_PID = `cat $TPKG_NSD_PID`
+echo slave at port $TPKG_PORT2 $TPKG_NSD_PID2 = `cat $TPKG_NSD_PID2`
+

@@ -1,0 +1,34 @@
+# #-- bug056_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../../"
+
+# should work
+dig @localhost -p $TPKG_PORT example.nl AXFR > got.nl
+if grep "^example.nl" got.nl; then
+	echo "xfer OK"
+else
+	echo "acl failed"
+	exit 1
+fi
+
+dig @localhost -p $TPKG_PORT example.com AXFR > got.com
+if grep "^example.com" got.com; then
+	echo "xfer OK"
+else
+	echo "acl failed"
+	exit 1
+fi
+
+dig @localhost -p $TPKG_PORT example.net AXFR > got.net
+if grep "^example.net" got.net; then
+	echo "xfer OK"
+else
+	echo "acl failed"
+	exit 1
+fi
+
+exit 0

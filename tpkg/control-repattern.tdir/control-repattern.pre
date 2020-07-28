@@ -1,0 +1,29 @@
+# #-- control-repattern.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+NSD_PORT=$RND_PORT
+CONTROL_PORT=$(($NSD_PORT + 1))
+
+PRE="../.."
+NSD_PID="nsd.pid.$$"
+NSD="$PRE/nsd -p $NSD_PORT -P $NSD_PID -u $LOGNAME"
+
+# share the vars
+echo "export NSD_PORT=$NSD_PORT" >> .tpkg.var.test
+echo "export NSD_PID=$NSD_PID" >> .tpkg.var.test
+echo "export CONTROL_PORT=$CONTROL_PORT" >> .tpkg.var.test
+
+sed -e "s/CONTROLPORT/$CONTROL_PORT/" < control-repattern.conf > nsd.conf
+sed -e "s/CONTROLPORT/$CONTROL_PORT/" < control-repattern.conf2 > nsd.conf2
+cat nsd.conf
+
+$NSD -p $NSD_PORT -P $NSD_PID -c nsd.conf >nsd.log 2>&1
+wait_nsd_up nsd.log
+
+echo slave at port $NSD_PORT $NSD_PID = `cat $NSD_PID`

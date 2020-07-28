@@ -1,0 +1,67 @@
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY NOERROR AA
+ADJUST copy_id
+SECTION QUESTION
+example.com. AXFR
+SECTION ANSWER
+example.com.	3600	IN	SOA	ns1.c.example. reply.c.example. 1 3600 300 3600000 3600
+example.com.	3600	IN	RRSIG	SOA 8 2 3600 20140206111009 20140109111009 1443 example.com. GyLydPZztaqxKdFJ72miyxvlDprEQW6XTYJG63isgeyjpmRCKTzKWmLAXKKxI+LklDkpUULJ9hLFrnQI1LwqWlqNxe+7NASqyT9VCH9Ng2viZtROExm7LAN3FA3hbyXJ0XrU4UlKqEpNvGvOLRIi9SGhnxJMuYNaIN1AnZANj1U=
+example.com.	3600	IN	NS	ns1.c.example.
+example.com.	3600	IN	NS	ns2.c.example.
+example.com.	3600	IN	RRSIG	NS 8 2 3600 20140206111009 20140109111009 1443 example.com. PSCFfu8y+InuSsmnK3xoGQcn9BHD9XHfDNWGqLAgc6GKfEyQyBfUk/UthhahJI3oSaW9BggjBzAFZDQytA4f9qUsNFsexLR3kvecxLk0p58PjidGjuKobdXpvtkq2dBsCYU2h6OKGDF+SG8BPM9ecfx1cLzStTZe+Uoyo+WtbCU=
+example.com.	3600	IN	DNSKEY	256 3 8 AwEAAbd9WqjzE2Pynz21OG5doSf9hFzMr5dhzz2waZ3vTa+0o5r7AjTAqmA1yH/B3+aAMihUm5ucZSfVqo7+kOaRE8yFj9aivOmA1n1+JLevJq/oyvQyjxQN2Qb89LyaNUT5oKZIiL+uyyhNW3KDR3SSbQ/GBwQNDHVcZi+JDR3RC0r7 ;{id = 1443 (zsk), size = 1024b}
+example.com.	3600	IN	RRSIG	DNSKEY 8 2 3600 20140206111009 20140109111009 1443 example.com. FK6HAjvdb7FsHawXBe3Cd8XcqcmgbNrtzPAWqsiroFdCb9KE04b8/v3kbssecXoL1dMy72sle5PfZCkBOD1MvUNYTvCvZz0ex1Qz/WsG/LGtE/DGe5r8dJQA8Devg93pYCuyPMBqBCNr6bAPXyTUSbt5f5AW+V8LhgTBFFFUarQ=
+example.com.	3600	IN	NSEC3PARAM	1 0 1 - 
+example.com.	3600	IN	RRSIG	NSEC3PARAM 8 2 3600 20140206111009 20140109111009 1443 example.com. Z4BcK+VkrW8Ssw29hMdY3bwZGzUKm0qwhPjfZxXxfUu2w4FXb5XFBxN+47NYc8vRInPIb2TqmXdlQWpld0DAQPoWMxcMUAMLAXTtFDzrFYzMynQDQGhfxbepGfVEQ/mz0qHfh0bjpA1deL36x5UBByOogbC3QiLSZJcLTQ956Lk=
+9vq38lj9qs6s1aruer131mbtsfnvek2p.example.com.	3600	IN	NSEC3	1 1 1 -  60kt8rrqnbjpudtjfnbnso2mano2qut2 NS SOA RRSIG DNSKEY NSEC3PARAM 
+9vq38lj9qs6s1aruer131mbtsfnvek2p.example.com.	3600	IN	RRSIG	NSEC3 8 3 3600 20140206111009 20140109111009 1443 example.com. qCPGpGQ9f5AqapU4mj31GDWDjbuEQHGVVuOf3Eb+JB+kzZVAWE2vM1SUZ5tI8rK2Cir75WrTUPhW9IxcGrUZSLbKRYHM+L+VYl7Pl91OS+QdZKGY2atd3vi9+eWkNsjcpa1D9tJrGJgHoqw4n2tRjvUSIiPw2Uzz0tDX3lMZIhM=
+ns1.example.com.	3600	IN	A	192.168.2.7
+ns1.example.com.	3600	IN	RRSIG	A 8 3 3600 20140206111009 20140109111009 1443 example.com. Q2Ft476AA/wsTy1cQcHoQRprnz5s+n6fZl9WdqpAtqmsq6G/e859TXvv2PfvOw+nSgrZ7n6R0DZqNYXmddgibbIqnonqIGxbu75EAjscQ082LKQG0IDNEWE6cpnt4OADFR8wdGUaeP9QYPDRIXOdHT0EUQ6QdQMkLV+BcE6kSCo=
+60kt8rrqnbjpudtjfnbnso2mano2qut2.example.com.	3600	IN	NSEC3	1 1 1 -  78rnelu7i9j5jiol3koo0759itia1vkp A RRSIG 
+60kt8rrqnbjpudtjfnbnso2mano2qut2.example.com.	3600	IN	RRSIG	NSEC3 8 3 3600 20140206111009 20140109111009 1443 example.com. nr/eDp2n1zaQHq9JCD4s6npWpYVxtvXkShhmdhV1LPQswB7zw3hWY+5goKbWox5M9L8YorVbEPgBj4OclfYsJml7xJ/yr+h55bFhyx+PvRJNm/Kru2UzvUi12VhPj85vZbO8J+K/m7ZyBB3X3Tcg2LkRWUkt0Y+rNbVbSBwWJmM=
+ns2.example.com.	3600	IN	A	192.168.2.8
+ns2.example.com.	3600	IN	RRSIG	A 8 3 3600 20140206111009 20140109111009 1443 example.com. euROTkln6NwfIsn2o/EQ7bfvxYN+PiBnEwuhbKdvc4aOOxxI68NxjNw4qKuEWfSt46YiU35fne8l2rV8v+JCeTyecjIEZ2U/aBqJjeuHmXDhLBpCtGkMQhCzrBSkbWPQgw3SeFcr5j2VPMW+cJDyMopQ8YPk149299L8OmAznLU=
+78rnelu7i9j5jiol3koo0759itia1vkp.example.com.	3600	IN	NSEC3	1 1 1 -  7t1ect6t5vp0s7se8si9d07roqupr3gc A RRSIG 
+78rnelu7i9j5jiol3koo0759itia1vkp.example.com.	3600	IN	RRSIG	NSEC3 8 3 3600 20140206111009 20140109111009 1443 example.com. UaZ7BKzCn3uBlflGb5MnCWL0sar724DceWhUkdOETw5tFs43a/CRhUc7qcdHAAGMQKZXmPs7an9IHvoNVs59V/YTNt7MLNvjod7cFk8i7VimUywnlYJPAxemgKENQcRpUyQhashFkrTvlxaF5q3RpnbEYXBE4PXDG/XevZA7hNc=
+sub.example.com.	3600	IN	NS	ns1.c.example.
+sub.example.com.	3600	IN	NS	ns2.c.example.
+sub.example.com.	3600	IN	DS	50602 8 2 fa8ee175c47325f4bd46d8a4083c3ebeb11c977d689069f2b41f1a29b22446b1
+sub.example.com.	3600	IN	RRSIG	DS 8 3 3600 20140206111009 20140109111009 1443 example.com. GxCcRl9qqttNKy7eeHdAPrPdGuje6GkYf4OGpcPxNrmkA1K5MVuHYUXj22Y6BkB97R3JsLHB75NNZ98eCnn8dBiK/qQQVzDcIA/S6XwhnsJpFFmYw8/AmcG2SdPN9BAAABEFC0hnAfru7EZkSoOEY1bH+V6jAvPuPGog5yz3O3k=
+7t1ect6t5vp0s7se8si9d07roqupr3gc.example.com.	3600	IN	NSEC3	1 1 1 -  9vq38lj9qs6s1aruer131mbtsfnvek2p NS DS RRSIG 
+7t1ect6t5vp0s7se8si9d07roqupr3gc.example.com.	3600	IN	RRSIG	NSEC3 8 3 3600 20140206111009 20140109111009 1443 example.com. qXY0IWFcJxKF9m9nUlBgGXL1OPPWgfoeOvYAuEAYaG1vghL6cANbBJf83dDzyE8hqZrw7i2xUsr2zcfzo4FNmQmvip2uLPFSWyMZ2ph6m209ZY8H/HjLXYHbgdS60Sv7B0Fzuo7Lkv923jLeFLis5kB9Dbt6b2INfagUF3SP2vk=
+example.com.	3600	IN	SOA	ns1.c.example. reply.c.example. 1 3600 300 3600000 3600
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1
+REPLY NOERROR AA
+ADJUST copy_id
+SECTION QUESTION
+sub.example.com. IXFR
+SECTION ANSWER
+sub.example.com.        3600    IN      SOA     ns1.c.example. reply.c.example. 2 4 4 3600000 3600
+sub.example.com.        3600    IN      SOA     ns1.c.example. reply.c.example. 1 3600 300 3600000 3600
+sub.example.com.        3600    IN      RRSIG   SOA 8 3 3600 20140206111102 20140109111102 1443 sub.example.com. sKA0l3mYZQMZFvKawNW+wAUF140JdlfHbZLslel0nBfHju52pTZ3ovFoUoVyZYCx+u/3/l6+ejBjU0sX4GtP/51FjuD86CfJUXzYTgpol3LkkUJm9OYPZc13I3cwrCwq/aTL3pNlosbII4u81mdJlmcvYNxUTAWV52q6QB89VnI=
+sub.example.com.        3600    IN      SOA     ns1.c.example. reply.c.example. 2 4 4 3600000 3600
+sub.example.com.        3600    IN      RRSIG   SOA 8 3 3600 20140206111103 20140109111103 1443 sub.example.com. sKA0l3mYZQMZFvKawNW+wAUF140JdlfHbZLslel0nBfHju52pTZ3ovFoUoVyZYCx+u/3/l6+ejBjU0sX4GtP/51FjuD86CfJUXzYTgpol3LkkUJm9OYPZc13I3cwrCwq/aTL3pNlosbII4u81mdJlmcvYNxUTAWV52q6QB89VnI=
+sub.example.com.        3600    IN      SOA     ns1.c.example. reply.c.example. 2 4 4 3600000 3600
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=2
+REPLY NOERROR AA
+ADJUST copy_id
+SECTION QUESTION
+sub.example.com. IXFR
+SECTION ANSWER
+sub.example.com.        3600    IN      SOA     ns1.c.example. reply.c.example. 3 3600 300 3600000 3600
+sub.example.com.        3600    IN      SOA     ns1.c.example. reply.c.example. 2 4 4 3600000 3600
+sub.example.com.        3600    IN      RRSIG   SOA 8 3 3600 20140206111103 20140109111103 1443 sub.example.com. sKA0l3mYZQMZFvKawNW+wAUF140JdlfHbZLslel0nBfHju52pTZ3ovFoUoVyZYCx+u/3/l6+ejBjU0sX4GtP/51FjuD86CfJUXzYTgpol3LkkUJm9OYPZc13I3cwrCwq/aTL3pNlosbII4u81mdJlmcvYNxUTAWV52q6QB89VnI=
+sub.example.com.        3600    IN      SOA     ns1.c.example. reply.c.example. 3 3600 300 3600000 3600
+sub.example.com.        3600    IN      RRSIG   SOA 8 3 3600 20140206111104 20140109111104 1443 sub.example.com. sKA0l3mYZQMZFvKawNW+wAUF140JdlfHbZLslel0nBfHju52pTZ3ovFoUoVyZYCx+u/3/l6+ejBjU0sX4GtP/51FjuD86CfJUXzYTgpol3LkkUJm9OYPZc13I3cwrCwq/aTL3pNlosbII4u81mdJlmcvYNxUTAWV52q6QB89VnI=
+phophanom.sub.example.com.	IN 	NS 	ns1.zomba.net.
+phophanom.sub.example.com.	IN 	NS 	ns2.zomba.net.
+sub.example.com.        3600    IN      SOA     ns1.c.example. reply.c.example. 3 3600 300 3600000 3600
+ENTRY_END
+

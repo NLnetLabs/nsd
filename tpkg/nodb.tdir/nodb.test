@@ -1,0 +1,45 @@
+# #-- nodb.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+RAND=$(($RANDOM % 300))
+TPKG_PORT=$((5353 + $RAND))
+
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+echo port: $TPKG_PORT
+
+$TPKG_NSD -c nsd_1.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -V 5
+wait_nsd_up nsd.log
+
+# query for the master and the slave zone.
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA | tee result
+if grep "leela.example.com" result; then
+	echo "OK"
+else
+	echo "master zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+dig @127.0.0.1 -p $TPKG_PORT a www.example.net | tee result
+if grep "192.0.2.6" result; then
+	echo "OK"
+else
+	echo "not updated"
+	cat nsd.log
+	exit 1
+fi
+
+echo ""
+cat nsd.log
+
+exit 0

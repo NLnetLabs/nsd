@@ -1,0 +1,109 @@
+# #-- socket10kxfr.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+PRE="../../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+# slave server too
+TPKG_PORT2=$(($TPKG_PORT + 1))
+TPKG_NSD_PID2="nsd.pid2.$$"
+NUMZONES=1000
+if which perl
+then
+	TPKG_HAVE_PERL=1
+	if perl -e "use Net::DNS" 2>/dev/null
+	then
+		TPKG_HAVE_NET_DNS=1
+	else
+		TPKG_HAVE_NET_DNS=0
+	fi
+else
+	TPKG_HAVE_PERL=0
+	TPKG_HAVE_NET_DNS=0
+fi
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" > .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+echo "export TPKG_PORT2=$TPKG_PORT2" >> .tpkg.var.test
+echo "export TPKG_NSD_PID2=$TPKG_NSD_PID2" >> .tpkg.var.test
+echo "export NUMZONES=$NUMZONES" >> .tpkg.var.test
+echo "export TPKG_HAVE_PERL=$TPKG_HAVE_PERL" >> .tpkg.var.test
+echo "export TPKG_HAVE_NET_DNS=$TPKG_HAVE_NET_DNS" >> .tpkg.var.test
+
+
+cp socket10kxfr.conf myconf
+cp socket10kxfr.conf2 slaveconf
+
+echo "	zonelistfile: master.zonelist" >> myconf
+echo "pattern: name: master" >> myconf
+echo "	zonefile: master.tld" >> myconf
+echo "	notify: 127.0.0.1@$TPKG_PORT2 NOKEY" >> myconf
+echo "	provide-xfr: 127.0.0.1 NOKEY" >> myconf
+echo "	provide-xfr: ::1 NOKEY" >> myconf
+echo "	provide-xfr: ::ffff:127.0.0.1 NOKEY" >> myconf
+echo "" >> myconf
+
+echo "	zonelistfile: slave.zonelist" >> slaveconf
+echo "pattern: name: slave" >> slaveconf
+echo "	zonefile: %s.secondary.tld" >> slaveconf
+echo "	allow-notify: 127.0.0.1 NOKEY" >> slaveconf
+echo "	allow-notify: ::1 NOKEY" >> slaveconf
+echo "	allow-notify: ::ffff:127.0.0.1 NOKEY" >> slaveconf
+echo "	request-xfr: AXFR 127.0.0.1@$TPKG_PORT NOKEY" >> slaveconf
+echo "" >> slaveconf
+
+echo '$TTL 86400' > master.tld
+echo "@ IN SOA a.dns.jp root.dns.jp. 000000001 3600 900 604800 900" >> master.tld
+echo "  IN NS a.dns.jp." >> master.tld
+echo "  IN A 127.0.0.1" >> master.tld
+echo "www IN A 127.0.0.1" >> master.tld
+
+#echo '$TTL 86400' > $i.secondary.tld
+
+echo '# NSD zone list' > master.zonelist
+echo '# name pattern' >> master.zonelist
+echo '# NSD zone list' > slave.zonelist
+echo '# name pattern' >> slave.zonelist
+#i=0
+#while test $i -le $NUMZONES; do
+#	echo "add $i.tld master" >> master.zonelist
+#	echo "add $i.tld slave" >> slave.zonelist
+#	i=`expr $i + 1`
+#done
+## simply faster
+
+if test $TPKG_HAVE_PERL = 1
+then
+	perl -e 'for ($i = 0; $i<='$NUMZONES'; $i++) { print "add $i.tld master\n"; }' >> master.zonelist
+	perl -e 'for ($i = 0; $i<='$NUMZONES'; $i++) { print "add $i.tld slave\n"; }' >> slave.zonelist
+else
+	awk 'END{for (i = 0; i <= '$NUMZONES'; i++) print "add "i".tld master"; }' </dev/null >master.zonelist
+	awk 'END{for (i = 0; i <= '$NUMZONES'; i++) print "add "i".tld slave"; }' </dev/null >slave.zonelist
+fi
+
+echo "done generating config"
+
+# debug echo of command.
+echo $TPKG_NSD -c myconf -p $TPKG_PORT -P $TPKG_NSD_PID -f socket10kxfr.db
+$TPKG_NSD -c myconf -p $TPKG_PORT -P $TPKG_NSD_PID -f socket10kxfr.db
+echo $TPKG_NSD -c slaveconf -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f socket10kxfr_slave.db
+$TPKG_NSD -c slaveconf -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f socket10kxfr_slave.db
+
+wait_logfile log "nsd started" 300
+
+# make sure NSD is set to update everything on a reload.
+sleep 2  # wait here to make sure mtime is different
+echo '$TTL 86400' > master.tld
+echo "@ IN SOA a.dns.jp root.dns.jp. 000000002 3600 900 604800 900" >> master.tld
+echo "  IN NS a.dns.jp." >> master.tld
+echo "  IN A 127.0.0.1" >> master.tld
+echo "www IN A 127.0.0.1" >> master.tld
+echo updated zone files to an even newer set.

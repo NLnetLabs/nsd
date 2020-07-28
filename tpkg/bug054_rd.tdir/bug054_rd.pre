@@ -1,0 +1,17 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+
+$TPKG_NSD -c bug054_rd.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug054_rd.db
+wait_nsd_up nsd.log

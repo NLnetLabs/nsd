@@ -1,0 +1,74 @@
+# #-- outgoing_ifc.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+RESULT_MASTER=outgoing_ifc.masterdig
+RESULT_SLAVE=outgoing_ifc.slavedig
+
+sleep 3
+
+$DIG ns nibbler.example.com. @127.0.0.1 -p $TPKG_PORT > $RESULT_MASTER
+$DIG ns nibbler.example.com. @127.0.0.1 -p $TPKG_PORT2 > $RESULT_SLAVE
+
+cat $RESULT_MASTER | grep -v '^;' > outgoing_ifc.outputmaster
+cat $RESULT_SLAVE | grep -v '^;' > outgoing_ifc.outputslave
+
+# update master zone
+cp outgoing_ifc.zone outgoing_ifc.tmp
+cp outgoing_ifc.zone2 outgoing_ifc.zone
+
+if wdiff outgoing_ifc.outputmaster outgoing_ifc.outputslave; then
+	echo slave xfr request OK.
+else
+	echo slave xfr request failed.
+	exit 1
+fi
+
+# rebuild
+touch outgoing_ifc.zone
+# reload
+kill -"HUP" `cat outgoing_ifc.pid.master`
+# notify
+# used to use -a 127.0.0.1@9876 ($OUT_PORT1)
+echo ldns-notify -p $TPKG_PORT2 -z nibbler.example.com. 127.0.0.1
+ldns-notify -p $TPKG_PORT2 -z nibbler.example.com. 127.0.0.1
+
+echo master updated.
+
+sleep 2
+
+# reload
+kill -"HUP" `cat outgoing_ifc.pid.slave`
+
+echo slave notified.
+
+sleep 2
+
+$DIG ns nibbler.example.com. @127.0.0.1 -p $TPKG_PORT > $RESULT_MASTER
+$DIG ns nibbler.example.com. @127.0.0.1 -p $TPKG_PORT2 > $RESULT_SLAVE
+
+cat $RESULT_MASTER | grep -v '^;' > outgoing_ifc.outputmaster
+cat $RESULT_SLAVE | grep -v '^;' > outgoing_ifc.outputslave
+
+if wdiff outgoing_ifc.outputmaster outgoing_ifc.known_good; then
+	echo master zone update OK.
+else
+	if wdiff outgoing_ifc.outputmaster outgoing_ifc.known_good2; then
+		echo master zone update 2 OK.	
+	else
+		echo master zone update failed.
+		exit 1
+	fi
+fi
+
+if wdiff outgoing_ifc.outputmaster outgoing_ifc.outputslave; then
+	echo master notify and slave xfr request OK.
+else
+	echo master notify and slave xfr request failed.
+	exit 1
+fi
+
+exit 0

@@ -1,0 +1,78 @@
+#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../../"
+get_gcc
+
+# see if ratelimit is enabled
+if grep "define RATELIMIT" $PRE/config.h; then
+	echo "ratelimit enabled"
+else
+	echo "ratelimit not enabled, end of test"
+	exit 0
+fi
+
+# compile our loading tool
+LIBS=""
+if test "`uname`" = "SunOS"; then LIBS="-lsocket -lnsl"; fi
+$CC -I$PRE -Wall -Wextra reflect.c -o reflect $LIBS
+
+# put a load on the server, so that something gets ratelimited
+# <port> <numseconds> <qps> <output>
+./reflect $TPKG_PORT 10 20 reflect.out &
+reflectpid=$!
+# make sure the ratelimit is hit
+sleep 2
+
+# make sure we are blocked (after 1/2 second the ratelimit should be hit).
+failed="no"
+
+# check what the blocking does.
+# the whitelist for the nxdomain should make this query nonblocked.
+dig @127.0.0.1 -p $TPKG_PORT nxdomain.example.nl A +ignore +tries=1 > got.nl
+if grep "SOA" got.nl; then
+	echo "whitelist OK"
+else
+	echo "whitelist failed"
+	failed="yes"
+fi
+
+# 2. check that another query is not blocked.
+dig @127.0.0.1 -p $TPKG_PORT www.example.nl A > got.nl
+if grep "10.20.30.40" got.nl; then
+	echo "other query OK"
+	otherquery="yes"
+else
+	echo "other query failed"
+	otherquery="no"
+fi
+
+# now we are done, check that the qps ratelimit was reached by the tool
+if grep reflect.out "done" > /dev/null; then
+	echo "reflect already done"
+else
+	echo "kill reflect $reflectpid"
+	kill_pid $reflectpid
+fi
+echo "reflect.out"; cat reflect.out
+if grep "could not achieve rate" reflect.out >/dev/null; then
+	echo "ratelimit not reached by the reflect: the test operation failed"
+	# softfail, the test failed to operate correctly
+	exit 0
+else
+	echo "ratelimit was reached by the reflect"
+fi
+
+if test "$timeout" = "no"; then failed="yes"; fi
+if test "$otherquery" = "no"; then failed="yes"; fi
+
+if test "$failed" = "yes"; then
+	echo "failed"
+	exit 1
+fi
+
+exit 0

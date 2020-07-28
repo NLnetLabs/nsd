@@ -1,0 +1,5 @@
+@       IN      SOA     nibbler.futurama.com. mattgroening.futurama.com 1 1H 8H 4W 1H
+;
+futurama.com.   NS      ns1.futurama.org.
+futurama.com.   NS      ns1.futurama.org.
+

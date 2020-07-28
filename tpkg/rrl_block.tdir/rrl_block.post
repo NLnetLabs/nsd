@@ -1,0 +1,23 @@
+#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+PRE="../.."
+
+if grep "define RATELIMIT " $PRE/config.h; then
+	echo "ratelimit enabled"
+else
+	echo "ratelimit not enabled, end of post"
+	exit 0
+fi
+
+# do your teardown here
+if [ -z $TPKG_NSD_PID ]; then
+        exit 0
+fi
+
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill_pid $NSD_PID

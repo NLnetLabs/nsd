@@ -1,0 +1,13 @@
+sub.example.com.	3600    IN      SOA     ns1.c.example. reply.c.example. 1 3600 300 3600000 3600
+	NS      ns1.c.example.
+	NS      ns2.c.example.
+ns1	A       192.168.2.7
+ns2	A       192.168.2.8
+
+; unsigned appended to result
+0.sub.example.com.	3600	IN	NS ns.zomba.net.
+a.sub.example.com.	3600	IN	NS ns.zomba.net.
+b.sub.example.com.	3600	IN	NS ns.zomba.net.
+f.sub.example.com.	3600	IN	NS ns.zomba.net.
+g.sub.example.com.	3600	IN	NS ns.zomba.net.
+z.sub.example.com.	3600	IN	NS ns.zomba.net.

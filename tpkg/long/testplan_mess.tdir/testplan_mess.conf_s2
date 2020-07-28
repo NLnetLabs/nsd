@@ -1,0 +1,34 @@
+# config file for S2
+server:
+	#logfile: "/dev/stdout"
+	logfile: "../s2.log"
+	database: "nsdb.s2.db"
+	xfrdfile: "xfrd.s2.db"
+	difffile: "diff.s2.db"
+	xfrd-reload-timeout: 0
+	zonesdir: ""
+	zonelistfile: "zone.s2.list"
+	interface: 127.0.0.1
+
+# include tsig keys
+include: "testplan_mess.keys"
+
+zone:
+	name: example.com
+	zonefile: testplan_mess.zone_s2
+	# is a slave to i1 i2 i3
+	request-xfr: AXFR 127.0.0.1@PORT_I1 key_s2
+	request-xfr: AXFR 127.0.0.1@PORT_I2 key_s2
+	request-xfr: AXFR 127.0.0.1@PORT_I3 key_s2
+	allow-notify: 127.0.0.1 key_s2
+	allow-notify: ::1 key_s2
+	allow-notify: ::ffff:127.0.0.1 key_s2
+
+	provide-xfr: 127.0.0.1 test_xfer
+	provide-xfr: ::1 test_xfer
+	provide-xfr: ::ffff:127.0.0.1 test_xfer
+	allow-notify: 127.0.0.1 test_xfer
+	allow-notify: ::1 test_xfer
+	allow-notify: ::ffff:127.0.0.1 test_xfer
+	min-refresh-time: 0
+	min-retry-time: 0

@@ -1,0 +1,6 @@
+; unsigned zone
+c.example.                3600    IN      SOA     ns1.c.example. reply.c.example. 1 3600 300 3600000 3600
+c.example.     NS      ns1.c.example.
+               NS      ns2.c.example.
+ns1.c.example. A       192.168.2.7
+ns2.c.example. A       192.168.2.8

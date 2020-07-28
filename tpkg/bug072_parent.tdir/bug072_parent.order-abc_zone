@@ -1,0 +1,11 @@
+@       IN      SOA     abc.  abc.  (
+                        2004010701              ; serial, todays date + todays
+                        1H                      ; refresh, seconds
+                        8H                      ; retry, seconds
+                        4W                      ; expire, seconds
+                        1H                      ; minimum ttl, seconds
+                )
+
+a       IN      A       127.0.0.1
+b.a     IN      A       127.0.0.2
+c       IN      CNAME   a

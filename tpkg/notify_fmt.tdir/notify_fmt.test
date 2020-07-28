@@ -1,0 +1,79 @@
+# #-- notify_fmt.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+$DIG @localhost -p $TPKG_PORT SOA example.com. -y blabla:K2tf3TRjvQkVCmJF3/Z9vA== | tee notify_fmt.current_respons1
+# cat notify_fmt.current_respons1
+
+DRILL=drill
+if test ! -f `which drill`; then DRILL=/home/tpkg/bin/drill; fi
+# notify packet for example.com 2007070707 with SOA in answer section.
+echo 7f2424000001000100000000076578616d706c6503636f6d0000060001076578616d706c6503636f6d000006000100000e100016000077a177f300000000000000000000000000000000 | $DRILL -f - -p $TPKG_PORT @127.0.0.1 -w outfile | tee descfile
+result=$?
+cat outfile
+if test $result -ne 0; then
+	exit 1;
+fi
+if grep "ANSWER: 0" descfile >/dev/null; then
+	echo ok;
+else
+	exit 1;
+fi
+
+NOTIF=ldns-notify
+if test ! -f `which ldns-notify`; then NOTIF=/home/tpkg/bin/ldns-notify; fi
+echo "*** notify NOserial NOtsig"
+$NOTIF -z example.com -r 2 -p $TPKG_PORT -d 127.0.0.1 > descfile
+if test $? -ne 0; then exit 1; fi
+cat descfile
+if grep "QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0" descfile >/dev/null; then
+	echo "ok"
+else
+	exit 1
+fi
+
+echo "*** notify +serial NOtsig"
+$NOTIF -z example.com -r 2 -s 2007070707 -p $TPKG_PORT -d 127.0.0.1 > descfile
+if test $? -ne 0; then exit 1; fi
+cat descfile
+if grep "QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0" descfile >/dev/null; then
+	echo "ok"
+else
+	exit 1
+fi
+
+echo "*** notify NOserial +tsig"
+$NOTIF -z example.com -r 2 -y blabla:K2tf3TRjvQkVCmJF3/Z9vA== -p $TPKG_PORT -d 127.0.0.1 > descfile
+if test $? -ne 0; then exit 1; fi
+cat descfile
+if grep "QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0" descfile >/dev/null; then
+	echo "ok"
+else
+	exit 1
+fi
+
+echo "*** notify +serial +tsig"
+$NOTIF -z example.com -r 2 -s 2007070707 -y blabla:K2tf3TRjvQkVCmJF3/Z9vA== -p $TPKG_PORT -d 127.0.0.1 > descfile
+if test $? -ne 0; then exit 1; fi
+cat descfile
+if grep "QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0" descfile >/dev/null; then
+	echo "ok"
+else
+	exit 1
+fi
+
+
+# send the same thing, but now signed with the blabla tsig key.
+echo edee24000001000100000001076578616d706c6503636f6d0000060001076578616d706c6503636f6d000006000100000e10001600000000000d0000000000000000000000000000000006626c61626c610000fa00ff00000000003a08686d61632d6d6435077369672d616c670372656703696e7400000045a373e0012c0010c22261a6e4a3f3b25c315ae6f57d8551edee00000000 | $DRILL -f - -p $TPKG_PORT @127.0.0.1 -w outfile > descfile
+if test $? -ne 0; then exit 1; fi
+cat descfile
+if grep "ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0" descfile >/dev/null; then
+	echo "ok"
+else
+	exit 1
+fi
+
+exit 0

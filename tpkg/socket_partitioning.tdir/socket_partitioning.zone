@@ -1,0 +1,12 @@
+$ORIGIN example.net.
+@	IN	SOA	hostmaster.example.net. ns.example.net. (
+				2020011301
+				1H ; refresh
+				8H ; retry
+				4W ; expire
+				1H ; minimum ttl
+	) ;
+@	IN	NS	ns.example.net.
+@	IN	MX	10 mail.example.net.
+ns1	IN	A	127.0.0.1
+mail	IN	A	172.0.0.1

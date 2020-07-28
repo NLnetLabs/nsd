@@ -1,0 +1,101 @@
+#!/bin/bash
+# #-- testplan_timeout.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+RESULTFILE=testplan_timeout.current_response
+PRE="../../.."
+TPKG_NOTIFY="ldns-notify"
+get_ldns_testns
+MINISERVER="$LDNS_TESTNS"
+WAITTIME=3
+DIG="dig"
+
+
+function kill_mini() {
+	if [ ! -e $TPKG_NSD_PID -o -z "$TPKG_NSD_PID" ]; then
+		echo "miniserver exited ok"
+	else
+		# kill the mini server.
+		NSD_PID=`cat $TPKG_NSD_PID`
+		kill_pid $NSD_PID
+	fi
+	rm -f $TPKG_NSD_PID
+}
+
+function setup_miniserver() { # <query setup file>
+	kill_mini
+	echo ">>> setup $MINISERVER -p $MASTER_PORT $1"
+	$MINISERVER -p $MASTER_PORT $1 >mini.log 2>&1 &
+	echo $! > $TPKG_NSD_PID
+	wait_ldns_testns_up mini.log
+}
+
+function notify_slave() { # <serial>
+	echo ">>> ldns-notify -p $SLAVE_PORT -z example.com. 127.0.0.1"
+	$TPKG_NOTIFY -p $SLAVE_PORT -z example.com. 127.0.0.1
+}
+
+function check_slave_zone() { # <testnr> <checkfile>
+	sleep $WAITTIME
+	echo "-------wait-----------------------------------------"
+	# check if slave has the same zone as the check zonefile.
+	rm -f $RESULTFILE
+	dig @127.0.0.1 -p $SLAVE_PORT example.com. AXFR | tee $RESULTFILE
+	cat $RESULTFILE | grep -v '^;' > testplan_timeout.check
+	if wdiff testplan_timeout.check $2 >/dev/null; then
+		echo "ZONE SOA=$1 OK"
+	else
+		echo "ZONE SOA=$1 BAD"
+		echo diff is
+		wdiff testplan_timeout.check $2
+		cat nsd.log
+		exit 1
+	fi
+}
+
+# wait to make the zone expire that was loaded.
+sleep 10    # expire timeout
+sleep $WAITTIME  # and a little more to be sure.
+
+# check there is no more data
+echo ">>> dig debug.example.com TXT"
+if $DIG @127.0.0.1 -p $SLAVE_PORT debug.example.com TXT | tee -a /dev/stderr \
+	| grep "SERVFAIL" >/dev/null; then
+	echo "correct"
+else
+	echo "Error. zone not expired."
+	cat nsd.log
+	exit 1
+fi
+
+# startup miniserver with appropriate files.
+setup_miniserver testplan_timeout.qs_2
+ldns-notify -z example.com -p $SLAVE_PORT 127.0.0.1
+check_slave_zone 2 testplan_timeout.zone_2
+
+# wait to make the zone expire that was loaded.
+sleep 10    # expire timeout
+sleep $WAITTIME  # and a little more to be sure.
+
+# check there is no more data
+echo ">>> dig debug.example.com TXT"
+if $DIG @127.0.0.1 -p $SLAVE_PORT debug.example.com TXT | tee -a /dev/stderr \
+	| grep "SERVFAIL" >/dev/null; then
+	echo "correct"
+else
+	echo "Error. zone not expired."
+	cat nsd.log
+	exit 1
+fi
+
+# provide old zone on master
+setup_miniserver testplan_timeout.qs_1
+ldns-notify -z example.com -p $SLAVE_PORT 127.0.0.1
+check_slave_zone 1 testplan_timeout.zone_1
+
+cat nsd.log
+exit 0

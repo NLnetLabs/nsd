@@ -1,0 +1,25 @@
+# #-- nsdc-run.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+cd ../../
+
+echo nsd -h
+./nsd -h
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo nsd-checkconf
+./nsd-checkconf
+if [ $? -ne 1 ]; then exit 1; fi
+
+echo nsd-control -h
+./nsd-control -h
+if [ $? -ne 1 ]; then exit 1; fi
+
+echo nsd-control-setup.sh -h
+./nsd-control-setup.sh -h
+if [ $? -ne 0 ]; then exit 1; fi
+
+exit 0

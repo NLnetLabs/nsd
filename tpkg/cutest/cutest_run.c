@@ -3,6 +3,7 @@
 	log
 	31 jan 06 (WW): created file.
 	21 feb 06 (MG): reworked for cutest
+	28 oct 19 (JK): run tests based on pattern
 */
 #include "config.h"
 #include <stdio.h>
@@ -24,9 +25,13 @@ CuSuite * reg_cutest_region(void);
 CuSuite * reg_cutest_udb(void);
 CuSuite * reg_cutest_udb_radtree(void);
 CuSuite * reg_cutest_namedb(void);
+CuSuite * reg_cutest_bitset(void);
 #ifdef RATELIMIT
 CuSuite * reg_cutest_rrl(void);
 #endif
+CuSuite * reg_cutest_popen3(void);
+CuSuite * reg_cutest_iter(void);
+CuSuite * reg_cutest_event(void);
 
 /* dummy functions to link */
 struct nsd nsd;
@@ -45,14 +50,16 @@ void sig_handler(int ATTR_UNUSED(sig))
 {
 }
 
-void disp_callback(int failed)
+void disp_callback(CuTestResult result)
 {
-	if(failed)
+	if(result == CuFailed)
 		fprintf(stderr, "F");
+	else if(result == CuSkipped)
+		fprintf(stderr, "S");
 	else	fprintf(stderr, ".");
 }
 
-int runalltests(void)
+int runalltests(const char *regex)
 {
 	CuSuite *suite = CuSuiteNew();
 	CuString *output = CuStringNew();
@@ -74,8 +81,14 @@ int runalltests(void)
 #ifdef RATELIMIT
 	CuSuiteAddSuite(suite, reg_cutest_rrl());
 #endif
+	CuSuiteAddSuite(suite, reg_cutest_bitset());
+	CuSuiteAddSuite(suite, reg_cutest_popen3());
+	CuSuiteAddSuite(suite, reg_cutest_iter());
+	CuSuiteAddSuite(suite, reg_cutest_event());
 
-	CuSuiteRunDisplay(suite, disp_callback);
+	if(CuSuiteRunRegexDisplay(suite, regex, disp_callback) == -1) {
+		fprintf(stderr, "invalid regular expression");
+	}
 	fprintf(stderr, "\n");
 
  	/* CuSuiteSummary(suite, output); */
@@ -117,8 +130,9 @@ int main(int argc, char* argv[])
 	char* config = NULL, *qfile=NULL;
 	int verb=0;
 	unsigned seed;
+	char *regex = ".*";
 	log_init("cutest");
-	while((c = getopt(argc, argv, "c:hq:tv")) != -1) {
+	while((c = getopt(argc, argv, "c:hq:r:tv")) != -1) {
 		switch(c) {
 		case 't':
 			return check_inet_ntop();
@@ -131,6 +145,9 @@ int main(int argc, char* argv[])
 		case 'v':
 			verb++;
 			break;
+		case 'r':
+			regex = optarg;
+			break;
 		case 'h':
 		default:
 			printf("usage: %s [opts]\n", argv[0]);
@@ -139,6 +156,7 @@ int main(int argc, char* argv[])
 			printf("-c config: specify nsd.conf file\n");
 			printf("-t test inet_ntop for string comparisons.\n");
 			printf("-v verbose, -vv, -vvv\n");
+			printf("-r regex: run only tests that match regex.\n");
 			printf("-h show help\n");
 			return 1;
 		}
@@ -153,7 +171,7 @@ int main(int argc, char* argv[])
 	fprintf(stderr, "srandom(%u)\n", seed);
 	srandom(seed);
 
-	if(runalltests() > 0)
+	if(runalltests(regex) > 0)
 		return 1;
 	else return 0;
 }

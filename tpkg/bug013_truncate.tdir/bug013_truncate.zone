@@ -1,0 +1,104 @@
+;
+; BIND data file for miek.nl for public use
+;
+
+$TTL    4H
+$ORIGIN miek.nl.
+@       IN      SOA     open.nlnetlabs.nl. miekg.atoom.net. (
+                         2005061300         ; Serial
+                             4H         ; Refresh
+                             1H         ; Retry
+                             7D         ; Expire
+                             1D )       ; Negative Cache TTL
+                IN      NS      open.nlnetlabs.nl.
+                IN      NS      omval.tednet.nl.
+                IN      NS      elektron.atoom.net.
+
+                IN      MX      20 mx1
+                IN      MX      20 mx2
+                IN      MX      20 mx3
+                IN      MX      20 mx4
+                IN      MX      20 mx5
+                IN      MX      20 mx6
+                IN      MX      20 mx7
+                IN      MX      20 mx8
+                IN      MX      20 mx9
+                IN      MX      20 mx10
+                IN      MX      20 mx11
+                IN      MX      20 mx12
+                IN      MX      20 mx13
+                IN      MX      20 mx14
+                IN      MX      20 mx15
+                IN      MX      20 mx15
+                IN      MX      20 mx16
+                IN      MX      20 mx17
+                IN      MX      20 mx18
+                IN      MX      20 mx19
+                IN      MX      20 mx20
+                IN      MX      20 mx21
+                IN      MX      20 mx22
+                IN      MX      20 mx23
+                IN      MX      20 mx24
+                IN      MX      20 mx25
+
+mx1             IN      A       127.0.0.1
+mx1             IN      AAAA    ::FFFF:127.0.0.1
+mx2             IN      A       127.0.0.1
+mx2             IN      AAAA    ::FFFF:127.0.0.1
+mx3             IN      A       127.0.0.1
+mx3             IN      AAAA    ::FFFF:127.0.0.1
+mx4             IN      A       127.0.0.1
+mx4             IN      AAAA    ::FFFF:127.0.0.1
+mx5             IN      A       127.0.0.1
+mx5             IN      AAAA    ::FFFF:127.0.0.1
+
+mx6             IN      A       127.0.0.1
+mx6             IN      AAAA    ::FFFF:127.0.0.1
+mx7             IN      A       127.0.0.1
+mx7             IN      AAAA    ::FFFF:127.0.0.1
+mx8             IN      A       127.0.0.1
+mx8             IN      AAAA    ::FFFF:127.0.0.1
+mx9             IN      A       127.0.0.1
+mx9             IN      AAAA    ::FFFF:127.0.0.1
+mx10            IN      A       127.0.0.1
+mx10            IN      AAAA    ::FFFF:127.0.0.1
+
+mx11            IN      A       127.0.0.1
+mx11            IN      AAAA    ::FFFF:127.0.0.1
+mx12            IN      A       127.0.0.1
+mx12            IN      AAAA    ::FFFF:127.0.0.1
+mx13            IN      A       127.0.0.1
+mx13            IN      AAAA    ::FFFF:127.0.0.1
+mx14            IN      A       127.0.0.1
+mx14            IN      AAAA    ::FFFF:127.0.0.1
+mx15            IN      A       127.0.0.1
+mx15            IN      AAAA    ::FFFF:127.0.0.1
+
+mx16            IN      A       127.0.0.1
+mx16            IN      AAAA    ::FFFF:127.0.0.1
+mx17            IN      A       127.0.0.1
+mx17            IN      AAAA    ::FFFF:127.0.0.1
+mx18            IN      A       127.0.0.1
+mx18            IN      AAAA    ::FFFF:127.0.0.1
+mx19            IN      A       127.0.0.1
+mx19            IN      AAAA    ::FFFF:127.0.0.1
+mx20            IN      A       127.0.0.1
+mx20            IN      AAAA    ::FFFF:127.0.0.1
+
+mx20            IN      A       127.0.0.1
+mx20            IN      AAAA    ::FFFF:127.0.0.1
+mx21            IN      A       127.0.0.1
+mx21            IN      AAAA    ::FFFF:127.0.0.1
+mx22            IN      A       127.0.0.1
+mx22            IN      AAAA    ::FFFF:127.0.0.1
+mx23            IN      A       127.0.0.1
+mx23            IN      AAAA    ::FFFF:127.0.0.1
+mx24            IN      A       127.0.0.1
+mx24            IN      AAAA    ::FFFF:127.0.0.1
+mx25            IN      A       127.0.0.1
+mx25            IN      AAAA    ::FFFF:127.0.0.1
+
+miek.nl.        IN      A       80.127.17.126
+localhost       IN      A       127.0.0.1
+a               IN      A       80.127.17.126
+www             IN      CNAME   a

@@ -1,0 +1,212 @@
+DNAME TEST PLAN
+---------------
+By W.C.A. Wijngaards, NLnet Labs, 2006
+
+1. Introduction
+
+To test the DNAME record (RFC 2672), this document describes many cases to 
+check.
+Wildcard clarify (draft-ietf-dnsext-wcard-clarify-11.txt).
+
+2. Test cases
+
+2.1. DNAME name changes.
+
+To test the changes DNAME can make to domain names the following DNAME 
+records are used. Zone serves the root.
+1. x. DNAME y.
+2. x. DNAME .    (query with bla.x.(=ok) and with bla.x.x.(=loop) )
+3. .  DNAME x.	(=loop)    (Zone illegal - data below dname)
+4. x. DNAME x.x.	(=loop)
+5. x. DNAME x.	(=loop)
+6. x.example.com DNAME fooey.example.com		(size of label changes)
+7. foooey.example.com DNAME x.example.com	(size of label changes)
+8. a.b.x. DNAME y.	(number of labels changes)
+9. x. DNAME a.b.y.	(number of labels changes)
+10. x. DNAME <verylong>	(results in name too long - YXDOMAIN error)
+11. x.example.com. DNAME y.example.com. (not below the root)
+
+Each queried with, assume <src> DNAME <dest> and foo.<dest> A 10.0.0.10.
+	foo.<src>  (works)
+	foo.<dest> (works)
+	bar.<src>  (does not work, NOERROR)
+	bar.<dest> (does not work, NXDOMAIN)
+
+12. x. DNAME y. with no A for x. but and A for y.
+	query x. nodata, query y data.
+13. x. DNAME y. with A data for x.
+	query x. data, query y nxdomain.
+14. test time=0 for synthesized CNAME.
+
+NSD is OK.
+
+2.2. DNAME compression
+The DNAME target name should not be compressed on the output.
+Test, using one or two queries and packet sniffer (ethereal).
+x.example.com. DNAME .y.example.com. and query a.x.example.com.
+
+NSD is OK.
+
+2.3. Wildcard
+wildcard -> DNAME
+DNAME at a wildcard, see 4.4 in wcard-clarify-11 draft. To be avoided.
+Zone has:
+	*.x. DNAME y.
+	exist.y. A 10.0.0.1
+Does server expand wildcard DNAME? See what it does with queries:
+	x.   (no data, empty nonterminal)
+	foo.x.  (wildcard is expanded, but DNAME is not followed)
+	foo.exist.x.    (same)
+	foo.exist.exist.x.   (same)
+	foo.*.x		(wildcard not expanded, DNAME followed, noerror)
+	exist.*.x
+
+DNAME -> wildcard
+DNAME points to a wildcard. Zone has:
+	x. DNAME bla.y.
+	*.y. A 10.0.0.1
+With queries:
+	x.   (empty nonterminal, nodata)
+	foo.x.  (follows DNAME, CNAME synthed, wildcard expanded A result)
+	*.x	(same, but wildcard not expanded)
+	foo.bar.x.   (same as foo.x)
+	foo.*.x.   (same as foo.x)
+
+NSD is OK
+
+2.4. CNAME
+CNAME -> DNAME
+Zone has:
+	x. CNAME foo.y.
+	y. DNAME z.
+	foo.z. A 10.0.0.10
+and queries:
+	x. gives 10.0.0.10
+	bar.x. nothing
+	foo.x. nothing
+
+DNAME -> CNAME
+	x. DNAME y.
+	foo.y. CNAME othername.z.
+	othername.z. A 10.0.0.10
+queries
+	foo.x. gives 10.0.0.10
+	bar.x. nothing (NOERROR, NODATA)
+	x. nothing (NOERROR, NODATA)
+
+NSD is OK.
+
+2.5. Chains.
+Chains without loops in them.
+DNAME -> DNAME
+	x1. DNAME x2.
+	x2. DNAME x3.
+	...
+queries
+	a.x1.
+
+Length of CNAME chains
+test 10 - 100 - 1000
+NSD: 1000 works.
+
+Length of DNAME chains
+test 10 - 100 - 1000
+short query names (NSD: 513 DNAMEs partial answer)
+long, 20 label/72c, query names  (NSD: 29 DNAMEs partial answer)
+
+when it is too long, what happens? Partial answer preferred.
+NSD: partial answers, NOERROR.
+
+2.6. Loops.
+Some loops have already been handled in 2.1. More loops include:
+Chains that end in a loop - point back to query name; or somehere in the middle.
+x. DNAME y. , y. DNAME z. z. DNAME y.
+query foo.x.
+NSD is OK.
+
+2.7. DNAME to a delegation.
+DNAME target falls below zone cut, root zone delegation:
+	xn-blub. DNAME blub.
+	blub. NS ns1.blub.
+	ns1.blub. A 192.168.0.23
+queries
+	blub. A (referral)
+	xn-blub. A   (nodata, noerror)
+	blub. SOA (referral)
+	xn-blub. SOA (nodata, noerror)
+	foo.blub. A (referral)
+	foo.xn-blub. A (referral)
+
+And a CNAME test with the same zone with no DNAME, but this CNAME
+	foo.xn-blub. CNAME foo.blub.
+queries
+	foo.xn-blub. A (referral)
+
+The DNAME target falls into another zone.
+	zone not root, but x.
+	x. DNAME y.
+with queries for
+	x. SOA (NODATA)
+	y. SOA (SERVFAIL)
+	bla.x. (DNAME)
+	bla.y. (SERVFAIL)
+
+NSD is OK.
+
+2.8. Invalid zones.
+- Two different DNAME records at same name.
+- Data below the DNAME record.
+- 2.1. 3. . DNAME x. (due to NS)
+- Second zone below DNAME-record-zone.
+- DNAME + CNAME at same name.
+
+NSD is OK.
+
+2.9 Generated CNAME.
+- query for the generated CNAME. 
+  Since the qname is below the DNAME it fires and that result is returned.
+NSD: a.x returns NOERROR and DNAME, CNAME (since a.y exists with type A),
+  this is really a no-type error answer.
+  but b.x returns NOERROR with DNAME, CNAME (since no b.y exists).
+Not sure what the correct result is. Old resolvers confused?
+
+3.0 DNSSEC considerations
+
+3.1. KEYs at apex
+Signed zone. Attempt to obtain secure referrals.
+How to set up? Where is y DNSKEY?
+
+. SOA
+. RRSIG
+. DNSKEY
+. NS ns.ns.
+ns.ns. A
+ns.ns. RRSIG
+xn-com. DNAME com.
+com. DS 
+com. NS serv.com.
+com. RRSIG
+serv.com. A
+serv.com. RRSIG
+NSECs.
+
+query for foo.com.
+and foo.xn-com. and see if DS is present.
+
+query for com. and xn-com DNSKEY.
+
+3.2. NAMERROR & DNAME
+
+DNAME and NXDOMAIN
+x. DNAME y.
+query for foo.x. does NSD return NSEC for foo.y.?
+
+3.3. No TYPE & DNAME
+x. DNAME y.
+x. TXT "zebra"
+query for x. A
+need NSEC bits to show no A.
+
+For a resolver present a fault packet to a query, where DNAME bit is set.
+This must be found to be bogus.
+

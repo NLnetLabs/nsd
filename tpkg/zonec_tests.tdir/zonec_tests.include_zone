@@ -1,0 +1,3 @@
+$INCLUDE zonec_tests.soa
+$INCLUDE zonec_tests.data
+$INCLUDE zonec_tests.class

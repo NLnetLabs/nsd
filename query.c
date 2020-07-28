@@ -957,7 +957,16 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 	rrset_type *rrset;
 
 	if (q->qtype == TYPE_ANY) {
-		int added = 0;
+		rrset_type *preferred_rrset = NULL;
+		rrset_type *normal_rrset = NULL;
+		rrset_type *non_preferred_rrset = NULL;
+
+		/*
+		 * Minimize response size for ANY, with one RRset
+		 * according to RFC 8482(4.1).
+		 * Prefers popular and not large rtypes (A,AAAA,...)
+		 * lowering large ones (DNSKEY,RRSIG,...).
+		 */
 		for (rrset = domain_find_any_rrset(domain, q->zone); rrset; rrset = rrset->next) {
 			if (rrset->zone == q->zone
 #ifdef NSEC3
@@ -972,14 +981,32 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 				 && zone_is_secure(q->zone)
 				 && rrset_rrtype(rrset) == TYPE_RRSIG))
 			{
-				add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
-				++added;
-				/* minimize response size with one RR,
-				 * according to RFC 8482(4.1). */
-				break;
+				switch(rrset_rrtype(rrset)) {
+					case TYPE_A:
+					case TYPE_AAAA:
+					case TYPE_SOA:
+					case TYPE_MX:
+					case TYPE_PTR:
+						preferred_rrset = rrset;
+						break;
+					case TYPE_DNSKEY:
+					case TYPE_RRSIG:
+					case TYPE_NSEC:
+						non_preferred_rrset = rrset;
+						break;
+					default:
+						normal_rrset = rrset;
+				}
+				if (preferred_rrset) break;
 			}
 		}
-		if (added == 0) {
+		if (preferred_rrset) {
+			add_rrset(q, answer, ANSWER_SECTION, domain, preferred_rrset);
+		} else if (normal_rrset) {
+			add_rrset(q, answer, ANSWER_SECTION, domain, normal_rrset);
+		} else if (non_preferred_rrset) {
+			add_rrset(q, answer, ANSWER_SECTION, domain, non_preferred_rrset);
+		} else {
 			answer_nodata(q, answer, original);
 			return;
 		}
@@ -1219,6 +1246,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	size_t domain_number, int exact, domain_type *closest_match,
 	domain_type *closest_encloser, const dname_type *qname)
 {
+	zone_type* origzone = q->zone;
 	q->zone = domain_find_zone(nsd->db, closest_encloser);
 	if (!q->zone) {
 		/* no zone for this */
@@ -1233,6 +1261,16 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			RCODE_SET(q->packet, RCODE_SERVFAIL);
 		return;
 	}
+
+	/*
+	 * If confine-to-zone is set to yes do not return additional
+	 * information for a zone with a different apex from the query zone.
+	*/
+	if (nsd->options->confine_to_zone &&
+	   (origzone != NULL && dname_compare(domain_dname(origzone->apex), domain_dname(q->zone->apex)) != 0)) {
+		return;
+	}
+
 	/* now move up the closest encloser until it exists, previous
 	 * (possibly empty) closest encloser was useful to finding the zone
 	 * (for empty zones too), but now we want actual data nodes */
@@ -1386,6 +1424,8 @@ query_process(query_type *q, nsd_type *nsd, uint32_t *now_p)
 	if(q->opcode != OPCODE_QUERY && q->opcode != OPCODE_NOTIFY) {
 		if(query_ratelimit_err(nsd))
 			return QUERY_DISCARDED;
+		if(nsd->options->drop_updates && q->opcode == OPCODE_UPDATE)
+			return QUERY_DISCARDED;
 		return query_error(q, NSD_RC_IMPL);
 	}
 
@@ -1422,8 +1462,15 @@ query_process(query_type *q, nsd_type *nsd, uint32_t *now_p)
 		return query_formerr(q, nsd);
 	}
 	if(q->qtype==TYPE_IXFR && NSCOUNT(q->packet) > 0) {
-		int i; /* skip ixfr soa information data here */
-		for(i=0; i< NSCOUNT(q->packet); i++)
+		unsigned int i; /* skip ixfr soa information data here */
+		unsigned int nscount = (unsigned)NSCOUNT(q->packet);
+		/* define a bound on the number of extraneous records allowed,
+		 * we expect 1, a SOA serial record, and no more.
+		 * perhaps RRSIGs (but not needed), otherwise we do not
+		 * understand what this means.  We do not want too many
+		 * because the high iteration counts slow down. */
+		if(nscount > 64) return query_formerr(q, nsd);
+		for(i=0; i< nscount; i++)
 			if(!packet_skip_rr(q->packet, 0))
 				return query_formerr(q, nsd);
 	}
@@ -1483,7 +1530,17 @@ query_process(query_type *q, nsd_type *nsd, uint32_t *now_p)
 		 * BADVERS is created with Ext. RCODE, followed by RCODE.
 		 * Ext. RCODE is set to 1, RCODE must be 0 (getting 0x10 = 16).
 		 * Thus RCODE = NOERROR = NSD_RC_OK. */
-		return query_error(q, NSD_RC_OK);
+		RCODE_SET(q->packet, NSD_RC_OK);
+		buffer_clear(q->packet);
+		buffer_set_position(q->packet,
+			QHEADERSZ + 4 + q->qname->name_size);
+		QR_SET(q->packet);
+		AD_CLR(q->packet);
+		QDCOUNT_SET(q->packet, 1);
+		ANCOUNT_SET(q->packet, 0);
+		NSCOUNT_SET(q->packet, 0);
+		ARCOUNT_SET(q->packet, 0);
+		return QUERY_PROCESSED;
 	}
 
 	if (q->edns.cookie_status == COOKIE_UNVERIFIED)

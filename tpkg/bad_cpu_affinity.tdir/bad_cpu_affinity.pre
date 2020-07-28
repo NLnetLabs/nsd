@@ -1,0 +1,18 @@
+# #-- bad_cpu_affinity.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+NSD_PORT=$RND_PORT
+echo port: $NSD_PORT
+
+NUM_CPUS="$(cpu_count)"
+echo num_cpus: $NUM_CPUS
+
+# share the vars
+echo "export NSD_PORT=$NSD_PORT" >> .tpkg.var.test
+echo "export NUM_CPUS=$NUM_CPUS" >> .tpkg.var.test

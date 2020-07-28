@@ -1,0 +1,98 @@
+# #-- socket_partitioning.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+if $TPKG_NSD -h 2>&1 | grep -- "-L"; then
+	echo "debug enabled"
+else
+	echo "debug not enabled, skip test"
+	exit 0
+fi
+
+$TPKG_NSD -c nsd.conf -L 5 -F 0xFFFF
+wait_nsd_up nsd.log
+wait_logfile nsd.log "child process started" 45
+cat nsd.log
+
+# retrieve process identifiers
+child_fmt="^.* nsd.\([0-9]\{1,\}\).: info: child .*$"
+main_pid=$(sed -n 's/^.* nsd.\([0-9]\{1,\}\).: notice: nsd started.*$/\1/p' nsd.log)
+child1_pid=$(sed -n "s/${child_fmt}/\1/p" nsd.log | head -n 1)
+child2_pid=$(sed -n "s/${child_fmt}/\1/p" nsd.log | tail -n 1)
+xfrd_pid=$(sed -n 's/^.* nsd.\([0-9]\{1,\}\).: info: xfrd startup.*$/\1/p' nsd.log)
+
+echo "MAIN: ${main_pid}"
+echo "XFRD: ${xfrd_pid}"
+echo "CHILD 1: ${child1_pid}"
+echo "CHILD 2: ${child2_pid}"
+
+if which lsof >/dev/null 2>&1; then
+	lsof -i :${NSD_PORT1} -i :${NSD_PORT2}
+
+	main_sock_cnt=$(lsof -p ${main_pid} -a -i :${NSD_PORT1} -i :${NSD_PORT2} | tail -n +2 | wc -l)
+	child1_sock_cnt=$(lsof -p ${child1_pid} -a -i :${NSD_PORT1} -i :${NSD_PORT2} | tail -n +2 | wc -l)
+	child2_sock_cnt=$(lsof -p ${child2_pid} -a -i :${NSD_PORT1} -i :${NSD_PORT2} | tail -n +2 | wc -l)
+
+else
+	# freeBSD sockstat
+	sockstat -4 -p "${NSD_PORT1},${NSD_PORT2}"
+
+	main_sock_cnt=$(sockstat -q -4 -p "${NSD_PORT1},${NSD_PORT2}" | grep " ${main_pid}" | wc -l)
+	child1_sock_cnt=$(sockstat -q -4 -p "${NSD_PORT1},${NSD_PORT2}" | grep " ${child1_pid}" | wc -l)
+	child2_sock_cnt=$(sockstat -q -4 -p "${NSD_PORT1},${NSD_PORT2}" | grep " ${child2_pid}" | wc -l)
+
+fi
+
+# verify main process listens on both ports, child processes only listen on one port
+echo "main socket count: ${main_sock_cnt}"
+echo "child1 socket count: ${child1_sock_cnt}"
+echo "child2 socket count: ${child2_sock_cnt}"
+
+if [ -z "${main_sock_cnt}" ] || [ ${main_sock_cnt} -ne 4 ]; then
+  error "invalid socket count for main (${main_pid}); expected 4, got '${main_sock_cnt}'"
+fi
+
+if [ -z "${child1_sock_cnt}" ] || [ ${child1_sock_cnt} -ne 2 ]; then
+  error "invalid socket count for child 1 (${child1_pid}); expected 2, got '${child1_sock_cnt}'"
+fi
+
+if [ -z "${child2_sock_cnt}" ] || [ ${child2_sock_cnt} -ne 2 ]; then
+  error "invalid socket count for child 2 (${child2_pid}); expected 2, got '${child1_sock_cnt}'"
+fi
+
+# verify child processes listen on the right port
+if which lsof >/dev/null 2>&1; then
+	child1_sock_cnt=$(lsof -p ${child1_pid} -a -i :${NSD_PORT1} | tail -n +2 | wc -l)
+	child2_sock_cnt=$(lsof -p ${child2_pid} -a -i :${NSD_PORT2} | tail -n +2 | wc -l)
+else
+	child1_sock_cnt=$(sockstat -q -4 -p "${NSD_PORT1}" | grep " ${child1_pid}" | wc -l)
+	child2_sock_cnt=$(sockstat -q -4 -p "${NSD_PORT2}" | grep " ${child2_pid}" | wc -l)
+fi
+
+if [ -z "${child1_sock_cnt}" ] || [ ${child1_sock_cnt} -ne 2 ]; then
+  error "child 1 did not listen on the right port"
+fi
+
+if [ -z "${child2_sock_cnt}" ] || [ ${child2_sock_cnt} -ne 2 ]; then
+  error "child 2 did not listen on the right port"
+fi
+
+# verify that both children answer queries
+if dig @127.0.0.1 -p ${NSD_PORT1} SOA example.net. | grep NOERROR; then
+  echo "received answer to query on port ${NSD_PORT1}"
+else
+  error "did not receive answer to query on port ${NSD_PORT1}"
+fi
+
+if dig @127.0.0.1 -p ${NSD_PORT2} SOA example.net. | grep NOERROR; then
+  echo "received answer to query on port ${NSD_PORT2}"
+else
+  error "did not receive answer to query on port ${NSD_PORT2}"
+fi

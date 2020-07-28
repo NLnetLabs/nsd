@@ -1,0 +1,25 @@
+# #-- zonestats.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+# are zonestats enabled?
+if grep "define USE_ZONE_STATS" $PRE/config.h; then
+	echo "zone stats enabled, do test"
+else
+	echo "zone stats not enabled, skip test"
+	exit 0
+fi
+
+# prepare config
+get_random_port 1
+CONTROL_PORT=$RND_PORT
+echo controlport: $CONTROL_PORT
+echo "export CONTROL_PORT=$CONTROL_PORT" >> .tpkg.var.test
+cat zonestats.conf | sed "s/CONTROLPORT/$CONTROL_PORT/g" > nsd_1.conf
+if [[ $? -ne 0 ]]; then
+        exit 1
+fi

@@ -53,7 +53,7 @@ static void acl_1(CuTest *tc)
 	uint32_t c[4] = {0,0,0,0};
 	/* check 32-bit performance */
 #define CHK CuAssert(tc, "check acl_range", \
-	exp==acl_addr_match_range(&min, &x, &max, sizeof(uint32_t)));
+	exp==acl_addr_match_range_v4(&min, &x, &max, sizeof(uint32_t)));
 	min=0x00000000; max=0xffffffff; x=0x00000001; exp=1; CHK;
 	min=0x00000000; max=0xffffffff; x=0x00000000; exp=1; CHK;
 	min=0x00000000; max=0xffffffff; x=0xffffffff; exp=1; CHK;
@@ -73,8 +73,9 @@ static void acl_1(CuTest *tc)
 #undef CHK
 
 	/* check multi word performance */
+#ifdef INET6
 #define CHK CuAssert(tc, "check acl_range longcontents", \
-	exp==acl_addr_match_range(a, b, c, 4*sizeof(uint32_t)));
+	exp==acl_addr_match_range_v6(a, b, c, 4*sizeof(uint32_t)));
 	exp=1; CHK;
 	a[2]=10; b[2]=0; c[2]=20; exp=0; CHK;
 	a[2]=10; b[2]=10; c[2]=20; exp=1; CHK;
@@ -103,6 +104,7 @@ static void acl_1(CuTest *tc)
 	a[3]=50; b[3]=60; c[3]=60; exp=1; CHK;
 	a[3]=50; b[3]=80; c[3]=60; exp=1; CHK;
 #undef CHK
+#endif /* INET6 */
 }
 
 static void acl_2(CuTest *tc)
@@ -210,6 +212,7 @@ static void acl_6(CuTest *tc)
 	CuAssert(tc, "check acl_same_host", acl_same_host(x, y) == 1);
 	CuAssert(tc, "check acl_same_host", acl_same_host(y, x) == 1);
 
+#ifdef INET6
 	x = parse_acl_info(region, "10.20.30.40", "NOKEY");
 	y = parse_acl_info(region, "10ff:20ff:30ff:40ff::", "NOKEY");
 	CuAssert(tc, "check acl_same_host", acl_same_host(x, y) == 0);
@@ -230,6 +233,7 @@ static void acl_6(CuTest *tc)
 	y = parse_acl_info(region, "10ff:20ff:30ff:40ff::", "NOKEY");
 	CuAssert(tc, "check acl_same_host", acl_same_host(x, y) == 0);
 	CuAssert(tc, "check acl_same_host", acl_same_host(y, x) == 0);
+#endif /* INET6 */
 
 	x = parse_acl_info(region, 
 		region_strdup(region, "10.20.30.40-30.40.50.60"), "NOKEY");

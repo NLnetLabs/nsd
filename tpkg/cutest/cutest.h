@@ -36,20 +36,29 @@ void CuStringResize(CuString* str, int newSize);
 
 typedef struct CuTest CuTest;
 
-typedef void (*TestFunction)(CuTest *);
+typedef void (*CuTestFunction)(CuTest *);
+
+typedef enum CuTestResult CuTestResult;
+
+enum CuTestResult
+{
+	CuPassed,
+	CuFailed,
+	CuSkipped
+};
 
 struct CuTest
 {
 	char* name;
-	TestFunction function;
-	int failed;
+	CuTestFunction function;
+	CuTestResult result;
 	int ran;
 	char* message;
 	jmp_buf *jumpBuf;
 };
 
-void CuTestInit(CuTest* t, const char* name, TestFunction function);
-CuTest* CuTestNew(const char* name, TestFunction function);
+void CuTestInit(CuTest* t, const char* name, CuTestFunction function);
+CuTest* CuTestNew(const char* name, CuTestFunction function);
 void CuTestFree(CuTest* tc);
 void CuTestRun(CuTest* tc);
 
@@ -104,7 +113,7 @@ typedef struct
 	int count;
 	CuTest* list[MAX_TEST_CASES];
 	int failCount;
-
+	int skipCount;
 } CuSuite;
 
 
@@ -116,7 +125,9 @@ void CuSuiteAddSuite(CuSuite* testSuite, CuSuite* testSuite2);
 void CuSuiteRun(CuSuite* testSuite);
 /* Added Wouter Wijngaards may 2006: same as CuSuiteRun, but
    callback is called for every test with as argument if testcase failed. */
-void CuSuiteRunDisplay(CuSuite* testSuite, void (*callback)(int));
+void CuSuiteRunDisplay(CuSuite* testSuite, void (*callback)(CuTestResult));
+int CuSuiteRunRegex(CuSuite* testSuite, const char *regex);
+int CuSuiteRunRegexDisplay(CuSuite* testSuite, const char *regex, void (*callback)(CuTestResult));
 void CuSuiteSummary(CuSuite* testSuite, CuString* summary);
 void CuSuiteDetails(CuSuite* testSuite, CuString* details);
 

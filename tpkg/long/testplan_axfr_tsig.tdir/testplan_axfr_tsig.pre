@@ -1,0 +1,36 @@
+# #-- testplan_axfr_tsig.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+# start NSD
+get_random_port 2
+MASTER_PORT=$RND_PORT
+SLAVE_PORT=$(($MASTER_PORT + 1))
+
+PRE="../../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD_PID2="nsd.pid2.$$"
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export MASTER_PORT=$MASTER_PORT" >> .tpkg.var.test
+echo "export SLAVE_PORT=$SLAVE_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+echo "export TPKG_NSD_PID2=$TPKG_NSD_PID2" >> .tpkg.var.test
+
+sed -e "s/MASTERPORT/$MASTER_PORT/" < testplan_axfr_tsig.conf2 > slave.conf
+cat slave.conf
+sed -e "s/SLAVEPORT/$SLAVE_PORT/" < testplan_axfr_tsig.conf > master.conf
+cat master.conf
+
+# master
+$TPKG_NSD -c master.conf -u $LOGNAME -p $MASTER_PORT -P $TPKG_NSD_PID
+# slave
+$TPKG_NSD -c slave.conf -u $LOGNAME -p $SLAVE_PORT -P $TPKG_NSD_PID2
+
+sleep 1 # wait for them to come up.
+echo master at port $MASTER_PORT $TPKG_NSD_PID
+echo slave at port $SLAVE_PORT $TPKG_NSD_PID2

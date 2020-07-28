@@ -1,0 +1,53 @@
+#!/bin/bash
+# #-- testplan_tsig_34.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+RESULTFILE=testplan_tsig_34.current_response
+PRE="../../.."
+TPKG_XFER="$PRE/nsd-xfer"
+WAITTIME=3
+DIG="dig"
+
+function update_master_zone() { # <zonefile>
+	# just overwrite the existing zone.
+	cp $1 testplan_tsig_34.zone
+	sleep 1 # make sure timestamp is updated
+	touch testplan_tsig_34.zone
+	echo "signalling..."
+	# signal the server
+	NSD_PID=`cat $TPKG_NSD_PID`
+	kill -s SIGHUP $NSD_PID 2>/dev/null
+}
+
+function check_slave_zone() { # <testnr>
+	sleep $WAITTIME
+	echo "-------wait-----------------------------------------"
+	# check if slave has the same zone as the master zonefile.
+	$TPKG_XFER -f $RESULTFILE -p $SLAVE_PORT -z example.com. 127.0.0.1
+	cat $RESULTFILE 
+	cat $RESULTFILE | grep -v '^; [fNz]' > testplan_tsig_34.check
+	if wdiff testplan_tsig_34.check testplan_tsig_34.zone >/dev/null; then
+		echo "ZONE SOA=$1 OK"
+	else
+		echo "ZONE SOA=$1 BAD"
+		echo diff is
+		wdiff testplan_tsig_34.check testplan_tsig_34.zone
+		exit 1
+	fi
+
+}
+
+sleep $WAITTIME
+# first serial should NOT (auth failure) be transferred on startup.
+if $DIG @127.0.0.1 -p $SLAVE_PORT example.com. ANY | tee -a /dev/stderr |
+	grep "SERVFAIL" >/dev/null; then
+	echo correct;
+else
+	echo "error: TSIG not denied"
+	exit 1
+fi
+
+exit 0

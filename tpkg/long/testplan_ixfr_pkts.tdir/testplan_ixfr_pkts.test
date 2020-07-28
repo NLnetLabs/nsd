@@ -1,0 +1,118 @@
+#!/bin/bash
+# #-- testplan_ixfr_pkts.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+get_ldns_testns
+
+RESULTFILE=testplan_ixfr_pkts.current_response
+PRE="../../.."
+TPKG_NOTIFY="ldns-notify"
+MINISERVER="$LDNS_TESTNS -v"
+WAITTIME=10
+DIG="dig"
+
+
+function kill_mini() {
+	if [ ! -e $TPKG_NSD_PID -o -z "$TPKG_NSD_PID" ]; then
+		echo "miniserver exited ok"
+	else
+		# kill the mini server.
+		NSD_PID=`cat $TPKG_NSD_PID`
+		kill $NSD_PID 2>/dev/null
+		sleep 1 # should be really dead now - just to be sure kill it again
+		kill $NSD_PID 2>/dev/null
+	fi
+}
+
+function setup_miniserver() { # <query setup file>
+	kill_mini
+	echo ">>> setup $MINISERVER -p $MASTER_PORT $1"
+	$MINISERVER -p $MASTER_PORT $1 &
+	echo $! > $TPKG_NSD_PID
+	sleep 1 # wait for it to come up.
+}
+
+function notify_slave() { # <serial>
+	echo ">>> ldns-notify -p $SLAVE_PORT -z example.com. 127.0.0.1"
+	$TPKG_NOTIFY -p $SLAVE_PORT -z example.com. 127.0.0.1
+}
+
+function check_slave_zone() { # <testnr> <checkfile>
+	sleep $WAITTIME
+	echo "-------wait-----------------------------------------"
+	# check if slave has the same zone as the check zonefile.
+	dig @127.0.0.1 -p $SLAVE_PORT example.com. AXFR | tee $RESULTFILE
+	cat $RESULTFILE | grep -v '^;' > testplan_ixfr_pkts.check
+	if wdiff testplan_ixfr_pkts.check $2 >/dev/null; then
+		echo "ZONE SOA=$1 OK"
+	else
+		echo "ZONE SOA=$1 BAD"
+		echo diff is
+		wdiff testplan_ixfr_pkts.check $2
+		exit 1
+	fi
+}
+
+# startup miniserver with appropriate files.
+setup_miniserver testplan_ixfr_pkts.qs_1
+notify_slave 10
+check_slave_zone 1 testplan_ixfr_pkts.zone_1
+
+setup_miniserver testplan_ixfr_pkts.qs_2
+notify_slave 10
+check_slave_zone 2 testplan_ixfr_pkts.zone_2
+
+setup_miniserver testplan_ixfr_pkts.qs_3
+notify_slave 3
+check_slave_zone 3 testplan_ixfr_pkts.zone_3
+# check txtA gives nxdomain
+echo ">>> dig txt1.example.com TXT"
+if $DIG @127.0.0.1 -p $SLAVE_PORT txt1.example.com TXT | tee -a /dev/stderr \
+	| grep "NXDOMAIN" >/dev/null; then
+	echo "correct"
+else
+	echo "Error. Node not deleted."
+	exit 1
+fi
+
+# check txtB is updated
+echo ">>> dig txt2.example.com TXT"
+if $DIG @127.0.0.1 -p $SLAVE_PORT txt2.example.com TXT | tee -a /dev/stderr \
+	| grep '"updated information here 2"' >/dev/null; then
+	echo "correct"
+else
+	echo "Error. Node not updated."
+	exit 1
+fi
+# check txtC exists.
+echo ">>> dig txt4.example.com TXT"
+if $DIG @127.0.0.1 -p $SLAVE_PORT txt4.example.com TXT | tee -a /dev/stderr \
+	| grep '"text record 4"' >/dev/null; then
+	echo "correct"
+else
+	echo "Error. Node not updated."
+	exit 1
+fi
+
+# no serial=4 test, skipped to test multiple serial number ixfr.
+setup_miniserver testplan_ixfr_pkts.qs_5
+notify_slave 5
+check_slave_zone 5 testplan_ixfr_pkts.zone_5
+
+# no serial=6 test, skipped to test multiple serial number ixfr.
+setup_miniserver testplan_ixfr_pkts.qs_7
+notify_slave 7
+check_slave_zone 7 testplan_ixfr_pkts.zone_7
+
+setup_miniserver testplan_ixfr_pkts.qs_8
+notify_slave 8
+check_slave_zone 8 testplan_ixfr_pkts.zone_8
+
+setup_miniserver testplan_ixfr_pkts.qs_9
+notify_slave 9
+check_slave_zone 9 testplan_ixfr_pkts.zone_9
+
+exit 0

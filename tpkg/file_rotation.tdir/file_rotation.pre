@@ -1,0 +1,24 @@
+# #-- file_rotation.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+#export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+. ../common.sh
+
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+
+# var sharing
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+
+$TPKG_NSD -c file_rotation.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f file_rotation.db
+wait_nsd_up file_rotation.log
+
+echo nsd at port $TPKG_PORT $TPKG_NS_PID = `cat $TPKG_NSD_PID`

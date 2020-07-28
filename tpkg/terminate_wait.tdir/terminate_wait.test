@@ -1,0 +1,44 @@
+# #-- bug056_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+NSD_PID=`cat $TPKG_NSD_PID`
+. ../common.sh
+
+if test ! -x `which mkfifo`; then
+	echo "no mkfifo on test system"
+	exit 0
+fi
+
+# make reload take very long
+mv terminate_wait.zone bak.zone
+mkfifo terminate_wait.zone
+kill -HUP $NSD_PID
+sleep 2
+
+# kill the NSD server and see how long it takes before it stops
+kill -TERM $NSD_PID
+
+sleep 2
+if kill -0 $NSD_PID; then
+	echo "nsd is waiting correctly"
+else
+	echo "stopped too soon"
+	cat nsd.log
+	exit 1
+fi
+cat bak.zone >> terminate_wait.zone
+
+sleep 2
+if kill -0 $NSD_PID; then
+	echo "it won't stop?"
+	cat nsd.log
+	exit 1
+else
+	echo "stopped okay"
+fi
+rm -f terminate_wait.zone
+cat nsd.log
+
+exit 0

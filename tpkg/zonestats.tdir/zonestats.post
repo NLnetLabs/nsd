@@ -1,0 +1,29 @@
+# #-- zonestats.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+
+PRE="../.."
+# are zonestats enabled?
+if grep "define USE_ZONE_STATS" $PRE/config.h; then
+	echo "zone stats enabled, do test"
+else
+	echo "zone stats not enabled, skip test"
+	exit 0
+fi
+
+
+# do your teardown here
+if test -z "$TPKG_NSD_PID" ; then
+        exit 0
+fi
+if test ! -f "$TPKG_NSD_PID"; then
+	exit 0
+fi
+
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill_pid $NSD_PID

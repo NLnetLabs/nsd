@@ -1,0 +1,22 @@
+$ORIGIN com.
+example 345600  IN      SOA     ns0.example.org. root.example.com. (
+                8 3600 28800 2419200 3600 )
+        3600    IN      NS      ns23.example.org.
+        3600    IN      NS      bigserv.example.net.
+        3600    IN      NS      ns2.example.org.
+        3600    IN      NS      ns4.example.org.
+example.com.    3600    IN      DNSKEY  256 3 RSASHA1 AQO3DvdpH7f2yXcA036AJQsq4Gwv7W2SZuMvxYT8kF7n9UrfryKoUIYXuuDIEQeWGspYIc2Cnn7O4oZ4Kfo3KmnQVdlndpNA+ZmkZVs15ITivguqk/dF4+zY9yLZ07IMQSqw1YwWsx+zR33ifDCZFauSvmfjKjs0YmBUd4R77sgagw== ;{id = 3824 (zsk), size = 1024b}
+$ORIGIN example.com.
+mail    3600    IN      A       192.0.2.11
+        3600    IN      AAAA    ffff::25
+        3600    IN      MX      10 mail.example.com.
+	3600	IN	TXT	"mime-type compressed/zip: bs2a445adgh2345jd46j"
+newservice	3600	IN	A	192.0.2.123
+	3600	IN	AAAA	::1
+ooo	3600	IN	TXT	"amazing new protocol here"
+terms   3600    IN      A	192.0.2.24
+	3600	IN	MX	23 mail.example.com.
+webmail 3600    IN      A       192.0.2.10
+        3600    IN      MX      20 mail.example.com.
+www     3600    IN      A       192.0.2.10
+

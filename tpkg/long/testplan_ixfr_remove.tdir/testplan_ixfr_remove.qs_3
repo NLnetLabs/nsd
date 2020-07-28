@@ -1,0 +1,20 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply to question IXFR=2.
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=2
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+a.b.c       345600  IN      TXT     "long name"
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+ENTRY_END

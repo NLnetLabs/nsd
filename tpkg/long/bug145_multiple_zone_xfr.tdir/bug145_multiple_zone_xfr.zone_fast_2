@@ -1,0 +1,4 @@
+xfr.fast.               345600  IN      SOA     ns0.example.org. root.example.com. 2 3600 28800 2419200 3600
+svc.xfr.fast.           345600  IN      TXT     "fast serial 2"
+www.xfr.fast.           345600  IN      A       10.20.30.42
+xfr.fast.               345600  IN      SOA     ns0.example.org. root.example.com. 2 3600 28800 2419200 3600

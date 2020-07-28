@@ -1,0 +1,25 @@
+sub.example.com.	3600	IN	SOA	ns1.c.example. reply.c.example. 1 3600 300 3600000 3600
+sub.example.com.	3600	IN	RRSIG	SOA 8 3 3600 20140206111102 20140109111102 1443 sub.example.com. sKA0l3mYZQMZFvKawNW+wAUF140JdlfHbZLslel0nBfHju52pTZ3ovFoUoVyZYCx+u/3/l6+ejBjU0sX4GtP/51FjuD86CfJUXzYTgpol3LkkUJm9OYPZc13I3cwrCwq/aTL3pNlosbII4u81mdJlmcvYNxUTAWV52q6QB89VnI=
+sub.example.com.	3600	IN	NS	ns1.c.example.
+sub.example.com.	3600	IN	NS	ns2.c.example.
+sub.example.com.	3600	IN	RRSIG	NS 8 3 3600 20140206111102 20140109111102 1443 sub.example.com. lgKFslnnY/wDJtIoeWV+9B9H+pdUOiR4n4+keJmLyOUxnRaLpC71qCcf3WQh7zXbD1u9nqzRQsXm5sbDguumkeZF5AKhPfUcwdjdpd6qX9fa6wFIcHGadwd7rCevIEa8diskNROxeOaVK3W0SpF3wEUCqd45Kb5UQKVFMzQz82o=
+sub.example.com.	3600	IN	DNSKEY	256 3 8 AwEAAbd9WqjzE2Pynz21OG5doSf9hFzMr5dhzz2waZ3vTa+0o5r7AjTAqmA1yH/B3+aAMihUm5ucZSfVqo7+kOaRE8yFj9aivOmA1n1+JLevJq/oyvQyjxQN2Qb89LyaNUT5oKZIiL+uyyhNW3KDR3SSbQ/GBwQNDHVcZi+JDR3RC0r7 ;{id = 1443 (zsk), size = 1024b}
+sub.example.com.	3600	IN	RRSIG	DNSKEY 8 3 3600 20140206111102 20140109111102 1443 sub.example.com. SEvsNX6ewGad6/vJbEY+VrcwyblxADLitktMb6JWUbFkXYWDWMXwPiPHpnUz6qYwp76p3H8pB6otjjbVGFkT0zIb88QEwXoht3dKIQZiQTW1lguZAUlRiD765ctehn+nQJKuhpQtwaUTYLYxgIeGsA98uxavhOcqszXjMp0TVog=
+sub.example.com.	3600	IN	NSEC3PARAM	1 0 1 - 
+sub.example.com.	3600	IN	RRSIG	NSEC3PARAM 8 3 3600 20140206111102 20140109111102 1443 sub.example.com. WDkZFXO/NfbDCEWc3nNU5C52UyMPY9bz5ONNJVlac6HL1DuR8MWQG7H5M9L1GTPUhSQ1eGd7mNeZ3efKt1BTiJi3ZsjLZ7wRF/HMpCQ5eoOLei4bDcQYUE27g7F7jau3l3N3aiHACmwzcY/QccW5c6BUKIWXZLUNKOp2X2vlg2Q=
+7t1ect6t5vp0s7se8si9d07roqupr3gc.sub.example.com.	3600	IN	NSEC3	1 1 1 -  94h9go4sa0ica1f07rbfmhas3fkbbhda NS SOA RRSIG DNSKEY NSEC3PARAM 
+7t1ect6t5vp0s7se8si9d07roqupr3gc.sub.example.com.	3600	IN	RRSIG	NSEC3 8 4 3600 20140206111102 20140109111102 1443 sub.example.com. OorO6uUdxhdmd0O7upWqYOXEs1NJZLCAiQHxsRMah3MSmKq1jfNBjkU72zZFd+Ieyu/nd3FhjvuCOvbY2I5j1uNO5M31qb14YFBQZOCi27ZZa3gngnwTslNvVFkOcoJDXKei9DpQVVs61poALUb3KfqTbiHvwqMtFh7EJsyED80=
+ns1.sub.example.com.	3600	IN	A	192.168.2.7
+ns1.sub.example.com.	3600	IN	RRSIG	A 8 4 3600 20140206111102 20140109111102 1443 sub.example.com. NOFXgQ84javnP2AdBii1jhzwfK/stMZtfhBf3PtPKhLDRvWHCwPZ2jTaS6N6YCWH5i/Jmi7dqKJBhIYo7eNbH3mFgilQ3VhBJ2CkjjHw7nN7eRbMChGUXKIqkrFQumHxClmcXs2Yr+Iv3BNs3+68kP3WgTixNTucjCLII5LLt4s=
+94h9go4sa0ica1f07rbfmhas3fkbbhda.sub.example.com.	3600	IN	NSEC3	1 1 1 -  0vqkvqcor8v6sffvq2trpa0m1nc3g8bu A RRSIG 
+94h9go4sa0ica1f07rbfmhas3fkbbhda.sub.example.com.	3600	IN	RRSIG	NSEC3 8 4 3600 20140206111102 20140109111102 1443 sub.example.com. Oxikcp3hLOkSrSkSDI/srsO4pcG42V0DU3WhDXNuwvgXktSXSC15lJumuu9SYgBVbN20sEXVKEMVMQzhEd5z/1uQGo/2SjXmsBQdIDszdN4a+ArDkVAQ1iyS1H4T1y/jwaWFoduwUX0YtodpSO/XoWiZiR7syuHfGwoPocsWXDI=
+ns2.sub.example.com.	3600	IN	A	192.168.2.8
+ns2.sub.example.com.	3600	IN	RRSIG	A 8 4 3600 20140206111102 20140109111102 1443 sub.example.com. BK57Tmg4PThpEMdTq79GiLrZgBGrkfIKZk/GG9gYoRPrDwkjfv3Cbazp9PIXlkGMzfGzoTwa1+nBiInC/ZEKZbXT4t8/9J39PmY+UjKBoUGUnR2WKK/KuVYtTBpUe6lz/iaeUn/vgM1oqWW8xNf9jMOqMu6aVyVgLJ4iRUjaTU4=
+0vqkvqcor8v6sffvq2trpa0m1nc3g8bu.sub.example.com.	3600	IN	NSEC3	1 1 1 -  7t1ect6t5vp0s7se8si9d07roqupr3gc A RRSIG 
+0vqkvqcor8v6sffvq2trpa0m1nc3g8bu.sub.example.com.	3600	IN	RRSIG	NSEC3 8 4 3600 20140206111102 20140109111102 1443 sub.example.com. NoxgcdJ91TefSc96pdU21+MJJBmCbDvLNL8HqJADi1Ev11LQDXzDIc4jePnGzdvNPrISi6lY1Xpi96MVsERlIa67xE0o+Tggrmt7th/70eEIsbWgDhaf76zL/pgyaSx8kgEv4MsgWNGXKGd24i2Zrzun6eSiNY8BgoM+uTfw1KY=
+0.sub.example.com.	3600	IN	NS ns.zomba.net.
+a.sub.example.com.	3600	IN	NS ns.zomba.net.
+b.sub.example.com.	3600	IN	NS ns.zomba.net.
+f.sub.example.com.	3600	IN	NS ns.zomba.net.
+g.sub.example.com.	3600	IN	NS ns.zomba.net.
+z.sub.example.com.	3600	IN	NS ns.zomba.net.

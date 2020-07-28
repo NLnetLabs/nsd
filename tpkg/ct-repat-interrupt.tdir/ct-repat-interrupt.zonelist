@@ -1,0 +1,4 @@
+# NSD zone list
+# name pattern
+add master.net master
+add slave.net slave

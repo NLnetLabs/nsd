@@ -28,6 +28,7 @@
 /nsd.conf.sample
 /nsd-mem
 /cutest
+/popen3_echo
 /udb-inspect
 /xfr-inspect
 /dnstap/dnstap.pb-c.c
@@ -38,3 +39,8 @@
 /tpkg/long/result.*
 /tpkg/long/.done-*
 /tpkg/long/*.log
+
+# Eclipse IDE Project Settings
+.cproject
+.project
+.settings/

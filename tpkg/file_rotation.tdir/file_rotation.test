@@ -1,0 +1,26 @@
+# #-- file_rotation.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+#PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+
+mv file_rotation.log file_rotation.log.0
+
+# reload
+sleep 3
+kill -HUP `cat $TPKG_NSD_PID`
+sleep 3
+
+# reload again to get content in the new logfile
+kill -HUP `cat $TPKG_NSD_PID`
+sleep 3
+
+cat file_rotation.log.0
+echo
+echo
+cat file_rotation.log
+
+grep "SIGHUP received" file_rotation.log
+

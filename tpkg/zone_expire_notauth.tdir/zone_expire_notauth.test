@@ -1,0 +1,44 @@
+# #-- zone_expire_notauth.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+NSD_OPTS="-V 5"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+
+$TPKG_NSD -c nsd.conf -p $TPKG_PORT $NSD_OPTS
+wait_nsd_up nsd.log
+# example.net should be expired
+# example.com should not be hosted (not authoritative for this zone)
+sleep 2
+
+echo port: $TPKG_PORT
+dig @127.0.0.1 -p $TPKG_PORT example.net SOA | tee data
+if grep SERVFAIL data; then
+	echo OK
+else
+	echo "bad rcode for expired"
+	cat nsd.log
+	exit 1
+fi
+
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA | tee data
+if grep REFUSE data; then
+	echo OK
+else
+	echo "bad rcode for nothosted zone"
+	cat nsd.log
+	exit 1
+fi
+cat nsd.log
+
+exit 0

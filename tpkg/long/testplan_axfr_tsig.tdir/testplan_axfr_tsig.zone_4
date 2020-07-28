@@ -1,0 +1,22 @@
+$ORIGIN com.
+example 345600  IN      SOA     ns0.example.org. root.example.com. (
+                4 3600 28800 2419200 3600 )
+        3600    IN      NS      ns23.example.org.
+        3600    IN      NS      bigserv.example.net.
+        3600    IN      NS      ns2.example.org.
+        3600    IN      NS      ns4.example.org.
+;"Kexample.com.+005+44537.key"  ; ZSK 1
+;$INCLUDE "Kexample.com.+005+03824.key"  ; ZSK 2 (prepublished)
+example.com.    3600    IN      DNSKEY  256 3 RSASHA1 AQO3DvdpH7f2yXcA036AJQsq4Gwv7W2SZuMvxYT8kF7n9UrfryKoUIYXuuDIEQeWGspYIc2Cnn7O4oZ4Kfo3KmnQVdlndpNA+ZmkZVs15ITivguqk/dF4+zY9yLZ07IMQSqw1YwWsx+zR33ifDCZFauSvmfjKjs0YmBUd4R77sgagw== ;{id = 3824 (zsk), size = 1024b}
+;"Kexample.com.+005+53988.key"	; KSK 1
+;"Kexample.com.+005+25320.key"	; KSK 2 (presigned)
+$ORIGIN example.com.
+mail    3600    IN      A       192.0.2.11
+        3600    IN      AAAA    ffff::23
+        3600    IN      MX      10 mail.example.com.
+printer 3600    IN      AAAA    ffff::25
+terms   3600    IN      AAAA    ffff::24
+	3600    IN      AAAA    ffff::26
+webmail 3600    IN      A       192.0.2.10
+        3600    IN      MX      10 mail.example.com.
+www     3600    IN      A       192.0.2.10

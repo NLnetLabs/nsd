@@ -1,0 +1,42 @@
+# #-- bug152_identity.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+echo "NSD PORT: $TPKG_PORT"
+
+# query for version.bind. hostname.bind, id.server, version.server.
+# check for 'NSD' word in output.
+dig @localhost -p $TPKG_PORT version.bind. TXT CH | tee out
+if grep "NSD" out; then
+	echo "version.bind is OK"
+else
+	echo "version.bind bad answer"
+	exit 1
+fi
+dig @localhost -p $TPKG_PORT version.server. TXT CH | tee out
+if grep "NSD" out; then
+	echo "version.server is OK"
+else
+	echo "version.server bad answer"
+	exit 1
+fi
+
+dig @localhost -p $TPKG_PORT hostname.bind. TXT CH | tee out
+if grep "NSD_is_totally_awesome" out; then
+	echo "hostname.bind is OK"
+else
+	echo "hostname.bind bad answer"
+	exit 1
+fi
+
+dig @localhost -p $TPKG_PORT id.server. TXT CH | tee out
+if grep "NSD_is_totally_awesome" out; then
+	echo "id.server is OK"
+else
+	echo "id.server bad answer"
+	exit 1
+fi
+
+exit 0

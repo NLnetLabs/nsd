@@ -1,0 +1,2 @@
+On Solaris -p <blaat> crashes if blaat is not numerical
+On i386 an error is printed

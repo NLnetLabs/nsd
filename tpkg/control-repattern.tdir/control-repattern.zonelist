@@ -1,0 +1,3 @@
+# NSD zone list
+# name pattern
+add example.com. test.pat.change.1

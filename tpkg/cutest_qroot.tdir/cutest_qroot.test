@@ -1,0 +1,42 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+. ../common.sh
+PRE=../..
+
+# compile the unit tests.
+get_make
+if (cd $PRE; $MAKE cutest); then
+	echo compiled unit test;
+else
+	exit 1;
+fi
+
+if $PRE/cutest -t; then
+	echo "OK"
+else
+	echo "inet_ntop failure, skipped test"
+	exit 0
+fi
+
+# $1: bla, for bla.conf, bla.db, bla.qfile, bla.zone
+do_qtest () {
+	echo "qtest start for $1"
+	echo "$PRE/cutest -c $1.conf -q $1.qfile"
+	$PRE/cutest -c $1.conf -q $1.qfile
+	if test $? -ne 0; then
+		echo $1.qfile failed
+		exit 1
+	fi
+	echo "qtest OK for $1"
+}
+
+do_qtest root2
+
+do_qtest root
+# copy output of the 'write' action.
+#cp qfile.out ..
+
+do_qtest unsigned
+
+
+exit 0

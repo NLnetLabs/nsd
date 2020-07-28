@@ -1,0 +1,23 @@
+$ORIGIN com.
+example 345600  IN      SOA     ns0.example.org. root.example.com. (
+                5 3600 28800 2419200 3600 )
+        3600    IN      NS      ns23.example.org.
+        3600    IN      NS      bigserv.example.net.
+        3600    IN      NS      ns2.example.org.
+        3600    IN      NS      ns4.example.org.
+$ORIGIN example.com.
+mail    3600    IN      A       192.0.2.11
+        3600    IN      AAAA    ffff::23
+        3600    IN      MX      10 mail.example.com.
+	3600	IN	TXT	"if you can find this, all outgoing mail is signed, no, really"
+newservice	3600	IN	A	192.0.2.123
+ooo	3600	IN	TXT	"amazing new protocol here"
+terms   3600    IN      A	192.0.2.24
+	3600    IN      A	192.0.2.26
+webmail 3600    IN      A       192.0.2.10
+        3600    IN      MX      20 mail.example.com.
+www     3600    IN      NSEC    example.com. A RRSIG NSEC
+        3600    IN      RRSIG   NSEC RSASHA1 3 3600 20060825081644 20060728081644 44537 example.com. y3AmY5RDR5J4ELdDCGYgvh8sawaxYjGJMch6gxfGPYCu9jqpECkpustTw+GgAnTlLej6iKK/3EfoKUobOVgpIPDqAWNqa8lL8m3P2Kbxp+OXGotSz5atVSlDRei66XwalKhGw9u7EDOLZc/bSbbbxSJa14XwTKA4Tr2Op5KLT/4=
+        3600    IN      RRSIG   A RSASHA1 3 3600 20060825081644 20060728081644 44537 example.com. rkO1E0zZV+NiEKUrkUEC396ubGOYWML8VbpbWpDcBTwPGP0gGEkva8qt0vE6qlsw3gO4tkT1Ir+TXAWvnRvFtY3bpkNnajhIvV2J+16/p8YtCIxH19IUrAwf1pANMNNtQuFU1CLIVOaXRx8oXRfFY2t+GFYdDqXyjzqgcVU7mww=
+        3600    IN      A       192.0.2.10
+

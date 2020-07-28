@@ -233,7 +233,7 @@ echo $sha > nsd-$version.tar.gz.sha1
 echo $sha256 > nsd-$version.tar.gz.sha256
 
 echo "create nsd-$version.tar.gz.asc with:"
-echo "    gpg --armor --detach-sign nsd-$version.tar.gz"
+echo "    gpg --armor --detach-sign --digest-algo SHA256 nsd-$version.tar.gz"
 info "NSD distribution created successfully."
 info "SHA1sum: $sha"
 info "SHA256sum: $sha256"

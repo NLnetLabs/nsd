@@ -1,0 +1,34 @@
+# #-- ct-repat-interrupt.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+CTRL="../../nsd-control -c nsd.conf"
+
+$CTRL status
+if test $? -ne 0; then
+	echo "control connection fails"
+	exit 1
+fi
+
+# it is in timeouts now
+sleep 1
+# and interrupts it with new config
+mv nsd.conf nsd.conf.orig
+cp nsd.conf2 nsd.conf
+$CTRL repattern
+
+# test it
+wait_logfile nsd.log "slave.net serial 0 is updated to 1" 30
+
+dig @127.0.0.1 -p $NSD_PORT slave.net SOA | tee result
+if grep "hostmaster.slave.net" result; then
+	echo OK
+else
+	echo "failed update"
+	exit 1
+fi
+
+exit 0

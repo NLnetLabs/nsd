@@ -1,0 +1,14 @@
+$TTL 3D
+@       IN      SOA     example.net. root.example.net. (
+                        199609206       ; serial, todays date + todays serial #
+                        8H              ; refresh, seconds
+                        2H              ; retry, seconds
+                        4W              ; expire, seconds
+                        1D )            ; minimum, seconds
+
+                NS      example.net.
+                NS      ns2.psi.net.
+                MX      10 example.net.  ; Primary Mail Exchanger
+
+123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.12.example.net.     A       206.6.177.2
+

@@ -1,0 +1,30 @@
+# #-- xfr_2.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# check if possible
+if [ $HOSTTYPE != i386 ] && [ $HOSTTYPE != x86_64 ]; then
+	echo "skipped: test needs i386 (precompiled help prog)"
+	exit 0;
+fi
+
+# start NSD
+get_random_port 1
+LDNS_PORT=$RND_PORT
+
+# start nsd-ldnsd
+chmod +x ./xfr_2.nsd-ldnsd
+./xfr_2.nsd-ldnsd -1 $LDNS_PORT miek.nl 12 >> result.xfr_2 2>&1 &
+echo "export LDNSD_PID=$!" >> .tpkg.var.test
+sleep 1
+
+# share the vars
+echo "export LDNS_PORT=$LDNS_PORT" >> .tpkg.var.test
+
+cat xfr_2.conf | sed "s/RANDOM/$LDNS_PORT/g" > nsd_1.conf
+if [[ $? -ne 0 ]]; then
+        exit 1
+fi

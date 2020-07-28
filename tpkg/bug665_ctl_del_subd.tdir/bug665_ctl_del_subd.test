@@ -1,0 +1,36 @@
+# #-- bug665_ctl_del_subd.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+CTRL="../../nsd-control -c bug665_ctl_del_subd.conf2"
+
+$CTRL status
+if test $? -ne 0; then
+	echo "control connection fails"
+	exit 1
+fi
+
+echo "before"
+dig @127.0.0.1 -p $NSD_PORT subdomain.example.com A | tee out
+
+
+echo "delzone subdomain.example.com"
+$CTRL delzone subdomain.example.com
+if test $? -ne 0; then
+	echo "control connection fails"
+	exit 1
+fi
+sleep 2
+dig @127.0.0.1 -p $NSD_PORT subdomain.example.com A | tee out
+
+if grep "10.0.0.1" out; then
+	echo OK
+else
+	echo "failed: wrong A record"
+	exit 1
+fi
+
+exit 0

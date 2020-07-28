@@ -1,0 +1,23 @@
+# #-- axfr_fallback.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+. ../common.sh
+kill_pid $TESTNS_PID
+
+rm -f ixfr.db
+rm -f axfr_fallback.db
+rm -f xfrd.state
+rm -f axfr_fallback.current
+
+# do your teardown here
+if [ -z $TPKG_NSD_PID ]; then
+	exit 0
+fi
+
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill_pid $NSD_PID

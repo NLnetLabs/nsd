@@ -1,0 +1,30 @@
+# #-- socket_partitioning.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+if $TPKG_NSD -h 2>&1 | grep -- "-L"; then
+	echo "debug enabled"
+else
+	echo "debug not enabled, skip test"
+	exit 0
+fi
+
+# start NSD
+get_random_port 2
+NSD_PORT1=$RND_PORT
+NSD_PORT2=$(($RND_PORT + 1))
+echo port1: $NSD_PORT1
+echo port2: $NSD_PORT2
+
+# share the vars
+echo "export NSD_PORT1=$NSD_PORT1" >> .tpkg.var.test
+echo "export NSD_PORT2=$NSD_PORT2" >> .tpkg.var.test
+
+sed "s/PORT1/$NSD_PORT1/g;s/PORT2/$NSD_PORT2/g" socket_partitioning.conf > nsd.conf
+

@@ -1,0 +1,12 @@
+# #-- nsec_rrsig_rdata.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+sleep 3
+
+dig NSEC @localhost -p $TPKG_PORT +dnssec +short aap.example.NET. > master.out
+dig NSEC @localhost -p $TPKG_PORT2 +dnssec +short aap.example.NET. > slave.out
+
+wdiff master.out slave.out

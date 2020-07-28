@@ -1,5 +1,6 @@
 #include "config.h"
 #include <assert.h>
+#include <regex.h>
 #include <setjmp.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -111,17 +112,17 @@ void CuStringInsert(CuString* str, const char* text, int pos)
  * CuTest
  *-------------------------------------------------------------------------*/
 
-void CuTestInit(CuTest* t, const char* name, TestFunction function)
+void CuTestInit(CuTest* t, const char* name, CuTestFunction function)
 {
 	t->name = CuStrCopy(name);
-	t->failed = 0;
+	t->result = CuPassed;
 	t->ran = 0;
 	t->message = NULL;
 	t->function = function;
 	t->jumpBuf = NULL;
 }
 
-CuTest* CuTestNew(const char* name, TestFunction function)
+CuTest* CuTestNew(const char* name, CuTestFunction function)
 {
 	CuTest* tc = CU_ALLOC(CuTest);
 	CuTestInit(tc, name, function);
@@ -156,7 +157,7 @@ static void CuFailInternal(CuTest* tc, const char* file, int line, CuString* str
 	snprintf(buf, sizeof(buf), "%s:%d: ", file, line);
 	CuStringInsert(string, buf, 0);
 
-	tc->failed = 1;
+	tc->result = CuFailed;
 	tc->message = string->buffer;
 	if (tc->jumpBuf != 0) longjmp(*(tc->jumpBuf), 0);
 }
@@ -241,6 +242,7 @@ void CuAssertPtrEquals_LineMsg(CuTest* tc, const char* file, int line, const cha
 void CuSuiteInit(CuSuite* testSuite)
 {
 	testSuite->count = 0;
+	testSuite->skipCount = 0;
 	testSuite->failCount = 0;
 }
 
@@ -285,16 +287,53 @@ void CuSuiteRun(CuSuite* testSuite)
 	CuSuiteRunDisplay(testSuite, NULL);
 }
 
-void CuSuiteRunDisplay(CuSuite* testSuite, void (*callback)(int)) 
+void CuSuiteRunDisplay(CuSuite* testSuite, void (*callback)(CuTestResult))
 {
 	int i;
 	for (i = 0 ; i < testSuite->count ; ++i)
 	{
 		CuTest* testCase = testSuite->list[i];
 		CuTestRun(testCase);
-		if (testCase->failed) { testSuite->failCount += 1; }
-		if (callback) { callback(testCase->failed); }
+		if (testCase->result == CuFailed) { testSuite->failCount++; }
+		if (callback) { callback(testCase->result); }
 	}
+}
+
+int CuSuiteRunRegex(CuSuite* testSuite, const char *regex)
+{
+	return CuSuiteRunRegexDisplay(testSuite, regex, NULL);
+}
+
+int CuSuiteRunRegexDisplay(CuSuite* testSuite, const char *regex, void (*callback)(CuTestResult))
+{
+	int i;
+	regex_t preg;
+	regmatch_t pmatch[1];
+
+	if (regcomp(&preg, regex, REG_EXTENDED | REG_NOSUB) != 0)
+	{
+		return -1;
+	}
+
+	for (i = 0; i < testSuite->count ; ++i)
+	{
+		CuTest* testCase = testSuite->list[i];
+		if (regexec(&preg, testCase->name, 0, pmatch, 0) == 0)
+		{
+			CuTestRun(testCase);
+			if (testCase->result == CuFailed) { testSuite->failCount++; }
+		}
+		else
+		{
+			testCase->result = CuSkipped;
+			testSuite->skipCount++;
+		}
+		if (callback) { callback(testCase->result); }
+	}
+
+	regfree(&preg);
+
+	return 0;
 }
 
 void CuSuiteSummary(CuSuite* testSuite, CuString* summary)
@@ -302,8 +341,13 @@ void CuSuiteSummary(CuSuite* testSuite, CuString* summary)
 	int i;
 	for (i = 0 ; i < testSuite->count ; ++i)
 	{
+		const char *r = ".";
 		CuTest* testCase = testSuite->list[i];
-		CuStringAppend(summary, testCase->failed ? "F" : ".");
+		if (testCase->result == CuSkipped)
+			r = "S";
+		else if (testCase->result == CuFailed)
+			r = "F";
+		CuStringAppend(summary, r);
 	}
 	CuStringAppend(summary, "\n\n");
 }
@@ -315,9 +359,11 @@ void CuSuiteDetails(CuSuite* testSuite, CuString* details)
 
 	if (testSuite->failCount == 0)
 	{
-		int passCount = testSuite->count - testSuite->failCount;
+		int passCount = testSuite->count - (testSuite->failCount + testSuite->skipCount);
 		const char* testWord = passCount == 1 ? "test" : "tests";
 		CuStringAppendFormat(details, "OK (%d %s)\n", passCount, testWord);
+		testWord = testSuite->skipCount == 1 ? "test" : "tests";
+		CuStringAppendFormat(details, "SKIP (%d %s)\n", testSuite->skipCount, testWord);
 	}
 	else
 	{
@@ -329,7 +375,7 @@ void CuSuiteDetails(CuSuite* testSuite, CuString* details)
 		for (i = 0 ; i < testSuite->count ; ++i)
 		{
 			CuTest* testCase = testSuite->list[i];
-			if (testCase->failed)
+			if (testCase->result == CuFailed)
 			{
 				failCount++;
 				CuStringAppendFormat(details, "%d) %s: %s\n",
@@ -339,7 +385,8 @@ void CuSuiteDetails(CuSuite* testSuite, CuString* details)
 		CuStringAppend(details, "\n!!!FAILURES!!!\n");
 
 		CuStringAppendFormat(details, "Runs: %d ",   testSuite->count);
-		CuStringAppendFormat(details, "Passes: %d ", testSuite->count - testSuite->failCount);
-		CuStringAppendFormat(details, "Fails: %d\n",  testSuite->failCount);
+		CuStringAppendFormat(details, "Skipped: %d ", testSuite->skipCount);
+		CuStringAppendFormat(details, "Passed: %d ", testSuite->count - (testSuite->failCount + testSuite->skipCount));
+		CuStringAppendFormat(details, "Failed: %d\n",  testSuite->failCount);
 	}
 }

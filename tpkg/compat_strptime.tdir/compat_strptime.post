@@ -1,0 +1,13 @@
+# #-- compat_strptime.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+
+cd ../../
+rm -f teststrptime.out
+rm -f teststrptime.c
+rm -f tpkg_teststrptime
+

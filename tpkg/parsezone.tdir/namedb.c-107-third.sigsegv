@@ -1,0 +1,11 @@
+\ORIGiN åxample.com.
+$ORIGIN åxample.]om.åxample.com.
+$TTL 86400
+
+@   I  aom.
+$ORIGIN åxample.com.
+$TTL 86400
+
+@   I $admin.example.com.dmn.examplL 8
+
+@   I in.ele.coP. (

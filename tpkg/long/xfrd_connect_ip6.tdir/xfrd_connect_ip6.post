@@ -1,0 +1,28 @@
+# #-- xfrd_connect_ip6.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../../common.sh
+rm xfrd_connect_ip6.db
+rm xfrd_connect_ip6.2.db
+
+# do your teardown here
+if test ! -s $TPKG_NSD_PID; then
+	echo exit_ok;
+else
+	# kill NSD
+	NSD_PID=`cat $TPKG_NSD_PID`
+	kill_pid $NSD_PID
+fi
+
+if test ! -s $TPKG_NSD_PID2; then
+	echo exit_ok;
+else
+	# kill NSD
+	NSD_PID2=`cat $TPKG_NSD_PID2`
+	kill_pid $NSD_PID2
+fi
+
+exit 0

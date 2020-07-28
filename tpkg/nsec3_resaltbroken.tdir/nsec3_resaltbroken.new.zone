@@ -1,0 +1,21 @@
+; nothing fancy here
+$TTL    4D
+$ORIGIN example.net.
+example.net.	IN	SOA	nibbler.example.net. leela.example.net. 2 3 4 3000 5
+example.net.    IN NS ns.deg1
+
+*.example.net. A 10.1.2.4
+
+deg1 NS ns.deg1
+ns.deg1 A 10.1.2.3
+deg2 NS ns.deg2
+ns.deg2 A 10.1.2.3
+deg3 NS ns.deg3
+ns.deg3 A 10.1.2.3
+deg4 NS ns.deg4
+ns.deg4 A 10.1.2.3
+deg5 NS ns.deg5
+ns.deg5 A 10.1.2.3
+deg6 NS ns.deg6
+ns.deg6 A 10.1.2.3
+

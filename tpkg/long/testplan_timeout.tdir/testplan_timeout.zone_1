@@ -1,0 +1,3 @@
+example.com. 345600  IN      SOA     ns0.example.org. root.example.com. 1 1 1 10 10
+debug.example.com.	345600	IN	TXT	"debug domain name data"
+example.com. 345600  IN      SOA     ns0.example.org. root.example.com. 1 1 1 10 10

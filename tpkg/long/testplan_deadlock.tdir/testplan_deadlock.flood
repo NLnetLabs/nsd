@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# params: <prog> <port> <number zones>
+PROG=$1
+PORT=$2
+NUMZONES=$3
+
+echo "%% flooding with prog=$PROG port=$PORT and numzones=$NUMZONES"
+
+while true; do
+	# choose a random number (RANDOM is 0 to 32767 = 15 bits).
+	num=$(($RANDOM<<15 + $RANDOM))
+	num=$(($num % $NUMZONES))
+	echo "%%" $PROG -p $PORT -z zone$num.example.com. 127.0.0.1
+	$PROG -p $PORT -z zone$num.example.com. 127.0.0.1
+	# sleep 1
+done

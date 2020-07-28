@@ -1,0 +1,118 @@
+# #-- control-reconfig-xfrd.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+CTRL="../../nsd-control -c nsd.conf"
+
+$CTRL status
+if test $? -ne 0; then
+	echo "control connection fails"
+	exit 1
+fi
+
+
+# check that masters are masters and slaves are slaves
+echo "pre-change test"
+$CTRL zonestatus m2s.explicit. | tee result
+if grep "master" result; then echo "OK"; else echo "bad state"; exit 1; fi
+$CTRL zonestatus m2s.implicit. | tee result
+if grep "master" result; then echo "OK"; else echo "bad state"; exit 1; fi
+$CTRL zonestatus s2m.explicit. | tee result
+if grep "master" result; then echo "bad state"; exit 1; else echo "OK"; fi
+$CTRL zonestatus s2m.implicit. | tee result
+if grep "master" result; then echo "bad state"; exit 1; else echo "OK"; fi
+
+# check zone contents
+echo "pre-change check zone contents"
+dig @127.0.0.1 -p $NSD_PORT m2s.explicit. SOA | tee result
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.explicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.explicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.explicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.explicit. SOA | tee result; fi
+if grep 876001 result; then echo "OK"; else echo "bad SOA"; exit 1; fi
+dig @127.0.0.1 -p $NSD_PORT m2s.implicit. SOA | tee result
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.implicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.implicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.implicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.implicit. SOA | tee result; fi
+if grep 876001 result; then echo "OK"; else echo "bad SOA"; exit 1; fi
+dig @127.0.0.1 -p $NSD_PORT s2m.explicit. SOA | tee result
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT s2m.explicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT s2m.explicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT s2m.explicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT s2m.explicit. SOA | tee result; fi
+if grep 876001 result; then echo "OK"; else echo "bad SOA"; exit 1; fi
+dig @127.0.0.1 -p $NSD_PORT s2m.implicit. SOA | tee result
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT s2m.implicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT s2m.implicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT s2m.implicit. SOA | tee result; fi
+if grep 876001 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT s2m.implicit. SOA | tee result; fi
+if grep 876001 result; then echo "OK"; else echo "bad SOA"; exit 1; fi
+
+# check notify behaviour (?)
+
+# update config file
+echo "update config file and reconfig"
+cp nsd.conf nsd.conf.orig
+cp nsd.conf2 nsd.conf
+
+$CTRL reconfig
+if test $? -ne 0; then
+	echo "control repattern fails"
+	exit 1
+fi
+
+# check that masters are masters and slaves are slaves
+echo "post-change test"
+$CTRL zonestatus m2s.explicit. | tee result
+if grep "master" result; then echo "bad state"; exit 1; else echo "OK"; fi
+$CTRL zonestatus m2s.implicit. | tee result
+if grep "master" result; then echo "bad state"; exit 1; else echo "OK"; fi
+$CTRL zonestatus s2m.explicit. | tee result
+if grep "master" result; then echo "OK"; else echo "bad state"; exit 1; fi
+$CTRL zonestatus s2m.implicit. | tee result
+if grep "master" result; then echo "OK"; else echo "bad state"; exit 1; fi
+
+# check zone contents
+echo "post-change check zone contents"
+dig @127.0.0.1 -p $NSD_PORT m2s.explicit. SOA | tee result
+if grep 876002 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.explicit. SOA | tee result; fi
+if grep 876002 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.explicit. SOA | tee result; fi
+if grep 876002 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.explicit. SOA | tee result; fi
+if grep 876002 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.explicit. SOA | tee result; fi
+if grep 876002 result; then echo "OK"; else echo "bad SOA"; exit 1; fi
+dig @127.0.0.1 -p $NSD_PORT m2s.implicit. SOA | tee result
+if grep 876002 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.implicit. SOA | tee result; fi
+if grep 876002 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.implicit. SOA | tee result; fi
+if grep 876002 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.implicit. SOA | tee result; fi
+if grep 876002 result; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT m2s.implicit. SOA | tee result; fi
+if grep 876002 result; then echo "OK"; else echo "bad SOA"; exit 1; fi
+
+exit 0

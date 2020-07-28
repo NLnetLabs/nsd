@@ -11,6 +11,7 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
+#include <limits.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <sys/wait.h>
@@ -34,6 +35,9 @@
 #include <signal.h>
 #include <netdb.h>
 #include <poll.h>
+#ifdef HAVE_SYS_RANDOM_H
+#include <sys/random.h>
+#endif
 #ifndef SHUT_WR
 #define SHUT_WR 1
 #endif
@@ -95,17 +99,17 @@ struct udp_handler_data
 {
 	struct nsd        *nsd;
 	struct nsd_socket *socket;
-	query_type        *query;
+	struct event       event;
 };
 
 struct tcp_accept_handler_data {
-	struct nsd         *nsd;
-	struct nsd_socket  *socket;
-	int event_added;
+	struct nsd        *nsd;
+	struct nsd_socket *socket;
+	int                event_added;
 	struct event       event;
 #ifdef HAVE_SSL
 	/* handler accepts TLS connections on the dedicated port */
-	int tls_accept;
+	int                tls_accept;
 #endif
 };
 
@@ -114,8 +118,8 @@ struct tcp_accept_handler_data {
  * when the number of TCP connection drops below the maximum
  * number of TCP connections.
  */
-static size_t		tcp_accept_handler_count;
-static struct tcp_accept_handler_data*	tcp_accept_handlers;
+static size_t tcp_accept_handler_count;
+static struct tcp_accept_handler_data *tcp_accept_handlers;
 
 static struct event slowaccept_event;
 static int slowaccept;
@@ -125,15 +129,24 @@ static unsigned char *ocspdata = NULL;
 static long ocspdata_len = 0;
 #endif
 
-#ifndef NONBLOCKING_IS_BROKEN
-#  define NUM_RECV_PER_SELECT 100
+#ifdef NONBLOCKING_IS_BROKEN
+/* Define NUM_RECV_PER_SELECT to 1 (one) to avoid opportunistically trying to
+   read multiple times from a socket when reported ready by select. */
+# define NUM_RECV_PER_SELECT (1)
+#else /* !NONBLOCKING_IS_BROKEN */
+# define NUM_RECV_PER_SELECT (100)
+#endif /* NONBLOCKING_IS_BROKEN */
+
+#ifndef HAVE_MMSGHDR
+struct mmsghdr {
+	struct msghdr msg_hdr;
+	unsigned int  msg_len;
+};
 #endif
 
-#if (!defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG))
-struct mmsghdr msgs[NUM_RECV_PER_SELECT];
-struct iovec iovecs[NUM_RECV_PER_SELECT];
-struct query *queries[NUM_RECV_PER_SELECT];
-#endif
+static struct mmsghdr msgs[NUM_RECV_PER_SELECT];
+static struct iovec iovecs[NUM_RECV_PER_SELECT];
+static struct query *queries[NUM_RECV_PER_SELECT];
 
 /*
  * Data for the TCP connection handlers.
@@ -655,465 +668,603 @@ initialize_dname_compression_tables(struct nsd *nsd)
 	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
 }
 
-/* create and bind sockets.  */
 static int
-server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
+set_cloexec(struct nsd_socket *sock)
 {
-	struct addrinfo* addr;
-	size_t i;
-#if defined(SO_REUSEPORT) || defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU) || defined(IP_TRANSPARENT)) || defined(IP_FREEBIND) || defined(SO_BINDANY))
-	int on = 1;
-#endif
-#ifdef USE_TCP_FASTOPEN
-	int qlen;
-#endif
+	assert(sock != NULL);
 
-	/* UDP */
-
-	/* Make a socket... */
-	for (i = from; i < to; i++) {
-		/* for reuseports copy socket specs of first entries */
-		addr = nsd->udp[i%nsd->ifs].addr;
-		if (!addr) {
-			nsd->udp[i].s = -1;
-			continue;
-		}
-		nsd->udp[i].fam = (int)addr->ai_family;
-		if ((nsd->udp[i].s = socket(addr->ai_family, addr->ai_socktype, 0)) == -1) {
-#if defined(INET6)
-			if (addr->ai_family == AF_INET6 &&
-				errno == EAFNOSUPPORT && nsd->grab_ip6_optional) {
-				log_msg(LOG_WARNING, "fallback to UDP4, no IPv6: not supported");
-				continue;
-			}
-#endif /* INET6 */
-			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
-			return -1;
-		}
-
-#ifdef SO_REUSEPORT
-#  ifdef SO_REUSEPORT_LB
-		/* on FreeBSD 12 we have SO_REUSEPORT_LB that does loadbalance
-		 * like SO_REUSEPORT on Linux.  This is what the users want
-		 * with the config option in nsd.conf; if we actually
-		 * need local address and port reuse they'll also need to
-		 * have SO_REUSEPORT set for them, assume it was _LB they want.
-		 */
-		if(nsd->reuseport && *reuseport_works &&
-			setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_REUSEPORT_LB,
-			(void*)&on, (socklen_t)sizeof(on)) < 0) {
-			if(verbosity >= 3
-#ifdef ENOPROTOOPT
-				|| errno != ENOPROTOOPT
-#endif
-				)
-			    log_msg(LOG_ERR, "setsockopt(..., SO_REUSEPORT_LB, "
-				"...) failed: %s", strerror(errno));
-			*reuseport_works = 0;
-		}
-#  else /* SO_REUSEPORT_LB */
-		if(nsd->reuseport && *reuseport_works &&
-			setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_REUSEPORT,
-			(void*)&on, (socklen_t)sizeof(on)) < 0) {
-			if(verbosity >= 3
-#ifdef ENOPROTOOPT
-				|| errno != ENOPROTOOPT
-#endif
-				)
-			    log_msg(LOG_ERR, "setsockopt(..., SO_REUSEPORT, "
-				"...) failed: %s", strerror(errno));
-			*reuseport_works = 0;
-		}
-#  endif /* SO_REUSEPORT_LB */
-#else
-		(void)reuseport_works;
-#endif /* SO_REUSEPORT */
-#if defined(SO_RCVBUF)
-	{
-		int rcv = 1*1024*1024;
-		if (nsd->options->receive_buffer_size > 0) {
-			rcv = nsd->options->receive_buffer_size;
-		}
-#  ifdef SO_RCVBUFFORCE
-		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUFFORCE, (void*)&rcv,
-			(socklen_t)sizeof(rcv)) < 0) {
-			if(errno != EPERM && errno != ENOBUFS) {
-				log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, "
-                                        "...) failed: %s", strerror(errno));
-				return -1;
-			}
-		}
-#  else
-		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_RCVBUF, (void*)&rcv,
-			(socklen_t)sizeof(rcv)) < 0) {
-			if(errno != ENOBUFS && errno != ENOSYS) {
-				log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, "
-                                        "...) failed: %s", strerror(errno));
-				return -1;
-			}
-		}
-#  endif /* SO_RCVBUFFORCE */
+	if(fcntl(sock->s, F_SETFD, FD_CLOEXEC) == -1) {
+		const char *socktype =
+			sock->addr.ai_family == SOCK_DGRAM ? "udp" : "tcp";
+		log_msg(LOG_ERR, "fcntl(..., O_CLOEXEC) failed for %s: %s",
+			socktype, strerror(errno));
+		return -1;
 	}
+
+	return 1;
+}
+
+static int
+set_reuseport(struct nsd_socket *sock)
+{
+#ifdef SO_REUSEPORT
+	int on = 1;
+#ifdef SO_REUSEPORT_LB
+	/* FreeBSD 12 has SO_REUSEPORT_LB that does load balancing like
+	 * SO_REUSEPORT on Linux. This is what the users want with the config
+	 * option in nsd.conf; if we actually need local address and port reuse
+	 * they'll also need to have SO_REUSEPORT set for them, assume it was
+	 * _LB they want.
+	 */
+	int opt = SO_REUSEPORT_LB;
+	static const char optname[] = "SO_REUSEPORT_LB";
+#else /* !SO_REUSEPORT_LB */
+	int opt = SO_REUSEPORT;
+	static const char optname[] = "SO_REUSEPORT";
+#endif /* SO_REUSEPORT_LB */
+
+	if (0 == setsockopt(sock->s, SOL_SOCKET, opt, &on, sizeof(on))) {
+		return 1;
+	} else if(verbosity >= 3 || errno != ENOPROTOOPT) {
+		log_msg(LOG_ERR, "setsockopt(..., %s, ...) failed: %s",
+			optname, strerror(errno));
+	}
+	return -1;
+#else
+	(void)sock;
+#endif /* SO_REUSEPORT */
+
+	return 0;
+}
+
+static int
+set_reuseaddr(struct nsd_socket *sock)
+{
+#ifdef SO_REUSEADDR
+	int on = 1;
+	if(setsockopt(sock->s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) == 0) {
+		return 1;
+	}
+	log_msg(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %s",
+		strerror(errno));
+	return -1;
+#endif /* SO_REUSEADDR */
+	return 0;
+}
+
+static int
+set_rcvbuf(struct nsd_socket *sock, int rcv)
+{
+#ifdef SO_RCVBUF
+#ifdef SO_RCVBUFFORCE
+	if(0 == setsockopt(
+		sock->s, SOL_SOCKET, SO_RCVBUFFORCE, &rcv, sizeof(rcv)))
+	{
+		return 1;
+	}
+	if(errno == EPERM || errno == ENOBUFS) {
+		return 0;
+	}
+	log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, ...) failed: %s",
+		strerror(errno));
+	return -1;
+#else /* !SO_RCVBUFFORCE */
+	if (0 == setsockopt(
+		sock->s, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv)))
+	{
+		return 1;
+	}
+	if(errno == ENOSYS || errno == ENOBUFS) {
+		return 0;
+	}
+	log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, ...) failed: %s",
+		strerror(errno));
+	return -1;
+#endif /* SO_RCVBUFFORCE */
 #endif /* SO_RCVBUF */
 
+	return 0;
+}
+
+static int
+set_sndbuf(struct nsd_socket *sock, int snd)
+{
 #ifdef SO_SNDBUF
+#ifdef SO_SNDBUFFORCE
+	if(0 == setsockopt(
+		sock->s, SOL_SOCKET, SO_SNDBUFFORCE, &snd, sizeof(snd)))
 	{
-		int snd = 1*1024*1024;
-		if (nsd->options->send_buffer_size > 0) {
-			snd = nsd->options->send_buffer_size;
-		}
-#  ifdef SO_SNDBUFFORCE
-		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUFFORCE, (void*)&snd,
-			(socklen_t)sizeof(snd)) < 0) {
-			if(errno != EPERM && errno != ENOBUFS) {
-				log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, "
-                                        "...) failed: %s", strerror(errno));
-				return -1;
-			}
-		}
-#  else
-		if(setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_SNDBUF, (void*)&snd,
-			(socklen_t)sizeof(snd)) < 0) {
-			if(errno != ENOBUFS && errno != ENOSYS) {
-				log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUF, "
-                                        "...) failed: %s", strerror(errno));
-				return -1;
-			}
-		}
-#  endif /* SO_SNDBUFFFORCE */
+		return 1;
 	}
+	if(errno == EPERM || errno == ENOBUFS) {
+		return 0;
+	}
+	log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, ...) failed: %s",
+		strerror(errno));
+	return -1;
+#else /* !SO_SNDBUFFORCE */
+	if(0 == setsockopt(
+		sock->s, SOL_SOCKET, SO_SNDBUF, &snd, sizeof(snd)))
+	{
+		return 1;
+	}
+	if(errno == ENOSYS || errno == ENOBUFS) {
+		return 0;
+	}
+	log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUF, ...) failed: %s",
+		strerror(errno));
+	return -1;
+#endif /* SO_SNDBUFFORCE */
 #endif /* SO_SNDBUF */
 
-#if defined(INET6)
-		if (addr->ai_family == AF_INET6) {
-# if defined(IPV6_V6ONLY)
-			if (setsockopt(nsd->udp[i].s,
-				       IPPROTO_IPV6, IPV6_V6ONLY,
-				       &on, sizeof(on)) < 0)
-			{
-				log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s",
-					strerror(errno));
-				return -1;
-			}
-# endif
-# if defined(IPV6_USE_MIN_MTU)
-			/*
-			 * There is no fragmentation of IPv6 datagrams
-			 * during forwarding in the network. Therefore
-			 * we do not send UDP datagrams larger than
-			 * the minimum IPv6 MTU of 1280 octets. The
-			 * EDNS0 message length can be larger if the
-			 * network stack supports IPV6_USE_MIN_MTU.
-			 */
-			if (setsockopt(nsd->udp[i].s,
-				       IPPROTO_IPV6, IPV6_USE_MIN_MTU,
-				       &on, sizeof(on)) < 0)
-			{
-				log_msg(LOG_ERR, "setsockopt(..., IPV6_USE_MIN_MTU, ...) failed: %s",
-					strerror(errno));
-				return -1;
-			}
-# elif defined(IPV6_MTU)
-			/*
-			 * On Linux, PMTUD is disabled by default for datagrams
-			 * so set the MTU equal to the MIN MTU to get the same.
-			 */
-			on = IPV6_MIN_MTU;
-			if (setsockopt(nsd->udp[i].s, IPPROTO_IPV6, IPV6_MTU, 
-				&on, sizeof(on)) < 0)
-			{
-				log_msg(LOG_ERR, "setsockopt(..., IPV6_MTU, ...) failed: %s",
-					strerror(errno));
-				return -1;
-			}
-			on = 1;
-# endif
-		}
-#endif
-#if defined(AF_INET)
-		if (addr->ai_family == AF_INET) {
-#  if defined(IP_MTU_DISCOVER)
-			int mtudisc_disabled = 0;
-#   if defined(IP_PMTUDISC_OMIT)
-		/* Try IP_PMTUDISC_OMIT first */
+	return 0;
+}
 
-		/*
-		 * Linux 3.15 has IP_PMTUDISC_OMIT which makes sockets
-		 * ignore PMTU information and send packets with DF=0.
-		 * Fragmentation is allowed if and only if the packet
-		 * size exceeds the outgoing interface MTU or the packet
-		 * encounters smaller MTU link in network.
-		 * This mitigates DNS fragmentation attacks by preventing
-		 * forged PMTU information.
-		 * FreeBSD already has same semantics without setting
-		 * the option.
-		 */
-			int action_omit = IP_PMTUDISC_OMIT;
-			if (!mtudisc_disabled) {
-				if(setsockopt(nsd->udp[i].s, IPPROTO_IP,
-					IP_MTU_DISCOVER, &action_omit,
-					sizeof(action_omit)) < 0)
-				{
-					log_msg(LOG_ERR, "setsockopt(..., IP_MTU_DISCOVER, IP_PMTUDISC_OMIT...) failed: %s",
-						strerror(errno));
-				} else {
-					mtudisc_disabled = 1;
-				}
-			}	
-#   endif /* IP_PMTUDISC_OMIT */
-#   if defined(IP_PMTUDISC_DONT)
-			/* 
-			 * Use IP_PMTUDISC_DONT
-			 * if IP_PMTUDISC_OMIT failed / undefined
-			 */
-			if (!mtudisc_disabled) {
-				int action_dont = IP_PMTUDISC_DONT;
-				if (setsockopt(nsd->udp[i].s, IPPROTO_IP, 
-					IP_MTU_DISCOVER, &action_dont,
-					sizeof(action_dont)) < 0)
-				{
-					log_msg(LOG_ERR, "setsockopt(..., IP_MTU_DISCOVER, IP_PMTUDISC_DONT...) failed: %s",
-						strerror(errno));
-				} else {
-					mtudisc_disabled = 1;
-				}
-			}
-#   endif /* IP_PMTUDISC_DONT */
-			/* exit if all methods to disable PMTUD failed */
-			if(!mtudisc_disabled) {
-				return -1;
-			}
-#  elif defined(IP_DONTFRAG)
-			int off = 0;
-			if (setsockopt(nsd->udp[i].s, IPPROTO_IP, IP_DONTFRAG,
-				&off, sizeof(off)) < 0)
-			{
-				log_msg(LOG_ERR, "setsockopt(..., IP_DONTFRAG, ...) failed: %s",
-					strerror(errno));
-				return -1;
-			}
-#  endif
-		}
-#endif
-		/* set it nonblocking */
-		/* otherwise, on OSes with thundering herd problems, the
-		   UDP recv could block NSD after select returns readable. */
-		if (fcntl(nsd->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
-			log_msg(LOG_ERR, "cannot fcntl udp: %s", strerror(errno));
-		}
+static int
+set_nonblock(struct nsd_socket *sock)
+{
+	const char *socktype =
+		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
 
-		/* Bind it... */
-		if (nsd->options->ip_freebind) {
-#ifdef IP_FREEBIND
-			if (setsockopt(nsd->udp[i].s, IPPROTO_IP, IP_FREEBIND, &on, sizeof(on)) < 0) {
-				log_msg(LOG_ERR, "setsockopt(...,IP_FREEBIND, ...) failed for udp: %s",
-					strerror(errno));
-			}
-#endif /* IP_FREEBIND */
-		}
-
-		if (nsd->options->ip_transparent) {
-#ifdef IP_TRANSPARENT
-			if (setsockopt(nsd->udp[i].s, IPPROTO_IP, IP_TRANSPARENT, &on, sizeof(on)) < 0) {
-				log_msg(LOG_ERR, "setsockopt(...,IP_TRANSPARENT, ...) failed for udp: %s",
-					strerror(errno));
-			}
-#endif /* IP_TRANSPARENT */
-#ifdef SO_BINDANY
-			if (setsockopt(nsd->udp[i].s, SOL_SOCKET, SO_BINDANY, &on, sizeof(on)) < 0) {
-				log_msg(LOG_ERR, "setsockopt(...,SO_BINDANY, ...) failed for udp: %s",
-					strerror(errno));
-			}
-#endif /* SO_BINDANY */
-		}
-
-		if (
-			bind(nsd->udp[i].s, (struct sockaddr *) addr->ai_addr, addr->ai_addrlen) != 0) {
-			char buf[256];
-			addrport2str((void*)addr->ai_addr, buf, sizeof(buf));
-			log_msg(LOG_ERR, "can't bind udp socket %s: %s", buf, strerror(errno));
-			return -1;
-		}
+	if(fcntl(sock->s, F_SETFL, O_NONBLOCK) == -1) {
+		log_msg(LOG_ERR, "fctnl(..., O_NONBLOCK) failed for %s: %s",
+			socktype, strerror(errno));
+		return -1;
 	}
 
-	/* TCP */
+	return 1;
+}
 
+static int
+set_ipv6_v6only(struct nsd_socket *sock)
+{
+#ifdef INET6
+#ifdef IPV6_V6ONLY
+	int on = 1;
+	const char *socktype =
+		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
+
+	if(0 == setsockopt(
+		sock->s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)))
+	{
+		return 1;
+	}
+
+	log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed for %s: %s",
+		socktype, strerror(errno));
+	return -1;
+#endif /* IPV6_V6ONLY */
+#endif /* INET6 */
+
+	return 0;
+}
+
+static int
+set_ipv6_use_min_mtu(struct nsd_socket *sock)
+{
+#if defined(INET6) && (defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU))
+#if defined(IPV6_USE_MIN_MTU)
+	/* There is no fragmentation of IPv6 datagrams during forwarding in the
+	 * network. Therefore we do not send UDP datagrams larger than the
+	 * minimum IPv6 MTU of 1280 octets. The EDNS0 message length can be
+	 * larger if the network stack supports IPV6_USE_MIN_MTU.
+	 */
+	int opt = IPV6_USE_MIN_MTU;
+	int optval = 1;
+	static const char optname[] = "IPV6_USE_MIN_MTU";
+#elif defined(IPV6_MTU)
+	/* On Linux, PMTUD is disabled by default for datagrams so set the MTU
+	 * to the MIN MTU to get the same.
+	 */
+	int opt = IPV6_MTU;
+	int optval = IPV6_MIN_MTU;
+	static const char optname[] = "IPV6_MTU";
+#endif
+	if(0 == setsockopt(
+		sock->s, IPPROTO_IPV6, opt, &optval, sizeof(optval)))
+	{
+		return 1;
+	}
+
+	log_msg(LOG_ERR, "setsockopt(..., %s, ...) failed: %s",
+		optname, strerror(errno));
+	return -1;
+#else
+	(void)sock;
+#endif /* INET6 */
+
+	return 0;
+}
+
+static int
+set_ipv4_no_pmtu_disc(struct nsd_socket *sock)
+{
+	int ret = 0;
+
+#if defined(IP_MTU_DISCOVER)
+	int opt = IP_MTU_DISCOVER;
+	int optval;
+# if defined(IP_PMTUDISC_OMIT)
+	/* Linux 3.15 has IP_PMTUDISC_OMIT which makes sockets ignore PMTU
+	 * information and send packets with DF=0. Fragmentation is allowed if
+	 * and only if the packet size exceeds the outgoing interface MTU or
+	 * the packet encounters smaller MTU link in network. This mitigates
+	 * DNS fragmentation attacks by preventing forged PMTU information.
+	 * FreeBSD already has same semantics without setting the option.
+	 */
+	optval = IP_PMTUDISC_OMIT;
+	if(0 == setsockopt(
+		sock->s, IPPROTO_IP, opt, &optval, sizeof(optval)))
+	{
+		return 1;
+	}
+
+	log_msg(LOG_ERR, "setsockopt(..., %s, %s, ...) failed: %s",
+		"IP_MTU_DISCOVER", "IP_PMTUDISC_OMIT", strerror(errno));
+# endif /* IP_PMTUDISC_OMIT */
+# if defined(IP_PMTUDISC_DONT)
+	/* Use IP_PMTUDISC_DONT if IP_PMTUDISC_OMIT failed / undefined. */
+	optval = IP_PMTUDISC_DONT;
+	if(0 == setsockopt(
+		sock->s, IPPROTO_IP, opt, &optval, sizeof(optval)))
+	{
+		return 1;
+	}
+
+	log_msg(LOG_ERR, "setsockopt(..., %s, %s, ...) failed: %s",
+		"IP_MTU_DISCOVER", "IP_PMTUDISC_DONT", strerror(errno));
+# endif
+	ret = -1;
+#elif defined(IP_DONTFRAG)
+	int off = 0;
+	if (0 == setsockopt(
+		sock->s, IPPROTO_IP, IP_DONTFRAG, &off, sizeof(off)))
+	{
+		return 1;
+	}
+
+	log_msg(LOG_ERR, "setsockopt(..., IP_DONTFRAG, ...) failed: %s",
+		strerror(errno));
+	ret = -1;
+#else
+	(void)sock;
+#endif
+
+	return ret;
+}
+
+static int
+set_ip_freebind(struct nsd_socket *sock)
+{
+#ifdef IP_FREEBIND
+	int on = 1;
+	const char *socktype =
+		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
+	if(setsockopt(sock->s, IPPROTO_IP, IP_FREEBIND, &on, sizeof(on)) == 0)
+	{
+		return 1;
+	}
+	log_msg(LOG_ERR, "setsockopt(..., IP_FREEBIND, ...) failed for %s: %s",
+		socktype, strerror(errno));
+	return -1;
+#else
+	(void)sock;
+#endif /* IP_FREEBIND */
+
+	return 0;
+}
+
+static int
+set_ip_transparent(struct nsd_socket *sock)
+{
+	/*
+	The scandalous preprocessor blob here calls for some explanation :)
+	POSIX does not specify an option to bind non-local IPs, so
+	platforms developed several implementation-specific options,
+	all set in the same way, but with different names.
+	For additional complexity, some platform manage this setting
+	differently for different address families (IPv4 vs IPv6).
+	This scandalous preprocessor blob below abstracts such variability
+	in the way which leaves the C code as lean and clear as possible.
+	*/
+
+#if defined(IP_TRANSPARENT)
+#	define NSD_SOCKET_OPTION_TRANSPARENT 						IP_TRANSPARENT
+#	define NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL		IPPROTO_IP
+#	define NSD_SOCKET_OPTION_TRANSPARENT_NAME 			"IP_TRANSPARENT"
+// as of 2020-01, Linux does not support this on IPv6 programmatically
+#elif defined(SO_BINDANY)
+#	define NSD_SOCKET_OPTION_TRANSPARENT						SO_BINDANY
+#	define NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL		SOL_SOCKET
+#	define NSD_SOCKET_OPTION_TRANSPARENT_NAME 			"SO_BINDANY"
+#elif defined(IP_BINDANY)
+#	define NSD_SOCKET_OPTION_TRANSPARENT 						IP_BINDANY
+#	define NSD_SOCKET_OPTION_TRANSPARENT6						IPV6_BINDANY
+#	define NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL		IPPROTO_IP
+#	define NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL6	IPPROTO_IPV6
+#	define NSD_SOCKET_OPTION_TRANSPARENT_NAME 			"IP_BINDANY"
+#endif
+
+#ifndef NSD_SOCKET_OPTION_TRANSPARENT
+	(void)sock;
+#else
+#	ifndef NSD_SOCKET_OPTION_TRANSPARENT6
+#		define NSD_SOCKET_OPTION_TRANSPARENT6 NSD_SOCKET_OPTION_TRANSPARENT
+#	endif
+#	ifndef NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL6
+#		define NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL6 NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL
+#	endif
+#	ifndef NSD_SOCKET_OPTION_TRANSPARENT_NAME6
+#		define NSD_SOCKET_OPTION_TRANSPARENT_NAME6 NSD_SOCKET_OPTION_TRANSPARENT_NAME
+#	endif
+
+	int on = 1;
+	const char *socktype =
+		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
+	const int is_ip6 = (sock->addr.ai_family == AF_INET6);
+
+	if(0 == setsockopt(
+		sock->s,
+		is_ip6 ? NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL6 : NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL,
+		is_ip6 ? NSD_SOCKET_OPTION_TRANSPARENT6 : NSD_SOCKET_OPTION_TRANSPARENT,
+		&on, sizeof(on)))
+	{
+		return 1;
+	}
+
+	log_msg(LOG_ERR, "setsockopt(..., %s, ...) failed for %s: %s",
+		is_ip6 ? NSD_SOCKET_OPTION_TRANSPARENT_NAME6 : NSD_SOCKET_OPTION_TRANSPARENT_NAME, socktype, strerror(errno));
+	return -1;
+#endif
+
+	return 0;
+}
+
+static int
+set_tcp_maxseg(struct nsd_socket *sock, int mss)
+{
+#if defined(IPPROTO_TCP) && defined(TCP_MAXSEG)
+	if(setsockopt(sock->s, IPPROTO_TCP, TCP_MAXSEG, &mss, sizeof(mss)) == 0) {
+		return 1;
+	}
+	log_msg(LOG_ERR, "setsockopt(..., TCP_MAXSEG, ...) failed for tcp: %s",
+		strerror(errno));
+	return -1;
+#else
+	log_msg(LOG_ERR, "setsockopt(TCP_MAXSEG) unsupported");
+#endif
+	return 0;
+}
+
+#ifdef USE_TCP_FASTOPEN
+static int
+set_tcp_fastopen(struct nsd_socket *sock)
+{
+	/* qlen specifies how many outstanding TFO requests to allow. Limit is
+	 * a defense against IP spoofing attacks as suggested in RFC7413.
+	 */
+	int qlen;
+
+#ifdef __APPLE__
+	/* macOS X implementation only supports qlen of 1 via this call. The
+	 * actual value is configured by the net.inet.tcp.fastopen_backlog
+	 * kernel parameter.
+	 */
+	qlen = 1;
+#else
+	/* 5 is recommended on Linux. */
+	qlen = 5;
+#endif
+	if (0 == setsockopt(
+		sock->s, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)))
+	{
+		return 1;
+	}
+
+	if (errno == EPERM) {
+		log_msg(LOG_ERR, "Setting TCP Fast Open as server failed: %s "
+				 "; this could likely be because sysctl "
+				 "net.inet.tcp.fastopen.enabled, "
+				 "net.inet.tcp.fastopen.server_enable, or "
+				 "net.ipv4.tcp_fastopen is disabled",
+			strerror(errno));
+	/* Squelch ENOPROTOOPT: FreeBSD server mode with kernel support
+	 * disabled, except when verbosity enabled for debugging
+	 */
+	} else if(errno != ENOPROTOOPT || verbosity >= 3) {
+		log_msg(LOG_ERR, "Setting TCP Fast Open as server failed: %s",
+			strerror(errno));
+	}
+
+	return (errno == ENOPROTOOPT ? 0 : -1);
+}
+#endif /* USE_TCP_FASTOPEN */
+
+static int
+set_bindtodevice(struct nsd_socket *sock)
+{
+#if defined(SO_BINDTODEVICE)
+	if(setsockopt(sock->s, SOL_SOCKET, SO_BINDTODEVICE,
+		sock->device, strlen(sock->device)) == -1)
+	{
+		log_msg(LOG_ERR, "setsockopt(..., %s, %s, ...) failed: %s",
+		                 "SO_BINDTODEVICE", sock->device, strerror(errno));
+		return -1;
+	}
+
+	return 1;
+#else
+	(void)sock;
+	return 0;
+#endif
+}
+
+static int
+set_setfib(struct nsd_socket *sock)
+{
+#if defined(SO_SETFIB)
+	if(setsockopt(sock->s, SOL_SOCKET, SO_SETFIB,
+	              (const void *)&sock->fib, sizeof(sock->fib)) == -1)
+	{
+		log_msg(LOG_ERR, "setsockopt(..., %s, %d, ...) failed: %s",
+		                 "SO_SETFIB", sock->fib, strerror(errno));
+		return -1;
+	}
+
+	return 1;
+#else
+	(void)sock;
+	return 0;
+#endif
+}
+
+static int
+open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
+{
+	int rcv = 1*1024*1024, snd = 1*1024*1024;
+
+	if(-1 == (sock->s = socket(
+		sock->addr.ai_family, sock->addr.ai_socktype, 0)))
+	{
+#ifdef INET6
+		if((sock->flags & NSD_SOCKET_IS_OPTIONAL) &&
+		   (sock->addr.ai_family == AF_INET6) &&
+		   (errno == EAFNOSUPPORT))
+		{
+			log_msg(LOG_WARNING, "fallback to UDP4, no IPv6: "
+				"not supported");
+			return 0;
+		}
+#endif
+		log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
+		return -1;
+	}
+
+	set_cloexec(sock);
+
+	if(nsd->reuseport && reuseport_works && *reuseport_works)
+		*reuseport_works = (set_reuseport(sock) == 1);
+
+	if(nsd->options->receive_buffer_size > 0)
+		rcv = nsd->options->receive_buffer_size;
+	if(set_rcvbuf(sock, rcv) == -1)
+		return -1;
+
+	if(nsd->options->send_buffer_size > 0)
+		snd = nsd->options->send_buffer_size;
+	if(set_sndbuf(sock, snd) == -1)
+		return -1;
+#ifdef INET6
+	if(sock->addr.ai_family == AF_INET6) {
+		if(set_ipv6_v6only(sock) == -1 ||
+		   set_ipv6_use_min_mtu(sock) == -1)
+			return -1;
+	} else
+#endif /* INET6 */
+	if(sock->addr.ai_family == AF_INET) {
+		if(set_ipv4_no_pmtu_disc(sock) == -1)
+			return -1;
+	}
+
+	/* Set socket to non-blocking. Otherwise, on operating systems
+	 * with thundering herd problems, the UDP recv could block
+	 * after select returns readable.
+	 */
+	set_nonblock(sock);
+
+	if(nsd->options->ip_freebind)
+		(void)set_ip_freebind(sock);
+	if(nsd->options->ip_transparent)
+		(void)set_ip_transparent(sock);
+	if((sock->flags & NSD_BIND_DEVICE) && set_bindtodevice(sock) == -1)
+		return -1;
+	if(sock->fib != -1 && set_setfib(sock) == -1)
+		return -1;
+
+	if(bind(sock->s, (struct sockaddr *)&sock->addr.ai_addr, sock->addr.ai_addrlen) == -1) {
+		char buf[256];
+		addrport2str((void*)&sock->addr.ai_addr, buf, sizeof(buf));
+		log_msg(LOG_ERR, "can't bind udp socket %s: %s",
+			buf, strerror(errno));
+		return -1;
+	}
+
+	return 1;
+}
+
+static int
+open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
+{
 #ifdef USE_TCP_FASTOPEN
 	report_tcp_fastopen_config();
 #endif
 
-	/* Make a socket... */
-	for (i = from; i < to; i++) {
-		/* for reuseports copy socket specs of first entries */
-		addr = nsd->tcp[i%nsd->ifs].addr;
-		if (!addr) {
-			nsd->tcp[i].s = -1;
-			continue;
+	(void)reuseport_works;
+
+	if(-1 == (sock->s = socket(
+		sock->addr.ai_family, sock->addr.ai_socktype, 0)))
+	{
+#ifdef INET6
+		if((sock->flags & NSD_SOCKET_IS_OPTIONAL) &&
+		   (sock->addr.ai_family == AF_INET6) &&
+		   (errno == EAFNOSUPPORT))
+		{
+			log_msg(LOG_WARNING, "fallback to TCP4, no IPv6: "
+			                     "not supported");
+			return 0;
 		}
-		nsd->tcp[i].fam = (int)addr->ai_family;
-		/* turn off REUSEPORT for TCP by copying the socket fd */
-		if(i >= nsd->ifs) {
-			nsd->tcp[i].s = nsd->tcp[i%nsd->ifs].s;
-			continue;
-		}
-		if ((nsd->tcp[i].s = socket(addr->ai_family, addr->ai_socktype, 0)) == -1) {
-#if defined(INET6)
-			if (addr->ai_family == AF_INET6 &&
-				errno == EAFNOSUPPORT && nsd->grab_ip6_optional) {
-				log_msg(LOG_WARNING, "fallback to TCP4, no IPv6: not supported");
-				continue;
-			}
 #endif /* INET6 */
-			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
-			return -1;
-		}
-
-#ifdef SO_REUSEPORT
-		if(nsd->reuseport && *reuseport_works &&
-			setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_REUSEPORT,
-			(void*)&on, (socklen_t)sizeof(on)) < 0) {
-			if(verbosity >= 3
-#ifdef ENOPROTOOPT
-				|| errno != ENOPROTOOPT
-#endif
-				)
-			    log_msg(LOG_ERR, "setsockopt(..., SO_REUSEPORT, "
-				"...) failed: %s", strerror(errno));
-			*reuseport_works = 0;
-		}
-#endif /* SO_REUSEPORT */
-#ifdef	SO_REUSEADDR
-		if (setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
-			log_msg(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %s", strerror(errno));
-		}
-#endif /* SO_REUSEADDR */
-
-#if defined(INET6)
-		if (addr->ai_family == AF_INET6) {
-# if defined(IPV6_V6ONLY)
-			if (setsockopt(nsd->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY,
-				&on, sizeof(on)) < 0) {
-				log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s", strerror(errno));
-				return -1;
-			}
-# endif
-# if defined(IPV6_USE_MIN_MTU)
-			/*
-			 * Use minimum MTU to minimize delays learning working
-			 * PMTU when communicating through a tunnel.
-			 */
-			if (setsockopt(nsd->tcp[i].s,
-				       IPPROTO_IPV6, IPV6_USE_MIN_MTU,
-				       &on, sizeof(on)) < 0) {
-				log_msg(LOG_ERR, "setsockopt(..., IPV6_USE_MIN_MTU, ...) failed: %s", strerror(errno));
-				return -1;
-			}
-# elif defined(IPV6_MTU)
-			/*
-			 * On Linux, PMTUD is disabled by default for datagrams
-			 * so set the MTU equal to the MIN MTU to get the same.
-			 */
-			on = IPV6_MIN_MTU;
-			if (setsockopt(nsd->tcp[i].s, IPPROTO_IPV6, IPV6_MTU,
-				&on, sizeof(on)) < 0) {
-				log_msg(LOG_ERR, "setsockopt(..., IPV6_MTU, ...) failed: %s", strerror(errno));
-				return -1;
-			}
-			on = 1;
-# endif
-		}
-#endif
-		/* set maximum segment size to tcp socket */
-		if(nsd->tcp_mss > 0) {
-#if defined(IPPROTO_TCP) && defined(TCP_MAXSEG)
-			if(setsockopt(nsd->tcp[i].s, IPPROTO_TCP, TCP_MAXSEG,
-					(void*)&nsd->tcp_mss,
-					sizeof(nsd->tcp_mss)) < 0) {
-				log_msg(LOG_ERR,
-					"setsockopt(...,TCP_MAXSEG,...)"
-					" failed for tcp: %s", strerror(errno));
-			}
-#else
-			log_msg(LOG_ERR, "setsockopt(TCP_MAXSEG) unsupported");
-#endif /* defined(IPPROTO_TCP) && defined(TCP_MAXSEG) */
-		}
-
-		/* set it nonblocking */
-		/* (StevensUNP p463), if tcp listening socket is blocking, then
-		   it may block in accept, even if select() says readable. */
-		if (fcntl(nsd->tcp[i].s, F_SETFL, O_NONBLOCK) == -1) {
-			log_msg(LOG_ERR, "cannot fcntl tcp: %s", strerror(errno));
-		}
-
-		/* Bind it... */
-		if (nsd->options->ip_freebind) {
-#ifdef IP_FREEBIND
-			if (setsockopt(nsd->tcp[i].s, IPPROTO_IP, IP_FREEBIND, &on, sizeof(on)) < 0) {
-				log_msg(LOG_ERR, "setsockopt(...,IP_FREEBIND, ...) failed for tcp: %s",
-					strerror(errno));
-			}
-#endif /* IP_FREEBIND */
-		}
-
-		if (nsd->options->ip_transparent) {
-#ifdef IP_TRANSPARENT
-			if (setsockopt(nsd->tcp[i].s, IPPROTO_IP, IP_TRANSPARENT, &on, sizeof(on)) < 0) {
-				log_msg(LOG_ERR, "setsockopt(...,IP_TRANSPARENT, ...) failed for tcp: %s",
-					strerror(errno));
-			}
-#endif /* IP_TRANSPARENT */
-#ifdef SO_BINDANY
-			if (setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_BINDANY, &on, sizeof(on)) < 0) {
-				log_msg(LOG_ERR, "setsockopt(...,SO_BINDANY, ...) failed for tcp: %s",
-					strerror(errno));
-			}
-#endif /* SO_BINDANY */
-		}
-
-		if(
-			bind(nsd->tcp[i].s, (struct sockaddr *) addr->ai_addr, addr->ai_addrlen) != 0) {
-			char buf[256];
-			addrport2str((void*)addr->ai_addr, buf, sizeof(buf));
-			log_msg(LOG_ERR, "can't bind tcp socket %s: %s", buf, strerror(errno));
-			return -1;
-		}
-
-#ifdef USE_TCP_FASTOPEN
-		/* qlen specifies how many outstanding TFO requests to allow. Limit is a defense
-		   against IP spoofing attacks as suggested in RFC7413 */
-#ifdef __APPLE__
-		/* OS X implementation only supports qlen of 1 via this call. Actual
-		   value is configured by the net.inet.tcp.fastopen_backlog kernel parm. */
-		qlen = 1;
-#else
-		/* 5 is recommended on linux */
-		qlen = 5;
-#endif
-		if ((setsockopt(nsd->tcp[i].s, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen))) == -1 ) {
-#ifdef ENOPROTOOPT
-                /* squelch ENOPROTOOPT: freebsd server mode with kernel support
-                   disabled, except when verbosity enabled for debugging */
-                    if(errno != ENOPROTOOPT || verbosity >= 3) {
-#endif
-			if(errno == EPERM) {
-				log_msg(LOG_ERR, "Setting TCP Fast Open as server failed: %s ; this could likely be because sysctl net.inet.tcp.fastopen.enabled, net.inet.tcp.fastopen.server_enable, or net.ipv4.tcp_fastopen is disabled", strerror(errno));
-			} else {
-				log_msg(LOG_ERR, "Setting TCP Fast Open as server failed: %s", strerror(errno));
-			}
-#ifdef ENOPROTOOPT
-		    }
-#endif
-		}
-#endif
-
-		/* Listen to it... */
-		if (listen(nsd->tcp[i].s, TCP_BACKLOG) == -1) {
-			log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
-			return -1;
-		}
+		log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
+		return -1;
 	}
 
-	return 0;
+	set_cloexec(sock);
+
+	if(nsd->reuseport && reuseport_works && *reuseport_works)
+		*reuseport_works = (set_reuseport(sock) == 1);
+
+	(void)set_reuseaddr(sock);
+
+#ifdef INET6
+	if(sock->addr.ai_family == AF_INET6) {
+		if (set_ipv6_v6only(sock) == -1 ||
+		    set_ipv6_use_min_mtu(sock) == -1)
+			return -1;
+	}
+#endif
+
+	if(nsd->tcp_mss > 0)
+		set_tcp_maxseg(sock, nsd->tcp_mss);
+	/* (StevensUNP p463), if TCP listening socket is blocking, then
+	   it may block in accept, even if select() says readable. */
+	(void)set_nonblock(sock);
+	if(nsd->options->ip_freebind)
+		(void)set_ip_freebind(sock);
+	if(nsd->options->ip_transparent)
+		(void)set_ip_transparent(sock);
+	if((sock->flags & NSD_BIND_DEVICE) && set_bindtodevice(sock) == -1)
+		return -1;
+	if(sock->fib != -1 && set_setfib(sock) == -1)
+		return -1;
+
+	if(bind(sock->s, (struct sockaddr *)&sock->addr.ai_addr, sock->addr.ai_addrlen) == -1) {
+		char buf[256];
+		addrport2str((void*)&sock->addr.ai_addr, buf, sizeof(buf));
+		log_msg(LOG_ERR, "can't bind tcp socket %s: %s",
+			buf, strerror(errno));
+		return -1;
+	}
+
+#ifdef USE_TCP_FASTOPEN
+	(void)set_tcp_fastopen(sock);
+#endif
+
+	if(listen(sock->s, TCP_BACKLOG) == -1) {
+		log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
+		return -1;
+	}
+
+	return 1;
 }
 
 /*
@@ -1122,34 +1273,58 @@ server_init_ifs(struct nsd *nsd, size_t from, size_t to, int* reuseport_works)
 int
 server_init(struct nsd *nsd)
 {
-	int reuseport_successful = 1; /* see if reuseport works in OS */
-	if(nsd->reuseport) {
-		/* increase the size of the udp and tcp interface arrays,
-		 * there are going to be separate interface file descriptors
-		 * for every server instance */
-		nsd->udp = xrealloc(nsd->udp, (nsd->ifs*nsd->reuseport)*
-			sizeof(*nsd->udp));
-		nsd->tcp = xrealloc(nsd->tcp, (nsd->ifs*nsd->reuseport)*
-			sizeof(*nsd->tcp));
-		memset(&nsd->udp[nsd->ifs], 0, sizeof(*nsd->udp)*
-			(nsd->ifs*(nsd->reuseport-1)));
-		memset(&nsd->tcp[nsd->ifs], 0, sizeof(*nsd->tcp)*
-			(nsd->ifs*(nsd->reuseport-1)));
+	size_t i;
+	int reuseport = 1; /* Determine if REUSEPORT works. */
+
+	/* open server interface ports */
+	for(i = 0; i < nsd->ifs; i++) {
+		if(open_udp_socket(nsd, &nsd->udp[i], &reuseport) == -1 ||
+		   open_tcp_socket(nsd, &nsd->tcp[i], &reuseport) == -1)
+		{
+			return -1;
+		}
 	}
 
-	/* open the server interface ports */
-	if(server_init_ifs(nsd, 0, nsd->ifs, &reuseport_successful) == -1)
-		return -1;
+	if(nsd->reuseport && reuseport) {
+		size_t ifs = nsd->ifs * nsd->reuseport;
 
-	/* continue to open the remaining reuseport ports */
-	if(nsd->reuseport && reuseport_successful) {
-		if(server_init_ifs(nsd, nsd->ifs, nsd->ifs*nsd->reuseport,
-			&reuseport_successful) == -1)
-			return -1;
-		nsd->ifs *= nsd->reuseport;
+		/* increase the size of the interface arrays, there are going
+		 * to be separate interface file descriptors for every server
+		 * instance */
+		region_remove_cleanup(nsd->region, free, nsd->udp);
+		region_remove_cleanup(nsd->region, free, nsd->tcp);
+
+		nsd->udp = xrealloc(nsd->udp, ifs * sizeof(*nsd->udp));
+		nsd->tcp = xrealloc(nsd->tcp, ifs * sizeof(*nsd->tcp));
+		region_add_cleanup(nsd->region, free, nsd->udp);
+		region_add_cleanup(nsd->region, free, nsd->tcp);
+		if(ifs > nsd->ifs) {
+			memset(&nsd->udp[nsd->ifs], 0,
+				(ifs-nsd->ifs)*sizeof(*nsd->udp));
+			memset(&nsd->tcp[nsd->ifs], 0,
+				(ifs-nsd->ifs)*sizeof(*nsd->tcp));
+		}
+
+		for(i = nsd->ifs; i < ifs; i++) {
+			nsd->udp[i] = nsd->udp[i%nsd->ifs];
+			nsd->udp[i].s = -1;
+			if(open_udp_socket(nsd, &nsd->udp[i], &reuseport) == -1) {
+				return -1;
+			}
+			/* Turn off REUSEPORT for TCP by copying the socket
+			 * file descriptor.
+			 * This means we should not close TCP used by
+			 * other servers in reuseport enabled mode, in
+			 * server_child().
+			 */
+			nsd->tcp[i] = nsd->tcp[i%nsd->ifs];
+		}
+
+		nsd->ifs = ifs;
 	} else {
 		nsd->reuseport = 0;
 	}
+
 	return 0;
 }
 
@@ -1162,14 +1337,24 @@ server_prepare(struct nsd *nsd)
 {
 #ifdef RATELIMIT
 	/* set secret modifier for hashing (udb ptr buckets and rate limits) */
-#ifdef HAVE_ARC4RANDOM
+#ifdef HAVE_GETRANDOM
+	uint32_t v;
+	if(getrandom(&v, sizeof(v), 0) == -1) {
+		log_msg(LOG_ERR, "getrandom failed: %s", strerror(errno));
+		exit(1);
+	}
+	hash_set_raninit(v);
+#elif defined(HAVE_ARC4RANDOM)
 	hash_set_raninit(arc4random());
 #else
 	uint32_t v = getpid() ^ time(NULL);
 	srandom((unsigned long)v);
+#  ifdef HAVE_SSL
 	if(RAND_status() && RAND_bytes((unsigned char*)&v, sizeof(v)) > 0)
 		hash_set_raninit(v);
-	else	hash_set_raninit(random());
+	else
+#  endif
+		hash_set_raninit(random());
 #endif
 	rrl_mmap_init(nsd->child_count, nsd->options->rrl_size,
 		nsd->options->rrl_ratelimit,
@@ -1229,6 +1414,15 @@ server_start_children(struct nsd *nsd, region_type* region, netio_type* netio,
 	return restart_child_servers(nsd, region, netio, xfrd_sock_p);
 }
 
+static void
+server_close_socket(struct nsd_socket *sock)
+{
+	if(sock->s != -1) {
+		close(sock->s);
+		sock->s = -1;
+	}
+}
+
 void
 server_close_all_sockets(struct nsd_socket sockets[], size_t n)
 {
@@ -1236,19 +1430,13 @@ server_close_all_sockets(struct nsd_socket sockets[], size_t n)
 
 	/* Close all the sockets... */
 	for (i = 0; i < n; ++i) {
-		if (sockets[i].s != -1) {
-			close(sockets[i].s);
-			if(sockets[i].addr)
-				freeaddrinfo(sockets[i].addr);
-			sockets[i].s = -1;
-		}
+		server_close_socket(&sockets[i]);
 	}
 }
 
 /*
  * Close the sockets, shutdown the server and exit.
  * Does not return.
- *
  */
 void
 server_shutdown(struct nsd *nsd)
@@ -1384,6 +1572,16 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		/* use other task than I am using, since if xfrd died and is
 		 * restarted, the reload is using nsd->mytask */
 		nsd->mytask = 1 - nsd->mytask;
+
+#ifdef HAVE_SETPROCTITLE
+		setproctitle("xfrd");
+#endif
+#ifdef HAVE_CPUSET_T
+		if(nsd->use_cpu_affinity) {
+			set_cpu_affinity(nsd->xfrd_cpuset);
+		}
+#endif
+
 		xfrd_init(sockets[1], nsd, del_db, reload_active, pid);
 		/* ENOTREACH */
 		break;
@@ -1512,18 +1710,51 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 }
 
 #ifdef HAVE_SSL
-void
-log_crypto_err(const char* str)
+static void
+log_crypto_from_err(const char* str, unsigned long err)
 {
 	/* error:[error code]:[library name]:[function name]:[reason string] */
 	char buf[128];
 	unsigned long e;
-	ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
+	ERR_error_string_n(err, buf, sizeof(buf));
 	log_msg(LOG_ERR, "%s crypto %s", str, buf);
 	while( (e=ERR_get_error()) ) {
 		ERR_error_string_n(e, buf, sizeof(buf));
 		log_msg(LOG_ERR, "and additionally crypto %s", buf);
 	}
+}
+
+void
+log_crypto_err(const char* str)
+{
+	log_crypto_from_err(str, ERR_get_error());
+}
+
+/** true if the ssl handshake error has to be squelched from the logs */
+static int
+squelch_err_ssl_handshake(unsigned long err)
+{
+	if(verbosity >= 3)
+		return 0; /* only squelch on low verbosity */
+	/* this is very specific, we could filter on ERR_GET_REASON()
+	 * (the third element in ERR_PACK) */
+	if(err == ERR_PACK(ERR_LIB_SSL, SSL_F_SSL3_GET_RECORD, SSL_R_HTTPS_PROXY_REQUEST) ||
+		err == ERR_PACK(ERR_LIB_SSL, SSL_F_SSL3_GET_RECORD, SSL_R_HTTP_REQUEST) ||
+		err == ERR_PACK(ERR_LIB_SSL, SSL_F_SSL3_GET_RECORD, SSL_R_WRONG_VERSION_NUMBER) ||
+		err == ERR_PACK(ERR_LIB_SSL, SSL_F_SSL3_READ_BYTES, SSL_R_SSLV3_ALERT_BAD_CERTIFICATE)
+#ifdef SSL_F_TLS_POST_PROCESS_CLIENT_HELLO
+		|| err == ERR_PACK(ERR_LIB_SSL, SSL_F_TLS_POST_PROCESS_CLIENT_HELLO, SSL_R_NO_SHARED_CIPHER)
+#endif
+#ifdef SSL_F_TLS_EARLY_POST_PROCESS_CLIENT_HELLO
+		|| err == ERR_PACK(ERR_LIB_SSL, SSL_F_TLS_EARLY_POST_PROCESS_CLIENT_HELLO, SSL_R_UNKNOWN_PROTOCOL)
+		|| err == ERR_PACK(ERR_LIB_SSL, SSL_F_TLS_EARLY_POST_PROCESS_CLIENT_HELLO, SSL_R_UNSUPPORTED_PROTOCOL)
+#  ifdef SSL_R_VERSION_TOO_LOW
+		|| err == ERR_PACK(ERR_LIB_SSL, SSL_F_TLS_EARLY_POST_PROCESS_CLIENT_HELLO, SSL_R_VERSION_TOO_LOW)
+#  endif
+#endif
+		)
+		return 1;
+	return 0;
 }
 
 void
@@ -1622,7 +1853,7 @@ listen_sslctx_setup_2(void* ctxt)
 	if(!SSL_CTX_set_ecdh_auto(ctx,1)) {
 		log_crypto_err("Error in SSL_CTX_ecdh_auto, not enabling ECDHE");
 	}
-#elif defined(HAVE_DECL_SSL_CTX_SET_TMP_ECDH) && defined(NID_X9_62_prime256v1)
+#elif defined(HAVE_DECL_SSL_CTX_SET_TMP_ECDH) && defined(NID_X9_62_prime256v1) && defined(HAVE_EC_KEY_NEW_BY_CURVE_NAME)
 	if(1) {
 		EC_KEY *ecdh = EC_KEY_new_by_curve_name (NID_X9_62_prime256v1);
 		if (!ecdh) {
@@ -1667,11 +1898,13 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 		return NULL;
 	}
 	/* no SSLv2, SSLv3 because has defects */
+#if SSL_OP_NO_SSLv2 != 0
 	if((SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2) & SSL_OP_NO_SSLv2) != SSL_OP_NO_SSLv2){
 		log_crypto_err("could not set SSL_OP_NO_SSLv2");
 		SSL_CTX_free(ctx);
 		return NULL;
 	}
+#endif
 	if((SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3) & SSL_OP_NO_SSLv3)
 		!= SSL_OP_NO_SSLv3){
 		log_crypto_err("could not set SSL_OP_NO_SSLv3");
@@ -1692,6 +1925,15 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 	if((SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1_1) & SSL_OP_NO_TLSv1_1)
 		!= SSL_OP_NO_TLSv1_1){
 		log_crypto_err("could not set SSL_OP_NO_TLSv1_1");
+		SSL_CTX_free(ctx);
+		return 0;
+	}
+#endif
+#if defined(SSL_OP_NO_RENEGOTIATION)
+	/* disable client renegotiation */
+	if((SSL_CTX_set_options(ctx, SSL_OP_NO_RENEGOTIATION) &
+		SSL_OP_NO_RENEGOTIATION) != SSL_OP_NO_RENEGOTIATION) {
+		log_crypto_err("could not set SSL_OP_NO_RENEGOTIATION");
 		SSL_CTX_free(ctx);
 		return 0;
 	}
@@ -1960,6 +2202,15 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	memset(&ign_sigchld, 0, sizeof(ign_sigchld));
 	ign_sigchld.sa_handler = SIG_IGN;
 	sigaction(SIGCHLD, &ign_sigchld, &old_sigchld);
+
+#ifdef HAVE_SETPROCTITLE
+	setproctitle("main");
+#endif
+#ifdef HAVE_CPUSET_T
+	if(nsd->use_cpu_affinity) {
+		set_cpu_affinity(nsd->cpuset);
+	}
+#endif
 
 	/* see what tasks we got from xfrd */
 	task_remap(nsd->task[nsd->mytask]);
@@ -2463,6 +2714,51 @@ server_process_query_udp(struct nsd *nsd, struct query *query, uint32_t *now_p)
 #endif
 }
 
+const char*
+nsd_event_vs(void)
+{
+#ifdef USE_MINI_EVENT
+	return "";
+#else
+	return event_get_version();
+#endif
+}
+
+#if !defined(USE_MINI_EVENT) && defined(EV_FEATURE_BACKENDS)
+static const char* ub_ev_backend2str(int b)
+{
+	switch(b) {
+	case EVBACKEND_SELECT:	return "select";
+	case EVBACKEND_POLL:	return "poll";
+	case EVBACKEND_EPOLL:	return "epoll";
+	case EVBACKEND_KQUEUE:	return "kqueue";
+	case EVBACKEND_DEVPOLL: return "devpoll";
+	case EVBACKEND_PORT:	return "evport";
+	}
+	return "unknown";
+}
+#endif
+
+const char*
+nsd_event_method(void)
+{
+#ifdef USE_MINI_EVENT
+	return "select";
+#else
+	struct event_base* b = nsd_child_event_base();
+	const char* m = "?";
+#  ifdef EV_FEATURE_BACKENDS
+	m = ub_ev_backend2str(ev_backend((struct ev_loop*)b));
+#  elif defined(HAVE_EVENT_BASE_GET_METHOD)
+	m = event_base_get_method(b);
+#  endif
+#  ifdef MEMCLEAN
+	event_base_free(b);
+#  endif
+	return m;
+#endif
+}
+
 struct event_base*
 nsd_child_event_base(void)
 {
@@ -2487,6 +2783,61 @@ nsd_child_event_base(void)
 	return base;
 }
 
+static void
+add_udp_handler(
+	struct nsd *nsd,
+	struct nsd_socket *sock,
+	struct udp_handler_data *data)
+{
+	struct event *handler = &data->event;
+
+	data->nsd = nsd;
+	data->socket = sock;
+
+	memset(handler, 0, sizeof(*handler));
+	event_set(handler, sock->s, EV_PERSIST|EV_READ, handle_udp, data);
+	if(event_base_set(nsd->event_base, handler) != 0)
+		log_msg(LOG_ERR, "nsd udp: event_base_set failed");
+	if(event_add(handler, NULL) != 0)
+		log_msg(LOG_ERR, "nsd udp: event_add failed");
+}
+
+void
+add_tcp_handler(
+	struct nsd *nsd,
+	struct nsd_socket *sock,
+	struct tcp_accept_handler_data *data)
+{
+	struct event *handler = &data->event;
+
+	data->nsd = nsd;
+	data->socket = sock;
+
+#ifdef HAVE_SSL
+	if (nsd->tls_ctx &&
+	    nsd->options->tls_port &&
+	    using_tls_port((struct sockaddr *)&sock->addr.ai_addr, nsd->options->tls_port))
+	{
+		data->tls_accept = 1;
+		if(verbosity >= 2) {
+			char buf[48];
+			addrport2str((struct sockaddr_storage*)&sock->addr.ai_addr, buf, sizeof(buf));
+			VERBOSITY(2, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
+		}
+	} else {
+		data->tls_accept = 0;
+	}
+#endif
+
+	memset(handler, 0, sizeof(*handler));
+	event_set(handler, sock->s, EV_PERSIST|EV_READ,	handle_tcp_accept, data);
+	if(event_base_set(nsd->event_base, handler) != 0)
+		log_msg(LOG_ERR, "nsd tcp: event_base_set failed");
+	if(event_add(handler, NULL) != 0)
+		log_msg(LOG_ERR, "nsd tcp: event_add failed");
+	data->event_added = 1;
+}
+
 /*
  * Serve DNS requests.
  */
@@ -2496,7 +2847,6 @@ server_child(struct nsd *nsd)
 	size_t i, from, numifs;
 	region_type *server_region = region_create(xalloc, free);
 	struct event_base* event_base = nsd_child_event_base();
-	query_type *udp_query;
 	sig_atomic_t mode;
 
 	if(!event_base) {
@@ -2512,6 +2862,15 @@ server_child(struct nsd *nsd)
 
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
 	DEBUG(DEBUG_IPC, 2, (LOG_INFO, "child process started"));
+
+#ifdef HAVE_SETPROCTITLE
+	setproctitle("server %d", nsd->this_child->child_num + 1);
+#endif
+#ifdef HAVE_CPUSET_T
+	if(nsd->use_cpu_affinity) {
+		set_cpu_affinity(nsd->this_child->cpuset);
+	}
+#endif
 
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
 		server_close_all_sockets(nsd->tcp, nsd->ifs);
@@ -2552,12 +2911,7 @@ server_child(struct nsd *nsd)
 	}
 
 	if (nsd->server_kind & NSD_SERVER_UDP) {
-#if (defined(NONBLOCKING_IS_BROKEN) || !defined(HAVE_RECVMMSG))
-		udp_query = query_create(server_region,
-			compressed_dname_offsets, compression_table_size,
-			compressed_dnames);
-#else
-		udp_query = NULL;
+		int child = nsd->this_child->child_num;
 		memset(msgs, 0, sizeof(msgs));
 		for (i = 0; i < NUM_RECV_PER_SELECT; i++) {
 			queries[i] = query_create(server_region,
@@ -2565,33 +2919,27 @@ server_child(struct nsd *nsd)
 				compression_table_size, compressed_dnames);
 			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
 			iovecs[i].iov_base          = buffer_begin(queries[i]->packet);
-			iovecs[i].iov_len           = buffer_remaining(queries[i]->packet);;
+			iovecs[i].iov_len           = buffer_remaining(queries[i]->packet);
 			msgs[i].msg_hdr.msg_iov     = &iovecs[i];
 			msgs[i].msg_hdr.msg_iovlen  = 1;
 			msgs[i].msg_hdr.msg_name    = &queries[i]->addr;
 			msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
 		}
-#endif
-		for (i = from; i < from+numifs; ++i) {
+
+		for (i = 0; i < nsd->ifs; i++) {
+			int listen;
 			struct udp_handler_data *data;
-			struct event *handler;
 
-			data = (struct udp_handler_data *) region_alloc(
-				server_region,
-				sizeof(struct udp_handler_data));
-			data->query = udp_query;
-			data->nsd = nsd;
-			data->socket = &nsd->udp[i];
+			listen = nsd_bitset_isset(nsd->udp[i].servers, child);
 
-			handler = (struct event*) region_alloc(
-				server_region, sizeof(*handler));
-			memset(handler, 0, sizeof(*handler));
-			event_set(handler, nsd->udp[i].s, EV_PERSIST|EV_READ,
-				handle_udp, data);
-			if(event_base_set(event_base, handler) != 0)
-				log_msg(LOG_ERR, "nsd udp: event_base_set failed");
-			if(event_add(handler, NULL) != 0)
-				log_msg(LOG_ERR, "nsd udp: event_add failed");
+			if(i >= from && i < (from + numifs) && listen) {
+				data = region_alloc_zero(
+					nsd->server_region, sizeof(*data));
+				add_udp_handler(nsd, &nsd->udp[i], data);
+			} else {
+				/* close sockets intended for other servers */
+				server_close_socket(&nsd->udp[i]);
+			}
 		}
 	}
 
@@ -2600,40 +2948,38 @@ server_child(struct nsd *nsd)
 	 * and disable them based on the current number of active TCP
 	 * connections.
 	 */
-	tcp_accept_handler_count = numifs;
-	tcp_accept_handlers = (struct tcp_accept_handler_data*)
-		region_alloc_array(server_region,
-		numifs, sizeof(*tcp_accept_handlers));
 	if (nsd->server_kind & NSD_SERVER_TCP) {
-		for (i = from; i < numifs; ++i) {
-			struct event *handler = &tcp_accept_handlers[i-from].event;
-			struct tcp_accept_handler_data* data =
-				&tcp_accept_handlers[i-from];
-			data->nsd = nsd;
-			data->socket = &nsd->tcp[i];
-#ifdef HAVE_SSL
-			if (nsd->tls_ctx && nsd->options->tls_port && using_tls_port(
-			    data->socket->addr->ai_addr, nsd->options->tls_port)) {
-				data->tls_accept = 1;
-				if(verbosity >= 2) {
-					char buf[48];
-					addrport2str((struct sockaddr_storage*)data->socket->addr->ai_addr, buf, sizeof(buf));
-					VERBOSITY(2, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
-				}
+		int child = nsd->this_child->child_num;
+		tcp_accept_handler_count = numifs;
+		tcp_accept_handlers = region_alloc_array(server_region,
+			numifs, sizeof(*tcp_accept_handlers));
+
+		for (i = 0; i < nsd->ifs; i++) {
+			int listen;
+			struct tcp_accept_handler_data *data;
+
+			listen = nsd_bitset_isset(nsd->tcp[i].servers, child);
+
+			if(i >= from && i < (from + numifs) && listen) {
+				data = &tcp_accept_handlers[i-from];
+				memset(data, 0, sizeof(*data));
+				add_tcp_handler(nsd, &nsd->tcp[i], data);
+			} else {
+				/* close sockets intended for other servers */
+				/*
+				 * uncomment this once tcp servers are no
+				 * longer copied in the tcp fd copy line
+				 * in server_init().
+				server_close_socket(&nsd->tcp[i]);
+				*/
+				/* close sockets not meant for this server*/
+				if(!listen)
+					server_close_socket(&nsd->tcp[i]);
 			}
-			else
-				data->tls_accept = 0;
-#endif
-			memset(handler, 0, sizeof(*handler));
-			event_set(handler, nsd->tcp[i].s, EV_PERSIST|EV_READ,
-				handle_tcp_accept, data);
-			if(event_base_set(event_base, handler) != 0)
-				log_msg(LOG_ERR, "nsd tcp: event_base_set failed");
-			if(event_add(handler, NULL) != 0)
-				log_msg(LOG_ERR, "nsd tcp: event_add failed");
-			data->event_added = 1;
 		}
-	} else tcp_accept_handler_count = 0;
+	} else {
+		tcp_accept_handler_count = 0;
+	}
 
 	/* The main loop... */
 	while ((mode = nsd->mode) != NSD_QUIT) {
@@ -2703,7 +3049,7 @@ server_child(struct nsd *nsd)
 static void remaining_tcp_timeout(int ATTR_UNUSED(fd), short event, void* arg)
 {
 	int* timed_out = (int*)arg;
-        assert(event & EV_TIMEOUT);
+        assert(event & EV_TIMEOUT); (void)event;
 	/* wake up the service tcp thread, note event is no longer
 	 * registered */
 	*timed_out = 1;
@@ -2802,11 +3148,95 @@ service_remaining_tcp(struct nsd* nsd)
 			break;
 		}
 	}
+#ifdef MEMCLEAN
 	event_base_free(event_base);
+#endif
 	/* continue to quit after return */
 }
 
-#if defined(HAVE_SENDMMSG) && !defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG)
+/* Implement recvmmsg and sendmmsg if the platform does not. These functions
+ * are always used, even if nonblocking operations are broken, in which case
+ * NUM_RECV_PER_SELECT is defined to 1 (one).
+ */
+#if defined(HAVE_RECVMMSG)
+#define nsd_recvmmsg recvmmsg
+#else /* !HAVE_RECVMMSG */
+
+static int
+nsd_recvmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
+             int flags, struct timespec *timeout)
+{
+	unsigned int vpos = 0;
+	ssize_t rcvd;
+
+	/* timeout is ignored, ensure caller does not expect it to work */
+	assert(timeout == NULL); (void)timeout;
+
+	while(vpos < vlen) {
+		rcvd = recvfrom(sockfd,
+		                msgvec[vpos].msg_hdr.msg_iov->iov_base,
+		                msgvec[vpos].msg_hdr.msg_iov->iov_len,
+		                flags,
+		                msgvec[vpos].msg_hdr.msg_name,
+		               &msgvec[vpos].msg_hdr.msg_namelen);
+		if(rcvd < 0) {
+			break;
+		} else {
+			assert((unsigned long long)rcvd <= (unsigned long long)UINT_MAX);
+			msgvec[vpos].msg_len = (unsigned int)rcvd;
+			vpos++;
+		}
+	}
+
+	if(vpos) {
+		/* error will be picked up next time */
+		return (int)vpos;
+	} else if(errno == 0) {
+		return 0;
+	} else if(errno == EAGAIN) {
+		return 0;
+	}
+
+	return -1;
+}
+#endif /* HAVE_RECVMMSG */
+
+#ifdef HAVE_SENDMMSG
+#define nsd_sendmmsg(...) sendmmsg(__VA_ARGS__)
+#else /* !HAVE_SENDMMSG */
+
+static int
+nsd_sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen, int flags)
+{
+	unsigned int vpos = 0;
+	ssize_t snd;
+
+	while(vpos < vlen) {
+		assert(msgvec[vpos].msg_hdr.msg_iovlen == 1);
+		snd = sendto(sockfd,
+		             msgvec[vpos].msg_hdr.msg_iov->iov_base,
+		             msgvec[vpos].msg_hdr.msg_iov->iov_len,
+		             flags,
+		             msgvec[vpos].msg_hdr.msg_name,
+		             msgvec[vpos].msg_hdr.msg_namelen);
+		if(snd < 0) {
+			break;
+		} else {
+			msgvec[vpos].msg_len = (unsigned int)snd;
+			vpos++;
+		}
+	}
+
+	if(vpos) {
+		return (int)vpos;
+	} else if(errno == 0) {
+		return 0;
+	}
+
+	return -1;
+}
+#endif /* HAVE_SENDMMSG */
+
 static void
 handle_udp(int fd, short event, void* arg)
 {
@@ -2818,7 +3248,7 @@ handle_udp(int fd, short event, void* arg)
 	if (!(event & EV_READ)) {
 		return;
 	}
-	recvcount = recvmmsg(fd, msgs, NUM_RECV_PER_SELECT, 0, NULL);
+	recvcount = nsd_recvmmsg(fd, msgs, NUM_RECV_PER_SELECT, 0, NULL);
 	/* this printf strangely gave a performance increase on Linux */
 	/* printf("recvcount %d \n", recvcount); */
 	if (recvcount == -1) {
@@ -2837,7 +3267,12 @@ handle_udp(int fd, short event, void* arg)
 		q = queries[i];
 		if (received == -1) {
 			log_msg(LOG_ERR, "recvmmsg %d failed %s", i, strerror(
-				msgs[i].msg_hdr.msg_flags));
+#if defined(HAVE_RECVMMSG)
+				msgs[i].msg_hdr.msg_flags
+#else
+				errno
+#endif
+				));
 			STATUP(data->nsd, rxerr);
 			/* No zone statup */
 			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
@@ -2848,9 +3283,9 @@ handle_udp(int fd, short event, void* arg)
 
 		/* Account... */
 #ifdef BIND8_STATS
-		if (data->socket->fam == AF_INET) {
+		if (data->socket->addr.ai_family == AF_INET) {
 			STATUP(data->nsd, qudp);
-		} else if (data->socket->fam == AF_INET6) {
+		} else if (data->socket->addr.ai_family == AF_INET6) {
 			STATUP(data->nsd, qudp6);
 		}
 #endif
@@ -2870,9 +3305,9 @@ handle_udp(int fd, short event, void* arg)
 			}
 
 #ifdef USE_ZONE_STATS
-			if (data->socket->fam == AF_INET) {
+			if (data->socket->addr.ai_family == AF_INET) {
 				ZTATUP(data->nsd, q->zone, qudp);
-			} else if (data->socket->fam == AF_INET6) {
+			} else if (data->socket->addr.ai_family == AF_INET6) {
 				ZTATUP(data->nsd, q->zone, qudp6);
 			}
 #endif
@@ -2924,12 +3359,43 @@ handle_udp(int fd, short event, void* arg)
 	/* send until all are sent */
 	i = 0;
 	while(i<recvcount) {
-		sent = sendmmsg(fd, &msgs[i], recvcount-i, 0);
+		sent = nsd_sendmmsg(fd, &msgs[i], recvcount-i, 0);
 		if(sent == -1) {
-			const char* es = strerror(errno);
-			char a[48];
-			addr2str(&queries[i]->addr, a, sizeof(a));
-			log_msg(LOG_ERR, "sendmmsg [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
+			if(errno == ENOBUFS ||
+#ifdef EWOULDBLOCK
+				errno == EWOULDBLOCK ||
+#endif
+				errno == EAGAIN) {
+				/* block to wait until send buffer avail */
+				int flag;
+				if((flag = fcntl(fd, F_GETFL)) == -1) {
+					log_msg(LOG_ERR, "cannot fcntl F_GETFL: %s", strerror(errno));
+					flag = 0;
+				}
+				flag &= ~O_NONBLOCK;
+				if(fcntl(fd, F_SETFL, flag) == -1)
+					log_msg(LOG_ERR, "cannot fcntl F_SETFL 0: %s", strerror(errno));
+				sent = nsd_sendmmsg(fd, &msgs[i], recvcount-i, 0);
+				flag |= O_NONBLOCK;
+				if(fcntl(fd, F_SETFL, flag) == -1)
+					log_msg(LOG_ERR, "cannot fcntl F_SETFL O_NONBLOCK: %s", strerror(errno));
+				if(sent != -1) {
+					i += sent;
+					continue;
+				}
+			}
+			/* don't log transient network full errors, unless
+			 * on higher verbosity */
+			if(!(errno == ENOBUFS && verbosity < 1) &&
+#ifdef EWOULDBLOCK
+			   errno != EWOULDBLOCK &&
+#endif
+			   errno != EAGAIN) {
+				const char* es = strerror(errno);
+				char a[48];
+				addr2str(&queries[i]->addr, a, sizeof(a));
+				log_msg(LOG_ERR, "sendmmsg [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
+			}
 #ifdef BIND8_STATS
 			data->nsd->st.txerr += recvcount-i;
 #endif /* BIND8_STATS */
@@ -2944,161 +3410,7 @@ handle_udp(int fd, short event, void* arg)
 	}
 }
 
-#else /* defined(HAVE_SENDMMSG) && !defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG) */
-
-static void
-handle_udp(int fd, short event, void* arg)
-{
-	struct udp_handler_data *data = (struct udp_handler_data *) arg;
-	int received, sent;
-#ifndef NONBLOCKING_IS_BROKEN
-#ifdef HAVE_RECVMMSG
-	int recvcount;
-#endif /* HAVE_RECVMMSG */
-	int i;
-#endif /* NONBLOCKING_IS_BROKEN */
-	struct query *q;
-	uint32_t now = 0;
-#if (defined(NONBLOCKING_IS_BROKEN) || !defined(HAVE_RECVMMSG))
-	q = data->query;
-#endif
-
-	if (!(event & EV_READ)) {
-		return;
-	}
-#ifndef NONBLOCKING_IS_BROKEN
-#ifdef HAVE_RECVMMSG
-	recvcount = recvmmsg(fd, msgs, NUM_RECV_PER_SELECT, 0, NULL);
-	/* this printf strangely gave a performance increase on Linux */
-	/* printf("recvcount %d \n", recvcount); */
-	if (recvcount == -1) {
-		if (errno != EAGAIN && errno != EINTR) {
-			log_msg(LOG_ERR, "recvmmsg failed: %s", strerror(errno));
-			STATUP(data->nsd, rxerr);
-			/* No zone statup */
-		}
-		/* Simply no data available */
-		return;
-	}
-	for (i = 0; i < recvcount; i++) {
-		received = msgs[i].msg_len;
-		queries[i]->addrlen = msgs[i].msg_hdr.msg_namelen;
-		if (received == -1) {
-			log_msg(LOG_ERR, "recvmmsg failed");
-			STATUP(data->nsd, rxerr);
-			/* No zone statup */
-			/* the error can be found in msgs[i].msg_hdr.msg_flags */
-			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
-			iovecs[i].iov_len = buffer_remaining(queries[i]->packet);
-			msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
-			continue;
-		}
-		q = queries[i];
-#else
-	for(i=0; i<NUM_RECV_PER_SELECT; i++) {
-#endif /* HAVE_RECVMMSG */
-#endif /* NONBLOCKING_IS_BROKEN */
-
-#if (defined(NONBLOCKING_IS_BROKEN) || !defined(HAVE_RECVMMSG))
-		/* Initialize the query... */
-		query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
-
-		received = recvfrom(fd,
-				    buffer_begin(q->packet),
-				    buffer_remaining(q->packet),
-				    0,
-				    (struct sockaddr *)&q->addr,
-				    &q->addrlen);
-		if (received == -1) {
-			if (errno != EAGAIN && errno != EINTR) {
-				log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
-				STATUP(data->nsd, rxerr);
-				/* No zone statup */
-			}
-			return;
-		}
-#endif /* NONBLOCKING_IS_BROKEN || !HAVE_RECVMMSG */
-
-		/* Account... */
-		if (data->socket->fam == AF_INET) {
-			STATUP(data->nsd, qudp);
-		} else if (data->socket->fam == AF_INET6) {
-			STATUP(data->nsd, qudp6);
-		}
-
-		buffer_skip(q->packet, received);
-		buffer_flip(q->packet);
-#ifdef USE_DNSTAP
-		dt_collector_submit_auth_query(data->nsd, &q->addr, q->addrlen,
-			q->tcp, q->packet);
-#endif /* USE_DNSTAP */
-
-		/* Process and answer the query... */
-		if (server_process_query_udp(data->nsd, q, &now) != QUERY_DISCARDED) {
-			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet)) {
-				STATUP(data->nsd, nona);
-				ZTATUP(data->nsd, q->zone, nona);
-			}
-
-#ifdef USE_ZONE_STATS
-			if (data->socket->fam == AF_INET) {
-				ZTATUP(data->nsd, q->zone, qudp);
-			} else if (data->socket->fam == AF_INET6) {
-				ZTATUP(data->nsd, q->zone, qudp6);
-			}
-#endif
-
-			/* Add EDNS0 and TSIG info if necessary.  */
-			query_add_optional(q, data->nsd, &now);
-
-			buffer_flip(q->packet);
-
-			sent = sendto(fd,
-				      buffer_begin(q->packet),
-				      buffer_remaining(q->packet),
-				      0,
-				      (struct sockaddr *) &q->addr,
-				      q->addrlen);
-			if (sent == -1) {
-				const char* es = strerror(errno);
-				char a[48];
-				addr2str(&q->addr, a, sizeof(a));
-				log_msg(LOG_ERR, "sendto %s failed: %s", a, es);
-				STATUP(data->nsd, txerr);
-				ZTATUP(data->nsd, q->zone, txerr);
-			} else if ((size_t) sent != buffer_remaining(q->packet)) {
-				log_msg(LOG_ERR, "sent %d in place of %d bytes", sent, (int) buffer_remaining(q->packet));
-			} else {
-#ifdef BIND8_STATS
-				/* Account the rcode & TC... */
-				STATUP2(data->nsd, rcode, RCODE(q->packet));
-				ZTATUP2(data->nsd, q->zone, rcode, RCODE(q->packet));
-				if (TC(q->packet)) {
-					STATUP(data->nsd, truncated);
-					ZTATUP(data->nsd, q->zone, truncated);
-				}
-#endif /* BIND8_STATS */
-#ifdef USE_DNSTAP
-				dt_collector_submit_auth_response(data->nsd,
-					&q->addr, q->addrlen, q->tcp,
-					q->packet, q->zone);
-#endif /* USE_DNSTAP */
-			}
-		} else {
-			STATUP(data->nsd, dropped);
-			ZTATUP(data->nsd, q->zone, dropped);
-		}
-#ifndef NONBLOCKING_IS_BROKEN
-#ifdef HAVE_RECVMMSG
-		query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
-		iovecs[i].iov_len = buffer_remaining(queries[i]->packet);
-		msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
-#endif
-	}
-#endif
-}
-#endif /* defined(HAVE_SENDMMSG) && !defined(NONBLOCKING_IS_BROKEN) && defined(HAVE_RECVMMSG) */
-
+#ifdef HAVE_SSL
 /*
  * Setup an event for the tcp handler.
  */
@@ -3121,6 +3433,7 @@ tcp_handler_setup_event(struct tcp_handler_data* data, void (*fn)(int, short, vo
 	if(event_add(&data->event, &timeout) != 0)
 		log_msg(LOG_ERR, "event add failed");
 }
+#endif /* HAVE_SSL */
 
 static void
 cleanup_tcp_handler(struct tcp_handler_data* data)
@@ -3613,8 +3926,16 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 		} else {
 			if(r == 0)
 				VERBOSITY(3, (LOG_ERR, "TLS handshake: connection closed prematurely"));
+			else {
+				unsigned long err = ERR_get_error();
+				if(!squelch_err_ssl_handshake(err)) {
+					char a[64], s[256];
+					addr2str(&data->query->addr, a, sizeof(a));
+					snprintf(s, sizeof(s), "TLS handshake failed from %s", a);
+					log_crypto_from_err(s, err);
+				}
+			}
 			cleanup_tcp_handler(data);
-			VERBOSITY(3, (LOG_ERR, "TLS handshake failed"));
 			return 0;
 		}
 	}

@@ -1,0 +1,11 @@
+@	IN	SOA	vergon6.example.com.	leela.example.com. (
+	2009093002
+	3600
+	8H
+	2W
+	1H )
+;
+nibbler.example.com.	NS	ns0.vergon6.example.com.
+nibbler.example.com.	NS	ns1.vergon6.example.com.
+nibbler.example.com.	NS	ns2.vergon6.example.com.
+

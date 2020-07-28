@@ -1,0 +1,11 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+# kill NSD
+. ../common.sh
+if [ -z $TPKG_NSD_PID ]; then
+        exit 0
+fi
+NSD_PID=`cat $TPKG_NSD_PID`
+kill_pid $NSD_PID

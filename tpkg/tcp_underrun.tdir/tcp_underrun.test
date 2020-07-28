@@ -1,0 +1,35 @@
+# #-- bug056_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../../"
+
+# should fail
+# 0x0002 length is too short. The \n appended by echo is ignored
+printf '\0\002AB' | nc localhost $TPKG_PORT >out.log 2> out2.log
+cat out.log out2.log
+tail nsd.logfile
+
+if grep "packet too small, dropping tcp connection" nsd.logfile; then
+	echo "nsd dropped connection underrun"
+else
+	echo "tcp buffer underrun malfunction"
+	exit 1
+fi
+
+# max message len is 65535 by default, we cannot overrun the buffer.
+printf '\177\177AB' | nc localhost $TPKG_PORT >out.log 2> out2.log
+cat out.log out2.log
+tail nsd.logfile
+
+# dig to server to make sure it is alive
+if dig @localhost -p $TPKG_PORT example.nl SOA | grep "status: NOERROR"; then
+	echo "server alive"
+else
+	echo "error, nsd unreachable"
+	exit 1
+fi
+
+exit 0

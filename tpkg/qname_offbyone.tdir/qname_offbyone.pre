@@ -1,0 +1,25 @@
+# #-- qname_offbyone.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+
+# master
+$TPKG_NSD -c qname_offbyone.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f qname_offbyone.db
+wait_nsd_up qname_offbyone.log
+
+echo nsd at port $TPKG_PORT $TPKG_NSD_PID = `cat $TPKG_NSD_PID`
+

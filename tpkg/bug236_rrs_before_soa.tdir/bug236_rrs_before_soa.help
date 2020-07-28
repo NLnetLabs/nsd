@@ -1,0 +1,1 @@
+Runs without arguments. Tests if a zonefile can be parsed if there are RRs before the SOA.

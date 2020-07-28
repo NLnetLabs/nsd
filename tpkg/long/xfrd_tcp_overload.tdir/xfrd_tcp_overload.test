@@ -1,0 +1,61 @@
+#!/bin/bash
+# #-- xfrd_tcp_overload.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../../common.sh
+
+RESULTFILE=xfrd_tcp_overload.current_response
+PRE="../../.."
+get_ldns_testns
+MINISERVER=$LDNS_TESTNS
+WAITTIME=10
+DIG="/usr/bin/dig"
+
+
+function kill_mini() {
+	if [ ! -e $TPKG_NSD_PID -o -z "$TPKG_NSD_PID" ]; then
+		echo "miniserver exited ok"
+	else
+		# kill the mini server.
+		NSD_PID=`cat $TPKG_NSD_PID`
+		kill $NSD_PID 2>/dev/null
+		sleep 1 # should be really dead now - just to be sure kill it again
+		kill $NSD_PID 2>/dev/null
+	fi
+}
+
+function setup_miniserver() { # <query setup file>
+	kill_mini
+	echo ">>> setup $MINISERVER -p $MASTER_PORT $1"
+	$MINISERVER -p $MASTER_PORT $1 &
+	echo $! > $TPKG_NSD_PID
+	sleep 1 # wait for it to come up.
+}
+
+# startup miniserver with appropriate files.
+#setup_miniserver xfrd_tcp_overload.qs_1
+
+# one zone per second max. Wait a long time ...
+sleep $NUMZONES
+sleep 10
+sleep $NUMZONES
+sleep 10
+
+# see if all zones are updated
+for ((i=0; i<$NUMZONES; i++)); do
+	echo "checking zone example$i.com"
+	if dig @localhost -p $SLAVE_PORT teststring.example$i.com TXT | grep "content of test string xx $i xx"; then 
+		echo "zone $i ok"
+	else
+		dig @localhost -p $SLAVE_PORT teststring.example$i.com TXT
+		echo "zone $i is bad"
+		cat nsd.log
+		exit 1
+	fi
+done
+
+cat nsd.log
+
+exit 0

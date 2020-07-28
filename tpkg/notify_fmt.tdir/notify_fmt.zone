@@ -1,0 +1,10 @@
+@       IN      SOA     42dbc308.dsl.aros.net.  drr.aros.net.   (
+                        2003070707              ; serial, todays date + todays serial #
+                        1H                      ; refresh, seconds
+                        8H                      ; retry, seconds
+                        4W                      ; expire, seconds
+                        1H                      ; minimum ttl, seconds
+                )
+;
+example.com.   NS      ns0.xname.org.          ; Thanks to xname.org
+example.com.   NS      ns1.xname.org.          ; Thanks to xname.org

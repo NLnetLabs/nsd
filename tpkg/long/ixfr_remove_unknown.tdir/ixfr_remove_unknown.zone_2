@@ -1,0 +1,5 @@
+example.com.            345600  IN      SOA     ns0.example.org. root.example.com. 2 3600 28800 2419200 3600
+txt1.example.com.       345600  IN      TXT     "text record 1"
+txt2.example.com.       345600  IN      TXT     "text record 2"
+txt3.example.com.       345600  IN      TXT     "text record 3"
+example.com.            345600  IN      SOA     ns0.example.org. root.example.com. 2 3600 28800 2419200 3600

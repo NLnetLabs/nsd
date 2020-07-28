@@ -29,6 +29,8 @@
 # wait_nsd_up		: wait for nsd to come up.
 # wait_server_up_or_fail: wait for server to come up or print a failure string
 # kill_pid		: kill a server, make sure and wait for it to go down.
+# cpu_count		: get number of cpus in system
+# process_cpu_list	: get cpu affinity list for process
 
 
 # print error and exit
@@ -282,3 +284,37 @@ set_doxygen_path () {
 	fi
 }
 
+# get number of cpus in system
+cpu_count()
+{
+  local sys=$(uname -s)
+  if [ "${sys}" = "Linux" ]; then
+    nproc
+  elif [ "${sys}" = "FreeBSD" ]; then
+    sysctl -n hw.ncpu
+  fi
+}
+
+# get cpu affinity list for process
+# $1 : pid
+process_cpu_list() {
+  local pid=${1}
+  local sys=$(uname -s)
+
+  if [ "${sys}" = "Linux" ]; then
+    local defl=$(taskset -pc ${pid} | sed -n -e 's/^.*: //p' | head -n 1)
+  elif [ "${sys}" = "FreeBSD" ]; then
+    local defl=$(cpuset -g -p ${pid} | sed -n -e 's/^.*: //p' | head -n 1)
+  fi
+
+  if [ -n "${defl}" ]; then
+    local infl
+    defl=$(echo "${defl}" | sed -e 's/,/ /g')
+    for i in ${defl}; do
+      rng=$(echo "${i}-${i}" | sed -e 's/^\([0-9]*\)-\([0-9]*\).*$/\1 \2/')
+      infl="${infl} $(seq -s ' ' ${rng})"
+    done
+    infl=$(echo ${infl} | sed -e 's/ */ /' -e 's/^ *//')
+    echo "${infl}"
+  fi
+}

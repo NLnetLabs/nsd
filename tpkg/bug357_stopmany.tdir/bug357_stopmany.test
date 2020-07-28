@@ -1,0 +1,49 @@
+# #-- socketnotifylimit.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+echo "NSD PORT: $TPKG_PORT"
+PRE="../.."
+
+sleep 10
+sleep 10
+ps axu | grep nsd
+# copy to make sure we stop it from extending while we grep.
+cp log log2
+pids=`cat log2 | sed -e 's/^.*nsd\[\([0-9]*\)\]:.*$/\1/' | sort -u`
+echo $pids
+
+tail -1 log
+echo "attempt to stop NSD"
+kill -TERM  `cat $TPKG_NSD_PID`
+
+ps axu | grep nsd
+
+wait_down () {
+	local i=0;
+	while test $i -le 120; do
+		i=`expr $i + 1`
+		if kill -0 $p >/dev/null 2>&1; then
+			sleep 1
+		else
+			echo "waited for process $p for $i seconds"
+			return
+		fi
+	done
+}
+
+result=0
+for p in $pids; do
+	wait_down $p
+	if kill $p; then
+		echo "process $p still exists! failure"
+		result=1
+	fi
+done
+
+cat log
+cat fwd.log
+
+exit $result

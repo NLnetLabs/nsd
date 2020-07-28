@@ -1,0 +1,31 @@
+# #-- ixfr_badformat.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+
+$TPKG_NSD -c nsd.conf -L 5 -F 0xFFFF -p $TPKG_PORT
+wait_nsd_up nsd.log
+wait_logfile nsd.log "serial 1 is updated to 2" 45
+cat nsd.log
+cat master.log
+
+# the zone is loaded and one update has been done.
+ldns-notify -d -z example.net -p $TPKG_PORT -s 3 127.0.0.1
+
+wait_logfile nsd.log "request full zone transfer" 45
+wait_logfile nsd.log "got update indicating current serial" 45
+cat nsd.log
+cat master.log
+
+

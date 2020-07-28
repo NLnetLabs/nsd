@@ -1,0 +1,20 @@
+
+
+addrr.example.net.	345600	IN	A	1.2.3.4
+addrr.example.net.	345600	IN	A	2.3.4.5
+addrrset.example.net.	345600	IN	A	1.2.3.4
+addrrset.example.net.	345600	IN	A	1.2.3.5
+addrrset.example.net.	345600	IN	TXT	"this is an rrset"
+addrrset.example.net.	7200	IN	AAAA	2001::234
+addrrset.example.net.	7200	IN	AAAA	2001::237
+delrr.example.net.	345600	IN	A	1.2.3.5
+delrr.example.net.	345600	IN	A	1.2.3.6
+example.net.		7200	IN	SOA	nibbler.example.net. leela.example.net. 2 3 4 3000 5
+example.net.		7200	IN	SOA	nibbler.example.net. leela.example.net. 2 3 4 3000 5
+newname.example.net.	7200	IN	A	1.2.3.4
+othername.example.net.	7200	IN	A	6.5.6.5
+othername.example.net.	7200	IN	AAAA	2001::65
+unmodified.example.net.	345600	IN	A	8.8.8.6
+unmodified.example.net.	345600	IN	A	8.8.8.7
+unmodified.example.net.	345600	IN	A	8.8.8.8
+unmodified.example.net.	345600	IN	TXT	"this entry has not been modified"

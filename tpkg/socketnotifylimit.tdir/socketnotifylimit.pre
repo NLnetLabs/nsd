@@ -1,0 +1,53 @@
+# #-- socketnotifylimit.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" > .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+
+
+cp socketnotifylimit.conf myconf
+i=0
+while test $i -le 10000; do
+	echo "zone: name: $i.tld" >> myconf
+	echo "	zonefile: $i.tld" >> myconf
+	echo "	notify: 127.0.0.1@997 NOKEY" >> myconf
+	echo "" >> myconf
+	echo '$TTL 86400' > $i.tld
+	echo "@ IN SOA a.dns.jp root.dns.jp. 000000001 3600 900 604800 900" >> $i.tld
+	echo "  IN NS a.dns.jp." >> $i.tld
+	echo "  IN A 127.0.0.1" >> $i.tld
+	echo "www IN A 127.0.0.1" >> $i.tld
+	i=`expr $i + 1`
+done
+
+echo "done generating config"
+
+# debug echo of command.
+echo $TPKG_NSD -c myconf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f socketnotifylimit.db
+$TPKG_NSD -c myconf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f socketnotifylimit.db
+wait_nsd_up log
+
+# make sure NSD is set to update everything on a reload.
+i=0
+while test $i -le 10000; do
+	echo '$TTL 86400' > $i.tld
+	echo "@ IN SOA a.dns.jp root.dns.jp. 000000002 3600 900 604800 900" >> $i.tld
+	echo "  IN NS a.dns.jp." >> $i.tld
+	echo "  IN A 127.0.0.1" >> $i.tld
+	echo "www IN A 127.0.0.1" >> $i.tld
+	i=`expr $i + 1`
+done
+sleep 1
+echo updated zone file to an even newer set.

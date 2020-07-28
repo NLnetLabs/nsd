@@ -1,0 +1,14 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+NOEDNS="+noedns"
+if dig $NOEDNS -v 2>&1 | grep "Invalid option" >/dev/null; then
+	NOEDNS=""
+fi
+
+# the query
+dig -p $TPKG_PORT $NOEDNS +noall +comments @localhost a miek.nl | grep flags > bug054_rd.current_respons1
+
+# must match
+wdiff bug054_rd.known_good_respons1 bug054_rd.current_respons1 

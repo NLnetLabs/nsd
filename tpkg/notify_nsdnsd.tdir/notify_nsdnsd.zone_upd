@@ -1,0 +1,12 @@
+@       IN      SOA     42dbc308.dsl.aros.net.  drr.aros.net.   (
+                        2004070808              ; serial, todays date + todays serial #
+                        1H                      ; refresh, seconds
+                        8H                      ; retry, seconds
+                        4W                      ; expire, seconds
+                        1H                      ; minimum ttl, seconds
+                )
+;
+edmundrichardson.com.   NS      ns0.xname.org.          ; Thanks to xname.org
+edmundrichardson.com.   NS      ns15.yourdns.org.          ; server ns1 was down.
+extreme-sports.edmundrichardson.com. CNAME extreme.sports.net.
+loot.edmundrichardson.com. TXT "empty"

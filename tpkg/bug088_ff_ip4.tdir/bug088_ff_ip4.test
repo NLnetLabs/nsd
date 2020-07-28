@@ -1,0 +1,17 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+. ../common.sh
+get_random_port 1
+
+# create .db file
+../../nsd -c bug088_ff_ip4.conf -V 3 -p $RND_PORT
+wait_nsd_up nsd.log
+if dig @127.0.0.1 -p $RND_PORT miek.nl SOA | grep NOERROR; then
+	echo OK
+else
+	echo fail
+	kill_pid `cat nsd.pid`
+	exit 1
+fi
+kill_pid `cat nsd.pid`
+exit 0

@@ -1,0 +1,4 @@
+$ORIGIN example.com.
+@ SOA . . 10 1 1 1 10
+class1          CLASS312        TXT     "class record"
+$TTL 5w*10s

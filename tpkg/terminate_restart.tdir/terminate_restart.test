@@ -1,0 +1,27 @@
+# #-- bug056_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+# kill a child server then see if we can still get an answer.
+# send STATS because child will print and we get its PID
+dig @localhost -p $TPKG_PORT test.example.nl TXT
+dig @localhost -p $TPKG_PORT test.example.nl TXT
+kill -SIGUSR1 `cat $TPKG_NSD_PID`
+sleep 1
+cat nsd.log
+cpid=`grep STATS nsd.log | sed -e 's/^.*nsd\[\([0-9]*\)\].*$/\1/' | tail -1`
+kill $cpid
+sleep 1
+tail nsd.log
+
+dig @localhost -p $TPKG_PORT test.example.nl TXT | tee out
+if grep "test string" out; then
+	echo "test ok"
+else
+	echo "server did not get back up"
+	exit 1
+fi
+
+exit 0

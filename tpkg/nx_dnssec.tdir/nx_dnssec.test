@@ -1,0 +1,11 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+# normal q for non existent sub dom. Should get ref to miek.nl
+dig +noall +auth @localhost -p $TPKG_PORT aaa.miek.nl > nx_dnssec.current_respons1
+dig +dnssec +noall +auth @localhost -p $TPKG_PORT aaa.miek.nl > nx_dnssec.current_respons2
+
+# both must be ok
+wdiff nx_dnssec.known_good_respons1 nx_dnssec.current_respons1 &&\
+wdiff nx_dnssec.known_good_respons2 nx_dnssec.current_respons2

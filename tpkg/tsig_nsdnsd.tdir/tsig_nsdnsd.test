@@ -1,0 +1,15 @@
+# #-- tsig_nsdnsd.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+RESULTFILE=tsig_nsdnsd.current_response
+
+sleep 3
+PRE="../.."
+dig @127.0.0.1 -p $TPKG_PORT2 edmundrichardson.com. AXFR | tee $RESULTFILE
+
+# must be ok
+cat $RESULTFILE | grep -v '^;' > tsig_nsdnsd.check
+wdiff tsig_nsdnsd.check tsig_nsdnsd.known_good

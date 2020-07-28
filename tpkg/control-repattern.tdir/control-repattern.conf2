@@ -1,0 +1,109 @@
+# config
+server: 
+	xfrdfile: "xfrd.state"
+	difffile: "ixfr.db"
+	database: "nsd.db"
+	logfile: "/dev/stderr"
+	zonelistfile: "control-repattern.zonelist"
+	zonesdir: ""
+	username: ""
+	chroot: ""
+	verbosity: 1
+	interface: 127.0.0.1
+
+remote-control:
+	control-enable: yes
+	control-interface: 127.0.0.1
+	control-port: CONTROLPORT
+	server-key-file: "nsd_server.key"
+	server-cert-file: "nsd_server.pem"
+	control-key-file: "nsd_control.key"
+	control-cert-file: "nsd_control.pem"
+
+# tsig key that is not changed
+key:
+	name: "test.unchange.1"
+	algorithm: hmac-md5
+	secret: "K2tf3TRjvQkVCmJF3/Z9vA=="
+
+# tsig key that is added
+key:
+	name: "test.add.1"
+	algorithm: hmac-md5
+	secret: "K2tf3TRjvQkVCmJF3/Z9vA=="
+
+# tsig key that is deleted
+#key:
+	#name: "test.delete.1"
+	#algorithm: hmac-md5
+	#secret: "K2tf3TRjvQkVCmJF3/Z9vA=="
+
+# tsig key that has its secret modified.
+key:
+	name: "test.chs.1"
+	algorithm: hmac-md5
+	secret: "BBtf3TRjvQkVCmJF3/Z9vA=="
+
+# tsig key that has its algorithm modified.
+key:
+	name: "test.cha.1"
+	algorithm: hmac-md5
+	secret: "K2tf3TRjvQkVCmJF3/Z9vA=="
+
+# pattern that is not changed.
+pattern:
+	name: "test.pat.unchange"
+	zonefile: "%s.zone"
+	allow-notify: 127.0.0.1 NOKEY
+	allow-notify: ::1 NOKEY
+	allow-notify: ::ffff:127.0.0.1 NOKEY
+	request-xfr: 127.0.0.1@54 NOKEY
+	request-xfr: ::1 NOKEY
+	request-xfr: ::ffff:127.0.0.1 NOKEY
+
+# pattern that is added (lots of acl features used here).
+pattern:
+	name: "test.pat.add"
+	zonefile: "%1/%2/%s.zone"
+	notify-retry: 5
+	allow-axfr-fallback: yes
+	outgoing-interface: 10.0.0.10
+	request-xfr: 192.0.2.2 test.add.1
+	request-xfr: UDP 192.0.2.1 test.add.1
+	request-xfr: AXFR 192.0.2.3 test.add.1
+	allow-notify: 2001:db8::0/64 test.add.1
+	provide-xfr: 192.0.2.50-192.0.2.60 BLOCKED
+	provide-xfr: 192.0.2.0/24 test.unchange.1
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: 127.0.0.1&255.255.0.0 NOKEY
+	provide-xfr: ::ffff:127.0.0.1 NOKEY
+#	# no notify statement (is NULL)
+
+# pattern that is deleted.
+#pattern:
+	#name: "test.pat.delete"
+	#zonefile: "blabla"
+	#outgoing-interface: 10.20.30.40
+	#request-xfr: 192.0.2.2 test.delete.1
+	#provide-xfr: 127.0.0.1 NOKEY
+	#provide-xfr: ::1 NOKEY
+
+# pattern that is changed, new provide-xfr used to test.
+pattern:
+	name: "test.pat.change.1"
+	zonefile: "control-repattern.zone"
+	provide-xfr: 127.0.0.1 test.add.1
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: ::ffff:127.0.0.1 test.add.1
+	provide-xfr: ::ffff:127.0.0.1 NOKEY
+
+# pattern that is changed (no zonefile)
+pattern:
+	name: "test.pat.change.2"
+	notify: 192.0.2.2 test.unchange.1
+	#notify: 192.0.2.1 NOKEY
+	notify: 192.0.2.1 test.add.1
+
+zone:
+	name: "static.net"
+	include-pattern: "test.pat.change.1"

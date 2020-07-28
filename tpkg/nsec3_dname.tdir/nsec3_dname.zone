@@ -1,0 +1,60 @@
+; signatures are borked due to hand editing.
+; Has DNAME at apex.
+$ORIGIN example.
+$TTL 3600
+example.  IN  SOA     ns1.example.org. bugs.x.w.example. 1 3600 300 (
+                          3600000 3600 )
+                  RRSIG   SOA 133 1 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          hNIkW1xzn+c+9P3W7PUVVptI72xEmOtn+eqQ
+                          ux0BE7Pfc6ikx4m7ivOVWETjbwHjqfY0X5G+
+                          rynLZNqsbLm40Q== )
+                  NS      ns1.example.org.
+                  NS      ns2.example.org.
+                  RRSIG   NS 133 1 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          D9+iBwcbeKL5+TorTfYn4/pLr2lSFwyGYCyM
+                          gfq4TpFaZpxrCJPLxHbKjdkR18jAt7+SR7B5
+                          JpiZcff2Cj2B0w== )
+                  MX      1 xx.example.org.
+                  RRSIG   MX 133 1 3600 20150420235959 20051021000000 (
+                          62827 example.
+                          jsGuTpXTTrZHzUKnViUpJ8YyGNpDd6n/sy2g
+                          HnSC0nj2jPxTC5VENLo3GxSpCSA5DlAz57p+
+                          RllUJk3DWktkjw== )
+                  DNSKEY  256 3 133 (
+                          AQO0gEmbZUL6xbD/xQczHbnwYnf+jQjwz/sU
+                          5k44rHTt0Ty+3aOdYoome9TjGMhwkkGby1TL
+                          ExXT48OGGdbfIme5 )
+                  DNSKEY  257 3 133 (
+                          AQOnsGyJvywVjYmiLbh0EwIRuWYcDiB/8blX
+                          cpkoxtpe19Oicv6Zko+8brVsTMeMOpcUeGB1
+                          zsYKWJ7BvR2894hX )
+                  RRSIG   DNSKEY 133 1 3600 20150420235959 (
+                          20051021000000 22088 example.
+                          Xpo9ptByXb8M1JR1i0KuRmKGc/YeOLcc6Ptn
+                          RJOx6ADLSL2mU6AYX5tAJRMTKTXk6waLIaxu
+                          liqUBOkCjLUZMw== )
+                  NSEC3PARAM 1 0 12 aabbccdd
+                  RRSIG   NSEC3PARAM 133 1 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          LIDOPjIUc2DtDpXUlOaLnJkHKbacDvXZlhRm
+                          g4eFGnaEd794HnjRjeT9w5QwtLDpLyyMRbGt
+                          4L0XlqhGJCcAsA== )
+		  ; el DNAME
+		  DNAME	  faraway.island.
+		  ; completely fake signature
+                  RRSIG   DNAME 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          VAJBlXoTOScrIM6yPlDsd9o05v39qIzFnemR
+                          2vgw1s4l8maJVWi9IHEg8oiypJvGwSCP1nFs
+                          EOlXyNFQJ0fWGA== )
+0p9mhaveqvm6t7vbl5lop2u3t2rp3tom.example. NSEC3 1 1 12 aabbccdd (
+                          2t7b4g4vsa5smi47k61mv5bv1a22bojr MX DNSKEY NS
+                          SOA NSEC3PARAM RRSIG )
+                  RRSIG   NSEC3 133 2 3600 20150420235959 (
+                          20051021000000 62827 example.
+                          Oq4uXtk4yF7nd/o/+M4h+6zGyIxS+pUcqdV7
+                          DKnF/tFkBJs0PMfwm9OdxdB+6cFv0LLYAzHu
+                          +tM22fPvu7lfXQ== )
+

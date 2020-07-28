@@ -1,0 +1,26 @@
+# #-- xfr_2.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+
+# check if possible
+if [ $HOSTTYPE != i386 ] && [ $HOSTTYPE != x86_64 ]; then
+	echo "skipped: test needs i386 (precompiled help prog)"
+	exit 0;
+fi
+
+if kill -0 $LDNSD_PID >/dev/null 2>&1; then
+	kill_pid $LDNSD_PID
+fi
+
+# do your teardown here
+if [ -z $TPKG_NSD_PID ]; then
+        exit 0
+fi
+
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill_pid $NSD_PID

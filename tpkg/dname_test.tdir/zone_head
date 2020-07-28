@@ -1,0 +1,4 @@
+$ORIGIN .	; Testing zone
+@ 3600 IN SOA ns.example. hostmaster.example. 2006060606 3600 1800 3600 3600
+ns.example.	A	192.168.0.3
+; rest of test below

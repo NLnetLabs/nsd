@@ -1,0 +1,228 @@
+# #-- nsd-control.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+CTRL="../../nsd-control -c nsd-control.conf2"
+
+$CTRL status
+if test $? -ne 0; then
+	echo "control connection fails"
+	exit 1
+fi
+
+
+echo "addzone example.net"
+$CTRL addzone example.net slave
+if test $? -ne 0; then
+	echo "control connection fails"
+	exit 1
+fi
+wait_logfile nsd.log "zone example.net serial 0 is updated to 1" 10
+dig @127.0.0.1 -p $NSD_PORT example.net SOA | tee out
+if grep "leela" out; then
+	echo OK
+else
+	echo "failed: example.net SOA is wrong"
+	exit 1
+fi
+
+
+echo "static.net fixed zone"
+dig @127.0.0.1 -p $NSD_PORT static.net SOA | tee out
+if grep "hostmaster.static.net" out; then
+	echo OK
+else
+	echo "failed: static.net SOA is wrong"
+	exit 1
+fi
+$CTRL delzone static.net
+if test $? -ne 1; then
+	echo "error: delzone static must fail"
+	exit 1
+fi
+sleep 1
+dig @127.0.0.1 -p $NSD_PORT static.net SOA | tee out
+if grep "hostmaster.static.net" out; then
+	echo OK
+else
+	echo "failed: static.net SOA is wrong"
+	exit 1
+fi
+
+
+# $1: name
+function addmaster () {
+	echo
+	echo "addzone $1"
+	$CTRL addzone $1 master
+	if test $? -ne 0; then
+		echo "control connection fails"
+		exit 1
+	fi
+	wait_logfile nsd.log "zone $1 read" 10
+	dig @127.0.0.1 -p $NSD_PORT $1 SOA | tee out
+	# wait for a bit if needed
+	if grep "hostmaster.$1" out; then : ; else sleep 1;
+		dig @127.0.0.1 -p $NSD_PORT $1 SOA | tee out ; fi
+	if grep "hostmaster.$1" out; then : ; else sleep 1;
+		dig @127.0.0.1 -p $NSD_PORT $1 SOA | tee out ; fi
+	if grep "hostmaster.$1" out; then : ; else sleep 1;
+		dig @127.0.0.1 -p $NSD_PORT $1 SOA | tee out ; fi
+	if grep "hostmaster.$1" out; then : ; else sleep 1;
+		dig @127.0.0.1 -p $NSD_PORT $1 SOA | tee out ; fi
+	if grep "hostmaster.$1" out; then : ; else sleep 1;
+		dig @127.0.0.1 -p $NSD_PORT $1 SOA | tee out ; fi
+	if grep "hostmaster.$1" out; then
+		echo OK
+	else
+		echo "failed: $1 SOA is wrong"
+		exit 1
+	fi
+}
+
+addmaster "example1.com"
+addmaster "example2.com"
+addmaster "example3.com"
+addmaster "example4.com"
+addmaster "example5.com"
+
+# $1: name
+function delmaster() {
+	echo
+	echo "delzone $1"
+	$CTRL delzone $1
+	if test $? -ne 0; then
+		echo "control connection fails"
+		exit 1
+	fi
+}
+
+# this triggers the zonelist line reuse
+delmaster "example3.com"
+addmaster "example6.com"
+
+# now trigger a zonelist compact
+addmaster "example7.com"
+addmaster "example8.com"
+addmaster "example9.com"
+delmaster "example2.com"
+delmaster "example4.com"
+delmaster "example5.com"
+delmaster "example7.com"
+delmaster "example8.com"
+delmaster "example9.com"
+
+# test that the deleted zone is really gone from the live server
+dig @127.0.0.1 -p $NSD_PORT example3.com SOA | tee out
+if grep "REFUSED" out; then
+	echo OK
+else
+	echo "failed: deleted zone is wrong"
+	exit 1
+fi
+
+# test addzones
+echo
+echo "addzones"
+echo "examplex0.com master" > zlist
+echo "examplex1.com master" >> zlist
+echo "examplex2.com master" >> zlist
+echo "examplex3.com master" >> zlist
+echo "examplex4.com master" >> zlist
+echo "examplex5.com master" >> zlist
+echo "examplex6.com master" >> zlist
+echo "examplex7.com master" >> zlist
+echo "examplex8.com master" >> zlist
+echo "examplex9.com master" >> zlist
+$CTRL addzones < zlist
+if test $? -ne 0; then
+	echo "control connection fails"
+	exit 1
+fi
+wait_logfile nsd.log "zone examplex9.com read" 10
+dig @127.0.0.1 -p $NSD_PORT examplex9.com SOA | tee out
+# wait for a bit if needed
+if grep "hostmaster.examplex9.com" out; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT examplex9.com SOA | tee out ; fi
+if grep "hostmaster.examplex9.com" out; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT examplex9.com SOA | tee out ; fi
+if grep "hostmaster.examplex9.com" out; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT examplex9.com SOA | tee out ; fi
+if grep "hostmaster.examplex9.com" out; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT examplex9.com SOA | tee out ; fi
+if grep "hostmaster.examplex9.com" out; then : ; else sleep 1;
+	dig @127.0.0.1 -p $NSD_PORT examplex9.com SOA | tee out ; fi
+if grep "hostmaster.examplex9.com" out; then
+	echo OK
+else
+	echo "failed: examplex9.com SOA is wrong"
+	exit 1
+fi
+
+# test delzones
+echo
+echo "delzones"
+echo "examplex0.com" > zlist
+echo "examplex1.com" >> zlist
+echo "examplex2.com" >> zlist
+echo "examplex3.com" >> zlist
+echo "examplex4.com" >> zlist
+echo "examplex5.com" >> zlist
+echo "examplex6.com" >> zlist
+echo "examplex7.com" >> zlist
+echo "examplex8.com" >> zlist
+echo "examplex9.com" >> zlist
+$CTRL delzones < zlist
+if test $? -ne 0; then
+	echo "control connection fails"
+	exit 1
+fi
+sleep 2
+dig @127.0.0.1 -p $NSD_PORT examplex3.com SOA | tee out
+if grep "REFUSED" out; then
+	echo OK
+else
+	echo "failed: deleted zone is wrong"
+	exit 1
+fi
+
+# stop via nsd-control
+echo "stop"
+$CTRL stop
+if test $? -ne 0; then
+	echo "error: stop failed"
+	exit 1
+fi
+# wait for nsd to go down
+count=0
+while test -f $NSD_PID; do
+	sleep 1
+	count=$(($count + 1))
+	if test $count -gt 20; then
+		echo "error: stop takes too long"
+		exit 1
+	fi
+done
+
+# check zonelist file
+cat nsd.zonelist*
+cat >check.zonelist <<EOF
+# NSD zone list
+# name pattern
+add example1.com master
+add example6.com master
+del examplex8.com master
+del examplex9.com master
+add example.net slave
+EOF
+if diff nsd.zonelist check.zonelist; then
+	echo "zonelist OK"
+else
+	echo "failed"
+	exit 1
+fi
+
+exit 0

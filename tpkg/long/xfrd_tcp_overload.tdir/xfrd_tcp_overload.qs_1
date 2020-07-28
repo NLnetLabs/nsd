@@ -1,0 +1,18 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply to AXFR - for ANY zone,
+# with a bad answer (AXFR for example.com)
+#ENTRY_BEGIN
+#MATCH opcode qtype # but not: qname
+#REPLY QUERY NOERROR
+#ADJUST copy_id
+#SECTION QUESTION
+#@ IN AXFR
+#SECTION ANSWER
+#@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+#@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+#ENTRY_END

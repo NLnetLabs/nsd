@@ -1,0 +1,44 @@
+# config
+server: 
+	xfrdfile: "xfrd.state"
+	difffile: "ixfr.db"
+	database: "nsd.db"
+	logfile: "/dev/stderr"
+	zonelistfile: "control-repat-zone.zonelist"
+	zonesdir: ""
+	username: ""
+	chroot: ""
+	verbosity: 1
+	interface: 127.0.0.1
+
+remote-control:
+	control-enable: yes
+	control-interface: 127.0.0.1
+	control-port: CONTROLPORT
+	server-key-file: "nsd_server.key"
+	server-cert-file: "nsd_server.pem"
+	control-key-file: "nsd_control.key"
+	control-cert-file: "nsd_control.pem"
+
+# pattern for the zone
+pattern:
+	name: "test.pat"
+	zonefile: "control-repat-zone.zone"
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: 127.0.0.2 NOKEY
+	provide-xfr: ::ffff:127.0.0.1 NOKEY
+
+# zone that stays existing
+zone:
+	name: "static.net."
+	include-pattern: "test.pat"
+
+# zone that is deleted
+#zone:
+#	name: "deleted.net."
+#	include-pattern: "test.pat"
+
+# zone that is added
+zone:
+	name: "example.com."
+	include-pattern: "test.pat"

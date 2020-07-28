@@ -1,0 +1,13 @@
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# svnserve resets the path
+. ../../common.sh
+
+# start NSD
+PRE="../../.." 
+TPKG_ZONEC="$PRE/zonec"
+
+# create .db file
+$TPKG_ZONEC -c size_0.conf 
+
+test_tool_avail "hping"

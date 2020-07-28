@@ -1,0 +1,14 @@
+# #-- bug072_parent.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+
+# both should give a normal answer, not abc/bac here!
+$DIG +noall +answer @localhost -p $TPKG_PORT A a.abc > bug072_parent.current_respons1
+$DIG +noall +answer @localhost -p $TPKG_PORT A a.bac > bug072_parent.current_respons2
+
+wdiff bug072_parent.current_respons1 bug072_parent.known_good_respons1 && \
+wdiff bug072_parent.current_respons2 bug072_parent.known_good_respons2

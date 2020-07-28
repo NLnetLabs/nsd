@@ -1,0 +1,52 @@
+# #-- bug236_rrs_before_soa.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+get_random_port 1
+PORT=$RND_PORT
+
+NSD="../../nsd"
+GREP=grep
+if test -x "`which ggrep`"; then GREP=ggrep; fi
+if echo x | grep -e x 2>&1 | grep illegal >/dev/null; then
+	GREP=/usr/xpg4/bin/grep; fi
+
+# start, check OK, and stop
+$NSD -c bug236_rrs_before_soa.conf -p $PORT
+wait_nsd_up nsd.log
+dig @127.0.0.1 -p $PORT bug236_rrs_before_soa.net SOA | tee digfile
+if cat digfile | $GREP NOERROR; then
+	echo nsd allows RRs before SOA, ok
+else
+	echo "not OK"
+	cat nsd.log
+	exit 1
+fi
+kill_pid `cat nsd.pid`
+rm nsd.log nsd.db
+
+$NSD -c bug236_rrs_before_soa.conf2 -p $PORT
+wait_nsd_up nsd.log
+dig @127.0.0.1 -p $PORT bug236_rrs_before_soa.net SOA | tee digfile
+if cat digfile | $GREP -e SERVFAIL -e REFUSED; then
+	echo OK
+else
+	echo nsd allows multiple zones, not ok
+	cat nsd.log
+	exit 1
+fi
+dig @127.0.0.1 -p $PORT bug236_rrs_before_soa.org SOA | tee digfile
+if cat digfile | $GREP -e SERVFAIL -e REFUSED; then
+	echo OK
+else
+	echo nsd allows multiple zones, not ok
+	cat nsd.log
+	exit 1
+fi
+
+kill_pid `cat nsd.pid`
+echo OK
+exit 0

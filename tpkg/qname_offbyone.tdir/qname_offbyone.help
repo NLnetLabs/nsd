@@ -1,0 +1,2 @@
+This test runs without arguments.
+It tests if NSD is vulnerable to buffer overflow when processing the QNAME.

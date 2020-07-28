@@ -1,0 +1,60 @@
+# #-- ixfr_outsync.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+
+$TPKG_NSD -c nsd.conf -p $TPKG_PORT
+#ldns-notify -z example.net -p $TPKG_PORT -s 2 127.0.0.1
+wait_nsd_up nsd.log
+wait_logfile nsd.log "serial 1 is updated to 2" 45
+cat nsd.log
+cat master.log
+
+# the zone is loaded and one update has been done.
+echo port: $TPKG_PORT
+dig @127.0.0.1 -p $TPKG_PORT +dnssec example.net AXFR | tee thezone.1
+grep -v '^;' thezone.1 | wc -l
+if test `grep -v '^;' thezone.1 | wc -l` -ne 20; then
+	echo "Initial zone transfer failed"
+	exit 1
+fi
+
+# now, stop the server
+kill_pid `cat nsd.pid`
+
+# now, change config
+cp nsd.conf2 nsd.conf
+# rebuild
+# (nothing)
+touch ixfr_outsync.zone2
+# start again
+mv nsd.log nsd.log.old
+../../nsd -c nsd.conf -p $TPKG_PORT
+# see what happens if its up again.
+wait_nsd_up nsd.log
+
+dig @127.0.0.1 -p $TPKG_PORT +dnssec example.net AXFR | tee thezone.2
+if test `grep -v '^;' thezone.2 | wc -l` -ne 20; then
+	echo "Zone updates failed, zone too small"
+	cat nsd.log
+	cat master.log
+	exit 1
+fi
+
+# do another update
+# todo perhaps
+
+cat nsd.log
+cat master.log
+exit 0

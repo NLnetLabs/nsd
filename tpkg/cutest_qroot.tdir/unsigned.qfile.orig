@@ -1,0 +1,173 @@
+# qfile with handmade queries
+bufsize 4096
+check 0
+write 1
+speed 0
+
+# lame reply
+query foo.org. IN A
+end_reply
+query_do foo.org. IN A
+end_reply
+query foo.zap. IN A
+end_reply
+query_do foo.zap. IN A
+end_reply
+
+# the zone apex
+query example.org. IN SOA
+end_reply
+query_do example.org. IN SOA
+end_reply
+
+# zone apex nodata
+query example.org. IN HINFO
+end_reply
+query_do example.org. IN HINFO
+end_reply
+
+# zone apex DS (sent to wrong auth server)
+query example.org. IN DS
+end_reply
+query_do example.org. IN DS
+end_reply
+
+# nxdomain under zone apex.
+query 00.example.org. IN A
+end_reply
+query_do 00.example.org. IN A
+end_reply
+
+# data element 'www'
+query www.example.org. IN A
+end_reply
+query_do www.example.org. IN A
+end_reply
+# qtype ANY
+query www.example.org. IN ANY
+end_reply
+query_do www.example.org. IN ANY
+end_reply
+# nodata at www
+query www.example.org. IN PTR
+end_reply
+query_do www.example.org. IN PTR
+end_reply
+# nxdomain after www
+query www2.example.org. IN A
+end_reply
+query_do www2.example.org. IN A
+end_reply
+# nxdomain under www
+query nx.www.example.org. IN A
+end_reply
+query_do nx.www.example.org. IN A
+end_reply
+
+# query for NS rrset
+query example.org. IN NS
+end_reply
+query_do example.org. IN NS
+end_reply
+
+# referral
+query www.sub.example.org. IN A
+end_reply
+query_do www.sub.example.org. IN A
+end_reply
+
+# referral DS
+query sub.example.org. IN DS
+end_reply
+query_do sub.example.org. IN DS
+end_reply
+
+# nxdomain after referral
+query sub2.example.org. IN A
+end_reply
+query_do sub2.example.org. IN A
+end_reply
+
+# empty nonterminal (nodata answer)
+query b.c.example.org. IN A
+end_reply
+query_do b.c.example.org. IN A
+end_reply
+
+# empty nonterminal (nxdomain under it)
+query foo.c.example.org. IN A
+end_reply
+query_do foo.c.example.org. IN A
+end_reply
+
+# empty nonterminal (nxdomain after it)
+query b2.c.example.org. IN A
+end_reply
+query_do b2.c.example.org. IN A
+end_reply
+
+# wildcard
+# itself, instantiated, exist, nodataerror
+query *.wc.example.org. IN A
+end_reply
+query_do *.wc.example.org. IN A
+end_reply
+query blabla.wc.example.org. IN A
+end_reply
+query_do blabla.wc.example.org. IN A
+end_reply
+query exist.wc.example.org. IN A
+end_reply
+query_do exist.wc.example.org. IN A
+end_reply
+query blablabla.wc.example.org. IN PTR
+end_reply
+query_do blablabla.wc.example.org. IN PTR
+end_reply
+# wildcard with additional section processing.
+query *.wc.example.org. IN MX
+end_reply
+query_do *.wc.example.org. IN MX
+end_reply
+query blabla.wc.example.org. IN MX
+end_reply
+query_do blabla.wc.example.org. IN MX
+end_reply
+# normaldata with wildcard in its additional section processing
+query wcadd.example.org. IN MX
+end_reply
+query_do wcadd.example.org. IN MX
+end_reply
+
+# cname
+query cname.example.org. IN AAAA
+end_reply
+query_do cname.example.org. IN AAAA
+end_reply
+query cname.example.org. IN CNAME
+end_reply
+query_do cname.example.org. IN CNAME
+end_reply
+
+# dname ; data next to it, nodata, a CNAME referral, yxdomain
+query dname.example.org. IN TXT
+end_reply
+query_do dname.example.org. IN TXT
+end_reply
+query dname.example.org. IN MX
+end_reply
+query_do dname.example.org. IN MX
+end_reply
+query bla.dname.example.org. IN A
+end_reply
+query_do bla.dname.example.org. IN A
+end_reply
+query blabla.blabla.dname.example.org. IN A
+end_reply
+query_do blabla.blabla.dname.example.org. IN A
+end_reply
+query 1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.aa.aa.aa.blabla.a.dname.example.org. IN A
+end_reply
+query_do 1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.aa.aa.aa.blabla.a.dname.example.org. IN A
+end_reply
+

@@ -1,0 +1,4 @@
+; nothing fancy here
+$TTL    4D
+@	IN	SOA	nibbler.example.com. leela.example.com. 1 3 4 3000 5
+	IN	A	192.0.2.1

@@ -1,0 +1,72 @@
+#!/bin/bash
+# #-- testplan_axfr_tsig.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+RESULTFILE=testplan_axfr_tsig.current_response
+WAITTIME=3
+
+function update_master_zone() { # <zonefile>
+	# just overwrite the existing zone.
+	cp $1 testplan_axfr_tsig.zone
+	sleep 1  # to make sure it has a new timestamp
+	touch testplan_axfr_tsig.zone
+	echo "signalling..."
+	# signal the server
+	NSD_PID=`cat $TPKG_NSD_PID`
+	kill -s SIGHUP $NSD_PID 2>/dev/null
+}
+
+function check_slave_zone() { # <testnr>
+	sleep $WAITTIME
+	echo "-------wait-----------------------------------------"
+	# check if slave has the same zone as the master zonefile.
+	dig @127.0.0.1 -p $SLAVE_PORT -y "hmac-md5:blabla:K2tf3TRjvQkVCmJF3/Z9vA==" example.com. AXFR | tee $RESULTFILE
+	dig @127.0.0.1 -p $MASTER_PORT -y "hmac-md5:blabla:K2tf3TRjvQkVCmJF3/Z9vA==" example.com. AXFR | tee $RESULTFILE.2
+	cat $RESULTFILE | grep -v -e '^;' -e TSIG > testplan_axfr_tsig.check
+	cat $RESULTFILE.2 | grep -v -e '^;' -e TSIG > testplan_axfr_tsig.check.2
+	if wdiff testplan_axfr_tsig.check testplan_axfr_tsig.check.2 >/dev/null; then
+		echo "ZONE SOA=$1 OK"
+	else
+		echo "ZONE SOA=$1 BAD"
+		echo diff is
+		wdiff testplan_axfr_tsig.check testplan_axfr_tsig.check.2
+		exit 1
+	fi
+
+}
+
+# first serial should be transferred on startup.
+check_slave_zone 1
+
+# update zone on master and check if slave receives it.
+update_master_zone testplan_axfr_tsig.zone_2
+check_slave_zone 2
+
+update_master_zone testplan_axfr_tsig.zone_3
+check_slave_zone 3
+
+update_master_zone testplan_axfr_tsig.zone_4.signed
+check_slave_zone 4
+
+update_master_zone testplan_axfr_tsig.zone_5
+check_slave_zone 5
+
+update_master_zone testplan_axfr_tsig.zone_6.signed
+check_slave_zone 6
+
+update_master_zone testplan_axfr_tsig.zone_7.signed
+check_slave_zone 7
+
+update_master_zone testplan_axfr_tsig.zone_8.signed
+check_slave_zone 8
+
+update_master_zone testplan_axfr_tsig.zone_9
+check_slave_zone 9    # note that 8+2**31 = 2147483656
+
+update_master_zone testplan_axfr_tsig.zone_10
+check_slave_zone 10
+
+exit 0

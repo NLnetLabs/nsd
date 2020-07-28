@@ -1,0 +1,53 @@
+#!/bin/bash
+# #-- notify_interrupts_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+RESULTFILE=notify_interrupts_axfr.current_response
+PRE="../../.."
+TPKG_NOTIFY="ldns-notify"
+if test -f "`which ldns-testns`"; then
+        MINISERVER=`which ldns-testns`
+else
+        MINISERVER="$PRE/tpkg/pcat/ldns-testns.linux"
+fi
+WAITTIME=3
+
+function notify_slave() { # <serial>
+	echo ">>> ldns-notify -p $SLAVE_PORT -z example.com. 127.0.0.1"
+	$TPKG_NOTIFY -p $SLAVE_PORT -z example.com. 127.0.0.1
+}
+
+echo $MINISERVER -p $MASTER_PORT notify_interrupts_axfr.qs_1
+$MINISERVER -p $MASTER_PORT notify_interrupts_axfr.qs_1 &
+echo $! >$TPKG_NSD_PID
+
+notify_slave 2
+sleep 1
+notify_slave 2
+sleep 5
+notify_slave 2
+sleep 3
+notify_slave 2
+
+function check_slave_zone() { # <testnr> <checkfile>
+	sleep $WAITTIME
+	echo "-------wait-----------------------------------------"
+	# check if slave has the same zone as the check zonefile.
+	dig @127.0.0.1 -p $SLAVE_PORT example.com. AXFR | tee $RESULTFILE
+	cat $RESULTFILE | grep -v '^;' > notify_interrupts_axfr.check
+	if wdiff notify_interrupts_axfr.check $2 >/dev/null; then
+		echo "ZONE SOA=$1 OK"
+	else
+		echo "ZONE SOA=$1 BAD"
+		echo diff is
+		wdiff notify_interrupts_axfr.check $2
+		exit 1
+	fi
+}
+
+check_slave_zone 1 notify_interrupts_axfr.zone_2
+
+exit 0

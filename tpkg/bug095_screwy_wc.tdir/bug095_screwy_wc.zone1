@@ -1,0 +1,10 @@
+$TTL 900
+@       IN      SOA     ns0.example. ed.lewis.neustar.biz. (
+                        1       ;serial number
+                        1200    ;refresh time (20 min)
+                        300     ;retry time (5 min)
+                        3600    ;expire time (1 hour)
+                        900 )   ;minimum time (15 minutes)
+
+                NS      ns0.example.net.
+*               NS      ns0.example.net.

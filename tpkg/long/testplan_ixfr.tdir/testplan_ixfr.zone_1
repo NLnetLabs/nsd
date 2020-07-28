@@ -1,0 +1,2 @@
+example.com. 345600  IN      SOA     ns0.example.org. root.example.com. 1 3600 28800 2419200 3600
+example.com. 345600  IN      SOA     ns0.example.org. root.example.com. 1 3600 28800 2419200 3600

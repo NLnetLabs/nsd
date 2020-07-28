@@ -1,0 +1,98 @@
+# #-- zonestats.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+# are zonestats enabled?
+if grep "define USE_ZONE_STATS" $PRE/config.h; then
+	echo "zone stats enabled, do test"
+else
+	echo "zone stats not enabled, skip test"
+	exit 0
+fi
+
+# start NSD
+RAND=$(($RANDOM % 300))
+TPKG_PORT=$((5353 + $RAND))
+
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+echo port: $TPKG_PORT
+
+$TPKG_NSD -c nsd_1.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -V 5
+wait_nsd_up nsd.log
+
+# send a couple of queries
+dig @127.0.0.1 -p $TPKG_PORT www.example.com A | tee result
+if grep "192.0.2.1" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+dig @127.0.0.1 -p $TPKG_PORT www.example.com A | tee result
+if grep "192.0.2.1" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+dig @127.0.0.1 -p $TPKG_PORT www.example.com A | tee result
+if grep "192.0.2.1" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+dig @127.0.0.1 -p $TPKG_PORT www.example.net A | tee result
+if grep "192.0.2.1" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+dig @127.0.0.1 -p $TPKG_PORT www.example.net A | tee result
+if grep "192.0.2.1" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+
+# fetch and check statistics
+$PRE/nsd-control -c nsd_1.conf stats | tee stats
+if grep "num.queries=5" stats; then echo "OK num.queries"; else echo "FAIL"; exit 1; fi
+if grep "bla.num.queries=2" stats; then echo "OK bla.num.queries"; else echo "FAIL"; exit 1; fi
+if grep "example.com.num.queries=3" stats; then echo "OK example.com.num.queries"; else echo "FAIL"; exit 1; fi
+
+# check that server is still up
+dig @127.0.0.1 -p $TPKG_PORT www.example.net A | tee result
+if grep "192.0.2.1" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+
+echo ""
+cat nsd.log
+
+exit 0

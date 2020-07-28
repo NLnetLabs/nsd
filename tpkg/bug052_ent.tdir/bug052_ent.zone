@@ -1,0 +1,12 @@
+$TTL    4D
+$ORIGIN miek.nl.
+@       IN      SOA     open.nlnetlabs.nl. miekg.atoom.net. (
+                         2005061300         ; Serial
+                             4H         ; Refresh
+                             1H         ; Retry
+                             7D         ; Expire
+                             1D )       ; Negative Cache TTL
+		IN	NS	open.nlnetlabs.nl.
+
+; answers for b should be no-data responses
+a.b	IN	TXT     "b is an empty non terminal. a.b has a text record"

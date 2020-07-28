@@ -1,0 +1,21 @@
+$ORIGIN example.nl.
+@       IN      SOA     bla  root (
+                        2003070707              ; serial, todays date + todays serial #
+                        1H                      ; refresh, seconds
+                        8H                      ; retry, seconds
+                        4W                      ; expire, seconds
+                        1H                      ; minimum ttl, seconds
+                )
+;
+@   NS      ns0.xname.org.          ; Thanks to xname.org
+@   NS      ns1.xname.org.          ; Thanks to xname.org
+
+; A Delegation
+sub.example.nl.	NS	uchi.sub.example.nl.
+sub.example.nl.	NS	ns0.name.example.nl.
+; glue
+uchi.sub.example.nl. A	10.11.12.13
+
+; wildcard nameservers
+*.name.example.nl.	A	10.11.13.14
+
