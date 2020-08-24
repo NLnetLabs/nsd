@@ -45,6 +45,7 @@ cleanup_tsig_openssl_data(void *data)
 {
 	struct tsig_openssl_data* d = (struct tsig_openssl_data*)data;
 	EVP_MAC_free(d->mac);
+	d->mac = NULL;
 }
 #endif
 
@@ -176,6 +177,7 @@ cleanup_context(void *data)
 #else
 	struct tsig_openssl_context* c = (struct tsig_openssl_context*)data;
 	EVP_MAC_CTX_free(c->hmac_ctx);
+	c->hmac_ctx = NULL;
 #endif
 }
 
@@ -217,6 +219,9 @@ init_context(void *context,
 	struct tsig_openssl_data* algo_data = (struct tsig_openssl_data*)
 		algorithm->data;
 	struct tsig_openssl_context* c = (struct tsig_openssl_context*)context;
+	if(c->hmac_ctx) {
+		EVP_MAC_CTX_free(c->hmac_ctx);
+	}
 	c->hmac_ctx = EVP_MAC_CTX_new(algo_data->mac);
 	if(!c->hmac_ctx) {
 		log_msg(LOG_ERR, "could not EVP_MAC_CTX_new");
