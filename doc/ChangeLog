@@ -2,6 +2,7 @@
 	- Fix that configure checks for EVP_sha256 to detect openssl, because
 	  HMAC_CTX_new is deprecated in 3.0.0.
 	- Port TSIG code for openssl 3.0.0-alpha6.
+	- Sync acx_nlnetlabs.m4 with the unbound repo.
 
 4 August 2020: Wouter
 	- Merge #117: mini_event.h (4.3.2 and 4.3.1) on OpenBSD cannot find
