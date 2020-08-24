@@ -3,11 +3,14 @@ NSD RELEASE NOTES
 4.3.3 (in development)
 ================
 FEATURES:
+	- Port TSIG code for openssl 3.0.0-alpha6.
 BUG FIXES:
 	- Fix make install with --with-pidfile="".
 	- Merge #115 from millert: Fix strlcpy() usage. From OpenBSD.
 	- Merge #117: mini_event.h (4.3.2 and 4.3.1) on OpenBSD cannot find
 	  fd_set - patch.
+	- Fix that configure checks for EVP_sha256 to detect openssl, because
+	  HMAC_CTX_new is deprecated in 3.0.0.
 
 
 4.3.2

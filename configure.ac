@@ -991,14 +991,14 @@ if test x$HAVE_SSL = x"yes"; then
 	BAKLIBS="$LIBS"
 	LIBS="-lcrypto $LIBS"
 	AC_TRY_LINK([], [
-		int HMAC_Update(void);
-		(void)HMAC_Update();
+		int EVP_sha256(void);
+		(void)EVP_sha256();
 	], [],[
-		dnl so link fails for HMAC_Update, try with -pthread.
+		dnl so link fails for EVP_sha256, try with -pthread.
 		BAKCFLAGS="$CFLAGS"
 		CFLAGS="$CFLAGS -pthread"
 		AC_MSG_CHECKING([if libcrypto needs -pthread])
-		AC_TRY_LINK_FUNC([HMAC_Update], [
+		AC_TRY_LINK_FUNC([EVP_sha256], [
 			AC_MSG_RESULT([yes])
 		] , [
 			AC_MSG_RESULT([no])
@@ -1009,14 +1009,14 @@ if test x$HAVE_SSL = x"yes"; then
 	LIBS="$BAKLIBS"
 
 	if test -n "$ssldir"; then
-            AC_CHECK_LIB(crypto, HMAC_Update,, [
+            AC_CHECK_LIB(crypto, EVP_sha256,, [
                     AC_MSG_ERROR([OpenSSL found in $ssldir, but version 0.9.7 or higher is required])
                 ])
 	fi
 	SSL_LIBS="-lssl"
 	AC_SUBST(SSL_LIBS)
-	AC_CHECK_HEADERS([openssl/ssl.h openssl/err.h openssl/rand.h openssl/ocsp.h],,, [AC_INCLUDES_DEFAULT])
-	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new EVP_cleanup ERR_load_crypto_strings OPENSSL_init_crypto SSL_CTX_set_security_level CRYPTO_memcmp EC_KEY_new_by_curve_name])
+	AC_CHECK_HEADERS([openssl/ssl.h openssl/err.h openssl/rand.h openssl/ocsp.h openssl/core_names.h],,, [AC_INCLUDES_DEFAULT])
+	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new EVP_cleanup ERR_load_crypto_strings OPENSSL_init_crypto SSL_CTX_set_security_level CRYPTO_memcmp EC_KEY_new_by_curve_name EVP_MAC_CTX_new EVP_MAC_CTX_set_params])
 	AC_CHECK_DECLS([SSL_CTX_set_ecdh_auto,SSL_CTX_set_tmp_ecdh], [], [], [
 AC_INCLUDES_DEFAULT
 #ifdef HAVE_OPENSSL_ERR_H
