@@ -196,6 +196,8 @@ resolve_ifa_name(struct ifaddrs *ifas, const char *search_ifa, char ***ip_addres
 		else {
 			continue;
 		}
+		VERBOSITY(4, (LOG_INFO, "interface %s has address %s",
+			search_ifa, addr_buf));
 
 		*ip_addresses = xrealloc(*ip_addresses, sizeof(char *) * (*ip_addresses_size + 1));
 		(*ip_addresses)[*ip_addresses_size] = xstrdup(addr_buf);
