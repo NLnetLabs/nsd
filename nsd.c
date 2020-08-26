@@ -154,62 +154,56 @@ resolve_ifa_name(struct ifaddrs *ifas, const char *search_ifa, char ***ip_addres
 
 	for(ifa = ifas; ifa != NULL; ifa = ifa->ifa_next) {
 		sa_family_t family;
-		struct sockaddr_in *in4;
-#ifdef INET6
-		struct sockaddr_in6 *in6;
-#endif
-		const void *addr;
-		const char *str;
-#ifdef INET6      /* |   address ip    | % |  ifa name  | TODO: @gearnode ensure the IFA_NAMESIZE is not already in the ADDRSTRLEN*/
-		char addr_buf[INET6_ADDRSTRLEN + 1 + IF_NAMESIZE];
-		char if_index_name[IF_NAMESIZE] = "";
+#ifdef INET6      /* |   address ip    | % |  ifa name  | */
+		char addr_buf[INET6_ADDRSTRLEN + 1 + IF_NAMESIZE + 1];
 #else
-		char addr_buf[INET_ADDRSTRLEN];
+		char addr_buf[INET_ADDRSTRLEN + 1];
 #endif
 
 		if(strcmp(ifa->ifa_name, search_ifa) != 0)
 			continue;
 
-
 		if(ifa->ifa_addr == NULL)
 			continue;
 
 		family = ifa->ifa_addr->sa_family;
-
-		switch(family) {
-		case AF_INET:
-			in4 = (struct sockaddr_in *)ifa->ifa_addr;
-			addr = &in4->sin_addr;
-			break;
+		if(family == AF_INET) {
+			struct sockaddr_in *in4 = (struct sockaddr_in *)
+				ifa->ifa_addr;
+			if(!inet_ntop(family, &in4->sin_addr, addr_buf,
+				sizeof(addr_buf)))
+				error("inet_ntop");
+		}
 #ifdef INET6
-		case AF_INET6:
-			in6 = (struct sockaddr_in6 *)ifa->ifa_addr;
-			addr = &in6->sin6_addr;
-			if_indextoname(in6->sin6_scope_id, (char *)if_index_name);
-			break;
+		else if(family == AF_INET6) {
+			struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)
+				ifa->ifa_addr;
+			char a6[INET6_ADDRSTRLEN + 1];
+			char if_index_name[IF_NAMESIZE + 1];
+			if_index_name[0] = 0;
+			if(!inet_ntop(family, &in6->sin6_addr, a6, sizeof(a6)))
+				error("inet_ntop");
+			if_indextoname(in6->sin6_scope_id,
+				(char *)if_index_name);
+			if (strlen(if_index_name) != 0) {
+				snprintf(addr_buf, sizeof(addr_buf), "%s%%%s",
+					a6, if_index_name);
+			} else {
+				snprintf(addr_buf, sizeof(addr_buf), "%s", a6);
+			}
+		}
 #endif
-		default:
+		else {
 			continue;
 		}
 
-		str = inet_ntop(family, addr, addr_buf, sizeof(addr_buf));
-		if (!str)
-			error("inet_ntop");
-
-#ifdef INET6
-		if (strlen(if_index_name) != 0) {
-		  (void)strncat(addr_buf, "%", sizeof(addr_buf) - strlen(addr_buf) - 1);
-		  (void)strncat(addr_buf, if_index_name, sizeof(addr_buf) - strlen(addr_buf) - 1);
-		}
-#endif
-
-		*ip_addresses = xrealloc(*ip_addresses, sizeof(char *) * *ip_addresses_size + 1);
+		*ip_addresses = xrealloc(*ip_addresses, sizeof(char *) * (*ip_addresses_size + 1));
 		(*ip_addresses)[*ip_addresses_size] = xstrdup(addr_buf);
 		(*ip_addresses_size)++;
 	}
 
 	if (*ip_addresses_size == last_ip_addresses_size) {
-		*ip_addresses = xrealloc(*ip_addresses, sizeof(char *) * *ip_addresses_size + 1);
+		*ip_addresses = xrealloc(*ip_addresses, sizeof(char *) * (*ip_addresses_size + 1));
 		(*ip_addresses)[*ip_addresses_size] = xstrdup(search_ifa);
 		(*ip_addresses_size)++;
 	}
@@ -247,11 +241,10 @@ resolve_interface_names(struct nsd_options* options)
 			free(ip_addresses[i]);
 
 			if(first == NULL) {
-				first = last = current;
-				continue;
+				first = current;
+			} else {
+				last->next = current;
 			}
-
-			last->next = current;
 			last = current;
 		}
 		free(ip_addresses);
