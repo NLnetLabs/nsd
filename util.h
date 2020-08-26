@@ -143,12 +143,12 @@ lookup_table_type *lookup_by_id(lookup_table_type table[], int id);
  * could not be allocated and exit the program.  These functions never
  * return NULL.
  */
-char *xstrdup(const char *src);
 void *xalloc(size_t size);
 void *xmallocarray(size_t num, size_t size);
 void *xalloc_zero(size_t size);
 void *xalloc_array_zero(size_t num, size_t size);
 void *xrealloc(void *ptr, size_t size);
+char *xstrdup(const char *src);
 
 /*
  * Mmap allocator routines.

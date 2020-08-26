@@ -266,9 +266,9 @@ lookup_by_id(lookup_table_type *table, int id)
 	return NULL;
 }
 
-
 char *
-xstrdup(const char *src) {
+xstrdup(const char *src)
+{
 	char *result = strdup(src);
 
 	if(!result) {
