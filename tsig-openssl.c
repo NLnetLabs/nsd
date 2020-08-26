@@ -108,8 +108,10 @@ tsig_openssl_init_algorithm(region_type* region,
 		= dname_parse(region, wireformat);
 	if (!algorithm->wireformat_name) {
 		log_msg(LOG_ERR, "cannot parse %s algorithm", wireformat);
+#ifndef HAVE_EVP_MAC_CTX_NEW
 		EVP_MAC_CTX_free(hmac_ctx);
 		EVP_MAC_free(data->mac);
+#endif
 		return 0;
 	}
 #ifndef HAVE_EVP_MAC_CTX_NEW

@@ -2,6 +2,7 @@
 	- Add xstrdup for PR #113.
 	- Tidy up code like in PR #113.
 	- Import code from PR #113.
+	- Fix for unknown EVP_MAC_CTX_free function in openssl 3.0.0 tsig code.
 
 24 August 2020: Wouter
 	- Fix that configure checks for EVP_sha256 to detect openssl, because
