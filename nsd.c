@@ -154,25 +154,36 @@ resolve_ifa_name(struct ifaddrs *ifas, const char *search_ifa, char ***ip_addres
 
 	for(ifa = ifas; ifa != NULL; ifa = ifa->ifa_next) {
 		sa_family_t family;
-#ifdef INET6      /* |   address ip    | % |  ifa name  | */
-		char addr_buf[INET6_ADDRSTRLEN + 1 + IF_NAMESIZE + 1];
+		const char* atsign;
+#ifdef INET6      /* |   address ip    | % |  ifa name  | @ |  port  | nul */
+		char addr_buf[INET6_ADDRSTRLEN + 1 + IF_NAMESIZE + 1 + 16 + 1];
 #else
-		char addr_buf[INET_ADDRSTRLEN + 1];
+		char addr_buf[INET_ADDRSTRLEN + 1 + 16 + 1];
 #endif
 
-		if(strcmp(ifa->ifa_name, search_ifa) != 0)
-			continue;
+		if((atsign=strrchr(search_ifa, '@')) != NULL) {
+			if(strlen(ifa->ifa_name) != (size_t)(atsign-search_ifa)
+			   || strncmp(ifa->ifa_name, search_ifa,
+			   atsign-search_ifa) != 0)
+				continue;
+		} else {
+			if(strcmp(ifa->ifa_name, search_ifa) != 0)
+				continue;
+			atsign = "";
+		}
 
 		if(ifa->ifa_addr == NULL)
 			continue;
 
 		family = ifa->ifa_addr->sa_family;
 		if(family == AF_INET) {
+			char a4[INET_ADDRSTRLEN + 1];
 			struct sockaddr_in *in4 = (struct sockaddr_in *)
 				ifa->ifa_addr;
-			if(!inet_ntop(family, &in4->sin_addr, addr_buf,
-				sizeof(addr_buf)))
+			if(!inet_ntop(family, &in4->sin_addr, a4, sizeof(a4)))
 				error("inet_ntop");
+			snprintf(addr_buf, sizeof(addr_buf), "%s%s",
+				a4, atsign);
 		}
 #ifdef INET6
 		else if(family == AF_INET6) {
@@ -186,10 +197,11 @@ resolve_ifa_name(struct ifaddrs *ifas, const char *search_ifa, char ***ip_addres
 			if_indextoname(in6->sin6_scope_id,
 				(char *)if_index_name);
 			if (strlen(if_index_name) != 0) {
-				snprintf(addr_buf, sizeof(addr_buf), "%s%%%s",
-					a6, if_index_name);
+				snprintf(addr_buf, sizeof(addr_buf),
+					"%s%%%s%s", a6, if_index_name, atsign);
 			} else {
-				snprintf(addr_buf, sizeof(addr_buf), "%s", a6);
+				snprintf(addr_buf, sizeof(addr_buf), "%s%s",
+					a6, atsign);
 			}
 		}
 #endif
