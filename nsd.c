@@ -657,8 +657,9 @@ unlinkpid(const char* file)
 		if (fd == -1) {
 			/* Truncate the pid file.  */
 			log_msg(LOG_ERR, "can not truncate the pid file %s: %s", file, strerror(errno));
-		} else 
+		} else {
 			close(fd);
+		}
 
 		/* unlink pidfile */
 		if (unlink(file) == -1) {
