@@ -1,3 +1,6 @@
+26 August 2020: Wouter
+	- Add xstrdup for PR #113.
+
 24 August 2020: Wouter
 	- Fix that configure checks for EVP_sha256 to detect openssl, because
 	  HMAC_CTX_new is deprecated in 3.0.0.
