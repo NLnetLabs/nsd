@@ -224,6 +224,9 @@ resolve_interface_names(struct nsd_options* options)
 	if(getifaddrs(&addrs) == -1)
 		  error("failed to list interfaces");
 
+	/* replace the list of ip_adresses with a new list where the
+	 * interface names are replaced with their ip-address strings
+	 * from getifaddrs.  An interface can have several addresses. */
 	for(ip_addr = options->ip_addresses; ip_addr; ip_addr = ip_addr->next) {
 		char **ip_addresses = NULL;
 		size_t ip_addresses_size = 0, i;
@@ -234,7 +237,7 @@ resolve_interface_names(struct nsd_options* options)
 			struct ip_address_option *current;
 			/* this copies the range_option, dev, and fib from
 			 * the original ip_address option to the new ones
-			 * with the addresses spelled out */
+			 * with the addresses spelled out by resolve_ifa_name*/
 			current = region_alloc_init(options->region, ip_addr,
 				sizeof(*ip_addr));
 			current->address = region_strdup(options->region,
