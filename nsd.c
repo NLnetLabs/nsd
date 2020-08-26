@@ -145,12 +145,12 @@ version(void)
 	exit(0);
 }
 
+#ifdef HAVE_GETIFADDRS
 static void
 resolve_ifa_name(struct ifaddrs *ifas, const char *search_ifa, char ***ip_addresses, size_t *ip_addresses_size)
 {
 	struct ifaddrs *ifa;
 	size_t last_ip_addresses_size = *ip_addresses_size;
-
 
 	for(ifa = ifas; ifa != NULL; ifa = ifa->ifa_next) {
 		sa_family_t family;
@@ -214,11 +214,12 @@ resolve_ifa_name(struct ifaddrs *ifas, const char *search_ifa, char ***ip_addres
 		(*ip_addresses_size)++;
 	}
 }
+#endif /* HAVE_GETIFADDRS */
 
 static void
 resolve_interface_names(struct nsd_options* options)
 {
-	size_t i;
+#ifdef HAVE_GETIFADDRS
 	struct ifaddrs *addrs;
 	struct ip_address_option *ip_addr;
 	struct ip_address_option *last = NULL;
@@ -227,30 +228,40 @@ resolve_interface_names(struct nsd_options* options)
 	if(getifaddrs(&addrs) == -1)
 		  error("failed to list interfaces");
 
-	char **ip_addresses = NULL;
-	size_t ip_addresses_size = 0;
+	for(ip_addr = options->ip_addresses; ip_addr; ip_addr = ip_addr->next) {
+		char **ip_addresses = NULL;
+		size_t ip_addresses_size = 0, i;
+		resolve_ifa_name(addrs, ip_addr->address, &ip_addresses,
+			&ip_addresses_size);
 
-	for(ip_addr = nsd.options->ip_addresses; ip_addr; ip_addr = ip_addr->next)
-		resolve_ifa_name(addrs, ip_addr->address, &ip_addresses, &ip_addresses_size);
+		for (i = 0; i < ip_addresses_size; i++) {
+			struct ip_address_option *current;
+			/* this copies the range_option, dev, and fib from
+			 * the original ip_address option to the new ones
+			 * with the addresses spelled out */
+			current = region_alloc_init(options->region, ip_addr,
+				sizeof(*ip_addr));
+			current->address = region_strdup(options->region,
+				ip_addresses[i]);
+			current->next = NULL;
+			free(ip_addresses[i]);
 
-	struct ip_address_option *current;
-	for (i = 0; i < ip_addresses_size; i++) {
-		current = region_alloc_zero(nsd.options->region, sizeof(*current));
-		current->address = ip_addresses[i];
-		current->next = NULL;
+			if(first == NULL) {
+				first = last = current;
+				continue;
+			}
 
-		if(first == NULL) {
-			first = last = current;
-			continue;
+			last->next = current;
+			last = current;
 		}
-
-		last->next = current;
-		last = current;
+		free(ip_addresses);
 	}
 
 	freeifaddrs(addrs);
-
 	options->ip_addresses = first;
+#else
+	(void)options;
+#endif /* HAVE_GETIFADDRS */
 }
 
 static void

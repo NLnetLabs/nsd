@@ -657,7 +657,7 @@ AC_CHECK_SIZEOF(void*)
 AC_CHECK_SIZEOF(off_t)
 AC_CHECK_FUNCS([getrandom arc4random arc4random_uniform])
 AC_SEARCH_LIBS([setusercontext],[util],[AC_CHECK_HEADERS([login_cap.h])])
-AC_CHECK_FUNCS([tzset alarm chroot dup2 endpwent gethostname memset memcpy pwrite socket strcasecmp strchr strdup strerror strncasecmp strtol writev getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime strftime localtime_r setusercontext glob initgroups setresuid setreuid setresgid setregid getpwnam mmap ppoll clock_gettime accept4])
+AC_CHECK_FUNCS([tzset alarm chroot dup2 endpwent gethostname memset memcpy pwrite socket strcasecmp strchr strdup strerror strncasecmp strtol writev getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime strftime localtime_r setusercontext glob initgroups setresuid setreuid setresgid setregid getpwnam mmap ppoll clock_gettime accept4 getifaddrs])
 
 AC_CHECK_TYPE([struct mmsghdr], AC_DEFINE(HAVE_MMSGHDR, 1, [If sys/socket.h has a struct mmsghdr.]), [], [
 AC_INCLUDES_DEFAULT
