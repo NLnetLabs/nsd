@@ -3,6 +3,9 @@ NSD RELEASE NOTES
 4.3.3 (in development)
 ================
 FEATURES:
+	- Merged PR #113 with fixes.  Instead of listing an IP-address to
+	  listen on, an interface name can be specified in nsd.conf, with
+	  ip-address: eth0.  The IP-addresses for that interface are then used.
 	- Port TSIG code for openssl 3.0.0-alpha6.
 BUG FIXES:
 	- Fix make install with --with-pidfile="".
