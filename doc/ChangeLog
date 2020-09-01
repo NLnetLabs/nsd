@@ -1,5 +1,6 @@
 1 September 2020: Wouter
 	- Fix #119: fix compile warnings from new gcc.
+	- Fix #119: warn when trying to parse a directory.
 
 27 August 2020: Wouter
 	- Merged PR #113 with fixes.  Instead of listing an IP-address to
