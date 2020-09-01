@@ -14,6 +14,7 @@ BUG FIXES:
 	  fd_set - patch.
 	- Fix that configure checks for EVP_sha256 to detect openssl, because
 	  HMAC_CTX_new is deprecated in 3.0.0.
+	- Fix #119: fix compile warnings from new gcc.
 
 
 4.3.2
