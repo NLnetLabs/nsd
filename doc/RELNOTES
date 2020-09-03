@@ -16,6 +16,8 @@ BUG FIXES:
 	  HMAC_CTX_new is deprecated in 3.0.0.
 	- Fix #119: fix compile warnings from new gcc.
 	- Fix #119: warn when trying to parse a directory.
+	- Merge PR #121: Increase log level of recreated database from
+	  WARNING to ERR.
 
 
 4.3.2

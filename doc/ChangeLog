@@ -1,3 +1,7 @@
+3 September 2020: Wouter
+	- Merge PR #121: Increase log level of recreated database from
+	  WARNING to ERR.
+
 1 September 2020: Wouter
 	- Fix #119: fix compile warnings from new gcc.
 	- Fix #119: warn when trying to parse a directory.
