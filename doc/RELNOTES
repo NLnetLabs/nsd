@@ -18,6 +18,7 @@ BUG FIXES:
 	- Fix #119: warn when trying to parse a directory.
 	- Merge PR #121: Increase log level of recreated database from
 	  WARNING to ERR.
+	- Remove unused space from LIBS on link line.
 
 
 4.3.2

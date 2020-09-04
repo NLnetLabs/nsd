@@ -1,3 +1,6 @@
+4 September 2020: Wouter
+	- Remove unused space from LIBS on link line.
+
 3 September 2020: Wouter
 	- Merge PR #121: Increase log level of recreated database from
 	  WARNING to ERR.

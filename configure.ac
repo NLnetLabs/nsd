@@ -986,6 +986,8 @@ AC_SUBST(ratelimit_default)
 CHECK_SSL
 if test x$HAVE_SSL = x"yes"; then
 	ACX_LIB_SSL
+	# remove space after -ldl if there.
+	LIBS=`echo "$LIBS" | sed -e 's/ $//'`
 
 	# Check for -pthread
 	BAKLIBS="$LIBS"
