@@ -149,7 +149,7 @@ void *zonefile_worker_start(void *worker)
 			size_t zi_origin_len
 			    = zi->origin.end - zi->origin.r.text;
 
-			if (zi_origin_len > origin_len) {
+			if (zi_origin_len >= origin_len) {
 				origin_len = (zi_origin_len / 1024 + 1) * 1024;
 				if (!(origin = malloc(origin_len)))
 					return RETURN_MEM_ERR(st,
