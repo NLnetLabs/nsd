@@ -139,7 +139,7 @@ version(void)
 		);
 #endif
 	fprintf(stderr,
-		"Copyright (C) 2001-2006 NLnet Labs.  This is free software.\n"
+		"Copyright (C) 2001-2020 NLnet Labs.  This is free software.\n"
 		"There is NO warranty; not even for MERCHANTABILITY or FITNESS\n"
 		"FOR A PARTICULAR PURPOSE.\n");
 	exit(0);
