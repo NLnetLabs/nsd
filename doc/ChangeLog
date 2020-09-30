@@ -1,3 +1,7 @@
+29 September 2020: Willem
+	- Follow DNS flag day 2020 advice and
+	  set default EDNS message size to 1232.
+
 4 September 2020: Wouter
 	- Remove unused space from LIBS on link line.
 

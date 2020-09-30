@@ -302,10 +302,10 @@ Default is system default MSS determined by interface MTU and
 negotiation between NSD and other servers.
 .TP
 .B ipv4\-edns\-size:\fR <number>
-Preferred EDNS buffer size for IPv4.  Default 4096.
+Preferred EDNS buffer size for IPv4.  Default 1232.
 .TP
 .B ipv6\-edns\-size:\fR <number>
-Preferred EDNS buffer size for IPv6.  Default 4096.
+Preferred EDNS buffer size for IPv6.  Default 1232.
 .TP
 .B pidfile:\fR <filename>
 Use the pid file instead of the platform specific default, usually 
