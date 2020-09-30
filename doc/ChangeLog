@@ -1,5 +1,7 @@
 30 September 2020: Wouter
 	- Updated date in nsd -v output.
+	- Fixup bug013_truncate, checkconf and cutest_qroot tests for new
+	  default EDNS size.
 
 29 September 2020: Willem
 	- Follow DNS flag day 2020 advice and
