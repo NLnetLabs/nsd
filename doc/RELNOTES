@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.3.3 (in development)
+4.3.3
 ================
 FEATURES:
 	- Follow DNS flag day 2020 advice and
@@ -21,6 +21,7 @@ BUG FIXES:
 	- Merge PR #121: Increase log level of recreated database from
 	  WARNING to ERR.
 	- Remove unused space from LIBS on link line.
+	- Updated date in nsd -v output.
 
 
 4.3.2
