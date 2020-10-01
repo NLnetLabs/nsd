@@ -1,3 +1,6 @@
+1 October 2020: Wouter
+	- tag for 4.3.3rc1 release.
+
 30 September 2020: Wouter
 	- Updated date in nsd -v output.
 	- Fixup bug013_truncate, checkconf and cutest_qroot tests for new
