@@ -6,6 +6,7 @@
  * See LICENSE for the license.
  *
  */
+#include "config.h"
 #include "cpuset.h"
 
 #include <stdlib.h>
