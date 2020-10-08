@@ -3394,8 +3394,8 @@ handle_udp(int fd, short event, void* arg)
 #endif
 			   errno != EAGAIN) {
 				const char* es = strerror(errno);
-				char a[48];
-				addr2str(&queries[i]->addr, a, sizeof(a));
+				char a[64];
+				addrport2str(&queries[i]->addr, a, sizeof(a));
 				log_msg(LOG_ERR, "sendmmsg [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
 			}
 #ifdef BIND8_STATS

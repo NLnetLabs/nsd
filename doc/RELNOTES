@@ -5,6 +5,8 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix #129: ambiguous use of errno, in log message if sendmmsg fails.
+	- Fix #128: Fix that the invalid port number is logged for sendmmsg
+	  failed: Invalid argument.
 
 
 4.3.3
