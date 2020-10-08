@@ -1,5 +1,12 @@
 NSD RELEASE NOTES
 
+4.3.4 (in development)
+================
+FEATURES:
+BUG FIXES:
+	- Fix #129: ambiguous use of errno, in log message if sendmmsg fails.
+
+
 4.3.3
 ================
 FEATURES:
