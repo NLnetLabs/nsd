@@ -40,6 +40,7 @@ static void init_dname_compr(nsd_type* nsd)
 /* create the answer to one query */
 static int run_query(query_type* q, nsd_type* nsd, buffer_type* in, int bsz)
 {
+	uint32_t now = 0;
 	int received;
 	query_reset(q, bsz, 0);
 	/* recvfrom, in q->packet */
@@ -47,9 +48,9 @@ static int run_query(query_type* q, nsd_type* nsd, buffer_type* in, int bsz)
 	buffer_write_at(q->packet, 0, buffer_begin(in), received);
 	buffer_skip(q->packet, received);
 	buffer_flip(q->packet);
-	if (query_process(q, nsd) != QUERY_DISCARDED) {
+	if (query_process(q, nsd, &now) != QUERY_DISCARDED) {
 		/* Add EDNS0 and TSIG info if necessary.  */
-		query_add_optional(q, nsd);
+		query_add_optional(q, nsd, &now);
 		buffer_flip(q->packet);
 		/* result is buffer_begin(q->packet),
 		   buffer_remaining(q->packet),
