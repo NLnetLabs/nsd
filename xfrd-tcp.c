@@ -360,6 +360,7 @@ xfrd_handle_tcp_pipe(int ATTR_UNUSED(fd), short event, void* arg)
 	}
 	if((event & EV_TIMEOUT) && tp->handler_added) {
 		/* tcp connection timed out */
+        VERBOSITY(1, (LOG_INFO, "xyzzy TCP conn timed out"));
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: event tcp timeout"));
 		xfrd_tcp_pipe_stop(tp);
 	}
@@ -407,7 +408,27 @@ xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	assert(zone->tcp_conn == -1);
 	assert(zone->tcp_waiting == 0);
 
+	VERBOSITY(1, (LOG_INFO, "xyzzy in xfrd_tcp_obtain, total number of TCP conns is %d", set->tcp_count));
+
+    /* check for a pipeline to the same master with unused ID */
+	if((tp = pipeline_find(set, zone))!= NULL) {
+	    VERBOSITY(1, (LOG_INFO, "xyzzy pipeline found for %s!", zone->apex_str));
+		int i;
+		if(zone->zone_handler.ev_fd != -1)
+			xfrd_udp_release(zone);
+		for(i=0; i<XFRD_MAX_TCP; i++) {
+			if(set->tcp_state[i] == tp)
+				zone->tcp_conn = i;
+		}
+		xfrd_deactivate_zone(zone);
+		xfrd_unset_timer(zone);
+		pipeline_setup_new_zone(set, tp, zone);
+		return;
+	}
+
+
 	if(set->tcp_count < XFRD_MAX_TCP) {
+	    VERBOSITY(1, (LOG_INFO, "xyzzy tcp count for %s < max tcp!", zone->apex_str));
 		int i;
 		assert(!set->tcp_waiting_first);
 		set->tcp_count ++;
@@ -454,20 +475,10 @@ xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 		pipeline_setup_new_zone(set, tp, zone);
 		return;
 	}
-	/* check for a pipeline to the same master with unused ID */
-	if((tp = pipeline_find(set, zone))!= NULL) {
-		int i;
-		if(zone->zone_handler.ev_fd != -1)
-			xfrd_udp_release(zone);
-		for(i=0; i<XFRD_MAX_TCP; i++) {
-			if(set->tcp_state[i] == tp)
-				zone->tcp_conn = i;
-		}
-		xfrd_deactivate_zone(zone);
-		xfrd_unset_timer(zone);
-		pipeline_setup_new_zone(set, tp, zone);
-		return;
-	}
+	
+    
+
+
 
 	/* wait, at end of line */
 	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: max number of tcp "
@@ -797,7 +808,7 @@ conn_read(struct xfrd_tcp* tcp)
 			}
 		} else if(received == 0) {
 			/* EOF */
-			return -1;
+			return 0;
 		}
 		tcp->total_bytes += received;
 		if(tcp->total_bytes < sizeof(tcp->msglen)) {
@@ -908,7 +919,9 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 				xfrd_make_request(zone);
 				break;
 			}
-			xfrd_tcp_release(xfrd->tcp_set, zone);
+            // xyzzy we don't need this for xot
+            // why do we need to release after transfer is done?
+            //xfrd_tcp_release(xfrd->tcp_set, zone);
 			assert(zone->round_num == -1);
 			break;
 		case xfrd_packet_notimpl:
@@ -983,7 +996,7 @@ void
 xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	int conn)
 {
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: tcp pipe released"));
+	VERBOSITY(1, (LOG_INFO, "xyzzy tcp pipe released"));
 	/* one handler per tcp pipe */
 	if(tp->handler_added)
 		event_del(&tp->handler);
