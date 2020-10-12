@@ -1,3 +1,6 @@
+12 October 2020: Wouter
+	- Fix #127: two minor `-Wcast-qual` cleanups
+
 8 October 2020: Wouter
 	- tag for 4.3.3 release
 	- current repository contains 4.3.4 in development.

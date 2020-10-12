@@ -7,6 +7,7 @@ BUG FIXES:
 	- Fix #129: ambiguous use of errno, in log message if sendmmsg fails.
 	- Fix #128: Fix that the invalid port number is logged for sendmmsg
 	  failed: Invalid argument.
+	- Fix #127: two minor `-Wcast-qual` cleanups
 
 
 4.3.3
