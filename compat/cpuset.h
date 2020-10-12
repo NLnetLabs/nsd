@@ -8,7 +8,6 @@
  */
 #ifndef _CPUSET_H_
 #define _CPUSET_H_
-#include "config.h"
 
 #ifdef HAVE_SCHED_H
 # include <sched.h>
