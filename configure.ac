@@ -1313,7 +1313,7 @@ char *nsd_strptime(const char *s, const char *format, struct tm *tm);
 #ifdef __linux__
 #define HAVE_SETPROCTITLE 1
 #include <stdarg.h>
-void setproctitle(char *fmt, ...);
+void setproctitle(const char *fmt, ...);
 #endif
 #endif
 ])
