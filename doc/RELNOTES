@@ -9,6 +9,7 @@ BUG FIXES:
 	  failed: Invalid argument.
 	- Fix #127: two minor `-Wcast-qual` cleanups
 	- Fix #126: minor header hygiene
+	- Fix #125: include config.h in compat/setproctitle.c and fix prototype of `setproctitle`
 
 
 4.3.3
