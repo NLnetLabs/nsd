@@ -2,6 +2,7 @@
 	- Fix #127: two minor `-Wcast-qual` cleanups
 	- Fix #126: minor header hygiene
 	- Fix #125: include config.h in compat/setproctitle.c and fix prototype of `setproctitle`
+	- Fix #133: fix 0-init of local ( stack ) buffer.
 
 8 October 2020: Wouter
 	- tag for 4.3.3 release
