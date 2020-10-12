@@ -8,6 +8,7 @@ BUG FIXES:
 	- Fix #128: Fix that the invalid port number is logged for sendmmsg
 	  failed: Invalid argument.
 	- Fix #127: two minor `-Wcast-qual` cleanups
+	- Fix #126: minor header hygiene
 
 
 4.3.3

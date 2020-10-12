@@ -1,5 +1,6 @@
 12 October 2020: Wouter
 	- Fix #127: two minor `-Wcast-qual` cleanups
+	- Fix #126: minor header hygiene
 
 8 October 2020: Wouter
 	- tag for 4.3.3 release
