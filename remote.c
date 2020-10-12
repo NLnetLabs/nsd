@@ -2157,6 +2157,26 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 	send_ok(ssl);
 }
 
+static void
+do_del_cookie(RES* ssl, xfrd_state_type* xrfd, char* arg) {
+	(void)xrfd;
+	if(*arg == '\0') {
+		(void)ssl_printf(ssl, "%s: error: missing argument (keyname)\n", __func__);
+		return;
+	}
+	(void)ssl_printf(ssl, "%s: unimplemented\n", __func__);
+}
+
+static void
+do_set_cookie(RES* ssl, xfrd_state_type* xrfd, char* arg) {
+	(void)xrfd;
+	if(*arg == '\0') {
+		(void)ssl_printf(ssl, "%s: error: missing argument (keyname)\n", __func__);
+		return;
+	}
+	(void)ssl_printf(ssl, "%s: unimplemented\n", __func__);
+}
+
 /** check for name with end-of-string, space or tab after it */
 static int
 cmdcmp(char* p, const char* cmd, size_t len)
@@ -2220,6 +2240,10 @@ execute_cmd(struct daemon_remote* rc, RES* ssl, char* cmd, struct rc_state* rs)
 		do_assoc_tsig(ssl, rc->xfrd, skipwhite(p+10));
 	} else if(cmdcmp(p, "del_tsig", 8)) {
 		do_del_tsig(ssl, rc->xfrd, skipwhite(p+8));
+	} else if(cmdcmp(p, "del_cookie", 10)) {
+		do_del_cookie(ssl, rc->xfrd, skipwhite(p+8));
+	} else if(cmdcmp(p, "set_cookie", 10)) {
+		do_set_cookie(ssl, rc->xfrd, skipwhite(p+8));
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}
