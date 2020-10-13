@@ -268,7 +268,7 @@ void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p)
 	now_uint32 = *now_p ? *now_p : (*now_p = (uint32_t)time(NULL));
 
 	int cookie_index = cookie_lookup_fallback(nsd, now_uint32, 0);
-	if( cookie_index < 0) { return; }
+	if(cookie_index < 0) { return; }
 	int cookie_index_fallback = cookie_lookup_fallback(nsd, now_uint32, cookie_index+1);
 
 	memcpy(hash2verify, q->edns.cookie + 16, 8);

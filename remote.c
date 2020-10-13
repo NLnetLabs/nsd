@@ -2171,19 +2171,50 @@ do_drop_cookie(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 
 static void
 do_push_cookie(RES* ssl, xfrd_state_type* xrfd, char* arg) {
-	(void)xrfd;
+	nsd_type* nsd = xrfd->nsd;
 	if(*arg == '\0') {
 		(void)ssl_printf(ssl, "%s: error: missing argument (cookie_secret)\n", __func__);
 		return;
 	}
-	(void)ssl_printf(ssl, "%s: unimplemented\n", __func__);
+	size_t arg_len = strlen(arg);
+	if(arg_len != 32) {
+		(void)ssl_printf(ssl, "invalid cookie secret: invalid argument length\n");
+		(void)ssl_printf(ssl, "please provide a 128bit hex encoded secret\n");
+		return;
+	}
+	uint8_t secret[NSD_COOKIE_SECRET_SIZE];
+	ssize_t decoded_len = hex_pton(arg, secret, NSD_COOKIE_SECRET_SIZE);
+	if(decoded_len != 16 ) {
+		(void)ssl_printf(ssl, "invalid cookie secret: parse error\n");
+		(void)ssl_printf(ssl, "please provide a 128bit hex encoded secret\n");
+	  return;
+	}
+	// shift all secrets up one position
+	size_t const cookie_secrets_size = sizeof(struct cookie_secret) *
+	    ( NSD_COOKIE_HISTORY_SIZE - 1 );
+	memmove(&nsd->cookie_secrets[1], &nsd->cookie_secrets[0], cookie_secrets_size);
+	memcpy(nsd->cookie_secrets->cookie_secret, secret, NSD_COOKIE_SECRET_SIZE);
+	nsd->cookie_count = nsd->cookie_count < NSD_COOKIE_HISTORY_SIZE
+	    ? nsd->cookie_count + 1
+	    : NSD_COOKIE_HISTORY_SIZE;
 }
 
 static void
 do_show_cookies(RES* ssl, xfrd_state_type* xrfd, char* arg) {
-	(void)xrfd;
   (void)arg;
-	(void)ssl_printf(ssl, "%s: unimplemented\n", __func__);
+	nsd_type* nsd = xrfd->nsd;
+	(void)ssl_printf(ssl, "used cookie secret slots: %zu/%d\n",
+	                 nsd->cookie_count, NSD_COOKIE_HISTORY_SIZE);
+	char secret_hex[NSD_COOKIE_SECRET_SIZE * 2 + 1];
+	for(size_t i = 0; i < nsd->cookie_count; i++) {
+		struct cookie_secret* cs = &nsd->cookie_secrets[i];
+		ssize_t const len = hex_ntop(cs->cookie_secret, NSD_COOKIE_SECRET_SIZE,
+		                             secret_hex, sizeof(secret_hex));
+		assert( len == NSD_COOKIE_SECRET_SIZE * 2 );
+		secret_hex[NSD_COOKIE_SECRET_SIZE*2] = '\0';
+		(void)ssl_printf(ssl, "timestamp: %u\n", cs->cookie_issue_timestamp);
+		(void)ssl_printf(ssl, "secret: %s\n", secret_hex);
+	}
 }
 
 /** check for name with end-of-string, space or tab after it */
