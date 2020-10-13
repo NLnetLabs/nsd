@@ -1,3 +1,6 @@
+13 October 2020: Wouter
+	- Fix missing parenthesis on size of fix to init buffer.
+
 12 October 2020: Wouter
 	- Fix #127: two minor `-Wcast-qual` cleanups
 	- Fix #126: minor header hygiene

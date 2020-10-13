@@ -11,6 +11,7 @@ BUG FIXES:
 	- Fix #126: minor header hygiene
 	- Fix #125: include config.h in compat/setproctitle.c and fix prototype of `setproctitle`
 	- Fix #133: fix 0-init of local ( stack ) buffer.
+	- Fix missing parenthesis on size of fix to init buffer.
 
 
 4.3.3
