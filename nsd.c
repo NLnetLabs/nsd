@@ -972,6 +972,7 @@ main(int argc, char *argv[])
 	nsd.chrootdir	= 0;
 	nsd.nsid 	= NULL;
 	nsd.nsid_len 	= 0;
+	nsd.cookie_count = 0;
 
 	nsd.child_count = 0;
 	nsd.maximum_tcp_count = 0;
@@ -1257,30 +1258,38 @@ main(int argc, char *argv[])
 #endif /* defined(INET6) */
 
 	nsd.do_answer_cookie = nsd.options->answer_cookie;
-	if (nsd.cookie_secret_len != 0)
+	if (nsd.cookie_count > 0)
 		; /* pass */
 
 	else if (nsd.options->cookie_secret) {
-		int len = hex_pton(nsd.options->cookie_secret,
-			nsd.cookie_secret, sizeof(nsd.cookie_secret));
+		ssize_t len = hex_pton(nsd.options->cookie_secret,
+			nsd.cookie_secrets[0].cookie_secret,
+			sizeof(nsd.cookie_secrets[0].cookie_secret));
 		if (len != 16) {
 			error("A cookie secret must be a "
 			      "128 bit hex string");
 		}
-		nsd.cookie_secret_len = len;
+		nsd.cookie_count = 1;
 	} else {
-		size_t i;
-
 		/* Calculate a new random secret */
 		srandom(getpid() ^ time(NULL));
-		nsd.cookie_secret_len = 16;
+
+		uint32_t const startup_time = (uint32_t)time(NULL);
+		size_t const cookie_secret_len = sizeof(nsd.cookie_secrets[0].cookie_secret);
+		for(size_t j = 0; j < NSD_COOKIE_HISTORY_SIZE; j++) {
 #if defined(HAVE_SSL)
-		if (!RAND_status()
-		||  !RAND_bytes(nsd.cookie_secret, nsd.cookie_secret_len))
+			if (!RAND_status()
+			    || !RAND_bytes(nsd.cookie_secrets[j].cookie_secret, cookie_secret_len))
 #endif
-			for (i = 0; i < nsd.cookie_secret_len; i++)
-				nsd.cookie_secret[i] = random_generate(256);
+			for (i = 0; i < cookie_secret_len; i++)
+				nsd.cookie_secrets[j].cookie_secret[i] = random_generate(256);
+
+			nsd.cookie_secrets[j].cookie_issue_timestamp = startup_time;
+		}
+		// XXX: all we have is a random cookie, still pretend we have one
+		nsd.cookie_count = 1;
 	}
+
 	if (nsd.nsid_len == 0 && nsd.options->nsid) {
 		if (strlen(nsd.options->nsid) % 2 != 0) {
 			error("the NSID must be a hex string of an even length.");

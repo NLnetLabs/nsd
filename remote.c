@@ -2158,22 +2158,31 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 }
 
 static void
-do_del_cookie(RES* ssl, xfrd_state_type* xrfd, char* arg) {
+do_drop_cookie(RES* ssl, xfrd_state_type* xrfd, char* arg) {
+  (void)arg;
+	nsd_type* nsd = xrfd->nsd;
+	if(nsd->cookie_count <= 1 ) {
+		(void)ssl_printf(ssl, "error: can not drop the active cookie secret");
+		return;
+	}
+	nsd->cookie_count--;
+	(void)ssl_printf(ssl, "cookie secret dropped\n");
+}
+
+static void
+do_push_cookie(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	(void)xrfd;
 	if(*arg == '\0') {
-		(void)ssl_printf(ssl, "%s: error: missing argument (keyname)\n", __func__);
+		(void)ssl_printf(ssl, "%s: error: missing argument (cookie_secret)\n", __func__);
 		return;
 	}
 	(void)ssl_printf(ssl, "%s: unimplemented\n", __func__);
 }
 
 static void
-do_set_cookie(RES* ssl, xfrd_state_type* xrfd, char* arg) {
+do_show_cookies(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	(void)xrfd;
-	if(*arg == '\0') {
-		(void)ssl_printf(ssl, "%s: error: missing argument (keyname)\n", __func__);
-		return;
-	}
+  (void)arg;
 	(void)ssl_printf(ssl, "%s: unimplemented\n", __func__);
 }
 
@@ -2240,10 +2249,12 @@ execute_cmd(struct daemon_remote* rc, RES* ssl, char* cmd, struct rc_state* rs)
 		do_assoc_tsig(ssl, rc->xfrd, skipwhite(p+10));
 	} else if(cmdcmp(p, "del_tsig", 8)) {
 		do_del_tsig(ssl, rc->xfrd, skipwhite(p+8));
-	} else if(cmdcmp(p, "del_cookie", 10)) {
-		do_del_cookie(ssl, rc->xfrd, skipwhite(p+8));
-	} else if(cmdcmp(p, "set_cookie", 10)) {
-		do_set_cookie(ssl, rc->xfrd, skipwhite(p+8));
+	} else if(cmdcmp(p, "drop_cookie", 11)) {
+		do_drop_cookie(ssl, rc->xfrd, skipwhite(p+11));
+	} else if(cmdcmp(p, "push_cookie", 11)) {
+		do_push_cookie(ssl, rc->xfrd, skipwhite(p+11));
+	} else if(cmdcmp(p, "show_cookies", 12)) {
+		do_show_cookies(ssl, rc->xfrd, skipwhite(p+12));
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}
