@@ -1263,9 +1263,8 @@ main(int argc, char *argv[])
 
 	else if (nsd.options->cookie_secret) {
 		ssize_t len = hex_pton(nsd.options->cookie_secret,
-			nsd.cookie_secrets[0].cookie_secret,
-			sizeof(nsd.cookie_secrets[0].cookie_secret));
-		if (len != 16) {
+			nsd.cookie_secrets[0].cookie_secret, NSD_COOKIE_SECRET_SIZE);
+		if (len != NSD_COOKIE_SECRET_SIZE ) {
 			error("A cookie secret must be a "
 			      "128 bit hex string");
 		}
@@ -1275,7 +1274,7 @@ main(int argc, char *argv[])
 		srandom(getpid() ^ time(NULL));
 
 		uint32_t const startup_time = (uint32_t)time(NULL);
-		size_t const cookie_secret_len = sizeof(nsd.cookie_secrets[0].cookie_secret);
+		size_t const cookie_secret_len = NSD_COOKIE_SECRET_SIZE;
 		for(size_t j = 0; j < NSD_COOKIE_HISTORY_SIZE; j++) {
 #if defined(HAVE_SSL)
 			if (!RAND_status()

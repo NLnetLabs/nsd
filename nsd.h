@@ -314,6 +314,7 @@ struct	nsd
 	unsigned int err_limit_count;
 
 #define NSD_COOKIE_HISTORY_SIZE 2
+#define NSD_COOKIE_SECRET_SIZE 16
 
 	/** do answer with server cookie when request contained cookie option */
 	int do_answer_cookie;
@@ -326,7 +327,7 @@ struct	nsd
 	struct cookie_secret {
 		uint32_t cookie_issue_timestamp;
 		/** cookie secret */
-		uint8_t cookie_secret[32];
+		uint8_t cookie_secret[NSD_COOKIE_SECRET_SIZE];
 	} cookie_secrets[NSD_COOKIE_HISTORY_SIZE];
 
 	struct nsd_options* options;
