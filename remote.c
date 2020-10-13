@@ -2162,7 +2162,7 @@ do_drop_cookie(RES* ssl, xfrd_state_type* xrfd, char* arg) {
   (void)arg;
 	nsd_type* nsd = xrfd->nsd;
 	if(nsd->cookie_count <= 1 ) {
-		(void)ssl_printf(ssl, "error: can not drop the active cookie secret");
+		(void)ssl_printf(ssl, "error: can not drop the currently active cookie secret\n");
 		return;
 	}
 	nsd->cookie_count--;
@@ -2173,7 +2173,7 @@ static void
 do_push_cookie(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	nsd_type* nsd = xrfd->nsd;
 	if(*arg == '\0') {
-		(void)ssl_printf(ssl, "%s: error: missing argument (cookie_secret)\n", __func__);
+		(void)ssl_printf(ssl, "error: missing argument (cookie_secret)\n");
 		return;
 	}
 	size_t arg_len = strlen(arg);
@@ -2189,7 +2189,7 @@ do_push_cookie(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		(void)ssl_printf(ssl, "please provide a 128bit hex encoded secret\n");
 	  return;
 	}
-	// shift all secrets up one position
+	/* shift all secrets up one position */
 	size_t const cookie_secrets_size = sizeof(struct cookie_secret) *
 	    ( NSD_COOKIE_HISTORY_SIZE - 1 );
 	memmove(&nsd->cookie_secrets[1], &nsd->cookie_secrets[0], cookie_secrets_size);
