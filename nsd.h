@@ -325,7 +325,6 @@ struct	nsd
 	/* keep track of the last `NSD_COOKIE_HISTORY_SIZE`
 	 * cookies as per rfc requirement .*/
 	struct cookie_secret {
-		uint32_t cookie_issue_timestamp;
 		/** cookie secret */
 		uint8_t cookie_secret[NSD_COOKIE_SECRET_SIZE];
 	} cookie_secrets[NSD_COOKIE_HISTORY_SIZE];

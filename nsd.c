@@ -1302,7 +1302,6 @@ main(int argc, char *argv[])
 		/* Calculate a new random secret */
 		srandom(getpid() ^ time(NULL));
 
-		uint32_t const startup_time = (uint32_t)time(NULL);
 		size_t const cookie_secret_len = NSD_COOKIE_SECRET_SIZE;
 		for(size_t j = 0; j < NSD_COOKIE_HISTORY_SIZE; j++) {
 #if defined(HAVE_SSL)
@@ -1311,8 +1310,6 @@ main(int argc, char *argv[])
 #endif
 			for (i = 0; i < cookie_secret_len; i++)
 				nsd.cookie_secrets[j].cookie_secret[i] = random_generate(256);
-
-			nsd.cookie_secrets[j].cookie_issue_timestamp = startup_time;
 		}
 		// XXX: all we have is a random cookie, still pretend we have one
 		nsd.cookie_count = 1;

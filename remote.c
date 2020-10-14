@@ -2247,8 +2247,6 @@ do_print_cookie_secrets(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		(void)len; /* silence unused variable warning with -DNDEBUG */
 		assert( len == NSD_COOKIE_SECRET_SIZE * 2 );
 		secret_hex[NSD_COOKIE_SECRET_SIZE * 2] = '\0';
-		(void)ssl_printf(ssl, "cookie_secrets[%zu].timestamp=%u\n",
-		                 i, cs->cookie_issue_timestamp);
 		(void)ssl_printf(ssl, "cookie_secrets[%zu].secret=%s\n", i, secret_hex);
 	}
 }
