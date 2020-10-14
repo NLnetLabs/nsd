@@ -931,6 +931,35 @@ bind8_stats (struct nsd *nsd)
 }
 #endif /* BIND8_STATS */
 
+static
+int cookie_secret_file_read(nsd_type* nsd) {
+	char const* file = nsd->options->cookie_secret_file;
+	assert( file != NULL );
+	FILE* f = fopen(file, "r");
+	/* a non-existing cookie file is not an error */
+	if( f == NULL ) { return errno != EPERM; }
+	/* cookie secret file exists and is readable */
+	nsd->cookie_count = 0;
+	int corrupt = 0;
+	char secret[NSD_COOKIE_SECRET_SIZE * 2 + 2/*'\n' and '\0'*/];
+	for(size_t count = 0; count < NSD_COOKIE_HISTORY_SIZE; count++ ) {
+		if( fgets(secret, sizeof(secret), f) == NULL ) { break; }
+		size_t secret_len = strlen(secret);
+		if( secret_len == 0 ) { break; }
+		assert( secret_len <= sizeof(secret) );
+		secret_len = secret[secret_len - 1] == '\n' ? secret_len - 1 : secret_len;
+		if( secret_len != NSD_COOKIE_SECRET_SIZE * 2 ) { corrupt++; break; }
+		/* needed for `hex_pton` */
+		secret[secret_len] = '\0';
+		ssize_t decoded_len = hex_pton(secret, nsd->cookie_secrets[count].cookie_secret,
+		                               NSD_COOKIE_SECRET_SIZE);
+		if(decoded_len != NSD_COOKIE_SECRET_SIZE ) { corrupt++; break; }
+		nsd->cookie_count++;
+	}
+	fclose(f);
+	return corrupt == 0;
+}
+
 extern char *optarg;
 extern int optind;
 
@@ -1569,6 +1598,10 @@ main(int argc, char *argv[])
 			error("could not set up tls SSL_CTX");
 	}
 #endif /* HAVE_SSL */
+
+	if( !cookie_secret_file_read(&nsd) ) {
+		log_msg(LOG_ERR, "cookie secret file corrupt or not readable");
+	}
 
 	/* Unless we're debugging, fork... */
 	if (!nsd.debug) {

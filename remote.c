@@ -2159,7 +2159,7 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 
 /* returns `0` on failure */
 static int
-dump_cookie_secret_file(RES* ssl, nsd_type const* nsd) {
+cookie_secret_file_dump(RES* ssl, nsd_type const* nsd) {
 	char const* secret_file = nsd->options->cookie_secret_file;
 	assert( secret_file != NULL );
 	/* open write only and truncate */
@@ -2177,7 +2177,7 @@ dump_cookie_secret_file(RES* ssl, nsd_type const* nsd) {
 		(void)len; /* silence unused variable warning with -DNDEBUG */
 		assert( len == NSD_COOKIE_SECRET_SIZE * 2 );
 		secret_hex[NSD_COOKIE_SECRET_SIZE * 2] = '\0';
-		fputs(secret_hex, f);
+		fprintf(f, "%s\n", secret_hex);
 	}
 	fclose(f);
 	return 1;
@@ -2192,7 +2192,7 @@ do_drop_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		return;
 	}
 	nsd->cookie_count--;
-	(void)dump_cookie_secret_file(ssl, nsd);
+	(void)cookie_secret_file_dump(ssl, nsd);
 	task_new_drop_cookie_secret(xfrd->nsd->task[xfrd->nsd->mytask],
 	    xfrd->last_task);
 	xfrd_set_reload_now(xfrd);
@@ -2214,7 +2214,7 @@ do_push_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	}
 	uint8_t secret[NSD_COOKIE_SECRET_SIZE];
 	ssize_t decoded_len = hex_pton(arg, secret, NSD_COOKIE_SECRET_SIZE);
-	if(decoded_len != 16 ) {
+	if(decoded_len != NSD_COOKIE_SECRET_SIZE ) {
 		(void)ssl_printf(ssl, "invalid cookie secret: parse error\n");
 		(void)ssl_printf(ssl, "please provide a 128bit hex encoded secret\n");
 	  return;
@@ -2227,7 +2227,7 @@ do_push_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	nsd->cookie_count = nsd->cookie_count < NSD_COOKIE_HISTORY_SIZE
 	    ? nsd->cookie_count + 1
 	    : NSD_COOKIE_HISTORY_SIZE;
-	(void)dump_cookie_secret_file(ssl, nsd);
+	(void)cookie_secret_file_dump(ssl, nsd);
 	task_new_push_cookie_secret(xfrd->nsd->task[xfrd->nsd->mytask],
 	    xfrd->last_task, arg);
 	xfrd_set_reload_now(xfrd);
