@@ -12,6 +12,7 @@ BUG FIXES:
 	- Fix #125: include config.h in compat/setproctitle.c and fix prototype of `setproctitle`
 	- Fix #133: fix 0-init of local ( stack ) buffer.
 	- Fix missing parenthesis on size of fix to init buffer.
+	- Fix #134: IPV4_MINIMAL_RESPONSE_SIZE vs EDNS_MAX_MESSAGE_LEN.
 
 
 4.3.3
