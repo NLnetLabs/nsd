@@ -1738,7 +1738,7 @@ void task_new_drop_cookie_secret(udb_base* udb, udb_ptr* last) {
 		log_msg(LOG_ERR, "tasklist: out of space, cannot add drop_cookie_secret");
 		return;
 	}
-	TASKLIST(&e)->task_type = task_push_cookie_secret;
+	TASKLIST(&e)->task_type = task_drop_cookie_secret;
 	udb_ptr_unlink(&e, udb);
 }
 
@@ -2155,6 +2155,12 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 #endif
 	case task_apply_xfr:
 		task_process_apply_xfr(nsd, udb, last_task, task);
+		break;
+	case task_drop_cookie_secret:
+		task_process_drop_cookie_secret(nsd, TASKLIST(task));
+		break;
+	case task_push_cookie_secret:
+		task_process_push_cookie_secret(nsd, TASKLIST(task));
 		break;
 	default:
 		log_msg(LOG_WARNING, "unhandled task in reload type %d",
