@@ -2316,12 +2316,12 @@ execute_cmd(struct daemon_remote* rc, RES* ssl, char* cmd, struct rc_state* rs)
 		do_assoc_tsig(ssl, rc->xfrd, skipwhite(p+10));
 	} else if(cmdcmp(p, "del_tsig", 8)) {
 		do_del_tsig(ssl, rc->xfrd, skipwhite(p+8));
-	} else if(cmdcmp(p, "drop_cookie_secret", 11)) {
-		do_drop_cookie_secret(ssl, rc->xfrd, skipwhite(p+11));
-	} else if(cmdcmp(p, "push_cookie_secret", 11)) {
-		do_push_cookie_secret(ssl, rc->xfrd, skipwhite(p+11));
-	} else if(cmdcmp(p, "print_cookie_secrets", 12)) {
-		do_print_cookie_secrets(ssl, rc->xfrd, skipwhite(p+12));
+	} else if(cmdcmp(p, "drop_cookie_secret", 18)) {
+		do_drop_cookie_secret(ssl, rc->xfrd, skipwhite(p+18));
+	} else if(cmdcmp(p, "push_cookie_secret", 18)) {
+		do_push_cookie_secret(ssl, rc->xfrd, skipwhite(p+18));
+	} else if(cmdcmp(p, "print_cookie_secrets", 20)) {
+		do_print_cookie_secrets(ssl, rc->xfrd, skipwhite(p+20));
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}
