@@ -2193,7 +2193,10 @@ do_drop_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	}
 	nsd->cookie_count--;
 	(void)dump_cookie_secret_file(ssl, nsd);
-	(void)ssl_printf(ssl, "cookie secret dropped\n");
+	task_new_drop_cookie_secret(xfrd->nsd->task[xfrd->nsd->mytask],
+	    xfrd->last_task);
+	xfrd_set_reload_now(xfrd);
+	send_ok(ssl);
 }
 
 static void
@@ -2225,6 +2228,10 @@ do_push_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	    ? nsd->cookie_count + 1
 	    : NSD_COOKIE_HISTORY_SIZE;
 	(void)dump_cookie_secret_file(ssl, nsd);
+	task_new_push_cookie_secret(xfrd->nsd->task[xfrd->nsd->mytask],
+	    xfrd->last_task, arg);
+	xfrd_set_reload_now(xfrd);
+	send_ok(ssl);
 }
 
 static void
