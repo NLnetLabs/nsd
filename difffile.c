@@ -2015,6 +2015,7 @@ task_process_push_cookie_secret(struct nsd* nsd, struct task_list_d* task)
 static void
 task_process_drop_cookie_secret(struct nsd* nsd, struct task_list_d* task)
 {
+	(void)task;
 	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "drop_cookie_secret task"));
 	if( nsd->cookie_count <= 1 ) {
 	  log_msg(LOG_ERR, "can not drop the only active cookie secret");
