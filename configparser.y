@@ -160,6 +160,7 @@ static int parse_range(const char *str, long long *low, long long *high);
 %token VAR_OUTGOING_INTERFACE
 %token VAR_ANSWER_COOKIE
 %token VAR_COOKIE_SECRET
+%token VAR_COOKIE_SECRET_FILE
 %token VAR_MAX_REFRESH_TIME
 %token VAR_MIN_REFRESH_TIME
 %token VAR_MAX_RETRY_TIME
@@ -435,6 +436,12 @@ server_option:
       (void)snprintf(buf, sizeof(buf), "%lld", $2);
       cfg_parser->opt->tls_port = region_strdup(cfg_parser->opt->region, buf);
     }
+  | VAR_ANSWER_COOKIE boolean
+    { cfg_parser->opt->answer_cookie = $2; }
+  | VAR_COOKIE_SECRET STRING
+    { cfg_parser->opt->cookie_secret = region_strdup(cfg_parser->opt->region, $2); }
+  | VAR_COOKIE_SECRET_FILE STRING
+    { cfg_parser->opt->cookie_secret_file = region_strdup(cfg_parser->opt->region, $2); }
   | VAR_CPU_AFFINITY cpus
     {
       cfg_parser->opt->cpu_affinity = $2;

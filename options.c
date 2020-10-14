@@ -129,6 +129,7 @@ nsd_options_create(region_type* region)
 	opt->tls_port = TLS_PORT;
 	opt->answer_cookie = 1;
 	opt->cookie_secret = NULL;
+	opt->cookie_secret_file = CONFIGDIR"/nsd_cookiesecrets.txt";
 	opt->control_enable = 0;
 	opt->control_interface = NULL;
 	opt->control_port = NSD_CONTROL_PORT;
