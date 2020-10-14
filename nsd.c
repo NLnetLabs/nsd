@@ -949,7 +949,7 @@ int cookie_secret_file_read(nsd_type* nsd) {
 		assert( secret_len <= sizeof(secret) );
 		secret_len = secret[secret_len - 1] == '\n' ? secret_len - 1 : secret_len;
 		if( secret_len != NSD_COOKIE_SECRET_SIZE * 2 ) { corrupt++; break; }
-		/* needed for `hex_pton` */
+		/* needed for `hex_pton`; stripping potential `\n` */
 		secret[secret_len] = '\0';
 		ssize_t decoded_len = hex_pton(secret, nsd->cookie_secrets[count].cookie_secret,
 		                               NSD_COOKIE_SECRET_SIZE);
