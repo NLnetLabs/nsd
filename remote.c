@@ -2238,8 +2238,7 @@ static void
 do_print_cookie_secrets(RES* ssl, xfrd_state_type* xrfd, char* arg) {
   (void)arg;
 	nsd_type* nsd = xrfd->nsd;
-	(void)ssl_printf(ssl, "used cookie secret slots: %zu/%d\n",
-	                 nsd->cookie_count, NSD_COOKIE_HISTORY_SIZE);
+	(void)ssl_printf(ssl, "cookie_secret_count=%zu\n", nsd->cookie_count);
 	char secret_hex[NSD_COOKIE_SECRET_SIZE * 2 + 1];
 	for(size_t i = 0; i < nsd->cookie_count; i++) {
 		struct cookie_secret const* cs = &nsd->cookie_secrets[i];
@@ -2248,8 +2247,9 @@ do_print_cookie_secrets(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		(void)len; /* silence unused variable warning with -DNDEBUG */
 		assert( len == NSD_COOKIE_SECRET_SIZE * 2 );
 		secret_hex[NSD_COOKIE_SECRET_SIZE * 2] = '\0';
-		(void)ssl_printf(ssl, "timestamp: %u\n", cs->cookie_issue_timestamp);
-		(void)ssl_printf(ssl, "secret: %s\n", secret_hex);
+		(void)ssl_printf(ssl, "cookie_secrets[%zu].timestamp=%u\n",
+		                 i, cs->cookie_issue_timestamp);
+		(void)ssl_printf(ssl, "cookie_secrets[%zu].secret=%s\n", i, secret_hex);
 	}
 }
 
