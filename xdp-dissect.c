@@ -51,6 +51,8 @@ u32 dissect_en10mb( dissect_trace_type* const trace, byte const* data, size_t co
 	byte const* const end = data + size;
 	byte const* p = begin;
 
+	if( end - begin < 22 ) { return 0u; }
+
 	u32 hash = 0u;
 
 	dissect_trace_eth( trace, data, end );
