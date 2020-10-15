@@ -6,7 +6,7 @@
 
 typedef uint8_t byte;
 
-enum dissect_tag {
+typedef enum dissect_tag {
 	DISSECT_ARP,
 	DISSECT_ECTP,
 	DISSECT_ETH,
@@ -24,8 +24,7 @@ enum dissect_tag {
 	DISSECT_UDP,
 	DISSECT_VLAN8021Q,
 	DISSECT_UNKNOWN,
-};
-typedef enum dissect_tag dissect_tag;
+} dissect_tag;
 
 typedef struct dissect_trace_entry {
 	dissect_tag _tag;
