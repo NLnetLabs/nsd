@@ -26,6 +26,7 @@ CuSuite * reg_cutest_udb(void);
 CuSuite * reg_cutest_udb_radtree(void);
 CuSuite * reg_cutest_namedb(void);
 CuSuite * reg_cutest_bitset(void);
+CuSuite * reg_cutest_xdp_dissect(void);
 #ifdef RATELIMIT
 CuSuite * reg_cutest_rrl(void);
 #endif
@@ -84,7 +85,7 @@ int runalltests(const char *regex)
 	CuSuiteAddSuite(suite, reg_cutest_bitset());
 	CuSuiteAddSuite(suite, reg_cutest_popen3());
 	CuSuiteAddSuite(suite, reg_cutest_iter());
-	CuSuiteAddSuite(suite, reg_cutest_event());
+	CuSuiteAddSuite(suite, reg_cutest_xdp_dissect());
 
 	if(CuSuiteRunRegexDisplay(suite, regex, disp_callback) == -1) {
 		fprintf(stderr, "invalid regular expression");
