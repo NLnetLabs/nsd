@@ -1,8 +1,8 @@
 // Copyright (c) 2020, NLnet Labs. All rights reserved.
 // See LICENSE for the details
 
-#ifndef _NSD_XDP_
-#define _NSD_XDP_
+#ifndef _NSD_XDP_DISSECT_
+#define _NSD_XDP_DISSECT_
 
 typedef uint8_t byte;
 
