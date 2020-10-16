@@ -2873,6 +2873,10 @@ server_child(struct nsd *nsd)
 	}
 #endif
 
+	int xdp_replaces_udp_server = nsd->options->xdp_interface != NULL;
+	log_msg(LOG_NOTICE, "xdp-interface=%s xdp-replaces-udp-server=%d",
+	        nsd->options->xdp_interface, xdp_replaces_udp_server);
+	
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
 		server_close_all_sockets(nsd->tcp, nsd->ifs);
 	}
