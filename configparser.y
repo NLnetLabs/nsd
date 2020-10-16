@@ -114,6 +114,7 @@ static int parse_range(const char *str, long long *low, long long *high);
 %token VAR_TLS_SERVICE_PEM
 %token VAR_TLS_SERVICE_OCSP
 %token VAR_TLS_PORT
+%token VAR_XDP_INTERFACE
 %token VAR_CPU_AFFINITY
 %token VAR_XFRD_CPU_AFFINITY
 %token <llng> VAR_SERVER_CPU_AFFINITY
@@ -433,6 +434,8 @@ server_option:
       (void)snprintf(buf, sizeof(buf), "%lld", $2);
       cfg_parser->opt->tls_port = region_strdup(cfg_parser->opt->region, buf);
     }
+	| VAR_XDP_INTERFACE STRING
+		{ cfg_parser->opt->xdp_interface = region_strdup(cfg_parser->opt->region, $2); }
   | VAR_CPU_AFFINITY cpus
     {
       cfg_parser->opt->cpu_affinity = $2;

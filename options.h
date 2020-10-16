@@ -118,6 +118,9 @@ struct nsd_options {
 	/* TLS dedicated port */
 	const char* tls_port;
 
+	/** xdp interface name */
+	const char* xdp_interface;
+	
 	/** remote control section. enable toggle. */
 	int control_enable;
 	/** the interfaces the remote control should listen on */
