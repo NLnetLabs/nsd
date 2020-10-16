@@ -81,6 +81,8 @@
 #include "remote.h"
 #include "lookup3.h"
 #include "rrl.h"
+#include "xdp-server.h"
+
 #ifdef USE_DNSTAP
 #include "dnstap/dnstap_collector.h"
 #endif
@@ -2876,6 +2878,15 @@ server_child(struct nsd *nsd)
 	int xdp_replaces_udp_server = nsd->options->xdp_interface != NULL;
 	log_msg(LOG_NOTICE, "xdp-interface=%s xdp-replaces-udp-server=%d",
 	        nsd->options->xdp_interface, xdp_replaces_udp_server);
+	
+	xdp_server_type xdp;
+	xdp._region = server_region;
+	xdp._options._interface_name = nsd->options->xdp_interface;
+	
+	if(xdp_replaces_udp_server) {
+		xdp_server_init(&xdp);
+		xdp_server_deinit(&xdp);
+	}
 	
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
 		server_close_all_sockets(nsd->tcp, nsd->ifs);
