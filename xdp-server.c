@@ -49,6 +49,32 @@
 typedef uint32_t u32;
 typedef uint16_t u16;
 
+typedef struct xdp_umem_handle {
+	struct xsk_umem* _umem;
+	void* _buffer;
+	size_t _buffer_size;
+} xdp_umem_handle_type;
+
+typedef struct xdp_queue_stats {
+	uint64_t _packets;
+	uint64_t _bytes;
+	uint64_t _dropped;
+} xdp_queue_stats_type;
+
+typedef struct xdp_queue_rx {
+	struct xsk_ring_cons _rx;
+	xdp_queue_stats_type _stats;
+	xdp_umem_handle_type* _umem;
+	struct xsk_socket* _sock;
+} xdp_queue_rx_type;
+
+typedef struct xdp_queue_tx {
+	struct xsk_ring_prod _tx;
+	xdp_queue_stats_type _stats;
+	xdp_umem_handle_type* _umem;
+	struct xsk_socket* _sock;
+} xdp_queue_tx_type;
+
 static int eth_dev_change_flags( char const* if_name, uint32_t flags, uint32_t mask ) {
 	int s = socket( PF_INET, SOCK_DGRAM, 0 );
 	if( s < 0 ) return -errno;
@@ -141,7 +167,7 @@ out:
 	return ret;
 }
 
-int xdp_socket_stats( xdp_server_type* xdp ) {
+static int xdp_socket_stats( xdp_server_type* xdp ) {
 	socklen_t optlen = sizeof( struct xdp_statistics );
 	assert( xdp->_rx->_sock != NULL );
 	int rc = getsockopt( xsk_socket__fd( xdp->_rx->_sock ), SOL_XDP, XDP_STATISTICS,
@@ -150,17 +176,65 @@ int xdp_socket_stats( xdp_server_type* xdp ) {
 		log_msg( LOG_ERR, "getsockopt() failed\n" );
 		return -1;
 	}
+	return 0;
 }
 
-int xdp_umem_init( xdp_server_type* xdp ) {
+// XXX: do we need this or let the user manage with `ip`
+static int xdp_inject_ebpf( xdp_server_type* xdp ) {
+	(void)xdp;
+	return 0;
+}
+
+static inline int xdp_fill_queue_reserve( struct xsk_ring_prod* fq ) {
+	u32 idx;
+	int rc = xsk_ring_prod__reserve( fq, XDP_DESCRIPTORS_COUNT * 2, &idx );
+	if( rc != XDP_DESCRIPTORS_COUNT * 2 ) { return -1; }
+	for( uint16_t i = 0; i < XDP_DESCRIPTORS_COUNT * 2; i++ ) {
+		__u64* descriptor_address = xsk_ring_prod__fill_addr( fq, idx );
+		descriptor_address[0] = (__u64)i * XDP_FRAME_SIZE;
+		idx++;
+	}
+	return 0;
+}
+
+static int xdp_socket_init( xdp_server_type* xdp ) {
+	struct xsk_socket_config config = {
+		.rx_size = 0,
+		.tx_size = 0,
+		.libbpf_flags = 0,
+		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST,
+		.bind_flags = XDP_USE_NEED_WAKEUP,
+	};
+
+	xdp->_rx->_umem = xdp->_umem;
+	xdp->_tx->_umem = xdp->_umem;
+
+	int xsk_rc = xsk_socket__create( &xdp->_sock, xdp->_options._interface_name,
+		xdp->_queue_index, xdp->_umem->_umem, &xdp->_rx->_rx, &xdp->_tx->_tx,
+		&config );
+	if( xsk_rc != 0 ) {
+		log_msg( LOG_ERR, "xsk_socket__create() failed: %s", strerror( errno ) );
+		return xsk_rc;
+	}
+
+	if( xdp_fill_queue_reserve( xdp->_fill_q ) != 0 ) {
+		xsk_socket__delete( xdp->_sock );
+		return -1;
+	}
+
+	return 0;
+}
+
+static int xdp_umem_init( xdp_server_type* xdp ) {
 	struct xsk_umem_config config = {
-		.fill_size = XDP_DESCRIPTORS_COUNT * 2,
+		.fill_size = XDP_DESCRIPTORS_COUNT * 2 /*XXX: why times 2?*/,
 		.comp_size = XDP_DESCRIPTORS_COUNT,
 		.flags = XDP_UMEM_UNALIGNED_CHUNK_FLAG,
 		.frame_size = XDP_FRAME_SIZE,
-		.frame_headroom = 0,
+		.frame_headroom = XSK_UMEM__DEFAULT_FRAME_HEADROOM,
 	};
 
+	xdp->_umem->_umem = NULL;
 	size_t const buffer_size = XDP_FRAME_SIZE * XDP_BUFFER_COUNT;
 	void* buffer = NULL;
 	buffer = mmap( NULL, buffer_size, PROT_READ | PROT_WRITE,
@@ -169,17 +243,17 @@ int xdp_umem_init( xdp_server_type* xdp ) {
 		buffer_size, buffer != MAP_FAILED );
 	if( buffer == MAP_FAILED ) { return -1; }
 
-	int rc_umem = xsk_umem__create( &xdp->_umem._umem, buffer, buffer_size,
-		xdp->_fill_q, xdp->_comp_q, NULL );
-	if( rc_umem != 0 ) {
+	int umem_rc = xsk_umem__create( &xdp->_umem->_umem, buffer, buffer_size,
+		xdp->_fill_q, xdp->_comp_q, &config );
+	if( umem_rc != 0 ) {
 		log_msg( LOG_ERR, "xsk_umem__create() failed: %s ( %d )",
 			strerror( errno ), errno );
 		munmap( buffer, buffer_size );
 		return -1;
 	}
 
-	xdp->_umem._buffer = buffer;
-	xdp->_umem._buffer_size = buffer_size;
+	xdp->_umem->_buffer = buffer;
+	xdp->_umem->_buffer_size = buffer_size;
 
 	return 0;
 }
@@ -219,17 +293,27 @@ int xdp_server_init( xdp_server_type* xdp ) {
 	xdp->_fill_q = region_alloc( xdp->_region, sizeof( struct xsk_ring_prod ) );
 	xdp->_comp_q = region_alloc( xdp->_region, sizeof( struct xsk_ring_cons ) );
 	xdp->_stats = region_alloc( xdp->_region, sizeof( struct xdp_statistics ) );
-	xdp->_umem = ( xdp_umem_handle_type ){ 0 };
+	xdp->_umem = region_alloc( xdp->_region, sizeof( xdp_umem_handle_type ) );
 
-	xdp_umem_init( xdp );
+	if( xdp_umem_init( xdp ) != 0 ) {
+		log_msg( LOG_ERR, "xdp_umem_init() failed" );
+		return -1;
+	}
+
+	if( xdp_socket_init( xdp ) != 0 ) {
+		log_msg( LOG_ERR, "xdp_socket_init() failed" );
+		return -1;
+	}
 
 	return 0;
 }
 
 int xdp_server_deinit( xdp_server_type* xdp ) {
-	if( xdp->_umem._buffer != NULL ) {
+	if( xdp->_sock != NULL ) { xsk_socket__delete( xdp->_sock ); }
+	if( xdp->_umem->_umem != NULL ) { xsk_umem__delete( xdp->_umem->_umem ); }
+	if( xdp->_umem->_buffer != NULL ) {
 		log_msg( LOG_NOTICE, "deallocating xdp umem buffer" );
-		munmap( xdp->_umem._buffer, xdp->_umem._buffer_size );
+		munmap( xdp->_umem->_buffer, xdp->_umem->_buffer_size );
 	}
 	return 0;
 }
