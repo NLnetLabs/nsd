@@ -12,8 +12,8 @@
 #include "util.h"
 
 #include "xdp-dissect.h"
-#include "xdp-server.h"
 
+#include <assert.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <errno.h>
@@ -24,6 +24,7 @@
 #include <net/if.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <linux/if_ether.h>
 #include <linux/if_xdp.h>
 #include <linux/if_link.h>
@@ -42,6 +43,8 @@
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
+
+#include "xdp-server.h"
 
 typedef uint32_t u32;
 typedef uint16_t u16;
@@ -112,7 +115,7 @@ static int ethtool_channels_get(
 
 	channels.cmd = ETHTOOL_GCHANNELS;
 	ifr.ifr_data = (void*)&channels;
-	strncpy( ifr.ifr_name, if_name, IFNAMSIZ );
+	strlcpy( ifr.ifr_name, if_name, IFNAMSIZ );
 	ret = ioctl( fd, SIOCETHTOOL, &ifr );
 	if( ret ) {
 		if( errno == EOPNOTSUPP ) {
@@ -124,9 +127,8 @@ static int ethtool_channels_get(
 	}
 
 	if( channels.max_combined == 0 || errno == EOPNOTSUPP ) {
-		/* If the device says it has no channels, then all traffic
-		 * is sent to a single stream, so max queues = 1.
-		 */
+		// If the device says it has no channels, then all traffic
+		// is sent to a single stream, so max queues = 1.
 		*max_queues = 1;
 		*combined_queues = 1;
 	} else {
@@ -137,6 +139,49 @@ static int ethtool_channels_get(
 out:
 	close( fd );
 	return ret;
+}
+
+int xdp_socket_stats( xdp_server_type* xdp ) {
+	socklen_t optlen = sizeof( struct xdp_statistics );
+	assert( xdp->_rx->_sock != NULL );
+	int rc = getsockopt( xsk_socket__fd( xdp->_rx->_sock ), SOL_XDP, XDP_STATISTICS,
+		&xdp->_stats, &optlen );
+	if( rc != 0 ) {
+		log_msg( LOG_ERR, "getsockopt() failed\n" );
+		return -1;
+	}
+}
+
+int xdp_umem_init( xdp_server_type* xdp ) {
+	struct xsk_umem_config config = {
+		.fill_size = XDP_DESCRIPTORS_COUNT * 2,
+		.comp_size = XDP_DESCRIPTORS_COUNT,
+		.flags = XDP_UMEM_UNALIGNED_CHUNK_FLAG,
+		.frame_size = XDP_FRAME_SIZE,
+		.frame_headroom = 0,
+	};
+
+	size_t const buffer_size = XDP_FRAME_SIZE * XDP_BUFFER_COUNT;
+	void* buffer = NULL;
+	buffer = mmap( NULL, buffer_size, PROT_READ | PROT_WRITE,
+		MAP_PRIVATE | MAP_ANONYMOUS /*| MAP_HUGETLB*/, -1, 0 );
+	log_msg( LOG_NOTICE, "xdp.umem.buffer_size=%zu xdp.umem.buffer.allocate_success=%d",
+		buffer_size, buffer != MAP_FAILED );
+	if( buffer == MAP_FAILED ) { return -1; }
+
+	int rc_umem = xsk_umem__create( &xdp->_umem._umem, buffer, buffer_size,
+		xdp->_fill_q, xdp->_comp_q, NULL );
+	if( rc_umem != 0 ) {
+		log_msg( LOG_ERR, "xsk_umem__create() failed: %s ( %d )",
+			strerror( errno ), errno );
+		munmap( buffer, buffer_size );
+		return -1;
+	}
+
+	xdp->_umem._buffer = buffer;
+	xdp->_umem._buffer_size = buffer_size;
+
+	return 0;
 }
 
 int xdp_server_init( xdp_server_type* xdp ) {
@@ -153,8 +198,8 @@ int xdp_server_init( xdp_server_type* xdp ) {
 
 	char mac[32];
 	uint8_t const* p = xdp->_interface_hardware_address;
-	snprintf( mac, 32, "%02x:%02x:%02x:%02x:%02x:%02x",
-	          p[0], p[1], p[2], p[3], p[4], p[5] );
+	snprintf( mac, 32, "%02x:%02x:%02x:%02x:%02x:%02x",    //
+		p[0], p[1], p[2], p[3], p[4], p[5] );
 	log_msg( LOG_NOTICE, "xdp.interface_index=%d xdp.interface_hardware_address=%s",
 		xdp->_interface_index, mac );
 
@@ -169,10 +214,22 @@ int xdp_server_init( xdp_server_type* xdp ) {
 	log_msg( LOG_NOTICE, "xdp.max_queues=%u xdp.combined_queues=%u\n", max_queues,
 		combined_queues );
 
+	xdp->_rx = region_alloc( xdp->_region, sizeof( xdp_queue_rx_type ) );
+	xdp->_tx = region_alloc( xdp->_region, sizeof( xdp_queue_tx_type ) );
+	xdp->_fill_q = region_alloc( xdp->_region, sizeof( struct xsk_ring_prod ) );
+	xdp->_comp_q = region_alloc( xdp->_region, sizeof( struct xsk_ring_cons ) );
+	xdp->_stats = region_alloc( xdp->_region, sizeof( struct xdp_statistics ) );
+	xdp->_umem = ( xdp_umem_handle_type ){ 0 };
+
+	xdp_umem_init( xdp );
+
 	return 0;
 }
 
 int xdp_server_deinit( xdp_server_type* xdp ) {
-	(void)xdp;
+	if( xdp->_umem._buffer != NULL ) {
+		log_msg( LOG_NOTICE, "deallocating xdp umem buffer" );
+		munmap( xdp->_umem._buffer, xdp->_umem._buffer_size );
+	}
 	return 0;
 }
