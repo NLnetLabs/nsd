@@ -94,6 +94,11 @@
   #define TCP_FASTOPEN_SERVER_BIT_MASK 0x2
 #endif
 
+typedef struct xdp_handler_data {
+	xdp_server_type* _server;
+	struct event _event;
+} xdp_handler_data_type;
+
 /*
  * Data for the UDP handlers.
  */
@@ -149,6 +154,7 @@ struct mmsghdr {
 static struct mmsghdr msgs[NUM_RECV_PER_SELECT];
 static struct iovec iovecs[NUM_RECV_PER_SELECT];
 static struct query *queries[NUM_RECV_PER_SELECT];
+static struct query *xdp_queries[XDP_RX_BATCH_SIZE];
 
 /*
  * Data for the TCP connection handlers.
@@ -206,7 +212,7 @@ struct tcp_handler_data
 	 * The number of queries handled by this specific TCP connection.
 	 */
 	int					query_count;
-	
+
 	/*
 	 * The timeout in msec for this tcp connection
 	 */
@@ -1287,6 +1293,13 @@ server_init(struct nsd *nsd)
 		}
 	}
 
+	int xdp_replaces_udp_server = nsd->options->xdp_interface != NULL;
+	log_msg(LOG_NOTICE, "xdp: interface=%s replaces-udp-server=%d",
+	        nsd->options->xdp_interface, xdp_replaces_udp_server);
+	if(xdp_replaces_udp_server) {
+		xdp_server_init(&nsd->xdp.xdp);
+	}
+
 	if(nsd->reuseport && reuseport) {
 		size_t ifs = nsd->ifs * nsd->reuseport;
 
@@ -1672,7 +1685,7 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 			cmd != NSD_RELOAD) {
 			log_msg(LOG_ERR, "did not get start signal from xfrd");
 			exit(1);
-		} 
+		}
 		if(nsd->signal_hint_shutdown) {
 			goto shutdown;
 		}
@@ -2058,7 +2071,7 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 	memset(&fd, 0, sizeof(fd));
 	fd.fd = s;
 	fd.events = POLLIN;
-	
+
 	while( total < sz) {
 		ssize_t ret;
 		ret = poll(&fd, 1, (timeout==-1)?-1:timeout*1000);
@@ -2786,6 +2799,27 @@ nsd_child_event_base(void)
 	return base;
 }
 
+static void handle_xdp(int fd, short event, void* arg) {
+	struct xdp_handler_data *ctx = (xdp_handler_data_type *)arg;
+	(void)fd;
+	(void)ctx;
+	assert(fd == xdp_server_socket_fd(ctx->_server));
+	log_msg(LOG_NOTICE, "xdp: event callback received");
+	return;
+}
+
+static void add_xdp_handler(nsd_type* nsd, xdp_server_type* sock,
+                            xdp_handler_data_type* ctx) {
+	struct event* ev = &ctx->_event;
+	event_set(ev, xdp_server_socket_fd(sock), EV_PERSIST|EV_READ, handle_xdp, ctx);
+	if(event_base_set(nsd->event_base, ev) != 0) {
+		log_msg(LOG_ERR, "xdp: event_base_set() failed");
+	}
+	if(event_add(ev, NULL) != 0) {
+		log_msg(LOG_ERR, "xsp: event_add() failed");
+	}
+}
+
 static void
 add_udp_handler(
 	struct nsd *nsd,
@@ -2875,19 +2909,6 @@ server_child(struct nsd *nsd)
 	}
 #endif
 
-	int xdp_replaces_udp_server = nsd->options->xdp_interface != NULL;
-	log_msg(LOG_NOTICE, "xdp-interface=%s xdp-replaces-udp-server=%d",
-	        nsd->options->xdp_interface, xdp_replaces_udp_server);
-	
-	xdp_server_type xdp;
-	xdp._region = server_region;
-	xdp._options._interface_name = nsd->options->xdp_interface;
-	
-	if(xdp_replaces_udp_server) {
-		xdp_server_init(&xdp);
-		xdp_server_deinit(&xdp);
-	}
-	
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
 		server_close_all_sockets(nsd->tcp, nsd->ifs);
 	}
@@ -2924,6 +2945,21 @@ server_child(struct nsd *nsd)
 	} else {
 		from = 0;
 		numifs = nsd->ifs;
+	}
+
+	int run_xdp_server= nsd->options->xdp_interface != NULL;
+	if(run_xdp_server) {
+		assert( nsd->xdp->_sock != NULL );
+		log_msg(LOG_NOTICE, "xdp: rx_batch_size=%d", XDP_RX_BATCH_SIZE);
+		for( i = 0; i < XDP_RX_BATCH_SIZE; i++) {
+			xdp_queries[i] = query_create(server_region,
+			                              compressed_dname_offsets,
+						      compression_table_size, compressed_dnames);
+			query_reset(xdp_queries[i], UDP_MAX_MESSAGE_LEN, 0);
+		}
+		xdp_handler_data_type* ctx = region_alloc_zero(nsd->server_region,
+		                                               sizeof(xdp_handler_data_type));
+		add_xdp_handler(nsd, &nsd->xdp.xdp, ctx);
 	}
 
 	if (nsd->server_kind & NSD_SERVER_UDP) {
@@ -3736,7 +3772,7 @@ handle_tcp_writing(int fd, short event, void* arg)
 #ifdef HAVE_WRITEV
 		struct iovec iov[2];
 		iov[0].iov_base = (uint8_t*)&n_tcplen + data->bytes_transmitted;
-		iov[0].iov_len = sizeof(n_tcplen) - data->bytes_transmitted; 
+		iov[0].iov_len = sizeof(n_tcplen) - data->bytes_transmitted;
 		iov[1].iov_base = buffer_begin(q->packet);
 		iov[1].iov_len = buffer_limit(q->packet);
 		sent = writev(fd, iov, 2);
@@ -3780,7 +3816,7 @@ handle_tcp_writing(int fd, short event, void* arg)
 		goto packet_could_be_done;
 #endif
  	}
- 
+
 	sent = write(fd,
 		     buffer_current(q->packet),
 		     buffer_remaining(q->packet));

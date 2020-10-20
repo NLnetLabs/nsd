@@ -4,13 +4,15 @@
 #ifndef _NSD_XDP_SERVER_
 #define _NSD_XDP_SERVER_
 
-#define XDP_ETHER_ADDR_LEN    6
-#define XDP_FRAME_SIZE	      2048
-#define XDP_BUFFER_COUNT      4096
-#define XDP_DESCRIPTORS_COUNT XSK_RING_CONS__DEFAULT_NUM_DESCS
+#define XDP_ETHER_ADDR_LEN 6
+#define XDP_FRAME_SIZE 2048
+#define XDP_DESCRIPTORS_PROD_COUNT XSK_RING_PROD__DEFAULT_NUM_DESCS
+#define XDP_DESCRIPTORS_CONS_COUNT XSK_RING_CONS__DEFAULT_NUM_DESCS
+#define XDP_DESCRIPTORS_TOTAL_COUNT                                                      \
+	( XDP_DESCRIPTORS_PROD_COUNT + XDP_DESCRIPTORS_CONS_COUNT )
 
-#define ETH_AF_XDP_RX_BATCH_SIZE 32
-#define ETH_AF_XDP_TX_BATCH_SIZE 32
+#define XDP_RX_BATCH_SIZE 32
+#define XDP_TX_BATCH_SIZE XDP_RX_BATCH_SIZE
 
 struct xdp_umem_handle;
 struct xdp_queue_stats;
@@ -38,6 +40,8 @@ typedef struct xdp_server {
 	struct xdp_queue_tx* _tx;
 } xdp_server_type;
 
+
+int xdp_server_socket_fd( xdp_server_type* sock);
 int xdp_server_init( xdp_server_type* xdp );
 int xdp_server_deinit( xdp_server_type* xdp );
 

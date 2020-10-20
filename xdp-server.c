@@ -130,8 +130,8 @@ error:
 	return -1;
 }
 
-static int ethtool_channels_get(
-	char const* if_name, u32* max_queues, u32* combined_queues ) {
+static int ethtool_channels_get( char const* if_name, u32* max_queues,
+				 u32* combined_queues ) {
 	struct ethtool_channels channels;
 	struct ifreq ifr;
 	int fd, ret;
@@ -171,7 +171,7 @@ static int xdp_socket_stats( xdp_server_type* xdp ) {
 	socklen_t optlen = sizeof( struct xdp_statistics );
 	assert( xdp->_rx->_sock != NULL );
 	int rc = getsockopt( xsk_socket__fd( xdp->_rx->_sock ), SOL_XDP, XDP_STATISTICS,
-		&xdp->_stats, &optlen );
+			     &xdp->_stats, &optlen );
 	if( rc != 0 ) {
 		log_msg( LOG_ERR, "getsockopt() failed\n" );
 		return -1;
@@ -187,9 +187,9 @@ static int xdp_inject_ebpf( xdp_server_type* xdp ) {
 
 static inline int xdp_fill_queue_reserve( struct xsk_ring_prod* fq ) {
 	u32 idx;
-	int rc = xsk_ring_prod__reserve( fq, XDP_DESCRIPTORS_COUNT * 2, &idx );
-	if( rc != XDP_DESCRIPTORS_COUNT * 2 ) { return -1; }
-	for( uint16_t i = 0; i < XDP_DESCRIPTORS_COUNT * 2; i++ ) {
+	int rc = xsk_ring_prod__reserve( fq, XDP_DESCRIPTORS_TOTAL_COUNT, &idx );
+	if( rc != XDP_DESCRIPTORS_TOTAL_COUNT ) { return -1; }
+	for( uint16_t i = 0; i < XDP_DESCRIPTORS_TOTAL_COUNT; i++ ) {
 		__u64* descriptor_address = xsk_ring_prod__fill_addr( fq, idx );
 		descriptor_address[0] = (__u64)i * XDP_FRAME_SIZE;
 		idx++;
@@ -199,9 +199,9 @@ static inline int xdp_fill_queue_reserve( struct xsk_ring_prod* fq ) {
 
 static int xdp_socket_init( xdp_server_type* xdp ) {
 	struct xsk_socket_config config = {
-		.rx_size = 0,
-		.tx_size = 0,
-		.libbpf_flags = 0,
+		.rx_size = XDP_DESCRIPTORS_CONS_COUNT,
+		.tx_size = XDP_DESCRIPTORS_PROD_COUNT,
+		.libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD,
 		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST,
 		.bind_flags = XDP_USE_NEED_WAKEUP,
 	};
@@ -209,11 +209,15 @@ static int xdp_socket_init( xdp_server_type* xdp ) {
 	xdp->_rx->_umem = xdp->_umem;
 	xdp->_tx->_umem = xdp->_umem;
 
+	log_msg( LOG_NOTICE, "xdp.socket.config: rx_size=%u, tx_size=%u", config.rx_size,
+		 config.tx_size );
+
 	int xsk_rc = xsk_socket__create( &xdp->_sock, xdp->_options._interface_name,
-		xdp->_queue_index, xdp->_umem->_umem, &xdp->_rx->_rx, &xdp->_tx->_tx,
-		&config );
+					 xdp->_queue_index, xdp->_umem->_umem,
+					 &xdp->_rx->_rx, &xdp->_tx->_tx, &config );
 	if( xsk_rc != 0 ) {
-		log_msg( LOG_ERR, "xsk_socket__create() failed: %s", strerror( errno ) );
+		log_msg( LOG_ERR, "xsk_socket__create() failed: %s ( rc = %d )",
+			 strerror( -xsk_rc ), xsk_rc );
 		return xsk_rc;
 	}
 
@@ -227,27 +231,31 @@ static int xdp_socket_init( xdp_server_type* xdp ) {
 
 static int xdp_umem_init( xdp_server_type* xdp ) {
 	struct xsk_umem_config config = {
-		.fill_size = XDP_DESCRIPTORS_COUNT * 2 /*XXX: why times 2?*/,
-		.comp_size = XDP_DESCRIPTORS_COUNT,
+		.fill_size = XDP_DESCRIPTORS_TOTAL_COUNT,
+		.comp_size = XDP_DESCRIPTORS_PROD_COUNT,
 		.flags = XDP_UMEM_UNALIGNED_CHUNK_FLAG,
 		.frame_size = XDP_FRAME_SIZE,
 		.frame_headroom = XSK_UMEM__DEFAULT_FRAME_HEADROOM,
 	};
 
+	log_msg( LOG_NOTICE, "xdp.umem.config: fill_size=%u, comp_size=%u frame_size=%u",
+		 config.fill_size, config.comp_size, config.frame_size );
+
 	xdp->_umem->_umem = NULL;
-	size_t const buffer_size = XDP_FRAME_SIZE * XDP_BUFFER_COUNT;
+	size_t const buffer_size = XDP_FRAME_SIZE * XDP_DESCRIPTORS_TOTAL_COUNT;
 	void* buffer = NULL;
 	buffer = mmap( NULL, buffer_size, PROT_READ | PROT_WRITE,
-		MAP_PRIVATE | MAP_ANONYMOUS /*| MAP_HUGETLB*/, -1, 0 );
-	log_msg( LOG_NOTICE, "xdp.umem.buffer_size=%zu xdp.umem.buffer.allocate_success=%d",
-		buffer_size, buffer != MAP_FAILED );
+		       MAP_PRIVATE | MAP_ANONYMOUS /*| MAP_HUGETLB*/, -1, 0 );
+	log_msg( LOG_NOTICE, "xdp.umem: buffer_size=%zu buffer_allocate_success=%d",
+		 buffer_size, buffer != MAP_FAILED );
+
 	if( buffer == MAP_FAILED ) { return -1; }
 
 	int umem_rc = xsk_umem__create( &xdp->_umem->_umem, buffer, buffer_size,
-		xdp->_fill_q, xdp->_comp_q, &config );
+					xdp->_fill_q, xdp->_comp_q, &config );
 	if( umem_rc != 0 ) {
 		log_msg( LOG_ERR, "xsk_umem__create() failed: %s ( %d )",
-			strerror( errno ), errno );
+			 strerror( errno ), errno );
 		munmap( buffer, buffer_size );
 		return -1;
 	}
@@ -256,6 +264,11 @@ static int xdp_umem_init( xdp_server_type* xdp ) {
 	xdp->_umem->_buffer_size = buffer_size;
 
 	return 0;
+}
+
+int xdp_server_socket_fd( xdp_server_type* sock ) {
+	assert( sock != NULL && sock->_sock != NULL );
+	return xsk_socket__fd( sock->_sock );
 }
 
 int xdp_server_init( xdp_server_type* xdp ) {
@@ -273,20 +286,20 @@ int xdp_server_init( xdp_server_type* xdp ) {
 	char mac[32];
 	uint8_t const* p = xdp->_interface_hardware_address;
 	snprintf( mac, 32, "%02x:%02x:%02x:%02x:%02x:%02x",    //
-		p[0], p[1], p[2], p[3], p[4], p[5] );
-	log_msg( LOG_NOTICE, "xdp.interface_index=%d xdp.interface_hardware_address=%s",
-		xdp->_interface_index, mac );
+		  p[0], p[1], p[2], p[3], p[4], p[5] );
+	log_msg( LOG_NOTICE, "xdp: interface_index=%d interface_hardware_address=%s",
+		 xdp->_interface_index, mac );
 
-	int rc_queues = ethtool_channels_get(
-		xdp->_options._interface_name, &max_queues, &combined_queues );
+	int rc_queues = ethtool_channels_get( xdp->_options._interface_name, &max_queues,
+					      &combined_queues );
 	if( rc_queues != 0 ) {
 		log_msg( LOG_ERR, "failed: ethtool_channels_get(): %s\n",
-			strerror( errno ) );
+			 strerror( errno ) );
 		return rc_queues;
 	}
 
-	log_msg( LOG_NOTICE, "xdp.max_queues=%u xdp.combined_queues=%u\n", max_queues,
-		combined_queues );
+	log_msg( LOG_NOTICE, "xdp: max_queues=%u combined_queues=%u\n", max_queues,
+		 combined_queues );
 
 	xdp->_rx = region_alloc( xdp->_region, sizeof( xdp_queue_rx_type ) );
 	xdp->_tx = region_alloc( xdp->_region, sizeof( xdp_queue_tx_type ) );

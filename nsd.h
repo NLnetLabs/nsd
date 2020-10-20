@@ -26,6 +26,7 @@
 #include "dns.h"
 #include "edns.h"
 #include "bitset.h"
+#include "xdp-server.h"
 struct netio_handler;
 struct nsd_options;
 struct udb_base;
@@ -257,6 +258,12 @@ struct	nsd
 
 	/* UDP specific configuration (array size ifs) */
 	struct nsd_socket* udp;
+
+	struct {
+		/* only one interface for now */
+		xdp_server_type xdp;
+		size_t interface_count;
+	} xdp;
 
 	edns_data_type edns_ipv4;
 #if defined(INET6)

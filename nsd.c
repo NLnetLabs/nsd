@@ -1510,6 +1510,9 @@ main(int argc, char *argv[])
 	nsd.signal_hint_statsusr = 0;
 	nsd.quit_sync_done = 0;
 
+	nsd.xdp.xdp._region = nsd.region;
+	nsd.xdp.xdp._options._interface_name = nsd.options->xdp_interface;
+
 	/* Initialize the server... */
 	if (server_init(&nsd) != 0) {
 		error("server initialization failed, %s could "
