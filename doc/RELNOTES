@@ -13,6 +13,8 @@ BUG FIXES:
 	- Fix #133: fix 0-init of local ( stack ) buffer.
 	- Fix missing parenthesis on size of fix to init buffer.
 	- Fix #134: IPV4_MINIMAL_RESPONSE_SIZE vs EDNS_MAX_MESSAGE_LEN.
+	- Fix to add missing closest encloser NSEC3 for wildcard nodata type
+	  DS answer.
 
 
 4.3.3

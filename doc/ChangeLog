@@ -1,3 +1,7 @@
+20 October 2020: Wouter
+	- Fix to add missing closest encloser NSEC3 for wildcard nodata type
+	  DS answer.
+
 14 October 2020: Wouter
 	- Fix #134: IPV4_MINIMAL_RESPONSE_SIZE vs EDNS_MAX_MESSAGE_LEN.
 
