@@ -7,6 +7,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright(c) 2019-2020 Intel Corporation.
 
+/*
+TODO:
+  - options:
+    - huge_tables
+    - queue_index
+    - promicious_mode
+    - inhibit_bpf_prog_load
+    - XDP_UMEM_UNALIGNED_CHUNK_FLAG
+ */
+
 #include "config.h"
 
 #include "region-allocator.h"
@@ -185,18 +195,20 @@ static int xdp_inject_ebpf( xdp_server_type* xdp ) {
 	return 0;
 }
 
-static inline int xdp_fill_queue_reserve( struct xsk_ring_prod* fq ) {
+static inline int xdp_fill_queue_reserve( struct xsk_ring_prod* fq, uint16_t n ) {
 	uint16_t i;
 	u32 idx;
 	int rc;
 
-	rc = xsk_ring_prod__reserve( fq, XDP_DESCRIPTORS_TOTAL_COUNT, &idx );
-	if( rc != XDP_DESCRIPTORS_TOTAL_COUNT ) { return -1; }
-	for( i = 0; i < XDP_DESCRIPTORS_TOTAL_COUNT; i++ ) {
+	rc = xsk_ring_prod__reserve( fq, n, &idx );
+	if( rc != n ) { return -1; }
+	for( i = 0; i < n; i++ ) {
 		__u64* descriptor_address = xsk_ring_prod__fill_addr( fq, idx );
 		descriptor_address[0] = (__u64)i * XDP_FRAME_SIZE;
 		idx++;
 	}
+
+	xsk_ring_prod__submit( fq, n );
 
 	return 0;
 }
@@ -205,7 +217,8 @@ static int xdp_socket_init( xdp_server_type* xdp ) {
 	struct xsk_socket_config config = {
 		.rx_size = XDP_DESCRIPTORS_CONS_COUNT,
 		.tx_size = XDP_DESCRIPTORS_PROD_COUNT,
-		.libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD,
+		//.libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD,
+		.libbpf_flags = 0,
 		.xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST,
 		.bind_flags = XDP_USE_NEED_WAKEUP,
 	};
@@ -214,8 +227,8 @@ static int xdp_socket_init( xdp_server_type* xdp ) {
 	xdp->_rx->_umem = xdp->_umem;
 	xdp->_tx->_umem = xdp->_umem;
 
-	log_msg( LOG_NOTICE, "xdp.socket.config: rx_size=%u, tx_size=%u", config.rx_size,
-		 config.tx_size );
+	log_msg( LOG_NOTICE, "xdp.socket.config: rx_size=%u tx_size=%u queue=%d",
+		 config.rx_size, config.tx_size, xdp->_queue_index );
 
 	rc = xsk_socket__create( &xdp->_sock, xdp->_options._interface_name,
 				 xdp->_queue_index, xdp->_umem->_umem, &xdp->_rx->_rx,
@@ -226,7 +239,9 @@ static int xdp_socket_init( xdp_server_type* xdp ) {
 		return rc;
 	}
 
-	if( xdp_fill_queue_reserve( xdp->_fill_q ) != 0 ) {
+	log_msg( LOG_NOTICE, "xdp.socket: fd=%d", xsk_socket__fd( xdp->_sock ) );
+
+	if( xdp_fill_queue_reserve( xdp->_fill_q, XDP_DESCRIPTORS_TOTAL_COUNT ) != 0 ) {
 		xsk_socket__delete( xdp->_sock );
 		return -1;
 	}
@@ -238,7 +253,7 @@ static int xdp_umem_init( xdp_server_type* xdp ) {
 	struct xsk_umem_config config = {
 		.fill_size = XDP_DESCRIPTORS_TOTAL_COUNT,
 		.comp_size = XDP_DESCRIPTORS_PROD_COUNT,
-		.flags = XDP_UMEM_UNALIGNED_CHUNK_FLAG,
+		.flags = 0,
 		.frame_size = XDP_FRAME_SIZE,
 		.frame_headroom = XSK_UMEM__DEFAULT_FRAME_HEADROOM,
 	};
@@ -246,7 +261,7 @@ static int xdp_umem_init( xdp_server_type* xdp ) {
 	void* buffer;
 	int rc;
 
-	log_msg( LOG_NOTICE, "xdp.umem.config: fill_size=%u, comp_size=%u frame_size=%u",
+	log_msg( LOG_NOTICE, "xdp.umem.config: fill_size=%u comp_size=%u frame_size=%u",
 		 config.fill_size, config.comp_size, config.frame_size );
 
 	xdp->_umem->_umem = NULL;
@@ -254,7 +269,6 @@ static int xdp_umem_init( xdp_server_type* xdp ) {
 		       MAP_PRIVATE | MAP_ANONYMOUS /*| MAP_HUGETLB*/, -1, 0 );
 	log_msg( LOG_NOTICE, "xdp.umem: buffer_size=%zu buffer_allocate_success=%d",
 		 buffer_size, buffer != MAP_FAILED );
-
 	if( buffer == MAP_FAILED ) { return -1; }
 
 	rc = xsk_umem__create( &xdp->_umem->_umem, buffer, buffer_size, xdp->_fill_q,
@@ -277,6 +291,31 @@ int xdp_server_socket_fd( xdp_server_type* sock ) {
 	return xsk_socket__fd( sock->_sock );
 }
 
+int xdp_server_process( xdp_server_type* xdp ) {
+	struct xsk_ring_cons* rx = &xdp->_rx->_rx;
+	uint32_t rx_idx = 0, fill_q_idx = 0;
+	size_t i, n, fill_n;
+	// log_msg( LOG_NOTICE, "ping rx=%p", (void const*)rx );
+	// return 0;
+	n = xsk_ring_cons__peek( rx, XDP_RX_BATCH_SIZE, &rx_idx );
+	fill_q_idx = 0;
+	fill_n = xsk_ring_prod__reserve( xdp->_fill_q, n, &fill_q_idx );
+	if( fill_n != n ) { return -1; }
+	xsk_ring_prod__submit( xdp->_fill_q, fill_n );
+
+	for( i = 0; i < n; i++, rx_idx++ ) {
+		struct xdp_desc const* desc = xsk_ring_cons__rx_desc( rx, rx_idx );
+		uintptr_t addr = desc->addr;
+		uint32_t len = desc->len;
+		log_msg( LOG_NOTICE,
+			 "xdp.rx.desc: n=%zu idx=%u/%u addr=%zu len=%u", n,
+			 rx_idx, fill_q_idx, addr, len );
+	}
+
+	xsk_ring_cons__release( rx, n );
+	return 0;
+}
+
 int xdp_server_init( xdp_server_type* xdp ) {
 	u32 combined_queues = 0;
 	u32 max_queues = 0;
@@ -295,6 +334,9 @@ int xdp_server_init( xdp_server_type* xdp ) {
 		  p[0], p[1], p[2], p[3], p[4], p[5] );
 	log_msg( LOG_NOTICE, "xdp: interface_index=%d interface_hardware_address=%s",
 		 xdp->_interface_index, mac );
+
+	rc = eth_dev_promiscuous_enable( xdp );
+	log_msg( LOG_NOTICE, "xdp: promiscous_enable_success=%d", rc == 0 );
 
 	rc = ethtool_channels_get( xdp->_options._interface_name, &max_queues,
 				   &combined_queues );

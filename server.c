@@ -1283,6 +1283,7 @@ server_init(struct nsd *nsd)
 {
 	size_t i;
 	int reuseport = 1; /* Determine if REUSEPORT works. */
+	int use_xdp = nsd->options->xdp_interface != NULL;
 
 	/* open server interface ports */
 	for(i = 0; i < nsd->ifs; i++) {
@@ -1293,10 +1294,9 @@ server_init(struct nsd *nsd)
 		}
 	}
 
-	int xdp_replaces_udp_server = nsd->options->xdp_interface != NULL;
 	log_msg(LOG_NOTICE, "xdp: interface=%s replaces-udp-server=%d",
-	        nsd->options->xdp_interface, xdp_replaces_udp_server);
-	if(xdp_replaces_udp_server) {
+	        nsd->options->xdp_interface, use_xdp);
+	if(use_xdp) {
 		xdp_server_init(&nsd->xdp.xdp);
 	}
 
@@ -2801,16 +2801,17 @@ nsd_child_event_base(void)
 
 static void handle_xdp(int fd, short event, void* arg) {
 	struct xdp_handler_data *ctx = (xdp_handler_data_type *)arg;
+	(void)event;
 	(void)fd;
-	(void)ctx;
 	assert(fd == xdp_server_socket_fd(ctx->_server));
-	log_msg(LOG_NOTICE, "xdp: event callback received");
+	xdp_server_process( ctx->_server );
 	return;
 }
 
 static void add_xdp_handler(nsd_type* nsd, xdp_server_type* sock,
                             xdp_handler_data_type* ctx) {
 	struct event* ev = &ctx->_event;
+	ctx->_server = &nsd->xdp.xdp;
 	event_set(ev, xdp_server_socket_fd(sock), EV_PERSIST|EV_READ, handle_xdp, ctx);
 	if(event_base_set(nsd->event_base, ev) != 0) {
 		log_msg(LOG_ERR, "xdp: event_base_set() failed");
@@ -2947,9 +2948,9 @@ server_child(struct nsd *nsd)
 		numifs = nsd->ifs;
 	}
 
-	int run_xdp_server= nsd->options->xdp_interface != NULL;
-	if(run_xdp_server) {
-		assert( nsd->xdp->_sock != NULL );
+	if(nsd->options->xdp_interface != NULL) {
+		xdp_handler_data_type* ctx;
+		assert( nsd->xdp._sock != NULL );
 		log_msg(LOG_NOTICE, "xdp: rx_batch_size=%d", XDP_RX_BATCH_SIZE);
 		for( i = 0; i < XDP_RX_BATCH_SIZE; i++) {
 			xdp_queries[i] = query_create(server_region,
@@ -2957,8 +2958,8 @@ server_child(struct nsd *nsd)
 						      compression_table_size, compressed_dnames);
 			query_reset(xdp_queries[i], UDP_MAX_MESSAGE_LEN, 0);
 		}
-		xdp_handler_data_type* ctx = region_alloc_zero(nsd->server_region,
-		                                               sizeof(xdp_handler_data_type));
+		ctx = region_alloc_zero(nsd->server_region,
+		                        sizeof(xdp_handler_data_type));
 		add_xdp_handler(nsd, &nsd->xdp.xdp, ctx);
 	}
 

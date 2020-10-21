@@ -40,7 +40,7 @@ typedef struct xdp_server {
 	struct xdp_queue_tx* _tx;
 } xdp_server_type;
 
-
+int xdp_server_process( xdp_server_type* sock );
 int xdp_server_socket_fd( xdp_server_type* sock);
 int xdp_server_init( xdp_server_type* xdp );
 int xdp_server_deinit( xdp_server_type* xdp );
