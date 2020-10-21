@@ -50,15 +50,17 @@ u32 dissect_en10mb( dissect_trace_type* const trace, byte const* data, size_t co
 	byte const* const begin = data;
 	byte const* const end = data + size;
 	byte const* p = begin;
+	u16 ethertype;
+	u16 vlan_ex;
+	u16 vlan_et;
+	u32 hash = 0u;
 
 	if( end - begin < 22 ) { return 0u; }
 
-	u32 hash = 0u;
-
 	dissect_trace_eth( trace, data, end );
-	u16 ethertype = peek_be16( p + 12 );
-	u16 const vlan_ex = peek_be16( p + 16 );
-	u16 const vlan_et = peek_be16( p + 20 );
+	ethertype = peek_be16( p + 12 );
+	vlan_ex = peek_be16( p + 16 );
+	vlan_et = peek_be16( p + 20 );
 	p += 14;
 
 	DISSECT_NEXT_ALLOW_VLAN( ethertype );
@@ -70,29 +72,30 @@ parse_vlan_8021q:
 	DISSECT_NEXT( ethertype );
 
 parse_ipv4 : {
+	u32 x, len, part, transport;
+
 	if( p >= end ) {
 		dissect_trace_unknown( trace, p, end );
 		return hash;
 	}
-	u32 const x = ( u32 )( *p );
-	u32 const len = ( x & 0x0f ) << 2;
+	x = ( u32 )( *p );
+	len = ( x & 0x0f ) << 2;
 	if( p + len > end ) {
 		dissect_trace_unknown( trace, p, end );
 		return hash;
 	}
-	u32 const part = peek_be16( p + 6 );
+	part = peek_be16( p + 6 );
 	// unsigned const flag = part & 0b0010'0000'0000'0000u;
 	// unsigned const foffset = part & 0b0001'1111'1111'1111u;
 	hash = dissect_hash8( p + 12 );
-	if( part & 0x1fffu ) {
+	if( part & 0x3fffu ) {
 		dissect_trace_ipv4f( trace, p, end );
-		u32 const foffset = part & 0x1fffu;
-		if( foffset != 0 ) { return hash; }
+		if( part & 0x1fffu ) { return hash; }
 	} else {
 		dissect_trace_ipv4( trace, p, end );
 	}
 
-	u32 const transport = (u32)p[9];
+	transport = (u32)p[9];
 	p += len;
 	switch( transport ) {
 	case 1: goto parse_icmpv4;
@@ -104,11 +107,12 @@ parse_ipv4 : {
 }
 
 parse_tcp : {
+	u32 len;
 	if( p + 20 > end ) {
 		dissect_trace_unknown( trace, p, end );
 		return hash;
 	}
-	u32 const len = ( (u32)p[12] >> 2 ) & ~0x3u;
+	len = ( (u32)p[12] >> 2 ) & ~0x3u;
 	if( p + len > end ) {
 		dissect_trace_unknown( trace, p, end );
 		return hash;
@@ -150,18 +154,19 @@ parse_arp:
 	return hash;
 
 parse_ipv6 : {
+	u32 len, transport;
 	if( p + 40 > end ) {
 		dissect_trace_unknown( trace, p, end );
 		return hash;
 	}
 	hash = dissect_hash32( p + 8 );
-	u32 const len = peek_be16( p + 4 );
+	len = peek_be16( p + 4 );
 	if( p + len + 40 > end ) {
 		dissect_trace_unknown( trace, p, end );
 		return hash;
 	}
 	dissect_trace_ipv6( trace, p, end );
-	u32 const transport = (u32)p[6];
+	transport = (u32)p[6];
 	p += 40;
 	switch( transport ) {
 	case 6: goto parse_tcp;
