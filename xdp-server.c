@@ -294,6 +294,26 @@ int xdp_server_socket_fd( xdp_server_type* sock ) {
 	return xsk_socket__fd( sock->_sock );
 }
 
+static void xdp_pull_umem_completion_queue( xdp_server_type* xdp, int size,
+					    struct xsk_ring_cons* cq ) {
+	size_t i, n;
+	uint32_t idx = 0;
+	n = xsk_ring_cons__peek( xdp->_comp_q, size, &idx );
+	xsk_ring_cons__release( xdp->_comp_q, n );
+}
+
+static void xdp_kick_tx( xdp_server_type* xdp, struct xsk_ring_cons* cq ) {
+	xdp_pull_umem_completion_queue( xdp, XDP_DESCRIPTORS_CONS_COUNT, cq );
+	if( !xsk_ring_prod__needs_wakeup( &xdp->_tx->_tx ) ) { return; }
+	while( send( xdp_server_socket_fd( xdp ), NULL, 0, MSG_DONTWAIT ) < 0 ) {
+		if( errno != EBUSY && errno != EAGAIN && errno != EINTR ) { break; }
+		if( errno == EAGAIN ) {
+			xdp_pull_umem_completion_queue( xdp, XDP_DESCRIPTORS_CONS_COUNT,
+							cq );
+		}
+	}
+}
+
 static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 					  uint8_t const* const begin,
 					  uint8_t const* const end ) {
@@ -304,22 +324,35 @@ static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 	struct query* q = env->_xdp->_queries[env->_count];
 	ptrdiff_t const len = end - begin;
 	assert( udp_len <= len );
-	// uint8_t const* payload = begin + 8;
-	if( dst_port != 53 || udp_len > len ) { return; }
+	if( dst_port != 53 || udp_len > len || udp_len < 8 ) { return; }
 	log_msg( LOG_NOTICE, "got udp sp=%d dp=%d", src_port, dst_port );
+	// TODO: query addrlen
 	buffer_write( q->packet, begin + 8, udp_len - 8 );
 	buffer_flip( q->packet );
 	if( query_process( q, env->_xdp->_nsd ) != QUERY_DISCARDED ) {
+		struct nsd* nsd = env->_xdp->_nsd;
 		log_msg( LOG_NOTICE, "have response" );
+		if( RCODE( q->packet ) == RCODE_OK && !AA( q->packet ) ) {
+			STATUP( nsd, nona );
+			ZTATUP( nsd, q->zone, nona );
+		}
+
+		// TODO: update stats ( bind and zone )
+
+		// add EDNS0 and TSIG info if necessary
+		query_add_optional( q, nsd );
+		buffer_flip( q->packet );
+
+		env->_count++;
 	} else {
+		query_reset( q, UDP_MAX_MESSAGE_LEN, 0 );
 		log_msg( LOG_NOTICE, "query discarded" );
 	}
-	query_reset( q, UDP_MAX_MESSAGE_LEN, 0 );
 }
 
 int xdp_server_process( xdp_server_type* xdp ) {
 	struct xsk_ring_cons* rx = &xdp->_rx->_rx;
-	uint32_t rx_idx = 0, fill_idx = 0;
+	uint32_t tx_idx = 0, rx_idx = 0, fill_idx = 0;
 	dissect_trace_type trace = { 0 };
 	xdp_trace_env_type env = { xdp, 0 };
 	size_t i, n, fill_n;
@@ -352,9 +385,14 @@ int xdp_server_process( xdp_server_type* xdp ) {
 		dissect_en10mb( &trace, p, len );
 	}
 
-	// --- commit ---------------------------------------------------------
+	// --- rx done --------------------------------------------------------
 
 	xsk_ring_cons__release( rx, n );
+
+	// --- prepare tx -----------------------------------------------------
+
+	for( i = 0; i < env._count; i++ ) {}
+
 	return 0;
 }
 
