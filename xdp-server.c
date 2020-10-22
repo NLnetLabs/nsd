@@ -305,7 +305,7 @@ static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 	ptrdiff_t const len = end - begin;
 	assert( udp_len <= len );
 	// uint8_t const* payload = begin + 8;
-	if( dst_port != 53 ) { return; }
+	if( dst_port != 53 || udp_len > len ) { return; }
 	log_msg( LOG_NOTICE, "got udp sp=%d dp=%d", src_port, dst_port );
 	buffer_write( q->packet, begin + 8, udp_len - 8 );
 	buffer_flip( q->packet );
