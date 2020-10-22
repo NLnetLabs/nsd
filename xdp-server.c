@@ -14,15 +14,15 @@ TODO:
     - queue_index
     - promicious_mode
     - inhibit_bpf_prog_load
+    - batch size
     - XDP_UMEM_UNALIGNED_CHUNK_FLAG
  */
 
 #include "config.h"
 
+#include "query.h"
 #include "region-allocator.h"
 #include "util.h"
-
-#include "xdp-dissect.h"
 
 #include <assert.h>
 #include <stdint.h>
@@ -57,8 +57,12 @@ TODO:
 
 #include "xdp-server.h"
 
-typedef uint32_t u32;
-typedef uint16_t u16;
+struct dissect_trace;
+static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
+					  uint8_t const* const begin,
+					  uint8_t const* const end );
+#define DISSECT_CUSTOM_TRACE_UDP_FN xdp_dissect_trace_udp
+#include "xdp-dissect.h"
 
 typedef struct xdp_umem_handle {
 	struct xsk_umem* _umem;
@@ -85,6 +89,11 @@ typedef struct xdp_queue_tx {
 	xdp_umem_handle_type* _umem;
 	struct xsk_socket* _sock;
 } xdp_queue_tx_type;
+
+typedef struct xdp_trace_env {
+	xdp_server_type* _xdp;
+	uint32_t _count;
+} xdp_trace_env_type;
 
 static int eth_dev_change_flags( char const* if_name, uint32_t flags, uint32_t mask ) {
 	struct ifreq ifr;
@@ -189,12 +198,6 @@ static int xdp_socket_stats( xdp_server_type* xdp ) {
 	return 0;
 }
 
-// XXX: do we need this or let the user manage with `ip`
-static int xdp_inject_ebpf( xdp_server_type* xdp ) {
-	(void)xdp;
-	return 0;
-}
-
 static inline int xdp_fill_queue_reserve( struct xsk_ring_prod* fq, uint16_t n ) {
 	uint16_t i;
 	u32 idx;
@@ -291,15 +294,46 @@ int xdp_server_socket_fd( xdp_server_type* sock ) {
 	return xsk_socket__fd( sock->_sock );
 }
 
+static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
+					  uint8_t const* const begin,
+					  uint8_t const* const end ) {
+	xdp_trace_env_type* env = trace->_env;
+	uint16_t const src_port = peek_be16( begin );
+	uint16_t const dst_port = peek_be16( begin + 2 );
+	uint16_t const udp_len = peek_be16( begin + 4 );
+	struct query* q = env->_xdp->_queries[env->_count];
+	ptrdiff_t const len = end - begin;
+	assert( udp_len <= len );
+	// uint8_t const* payload = begin + 8;
+	if( dst_port != 53 ) { return; }
+	log_msg( LOG_NOTICE, "got udp sp=%d dp=%d", src_port, dst_port );
+	buffer_write( q->packet, begin + 8, udp_len - 8 );
+	buffer_flip( q->packet );
+	if( query_process( q, env->_xdp->_nsd ) != QUERY_DISCARDED ) {
+		log_msg( LOG_NOTICE, "have response" );
+	} else {
+		log_msg( LOG_NOTICE, "query discarded" );
+	}
+	query_reset( q, UDP_MAX_MESSAGE_LEN, 0 );
+}
+
 int xdp_server_process( xdp_server_type* xdp ) {
 	struct xsk_ring_cons* rx = &xdp->_rx->_rx;
-	uint32_t rx_idx = 0, fill_q_idx = 0;
+	uint32_t rx_idx = 0, fill_idx = 0;
+	dissect_trace_type trace = { 0 };
+	xdp_trace_env_type env = { xdp, 0 };
 	size_t i, n, fill_n;
-	// log_msg( LOG_NOTICE, "ping rx=%p", (void const*)rx );
-	// return 0;
+
+	trace._env = &env;
+
+	// --- drain receive queue --------------------------------------------
+
 	n = xsk_ring_cons__peek( rx, XDP_RX_BATCH_SIZE, &rx_idx );
-	fill_q_idx = 0;
-	fill_n = xsk_ring_prod__reserve( xdp->_fill_q, n, &fill_q_idx );
+
+	// --- re-populate fill queue -----------------------------------------
+
+	fill_idx = 0;
+	fill_n = xsk_ring_prod__reserve( xdp->_fill_q, n, &fill_idx );
 	if( fill_n != n ) { return -1; }
 	xsk_ring_prod__submit( xdp->_fill_q, fill_n );
 
@@ -307,10 +341,18 @@ int xdp_server_process( xdp_server_type* xdp ) {
 		struct xdp_desc const* desc = xsk_ring_cons__rx_desc( rx, rx_idx );
 		uintptr_t addr = desc->addr;
 		uint32_t len = desc->len;
-		log_msg( LOG_NOTICE,
-			 "xdp.rx.desc: n=%zu idx=%u/%u addr=%zu len=%u", n,
-			 rx_idx, fill_q_idx, addr, len );
+		uint8_t const* p = xsk_umem__get_data( xdp->_umem->_buffer, addr );
+
+		log_msg( LOG_NOTICE, "xdp.rx.desc: n=%zu idx=%u/%u addr=%zu len=%u", n,
+			 rx_idx, fill_idx, addr, len );
+
+		// --- process ------------------------------------------------
+
+		trace._idx = 0;
+		dissect_en10mb( &trace, p, len );
 	}
+
+	// --- commit ---------------------------------------------------------
 
 	xsk_ring_cons__release( rx, n );
 	return 0;

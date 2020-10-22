@@ -2812,12 +2812,13 @@ static void add_xdp_handler(nsd_type* nsd, xdp_server_type* sock,
                             xdp_handler_data_type* ctx) {
 	struct event* ev = &ctx->_event;
 	ctx->_server = &nsd->xdp.xdp;
+	sock->_nsd = nsd;
 	event_set(ev, xdp_server_socket_fd(sock), EV_PERSIST|EV_READ, handle_xdp, ctx);
 	if(event_base_set(nsd->event_base, ev) != 0) {
 		log_msg(LOG_ERR, "xdp: event_base_set() failed");
 	}
 	if(event_add(ev, NULL) != 0) {
-		log_msg(LOG_ERR, "xsp: event_add() failed");
+		log_msg(LOG_ERR, "xdp: event_add() failed");
 	}
 }
 
@@ -2951,6 +2952,7 @@ server_child(struct nsd *nsd)
 	if(nsd->options->xdp_interface != NULL) {
 		xdp_handler_data_type* ctx;
 		assert( nsd->xdp._sock != NULL );
+		nsd->xdp.xdp._queries = xdp_queries;
 		log_msg(LOG_NOTICE, "xdp: rx_batch_size=%d", XDP_RX_BATCH_SIZE);
 		for( i = 0; i < XDP_RX_BATCH_SIZE; i++) {
 			xdp_queries[i] = query_create(server_region,

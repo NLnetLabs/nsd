@@ -38,6 +38,8 @@ typedef struct xdp_server {
 	struct xsk_socket* _sock;
 	struct xdp_queue_rx* _rx;
 	struct xdp_queue_tx* _tx;
+	struct query** _queries;
+	void* _nsd;
 } xdp_server_type;
 
 int xdp_server_process( xdp_server_type* sock );
