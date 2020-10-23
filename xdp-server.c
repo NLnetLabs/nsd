@@ -314,6 +314,19 @@ static void xdp_kick_tx( xdp_server_type* xdp, struct xsk_ring_cons* cq ) {
 	}
 }
 
+static inline void buffer_groom_right( buffer_type* buffer, size_t n ) {
+	assert( n < buffer->_limit );
+	buffer->_data += n;
+	buffer->_limit -= n;
+	buffer->_capacity -= n;
+}
+
+static inline void buffer_groom_left( buffer_type* buffer, size_t n ) {
+	buffer->_data -= n;
+	buffer->_limit += n;
+	buffer->_capacity += n;
+}
+
 static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 					  uint8_t const* const begin,
 					  uint8_t const* const end ) {

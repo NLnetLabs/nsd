@@ -59,93 +59,104 @@ static inline void dissect_trace_push( dissect_trace_type* const trace,
 	trace->_idx++;
 }
 
-#ifndef DISSECT_CUSTOM_TRACE_ARP_FN
 static inline void dissect_trace_arp( dissect_trace_type* const trace,
 				      byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_ARP, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_ARP_FN
+	DISSECT_CUSTOM_TRACE_ARP_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_ETH_FN
 static inline void dissect_trace_eth( dissect_trace_type* const trace,
 				      byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_ETH, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_ETH_FN
+	DISSECT_CUSTOM_TRACE_ETH_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_IPV4_FN
 static inline void dissect_trace_ipv4( dissect_trace_type* const trace,
 				       byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_IPV4, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_IPV4_FN
+	DISSECT_CUSTOM_TRACE_IPV4_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_IPV4F_FN
 static inline void dissect_trace_ipv4f( dissect_trace_type* const trace,
 					byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_IPV4F, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_IPV4F_FN
+	DISSECT_CUSTOM_TRACE_IPV4F_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_ICMPV4_FN
 static inline void dissect_trace_icmpv4( dissect_trace_type* const trace,
 					 byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_ICMPV4, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_ICMPV4_FN
+	DISSECT_CUSTOM_TRACE_ICMPV4_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_IPV6_FN
 static inline void dissect_trace_ipv6( dissect_trace_type* const trace,
 				       byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_IPV6, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_IPV6_FN
+	DISSECT_CUSTOM_TRACE_IPV6_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_IPV6F_FN
 static inline void dissect_trace_ipv6f( dissect_trace_type* const trace,
 					byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_IPV6F, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_IPV6F_FN
+	DISSECT_CUSTOM_TRACE_IPV6F_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_ICMPV6_FN
 static inline void dissect_trace_icmpv6( dissect_trace_type* const trace,
 					 byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_ICMPV6, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_ICMPV6_FN
+	DISSECT_CUSTOM_TRACE_ICMPV6_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_UNKNOWN_FN
 static inline void dissect_trace_unknown( dissect_trace_type* const trace,
 					  byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_UNKNOWN, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_UNKNOWN_FN
+	DISSECT_CUSTOM_TRACE_UNKNOWN_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_SCTP_FN
 static inline void dissect_trace_sctp( dissect_trace_type* const trace,
 				       byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_SCTP, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_SCTP_FN
+	DISSECT_CUSTOM_TRACE_SCTP_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_TCP_FN
 static inline void dissect_trace_tcp( dissect_trace_type* const trace,
 				      byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_TCP, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_TCP_FN
+	DISSECT_CUSTOM_TRACE_TCP_FN( trace, begin, end );
 #endif
+}
 
 static inline void dissect_trace_udp( dissect_trace_type* const trace,
 				      byte const* const begin, byte const* const end ) {
@@ -156,38 +167,42 @@ static inline void dissect_trace_udp( dissect_trace_type* const trace,
 #endif
 }
 
-#ifndef DISSECT_CUSTOM_TRACE_LLDP_FN
 static inline void dissect_trace_lldp( dissect_trace_type* const trace,
 				       byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_LLDP, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_LLDP_FN
+	DISSECT_CUSTOM_TRACE_LLDP_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_ECTP_FN
 static inline void dissect_trace_ectp( dissect_trace_type* const trace,
 				       byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_ECTP, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_ECTP_FN
+	DISSECT_CUSTOM_TRACE_ECTP_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_MPLS_FN
 static inline void dissect_trace_mpls( dissect_trace_type* const trace,
 				       byte const* const begin, byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_MPLS, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_MPLS_FN
+	DISSECT_CUSTOM_TRACE_MPLS_FN( trace, begin, end );
 #endif
+}
 
-#ifndef DISSECT_CUSTOM_TRACE_VLAN8021Q_FN
 static inline void dissect_trace_vlan8021q( dissect_trace_type* const trace,
 					    byte const* const begin,
 					    byte const* const end ) {
 	(void)end;
 	dissect_trace_push( trace, DISSECT_VLAN8021Q, begin );
-}
+#ifdef DISSECT_CUSTOM_TRACE_VLAN8021Q_FN
+	DISSECT_CUSTOM_TRACE_VLAN8021Q_FN( trace, begin, end );
 #endif
+}
 
 #ifndef DISSECT_CUSTOM_HASH8_FN
 static inline uint32_t dissect_hash8( byte const* const begin ) {
