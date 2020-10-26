@@ -279,8 +279,9 @@ static int xdp_umem_init( xdp_server_type* xdp ) {
 		 config.fill_size, config.comp_size, config.frame_size );
 
 	xdp->_umem->_umem = NULL;
+	// `MMAP_SHARED` is actually needed because of the forking nature of nsd
 	buffer = mmap( NULL, buffer_size, PROT_READ | PROT_WRITE,
-		       MAP_PRIVATE | MAP_ANONYMOUS /*| MAP_HUGETLB*/, -1, 0 );
+		       MAP_SHARED | MAP_ANONYMOUS /*| MAP_HUGETLB*/, -1, 0 );
 	log_msg( LOG_NOTICE, "xdp.umem: buffer_size=%zu buffer_allocate_success=%d",
 		 buffer_size, buffer != MAP_FAILED );
 	if( buffer == MAP_FAILED ) { return -1; }
@@ -494,8 +495,9 @@ static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 		query_add_optional( q, nsd );
 		buffer_flip( q->packet );
 		payload_size = buffer_remaining( q->packet );
-		log_msg( LOG_NOTICE, "xdp: ... response: payload_size=%zu", payload_size );
 		buffer_groom_left( q->packet, packet_prefix_size );
+		log_msg( LOG_NOTICE, "xdp: ... response: payload_size=%zu remaining=%zu",
+			 payload_size, buffer_remaining( q->packet ) );
 		xdp_dissect_rewrite_packet_prefix( trace, packet_prefix_ptr,
 						   packet_prefix_size, payload_size );
 		env->_count++;
@@ -511,7 +513,7 @@ int xdp_server_process( xdp_server_type* xdp ) {
 	uint32_t tx_retries, tx_count = 0, tx_idx = 0, rx_idx = 0, fill_idx = 0;
 	dissect_trace_type trace;
 	xdp_trace_env_type env;
-	size_t i, n, fill_n, rx_count;
+	size_t i, j, n, fill_n, rx_count;
 	uintptr_t _umem_offsets[XDP_BATCH_SIZE];
 
 	env._count = 0;
@@ -543,6 +545,7 @@ int xdp_server_process( xdp_server_type* xdp ) {
 		// --- process ------------------------------------------------
 
 		trace._idx = 0;
+		trace._stack[0]._begin = NULL;
 		dissect_en10mb( &trace, p, len );
 	}
 
@@ -567,35 +570,37 @@ int xdp_server_process( xdp_server_type* xdp ) {
 
 	// --- fill tx descriptors --------------------------------------------
 
-	for( i = 0; i < rx_count; i++ ) {
+	for( j = 0, i = 0; i < rx_count; i++ ) {
 		struct query* q = xdp->_queries[i];
+		struct xdp_desc* desc;
+		uint8_t* p;
 		if( buffer_remaining( q->packet ) == 0 ||
 		    buffer_remaining( q->packet ) > UDP_MAX_MESSAGE_LEN ) {
 			log_msg( LOG_NOTICE, "xdp: !!! skip=%zu", i );
 			continue;
-		}
-		struct xdp_desc* desc = xsk_ring_prod__tx_desc( tx_q, tx_idx + i );
-		uint8_t* p = xsk_umem__get_data( xdp->_umem->_buffer, _umem_offsets[i] );
-		if( buffer_remaining( q->packet ) > XDP_FRAME_SIZE ) {
+		} else if( buffer_remaining( q->packet ) > XDP_FRAME_SIZE ) {
 			log_msg( LOG_ERR, "xdp: invalid udp payload size=%zu",
 				 buffer_remaining( q->packet ) );
+			query_reset( q, UDP_MAX_MESSAGE_LEN, 0 );
 			continue;
 		}
+		desc = xsk_ring_prod__tx_desc( tx_q, tx_idx + j );
+		p = xsk_umem__get_data( xdp->_umem->_buffer, _umem_offsets[j] );
 		memcpy( p, buffer_begin( q->packet ), buffer_remaining( q->packet ) );
-		desc->addr = _umem_offsets[i];
+		desc->addr = _umem_offsets[j++];
 		desc->len = (uint32_t)buffer_remaining( q->packet );
-		log_msg( LOG_NOTICE, "xdp: <== [%zu/%u] desc.addr=%llu desc.len: %u", i,
-			 env._count, desc->addr, desc->len );
+		log_msg( LOG_NOTICE, "xdp: <== [%zu/%u] desc.addr=%llu desc.len: %u", j,
+			 tx_idx + j, desc->addr, desc->len );
 		query_reset( q, UDP_MAX_MESSAGE_LEN, 0 );
 	}
 
 	// --- submit tx ------------------------------------------------------
 
-	xsk_ring_prod__submit( tx_q, env._count );
+	xsk_ring_prod__submit( tx_q, j );
 
 	xdp_kick_tx( xdp );
 
-	return tx_count != env._count;
+	return j != env._count;
 }
 
 int xdp_server_init( xdp_server_type* xdp ) {
