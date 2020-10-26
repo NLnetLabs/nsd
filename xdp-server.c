@@ -16,6 +16,8 @@ TODO:
     - inhibit_bpf_prog_load
     - batch size
     - XDP_UMEM_UNALIGNED_CHUNK_FLAG
+    - checksum offloading
+    - statistics and counters rx/tx/dropped/...
  */
 
 #include "config.h"
@@ -61,7 +63,15 @@ struct dissect_trace;
 static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 					  uint8_t const* const begin,
 					  uint8_t const* const end );
+static inline void xdp_dissect_trace_ipv4( struct dissect_trace* const trace,
+					   uint8_t const* const begin,
+					   uint8_t const* const end );
+static inline void xdp_dissect_trace_ipv6( struct dissect_trace* const trace,
+					   uint8_t const* const begin,
+					   uint8_t const* const end );
 #define DISSECT_CUSTOM_TRACE_UDP_FN xdp_dissect_trace_udp
+#define DISSECT_CUSTOM_TRACE_IPV4_FN xdp_dissect_trace_ipv4
+#define DISSECT_CUSTOM_TRACE_IPV6_FN xdp_dissect_trace_ipv6
 #include "xdp-dissect.h"
 
 typedef struct xdp_umem_handle {
@@ -92,6 +102,7 @@ typedef struct xdp_queue_tx {
 
 typedef struct xdp_trace_env {
 	xdp_server_type* _xdp;
+	uint32_t _packet_prefix_size[XDP_BATCH_SIZE];
 	uint32_t _count;
 } xdp_trace_env_type;
 
@@ -316,6 +327,7 @@ static void xdp_kick_tx( xdp_server_type* xdp, struct xsk_ring_cons* cq ) {
 
 static inline void buffer_groom_right( buffer_type* buffer, size_t n ) {
 	assert( n < buffer->_limit );
+	assert( buffer->_position == 0 );
 	buffer->_data += n;
 	buffer->_limit -= n;
 	buffer->_capacity -= n;
@@ -325,25 +337,134 @@ static inline void buffer_groom_left( buffer_type* buffer, size_t n ) {
 	buffer->_data -= n;
 	buffer->_limit += n;
 	buffer->_capacity += n;
+	buffer->_position += n;
+}
+
+static inline void xdp_dissect_trace_ipv4( struct dissect_trace* const trace,
+					   uint8_t const* const begin,
+					   uint8_t const* const end ) {}
+
+static inline void xdp_dissect_trace_ipv6( struct dissect_trace* const trace,
+					   uint8_t const* const begin,
+					   uint8_t const* const end ) {}
+
+static inline void xdp_rewrite_swap( uint8_t scratch[XDP_PACKET_PREFIX_SIZE_ALLOWED_MAX],
+				     uint8_t* a, uint8_t* b, size_t size ) {
+	memcpy( scratch, a, size );
+	memcpy( a, b, size );
+	memcpy( b, scratch, size );
+}
+
+static inline void xdp_rewrite_shuffle( uint8_t scratch[XDP_PACKET_PREFIX_SIZE_ALLOWED_MAX],
+					uint8_t* a, size_t size ) {
+	uint8_t* b = a + size;
+	xdp_rewrite_swap( scratch, a, b, size );
+}
+
+#define XDP_REWRITE_ETH_MAC_SIZE 6
+
+#define XDP_REWRITE_IPV4_OFFSET 12
+#define XDP_REWRITE_IPV4_SIZE 4
+#define XDP_REWRITE_IPV4_CHECKSUM_OFFSET 10
+#define XDP_REWRITE_IPV4_CHECKSUM_SIZE 2
+#define XDP_REWRITE_IPV4_TTL_OFFSET 8
+#define XDP_REWRITE_IPV4_TTL_SIZE 2
+
+#define XDP_REWRITE_UDP_OFFSET 0
+#define XDP_REWRITE_UDP_SIZE 2
+#define XDP_REWRITE_UDP_CHECKSUM_OFFSET 6
+#define XDP_REWRITE_UDP_CHECKSUM_SIZE 2
+
+static inline void xdp_dissect_rewrite_packet_prefix( struct dissect_trace* const trace,
+						      uint8_t* packet_ptr,
+						      size_t const packet_prefix_size,
+						      size_t const payload_size ) {
+	uint8_t scratch[XDP_PACKET_PREFIX_SIZE_ALLOWED_MAX];
+	uint32_t i, visited_layers = 0, handled_layers = 0;
+	uint8_t const* begin = dissect_trace_at( trace, 0 )->_begin;
+
+	// copy everything into the outgoing buffer and then modify inplace there
+	memcpy( packet_ptr, begin, packet_prefix_size );
+
+	for( i = 0; i < dissect_trace_layers( trace ); i++ ) {
+		dissect_trace_entry_type const* entry = dissect_trace_at( trace, i );
+		uint32_t layer_offset = dissect_trace_layer_offset( trace, i );
+		uint8_t* const output_ptr = packet_ptr + layer_offset;
+		visited_layers |= entry->_tag;
+		switch( entry->_tag ) {
+		case DISSECT_ETH: {
+			xdp_rewrite_shuffle( scratch, output_ptr, XDP_REWRITE_ETH_MAC_SIZE );
+			handled_layers |= entry->_tag;
+			break;
+		}
+		case DISSECT_IPV4: {
+			// TODO: checksum, ttl
+			uint16_t checksum = 0;
+			xdp_rewrite_shuffle( scratch, output_ptr + XDP_REWRITE_IPV4_OFFSET,
+					     XDP_REWRITE_IPV4_SIZE );
+			memcpy( output_ptr + XDP_REWRITE_IPV4_CHECKSUM_OFFSET, &checksum,
+				XDP_REWRITE_IPV4_CHECKSUM_SIZE );
+			handled_layers |= entry->_tag;
+			break;
+		}
+		case DISSECT_IPV6: {
+			handled_layers |= entry->_tag;
+			break;
+		}
+		case DISSECT_UDP: {
+			// TODO: checksum
+			uint16_t checksum = 0;
+			xdp_rewrite_shuffle( scratch, output_ptr + XDP_REWRITE_UDP_OFFSET,
+					     XDP_REWRITE_UDP_SIZE );
+			memcpy( output_ptr + XDP_REWRITE_UDP_CHECKSUM_OFFSET, &checksum,
+				XDP_REWRITE_UDP_CHECKSUM_SIZE );
+			handled_layers |= entry->_tag;
+			break;
+		}
+		default: handled_layers |= DISSECT_UNKNOWN; break;
+		}
+	}
+
+	log_msg( LOG_NOTICE,
+		 "xdp.dissect: payload_size=%zu, layers=%u, visited_layers=%04x handled_layers=%04x",
+		 payload_size, dissect_trace_layers( trace ), visited_layers,
+		 handled_layers );
 }
 
 static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 					  uint8_t const* const begin,
 					  uint8_t const* const end ) {
 	xdp_trace_env_type* env = trace->_env;
+	size_t packet_prefix_size = ( size_t )( begin - trace->_stack[0]._begin );
 	uint16_t const src_port = peek_be16( begin );
 	uint16_t const dst_port = peek_be16( begin + 2 );
 	uint16_t const udp_len = peek_be16( begin + 4 );
 	struct query* q = env->_xdp->_queries[env->_count];
 	ptrdiff_t const len = end - begin;
+	uint8_t* packet_prefix_ptr = NULL;
 	assert( udp_len <= len );
-	if( dst_port != 53 || udp_len > len || udp_len < 8 ) { return; }
-	log_msg( LOG_NOTICE, "got udp sp=%d dp=%d", src_port, dst_port );
+	if( dst_port != 53 || udp_len > len || udp_len < 8 ||
+	    packet_prefix_size > XDP_PACKET_PREFIX_SIZE_ALLOWED_MAX ) {
+		return;
+	}
+
+	log_msg( LOG_NOTICE, "got udp sp=%d dp=%d prefix=%zu", src_port, dst_port,
+		 packet_prefix_size );
+
 	// TODO: query addrlen
+	assert( packet_prefix_size > 0 );
+
+	// leave room in the front of the buffer such that we
+	// can rewrite the packet header for the response later on
+	packet_prefix_ptr = q->packet->_data;
+	buffer_groom_right( q->packet, packet_prefix_size );
+
+	// prepare udp payload for processing
 	buffer_write( q->packet, begin + 8, udp_len - 8 );
 	buffer_flip( q->packet );
 	if( query_process( q, env->_xdp->_nsd ) != QUERY_DISCARDED ) {
 		struct nsd* nsd = env->_xdp->_nsd;
+		size_t payload_size;
 		log_msg( LOG_NOTICE, "have response" );
 		if( RCODE( q->packet ) == RCODE_OK && !AA( q->packet ) ) {
 			STATUP( nsd, nona );
@@ -355,7 +476,10 @@ static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 		// add EDNS0 and TSIG info if necessary
 		query_add_optional( q, nsd );
 		buffer_flip( q->packet );
-
+		payload_size = buffer_limit( q->packet );
+		buffer_groom_left( q->packet, packet_prefix_size );
+		xdp_dissect_rewrite_packet_prefix( trace, packet_prefix_ptr,
+						   packet_prefix_size, payload_size );
 		env->_count++;
 	} else {
 		query_reset( q, UDP_MAX_MESSAGE_LEN, 0 );
@@ -367,14 +491,16 @@ int xdp_server_process( xdp_server_type* xdp ) {
 	struct xsk_ring_cons* rx = &xdp->_rx->_rx;
 	uint32_t tx_idx = 0, rx_idx = 0, fill_idx = 0;
 	dissect_trace_type trace = { 0 };
-	xdp_trace_env_type env = { xdp, 0 };
+	xdp_trace_env_type env;
 	size_t i, n, fill_n;
 
+	env._count = 0;
+	env._xdp = xdp;
 	trace._env = &env;
 
 	// --- drain receive queue --------------------------------------------
 
-	n = xsk_ring_cons__peek( rx, XDP_RX_BATCH_SIZE, &rx_idx );
+	n = xsk_ring_cons__peek( rx, XDP_BATCH_SIZE, &rx_idx );
 
 	// --- re-populate fill queue -----------------------------------------
 
@@ -404,6 +530,7 @@ int xdp_server_process( xdp_server_type* xdp ) {
 
 	// --- prepare tx -----------------------------------------------------
 
+	log_msg( LOG_NOTICE, "xdp: got %u prepared responses", env._count );
 	for( i = 0; i < env._count; i++ ) {}
 
 	return 0;

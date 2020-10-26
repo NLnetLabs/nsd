@@ -12,23 +12,23 @@ typedef uint16_t u16;
 typedef uint8_t byte;
 
 typedef enum dissect_tag {
-	DISSECT_ARP,
-	DISSECT_ECTP,
-	DISSECT_ETH,
-	DISSECT_ICMPV4,
-	DISSECT_ICMPV6,
-	DISSECT_IPV4,
-	DISSECT_IPV4F,
-	DISSECT_IPV6,
-	DISSECT_IPV6F,
-	DISSECT_LLC,
-	DISSECT_LLDP,
-	DISSECT_MPLS,
-	DISSECT_SCTP,
-	DISSECT_TCP,
-	DISSECT_UDP,
-	DISSECT_VLAN8021Q,
-	DISSECT_UNKNOWN,
+	DISSECT_ARP = ( 1 << 0 ),
+	DISSECT_ECTP = ( 1 << 1 ),
+	DISSECT_ETH = ( 1 << 2 ),
+	DISSECT_ICMPV4 = ( 1 << 3 ),
+	DISSECT_ICMPV6 = ( 1 << 4 ),
+	DISSECT_IPV4 = ( 1 << 5 ),
+	DISSECT_IPV4F = ( 1 << 6 ),
+	DISSECT_IPV6 = ( 1 << 7 ),
+	DISSECT_IPV6F = ( 1 << 8 ),
+	DISSECT_LLC = ( 1 << 9 ),
+	DISSECT_LLDP = ( 1 << 10 ),
+	DISSECT_MPLS = ( 1 << 11 ),
+	DISSECT_SCTP = ( 1 << 12 ),
+	DISSECT_TCP = ( 1 << 13 ),
+	DISSECT_UDP = ( 1 << 14 ),
+	DISSECT_VLAN8021Q = ( 1 << 15 ),
+	DISSECT_UNKNOWN = ( 1 << 16 ),
 } dissect_tag;
 
 typedef struct dissect_trace_entry {
@@ -57,6 +57,21 @@ static inline void dissect_trace_push( dissect_trace_type* const trace,
 	trace->_stack[trace->_idx & DISSECT_TRACE_ENTRIES_MASK]._tag = tag;
 	trace->_stack[trace->_idx & DISSECT_TRACE_ENTRIES_MASK]._begin = begin;
 	trace->_idx++;
+}
+
+static inline dissect_trace_entry_type const*
+dissect_trace_at( dissect_trace_type* const trace, uint32_t idx ) {
+	return &trace->_stack[idx & DISSECT_TRACE_ENTRIES_MASK];
+}
+
+static inline uint32_t dissect_trace_layers( dissect_trace_type* const trace ) {
+	return trace->_idx & DISSECT_TRACE_ENTRIES_MASK;
+}
+
+static inline uint32_t dissect_trace_layer_offset( dissect_trace_type* const trace,
+						   uint32_t idx ) {
+	return ( uint32_t )( dissect_trace_at( trace, idx )->_begin -
+			     trace->_stack[0]._begin );
 }
 
 static inline void dissect_trace_arp( dissect_trace_type* const trace,

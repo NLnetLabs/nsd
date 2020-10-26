@@ -154,7 +154,7 @@ struct mmsghdr {
 static struct mmsghdr msgs[NUM_RECV_PER_SELECT];
 static struct iovec iovecs[NUM_RECV_PER_SELECT];
 static struct query *queries[NUM_RECV_PER_SELECT];
-static struct query *xdp_queries[XDP_RX_BATCH_SIZE];
+static struct query *xdp_queries[XDP_BATCH_SIZE];
 
 /*
  * Data for the TCP connection handlers.
@@ -2953,8 +2953,8 @@ server_child(struct nsd *nsd)
 		xdp_handler_data_type* ctx;
 		assert( nsd->xdp._sock != NULL );
 		nsd->xdp.xdp._queries = xdp_queries;
-		log_msg(LOG_NOTICE, "xdp: rx_batch_size=%d", XDP_RX_BATCH_SIZE);
-		for( i = 0; i < XDP_RX_BATCH_SIZE; i++) {
+		log_msg(LOG_NOTICE, "xdp: rx_batch_size=%d", XDP_BATCH_SIZE);
+		for( i = 0; i < XDP_BATCH_SIZE; i++) {
 			xdp_queries[i] = query_create(server_region,
 			                              compressed_dname_offsets,
 						      compression_table_size, compressed_dnames);
