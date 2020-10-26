@@ -933,27 +933,32 @@ bind8_stats (struct nsd *nsd)
 
 static
 int cookie_secret_file_read(nsd_type* nsd) {
+	char secret[NSD_COOKIE_SECRET_SIZE * 2 + 2/*'\n' and '\0'*/];
 	char const* file = nsd->options->cookie_secret_file;
-	assert( file != NULL );
-	FILE* f = fopen(file, "r");
+	FILE* f;
+	int corrupt = 0;
+	size_t count;
+
+	assert( nsd->options->cookie_secret_file != NULL );
+	f = fopen(file, "r");
 	/* a non-existing cookie file is not an error */
 	if( f == NULL ) { return errno != EPERM; }
 	/* cookie secret file exists and is readable */
 	nsd->cookie_count = 0;
-	int corrupt = 0;
-	char secret[NSD_COOKIE_SECRET_SIZE * 2 + 2/*'\n' and '\0'*/];
-	for(size_t count = 0; count < NSD_COOKIE_HISTORY_SIZE; count++ ) {
+	for( count = 0; count < NSD_COOKIE_HISTORY_SIZE; count++ ) {
+		size_t secret_len = 0;
+		ssize_t decoded_len = 0;
 		if( fgets(secret, sizeof(secret), f) == NULL ) { break; }
-		size_t secret_len = strlen(secret);
+		secret_len = strlen(secret);
 		if( secret_len == 0 ) { break; }
 		assert( secret_len <= sizeof(secret) );
 		secret_len = secret[secret_len - 1] == '\n' ? secret_len - 1 : secret_len;
 		if( secret_len != NSD_COOKIE_SECRET_SIZE * 2 ) { corrupt++; break; }
 		/* needed for `hex_pton`; stripping potential `\n` */
 		secret[secret_len] = '\0';
-		ssize_t decoded_len = hex_pton(secret, nsd->cookie_secrets[count].cookie_secret,
-		                               NSD_COOKIE_SECRET_SIZE);
-		if(decoded_len != NSD_COOKIE_SECRET_SIZE ) { corrupt++; break; }
+		decoded_len = hex_pton(secret, nsd->cookie_secrets[count].cookie_secret,
+		                       NSD_COOKIE_SECRET_SIZE);
+		if( decoded_len != NSD_COOKIE_SECRET_SIZE ) { corrupt++; break; }
 		nsd->cookie_count++;
 	}
 	fclose(f);
@@ -1299,11 +1304,12 @@ main(int argc, char *argv[])
 		}
 		nsd.cookie_count = 1;
 	} else {
+		size_t j;
+		size_t const cookie_secret_len = NSD_COOKIE_SECRET_SIZE;
 		/* Calculate a new random secret */
 		srandom(getpid() ^ time(NULL));
 
-		size_t const cookie_secret_len = NSD_COOKIE_SECRET_SIZE;
-		for(size_t j = 0; j < NSD_COOKIE_HISTORY_SIZE; j++) {
+		for( j = 0; j < NSD_COOKIE_HISTORY_SIZE; j++) {
 #if defined(HAVE_SSL)
 			if (!RAND_status()
 			    || !RAND_bytes(nsd.cookie_secrets[j].cookie_secret, cookie_secret_len))
