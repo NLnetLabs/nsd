@@ -305,31 +305,29 @@ int xdp_server_socket_fd( xdp_server_type* sock ) {
 	return xsk_socket__fd( sock->_sock );
 }
 
-static void xdp_pull_umem_completion_queue( xdp_server_type* xdp, int size,
-					    struct xsk_ring_cons* cq ) {
-	size_t i, n;
+static void xdp_completion_queue_release( xdp_server_type* xdp, size_t size ) {
+	size_t n;
 	uint32_t idx = 0;
 	n = xsk_ring_cons__peek( xdp->_comp_q, size, &idx );
 	xsk_ring_cons__release( xdp->_comp_q, n );
 }
 
-static void xdp_kick_tx( xdp_server_type* xdp, struct xsk_ring_cons* cq ) {
-	xdp_pull_umem_completion_queue( xdp, XDP_DESCRIPTORS_CONS_COUNT, cq );
+static void xdp_kick_tx( xdp_server_type* xdp ) {
+	xdp_completion_queue_release( xdp, XDP_DESCRIPTORS_CONS_COUNT );
 	if( !xsk_ring_prod__needs_wakeup( &xdp->_tx->_tx ) ) { return; }
 	while( send( xdp_server_socket_fd( xdp ), NULL, 0, MSG_DONTWAIT ) < 0 ) {
 		if( errno != EBUSY && errno != EAGAIN && errno != EINTR ) { break; }
 		if( errno == EAGAIN ) {
-			xdp_pull_umem_completion_queue( xdp, XDP_DESCRIPTORS_CONS_COUNT,
-							cq );
+			xdp_completion_queue_release( xdp, XDP_DESCRIPTORS_CONS_COUNT );
 		}
 	}
 }
 
 static inline void buffer_groom_right( buffer_type* buffer, size_t n ) {
-	assert( n < buffer->_limit );
-	assert( buffer->_position == 0 );
+	assert( n < buffer->_capacity );
+	// assert( buffer->_position == 0 );
 	buffer->_data += n;
-	buffer->_limit -= n;
+	// buffer->_limit -= n;
 	buffer->_capacity -= n;
 }
 
@@ -337,16 +335,24 @@ static inline void buffer_groom_left( buffer_type* buffer, size_t n ) {
 	buffer->_data -= n;
 	buffer->_limit += n;
 	buffer->_capacity += n;
-	buffer->_position += n;
+	// buffer->_position = 0;
 }
 
 static inline void xdp_dissect_trace_ipv4( struct dissect_trace* const trace,
 					   uint8_t const* const begin,
-					   uint8_t const* const end ) {}
+					   uint8_t const* const end ) {
+	(void)trace;
+	(void)begin;
+	(void)end;
+}
 
 static inline void xdp_dissect_trace_ipv6( struct dissect_trace* const trace,
 					   uint8_t const* const begin,
-					   uint8_t const* const end ) {}
+					   uint8_t const* const end ) {
+	(void)trace;
+	(void)begin;
+	(void)end;
+}
 
 static inline void xdp_rewrite_swap( uint8_t scratch[XDP_PACKET_PREFIX_SIZE_ALLOWED_MAX],
 				     uint8_t* a, uint8_t* b, size_t size ) {
@@ -374,6 +380,9 @@ static inline void xdp_rewrite_shuffle( uint8_t scratch[XDP_PACKET_PREFIX_SIZE_A
 #define XDP_REWRITE_UDP_SIZE 2
 #define XDP_REWRITE_UDP_CHECKSUM_OFFSET 6
 #define XDP_REWRITE_UDP_CHECKSUM_SIZE 2
+#define XDP_REWRITE_UDP_LENGTH_OFFSET 4
+
+#define XDP_REWRITE_IPV4_TOTAL_LENGTH_OFFSET 2
 
 static inline void xdp_dissect_rewrite_packet_prefix( struct dissect_trace* const trace,
 						      uint8_t* packet_ptr,
@@ -400,10 +409,17 @@ static inline void xdp_dissect_rewrite_packet_prefix( struct dissect_trace* cons
 		case DISSECT_IPV4: {
 			// TODO: checksum, ttl
 			uint16_t checksum = 0;
+			uint16_t length = ( uint16_t )(
+				dissect_trace_layer_offset( trace, i + 1 ) -
+				dissect_trace_layer_offset( trace, i ) + payload_size + 8 );
 			xdp_rewrite_shuffle( scratch, output_ptr + XDP_REWRITE_IPV4_OFFSET,
 					     XDP_REWRITE_IPV4_SIZE );
 			memcpy( output_ptr + XDP_REWRITE_IPV4_CHECKSUM_OFFSET, &checksum,
 				XDP_REWRITE_IPV4_CHECKSUM_SIZE );
+
+			log_msg( LOG_NOTICE, "xdp: !!! length=%u", length );
+			poke_be16( output_ptr + XDP_REWRITE_IPV4_TOTAL_LENGTH_OFFSET,
+				   length );
 			handled_layers |= entry->_tag;
 			break;
 		}
@@ -418,6 +434,8 @@ static inline void xdp_dissect_rewrite_packet_prefix( struct dissect_trace* cons
 					     XDP_REWRITE_UDP_SIZE );
 			memcpy( output_ptr + XDP_REWRITE_UDP_CHECKSUM_OFFSET, &checksum,
 				XDP_REWRITE_UDP_CHECKSUM_SIZE );
+			poke_be16( output_ptr + XDP_REWRITE_UDP_LENGTH_OFFSET,
+				   payload_size + 8 );
 			handled_layers |= entry->_tag;
 			break;
 		}
@@ -426,7 +444,7 @@ static inline void xdp_dissect_rewrite_packet_prefix( struct dissect_trace* cons
 	}
 
 	log_msg( LOG_NOTICE,
-		 "xdp.dissect: payload_size=%zu, layers=%u, visited_layers=%04x handled_layers=%04x",
+		 "xdp: ~~~ dissect: payload_size=%zu, layers=%u, visited_layers=%04x handled_layers=%04x",
 		 payload_size, dissect_trace_layers( trace ), visited_layers,
 		 handled_layers );
 }
@@ -435,7 +453,7 @@ static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 					  uint8_t const* const begin,
 					  uint8_t const* const end ) {
 	xdp_trace_env_type* env = trace->_env;
-	size_t packet_prefix_size = ( size_t )( begin - trace->_stack[0]._begin );
+	size_t packet_prefix_size = 8u + ( size_t )( begin - trace->_stack[0]._begin );
 	uint16_t const src_port = peek_be16( begin );
 	uint16_t const dst_port = peek_be16( begin + 2 );
 	uint16_t const udp_len = peek_be16( begin + 4 );
@@ -448,8 +466,8 @@ static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 		return;
 	}
 
-	log_msg( LOG_NOTICE, "got udp sp=%d dp=%d prefix=%zu", src_port, dst_port,
-		 packet_prefix_size );
+	log_msg( LOG_NOTICE, "xdp: ... got udp src_port=%d dst_port=%d prefix_size=%zu",
+		 src_port, dst_port, packet_prefix_size );
 
 	// TODO: query addrlen
 	assert( packet_prefix_size > 0 );
@@ -465,7 +483,6 @@ static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 	if( query_process( q, env->_xdp->_nsd ) != QUERY_DISCARDED ) {
 		struct nsd* nsd = env->_xdp->_nsd;
 		size_t payload_size;
-		log_msg( LOG_NOTICE, "have response" );
 		if( RCODE( q->packet ) == RCODE_OK && !AA( q->packet ) ) {
 			STATUP( nsd, nona );
 			ZTATUP( nsd, q->zone, nona );
@@ -476,7 +493,8 @@ static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 		// add EDNS0 and TSIG info if necessary
 		query_add_optional( q, nsd );
 		buffer_flip( q->packet );
-		payload_size = buffer_limit( q->packet );
+		payload_size = buffer_remaining( q->packet );
+		log_msg( LOG_NOTICE, "xdp: ... response: payload_size=%zu", payload_size );
 		buffer_groom_left( q->packet, packet_prefix_size );
 		xdp_dissect_rewrite_packet_prefix( trace, packet_prefix_ptr,
 						   packet_prefix_size, payload_size );
@@ -488,19 +506,22 @@ static inline void xdp_dissect_trace_udp( struct dissect_trace* const trace,
 }
 
 int xdp_server_process( xdp_server_type* xdp ) {
-	struct xsk_ring_cons* rx = &xdp->_rx->_rx;
-	uint32_t tx_idx = 0, rx_idx = 0, fill_idx = 0;
-	dissect_trace_type trace = { 0 };
+	struct xsk_ring_cons* rx_q = &xdp->_rx->_rx;
+	struct xsk_ring_prod* tx_q = &xdp->_tx->_tx;
+	uint32_t tx_retries, tx_count = 0, tx_idx = 0, rx_idx = 0, fill_idx = 0;
+	dissect_trace_type trace;
 	xdp_trace_env_type env;
-	size_t i, n, fill_n;
+	size_t i, n, fill_n, rx_count;
+	uintptr_t _umem_offsets[XDP_BATCH_SIZE];
 
 	env._count = 0;
 	env._xdp = xdp;
 	trace._env = &env;
+	trace._idx = 0;
 
 	// --- drain receive queue --------------------------------------------
 
-	n = xsk_ring_cons__peek( rx, XDP_BATCH_SIZE, &rx_idx );
+	rx_count = n = xsk_ring_cons__peek( rx_q, XDP_BATCH_SIZE, &rx_idx );
 
 	// --- re-populate fill queue -----------------------------------------
 
@@ -510,13 +531,14 @@ int xdp_server_process( xdp_server_type* xdp ) {
 	xsk_ring_prod__submit( xdp->_fill_q, fill_n );
 
 	for( i = 0; i < n; i++, rx_idx++ ) {
-		struct xdp_desc const* desc = xsk_ring_cons__rx_desc( rx, rx_idx );
+		struct xdp_desc const* desc = xsk_ring_cons__rx_desc( rx_q, rx_idx );
 		uintptr_t addr = desc->addr;
 		uint32_t len = desc->len;
 		uint8_t const* p = xsk_umem__get_data( xdp->_umem->_buffer, addr );
+		_umem_offsets[i] = addr;
 
-		log_msg( LOG_NOTICE, "xdp.rx.desc: n=%zu idx=%u/%u addr=%zu len=%u", n,
-			 rx_idx, fill_idx, addr, len );
+		log_msg( LOG_NOTICE, "xdp: ==> [%zu/%zu]: addr=%zu len=%u rx_idx=%u/%u ",
+			 i, n, addr, len, rx_idx, fill_idx );
 
 		// --- process ------------------------------------------------
 
@@ -526,14 +548,54 @@ int xdp_server_process( xdp_server_type* xdp ) {
 
 	// --- rx done --------------------------------------------------------
 
-	xsk_ring_cons__release( rx, n );
+	xsk_ring_cons__release( rx_q, n );
 
-	// --- prepare tx -----------------------------------------------------
+	// --- reserve tx descriptors:prepare tx ------------------------------
 
-	log_msg( LOG_NOTICE, "xdp: got %u prepared responses", env._count );
-	for( i = 0; i < env._count; i++ ) {}
+	for( tx_retries = 0, i = 0; tx_count < env._count; ) {
+		if( tx_retries > 42 ) { break; }
+		n = xsk_ring_prod__reserve( tx_q, env._count, &tx_idx );
+		if( n != env._count ) {
+			tx_retries++;
+			xdp_kick_tx( xdp );
+			continue;
+		}
+		tx_count = env._count;
+	}
 
-	return 0;
+	if( tx_count != env._count ) { log_msg( LOG_NOTICE, "xdp: *** tx failed" ); }
+
+	// --- fill tx descriptors --------------------------------------------
+
+	for( i = 0; i < rx_count; i++ ) {
+		struct query* q = xdp->_queries[i];
+		if( buffer_remaining( q->packet ) == 0 ||
+		    buffer_remaining( q->packet ) > UDP_MAX_MESSAGE_LEN ) {
+			log_msg( LOG_NOTICE, "xdp: !!! skip=%zu", i );
+			continue;
+		}
+		struct xdp_desc* desc = xsk_ring_prod__tx_desc( tx_q, tx_idx + i );
+		uint8_t* p = xsk_umem__get_data( xdp->_umem->_buffer, _umem_offsets[i] );
+		if( buffer_remaining( q->packet ) > XDP_FRAME_SIZE ) {
+			log_msg( LOG_ERR, "xdp: invalid udp payload size=%zu",
+				 buffer_remaining( q->packet ) );
+			continue;
+		}
+		memcpy( p, buffer_begin( q->packet ), buffer_remaining( q->packet ) );
+		desc->addr = _umem_offsets[i];
+		desc->len = (uint32_t)buffer_remaining( q->packet );
+		log_msg( LOG_NOTICE, "xdp: <== [%zu/%u] desc.addr=%llu desc.len: %u", i,
+			 env._count, desc->addr, desc->len );
+		query_reset( q, UDP_MAX_MESSAGE_LEN, 0 );
+	}
+
+	// --- submit tx ------------------------------------------------------
+
+	xsk_ring_prod__submit( tx_q, env._count );
+
+	xdp_kick_tx( xdp );
+
+	return tx_count != env._count;
 }
 
 int xdp_server_init( xdp_server_type* xdp ) {
@@ -593,7 +655,7 @@ int xdp_server_deinit( xdp_server_type* xdp ) {
 	if( xdp->_sock != NULL ) { xsk_socket__delete( xdp->_sock ); }
 	if( xdp->_umem->_umem != NULL ) { xsk_umem__delete( xdp->_umem->_umem ); }
 	if( xdp->_umem->_buffer != NULL ) {
-		log_msg( LOG_NOTICE, "deallocating xdp umem buffer" );
+		log_msg( LOG_NOTICE, "xdp: deallocating umem" );
 		munmap( xdp->_umem->_buffer, xdp->_umem->_buffer_size );
 	}
 	return 0;

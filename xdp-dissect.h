@@ -49,6 +49,11 @@ static inline uint16_t peek_be16( uint8_t const* const p ) {
 	return ( uint16_t )( (uint16_t)p[0] << 8 ) | (uint16_t)p[1];
 }
 
+static inline void poke_be16( uint8_t* const p, uint16_t const x ) {
+	p[0] = ( uint8_t )( x >> 8 );
+	p[1] = (uint8_t)x;
+}
+
 uint32_t dissect_en10mb( dissect_trace_type* const trace, byte const* data,
 			 size_t const size );
 
