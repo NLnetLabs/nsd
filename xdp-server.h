@@ -10,7 +10,7 @@
 #define XDP_DESCRIPTORS_PROD_COUNT XSK_RING_PROD__DEFAULT_NUM_DESCS
 #define XDP_DESCRIPTORS_CONS_COUNT XSK_RING_CONS__DEFAULT_NUM_DESCS
 #define XDP_DESCRIPTORS_TOTAL_COUNT                                                      \
-	( XDP_DESCRIPTORS_PROD_COUNT + XDP_DESCRIPTORS_CONS_COUNT )
+	(XDP_DESCRIPTORS_PROD_COUNT + XDP_DESCRIPTORS_CONS_COUNT)
 
 #define XDP_BATCH_SIZE 32
 
@@ -42,9 +42,9 @@ typedef struct xdp_server {
 	void* _nsd;
 } xdp_server_type;
 
-int xdp_server_process( xdp_server_type* sock );
-int xdp_server_socket_fd( xdp_server_type* sock );
-int xdp_server_init( xdp_server_type* xdp );
-int xdp_server_deinit( xdp_server_type* xdp );
+int xdp_server_process(xdp_server_type* sock);
+int xdp_server_socket_fd(xdp_server_type* sock);
+int xdp_server_init(xdp_server_type* xdp);
+int xdp_server_deinit(xdp_server_type* xdp);
 
 #endif
