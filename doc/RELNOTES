@@ -15,6 +15,7 @@ BUG FIXES:
 	- Fix #134: IPV4_MINIMAL_RESPONSE_SIZE vs EDNS_MAX_MESSAGE_LEN.
 	- Fix to add missing closest encloser NSEC3 for wildcard nodata type
 	  DS answer.
+	- Remove unused init_cfg_parse routine from configlexer.
 
 
 4.3.3

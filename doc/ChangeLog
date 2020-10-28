@@ -1,3 +1,6 @@
+28 October 2020: Wouter
+	- Remove unused init_cfg_parse routine from configlexer.
+
 20 October 2020: Wouter
 	- Fix to add missing closest encloser NSEC3 for wildcard nodata type
 	  DS answer.
