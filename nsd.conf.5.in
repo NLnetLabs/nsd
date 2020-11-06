@@ -374,6 +374,11 @@ transfer, then it will wait for the number of seconds before it will
 trigger a new reload. Setting this value throttles the reloads to 
 once per the number of seconds. The default is 1 second.
 .TP
+.B xfrd\-conn\-reuse:\fR <yes or no>
+When making outgoing XFR requests to the same master an open TCP connection 
+will be used in preference to opening a new connection for each request. 
+Default is no.
+.TP
 .B verbosity:\fR <level>
 This value specifies the verbosity level for (non\-debug) logging. 
 Default is 0. 1 gives more information about incoming notifies and

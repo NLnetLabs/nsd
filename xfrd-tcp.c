@@ -423,6 +423,9 @@ xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	assert(zone->tcp_conn == -1);
 	assert(zone->tcp_waiting == 0);
 
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: connection reuse is set to %s",
+		set->xfrd_conn_reuse?"yes":"no"));
+
     /* check for a pipeline to the same master with unused ID */
 	if((tp = pipeline_find(set, zone))!= NULL) {
 		int i;

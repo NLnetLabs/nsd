@@ -408,6 +408,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_INT(ipv6_edns_size, o);
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
+		SERV_GET_BIN(xfrd_conn_reuse, o);        
 		SERV_GET_INT(verbosity, o);
 		SERV_GET_INT(send_buffer_size, o);
 		SERV_GET_INT(receive_buffer_size, o);
@@ -563,6 +564,7 @@ config_test_print_server(nsd_options_type* opt)
 	print_string_var("zonelistfile:", opt->zonelistfile);
 	print_string_var("xfrdir:", opt->xfrdir);
 	printf("\txfrd-reload-timeout: %d\n", opt->xfrd_reload_timeout);
+	printf("\txfrd-conn-reuse: %s\n", opt->xfrd_conn_reuse?"yes":"no");
 	printf("\tlog-time-ascii: %s\n", opt->log_time_ascii?"yes":"no");
 	printf("\tround-robin: %s\n", opt->round_robin?"yes":"no");
 	printf("\tminimal-responses: %s\n", opt->minimal_responses?"yes":"no");
