@@ -301,22 +301,26 @@ static void
 xfrd_tcp_pipe_stop(struct xfrd_tcp_pipeline* tp)
 {
 	int i, conn = -1;
-	assert(tp->num_unused < ID_PIPE_NUM); /* at least one 'in-use' */
-	assert(ID_PIPE_NUM - tp->num_unused > tp->num_skip); /* at least one 'nonskip' */
-	/* need to retry for all the zones connected to it */
-	/* these could use different lists and go to a different nextmaster*/
-	for(i=0; i<ID_PIPE_NUM; i++) {
-		if(tp->id[i] && tp->id[i] != TCP_NULL_SKIP) {
-			xfrd_zone_type* zone = tp->id[i];
-			conn = zone->tcp_conn;
-			zone->tcp_conn = -1;
-			zone->tcp_waiting = 0;
-			tcp_pipe_sendlist_remove(tp, zone);
-			tcp_pipe_id_remove(tp, zone);
-			xfrd_set_refresh_now(zone);
-		}
-	}
-	assert(conn != -1);
+    /* With connections left open when idle, it is possible to arrive here because the far end
+       shuts the idle connection (causing a read event with no data).
+       So just warn if we get here while the pipe is still in use */
+    if (!(tp->num_unused >= ID_PIPE_NUM || tp->num_skip >= ID_PIPE_NUM - tp->num_unused)) {
+        log_msg(LOG_WARNING, "xfrd: an in use TCP connection was closed by the far end, retrying all zones");
+    	/* need to retry for all the zones connected to it */
+    	/* these could use different lists and go to a different nextmaster*/
+    	for(i=0; i<ID_PIPE_NUM; i++) {
+    		if(tp->id[i] && tp->id[i] != TCP_NULL_SKIP) {
+    			xfrd_zone_type* zone = tp->id[i];
+    			conn = zone->tcp_conn;
+    			zone->tcp_conn = -1;
+    			zone->tcp_waiting = 0;
+    			tcp_pipe_sendlist_remove(tp, zone);
+    			tcp_pipe_id_remove(tp, zone);
+    			xfrd_set_refresh_now(zone);
+    		}
+    	}
+    	assert(conn != -1);
+    }
 	/* now release the entire tcp pipe */
 	xfrd_tcp_pipe_release(xfrd->tcp_set, tp, conn);
 }
@@ -371,7 +375,7 @@ xfrd_handle_tcp_pipe(int ATTR_UNUSED(fd), short event, void* arg)
         if(tp->num_unused >= ID_PIPE_NUM || tp->num_skip >= ID_PIPE_NUM - tp->num_unused)
              xfrd_tcp_pipe_release(xfrd->tcp_set, tp, -1);
         else
-            /* do cleanup before releasing */
+            /* timed out while in use, do cleanup before releasing */
 		    xfrd_tcp_pipe_stop(tp);
 	}
 }
