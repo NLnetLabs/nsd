@@ -330,10 +330,10 @@ tcp_pipe_reset_timeout(struct xfrd_tcp_pipeline* tp)
 {
 	int fd = tp->handler.ev_fd;
 	struct timeval tv;
-    /* pipe is effectively unused - for now set a default 10s idle timeout until EDNS0 
+    /* pipe is effectively unused - for now set a fixed idle timeout until EDNS0 
        Keepalive is implemented */
     if(tp->num_unused >= ID_PIPE_NUM || tp->num_skip >= ID_PIPE_NUM - tp->num_unused)
-        tv.tv_sec = 10;
+        tv.tv_sec = xfrd->tcp_set->tcp_idle_timeout;
     else
 	    tv.tv_sec = xfrd->tcp_set->tcp_timeout;
 	tv.tv_usec = 0;

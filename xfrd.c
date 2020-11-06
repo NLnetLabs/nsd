@@ -198,6 +198,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region);
 	xfrd->tcp_set->tcp_timeout = nsd->tcp_timeout;
+	xfrd->tcp_set->tcp_idle_timeout = nsd->tcp_idle_timeout;
 #if !defined(HAVE_ARC4RANDOM) && !defined(HAVE_GETRANDOM)
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 #endif

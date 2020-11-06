@@ -33,6 +33,8 @@ struct xfrd_tcp_set {
 	int tcp_count;
 	/* TCP timeout. */
 	int tcp_timeout;
+	/* TCP idle timeout. */
+	int tcp_idle_timeout;
 	/* rbtree with pipelines sorted by master */
 	rbtree_type* pipetree;
 	/* double linked list of zones waiting for a TCP connection */

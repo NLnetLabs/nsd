@@ -87,6 +87,7 @@ struct nsd_options {
 	int confine_to_zone;
 	int tcp_query_count;
 	int tcp_timeout;
+    int tcp_idle_timeout;
 	int tcp_mss;
 	int outgoing_tcp_mss;
 	size_t ipv4_edns_size;

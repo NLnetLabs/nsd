@@ -1069,6 +1069,7 @@ main(int argc, char *argv[])
 		nsd.maximum_tcp_count = nsd.options->tcp_count;
 	}
 	nsd.tcp_timeout = nsd.options->tcp_timeout;
+	nsd.tcp_idle_timeout = nsd.options->tcp_idle_timeout;
 	nsd.tcp_query_count = nsd.options->tcp_query_count;
 	nsd.tcp_mss = nsd.options->tcp_mss;
 	nsd.outgoing_tcp_mss = nsd.options->outgoing_tcp_mss;

@@ -225,6 +225,7 @@ tcp-count{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_TCP_COUNT;}
 tcp-reject-overflow{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_TCP_REJECT_OVERFLOW;}
 tcp-query-count{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_TCP_QUERY_COUNT;}
 tcp-timeout{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_TCP_TIMEOUT;}
+tcp-idle-timeout{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_TCP_IDLE_TIMEOUT;}
 tcp-mss{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_TCP_MSS;}
 outgoing-tcp-mss{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_OUTGOING_TCP_MSS;}
 ipv4-edns-size{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_IPV4_EDNS_SIZE;}

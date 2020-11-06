@@ -79,6 +79,7 @@ nsd_options_create(region_type* region)
 	opt->tcp_reject_overflow = 0;
 	opt->tcp_query_count = 0;
 	opt->tcp_timeout = TCP_TIMEOUT;
+	opt->tcp_idle_timeout = TCP_IDLE_TIMEOUT;
 	opt->tcp_mss = 0;
 	opt->outgoing_tcp_mss = 0;
 	opt->ipv4_edns_size = EDNS_MAX_MESSAGE_LEN;

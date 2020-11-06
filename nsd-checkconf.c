@@ -401,6 +401,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_INT(tcp_count, o);
 		SERV_GET_INT(tcp_query_count, o);
 		SERV_GET_INT(tcp_timeout, o);
+		SERV_GET_INT(tcp_idle_timeout, o);
 		SERV_GET_INT(tcp_mss, o);
 		SERV_GET_INT(outgoing_tcp_mss, o);
 		SERV_GET_INT(ipv4_edns_size, o);
@@ -547,6 +548,7 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\ttcp-count: %d\n", opt->tcp_count);
 	printf("\ttcp-query-count: %d\n", opt->tcp_query_count);
 	printf("\ttcp-timeout: %d\n", opt->tcp_timeout);
+	printf("\ttcp-idle-timeout: %d\n", opt->tcp_idle_timeout);
 	printf("\ttcp-mss: %d\n", opt->tcp_mss);
 	printf("\toutgoing-tcp-mss: %d\n", opt->outgoing_tcp_mss);
 	printf("\tipv4-edns-size: %d\n", (int) opt->ipv4_edns_size);

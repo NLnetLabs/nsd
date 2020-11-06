@@ -900,6 +900,16 @@ AC_ARG_WITH([tcp_timeout],
 AC_DEFINE_UNQUOTED([TCP_TIMEOUT], $tcp_timeout, [Define to the default tcp timeout.])
 
 dnl
+dnl Determine the default tcp idle timeout (used when closing outgoing XFR TCP connections)
+dnl
+tcp_idle_timeout=10
+AC_ARG_WITH([tcp_idle_timeout],
+	AC_HELP_STRING([--with-tcp-idle-timeout=number], [Limit the default tcp idle timeout, used when closing outgoing XFR TCP connections]),
+	[tcp_idle_timeout=$withval])
+AC_DEFINE_UNQUOTED([TCP_IDLE_TIMEOUT], $tcp_idle_timeout, [Define to the default tcp idle timeout.])
+
+
+dnl
 dnl Features
 dnl
 AC_ARG_ENABLE(root-server, AC_HELP_STRING([--enable-root-server], [Configure NSD as a root server]))
