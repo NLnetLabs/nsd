@@ -282,7 +282,8 @@ The default is 120 seconds.
 .TP
 .B tcp\-idle\-timeout:\fR <number>
 Overrides the default TCP idle timeout. This is used when closing outgoing
-TCP connections used for zone transfers. The default is 10 seconds.
+TCP connections used for zone transfers when the xfrd\-conn\-reuse option is enabled. 
+The default is 10 seconds.
 .TP
 .B tcp-mss:\fR <number>
 Maximum segment size (MSS) of TCP socket on which the server responds
@@ -377,7 +378,8 @@ once per the number of seconds. The default is 1 second.
 .B xfrd\-conn\-reuse:\fR <yes or no>
 When making outgoing XFR requests to the same master an open TCP connection 
 will be used in preference to opening a new connection for each request. 
-Default is no.
+After all transfers complete, connections will be left open for 
+tcp\-idle\-timeout seconds to increase the chance of reuse. Default is no.
 .TP
 .B verbosity:\fR <level>
 This value specifies the verbosity level for (non\-debug) logging. 

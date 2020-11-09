@@ -904,7 +904,7 @@ dnl Determine the default tcp idle timeout (used when closing outgoing XFR TCP c
 dnl
 tcp_idle_timeout=10
 AC_ARG_WITH([tcp_idle_timeout],
-	AC_HELP_STRING([--with-tcp-idle-timeout=number], [Limit the default tcp idle timeout, used when closing outgoing XFR TCP connections]),
+	AC_HELP_STRING([--with-tcp-idle-timeout=number], [Limit the default tcp idle timeout, used when closing outgoing XFR TCP connections when xfrd-conn-resuse option is enabled]),
 	[tcp_idle_timeout=$withval])
 AC_DEFINE_UNQUOTED([TCP_IDLE_TIMEOUT], $tcp_idle_timeout, [Define to the default tcp idle timeout.])
 
