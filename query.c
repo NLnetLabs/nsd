@@ -1451,8 +1451,9 @@ query_process(query_type *q, nsd_type *nsd)
 	/* Dont bother to answer more than one question at once... */
 	if (QDCOUNT(q->packet) != 1) {
 		if(QDCOUNT(q->packet) == 0 && ANCOUNT(q->packet) == 0 &&
-			ARCOUNT(q->packet) == 1 && buffer_limit(q->packet)
-			>= QHEADERSZ+OPT_LEN+OPT_RDATA) {
+			NSCOUNT(q->packet) == 0 && ARCOUNT(q->packet) == 1 &&
+			buffer_limit(q->packet) >= QHEADERSZ+OPT_LEN+
+			OPT_RDATA) {
 			/* add edns section to answer */
 			buffer_set_position(q->packet, QHEADERSZ);
 			if (edns_parse_record(&q->edns, q->packet, q, nsd)) {

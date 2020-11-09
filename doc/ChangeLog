@@ -1,5 +1,7 @@
 9 November 2020: Wouter
 	- Fix #138: NSD returns non-EDNS answer when QUESTION is empty.
+	- Fix to check nscount in previous fix for EDNS in formerr response
+	  when there is no question.
 
 28 October 2020: Wouter
 	- Remove unused init_cfg_parse routine from configlexer.
