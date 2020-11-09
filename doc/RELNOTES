@@ -16,6 +16,7 @@ BUG FIXES:
 	- Fix to add missing closest encloser NSEC3 for wildcard nodata type
 	  DS answer.
 	- Remove unused init_cfg_parse routine from configlexer.
+	- Fix #138: NSD returns non-EDNS answer when QUESTION is empty.
 
 
 4.3.3
