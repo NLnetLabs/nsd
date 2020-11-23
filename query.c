@@ -918,9 +918,7 @@ answer_soa(struct query *query, answer_type *answer)
 static void
 answer_nodata(struct query *query, answer_type *answer, domain_type *original)
 {
-	if (query->cname_count == 0) {
-		answer_soa(query, answer);
-	}
+	answer_soa(query, answer);
 
 #ifdef NSEC3
 	if (query->edns.dnssec_ok && query->zone->nsec3_param) {

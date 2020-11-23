@@ -17,6 +17,8 @@ BUG FIXES:
 	  DS answer.
 	- Remove unused init_cfg_parse routine from configlexer.
 	- Fix #138: NSD returns non-EDNS answer when QUESTION is empty.
+	- Fix #142: NODATA answers missin SOA in authority section after
+	  CNAME chain.
 
 
 4.3.3
