@@ -771,6 +771,12 @@ writepid(struct nsd *nsd)
 				nsd->pidfile, strerror(errno));
 			close(fd);
 			return -1;
+		} else if(r == 0) {
+			log_msg(LOG_ERR, "cannot write any bytes to "
+				"pidfile %s: write returns 0 bytes written",
+				nsd->pidfile);
+			close(fd);
+			return -1;
 		}
 		count += r;
 	}

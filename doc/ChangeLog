@@ -3,6 +3,7 @@
 	  CNAME chain.
 	- Fix for CVE-2020-28935 : Fix that symlink does not interfere
 	  with chown of pidfile.
+	- fix writepid for retvalue 0.
 
 9 November 2020: Wouter
 	- Fix #138: NSD returns non-EDNS answer when QUESTION is empty.
