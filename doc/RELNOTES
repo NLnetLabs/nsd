@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.3.4 (in development)
+4.3.4
 ================
 FEATURES:
 	- Merge PR #141: ZONEMD RR type.
@@ -10,7 +10,8 @@ BUG FIXES:
 	  failed: Invalid argument.
 	- Fix #127: two minor `-Wcast-qual` cleanups
 	- Fix #126: minor header hygiene
-	- Fix #125: include config.h in compat/setproctitle.c and fix prototype of `setproctitle`
+	- Fix #125: include config.h in compat/setproctitle.c and fix
+	  prototype of `setproctitle`
 	- Fix #133: fix 0-init of local ( stack ) buffer.
 	- Fix missing parenthesis on size of fix to init buffer.
 	- Fix #134: IPV4_MINIMAL_RESPONSE_SIZE vs EDNS_MAX_MESSAGE_LEN.
