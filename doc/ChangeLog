@@ -1,5 +1,6 @@
 24 November 2020: Wouter
 	- Merge PR #141: ZONEMD RR type.
+	- tag for 4.3.4rc1.
 
 23 November 2020: Wouter
 	- Fix #142: NODATA answers missin SOA in authority section after
