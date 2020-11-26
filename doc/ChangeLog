@@ -1,3 +1,6 @@
+26 November 2020: Wouter
+	- Fix #143: xfrd no hysteresis with NOT IMPLEMENTED rcode.
+
 24 November 2020: Wouter
 	- Merge PR #141: ZONEMD RR type.
 	- tag for 4.3.4rc1.
