@@ -161,7 +161,7 @@ anycast instances.  Use ip-transparent to be able to list addresses that
 turn on later (typical for certain load-balancing).
 .TP
 .B interface:\fR <ip4 or ip6>[@port] [servers] [bindtodevice] [setfib]
-Same as ip\-address (for easy of compatibility with unbound.conf).
+Same as ip\-address (for easy compatibility with unbound.conf).
 .TP
 .B ip\-transparent:\fR <yes or no>
 Allows NSD to bind to non local addresses. This is useful to have NSD

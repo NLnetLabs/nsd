@@ -1,3 +1,6 @@
+27 November 2020: Wouter
+	- Fix #144: Typo fix in nsd.conf.5.in.
+
 26 November 2020: Wouter
 	- Fix #143: xfrd no hysteresis with NOT IMPLEMENTED rcode.
 
