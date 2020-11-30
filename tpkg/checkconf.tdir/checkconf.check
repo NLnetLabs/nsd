@@ -24,6 +24,7 @@ server:
 	tcp-count: 100
 	tcp-query-count: 0
 	tcp-timeout: 120
+	tcp-idle-timeout: 10
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
 	ipv4-edns-size: 4096
@@ -38,6 +39,7 @@ server:
 	zonelistfile: "/var/db/nsd/zone.list"
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
+	xfrd-conn-reuse: no
 	log-time-ascii: yes
 	round-robin: no
 	minimal-responses: no
@@ -135,6 +137,7 @@ server:
 	tcp-count: 100
 	tcp-query-count: 0
 	tcp-timeout: 120
+	tcp-idle-timeout: 10
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
 	ipv4-edns-size: 4096
@@ -149,6 +152,7 @@ server:
 	zonelistfile: "/var/db/nsd/zone.list"
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
+	xfrd-conn-reuse: no
 	log-time-ascii: yes
 	round-robin: no
 	minimal-responses: no
@@ -199,6 +203,7 @@ server:
 	tcp-count: 100
 	tcp-query-count: 0
 	tcp-timeout: 120
+	tcp-idle-timeout: 10
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
 	ipv4-edns-size: 4096
@@ -213,6 +218,7 @@ server:
 	zonelistfile: "/var/db/nsd/zone.list"
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
+	xfrd-conn-reuse: no
 	log-time-ascii: no
 	round-robin: no
 	minimal-responses: no
@@ -272,6 +278,7 @@ server:
 	tcp-count: 100
 	tcp-query-count: 0
 	tcp-timeout: 120
+	tcp-idle-timeout: 10
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
 	ipv4-edns-size: 4096
@@ -286,6 +293,7 @@ server:
 	zonelistfile: "/var/db/nsd/zone.list"
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
+	xfrd-conn-reuse: no
 	log-time-ascii: yes
 	round-robin: no
 	minimal-responses: no
@@ -389,6 +397,7 @@ server:
 	tcp-count: 100
 	tcp-query-count: 0
 	tcp-timeout: 120
+	tcp-idle-timeout: 10
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
 	ipv4-edns-size: 4096
@@ -403,6 +412,7 @@ server:
 	zonelistfile: "/var/db/nsd/zone.list"
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
+	xfrd-conn-reuse: no
 	log-time-ascii: yes
 	round-robin: no
 	minimal-responses: no

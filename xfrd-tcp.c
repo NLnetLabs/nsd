@@ -527,12 +527,12 @@ xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 		set->xfrd_conn_reuse?"yes":"no"));
     
     /* Select an existing or new pipeline first depending on the configuration*/
-    if ((tp = set->xfrd_conn_reuse?xfrd_tcp_find_pipeline(set, zone): 
-                                   xfrd_tcp_new_pipeline(set, zone))!=NULL)
-        return;
-    if ((tp = set->xfrd_conn_reuse?xfrd_tcp_new_pipeline(set, zone): 
-                                   xfrd_tcp_find_pipeline(set, zone))!=NULL)
-        return;
+    tp = set->xfrd_conn_reuse?xfrd_tcp_find_pipeline(set, zone): 
+                         xfrd_tcp_new_pipeline(set, zone);
+    if (tp != NULL) return;
+    tp = set->xfrd_conn_reuse?xfrd_tcp_new_pipeline(set, zone): 
+                         xfrd_tcp_find_pipeline(set, zone);
+    if (tp != NULL) return;
     
 	/* wait, at end of line */
 	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: max number of tcp "
