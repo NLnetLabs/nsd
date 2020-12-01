@@ -9,7 +9,8 @@
 
 24 November 2020: Wouter
 	- Merge PR #141: ZONEMD RR type.
-	- tag for 4.3.4rc1.
+	- tag for 4.3.4rc1.  This became 4.3.4 release on 1 dec 2020.
+	  The code repo continues for 4.3.5 in development.
 
 23 November 2020: Wouter
 	- Fix #142: NODATA answers missin SOA in authority section after
