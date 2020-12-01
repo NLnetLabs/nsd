@@ -509,8 +509,8 @@ xfrd_tcp_new_pipeline(struct xfrd_tcp_set* set, xfrd_zone_type* zone) {
     	xfrd_deactivate_zone(zone);
     	xfrd_unset_timer(zone);
     	pipeline_setup_new_zone(set, tp, zone);
-    	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s opened a new tcp conn %d",
-    		zone->apex_str, zone->tcp_conn));
+    	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s opened a new tcp conn num %d with fd %d",
+    		zone->apex_str, zone->tcp_conn, set->tcp_state[zone->tcp_conn]->tcp_r->fd));
     	return tp;
     }
     return NULL;
@@ -1054,6 +1054,9 @@ void
 xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	int conn)
 {
+
+    DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: tcp pipeline %d being released - has fd %d", 
+          conn, tp->tcp_r->fd));
 	/* one handler per tcp pipe */
 	if(tp->handler_added)
 		event_del(&tp->handler);
@@ -1068,15 +1071,19 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	/* remove from pipetree */
 	(void)rbtree_delete(xfrd->tcp_set->pipetree, &tp->node);
 
-    /* find the connection for this pipeline so it can be re-used*/
+    /* this signals the pipe should not be reused e.g., if we are shutting down */
+    if (conn == -2)
+        return;
+
+    /* the calling function didn't know the conn (e.g. timeout)
+       find the connection for this pipeline so it can be re-used*/
     if (conn == -1) {
 		for(int i=0; i<XFRD_MAX_TCP; i++) {
 			if(set->tcp_state[i] == tp)
 				conn = i;
 		}
     }
-    DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: tcp pipeline %d released", conn));
-    assert(conn != -1);
+    assert(conn >= 0);
 
 	/* a waiting zone can use the free tcp slot (to another server) */
 	/* if that zone fails to set-up or connect, we try to start the next

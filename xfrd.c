@@ -371,6 +371,13 @@ xfrd_shutdown()
 		}
 	}
 	close_notify_fds(xfrd->notify_zones);
+    /* and any open TCP connections so the far end knows we are gone */
+    struct xfrd_tcp_pipeline* tp;
+    for(int i=0; i<XFRD_MAX_TCP; i++) {
+		tp = xfrd->tcp_set->tcp_state[i];
+        if (tp->tcp_r->fd != -1)
+            xfrd_tcp_pipe_release(xfrd->tcp_set, tp, -2);
+    }
 
 	/* wait for server parent (if necessary) */
 	if(xfrd->reload_pid != -1) {
