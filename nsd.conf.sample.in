@@ -167,7 +167,7 @@ server:
 	# tcp-timeout: 120
 
 	# Override the default (10 seconds) TCP idle timeout, used when
-    # closing outgoing XFR TCP connections when xfrd-conn-reuse is enabled.
+	# closing outgoing XFR TCP connections when xfrd-conn-reuse is enabled.
 	# tcp-idle-timeout: 10
 
 	# Maximum segment size (MSS) of TCP socket on which the server
@@ -192,7 +192,7 @@ server:
 	# xfrd-reload-timeout: 1
 
 	# Prefer to reuse open connections to a master instead of opening
-    # a new connection for each transfer request to that master.
+	# a new connection for each transfer request to that master.
 	# xfrd-conn-reuse: no
 
 	# log timestamp in ascii (y-m-d h:m:s.msec), yes is default.

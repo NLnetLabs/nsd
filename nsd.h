@@ -268,8 +268,8 @@ struct	nsd
 	int tcp_query_count;
 	int tcp_timeout;
 	int tcp_idle_timeout;
-    int xfrd_conn_reuse;
-    
+	int xfrd_conn_reuse;
+
 	int tcp_mss;
 	int outgoing_tcp_mss;
 	size_t ipv4_edns_size;
