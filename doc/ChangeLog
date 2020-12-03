@@ -1,3 +1,9 @@
+3 December 2020: Wouter
+	- For #145: Fix that service of remaining TCP and TLS connections
+	  does not allow new queries to be made, the connection is closed.
+	  Only existing queries and zone transfers are answered, new ones
+	  are rejected by a close of the channel.
+
 30 November 2020: Wouter
 	- Fix #144: fix better.
 

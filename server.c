@@ -209,6 +209,11 @@ struct tcp_handler_data
 	 * The timeout in msec for this tcp connection
 	 */
 	int	tcp_timeout;
+
+	/*
+	 * If the connection is allowed to have further queries on it.
+	 */
+	int tcp_no_more_queries;
 #ifdef HAVE_SSL
 	/*
 	 * TLS object.
@@ -3096,6 +3101,7 @@ service_remaining_tcp(struct nsd* nsd)
 		}
 #endif
 
+		p->tcp_no_more_queries = 1;
 		/* set timeout to 1/10 second */
 		if(p->tcp_timeout > 100)
 			p->tcp_timeout = 100;
@@ -3487,8 +3493,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 		return;
 	}
 
-	if (data->nsd->tcp_query_count > 0 &&
-		data->query_count >= data->nsd->tcp_query_count) {
+	if ((data->nsd->tcp_query_count > 0 &&
+		data->query_count >= data->nsd->tcp_query_count) ||
+		data->tcp_no_more_queries) {
 		/* No more queries allowed on this tcp connection. */
 		cleanup_tcp_handler(data);
 		return;
@@ -3840,8 +3847,9 @@ handle_tcp_writing(int fd, short event, void* arg)
 	 * Done sending, wait for the next request to arrive on the
 	 * TCP socket by installing the TCP read handler.
 	 */
-	if (data->nsd->tcp_query_count > 0 &&
-		data->query_count >= data->nsd->tcp_query_count) {
+	if ((data->nsd->tcp_query_count > 0 &&
+		data->query_count >= data->nsd->tcp_query_count) ||
+		data->tcp_no_more_queries) {
 
 		(void) shutdown(fd, SHUT_WR);
 	}
@@ -3965,8 +3973,9 @@ handle_tls_reading(int fd, short event, void* arg)
 		return;
 	}
 
-	if (data->nsd->tcp_query_count > 0 &&
-	    data->query_count >= data->nsd->tcp_query_count) {
+	if ((data->nsd->tcp_query_count > 0 &&
+	    data->query_count >= data->nsd->tcp_query_count) ||
+	    data->tcp_no_more_queries) {
 		/* No more queries allowed on this tcp connection. */
 		cleanup_tcp_handler(data);
 		return;
@@ -4280,8 +4289,9 @@ handle_tls_writing(int fd, short event, void* arg)
 	 * Done sending, wait for the next request to arrive on the
 	 * TCP socket by installing the TCP read handler.
 	 */
-	if (data->nsd->tcp_query_count > 0 &&
-		data->query_count >= data->nsd->tcp_query_count) {
+	if ((data->nsd->tcp_query_count > 0 &&
+		data->query_count >= data->nsd->tcp_query_count) ||
+		data->tcp_no_more_queries) {
 
 		(void) shutdown(fd, SHUT_WR);
 	}
@@ -4426,6 +4436,7 @@ handle_tcp_accept(int fd, short event, void* arg)
 	memcpy(&tcp_data->query->addr, &addr, addrlen);
 	tcp_data->query->addrlen = addrlen;
 
+	tcp_data->tcp_no_more_queries = 0;
 	tcp_data->tcp_timeout = data->nsd->tcp_timeout * 1000;
 	if (data->nsd->current_tcp_count > data->nsd->maximum_tcp_count/2) {
 		/* very busy, give smaller timeout */

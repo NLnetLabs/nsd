@@ -6,6 +6,10 @@ FEATURES:
 BUG FIXES:
 	- Fix #143: xfrd no hysteresis with NOT IMPLEMENTED rcode.
 	- Fix #144: Typo fix in nsd.conf.5.in.
+	- For #145: Fix that service of remaining TCP and TLS connections
+	  does not allow new queries to be made, the connection is closed.
+	  Only existing queries and zone transfers are answered, new ones
+	  are rejected by a close of the channel.
 
 
 4.3.4
