@@ -106,7 +106,6 @@ static void
 log_addr(const char* descr, struct sockaddr_storage* addr, short family)
 {
 	char str_buf[64];
-	int port;
 	if(family == AF_INET) {
 		struct sockaddr_in* s = (struct sockaddr_in*)addr;
 		inet_ntop(AF_INET, &s->sin_addr.s_addr, str_buf, sizeof(str_buf));
@@ -3341,15 +3340,15 @@ handle_udp(int fd, short event, void* arg)
 		/*
 		 * sending UDP-query with server address (local) and client address to dnstap process
 		 */
-		int i;
+		size_t j;
 		struct sockaddr_storage ss;
 		memset(&ss, 0, sizeof(ss));
-		if(!data->nsd->reuseport)
-			memcpy(&ss, data->socket->addr->ai_addr, sizeof(ss));
+		if(!data->nsd->reuseport) {
+			memcpy(&ss, &data->socket->addr.ai_addr, sizeof(ss));
 		} else {
-			for(i = 0; i < data->nsd->ifs; i++) {
-				if(data->nsd->udp[i].s == fd) {
-					memcpy(&ss, data->nsd->udp[i%(data->nsd->ifs/data->nsd->reuseport)].addr->ai_addr, sizeof(ss));
+			for(j = 0; j < data->nsd->ifs; j++) {
+				if(data->nsd->udp[j].s == fd) {
+					memcpy(&ss, &data->nsd->udp[j%(data->nsd->ifs/data->nsd->reuseport)].addr.ai_addr, sizeof(ss));
 					break;
 				}
 			}
@@ -3358,11 +3357,12 @@ handle_udp(int fd, short event, void* arg)
 			 * We SHOULD never reach this condition.
 			 * BUT in case of no one address is found, just send local addr as 0.0.0.0 and port as 0
 			 */
-			if(i == data->nsd->ifs)
-				INIT_SOCKADDR_STORAGE(ss, data->socket->fam);
+			if(j == data->nsd->ifs) {
+				INIT_SOCKADDR_STORAGE(ss, data->socket->addr.ai_family);
+			}
 		}
-		log_addr("query from client", &q->addr, data->socket->fam);
-		log_addr("to server (local)", &ss, data->socket->fam);
+		log_addr("query from client", &q->addr, data->socket->addr.ai_family);
+		log_addr("to server (local)", &ss, data->socket->addr.ai_family);
 		dt_collector_submit_auth_query(data->nsd, &ss, &q->addr, q->addrlen,
 			q->tcp, q->packet);
 #endif /* USE_DNSTAP */
@@ -3400,8 +3400,8 @@ handle_udp(int fd, short event, void* arg)
 			/*
 			 * sending UDP-response with server address (local) and client address to dnstap process
 			 */
-			log_addr("from server (local)", &ss, data->socket->fam);
-			log_addr("response to client", &q->addr, data->socket->fam);
+			log_addr("from server (local)", &ss, data->socket->addr.ai_family);
+			log_addr("response to client", &q->addr, data->socket->addr.ai_family);
 			dt_collector_submit_auth_response(data->nsd, &ss,
 				&q->addr, q->addrlen, q->tcp, q->packet,
 				q->zone);
@@ -3704,7 +3704,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 
 	buffer_flip(data->query->packet);
 #ifdef USE_DNSTAP
-	int i;
+	size_t i;
 	/*
 	 * lets find the local address accepted incoming TCP-connection
 	 */
@@ -3712,7 +3712,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 	memset(&ss, 0, sizeof(ss));
 	for(i = 0; i < data->nsd->ifs; i++) {
 		if(data->nsd->tcp[i].s == data->tcp_read_fd) {
-			memcpy(&ss, data->nsd->tcp[i].addr->ai_addr, sizeof(ss));
+			memcpy(&ss, &data->nsd->tcp[i].addr.ai_addr, sizeof(ss));
 			break;
 		}
 	}
@@ -3721,8 +3721,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 	 * We SHOULD never reach this condition.
 	 * BUT in case of no one address is found, just send local addr as 0.0.0.0 and port as 0
 	 */
-	if(i == data->nsd->ifs)
+	if(i == data->nsd->ifs) {
 		INIT_SOCKADDR_STORAGE(ss, data->query->addr.ss_family);
+	}
 
 	/*
 	 * and send TCP-query with found address (local) and client address to dnstap process
@@ -4212,7 +4213,7 @@ handle_tls_reading(int fd, short event, void* arg)
 
 	buffer_flip(data->query->packet);
 #ifdef USE_DNSTAP
-	int i;
+	size_t i;
 	/*
 	 * lets find local address accepted incoming TCP-connection
 	 */
@@ -4220,7 +4221,7 @@ handle_tls_reading(int fd, short event, void* arg)
 	memset(&ss, 0, sizeof(ss));
 	for(i = 0; i < data->nsd->ifs; i++) {
 		if(data->nsd->tcp[i].s == data->tcp_read_fd) {
-			memcpy(&ss, data->nsd->tcp[i].addr->ai_addr, sizeof(ss));
+			memcpy(&ss, &data->nsd->tcp[i].addr.ai_addr, sizeof(ss));
 			break;
 		}
 	}
@@ -4229,8 +4230,9 @@ handle_tls_reading(int fd, short event, void* arg)
 	 * We SHOULD never reach this condition.
 	 * BUT in case of no one address is found, just send local addr as 0.0.0.0 and port as 0
 	 */
-	if(i == data->nsd->ifs)
+	if(i == data->nsd->ifs) {
 		INIT_SOCKADDR_STORAGE(ss, data->query->addr.ss_family);
+	}
 
 	/*
 	 * and send TCP-query with found address (local) and client address to dnstap process
