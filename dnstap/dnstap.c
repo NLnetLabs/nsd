@@ -324,7 +324,7 @@ dt_msg_fill_net(struct dt_msg *dm,
 		*has_qport = 1;
 	} else if (qs->ss_family == AF_INET) {
 #else
-	if (qs->ss_family == AF_INET) {
+	if (qs->sin_family == AF_INET) {
 #endif /* INET6 */
 		struct sockaddr_in *s = (struct sockaddr_in *) qs;
 
@@ -357,7 +357,7 @@ dt_msg_fill_net(struct dt_msg *dm,
                 *has_rport = 1;
         } else if (rs->ss_family == AF_INET) {
 #else
-        if (rs->ss_family == AF_INET) {
+        if (rs->sin_family == AF_INET) {
 #endif /* INET6 */
                 struct sockaddr_in *s = (struct sockaddr_in *) rs;
 

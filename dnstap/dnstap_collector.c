@@ -411,6 +411,13 @@ prep_send_data(struct buffer* buf, uint8_t is_response,
 	struct zone* zone)
 {
 	buffer_clear(buf);
+#ifdef INET6
+	if(local_addr->ss_family != addr->ss_family)
+		return 0; /* must be same length to send */
+#else
+	if(local_addr->sin_family != addr->sin_family)
+		return 0; /* must be same length to send */
+#endif
 	if(!buffer_available(buf, 4+1+4+2*addrlen+1+4+buffer_remaining(packet)))
 		return 0; /* does not fit in send_buffer, log is dropped */
 	buffer_skip(buf, 4); /* the length of the message goes here */
