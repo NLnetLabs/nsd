@@ -89,7 +89,7 @@
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 
-/** initial setup of sockaddr_storage socket structure */ 
+/** initial setup of sockaddr_storage socket structure */
 #ifdef USE_DNSTAP
 #define INIT_SOCKADDR_STORAGE(s,f)                                      \
 	if(f == AF_INET)                                                \
@@ -3355,9 +3355,9 @@ handle_udp(int fd, short event, void* arg)
 			}
 
 			/*
-			 * We SHOULD never reach this condition.                             
+			 * We SHOULD never reach this condition.
 			 * BUT in case of no one address is found, just send local addr as 0.0.0.0 and port as 0
-			 */                                                                  
+			 */
 			if(i == data->nsd->ifs)
 				INIT_SOCKADDR_STORAGE(ss, data->socket->fam);
 		}
@@ -3402,7 +3402,7 @@ handle_udp(int fd, short event, void* arg)
 			 */
 			log_addr("from server (local)", &ss, data->socket->fam);
 			log_addr("response to client", &q->addr, data->socket->fam);
-			dt_collector_submit_auth_response(data->nsd, &ss, 
+			dt_collector_submit_auth_response(data->nsd, &ss,
 				&q->addr, q->addrlen, q->tcp, q->packet,
 				q->zone);
 #endif /* USE_DNSTAP */

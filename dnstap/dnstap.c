@@ -356,7 +356,7 @@ dt_msg_fill_net(struct dt_msg *dm,
                 *rport = ntohs(s->sin6_port);
                 *has_rport = 1;
         } else if (rs->ss_family == AF_INET) {
-#else   
+#else
         if (rs->ss_family == AF_INET) {
 #endif /* INET6 */
                 struct sockaddr_in *s = (struct sockaddr_in *) rs;

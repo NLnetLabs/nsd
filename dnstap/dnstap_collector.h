@@ -70,7 +70,7 @@ void dt_collector_start(struct dt_collector* dt_col, struct nsd* nsd);
  */
 void dt_collector_submit_auth_query(struct nsd* nsd,
 #ifdef INET6
-	struct sockaddr_storage* local_addr, 
+	struct sockaddr_storage* local_addr,
 	struct sockaddr_storage* addr,
 #else
 	struct sockaddr_in* local_addr,
