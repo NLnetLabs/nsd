@@ -94,7 +94,13 @@
  * just like its done in Unbound via the same log_addr(VERB_LEVEL, const char*, sockaddr_storage*)
  */
 static void
-log_addr(const char* descr, struct sockaddr_storage* addr, short family)
+log_addr(const char* descr,
+#ifdef INET6
+	struct sockaddr_storage* addr,
+#else
+	struct sockaddr_in* addr,
+#endif
+	short family)
 {
 	char str_buf[64];
 	if(family == AF_INET) {
