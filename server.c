@@ -3340,30 +3340,9 @@ handle_udp(int fd, short event, void* arg)
 		/*
 		 * sending UDP-query with server address (local) and client address to dnstap process
 		 */
-		size_t j;
-		struct sockaddr_storage ss;
-		memset(&ss, 0, sizeof(ss));
-		if(!data->nsd->reuseport) {
-			memcpy(&ss, &data->socket->addr.ai_addr, sizeof(ss));
-		} else {
-			for(j = 0; j < data->nsd->ifs; j++) {
-				if(data->nsd->udp[j].s == fd) {
-					memcpy(&ss, &data->nsd->udp[j%(data->nsd->ifs/data->nsd->reuseport)].addr.ai_addr, sizeof(ss));
-					break;
-				}
-			}
-
-			/*
-			 * We SHOULD never reach this condition.
-			 * BUT in case of no one address is found, just send local addr as 0.0.0.0 and port as 0
-			 */
-			if(j == data->nsd->ifs) {
-				INIT_SOCKADDR_STORAGE(ss, data->socket->addr.ai_family);
-			}
-		}
 		log_addr("query from client", &q->addr, data->socket->addr.ai_family);
-		log_addr("to server (local)", &ss, data->socket->addr.ai_family);
-		dt_collector_submit_auth_query(data->nsd, &ss, &q->addr, q->addrlen,
+		log_addr("to server (local)", &data->socket->addr.ai_addr, data->socket->addr.ai_family);
+		dt_collector_submit_auth_query(data->nsd, &data->socket->addr.ai_addr, &q->addr, q->addrlen,
 			q->tcp, q->packet);
 #endif /* USE_DNSTAP */
 
@@ -3400,9 +3379,9 @@ handle_udp(int fd, short event, void* arg)
 			/*
 			 * sending UDP-response with server address (local) and client address to dnstap process
 			 */
-			log_addr("from server (local)", &ss, data->socket->addr.ai_family);
+			log_addr("from server (local)", &data->socket->addr.ai_addr, data->socket->addr.ai_family);
 			log_addr("response to client", &q->addr, data->socket->addr.ai_family);
-			dt_collector_submit_auth_response(data->nsd, &ss,
+			dt_collector_submit_auth_response(data->nsd, &data->socket->addr.ai_addr,
 				&q->addr, q->addrlen, q->tcp, q->packet,
 				q->zone);
 #endif /* USE_DNSTAP */
