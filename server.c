@@ -107,10 +107,12 @@ log_addr(const char* descr,
 		struct sockaddr_in* s = (struct sockaddr_in*)addr;
 		inet_ntop(AF_INET, &s->sin_addr.s_addr, str_buf, sizeof(str_buf));
 		VERBOSITY(6, (LOG_INFO, "%s: address is: %s, port is: %d", descr, str_buf, ntohs(s->sin_port)));
+#ifdef INET6
 	} else {
 		struct sockaddr_in6* s6 = (struct sockaddr_in6*)addr;
 		inet_ntop(AF_INET6, &s6->sin6_addr.s6_addr, str_buf, sizeof(str_buf));
 		VERBOSITY(6, (LOG_INFO, "%s: address is: %s, port is: %d", descr, str_buf, ntohs(s6->sin6_port)));
+#endif
 	}
 }
 
