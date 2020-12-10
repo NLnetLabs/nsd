@@ -89,15 +89,6 @@
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 
-/** initial setup of sockaddr_storage socket structure */
-#ifdef USE_DNSTAP
-#define INIT_SOCKADDR_STORAGE(s,f)                                      \
-	if(f == AF_INET)                                                \
-		(*(struct sockaddr_in*)&s).sin_family = AF_INET;        \
-	else                                                            \
-		(*(struct sockaddr_in6*)&s).sin6_family = AF_INET6;
-#endif /* USE_DNSTAP */
-
 /*
  * log_addr() - the function to print sockaddr_in/sockaddr_in6 structures content
  * just like its done in Unbound via the same log_addr(VERB_LEVEL, const char*, sockaddr_storage*)
@@ -246,10 +237,8 @@ struct tcp_handler_data
 	int tcp_no_more_queries;
 
 #ifdef USE_DNSTAP
-	/*
-	 * socket descriptor returned by socket() syscall to find proper service (local) address the socket is bound to
-	 */
-	int     tcp_read_fd;
+	/* the socket of the accept socket to find proper service (local) address the socket is bound to. */
+	struct nsd_socket *socket;
 #endif /* USE_DNSTAP */
 
 #ifdef HAVE_SSL
@@ -3683,33 +3672,12 @@ handle_tcp_reading(int fd, short event, void* arg)
 
 	buffer_flip(data->query->packet);
 #ifdef USE_DNSTAP
-	size_t i;
-	/*
-	 * lets find the local address accepted incoming TCP-connection
-	 */
-	struct sockaddr_storage ss;
-	memset(&ss, 0, sizeof(ss));
-	for(i = 0; i < data->nsd->ifs; i++) {
-		if(data->nsd->tcp[i].s == data->tcp_read_fd) {
-			memcpy(&ss, &data->nsd->tcp[i].addr.ai_addr, sizeof(ss));
-			break;
-		}
-	}
-
-	/*
-	 * We SHOULD never reach this condition.
-	 * BUT in case of no one address is found, just send local addr as 0.0.0.0 and port as 0
-	 */
-	if(i == data->nsd->ifs) {
-		INIT_SOCKADDR_STORAGE(ss, data->query->addr.ss_family);
-	}
-
 	/*
 	 * and send TCP-query with found address (local) and client address to dnstap process
 	 */
 	log_addr("query from client", &data->query->addr, data->query->addr.ss_family);
-	log_addr("to server (local)", &ss, data->query->addr.ss_family);
-	dt_collector_submit_auth_query(data->nsd, &ss, &data->query->addr,
+	log_addr("to server (local)", &data->socket->addr.ai_addr, data->query->addr.ss_family);
+	dt_collector_submit_auth_query(data->nsd, &data->socket->addr.ai_addr, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
 	data->query_state = server_process_query(data->nsd, data->query);
@@ -3760,9 +3728,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 	/*
 	 * sending TCP-response with found (earlier) address (local) and client address to dnstap process
 	 */
-	log_addr("from server (local)", &ss, data->query->addr.ss_family);
+	log_addr("from server (local)", &data->socket->addr.ai_addr, data->query->addr.ss_family);
 	log_addr("response to client", &data->query->addr, data->query->addr.ss_family);
-	dt_collector_submit_auth_response(data->nsd, &ss, &data->query->addr,
+	dt_collector_submit_auth_response(data->nsd, &data->socket->addr.ai_addr, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
 #endif /* USE_DNSTAP */
@@ -4192,33 +4160,12 @@ handle_tls_reading(int fd, short event, void* arg)
 
 	buffer_flip(data->query->packet);
 #ifdef USE_DNSTAP
-	size_t i;
-	/*
-	 * lets find local address accepted incoming TCP-connection
-	 */
-	struct sockaddr_storage ss;
-	memset(&ss, 0, sizeof(ss));
-	for(i = 0; i < data->nsd->ifs; i++) {
-		if(data->nsd->tcp[i].s == data->tcp_read_fd) {
-			memcpy(&ss, &data->nsd->tcp[i].addr.ai_addr, sizeof(ss));
-			break;
-		}
-	}
-
-	/*
-	 * We SHOULD never reach this condition.
-	 * BUT in case of no one address is found, just send local addr as 0.0.0.0 and port as 0
-	 */
-	if(i == data->nsd->ifs) {
-		INIT_SOCKADDR_STORAGE(ss, data->query->addr.ss_family);
-	}
-
 	/*
 	 * and send TCP-query with found address (local) and client address to dnstap process
 	 */
 	log_addr("query from client", &data->query->addr, data->query->addr.ss_family);
-	log_addr("to server (local)", &ss, data->query->addr.ss_family);
-	dt_collector_submit_auth_query(data->nsd, &ss, &data->query->addr,
+	log_addr("to server (local)", &data->socket->addr.ai_addr, data->query->addr.ss_family);
+	dt_collector_submit_auth_query(data->nsd, &data->socket->addr.ai_addr, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
 	data->query_state = server_process_query(data->nsd, data->query);
@@ -4269,9 +4216,9 @@ handle_tls_reading(int fd, short event, void* arg)
 	/*
 	 * sending TCP-response with found (earlier) address (local) and client address to dnstap process
 	 */
-	log_addr("from server (local)", &ss, data->query->addr.ss_family);
+	log_addr("from server (local)", &data->socket->addr.ai_addr, data->query->addr.ss_family);
 	log_addr("response to client", &data->query->addr, data->query->addr.ss_family);
-	dt_collector_submit_auth_response(data->nsd, &ss, &data->query->addr,
+	dt_collector_submit_auth_response(data->nsd, &data->socket->addr.ai_addr, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
 #endif /* USE_DNSTAP */
@@ -4571,8 +4518,8 @@ handle_tcp_accept(int fd, short event, void* arg)
 #endif
 
 #ifdef USE_DNSTAP
-		/** save TCP socket() descriptor */
-		tcp_data->tcp_read_fd = fd;
+		/* save the address of the connection */
+		tcp_data->socket = data->socket;
 #endif /* USE_DNSTAP */
 
 		memset(&tcp_data->event, 0, sizeof(tcp_data->event));
