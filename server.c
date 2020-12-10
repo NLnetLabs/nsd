@@ -1,5 +1,3 @@
-
-
 /*
  * server.c -- nsd(8) network input/output
  *
