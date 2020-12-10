@@ -411,7 +411,7 @@ prep_send_data(struct buffer* buf, uint8_t is_response,
 	struct zone* zone)
 {
 	buffer_clear(buf);
-	if(!buffer_available(buf, 4+1+4+addrlen+1+(2*4)+buffer_remaining(packet)))
+	if(!buffer_available(buf, 4+1+4+2*addrlen+1+4+buffer_remaining(packet)))
 		return 0; /* does not fit in send_buffer, log is dropped */
 	buffer_skip(buf, 4); /* the length of the message goes here */
 	buffer_write_u8(buf, is_response);
