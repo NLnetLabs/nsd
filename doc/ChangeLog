@@ -1,5 +1,6 @@
 11 December 2020: Wouter
 	- Fix that nsd-control has timeout when connection is down.
+	- remove windows socket ifdefs from nsd-control.
 
 3 December 2020: Wouter
 	- For #145: Fix that service of remaining TCP and TLS connections

@@ -11,6 +11,7 @@ BUG FIXES:
 	  Only existing queries and zone transfers are answered, new ones
 	  are rejected by a close of the channel.
 	- Fix that nsd-control has timeout when connection is down.
+	- remove windows socket ifdefs from nsd-control.
 
 
 4.3.4
