@@ -10,6 +10,7 @@ BUG FIXES:
 	  does not allow new queries to be made, the connection is closed.
 	  Only existing queries and zone transfers are answered, new ones
 	  are rejected by a close of the channel.
+	- Fix that nsd-control has timeout when connection is down.
 
 
 4.3.4
