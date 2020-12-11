@@ -1,3 +1,6 @@
+11 December 2020: Wouter
+	- Fix that nsd-control has timeout when connection is down.
+
 3 December 2020: Wouter
 	- For #145: Fix that service of remaining TCP and TLS connections
 	  does not allow new queries to be made, the connection is closed.
