@@ -145,6 +145,10 @@ static int parse_range(const char *str, long long *low, long long *high);
 %token VAR_ALGORITHM
 %token VAR_SECRET
 
+/* xot auth */
+%token VAR_TLS_AUTH
+%token VAR_TLS_AUTH_DOMAIN_NAME
+
 /* pattern */
 %token VAR_PATTERN
 %token VAR_NAME
@@ -188,6 +192,7 @@ block:
   | dnstap
   | remote_control
   | key
+  | tls_auth
   | pattern
   | zone ;
 
@@ -614,6 +619,48 @@ remote_control_option:
     { cfg_parser->opt->control_cert_file = region_strdup(cfg_parser->opt->region, $2); }
   ;
 
+tls_auth:
+    VAR_TLS_AUTH
+      {
+        tls_auth_options_type *tls_auth = tls_auth_options_create(cfg_parser->opt->region);
+        assert(cfg_parser->tls_auth == NULL);
+        cfg_parser->tls_auth = tls_auth;
+      }
+      tls_auth_block
+    {
+      struct tls_auth_options *tls_auth = cfg_parser->tls_auth;
+      if(tls_auth->name == NULL) {
+        yyerror("tls-auth has no name");
+      } else if(tls_auth->auth_domain_name == NULL) {
+        yyerror("tls-auth %s has no auth-domain-name", tls_auth->name);
+      } else if(tls_auth_options_find(cfg_parser->opt, tls_auth->name)) {
+        yyerror("duplicate tls-auth %s", tls_auth->name);
+      } else {
+      	tls_auth_options_insert(cfg_parser->opt, tls_auth);
+        cfg_parser->tls_auth = NULL;
+      }
+    } ;
+
+tls_auth_block:
+    tls_auth_block tls_auth_option | ;
+
+tls_auth_option:
+    VAR_NAME STRING
+    {
+      dname_type *dname;
+      dname = (dname_type *)dname_parse(cfg_parser->opt->region, $2);
+      cfg_parser->tls_auth->name = region_strdup(cfg_parser->opt->region, $2);
+      if(dname == NULL) {
+        yyerror("bad tls-auth name %s", $2);
+      } else {
+        region_recycle(cfg_parser->opt->region, dname, dname_total_size(dname));
+      }
+    }
+  | VAR_TLS_AUTH_DOMAIN_NAME STRING
+    {
+      cfg_parser->tls_auth->auth_domain_name = region_strdup(cfg_parser->opt->region, $2);
+    };
+
 key:
     VAR_KEY
       {
@@ -786,6 +833,16 @@ pattern_or_zone_option:
         yyerror("address range used for request-xfr");
       append_acl(&cfg_parser->pattern->request_xfr, acl);
     }
+  | VAR_REQUEST_XFR STRING STRING STRING
+    {
+      acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $2, $3);
+      if(acl->blocked)
+        yyerror("blocked address used for request-xfr");
+      if(acl->rangetype != acl_range_single)
+        yyerror("address range used for request-xfr");
+      acl->tls_auth_name = region_strdup(cfg_parser->opt->region, $4);
+      append_acl(&cfg_parser->pattern->request_xfr, acl);
+    }
   | VAR_REQUEST_XFR VAR_AXFR STRING STRING
     {
       acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $3, $4);
@@ -794,6 +851,17 @@ pattern_or_zone_option:
         yyerror("blocked address used for request-xfr");
       if(acl->rangetype != acl_range_single)
         yyerror("address range used for request-xfr");
+      append_acl(&cfg_parser->pattern->request_xfr, acl);
+    }
+  | VAR_REQUEST_XFR VAR_AXFR STRING STRING STRING
+    {
+      acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $3, $4);
+      acl->use_axfr_only = 1;
+      if(acl->blocked)
+        yyerror("blocked address used for request-xfr");
+      if(acl->rangetype != acl_range_single)
+        yyerror("address range used for request-xfr");
+      acl->tls_auth_name = region_strdup(cfg_parser->opt->region, $4);
       append_acl(&cfg_parser->pattern->request_xfr, acl);
     }
   | VAR_REQUEST_XFR VAR_UDP STRING STRING

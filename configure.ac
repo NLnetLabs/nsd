@@ -1037,7 +1037,9 @@ AC_INCLUDES_DEFAULT
 #include <openssl/ssl.h>
 #include <openssl/evp.h>
 ])
-
+	AC_CHECK_DECL([TLS1_3_VERSION], 
+		[AC_DEFINE([HAVE_TLS_1_3], [1], [Define if TLS 1.3 is supported by OpenSSL])],
+		[AC_MSG_WARN([No TLS 1.3, therefore XFR-over-TLS is disabled])], [[#include <openssl/ssl.h>]])
 
 	BAKLIBS="$LIBS"
 	LIBS="-lssl $LIBS"

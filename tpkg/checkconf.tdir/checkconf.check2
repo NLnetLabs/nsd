@@ -1,5 +1,5 @@
 start of check
-# Read file checkconf.nsd01.conf: 2 patterns, 2 fixed-zones, 3 keys.
+# Read file checkconf.nsd01.conf: 2 patterns, 2 fixed-zones, 3 key, 0 tls-auth.
 # Config settings.
 server:
 	debug-mode: yes
@@ -110,7 +110,7 @@ zone:
 	name: "example.net"
 	zonefile: "/etc/nsd/example.net.db"
 	outgoing-interface: 10.0.0.0
-# Read file checkconf.nsd02.conf: 1 patterns, 1 fixed-zones, 0 keys.
+# Read file checkconf.nsd02.conf: 1 patterns, 1 fixed-zones, 0 keys, 0 tls-auth.
 # Config settings.
 server:
 	debug-mode: no
@@ -174,7 +174,7 @@ zone:
 	name: "example.com"
 	zonefile: "/etc/nsd/example.com.zone"
 	outgoing-interface: 1.2.3.4
-# Read file checkconf.nsd03.conf: 1 patterns, 1 fixed-zones, 1 keys.
+# Read file checkconf.nsd03.conf: 1 patterns, 1 fixed-zones, 1 keys, 0 tls-auth.
 # Config settings.
 server:
 	debug-mode: no
@@ -247,7 +247,7 @@ zone:
 	request-xfr: 162.0.4.49 tsig.example.org.
 	# ip4 noport single addr=162.0.4.49
 	outgoing-interface: 2001:7b8:40:1:219:d1ff:feb1:85e8
-# Read file checkconf.nsd04.conf: 1 patterns, 1 fixed-zones, 0 keys.
+# Read file checkconf.nsd04.conf: 1 patterns, 1 fixed-zones, 0 keys, 0 tls-auth.
 # Config settings.
 server:
 	debug-mode: no
@@ -364,7 +364,7 @@ checkconf.nsd06.conf:92: error: key icky in pattern _implicit_try_ranges.zone co
 read checkconf.nsd06.conf failed: 47 errors in configuration file
 checkconf.nsd07.conf:3: at 'logging': error: syntax error
 read checkconf.nsd07.conf failed: 1 errors in configuration file
-# Read file checkconf.nsd08.conf: 4 patterns, 1 fixed-zones, 0 keys.
+# Read file checkconf.nsd08.conf: 4 patterns, 1 fixed-zones, 0 keys, 0 tls-auth.
 # Config settings.
 server:
 	debug-mode: no

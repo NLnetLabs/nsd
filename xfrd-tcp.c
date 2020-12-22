@@ -24,6 +24,82 @@
 #include "xfrd.h"
 #include "xfrd-disk.h"
 #include "util.h"
+#ifdef HAVE_TLS_1_3
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#endif
+
+#ifdef HAVE_TLS_1_3
+static SSL_CTX*
+create_ssl_context()
+{
+	SSL_CTX *ctx;
+	ctx = SSL_CTX_new(TLS_client_method());
+	if (!ctx) {
+		log_msg(LOG_ERR, "xfrd tls: Unable to create SSL ctxt");
+	}
+	else if (SSL_CTX_set_default_verify_paths(ctx) != 1) {
+		SSL_CTX_free(ctx);
+		log_msg(LOG_ERR, "xfrd tls: Unable to set default SSL verify paths");
+	}
+	/* Only trust 1.3 as per the specification */
+	else if (!SSL_CTX_set_min_proto_version(ctx, TLS1_3_VERSION)) {
+		SSL_CTX_free(ctx);
+		log_msg(LOG_ERR, "xfrd tls: Unable to set minimum TLS version 1.3");
+	}
+	return ctx;
+}
+
+static int
+tls_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
+{
+	int err = X509_STORE_CTX_get_error(ctx);
+	int depth = X509_STORE_CTX_get_error_depth(ctx);
+
+	// report the specific cert error here - will need custom verify code if 
+	// SPKI pins are supported
+	if (!preverify_ok)
+		log_msg(LOG_ERR, "xfrd tls: TLS verify failed - (%d) depth: %d error: %s",
+				err,
+				depth,
+				X509_verify_cert_error_string(err));
+	return preverify_ok;
+}
+
+static int
+setup_ssl(struct xfrd_tcp_pipeline* tp, struct xfrd_tcp_set* tcp_set, 
+          const char* auth_domain_name)
+{
+	if (!tcp_set->ssl_ctx) {
+		log_msg(LOG_ERR, "xfrd tls: No TLS CTX, cannot set up XFR-over-TLS");
+		return 0;
+	}
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: setting up TLS for tls_auth domain name %s", 
+						 auth_domain_name));
+	tp->ssl = SSL_new((SSL_CTX*)tcp_set->ssl_ctx);
+	if(!tp->ssl) {
+		log_msg(LOG_ERR, "xfrd tls: Unable to create TLS object");
+		return 0;
+	}
+	SSL_set_connect_state(tp->ssl);
+	(void)SSL_set_mode(tp->ssl, SSL_MODE_AUTO_RETRY);
+	if(!SSL_set_fd(tp->ssl, tp->tcp_w->fd)) {
+		log_msg(LOG_ERR, "xfrd tls: Unable to set TLS fd");
+		SSL_free(tp->ssl);
+		return 0;
+	}
+
+	SSL_set_verify(tp->ssl, SSL_VERIFY_PEER, tls_verify_callback);
+	if(!SSL_set1_host(tp->ssl, auth_domain_name)) {
+		log_msg(LOG_ERR, "xfrd tls: TLS setting of hostname %s failed",
+		auth_domain_name);
+		SSL_free(tp->ssl);
+		tp->ssl = NULL;
+		return 0;
+	}
+	return 1;
+}
+#endif
 
 /* sort tcppipe, first on IP address, for an IPaddresss, sort on num_unused */
 static int
@@ -57,6 +133,14 @@ struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region)
 	tcp_set->tcp_count = 0;
 	tcp_set->tcp_waiting_first = 0;
 	tcp_set->tcp_waiting_last = 0;
+#ifdef HAVE_TLS_1_3
+	/* Set up SSL context */
+	tcp_set->ssl_ctx = create_ssl_context();
+	if (tcp_set->ssl_ctx == NULL)
+		log_msg(LOG_ERR, "xfrd: XFR-over-TLS not available");
+#else
+	log_msg(LOG_WARNING, "xfrd: No TLS 1.3 support - XFR-over-TLS not available");
+#endif
 	for(i=0; i<XFRD_MAX_TCP; i++)
 		tcp_set->tcp_state[i] = xfrd_tcp_pipeline_create(region);
 	tcp_set->pipetree = rbtree_create(region, &xfrd_pipe_cmp);
@@ -142,7 +226,12 @@ xfrd_acl_sockaddr_to(acl_options_type* acl, struct sockaddr_storage *to)
 xfrd_acl_sockaddr_to(acl_options_type* acl, struct sockaddr_in *to)
 #endif /* INET6 */
 {
+#ifdef HAVE_TLS_1_3
+	unsigned int port = acl->port?acl->port:(acl->tls_auth_options?
+						(unsigned)atoi(TLS_PORT):(unsigned)atoi(TCP_PORT));
+#else
 	unsigned int port = acl->port?acl->port:(unsigned)atoi(TCP_PORT);
+#endif
 #ifdef INET6
 	return xfrd_acl_sockaddr(acl, port, to);
 #else
@@ -573,6 +662,50 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	tp->tcp_r->fd = fd;
 	tp->tcp_w->fd = fd;
 
+	/* Check if an tls_auth name is configured which means we should try to
+	   establish an SSL connection */
+	if (zone->master->tls_auth_options &&
+		zone->master->tls_auth_options->auth_domain_name) {
+#ifdef HAVE_TLS_1_3
+		if (!setup_ssl(tp, set, zone->master->tls_auth_options->auth_domain_name)) {
+			log_msg(LOG_ERR, "xfrd: Cannot setup TLS on pipeline for %s to %s",
+					zone->apex_str, zone->master->ip_address_spec);
+			close(fd);
+			xfrd_set_refresh_now(zone);
+			return 0;
+		}
+		// TODO: There is a nasty case where the far end is listening on TCP 
+		// but not TLS. In that case the SSL_do_handshake function will loop, 
+		// returning SSL_ERROR_WANT_READ for the tcp_timeout (120s). This can 
+		// be handled various ways, not sure of the best one, need to discuss
+		// with Wouter...
+		int ret, err;
+		while (1) {
+			ERR_clear_error();
+			if ((ret = SSL_do_handshake(tp->ssl)) == 1) {
+				DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "xfrd: TLS handshake sucessful"));
+				break;
+			}
+			err = SSL_get_error(tp->ssl, ret);
+			if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
+				log_msg(LOG_ERR, "xfrd: TLS handshake failed for %s to %s with value: %d", 
+						zone->apex_str, zone->master->ip_address_spec, err);
+				close(fd);
+				xfrd_set_refresh_now(zone);
+				return 0;
+			}
+			/* else wants to be called again */
+		}
+#else
+		log_msg(LOG_ERR, "xfrd: TLS 1.3 is not available, XFR-over-TLS is "
+						 "not supported for %s to %s",
+						  zone->apex_str, zone->master->ip_address_spec);
+		close(fd);
+		xfrd_set_refresh_now(zone);
+		return 0;
+#endif
+	}
+
 	/* set the tcp pipe event */
 	if(tp->handler_added)
 		event_del(&tp->handler);
@@ -638,6 +771,80 @@ tcp_conn_ready_for_reading(struct xfrd_tcp* tcp)
 	tcp->msglen = 0;
 	buffer_clear(tcp->packet);
 }
+
+#ifdef HAVE_TLS_1_3
+static int
+conn_write_ssl(struct xfrd_tcp* tcp, SSL* ssl)
+{
+	ssize_t sent;
+
+	if(tcp->total_bytes < sizeof(tcp->msglen)) {
+		uint16_t sendlen = htons(tcp->msglen);
+		// send
+		int request_length = sizeof(tcp->msglen) - tcp->total_bytes;
+		sent = SSL_write(ssl, (const char*)&sendlen + tcp->total_bytes,
+						 request_length);
+		switch(SSL_get_error(ssl,sent)) {
+			case SSL_ERROR_NONE:
+				if(request_length != sent)
+					log_msg(LOG_ERR, "xfrd: incomplete write of tls");
+				break;
+			default:
+				log_msg(LOG_ERR, "xfrd: generic write problem with tls");
+		}
+
+		if(sent == -1) {
+			if(errno == EAGAIN || errno == EINTR) {
+				/* write would block, try later */
+				return 0;
+			} else {
+				return -1;
+			}
+		}
+
+		tcp->total_bytes += sent;
+		if(sent > (ssize_t)sizeof(tcp->msglen))
+			buffer_skip(tcp->packet, sent-sizeof(tcp->msglen));
+		if(tcp->total_bytes < sizeof(tcp->msglen)) {
+			/* incomplete write, resume later */
+			return 0;
+		}
+		assert(tcp->total_bytes >= sizeof(tcp->msglen));
+	}
+
+	assert(tcp->total_bytes < tcp->msglen + sizeof(tcp->msglen));
+
+	int request_length = buffer_remaining(tcp->packet);
+	sent = SSL_write(ssl, buffer_current(tcp->packet), request_length);
+	switch(SSL_get_error(ssl,sent)) {
+		case SSL_ERROR_NONE:
+			if(request_length != sent)
+				log_msg(LOG_ERR, "xfrd: incomplete write of tls");
+			break;
+		default:
+			log_msg(LOG_ERR, "xfrd: generic write problem with tls");
+	}
+	if(sent == -1) {
+		if(errno == EAGAIN || errno == EINTR) {
+			/* write would block, try later */
+			return 0;
+		} else {
+			return -1;
+		}
+	}
+
+	buffer_skip(tcp->packet, sent);
+	tcp->total_bytes += sent;
+
+	if(tcp->total_bytes < tcp->msglen + sizeof(tcp->msglen)) {
+		/* more to write when socket becomes writable again */
+		return 0;
+	}
+
+	assert(tcp->total_bytes == tcp->msglen + sizeof(tcp->msglen));
+	return 1;
+}
+#endif
 
 int conn_write(struct xfrd_tcp* tcp)
 {
@@ -735,7 +942,12 @@ xfrd_tcp_write(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 			return;
 		}
 	}
-	ret = conn_write(tcp);
+#ifdef HAVE_TLS_1_3
+	if (tp->ssl)
+		ret = conn_write_ssl(tcp, tp->ssl);
+	else
+#endif
+		ret = conn_write(tcp);
 	if(ret == -1) {
 		log_msg(LOG_ERR, "xfrd: failed writing tcp %s", strerror(errno));
 		xfrd_tcp_pipe_stop(tp);
@@ -757,7 +969,12 @@ xfrd_tcp_write(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 		/* setup to write for this zone */
 		xfrd_tcp_setup_write_packet(tp, tp->tcp_send_first);
 		/* attempt to write for this zone (if success, continue loop)*/
-		ret = conn_write(tcp);
+#ifdef HAVE_TLS_1_3
+		if (tp->ssl)
+			ret = conn_write_ssl(tcp, tp->ssl);
+		else
+#endif
+			ret = conn_write(tcp);
 		if(ret == -1) {
 			log_msg(LOG_ERR, "xfrd: failed writing tcp %s", strerror(errno));
 			xfrd_tcp_pipe_stop(tp);
@@ -774,6 +991,104 @@ xfrd_tcp_write(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 	assert(tp->tcp_send_first == NULL);
 	tcp_pipe_reset_timeout(tp);
 }
+
+#ifdef HAVE_TLS_1_3
+static int
+conn_read_ssl(struct xfrd_tcp* tcp, SSL* ssl)
+{
+	ssize_t received;
+	/* receive leading packet length bytes */
+	if(tcp->total_bytes < sizeof(tcp->msglen)) {
+		ERR_clear_error();
+		received = SSL_read(ssl,
+						(char*) &tcp->msglen + tcp->total_bytes,
+						sizeof(tcp->msglen) - tcp->total_bytes);
+		if (received <= 0) {
+			int err = SSL_get_error(ssl, received);
+			log_msg(LOG_ERR, "ssl_read returned error %d", err);
+			if(err == SSL_ERROR_ZERO_RETURN) {
+				/* EOF */
+				return 0;
+			}
+		}
+		if(received == -1) {
+			if(errno == EAGAIN || errno == EINTR) {
+				/* read would block, try later */
+				return 0;
+			} else {
+#ifdef ECONNRESET
+				if (verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
+					log_msg(LOG_ERR, "tls read sz: %s", strerror(errno));
+				return -1;
+			}
+		} else if(received == 0) {
+			/* EOF */
+			return -1;
+		}
+		tcp->total_bytes += received;
+		if(tcp->total_bytes < sizeof(tcp->msglen)) {
+			/* not complete yet, try later */
+			return 0;
+		}
+
+		assert(tcp->total_bytes == sizeof(tcp->msglen));
+		tcp->msglen = ntohs(tcp->msglen);
+
+		if(tcp->msglen == 0) {
+			buffer_set_limit(tcp->packet, tcp->msglen);
+			return 1;
+		}
+		if(tcp->msglen > buffer_capacity(tcp->packet)) {
+			log_msg(LOG_ERR, "buffer too small, dropping connection");
+			return 0;
+		}
+		buffer_set_limit(tcp->packet, tcp->msglen);
+	}
+
+	assert(buffer_remaining(tcp->packet) > 0);
+	ERR_clear_error();
+
+	received = SSL_read(ssl, buffer_current(tcp->packet),
+					buffer_remaining(tcp->packet));
+
+	if (received <= 0) {
+		int err =SSL_get_error(ssl, received);
+		log_msg(LOG_ERR, "ssl_read returned error %d", err);
+		if(err == SSL_ERROR_ZERO_RETURN) {
+			/* EOF */
+			return 0;
+		}
+	}
+	if(received == -1) {
+		if(errno == EAGAIN || errno == EINTR) {
+			/* read would block, try later */
+			return 0;
+		} else {
+#ifdef ECONNRESET
+			if (verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
+				log_msg(LOG_ERR, "tcp read %s", strerror(errno));
+			return -1;
+		}
+	} else if(received == 0) {
+		/* EOF */
+		return -1;
+	}
+
+	tcp->total_bytes += received;
+	buffer_skip(tcp->packet, received);
+
+	if(buffer_remaining(tcp->packet) > 0) {
+		/* not complete yet, wait for more */
+		return 0;
+	}
+
+	/* completed */
+	assert(buffer_position(tcp->packet) == tcp->msglen);
+	return 1;
+}
+#endif
 
 int
 conn_read(struct xfrd_tcp* tcp)
@@ -859,9 +1174,14 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 	struct xfrd_tcp* tcp = tp->tcp_r;
 	int ret;
 	enum xfrd_packet_result pkt_result;
-
-	ret = conn_read(tcp);
+#ifdef HAVE_TLS_1_3
+	if (tp->ssl)
+		ret = conn_read_ssl(tcp, tp->ssl);
+	else 
+#endif
+		ret = conn_read(tcp);
 	if(ret == -1) {
+		log_msg(LOG_ERR, "xfrd: failed writing tcp %s", strerror(errno));
 		xfrd_tcp_pipe_stop(tp);
 		return;
 	}
@@ -989,9 +1309,19 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 		event_del(&tp->handler);
 	tp->handler_added = 0;
 
+#ifdef HACVE_TLS_1_3
+	/* close SSL */
+	if (tp->ssl) {
+		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "xfrd: Shutting down TLS"));
+		SSL_shutdown(tp->ssl);
+		SSL_free(tp->ssl);
+		tp->ssl = NULL;
+	}
+#endif
+
 	/* fd in tcp_r and tcp_w is the same, close once */
 	if(tp->tcp_r->fd != -1)
-		close(tp->tcp_r->fd);
+		shutdown(tp->tcp_r->fd, SHUT_RDWR);
 	tp->tcp_r->fd = -1;
 	tp->tcp_w->fd = -1;
 
