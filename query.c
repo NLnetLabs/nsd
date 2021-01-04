@@ -1128,6 +1128,12 @@ answer_authoritative(struct nsd   *nsd,
 				/* return previous CNAMEs to make resolver recurse for us */
 				return;
 			}
+			if(q->qtype == TYPE_CNAME) {
+				/* The synthesized CNAME is the answer to
+				 * that query, same as BIND does for query
+				 * of type CNAME */
+				return;
+			}
 
 			answer_lookup_zone(nsd, q, answer, newnum,
 				closest_match == closest_encloser,

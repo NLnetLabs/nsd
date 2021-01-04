@@ -1,3 +1,7 @@
+4 January 2021: Wouter
+	- Fix #148: CNAME need not be followed after a synthesized CNAME
+	  for a CNAME query.
+
 11 December 2020: Wouter
 	- Fix that nsd-control has timeout when connection is down.
 	- remove windows socket ifdefs from nsd-control.

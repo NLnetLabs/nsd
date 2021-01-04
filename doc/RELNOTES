@@ -12,6 +12,8 @@ BUG FIXES:
 	  are rejected by a close of the channel.
 	- Fix that nsd-control has timeout when connection is down.
 	- remove windows socket ifdefs from nsd-control.
+	- Fix #148: CNAME need not be followed after a synthesized CNAME
+	  for a CNAME query.
 
 
 4.3.4
