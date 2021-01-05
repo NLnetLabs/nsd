@@ -14,6 +14,7 @@ BUG FIXES:
 	- remove windows socket ifdefs from nsd-control.
 	- Fix #148: CNAME need not be followed after a synthesized CNAME
 	  for a CNAME query.
+	- Fix configure.ac for autoconf 2.70.
 
 
 4.3.4

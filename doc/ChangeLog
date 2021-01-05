@@ -1,3 +1,6 @@
+5 January 2021: Wouter
+	- Fix configure.ac for autoconf 2.70.
+
 4 January 2021: Wouter
 	- Fix #148: CNAME need not be followed after a synthesized CNAME
 	  for a CNAME query.
