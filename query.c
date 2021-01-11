@@ -771,14 +771,29 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 	   their (not allocated yet) parents */
 	/* any domains below src are not_existing (because of DNAME at src) */
 	int i;
+	size_t j;
 	domain_type* cname_domain;
 	domain_type* cname_dest;
 	rrset_type* rrset;
 
-	/* allocate source part */
 	domain_type* lastparent = src;
 	assert(q && answer && from_name && to_name && src && to_closest_encloser);
 	assert(to_closest_match);
+
+	/* check for loop by duplicate CNAME rrset synthesized */
+	for(j=0; j<answer->rrset_count; ++j) {
+		if(answer->section[j] == ANSWER_SECTION &&
+			answer->rrsets[j]->rr_count == 1 &&
+			answer->rrsets[j]->rrs[0].type == TYPE_CNAME &&
+			dname_compare(domain_dname(answer->rrsets[j]->rrs[0].owner), from_name) == 0 &&
+			answer->rrsets[j]->rrs[0].rdata_count == 1 &&
+			dname_compare(domain_dname(answer->rrsets[j]->rrs[0].rdatas->domain), to_name) == 0) {
+			DEBUG(DEBUG_QUERY,2, (LOG_INFO, "loop for synthesized CNAME rrset for query %s", dname_to_string(q->qname, NULL)));
+			return 0;
+		}
+	}
+
+	/* allocate source part */
 	for(i=0; i < from_name->label_count - domain_dname(src)->label_count; i++)
 	{
 		domain_type* newdom = query_get_tempdomain(q);
@@ -1109,9 +1124,12 @@ answer_authoritative(struct nsd   *nsd,
 			domain_to_string(closest_encloser)));
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->dest is %s",
 			domain_to_string(dest)));
-		/* if the DNAME set is not added, it is already there, check
-		 * for a loop by checking if the CNAME set can be added */
-		(void)add_rrset(q, answer, ANSWER_SECTION, closest_encloser, rrset);
+		if(!add_rrset(q, answer, ANSWER_SECTION, closest_encloser, rrset)) {
+			/* stop if DNAME loops, when added second time */
+			if(dname_is_subdomain(domain_dname(dest), domain_dname(src))) {
+				return;
+			}
+		}
 		newname = dname_replace(q->region, name,
 			domain_dname(src), domain_dname(dest));
 		++q->cname_count;

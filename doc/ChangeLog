@@ -1,6 +1,7 @@
 11 January 2021: Wouter
 	- Fix #151: DNAME not applied more than once to resolve the query.
 	- Fix dname test for #148.
+	- For #151: fix to not produce loops in output.
 
 5 January 2021: Wouter
 	- Fix configure.ac for autoconf 2.70.
