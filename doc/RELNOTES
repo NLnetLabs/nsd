@@ -15,6 +15,7 @@ BUG FIXES:
 	- Fix #148: CNAME need not be followed after a synthesized CNAME
 	  for a CNAME query.
 	- Fix configure.ac for autoconf 2.70.
+	- Fix #151: DNAME not applied more than once to resolve the query.
 
 
 4.3.4
