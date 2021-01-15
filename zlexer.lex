@@ -137,6 +137,7 @@ COMMENT ;
 DOT     \.
 BIT	[^\]\n]|\\.
 ANY     [^\"\n\\]|\\.
+ANYNOSPC [^\"\n\\ \t]|\\.
 
 %x	incl bitlabel quotedstring
 
@@ -313,6 +314,19 @@ ANY     [^\"\n\\]|\\.
 }
 <quotedstring>{ANY}*	{ LEXOUT(("STR ")); yymore(); }
 <quotedstring>\n 	{ ++parser->line; yymore(); }
+<quotedstring>{QUOTE}{ANYNOSPC}{ANYNOSPC}* {
+	/* for strings like "abc"def */
+	char* qt;
+	LEXOUT(("\" "));
+	BEGIN(INITIAL);
+	qt = strchr(yytext, '"');
+	assert(qt);
+	/* remove middle quote */
+	if(qt[1] != 0)
+		memmove(qt, qt+1, strlen(qt+1));
+	yytext[yyleng - 1] = '\0';
+	return parse_token(STR, yytext, &lexer_state);
+}
 <quotedstring>{QUOTE} {
 	LEXOUT(("\" "));
 	BEGIN(INITIAL);
