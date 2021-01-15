@@ -319,8 +319,19 @@ ANYNOSPC [^\"\n\\ \t]|\\.
 	char* qt;
 	LEXOUT(("\" "));
 	BEGIN(INITIAL);
-	qt = strchr(yytext, '"');
+	for(qt=yytext; *qt!=0; qt++) {
+		if(qt==yytext && qt[0]=='"') {
+			/* first character is quote */
+			break;
+		}
+		if(qt[0] != 0 && qt[0] != '\\' && qt[1] == '"') {
+			/* unescaped quote is the middle quote */
+			qt+=1;
+			break;
+		}
+	}
 	assert(qt);
+	assert(*qt=='"');
 	/* remove middle quote */
 	if(qt[1] != 0)
 		memmove(qt, qt+1, strlen(qt+1));
