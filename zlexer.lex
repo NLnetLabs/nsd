@@ -320,19 +320,19 @@ ANYNOSPC [^\"\n\\ \t]|\\.
 	LEXOUT(("\" "));
 	BEGIN(INITIAL);
 	for(qt=yytext; *qt!=0; qt++) {
-		if(qt==yytext && qt[0]=='"') {
-			/* first character is quote */
+		if(qt[0]=='"') {
+			/* (unescaped) character is quote */
 			break;
 		}
-		if(qt[0] != 0 && qt[0] != '\\' && qt[1] == '\\') {
+		if(qt[0] == '\\' && qt[1] == '\\') {
 			/* escaped backslash, skip that backslash */
 			qt+=1;
 			continue;
 		}
-		if(qt[0] != 0 && qt[0] != '\\' && qt[1] == '"') {
-			/* unescaped quote is the middle quote */
+		if(qt[0] == '\\' && qt[1] == '"') {
+			/* escaped quote, skip that quote */
 			qt+=1;
-			break;
+			continue;
 		}
 	}
 	assert(qt);
