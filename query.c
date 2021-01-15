@@ -1091,6 +1091,7 @@ answer_authoritative(struct nsd   *nsd,
 	domain_type *match;
 	domain_type *original = closest_match;
 	domain_type *dname_ce;
+	domain_type *wildcard_child;
 	rrset_type *rrset;
 
 #ifdef NSEC3
@@ -1160,9 +1161,9 @@ answer_authoritative(struct nsd   *nsd,
 			closest_match, closest_encloser, newname);
 		q->zone = origzone;
 		return;
-	} else if (domain_wildcard_child(closest_encloser)) {
+	} else if ((wildcard_child=domain_wildcard_child(closest_encloser))!=NULL &&
+		wildcard_child->is_existing) {
 		/* Generate the domain from the wildcard.  */
-		domain_type *wildcard_child = domain_wildcard_child(closest_encloser);
 #ifdef RATELIMIT
 		q->wildcard_domain = wildcard_child;
 #endif
