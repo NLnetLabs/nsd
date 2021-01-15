@@ -324,6 +324,11 @@ ANYNOSPC [^\"\n\\ \t]|\\.
 			/* first character is quote */
 			break;
 		}
+		if(qt[0] != 0 && qt[0] != '\\' && qt[1] == '\\') {
+			/* escaped backslash, skip that backslash */
+			qt+=1;
+			continue;
+		}
 		if(qt[0] != 0 && qt[0] != '\\' && qt[1] == '"') {
 			/* unescaped quote is the middle quote */
 			qt+=1;

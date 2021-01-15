@@ -4,6 +4,7 @@
 	- Add config.guess and config.sub to .gitignore for autoconf 2.70.
 	- Fix #150: TXT record validation difference with BIND.
 	- Fixup TXT record validation fix for escaped quotes.
+	- Fixup TXT record validation fix for escaped backslashes.
 
 11 January 2021: Wouter
 	- Fix #151: DNAME not applied more than once to resolve the query.
