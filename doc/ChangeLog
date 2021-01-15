@@ -1,6 +1,7 @@
 15 January 2021: Wouter
 	- Fix #152: '*' in Rdata causes the return code to be NOERROR instead
 	  of NX.
+	- Add config.guess and config.sub to .gitignore for autoconf 2.70.
 
 11 January 2021: Wouter
 	- Fix #151: DNAME not applied more than once to resolve the query.
