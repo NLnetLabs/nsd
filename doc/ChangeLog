@@ -1,5 +1,5 @@
 19 January 2021: Wouter
-	- Set branch ready for 4.3.5 release.
+	- Set branch ready for 4.3.5 release.  Tag for 4.3.5rc1.
 
 15 January 2021: Wouter
 	- Fix #152: '*' in Rdata causes the return code to be NOERROR instead
