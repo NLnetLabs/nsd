@@ -1,8 +1,7 @@
 NSD RELEASE NOTES
 
-4.3.5 (in development)
+4.3.5
 ================
-FEATURES:
 BUG FIXES:
 	- Fix #143: xfrd no hysteresis with NOT IMPLEMENTED rcode.
 	- Fix #144: Typo fix in nsd.conf.5.in.

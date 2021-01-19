@@ -1,3 +1,6 @@
+19 January 2021: Wouter
+	- Set branch ready for 4.3.5 release.
+
 15 January 2021: Wouter
 	- Fix #152: '*' in Rdata causes the return code to be NOERROR instead
 	  of NX.
