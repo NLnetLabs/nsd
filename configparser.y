@@ -861,7 +861,7 @@ pattern_or_zone_option:
         yyerror("blocked address used for request-xfr");
       if(acl->rangetype != acl_range_single)
         yyerror("address range used for request-xfr");
-      acl->tls_auth_name = region_strdup(cfg_parser->opt->region, $4);
+      acl->tls_auth_name = region_strdup(cfg_parser->opt->region, $5);
       append_acl(&cfg_parser->pattern->request_xfr, acl);
     }
   | VAR_REQUEST_XFR VAR_UDP STRING STRING
