@@ -117,5 +117,8 @@
 #define yy_get_next_buffer c__get_next_buffer
 #define yy_get_previous_state c__get_previous_state
 #define yy_hold_char c__hold_char
+#define yysslim c__sslim
+#define yyssp   c__ssp
+#define yystacksize c__stacksize
 
 #endif /* CONFIGYYRENAME_H */

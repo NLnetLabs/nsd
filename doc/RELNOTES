@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Prevent a few more yacc clashes.
 
 
 4.3.5
