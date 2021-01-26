@@ -1,5 +1,7 @@
 19 January 2021: Wouter
 	- Set branch ready for 4.3.5 release.  Tag for 4.3.5rc1.
+	  Became the 4.3.5 release on 26 january 2021.  This branch continues
+	  with 4.3.6 in development.
 
 15 January 2021: Wouter
 	- Fix #152: '*' in Rdata causes the return code to be NOERROR instead
