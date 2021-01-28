@@ -18,7 +18,6 @@
 #include "rrl.h"
 #include "bitset.h"
 
-#include "configyyrename.h"
 #include "configparser.h"
 config_parser_state_type* cfg_parser = 0;
 extern FILE* c_in, *c_out;
