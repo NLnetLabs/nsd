@@ -9,6 +9,7 @@ BUG FIXES:
 	  automatically.
 	- Fix uninitialized access of log_buf in error printout on apply ixfr.
 	- Fix AF_LOCAL compile error for Solaris.
+	- Fix ifaddrs compile error for Solaris.
 
 
 4.3.5
