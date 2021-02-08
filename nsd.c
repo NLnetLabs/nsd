@@ -41,7 +41,9 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#ifdef HAVE_IFADDRS_H
 #include <ifaddrs.h>
+#endif
 
 #include "nsd.h"
 #include "options.h"

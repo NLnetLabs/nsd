@@ -1,6 +1,7 @@
 8 February 2021: Wouter
 	- Fix AF_LOCAL compile error for Solaris.
 	- Fix ifaddrs compile error for Solaris.
+	- Fix ifaddrs.h compile error for Solaris.
 
 4 February 2021: Wouter
 	- Merge PR #153 from fobser: Repair -fno-common linker errors
