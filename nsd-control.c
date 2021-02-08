@@ -60,6 +60,9 @@
 #include <sys/un.h>
 #endif
 #include <fcntl.h>
+#ifndef AF_LOCAL
+#define AF_LOCAL AF_UNIX
+#endif
 #include "util.h"
 #include "tsig.h"
 #include "options.h"
