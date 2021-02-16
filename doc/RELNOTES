@@ -11,6 +11,7 @@ BUG FIXES:
 	- Fix AF_LOCAL compile error for Solaris.
 	- Fix ifaddrs compile error for Solaris.
 	- Fix ifaddrs.h compile error for Solaris.
+	- Man page documentation for dnstap options.
 
 
 4.3.5

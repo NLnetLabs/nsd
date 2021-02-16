@@ -812,6 +812,43 @@ file, which may have different security policies, can be split apart.
 The content of the secret is the agreed base64 secret content.  To make it
 up, enter a password (its length must be a multiple of 4 characters, A\-Za\-z0\-9), or use
 dev-random output through a base64 encode filter.
+.SS DNSTAP Logging Options
+DNSTAP support, when compiled in, is enabled in the \fBdnstap:\fR section.
+This starts a collector process that writes the log information to the
+destination.
+.TP
+.B dnstap-enable:\fR <yes or no>
+If dnstap is enabled.  Default no.  If yes, it connects to the dnstap server
+and if any of the dnstap-log-..-messages options is enabled it sends logs
+for those messages to the server.
+.TP
+.B dnstap-socket-path:\fR <file name>
+Sets the unix socket file name for connecting to the server that is
+listening on that socket.  Default is "@dnstap_socket_path@".
+.TP
+.B dnstap-send-identity:\fR <yes or no>
+If enabled, the server identity is included in the log messages.
+Default is no.
+.TP
+.B dnstap-send-version:\fR <yes or no>
+If enabled, the server version if included in the log messages.
+Default is no.
+.TP
+.B dnstap-identity:\fR <string>
+The identity to send with messages, if "" the hostname is used.
+Default is "".
+.TP
+.B dnstap-version:\fR <string>
+The version to send with messages, if "" the package version is used.
+Default is "".
+.TP
+.B dnstap-log-auth-query-messages:\fR <yes or no>
+Enable to log auth query messages.  Default is no.
+These are client queries to NSD.
+.TP
+.B dnstap-log-auth-response-messages:\fR <yes or no>
+Enable to log auth response messages.  Default is no.
+These are responses from NSD to clients.
 .SH "NSD CONFIGURATION FOR BIND9 HACKERS"
 BIND9 is a name server implementation with its own configuration 
 file format, named.conf(5). BIND9 types zones as 'Master' or 'Slave'. 

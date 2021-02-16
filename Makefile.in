@@ -73,6 +73,7 @@ EDIT		= $(SED) \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@ratelimit_default\@,@ratelimit_default@,g' \
+			-e 's,@dnstap_socket_path\@,@opt_dnstap_socket_path@,g' \
 			-e 's,@user\@,$(user),g'
 
 TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh
