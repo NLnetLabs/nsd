@@ -224,24 +224,19 @@ resolve_ifa_name(struct ifaddrs *ifas, const char *search_ifa, char ***ip_addres
 		(*ip_addresses_size)++;
 	}
 }
-#endif /* HAVE_GETIFADDRS */
 
 static void
-resolve_interface_names(struct nsd_options* options)
+resolve_interface_names_for_ref(struct ip_address_option** ip_addresses_ref,
+		struct ifaddrs *addrs, region_type* region)
 {
-#ifdef HAVE_GETIFADDRS
-	struct ifaddrs *addrs;
 	struct ip_address_option *ip_addr;
 	struct ip_address_option *last = NULL;
 	struct ip_address_option *first = NULL;
 
-	if(getifaddrs(&addrs) == -1)
-		  error("failed to list interfaces");
-
 	/* replace the list of ip_adresses with a new list where the
 	 * interface names are replaced with their ip-address strings
 	 * from getifaddrs.  An interface can have several addresses. */
-	for(ip_addr = options->ip_addresses; ip_addr; ip_addr = ip_addr->next) {
+	for(ip_addr = *ip_addresses_ref; ip_addr; ip_addr = ip_addr->next) {
 		char **ip_addresses = NULL;
 		size_t ip_addresses_size = 0, i;
 		resolve_ifa_name(addrs, ip_addr->address, &ip_addresses,
@@ -252,9 +247,9 @@ resolve_interface_names(struct nsd_options* options)
 			/* this copies the range_option, dev, and fib from
 			 * the original ip_address option to the new ones
 			 * with the addresses spelled out by resolve_ifa_name*/
-			current = region_alloc_init(options->region, ip_addr,
+			current = region_alloc_init(region, ip_addr,
 				sizeof(*ip_addr));
-			current->address = region_strdup(options->region,
+			current->address = region_strdup(region,
 				ip_addresses[i]);
 			current->next = NULL;
 			free(ip_addresses[i]);
@@ -268,9 +263,26 @@ resolve_interface_names(struct nsd_options* options)
 		}
 		free(ip_addresses);
 	}
+	*ip_addresses_ref = first;
+
+}
+#endif /* HAVE_GETIFADDRS */
+
+static void
+resolve_interface_names(struct nsd_options* options)
+{
+#ifdef HAVE_GETIFADDRS
+	struct ifaddrs *addrs;
+
+	if(getifaddrs(&addrs) == -1)
+		  error("failed to list interfaces");
+
+	resolve_interface_names_for_ref(&options->ip_addresses, 
+			addrs, options->region);
+	resolve_interface_names_for_ref(&options->control_interface, 
+			addrs, options->region);
 
 	freeifaddrs(addrs);
-	options->ip_addresses = first;
 #else
 	(void)options;
 #endif /* HAVE_GETIFADDRS */
