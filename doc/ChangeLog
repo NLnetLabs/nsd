@@ -1,3 +1,7 @@
+18 February 2021: Wouter
+	- Fix #146 with #147: DNSTAP log the local address of the server
+	  with the dnstap logs.
+
 16 February 2021: Wouter
 	- Man page documentation for dnstap options.
 

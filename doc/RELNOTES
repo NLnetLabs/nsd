@@ -3,6 +3,8 @@ NSD RELEASE NOTES
 4.3.6 (in development)
 ================
 FEATURES:
+	- Fix #146 with #147: DNSTAP log the local address of the server
+	  with the dnstap logs.
 BUG FIXES:
 	- Prevent a few more yacc clashes.
 	- Merge PR #153 from fobser: Repair -fno-common linker errors
