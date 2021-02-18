@@ -60,6 +60,9 @@
 #include <sys/un.h>
 #endif
 #include <fcntl.h>
+#ifndef AF_LOCAL
+#define AF_LOCAL AF_UNIX
+#endif
 #include "util.h"
 #include "tsig.h"
 #include "options.h"
@@ -323,11 +326,7 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 			socklen_t len = (socklen_t)sizeof(error);
 			if(getsockopt(fd, SOL_SOCKET, SO_ERROR, (void*)&error,
 				&len) < 0) {
-#ifndef USE_WINSOCK
 				error = errno; /* on solaris errno is error */
-#else
-				error = WSAGetLastError();
-#endif
 			}
 			if(error != 0) {
 				if(error == EINPROGRESS || error == EWOULDBLOCK)
@@ -523,10 +522,6 @@ int main(int argc, char* argv[])
 	int c;
 	const char* cfgfile = CONFIGFILE;
 	char* svr = NULL;
-#ifdef USE_WINSOCK
-	int r;
-	WSADATA wsa_data;
-#endif
 	log_init("nsd-control");
 
 #ifdef HAVE_ERR_LOAD_CRYPTO_STRINGS

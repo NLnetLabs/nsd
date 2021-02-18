@@ -20,7 +20,6 @@
 #include "dname.h"
 #include "tsig.h"
 #include "rrl.h"
-#include "configyyrename.h"
 
 int yylex(void);
 

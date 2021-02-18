@@ -41,7 +41,9 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#ifdef HAVE_IFADDRS_H
 #include <ifaddrs.h>
+#endif
 
 #include "nsd.h"
 #include "options.h"
@@ -465,6 +467,7 @@ figure_default_sockets(
 	figure_socket_servers(&(*tcp)[i], NULL);
 }
 
+#ifdef HAVE_GETIFADDRS
 static int
 find_device(
 	struct nsd_socket *sock,
@@ -513,6 +516,7 @@ find_device(
 
 	return 0;
 }
+#endif /* HAVE_GETIFADDRS */
 
 static void
 figure_sockets(
@@ -524,7 +528,9 @@ figure_sockets(
 	size_t i = 0;
 	struct addrinfo ai = *hints;
 	struct ip_address_option *ip;
+#ifdef HAVE_GETIFADDRS
 	struct ifaddrs *ifa = NULL;
+#endif
 	int bind_device = 0;
 
 	if(!ips) {
@@ -539,9 +545,11 @@ figure_sockets(
 		bind_device |= (ip->dev != 0);
 	}
 
+#ifdef HAVE_GETIFADDRS
 	if(bind_device && getifaddrs(&ifa) == -1) {
 		error("getifaddrs failed: %s", strerror(errno));
 	}
+#endif
 
 	*udp = xalloc_zero((*ifs + 1) * sizeof(struct nsd_socket));
 	*tcp = xalloc_zero((*ifs + 1) * sizeof(struct nsd_socket));
@@ -560,6 +568,7 @@ figure_sockets(
 			(*udp)[i].fib = ip->fib;
 			(*tcp)[i].fib = ip->fib;
 		}
+#ifdef HAVE_GETIFADDRS
 		if(ip->dev != 0) {
 			(*udp)[i].flags |= NSD_BIND_DEVICE;
 			(*tcp)[i].flags |= NSD_BIND_DEVICE;
@@ -570,13 +579,16 @@ figure_sockets(
 				      ip->address);
 			}
 		}
+#endif
 	}
 
 	assert(i == *ifs);
 
+#ifdef HAVE_GETIFADDRS
 	if(ifa != NULL) {
 		freeifaddrs(ifa);
 	}
+#endif
 }
 
 /* print server affinity for given socket. "*" if socket has no affinity with

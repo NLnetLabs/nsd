@@ -771,14 +771,29 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 	   their (not allocated yet) parents */
 	/* any domains below src are not_existing (because of DNAME at src) */
 	int i;
+	size_t j;
 	domain_type* cname_domain;
 	domain_type* cname_dest;
 	rrset_type* rrset;
 
-	/* allocate source part */
 	domain_type* lastparent = src;
 	assert(q && answer && from_name && to_name && src && to_closest_encloser);
 	assert(to_closest_match);
+
+	/* check for loop by duplicate CNAME rrset synthesized */
+	for(j=0; j<answer->rrset_count; ++j) {
+		if(answer->section[j] == ANSWER_SECTION &&
+			answer->rrsets[j]->rr_count == 1 &&
+			answer->rrsets[j]->rrs[0].type == TYPE_CNAME &&
+			dname_compare(domain_dname(answer->rrsets[j]->rrs[0].owner), from_name) == 0 &&
+			answer->rrsets[j]->rrs[0].rdata_count == 1 &&
+			dname_compare(domain_dname(answer->rrsets[j]->rrs[0].rdatas->domain), to_name) == 0) {
+			DEBUG(DEBUG_QUERY,2, (LOG_INFO, "loop for synthesized CNAME rrset for query %s", dname_to_string(q->qname, NULL)));
+			return 0;
+		}
+	}
+
+	/* allocate source part */
 	for(i=0; i < from_name->label_count - domain_dname(src)->label_count; i++)
 	{
 		domain_type* newdom = query_get_tempdomain(q);
@@ -844,7 +859,9 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 	rrset->rrs->rdatas->domain = cname_dest;
 
 	if(!add_rrset(q, answer, ANSWER_SECTION, cname_domain, rrset)) {
-		log_msg(LOG_ERR, "could not add synthesized CNAME rrset to packet");
+		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "could not add synthesized CNAME rrset to packet for query %s", dname_to_string(q->qname, NULL)));
+		/* failure to add CNAME; likely is a loop, the same twice */
+		return 0;
 	}
 
 	return cname_dest->number;
@@ -1074,6 +1091,7 @@ answer_authoritative(struct nsd   *nsd,
 	domain_type *match;
 	domain_type *original = closest_match;
 	domain_type *dname_ce;
+	domain_type *wildcard_child;
 	rrset_type *rrset;
 
 #ifdef NSEC3
@@ -1094,8 +1112,11 @@ answer_authoritative(struct nsd   *nsd,
 	} else if ((rrset=domain_find_rrset(closest_encloser, q->zone, TYPE_DNAME))) {
 		/* process DNAME */
 		const dname_type* name = qname;
+		domain_type* src = closest_encloser;
 		domain_type *dest = rdata_atom_domain(rrset->rrs[0].rdatas[0]);
-		int added;
+		const dname_type* newname;
+		size_t newnum = 0;
+		zone_type* origzone = q->zone;
 		assert(rrset->rr_count > 0);
 		if(domain_number != 0) /* we followed CNAMEs or DNAMEs */
 			name = domain_dname(closest_match);
@@ -1104,43 +1125,45 @@ answer_authoritative(struct nsd   *nsd,
 			domain_to_string(closest_encloser)));
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->dest is %s",
 			domain_to_string(dest)));
-		/* if the DNAME set is not added we have a loop, do not follow */
-		added = add_rrset(q, answer, ANSWER_SECTION, closest_encloser, rrset);
-		if(added) {
-			domain_type* src = closest_encloser;
-			const dname_type* newname = dname_replace(q->region, name,
-				domain_dname(src), domain_dname(dest));
-			size_t newnum = 0;
-			zone_type* origzone = q->zone;
-			++q->cname_count;
-			if(!newname) { /* newname too long */
-				RCODE_SET(q->packet, RCODE_YXDOMAIN);
+		if(!add_rrset(q, answer, ANSWER_SECTION, closest_encloser, rrset)) {
+			/* stop if DNAME loops, when added second time */
+			if(dname_is_subdomain(domain_dname(dest), domain_dname(src))) {
 				return;
 			}
-			DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->result is %s", dname_to_string(newname, NULL)));
-			/* follow the DNAME */
-			(void)namedb_lookup(nsd->db, newname, &closest_match, &closest_encloser);
-			/* synthesize CNAME record */
-			newnum = query_synthesize_cname(q, answer, name, newname,
-				src, closest_encloser, &closest_match, rrset->rrs[0].ttl);
-			if(!newnum) {
-				/* could not synthesize the CNAME. */
-				/* return previous CNAMEs to make resolver recurse for us */
-				return;
-			}
-
-			answer_lookup_zone(nsd, q, answer, newnum,
-				closest_match == closest_encloser,
-				closest_match, closest_encloser, newname);
-			q->zone = origzone;
 		}
-		if(!added)  /* log the error so operator can find looping recursors */
-			log_msg(LOG_INFO, "DNAME processing stopped due to loop, qname %s",
-				dname_to_string(q->qname, NULL));
+		newname = dname_replace(q->region, name,
+			domain_dname(src), domain_dname(dest));
+		++q->cname_count;
+		if(!newname) { /* newname too long */
+			RCODE_SET(q->packet, RCODE_YXDOMAIN);
+			return;
+		}
+		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->result is %s", dname_to_string(newname, NULL)));
+		/* follow the DNAME */
+		(void)namedb_lookup(nsd->db, newname, &closest_match, &closest_encloser);
+		/* synthesize CNAME record */
+		newnum = query_synthesize_cname(q, answer, name, newname,
+			src, closest_encloser, &closest_match, rrset->rrs[0].ttl);
+		if(!newnum) {
+			/* could not synthesize the CNAME. */
+			/* return previous CNAMEs to make resolver recurse for us */
+			return;
+		}
+		if(q->qtype == TYPE_CNAME) {
+			/* The synthesized CNAME is the answer to
+			 * that query, same as BIND does for query
+			 * of type CNAME */
+			return;
+		}
+
+		answer_lookup_zone(nsd, q, answer, newnum,
+			closest_match == closest_encloser,
+			closest_match, closest_encloser, newname);
+		q->zone = origzone;
 		return;
-	} else if (domain_wildcard_child(closest_encloser)) {
+	} else if ((wildcard_child=domain_wildcard_child(closest_encloser))!=NULL &&
+		wildcard_child->is_existing) {
 		/* Generate the domain from the wildcard.  */
-		domain_type *wildcard_child = domain_wildcard_child(closest_encloser);
 #ifdef RATELIMIT
 		q->wildcard_domain = wildcard_child;
 #endif
