@@ -101,6 +101,8 @@ log_addr(const char* descr,
 	short family)
 {
 	char str_buf[64];
+	if(verbosity < 6)
+		return;
 	if(family == AF_INET) {
 		struct sockaddr_in* s = (struct sockaddr_in*)addr;
 		inet_ntop(AF_INET, &s->sin_addr.s_addr, str_buf, sizeof(str_buf));
