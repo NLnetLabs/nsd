@@ -14,6 +14,8 @@ BUG FIXES:
 	- Fix ifaddrs compile error for Solaris.
 	- Fix ifaddrs.h compile error for Solaris.
 	- Man page documentation for dnstap options.
+	- Fix segfault on high verbosity for TLS channels with dnstap log
+	  local address.
 
 
 4.3.5

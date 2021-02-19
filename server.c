@@ -4511,6 +4511,11 @@ handle_tcp_accept(int fd, short event, void* arg)
 	timeout.tv_sec = tcp_data->tcp_timeout / 1000;
 	timeout.tv_usec = (tcp_data->tcp_timeout % 1000)*1000;
 
+#ifdef USE_DNSTAP
+	/* save the address of the connection */
+	tcp_data->socket = data->socket;
+#endif /* USE_DNSTAP */
+
 #ifdef HAVE_SSL
 	if (data->tls_accept) {
 		tcp_data->tls = incoming_ssl_fd(tcp_data->nsd->tls_ctx, s);
@@ -4524,12 +4529,6 @@ handle_tcp_accept(int fd, short event, void* arg)
 			  handle_tls_reading, tcp_data);
 	} else {
 #endif
-
-#ifdef USE_DNSTAP
-		/* save the address of the connection */
-		tcp_data->socket = data->socket;
-#endif /* USE_DNSTAP */
-
 		memset(&tcp_data->event, 0, sizeof(tcp_data->event));
 		event_set(&tcp_data->event, s, EV_PERSIST | EV_READ | EV_TIMEOUT,
 			  handle_tcp_reading, tcp_data);
