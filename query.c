@@ -37,6 +37,14 @@
 #include "nsec3.h"
 #include "tsig.h"
 
+/* The Extended DNS Error codes (RFC8914) we use */
+#define	EDE_OTHER		 		 0
+#define	EDE_NOT_READY			14
+#define	EDE_PROHIBITED			18
+#define	EDE_NOT_AUTHORITATIVE	20
+#define	EDE_NOT_SUPPORTED		21
+
+
 /* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
  * This function determines if the final response packet needs the NS RRset
  * included. Currently, it will only return negative if QTYPE == DNSKEY|DS.
@@ -542,7 +550,7 @@ answer_chaos(struct nsd *nsd, query_type *q)
 				RCODE_SET(q->packet, RCODE_REFUSE);
 				/* RFC8914 - Extended DNS Errors
 				 * 4.19. Extended DNS Error Code 18 - Prohibited */
-				q->edns.ede = 18;
+				q->edns.ede = EDE_PROHIBITED;
 			}
 		} else if ((q->qname->name_size == 16
 			    && memcmp(dname_name(q->qname), "\007version\006server", 16) == 0) ||
@@ -561,20 +569,20 @@ answer_chaos(struct nsd *nsd, query_type *q)
 				RCODE_SET(q->packet, RCODE_REFUSE);
 				/* RFC8914 - Extended DNS Errors
 				 * 4.19. Extended DNS Error Code 18 - Prohibited */
-				q->edns.ede = 18;
+				q->edns.ede = EDE_PROHIBITED;
 			}
 		} else {
 			RCODE_SET(q->packet, RCODE_REFUSE);
 			/* RFC8914 - Extended DNS Errors
 			 * 4.21. Extended DNS Error Code 20 - Not Authoritative */
-			q->edns.ede = 20;
+			q->edns.ede = EDE_NOT_AUTHORITATIVE;
 		}
 		break;
 	default:
 		RCODE_SET(q->packet, RCODE_REFUSE);
 		/* RFC8914 - Extended DNS Errors
 		 * 4.22. Extended DNS Error Code 21 - Not Supported */
-		q->edns.ede = 21;
+		q->edns.ede = EDE_NOT_SUPPORTED;
 		break;
 	}
 
@@ -1287,7 +1295,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			RCODE_SET(q->packet, RCODE_REFUSE);
 			/* RFC 8914 - Extended DNS Errors
 			 * 4.21. Extended DNS Error Code 20 - Not Authoritative */
-			q->edns.ede = 20;
+			q->edns.ede = EDE_NOT_AUTHORITATIVE;
 		}
 		return;
 	}
@@ -1298,7 +1306,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			RCODE_SET(q->packet, RCODE_SERVFAIL);
 			/* RFC 8914 - Extended DNS Errors
 			 * 4.15. Extended DNS Error Code 14 - Not Ready */
-			q->edns.ede = 14;
+			q->edns.ede = EDE_NOT_READY;
 		}
 		return;
 	}
@@ -1340,7 +1348,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 					RCODE_SET(q->packet, RCODE_SERVFAIL);
 					/* RFC 8914 - Extended DNS Errors
 					 * 4.15. Extended DNS Error Code 14 - Not Ready */
-					q->edns.ede = 14;
+					q->edns.ede = EDE_NOT_READY;
 				}
 				return;
 			}
