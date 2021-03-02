@@ -47,6 +47,7 @@ struct edns_record
 	size_t		 opt_reserved_space;
 	int              dnssec_ok;
 	int              nsid;
+	int              ede; /* RFC 8914 - Extended DNS Errors */
 };
 typedef struct edns_record edns_record_type;
 
