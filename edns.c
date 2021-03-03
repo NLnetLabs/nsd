@@ -59,6 +59,8 @@ edns_init_record(edns_record_type *edns)
 	edns->dnssec_ok = 0;
 	edns->nsid = 0;
 	edns->ede = -1; /* -1 means no Extended DNS Error */
+	edns->ede_text = NULL;
+	edns->ede_text_len = 0;
 }
 
 /** handle a single edns option in the query */
@@ -158,5 +160,5 @@ edns_reserved_space(edns_record_type *edns)
 {
 	/* MIEK; when a pkt is too large?? */
 	return edns->status == EDNS_NOT_PRESENT ? 0
-	     : (OPT_LEN + OPT_RDATA + edns->opt_reserved_space + (edns->ede < 0 ? 0 : 6));
+	     : (OPT_LEN + OPT_RDATA + edns->opt_reserved_space);
 }

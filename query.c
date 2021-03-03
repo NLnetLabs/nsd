@@ -559,6 +559,7 @@ answer_chaos(struct nsd *nsd, query_type *q)
 				 * 4.19. Extended DNS Error Code 18 - Prohibited */
 				q->edns.ede = EDE_PROHIBITED;
 				q->edns.ede_text = EDE_INFO_PROHIBITED;
+				q->edns.ede_text_len = sizeof(EDE_INFO_PROHIBITED);
 			}
 		} else if ((q->qname->name_size == 16
 			    && memcmp(dname_name(q->qname), "\007version\006server", 16) == 0) ||
@@ -579,6 +580,7 @@ answer_chaos(struct nsd *nsd, query_type *q)
 				 * 4.19. Extended DNS Error Code 18 - Prohibited */
 				q->edns.ede = EDE_PROHIBITED;
 				q->edns.ede_text = EDE_INFO_PROHIBITED;
+				q->edns.ede_text_len = sizeof(EDE_INFO_PROHIBITED);
 			}
 		} else {
 			RCODE_SET(q->packet, RCODE_REFUSE);
@@ -586,6 +588,7 @@ answer_chaos(struct nsd *nsd, query_type *q)
 			 * 4.21. Extended DNS Error Code 20 - Not Authoritative */
 			q->edns.ede = EDE_NOT_AUTHORITATIVE;
 			q->edns.ede_text = EDE_INFO_NOT_AUTHORITATIVE;
+			q->edns.ede_text_len = sizeof(EDE_INFO_NOT_AUTHORITATIVE);
 		}
 		break;
 	default:
@@ -594,6 +597,7 @@ answer_chaos(struct nsd *nsd, query_type *q)
 		 * 4.22. Extended DNS Error Code 21 - Not Supported */
 		q->edns.ede = EDE_NOT_SUPPORTED;
 		q->edns.ede_text = EDE_INFO_NOT_SUPPORTED;
+		q->edns.ede_text_len = sizeof(EDE_INFO_NOT_SUPPORTED);
 		break;
 	}
 
@@ -1308,6 +1312,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			 * 4.21. Extended DNS Error Code 20 - Not Authoritative */
 			q->edns.ede = EDE_NOT_AUTHORITATIVE;
 			q->edns.ede_text = EDE_INFO_NOT_AUTHORITATIVE;
+			q->edns.ede_text_len = sizeof(EDE_INFO_NOT_AUTHORITATIVE);
 		}
 		return;
 	}
@@ -1320,6 +1325,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			 * 4.15. Extended DNS Error Code 14 - Not Ready */
 			q->edns.ede = EDE_NOT_READY;
 			q->edns.ede_text = EDE_INFO_NOT_READY;
+			q->edns.ede_text_len = sizeof(EDE_INFO_NOT_READY);
 		}
 		return;
 	}
@@ -1363,6 +1369,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 					 * 4.15. Extended DNS Error Code 14 - Not Ready */
 					q->edns.ede = EDE_NOT_READY;
 					q->edns.ede_text = EDE_INFO_NOT_READY;
+					q->edns.ede_text_len = sizeof(EDE_INFO_NOT_READY);
 				}
 				return;
 			}
@@ -1378,6 +1385,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			 * 4.25. Extended DNS Error Code 24 - Invalid Data */
 			q->edns.ede = EDE_INVALID_DATA;
 			q->edns.ede_text = EDE_INFO_INVALID_DATA;
+			q->edns.ede_text_len = sizeof(EDE_INFO_INVALID_DATA);
 		}
 		return;
 	}
@@ -1683,7 +1691,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		 * TODO   : Find a better spot for this.
 		 */
 		if (q->edns.ede >= 0)
-			q->edns.opt_reserved_space += 6 + strlen(q->edns.ede_text);
+			q->edns.opt_reserved_space += 6 + q->edns.ede_text_len;
 
 		if(q->edns.opt_reserved_space == 0 || !buffer_available(
 			q->packet, 2+q->edns.opt_reserved_space)) {
@@ -1702,7 +1710,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 			/* Append Extended DNS Error (RFC8914) option if needed */
 			if (q->edns.ede >= 0) { /* < 0 means no EDE */
 				buffer_write_u16(q->packet, 15); /* OPTION-CODE */
-				buffer_write_u16(q->packet,  2 + strlen(q->edns.ede_text)); /* OPTION-LENGTH */
+				buffer_write_u16(q->packet,  2 + q->edns.ede_text_len); /* OPTION-LENGTH */
 				buffer_write_u16(q->packet, q->edns.ede); /* INFO-CODE */
 				buffer_write_string(q->packet, q->edns.ede_text); /* EXTRA-TEXT */
 			}
