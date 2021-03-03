@@ -44,10 +44,11 @@ struct edns_record
 	edns_status_type status;
 	size_t           position;
 	size_t           maxlen;
-	size_t		 opt_reserved_space;
+	size_t		 	 opt_reserved_space;
 	int              dnssec_ok;
 	int              nsid;
 	int              ede; /* RFC 8914 - Extended DNS Errors */
+	char*            ede_text; /* RFC 8914 - Extended DNS Errors text*/
 };
 typedef struct edns_record edns_record_type;
 

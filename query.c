@@ -38,12 +38,19 @@
 #include "tsig.h"
 
 /* The Extended DNS Error codes (RFC8914) we use */
-#define	EDE_OTHER		 		 0
-#define	EDE_NOT_READY			14
-#define	EDE_PROHIBITED			18
-#define	EDE_NOT_AUTHORITATIVE	20
-#define	EDE_NOT_SUPPORTED		21
+// #define	EDE_OTHER		   0
+#define	EDE_NOT_READY	      14
+#define	EDE_PROHIBITED		  18
+#define	EDE_NOT_AUTHORITATIVE 20
+#define	EDE_NOT_SUPPORTED	  21
+#define	EDE_INVALID_DATA	  24
 
+/* The Extended DNS Error (RFC8914) human-readable text */
+#define	EDE_INFO_NOT_READY			"Not loaded"
+#define	EDE_INFO_PROHIBITED			"Prohibited"
+#define	EDE_INFO_NOT_AUTHORITATIVE	"Not authoritative"
+#define	EDE_INFO_NOT_SUPPORTED		"Not supported"
+#define	EDE_INFO_INVALID_DATA		"Invalid data"
 
 /* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
  * This function determines if the final response packet needs the NS RRset
@@ -551,6 +558,7 @@ answer_chaos(struct nsd *nsd, query_type *q)
 				/* RFC8914 - Extended DNS Errors
 				 * 4.19. Extended DNS Error Code 18 - Prohibited */
 				q->edns.ede = EDE_PROHIBITED;
+				q->edns.ede_text = EDE_INFO_PROHIBITED;
 			}
 		} else if ((q->qname->name_size == 16
 			    && memcmp(dname_name(q->qname), "\007version\006server", 16) == 0) ||
@@ -570,12 +578,14 @@ answer_chaos(struct nsd *nsd, query_type *q)
 				/* RFC8914 - Extended DNS Errors
 				 * 4.19. Extended DNS Error Code 18 - Prohibited */
 				q->edns.ede = EDE_PROHIBITED;
+				q->edns.ede_text = EDE_INFO_PROHIBITED;
 			}
 		} else {
 			RCODE_SET(q->packet, RCODE_REFUSE);
 			/* RFC8914 - Extended DNS Errors
 			 * 4.21. Extended DNS Error Code 20 - Not Authoritative */
 			q->edns.ede = EDE_NOT_AUTHORITATIVE;
+			q->edns.ede_text = EDE_INFO_NOT_AUTHORITATIVE;
 		}
 		break;
 	default:
@@ -583,6 +593,7 @@ answer_chaos(struct nsd *nsd, query_type *q)
 		/* RFC8914 - Extended DNS Errors
 		 * 4.22. Extended DNS Error Code 21 - Not Supported */
 		q->edns.ede = EDE_NOT_SUPPORTED;
+		q->edns.ede_text = EDE_INFO_NOT_SUPPORTED;
 		break;
 	}
 
@@ -1296,6 +1307,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			/* RFC 8914 - Extended DNS Errors
 			 * 4.21. Extended DNS Error Code 20 - Not Authoritative */
 			q->edns.ede = EDE_NOT_AUTHORITATIVE;
+			q->edns.ede_text = EDE_INFO_NOT_AUTHORITATIVE;
 		}
 		return;
 	}
@@ -1307,6 +1319,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			/* RFC 8914 - Extended DNS Errors
 			 * 4.15. Extended DNS Error Code 14 - Not Ready */
 			q->edns.ede = EDE_NOT_READY;
+			q->edns.ede_text = EDE_INFO_NOT_READY;
 		}
 		return;
 	}
@@ -1349,6 +1362,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 					/* RFC 8914 - Extended DNS Errors
 					 * 4.15. Extended DNS Error Code 14 - Not Ready */
 					q->edns.ede = EDE_NOT_READY;
+					q->edns.ede_text = EDE_INFO_NOT_READY;
 				}
 				return;
 			}
@@ -1362,7 +1376,8 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			RCODE_SET(q->packet, RCODE_SERVFAIL);
 			/* RFC 8914 - Extended DNS Errors
 			 * 4.25. Extended DNS Error Code 24 - Invalid Data */
-			q->edns.ede = 24;
+			q->edns.ede = EDE_INVALID_DATA;
+			q->edns.ede_text = EDE_INFO_INVALID_DATA;
 		}
 		return;
 	}
@@ -1668,7 +1683,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		 * TODO   : Find a better spot for this.
 		 */
 		if (q->edns.ede >= 0)
-			q->edns.opt_reserved_space += 6;
+			q->edns.opt_reserved_space += 6 + strlen(q->edns.ede_text);
 
 		if(q->edns.opt_reserved_space == 0 || !buffer_available(
 			q->packet, 2+q->edns.opt_reserved_space)) {
@@ -1687,8 +1702,9 @@ query_add_optional(query_type *q, nsd_type *nsd)
 			/* Append Extended DNS Error (RFC8914) option if needed */
 			if (q->edns.ede >= 0) { /* < 0 means no EDE */
 				buffer_write_u16(q->packet, 15); /* OPTION-CODE */
-				buffer_write_u16(q->packet,  2); /* OPTION-LENGTH */
+				buffer_write_u16(q->packet,  2 + strlen(q->edns.ede_text)); /* OPTION-LENGTH */
 				buffer_write_u16(q->packet, q->edns.ede); /* INFO-CODE */
+				buffer_write_string(q->packet, q->edns.ede_text); /* EXTRA-TEXT */
 			}
 		}
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
