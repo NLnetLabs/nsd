@@ -1690,7 +1690,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		 * TODO   : Find a better spot for this.
 		 */
 		if (q->edns.ede >= 0)
-			q->edns.opt_reserved_space += 6 + q->edns.ede_text_len;
+			q->edns.opt_reserved_space += 6 + q->edns.ede_text_len - 1;
 
 		if(q->edns.opt_reserved_space == 0 || !buffer_available(
 			q->packet, 2+q->edns.opt_reserved_space)) {
@@ -1709,9 +1709,9 @@ query_add_optional(query_type *q, nsd_type *nsd)
 			/* Append Extended DNS Error (RFC8914) option if needed */
 			if (q->edns.ede >= 0) { /* < 0 means no EDE */
 				buffer_write_u16(q->packet, 15); /* OPTION-CODE */
-				buffer_write_u16(q->packet,  2 + q->edns.ede_text_len); /* OPTION-LENGTH */
+				buffer_write_u16(q->packet,  2 + q->edns.ede_text_len - 1); /* OPTION-LENGTH */
 				buffer_write_u16(q->packet, q->edns.ede); /* INFO-CODE */
-				buffer_write_string(q->packet, q->edns.ede_text); /* EXTRA-TEXT */
+				buffer_write(q->packet, q->edns.ede_text, q->edns.ede_text_len - 1); /* EXTRA-TEXT */
 			}
 		}
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
