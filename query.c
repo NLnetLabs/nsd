@@ -38,19 +38,18 @@
 #include "tsig.h"
 
 /* The Extended DNS Error codes (RFC8914) we use */
-// #define	EDE_OTHER		   0
-#define	EDE_NOT_READY	      14
-#define	EDE_PROHIBITED		  18
+#define	EDE_NOT_READY         14
+#define	EDE_PROHIBITED        18
 #define	EDE_NOT_AUTHORITATIVE 20
-#define	EDE_NOT_SUPPORTED	  21
-#define	EDE_INVALID_DATA	  24
+#define	EDE_NOT_SUPPORTED     21
+#define	EDE_INVALID_DATA      24
 
 /* The Extended DNS Error (RFC8914) human-readable text */
-#define	EDE_INFO_NOT_READY			"Not loaded"
-#define	EDE_INFO_PROHIBITED			"Prohibited"
-#define	EDE_INFO_NOT_AUTHORITATIVE	"Not authoritative"
-#define	EDE_INFO_NOT_SUPPORTED		"Not supported"
-#define	EDE_INFO_INVALID_DATA		"Invalid data"
+#define	EDE_INFO_NOT_READY         "Not loaded"
+#define	EDE_INFO_PROHIBITED        "Prohibited"
+#define	EDE_INFO_NOT_AUTHORITATIVE "Not authoritative"
+#define	EDE_INFO_NOT_SUPPORTED     "Not supported"
+#define	EDE_INFO_INVALID_DATA      "Invalid data"
 
 /* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
  * This function determines if the final response packet needs the NS RRset
