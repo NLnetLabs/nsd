@@ -171,6 +171,8 @@ static int parse_range(const char *str, long long *low, long long *high);
 %token VAR_SIZE_LIMIT_XFR
 %token VAR_ZONESTATS
 %token VAR_INCLUDE_PATTERN
+%token VAR_XOT_ONLY
+
 
 /* zone */
 %token VAR_ZONE
@@ -893,7 +895,7 @@ pattern_or_zone_option:
       acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $2, $3);
       append_acl(&cfg_parser->pattern->provide_xfr, acl);
     }
-  | VAR_OUTGOING_INTERFACE STRING
+  |  VAR_OUTGOING_INTERFACE STRING
     {
       acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $2, "NOKEY");
       append_acl(&cfg_parser->pattern->outgoing_interface, acl);
@@ -939,6 +941,10 @@ pattern_or_zone_option:
       }
       cfg_parser->pattern->min_expire_time = num;
       cfg_parser->pattern->min_expire_time_expr = expr;
+    }
+  | VAR_XOT_ONLY STRING
+    {
+    // Set XOT_ONLY value to true
     };
 
 ip_address:
