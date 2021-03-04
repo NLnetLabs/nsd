@@ -1936,6 +1936,7 @@ parse_acl_info(region_type* region, char* ip, const char* key)
 	acl->ip_address_spec = region_strdup(region, ip);
 	acl->use_axfr_only = 0;
 	acl->allow_udp = 0;
+	acl->use_xot_only = 0;
 	acl->ixfr_disabled = 0;
 	acl->bad_xfr_count = 0;
 	acl->key_options = 0;
