@@ -288,6 +288,7 @@ struct acl_options {
 	int bad_xfr_count;
 	uint8_t use_axfr_only;
 	uint8_t allow_udp;
+	uint8_t use_xot_only;
 
 	/* ip address range */
 	const char* ip_address_spec;
