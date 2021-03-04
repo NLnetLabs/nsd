@@ -1,5 +1,5 @@
 start of check
-# Read file checkconf.nsd01.conf: 2 patterns, 2 fixed-zones, 3 key, 0 tls-auth.
+# Read file checkconf.nsd01.conf: 2 patterns, 2 fixed-zones, 3 keys, 0 tls-auth.
 # Config settings.
 server:
 	debug-mode: yes

@@ -41,11 +41,13 @@ create_ssl_context()
 	else if (SSL_CTX_set_default_verify_paths(ctx) != 1) {
 		SSL_CTX_free(ctx);
 		log_msg(LOG_ERR, "xfrd tls: Unable to set default SSL verify paths");
+               return NULL;
 	}
 	/* Only trust 1.3 as per the specification */
 	else if (!SSL_CTX_set_min_proto_version(ctx, TLS1_3_VERSION)) {
 		SSL_CTX_free(ctx);
 		log_msg(LOG_ERR, "xfrd tls: Unable to set minimum TLS version 1.3");
+               return NULL;
 	}
 	return ctx;
 }
@@ -86,6 +88,7 @@ setup_ssl(struct xfrd_tcp_pipeline* tp, struct xfrd_tcp_set* tcp_set,
 	if(!SSL_set_fd(tp->ssl, tp->tcp_w->fd)) {
 		log_msg(LOG_ERR, "xfrd tls: Unable to set TLS fd");
 		SSL_free(tp->ssl);
+               tp->ssl = NULL;
 		return 0;
 	}
 
@@ -782,12 +785,13 @@ conn_write_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 		uint16_t sendlen = htons(tcp->msglen);
 		// send
 		int request_length = sizeof(tcp->msglen) - tcp->total_bytes;
+	        ERR_clear_error();
 		sent = SSL_write(ssl, (const char*)&sendlen + tcp->total_bytes,
 						 request_length);
 		switch(SSL_get_error(ssl,sent)) {
 			case SSL_ERROR_NONE:
 				if(request_length != sent)
-					log_msg(LOG_ERR, "xfrd: incomplete write of tls");
+					log_msg(LOG_INFO, "xfrd: incomplete write of tls");
 				break;
 			default:
 				log_msg(LOG_ERR, "xfrd: generic write problem with tls");
@@ -815,11 +819,12 @@ conn_write_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 	assert(tcp->total_bytes < tcp->msglen + sizeof(tcp->msglen));
 
 	int request_length = buffer_remaining(tcp->packet);
+       ERR_clear_error();
 	sent = SSL_write(ssl, buffer_current(tcp->packet), request_length);
 	switch(SSL_get_error(ssl,sent)) {
 		case SSL_ERROR_NONE:
 			if(request_length != sent)
-				log_msg(LOG_ERR, "xfrd: incomplete write of tls");
+				log_msg(LOG_INFO, "xfrd: incomplete write of tls");
 			break;
 		default:
 			log_msg(LOG_ERR, "xfrd: generic write problem with tls");
@@ -1005,7 +1010,10 @@ conn_read_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 						sizeof(tcp->msglen) - tcp->total_bytes);
 		if (received <= 0) {
 			int err = SSL_get_error(ssl, received);
-			log_msg(LOG_ERR, "ssl_read returned error %d", err);
+                       if(err == SSL_ERROR_WANT_READ && errno == EAGAIN) {
+                                return 0;
+                       }
+                       log_msg(LOG_INFO, "ssl_read returned error %d with received %zd", err, received, errno);
 			if(err == SSL_ERROR_ZERO_RETURN) {
 				/* EOF */
 				return 0;
@@ -1053,8 +1061,8 @@ conn_read_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 					buffer_remaining(tcp->packet));
 
 	if (received <= 0) {
-		int err =SSL_get_error(ssl, received);
-		log_msg(LOG_ERR, "ssl_read returned error %d", err);
+		int err = SSL_get_error(ssl, received);
+		log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received);
 		if(err == SSL_ERROR_ZERO_RETURN) {
 			/* EOF */
 			return 0;
@@ -1309,7 +1317,7 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 		event_del(&tp->handler);
 	tp->handler_added = 0;
 
-#ifdef HACVE_TLS_1_3
+#ifdef HAVE_TLS_1_3
 	/* close SSL */
 	if (tp->ssl) {
 		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "xfrd: Shutting down TLS"));
@@ -1321,7 +1329,7 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 
 	/* fd in tcp_r and tcp_w is the same, close once */
 	if(tp->tcp_r->fd != -1)
-		shutdown(tp->tcp_r->fd, SHUT_RDWR);
+               close(tp->tcp_r->fd);
 	tp->tcp_r->fd = -1;
 	tp->tcp_w->fd = -1;
 
