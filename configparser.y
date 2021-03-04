@@ -903,10 +903,10 @@ pattern_or_zone_option:
       if(acl->rangetype != acl_range_single)
         yyerror("Provide a specific address range");
       // Add check for TLS Service Key and TLS Service Cert
-      //if (acl->nokey && opt->tls_service_key == NULL)
-        // yyerror("TLS Service key should be specified");
-      //if (acl->nokey && opt->pt->tls_service_pem == NULL)
-      //   yyerror("TLS Service Cert should be specified");
+      if (acl->nokey && cfg_parser->opt->tls_service_key == NULL)
+         yyerror("TLS Service key should be specified");
+      if (acl->nokey && cfg_parser->opt->tls_service_pem == NULL)
+         yyerror("TLS Service Cert should be specified");
 
       append_acl(&cfg_parser->pattern->provide_xfr, acl);
     }
