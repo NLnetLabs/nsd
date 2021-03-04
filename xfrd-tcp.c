@@ -923,6 +923,9 @@ xfrd_tcp_write(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 	struct xfrd_tcp* tcp = tp->tcp_w;
 	assert(zone->tcp_conn != -1);
 	assert(zone == tp->tcp_send_first);
+	
+	if (zone->master->use_xot_only && !tp->ssl )
+        log_msg(LOG_ERR, "XOT_ONLY flag specified");
 	/* see if for non-established connection, there is a connect error */
 	if(!tp->connection_established) {
 		/* check for pending error from nonblocking connect */
@@ -943,8 +946,7 @@ xfrd_tcp_write(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 		}
 	}
 #ifdef HAVE_TLS_1_3
-    if (zone->master->use_xot_only && !tp->ssl )
-        log_msg(LOG_ERR, "XOT_ONLY flag specified");
+
 	if (tp->ssl)
 		ret = conn_write_ssl(tcp, tp->ssl);
 	else
@@ -972,9 +974,6 @@ xfrd_tcp_write(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 		xfrd_tcp_setup_write_packet(tp, tp->tcp_send_first);
 		/* attempt to write for this zone (if success, continue loop)*/
 #ifdef HAVE_TLS_1_3
-        if (zone->master->use_xot_only && !tp->ssl )
-         log_msg(LOG_ERR, "XOT_ONLY flag specified");
-
 		if (tp->ssl)
 			ret = conn_write_ssl(tcp, tp->ssl);
 		else
