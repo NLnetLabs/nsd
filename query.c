@@ -37,20 +37,6 @@
 #include "nsec3.h"
 #include "tsig.h"
 
-/* The Extended DNS Error codes (RFC8914) we use */
-#define	EDE_NOT_READY         14
-#define	EDE_PROHIBITED        18
-#define	EDE_NOT_AUTHORITATIVE 20
-#define	EDE_NOT_SUPPORTED     21
-#define	EDE_INVALID_DATA      24
-
-/* The Extended DNS Error (RFC8914) human-readable text */
-#define	EDE_INFO_NOT_READY         "Not loaded"
-#define	EDE_INFO_PROHIBITED        "Prohibited"
-#define	EDE_INFO_NOT_AUTHORITATIVE "Not authoritative"
-#define	EDE_INFO_NOT_SUPPORTED     "Not supported"
-#define	EDE_INFO_INVALID_DATA      "Invalid data"
-
 /* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
  * This function determines if the final response packet needs the NS RRset
  * included. Currently, it will only return negative if QTYPE == DNSKEY|DS.
@@ -586,8 +572,8 @@ answer_chaos(struct nsd *nsd, query_type *q)
 			/* RFC8914 - Extended DNS Errors
 			 * 4.21. Extended DNS Error Code 20 - Not Authoritative */
 			q->edns.ede = EDE_NOT_AUTHORITATIVE;
-			q->edns.ede_text = EDE_INFO_NOT_AUTHORITATIVE;
-			q->edns.ede_text_len = sizeof(EDE_INFO_NOT_AUTHORITATIVE);
+			q->edns.ede_text = "Zone not served";
+			q->edns.ede_text_len = sizeof(q->edns.ede_text);
 		}
 		break;
 	default:
@@ -1170,6 +1156,11 @@ answer_authoritative(struct nsd   *nsd,
 		++q->cname_count;
 		if(!newname) { /* newname too long */
 			RCODE_SET(q->packet, RCODE_YXDOMAIN);
+			/* RFC 8914 - Extended DNS Errors
+			 * 4.21. Extended DNS Error Code 0 - Other */
+			q->edns.ede = EDE_OTHER;
+			q->edns.ede_text = "DNAME expansion became too large";
+			q->edns.ede_text_len = sizeof(q->edns.ede_text);
 			return;
 		}
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->result is %s", dname_to_string(newname, NULL)));
@@ -1685,10 +1676,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		else			edns->ok[7] = 0x00;
 		buffer_write(q->packet, edns->ok, OPT_LEN);
 
-		/* BEWARE!: Temporarily enlarge OPT RR rdata length if an
-		 *          Extended DNS Error is present
-		 * TODO   : Find a better spot for this.
-		 */
+		/* Add Extended DNS Error (RFC8914) to verify that we stay in bounds */
 		if (q->edns.ede >= 0)
 			q->edns.opt_reserved_space += 6 + q->edns.ede_text_len - 1;
 
