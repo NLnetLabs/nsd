@@ -18,7 +18,6 @@
 #include "answer.h"
 #include "udbzone.h"
 #include "options.h"
-#include "query.h"
 
 #define NSEC3_RDATA_BITMAP 5
 
@@ -978,8 +977,11 @@ nsec3_add_nonexist_proof(struct query* query, struct answer* answer,
 		VERBOSITY(3, (LOG_ERR, "nsec3 hash collision for name=%s hash=%s reverse=%s",
 			dname_to_string(to_prove, NULL), hashbuf, reversebuf));
 		RCODE_SET(query->packet, RCODE_SERVFAIL);
-		// @TODO EDE OTHER 0
-		// @TODO TEXT = "NSEC3 HASH COLLISION"
+		/* RFC 8914 - Extended DNS Errors
+		 * 4.21. Extended DNS Error Code 0 - Other */
+		query->edns.ede = EDE_OTHER;
+		query->edns.ede_text = "NSEC3 hash collision";
+		query->edns.ede_text_len = sizeof(query->edns.ede_text);
 		return;
 	}
 	else
@@ -1190,8 +1192,11 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 			/* wildcard exists below the domain */
 			/* wildcard and nsec3 domain clash. server failure. */
 			RCODE_SET(query->packet, RCODE_SERVFAIL);
-			// @TODO EDE OTHER
-			// @TODO TEXT = "wildcard and nsec3 domain clash"
+			/* RFC 8914 - Extended DNS Errors
+			 * 4.21. Extended DNS Error Code 0 - Other */
+			query->edns.ede = EDE_OTHER;
+			query->edns.ede_text = "Wildcard and NSEC3 domain clash";
+			query->edns.ede_text_len = sizeof(query->edns.ede_text);
 		}
 		return;
 	}
