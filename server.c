@@ -3971,7 +3971,7 @@ handle_tls_reading(int fd, short event, void* arg)
 	assert((event & EV_READ));
 
 	if (data->bytes_transmitted == 0) {
-		query_reset(data->query, TCP_MAX_MESSAGE_LEN, 1);
+		query_reset(data->query, TCP_MAX_MESSAGE_LEN, 2);
 	}
 
 	if(data->shake_state != tls_hs_none) {

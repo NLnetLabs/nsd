@@ -924,8 +924,6 @@ xfrd_tcp_write(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 	assert(zone->tcp_conn != -1);
 	assert(zone == tp->tcp_send_first);
 	
-	if (zone->master->use_xot_only && !tp->ssl )
-        log_msg(LOG_ERR, "XOT_ONLY flag specified");
 	/* see if for non-established connection, there is a connect error */
 	if(!tp->connection_established) {
 		/* check for pending error from nonblocking connect */

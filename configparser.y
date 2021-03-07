@@ -157,7 +157,7 @@ static int parse_range(const char *str, long long *low, long long *high);
 %token VAR_PROVIDE_XFR
 %token VAR_AXFR
 %token VAR_UDP
-%token VAR_XOT_ONLY
+%token VAR_TLS
 %token VAR_NOTIFY_RETRY
 %token VAR_ALLOW_NOTIFY
 %token VAR_REQUEST_XFR
@@ -894,14 +894,13 @@ pattern_or_zone_option:
       acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $2, $3);
       append_acl(&cfg_parser->pattern->provide_xfr, acl);
     }
-  | VAR_PROVIDE_XFR STRING STRING VAR_XOT_ONLY
+  | VAR_PROVIDE_XFR VAR_TLS STRING STRING
     {
-      acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $2, $3);
+      acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $3, $4);
       acl->use_xot_only = 1;
-      if (acl->nokey && acl->use_xot_only)
-        yyerror("TSIG key should be specified if XOT_ONLY option is set");
-      if(acl->rangetype != acl_range_single)
-        yyerror("Provide a specific address range");
+      if (acl->nokey && acl->rangetype != acl_range_single /* TODO: Test for 0.0.0.0/0 and ::0/0 */)
+        yyerror("Either a TSIG key or a specific address range "
+                "MUST be specified if TLS option is set");
       // Add check for TLS Service Key and TLS Service Cert
       if (acl->nokey && cfg_parser->opt->tls_service_key == NULL)
          yyerror("TLS Service key should be specified");

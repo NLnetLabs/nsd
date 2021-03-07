@@ -1435,6 +1435,16 @@ key_options_add_modify(struct nsd_options* opt, struct key_options* key)
 }
 
 int
+acl_transport_matches(struct acl_options* acl, struct query* q)
+{
+       if(acl->use_xot_only && q->tcp != 2) {
+	       DEBUG(DEBUG_XFRD,2, (LOG_INFO, "transportmatch fail not on tls"));
+	       return 0;
+       }
+       return 1;
+}
+
+int
 acl_check_incoming(struct acl_options* acl, struct query* q,
 	struct acl_options** reason)
 {
@@ -1451,10 +1461,12 @@ acl_check_incoming(struct acl_options* acl, struct query* q,
 
 	while(acl)
 	{
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "testing acl %s %s",
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "testing acl %s %s%s",
 			acl->ip_address_spec, acl->nokey?"NOKEY":
-			(acl->blocked?"BLOCKED":acl->key_name)));
-		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)) {
+			(acl->blocked?"BLOCKED":acl->key_name),
+			acl->use_xot_only?" xot-only":""));
+		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)
+		&& acl_transport_matches(acl, q)) {
 			if(!match)
 			{
 				match = acl; /* remember first match */
