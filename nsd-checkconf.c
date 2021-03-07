@@ -221,7 +221,7 @@ print_acl(const char* varname, acl_options_type* acl)
 		if(acl->allow_udp)
 			printf("UDP ");
 		if(acl->use_xot_only)
-			printf("XOT-ONLY ");
+			printf("TLS ");
 		if (acl->tls_auth_name)
 			printf("%s %s %s\n", acl->ip_address_spec,
 				acl->nokey?"NOKEY":(acl->blocked?"BLOCKED":
