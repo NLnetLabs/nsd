@@ -8,4 +8,5 @@ example 345600  IN  SOA ns0.example.org. dingdong.example.com. (
 	3600    IN  NS  ns2.example.org.
 
 www.example.com. 3600    IN  A   192.0.2.10
-
+small.example.com.	3600	IN	DNAME	llllllllaaaaaaaarrrrrrrrggggggggeeeeeeee.example.com.
+*.llllllllaaaaaaaarrrrrrrrggggggggeeeeeeee.example.com.	3600	IN	A	192.0.2.11
