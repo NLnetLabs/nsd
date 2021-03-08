@@ -192,10 +192,8 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 				} else {
 					RCODE_SET(q->packet, RCODE_REFUSE);
 					/* RFC8914 - Extended DNS Errors
-					 * 4.21. Extended DNS Error Code 20 - Not Authoritative */
-					q->edns.ede = EDE_NOT_AUTHORITATIVE;
-					q->edns.ede_text = "Zone not served";
-					q->edns.ede_text_len = sizeof(q->edns.ede_text);
+					 * 4.19.  Extended DNS Error Code 18 - Prohibited */
+					q->edns.ede = EDE_PROHIBITED;
 				}
 				return QUERY_PROCESSED;
 			}
