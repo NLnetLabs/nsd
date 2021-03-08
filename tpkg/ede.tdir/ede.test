@@ -4,6 +4,7 @@
 # use .tpkg.var.test for in test variable passing
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
+# test zone configured but not loaded
 dig @127.0.0.1 -p $TPKG_PORT +norec +qr soa example.net &> out
 
 if grep "^; EDE: 14 " out; then
@@ -18,5 +19,38 @@ else
 	exit 1
 fi
 
+# test not authoritative
+dig @localhost -p $TPKG_PORT qwerqwer.qwerqwer. A +norec +nsid &> out
+
+if grep "^; OPT=15: 00 14 4e 6f 74 20 61 75 74 68 6f 72 69 74 61 74 69 76 65" out ; then
+	echo OK
+else
+	cat out
+	rm -f out
+	exit 1
+fi
+
+# test chaos "version.bind" query prohibited
+dig @127.0.0.1 version.bind chaos txt +norec +nsid
+if grep "^; OPT=15: 00 12 50 72 6f 68 69 62 69 74 65 64" out ; then
+	echo OK
+else
+	cat out
+	rm -f out
+	exit 1
+fi
+
+# test chaos query not supported
+dig @127.0.0.1 version.bind chaos txt +norec +nsid
+if grep "^; OPT=15: 00 15 4e 6f 74 20 73 75 70 70 6f 72 74 65 64" out ; then
+	echo OK
+else
+	cat out
+	rm -f out
+	exit 1
+fi
+
+
 rm -f out
+
 exit 0
