@@ -18,6 +18,7 @@ struct query;
 #define OPT_RDATA 2                     /* holds the rdata length comes after OPT_LEN */
 #define OPT_HDR 4U                      /* NSID opt header length */
 #define NSID_CODE       3               /* nsid option code */
+#define EDE_CODE       15               /* Extended DNS Errors option code */
 #define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
 
 struct edns_data
@@ -52,6 +53,21 @@ struct edns_record
 	uint16_t         ede_text_len;
 };
 typedef struct edns_record edns_record_type;
+
+/* The Extended DNS Error codes (RFC8914) we use */
+#define EDE_OTHER              0
+#define EDE_NOT_READY         14
+#define EDE_PROHIBITED        18
+#define EDE_NOT_AUTHORITATIVE 20
+#define EDE_NOT_SUPPORTED     21
+#define EDE_INVALID_DATA      24
+
+#define ASSIGN_EDE_CODE_AND_TEXT(EDE, CODE, TEXT)	\
+	do {						\
+		EDE = (CODE);				\
+		EDE ## _text = (TEXT);			\
+		EDE ## _text_len = sizeof((TEXT));	\
+	} while (0)
 
 void edns_init_data(edns_data_type *data, uint16_t max_length);
 void edns_init_record(edns_record_type *data);

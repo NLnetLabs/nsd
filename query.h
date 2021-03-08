@@ -18,14 +18,6 @@
 #include "packet.h"
 #include "tsig.h"
 
-/* The Extended DNS Error codes (RFC8914) we use */
-#define	EDE_OTHER              0
-#define	EDE_NOT_READY         14
-#define	EDE_PROHIBITED        18
-#define	EDE_NOT_AUTHORITATIVE 20
-#define	EDE_NOT_SUPPORTED     21
-#define	EDE_INVALID_DATA      24
-
 enum query_state {
 	QUERY_PROCESSED,
 	QUERY_DISCARDED,
