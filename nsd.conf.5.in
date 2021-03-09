@@ -534,12 +534,15 @@ the chroot and readable by the superuser only.
 .B control\-enable:\fR <yes or no>
 Enable remote control, default is no.
 .TP
-.B control\-interface:\fR <ip4 or ip6>
+.B control\-interface:\fR <ip4 or ip6 | interface name | absolute path>
 NSD will bind to the listed addresses to service control requests
 (on TCP).  Can be given multiple times to bind multiple ip\-addresses.
 Use 0.0.0.0 and ::0 to service the wildcard interface.  If none are given
 NSD listens to the localhost 127.0.0.1 and ::1 interfaces for control,
 if control is enabled with control\-enable.
+.IP
+If an interface name is used instead of ip4 or ip6, the list of IP addresses
+associated with that interface is picked up and used at server start.
 .IP
 With an absolute path, a unix local named pipe is used for control.  The
 file is created with user and group that is configured and access bits
