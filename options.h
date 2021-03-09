@@ -484,6 +484,8 @@ int parse_acl_is_ipv6(const char* p);
 int parse_acl_range_type(char* ip, char** mask);
 /* parses subnet mask, fills 0 mask as well */
 void parse_acl_range_subnet(char* p, void* addr, int maxbits);
+/* the acl is for all IPv4 or IPv6 addresses */
+int acl_matches_the_whole_internet(struct acl_options *acl);
 /* clean up options */
 void nsd_options_destroy(struct nsd_options* opt);
 /* replace occurrences of one with two in buf, pass length of buffer */

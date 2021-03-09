@@ -897,8 +897,8 @@ pattern_or_zone_option:
     {
       acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $3, $4);
       acl->use_xot_only = 1;
-      if (acl->nokey && acl->rangetype != acl_range_single /* TODO: Test for 0.0.0.0/0 and ::0/0 */)
-        yyerror("Either a TSIG key or a specific address range "
+      if (acl->nokey && acl_matches_the_whole_internet(acl))
+        yyerror("Either a TSIG key or a specific address or address range "
                 "MUST be specified if TLS option is set");
       // Add check for TLS Service Key and TLS Service Cert
       if (acl->nokey && cfg_parser->opt->tls_service_key == NULL)

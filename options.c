@@ -2027,6 +2027,34 @@ parse_acl_info(region_type* region, char* ip, const char* key)
 	return acl;
 }
 
+int acl_matches_the_whole_internet(struct acl_options *acl)
+{
+#ifdef INET6
+	static const uint8_t zeros[IP6ADDRLEN] =
+	    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	    , 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	static const uint8_t ones[IP6ADDRLEN] =
+	    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+	    , 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+#endif
+
+	if (acl->rangetype == acl_range_single)
+		return 0;
+#ifdef INET6
+	if (acl->is_ipv6)
+		return memcmp(&acl->addr.addr6, zeros, IP6ADDRLEN)
+		     ? 0
+		     : acl->rangetype == acl_range_minmax
+		     ? !memcmp(&acl->range_mask.addr6,  ones, IP6ADDRLEN)
+		     : !memcmp(&acl->range_mask.addr6, zeros, IP6ADDRLEN);
+#endif
+	return (*(uint32_t *)&acl->addr.addr != 0)
+	     ? 0
+	     : acl->rangetype == acl_range_minmax
+	     ? *(uint32_t *)&acl->range_mask.addr == 0xFFFFFFFFUL
+	     : *(uint32_t *)&acl->range_mask.addr == 0;
+}
+
 /* copy acl list at end of parser start, update current */
 static
 void copy_and_append_acls(struct acl_options** start, struct acl_options* list)
