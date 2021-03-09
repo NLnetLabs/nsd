@@ -1276,6 +1276,45 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 		return;
 	}
 	assert(closest_encloser); /* otherwise, no q->zone would be found */
+	if(q->zone->opts && q->zone->opts->pattern
+	&& q->zone->opts->pattern->allow_query) {
+		int acl_num;
+		struct acl_options *why = NULL;
+
+		/* check if it passes acl */
+		if((acl_num = acl_check_incoming(
+		   q->zone->opts->pattern->allow_query, q, &why)) != -1) {
+			assert(why);
+			DEBUG(DEBUG_QUERY,1, (LOG_INFO, "query %s passed acl %s %s",
+				dname_to_string(q->qname, NULL),
+				why->ip_address_spec,
+				why->nokey?"NOKEY":
+				(why->blocked?"BLOCKED":why->key_name)));
+		} else { 
+			if (verbosity >= 2) {
+				char address[128];
+				addr2str(&q->addr, address, sizeof(address));
+				VERBOSITY(2, (LOG_INFO, "query %s from %s refused, %s%s",
+					dname_to_string(q->qname, NULL),
+					address,
+					why ? ( why->nokey    ? "NOKEY"
+					      : why->blocked  ? "BLOCKED"
+					      : why->key_name ) 
+					    : "no acl matches",
+					why?why->ip_address_spec:"."));
+			}
+			/* no zone for this */
+			if(q->cname_count == 0) {
+				RCODE_SET(q->packet, RCODE_REFUSE);
+#if 0
+				/* RFC8914 - Extended DNS Errors
+				 * 4.19. Extended DNS Error Code 18 - Prohibited */
+				q->edns.ede = EDE_PROHIBITED;
+#endif
+			}
+			return;
+		}
+	}
 	if(!q->zone->apex || !q->zone->soa_rrset) {
 		/* zone is configured but not loaded */
 		if(q->cname_count == 0)
