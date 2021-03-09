@@ -1,3 +1,6 @@
+9 March 2021: Willem
+	- Enable configuring a control-interface by interface name.
+
 19 February 2021: Wouter
 	- Fix segfault on high verbosity for TLS channels with dnstap log
 	  local address.
