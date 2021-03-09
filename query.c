@@ -1278,12 +1278,11 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	assert(closest_encloser); /* otherwise, no q->zone would be found */
 	if(q->zone->opts && q->zone->opts->pattern
 	&& q->zone->opts->pattern->allow_query) {
-		int acl_num;
 		struct acl_options *why = NULL;
 
 		/* check if it passes acl */
-		if((acl_num = acl_check_incoming(
-		   q->zone->opts->pattern->allow_query, q, &why)) != -1) {
+		if(acl_check_incoming(
+		   q->zone->opts->pattern->allow_query, q, &why) != -1) {
 			assert(why);
 			DEBUG(DEBUG_QUERY,1, (LOG_INFO, "query %s passed acl %s %s",
 				dname_to_string(q->qname, NULL),
