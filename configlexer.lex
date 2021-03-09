@@ -23,7 +23,6 @@
 #endif
 
 #include "options.h"
-#include "configyyrename.h"
 #include "configparser.h"
 
 #if 0
@@ -40,16 +39,6 @@ struct inc_state {
 };
 static struct inc_state* config_include_stack = NULL;
 static int inc_depth = 0;
-static int inc_prev = 0;
-static int num_args = 0;
-
-void init_cfg_parse(void)
-{
-	config_include_stack = NULL;
-	inc_depth = 0;
-	inc_prev = 0;
-	num_args = 0;
-}
 
 static void config_start_include(const char* filename)
 {
@@ -57,27 +46,27 @@ static void config_start_include(const char* filename)
 	struct inc_state* s;
 	char* nm;
 	if(inc_depth++ > 10000000) {
-		yyerror("too many include files");
+		c_error("too many include files");
 		return;
 	}
 	if(strlen(filename) == 0) {
-		yyerror("empty include file name");
+		c_error("empty include file name");
 		return;
 	}
 	s = (struct inc_state*)malloc(sizeof(*s));
 	if(!s) {
-		yyerror("include %s: malloc failure", filename);
+		c_error("include %s: malloc failure", filename);
 		return;
 	}
 	nm = strdup(filename);
 	if(!nm) {
-		yyerror("include %s: strdup failure", filename);
+		c_error("include %s: strdup failure", filename);
 		free(s);
 		return;
 	}
 	input = fopen(filename, "r");
 	if(!input) {
-		yyerror("cannot open include file '%s': %s",
+		c_error("cannot open include file '%s': %s",
 			filename, strerror(errno));
 		free(s);
 		free(nm);
@@ -105,7 +94,7 @@ static void config_start_include_glob(const char* filename)
 	if (cfg_parser->chroot) {
 		int l = strlen(cfg_parser->chroot); /* chroot has trailing slash */
 		if (strncmp(cfg_parser->chroot, filename, l) != 0) {
-			yyerror("include file '%s' is not relative to chroot '%s'",
+			c_error("include file '%s' is not relative to chroot '%s'",
 				filename, cfg_parser->chroot);
 			return;
 		}
@@ -331,14 +320,14 @@ server-[1-9][0-9]*-cpu-affinity{COLON}	{
 		while (*str != '\0' && (*str < '0' || *str > '9')) {
 			str++;
 		}
-		yylval.llng = strtoll(str, NULL, 10);
+		c_lval.llng = strtoll(str, NULL, 10);
 		return VAR_SERVER_CPU_AFFINITY;
 	}
 
 	/* Quoted strings. Strip leading and ending quotes */
 \"			{ BEGIN(quotedstring); LEXOUT(("QS ")); }
 <quotedstring><<EOF>>   {
-        yyerror("EOF inside quoted string");
+        c_error("EOF inside quoted string");
         BEGIN(INITIAL);
 }
 <quotedstring>{ANY}*    { LEXOUT(("STR(%s) ", yytext)); yymore(); }
@@ -347,14 +336,14 @@ server-[1-9][0-9]*-cpu-affinity{COLON}	{
         LEXOUT(("QE "));
         BEGIN(INITIAL);
         yytext[yyleng - 1] = '\0';
-	yylval.str = region_strdup(cfg_parser->opt->region, yytext);
+	c_lval.str = region_strdup(cfg_parser->opt->region, yytext);
         return STRING;
 }
 
 	/* include: directive */
 include{COLON}		{ LEXOUT(("v(%s) ", yytext)); BEGIN(include); }
 <include><<EOF>>	{
-        yyerror("EOF inside include directive");
+        c_error("EOF inside include directive");
         BEGIN(INITIAL);
 }
 <include>{SPACE}*	{ LEXOUT(("ISP ")); /* ignore */ }
@@ -366,7 +355,7 @@ include{COLON}		{ LEXOUT(("v(%s) ", yytext)); BEGIN(include); }
 	BEGIN(INITIAL);
 }
 <include_quoted><<EOF>>	{
-        yyerror("EOF inside quoted string");
+        c_error("EOF inside quoted string");
         BEGIN(INITIAL);
 }
 <include_quoted>{ANY}*	{ LEXOUT(("ISTR(%s) ", yytext)); yymore(); }
@@ -388,6 +377,6 @@ include{COLON}		{ LEXOUT(("v(%s) ", yytext)); BEGIN(include); }
 }
 
 {UNQUOTEDLETTER}*	{ LEXOUT(("unquotedstr(%s) ", yytext)); 
-			yylval.str = region_strdup(cfg_parser->opt->region, yytext); return STRING; }
+			c_lval.str = region_strdup(cfg_parser->opt->region, yytext); return STRING; }
 
 %%

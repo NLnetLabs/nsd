@@ -1,0 +1,64 @@
+$ORIGIN example.com.
+$TTL 3600
+
+; signed with:
+; for NSEC
+; ldns-signzone -e 20201116135527 -i 20201019135527 example.com.zone Kexample.com.+008+55566
+; for NSEC3
+; ldns-signzone -n -s 012345 -e 20201116135527 -i 20201019135527 example.com.zone Kexample.com.+008+55566
+
+@       IN      SOA     example.com. hostmaster.example.com. (
+                        1557659646              ; serial number
+                        3600                    ; refresh
+                        900                     ; retry
+                        1209600                 ; expire
+                        1800                    ; ttl
+                        )
+
+@               IN A            62.210.110.7
+;*               IN A            62.210.110.7
+ns              IN A            62.210.110.7
+mx              IN A            62.210.110.7
+@               IN NS           ns
+@               IN MX           5 mx
+
+; some domains to make the NSEC3 records separate,
+; otherwise we end up with one nsec3 record which catches everything at once.
+1.aa IN A 127.0.0.1
+2.aa IN A 127.0.0.1
+3.aa IN A 127.0.0.1
+4.aa IN A 127.0.0.1
+5.aa IN A 127.0.0.1
+6.aa IN A 127.0.0.1
+7.aa IN A 127.0.0.1
+8.aa IN A 127.0.0.1
+9.aa IN A 127.0.0.1
+10.aa IN A 127.0.0.1
+11.aa IN A 127.0.0.1
+12.aa IN A 127.0.0.1
+13.aa IN A 127.0.0.1
+14.aa IN A 127.0.0.1
+15.aa IN A 127.0.0.1
+16.aa IN A 127.0.0.1
+17.aa IN A 127.0.0.1
+18.aa IN A 127.0.0.1
+19.aa IN A 127.0.0.1
+20.aa IN A 127.0.0.1
+21.aa IN A 127.0.0.1
+22.aa IN A 127.0.0.1
+23.aa IN A 127.0.0.1
+24.aa IN A 127.0.0.1
+25.aa IN A 127.0.0.1
+26.aa IN A 127.0.0.1
+27.aa IN A 127.0.0.1
+28.aa IN A 127.0.0.1
+29.aa IN A 127.0.0.1
+30.aa IN A 127.0.0.1
+
+; query is for:
+; a.b.c.d.example.com. 
+; *.c.d.example.com. exists.
+; c.d.example.com is therefor ce and has no types in it
+*.c.d.example.com. IN TXT "text record with mail permissions"
+*.c.d.example.com. IN MX 5 mx
+

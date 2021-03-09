@@ -1,5 +1,92 @@
 NSD RELEASE NOTES
 
+4.3.6 (in development)
+================
+FEATURES:
+	- Fix #146 with #147: DNSTAP log the local address of the server
+	  with the dnstap logs.
+BUG FIXES:
+	- Prevent a few more yacc clashes.
+	- Merge PR #153 from fobser: Repair -fno-common linker errors
+	  automatically.
+	- Fix uninitialized access of log_buf in error printout on apply ixfr.
+	- Fix AF_LOCAL compile error for Solaris.
+	- Fix ifaddrs compile error for Solaris.
+	- Fix ifaddrs.h compile error for Solaris.
+	- Man page documentation for dnstap options.
+	- Fix segfault on high verbosity for TLS channels with dnstap log
+	  local address.
+
+
+4.3.5
+================
+BUG FIXES:
+	- Fix #143: xfrd no hysteresis with NOT IMPLEMENTED rcode.
+	- Fix #144: Typo fix in nsd.conf.5.in.
+	- For #145: Fix that service of remaining TCP and TLS connections
+	  does not allow new queries to be made, the connection is closed.
+	  Only existing queries and zone transfers are answered, new ones
+	  are rejected by a close of the channel.
+	- Fix that nsd-control has timeout when connection is down.
+	- remove windows socket ifdefs from nsd-control.
+	- Fix #148: CNAME need not be followed after a synthesized CNAME
+	  for a CNAME query.
+	- Fix configure.ac for autoconf 2.70.
+	- Fix #150: TXT record validation difference with BIND.
+	- Fix #151: DNAME not applied more than once to resolve the query.
+	- Fix #152: '*' in Rdata causes the return code to be NOERROR instead
+	  of NX.
+
+
+4.3.4
+================
+FEATURES:
+	- Merge PR #141: ZONEMD RR type.
+BUG FIXES:
+	- Fix #129: ambiguous use of errno, in log message if sendmmsg fails.
+	- Fix #128: Fix that the invalid port number is logged for sendmmsg
+	  failed: Invalid argument.
+	- Fix #127: two minor `-Wcast-qual` cleanups
+	- Fix #126: minor header hygiene
+	- Fix #125: include config.h in compat/setproctitle.c and fix
+	  prototype of `setproctitle`
+	- Fix #133: fix 0-init of local ( stack ) buffer.
+	- Fix missing parenthesis on size of fix to init buffer.
+	- Fix #134: IPV4_MINIMAL_RESPONSE_SIZE vs EDNS_MAX_MESSAGE_LEN.
+	- Fix to add missing closest encloser NSEC3 for wildcard nodata type
+	  DS answer.
+	- Remove unused init_cfg_parse routine from configlexer.
+	- Fix #138: NSD returns non-EDNS answer when QUESTION is empty.
+	- Fix #142: NODATA answers missin SOA in authority section after
+	  CNAME chain.
+	- Fix for CVE-2020-28935 : Fix that symlink does not interfere
+	  with chown of pidfile.
+
+
+4.3.3
+================
+FEATURES:
+	- Follow DNS flag day 2020 advice and
+	  set default EDNS message size to 1232.
+	- Merged PR #113 with fixes.  Instead of listing an IP-address to
+	  listen on, an interface name can be specified in nsd.conf, with
+	  ip-address: eth0.  The IP-addresses for that interface are then used.
+	- Port TSIG code for openssl 3.0.0-alpha6.
+BUG FIXES:
+	- Fix make install with --with-pidfile="".
+	- Merge #115 from millert: Fix strlcpy() usage. From OpenBSD.
+	- Merge #117: mini_event.h (4.3.2 and 4.3.1) on OpenBSD cannot find
+	  fd_set - patch.
+	- Fix that configure checks for EVP_sha256 to detect openssl, because
+	  HMAC_CTX_new is deprecated in 3.0.0.
+	- Fix #119: fix compile warnings from new gcc.
+	- Fix #119: warn when trying to parse a directory.
+	- Merge PR #121: Increase log level of recreated database from
+	  WARNING to ERR.
+	- Remove unused space from LIBS on link line.
+	- Updated date in nsd -v output.
+
+
 4.3.2
 ================
 FEATURES:

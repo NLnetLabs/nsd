@@ -1,3 +1,4 @@
+#!/bin/sh
 # tdir that only exes the files.
 args="../.."
 if test "$1" = "-a"; then

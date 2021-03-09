@@ -1,3 +1,170 @@
+19 February 2021: Wouter
+	- Fix segfault on high verbosity for TLS channels with dnstap log
+	  local address.
+
+18 February 2021: Wouter
+	- Fix #146 with #147: DNSTAP log the local address of the server
+	  with the dnstap logs.
+
+16 February 2021: Wouter
+	- Man page documentation for dnstap options.
+
+8 February 2021: Wouter
+	- Fix AF_LOCAL compile error for Solaris.
+	- Fix ifaddrs compile error for Solaris.
+	- Fix ifaddrs.h compile error for Solaris.
+
+4 February 2021: Wouter
+	- Merge PR #153 from fobser: Repair -fno-common linker errors
+	  automatically.
+	- Fix uninitialized access of log_buf in error printout on apply ixfr.
+
+26 January 2021: Wouter
+	- Prevent a few more yacc clashes.
+
+19 January 2021: Wouter
+	- Set branch ready for 4.3.5 release.  Tag for 4.3.5rc1.
+	  Became the 4.3.5 release on 26 january 2021.  This branch continues
+	  with 4.3.6 in development.
+
+15 January 2021: Wouter
+	- Fix #152: '*' in Rdata causes the return code to be NOERROR instead
+	  of NX.
+	- Add config.guess and config.sub to .gitignore for autoconf 2.70.
+	- Fix #150: TXT record validation difference with BIND.
+	- Fixup TXT record validation fix for escaped quotes.
+	- Fixup TXT record validation fix for escaped backslashes.
+	- Fixup escape character parse for quoted strings.
+
+11 January 2021: Wouter
+	- Fix #151: DNAME not applied more than once to resolve the query.
+	- Fix dname test for #148.
+	- For #151: fix to not produce loops in output.
+
+5 January 2021: Wouter
+	- Fix configure.ac for autoconf 2.70.
+
+4 January 2021: Wouter
+	- Fix #148: CNAME need not be followed after a synthesized CNAME
+	  for a CNAME query.
+
+11 December 2020: Wouter
+	- Fix that nsd-control has timeout when connection is down.
+	- remove windows socket ifdefs from nsd-control.
+
+3 December 2020: Wouter
+	- For #145: Fix that service of remaining TCP and TLS connections
+	  does not allow new queries to be made, the connection is closed.
+	  Only existing queries and zone transfers are answered, new ones
+	  are rejected by a close of the channel.
+
+30 November 2020: Wouter
+	- Fix #144: fix better.
+
+27 November 2020: Wouter
+	- Fix #144: Typo fix in nsd.conf.5.in.
+
+26 November 2020: Wouter
+	- Fix #143: xfrd no hysteresis with NOT IMPLEMENTED rcode.
+
+24 November 2020: Wouter
+	- Merge PR #141: ZONEMD RR type.
+	- tag for 4.3.4rc1.  This became 4.3.4 release on 1 dec 2020.
+	  The code repo continues for 4.3.5 in development.
+
+23 November 2020: Wouter
+	- Fix #142: NODATA answers missin SOA in authority section after
+	  CNAME chain.
+	- Fix for CVE-2020-28935 : Fix that symlink does not interfere
+	  with chown of pidfile.
+	- fix writepid for retvalue 0.
+
+9 November 2020: Wouter
+	- Fix #138: NSD returns non-EDNS answer when QUESTION is empty.
+	- Fix to check nscount in previous fix for EDNS in formerr response
+	  when there is no question.
+
+28 October 2020: Wouter
+	- Remove unused init_cfg_parse routine from configlexer.
+
+20 October 2020: Wouter
+	- Fix to add missing closest encloser NSEC3 for wildcard nodata type
+	  DS answer.
+
+14 October 2020: Wouter
+	- Fix #134: IPV4_MINIMAL_RESPONSE_SIZE vs EDNS_MAX_MESSAGE_LEN.
+
+13 October 2020: Wouter
+	- Fix missing parenthesis on size of fix to init buffer.
+
+12 October 2020: Wouter
+	- Fix #127: two minor `-Wcast-qual` cleanups
+	- Fix #126: minor header hygiene
+	- Fix #125: include config.h in compat/setproctitle.c and fix prototype of `setproctitle`
+	- Fix #133: fix 0-init of local ( stack ) buffer.
+
+8 October 2020: Wouter
+	- tag for 4.3.3 release
+	- current repository contains 4.3.4 in development.
+	- Fix #129: ambiguous use of errno, in log message if sendmmsg fails.
+	- Fix #128: Fix that the invalid port number is logged for sendmmsg
+	  failed: Invalid argument.
+
+1 October 2020: Wouter
+	- tag for 4.3.3rc1 release.
+
+30 September 2020: Wouter
+	- Updated date in nsd -v output.
+	- Fixup bug013_truncate, checkconf and cutest_qroot tests for new
+	  default EDNS size.
+
+29 September 2020: Willem
+	- Follow DNS flag day 2020 advice and
+	  set default EDNS message size to 1232.
+
+4 September 2020: Wouter
+	- Remove unused space from LIBS on link line.
+
+3 September 2020: Wouter
+	- Merge PR #121: Increase log level of recreated database from
+	  WARNING to ERR.
+
+1 September 2020: Wouter
+	- Fix #119: fix compile warnings from new gcc.
+	- Fix #119: warn when trying to parse a directory.
+
+27 August 2020: Wouter
+	- Merged PR #113 with fixes.  Instead of listing an IP-address to
+	  listen on, an interface name can be specified in nsd.conf, with
+	  ip-address: eth0.  The IP-addresses for that interface are then used.
+
+26 August 2020: Wouter
+	- Add xstrdup for PR #113.
+	- Tidy up code like in PR #113.
+	- Import code from PR #113.
+	- Fix for unknown EVP_MAC_CTX_free function in openssl 3.0.0 tsig code.
+
+24 August 2020: Wouter
+	- Fix that configure checks for EVP_sha256 to detect openssl, because
+	  HMAC_CTX_new is deprecated in 3.0.0.
+	- Port TSIG code for openssl 3.0.0-alpha6.
+	- Sync acx_nlnetlabs.m4 with the unbound repo.
+	- Review fixes for tsig, defensive free and zero.
+
+4 August 2020: Wouter
+	- Merge #117: mini_event.h (4.3.2 and 4.3.1) on OpenBSD cannot find
+	  fd_set - patch.
+
+23 July 2020: Wouter
+	- Merge #115 from millert: Fix strlcpy() usage. From OpenBSD.
+
+15 July 2020: Wouter
+	- Fix make install with --with-pidfile="".
+
+14 July 2020: Wouter
+	- Tag for 4.3.2 release.  Master branch contains the next version
+	  in development, 4.3.3.
+
 7 July 2020: Wouter
 	- Tag for 4.3.2rc1.
 
