@@ -6,9 +6,7 @@
  * See LICENSE for the license.
  *
  */
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #if defined(__linux)
 #include <assert.h>

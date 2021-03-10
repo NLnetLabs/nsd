@@ -1,0 +1,22 @@
+# #-- nsec3_wildnodatads.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../../.."
+DIG=dig
+
+$DIG @localhost -p $TPKG_PORT a.b.c.d.example.com. DS +dnssec > cur
+cat cur
+if grep "NOERROR" cur >/dev/null; 
+then echo "rcode ok"; else exit 1; fi
+if grep "2v43f6ripfocif5h6bbi07glq6849rnj.example.com." cur >/dev/null; 
+then echo "qname denial nsec3 ok"; else exit 1; fi
+if grep "k07sg6hi9r8gif6vf37bg52ivll4ta6m.example.com." cur >/dev/null; 
+then echo "wildcard exact nsec3 for nodata bitmap ok"; else exit 1; fi
+if grep "kesfhpkcf45hf0muc87clmb0tfmbbu4h.example.com." cur >/dev/null; 
+then echo "closest enclose nsec3 for nodata wildcard ok"; else exit 1; fi
+
+echo "OK"
+exit 0
