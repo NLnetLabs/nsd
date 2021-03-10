@@ -23,6 +23,7 @@ test_tool_avail "ldns-notify"
 test_tool_avail "streamtcp"
 
 NEED_DIG9="bug009_soa_alone bug013_truncate bug034_any bug052_ent bug054_rd bug056_axfr bug058_qn_246 bug072_parent bug090_000_txt bug095_screwy_wc bug103_nx_soa_ttl copy_cd nx_dnssec tsig_badkey tsig_badsig tsig_query socket_partitioning"
+NEED_DRILL171="qname_offbyone"
 NEED_LSOF="socket_partitioning"
 NEED_i386="xfr_1 xfr_2"
 NEED_NC="tcp_underrun"
@@ -32,6 +33,8 @@ NEED_CPU_AFFINITY="bad_cpu_affinity no_cpu_affinity cpu_affinity"
 # do we have dig9?
 DIG9=no
 if dig 2>&1 | grep "DiG 9" >/dev/null; then DIG9=yes; fi
+DRILL171=no
+if test `drill -v | head -1 | awk '{print $3}' | awk -F. '{printf("%d%d%.2d", $1, $2, $3)}'` -le 1701 ; then DRILL171=yes; fi
 LSOF=no
 if lsof -v 2>&1 | grep "revision" >/dev/null; then LSOF=yes; fi
 # do we have nc?
@@ -50,6 +53,10 @@ for i in *.tdir; do
 	skip=no
 	if [ $DIG9 = no ] && echo $NEED_DIG9 | grep `basename $i .tdir` >/dev/null; then
 		echo ">>> skipped $i: test needs dig 9 or later"
+		skip=yes
+	fi
+	if [ $DRILL171 = no ] && echo $NEED_DRILL171 | grep `basename $i .tdir` >/dev/null; then
+		echo ">>> skipped $i: test needs drill 1.7.1 or earlier"
 		skip=yes
 	fi
 	if [ $LSOF = no ] && echo $NEED_LSOF | grep `basename $i .tdir` >/dev/null; then

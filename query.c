@@ -1627,11 +1627,10 @@ query_process(query_type *q, nsd_type *nsd)
 		if (q->qclass == CLASS_CH) {
 			return answer_chaos(nsd, q);
 		} else {
-			RCODE_SET(q->packet, RCODE_REFUSE);
 			/* RFC8914 - Extended DNS Errors
 			 * 4.22. Extended DNS Error Code 21 - Not Supported */
 			q->edns.ede = EDE_NOT_SUPPORTED;
-			return QUERY_PROCESSED;
+			return query_error(q, RCODE_REFUSE);
 		}
 	}
 	query_state = answer_axfr_ixfr(nsd, q);
