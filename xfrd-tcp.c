@@ -41,13 +41,13 @@ create_ssl_context()
 	else if (SSL_CTX_set_default_verify_paths(ctx) != 1) {
 		SSL_CTX_free(ctx);
 		log_msg(LOG_ERR, "xfrd tls: Unable to set default SSL verify paths");
-               return NULL;
+		return NULL;
 	}
 	/* Only trust 1.3 as per the specification */
 	else if (!SSL_CTX_set_min_proto_version(ctx, TLS1_3_VERSION)) {
 		SSL_CTX_free(ctx);
 		log_msg(LOG_ERR, "xfrd tls: Unable to set minimum TLS version 1.3");
-               return NULL;
+		return NULL;
 	}
 	return ctx;
 }
@@ -70,7 +70,7 @@ tls_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 
 static int
 setup_ssl(struct xfrd_tcp_pipeline* tp, struct xfrd_tcp_set* tcp_set, 
-          const char* auth_domain_name)
+		  const char* auth_domain_name)
 {
 	if (!tcp_set->ssl_ctx) {
 		log_msg(LOG_ERR, "xfrd tls: No TLS CTX, cannot set up XFR-over-TLS");
@@ -88,7 +88,7 @@ setup_ssl(struct xfrd_tcp_pipeline* tp, struct xfrd_tcp_set* tcp_set,
 	if(!SSL_set_fd(tp->ssl, tp->tcp_w->fd)) {
 		log_msg(LOG_ERR, "xfrd tls: Unable to set TLS fd");
 		SSL_free(tp->ssl);
-               tp->ssl = NULL;
+		tp->ssl = NULL;
 		return 0;
 	}
 
@@ -752,7 +752,7 @@ xfrd_tcp_setup_write_packet(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 		xfrd_setup_packet(tcp->packet, TYPE_IXFR, CLASS_IN, zone->apex,
 			zone->query_id);
 		zone->query_type = TYPE_IXFR;
-        	NSCOUNT_SET(tcp->packet, 1);
+		NSCOUNT_SET(tcp->packet, 1);
 		xfrd_write_soa_buffer(tcp->packet, zone->apex, &zone->soa_disk);
 	}
 	/* old transfer needs to be removed still? */
@@ -787,13 +787,11 @@ conn_write_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 		uint16_t sendlen = htons(tcp->msglen);
 		// send
 		int request_length = sizeof(tcp->msglen) - tcp->total_bytes;
-	        ERR_clear_error();
+		ERR_clear_error();
 		sent = SSL_write(ssl, (const char*)&sendlen + tcp->total_bytes,
 						 request_length);
 		switch(SSL_get_error(ssl,sent)) {
 			case SSL_ERROR_NONE:
-				if(request_length != sent)
-					log_msg(LOG_INFO, "xfrd: incomplete write of tls");
 				break;
 			default:
 				log_msg(LOG_ERR, "xfrd: generic write problem with tls");
@@ -821,12 +819,10 @@ conn_write_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 	assert(tcp->total_bytes < tcp->msglen + sizeof(tcp->msglen));
 
 	int request_length = buffer_remaining(tcp->packet);
-       ERR_clear_error();
+	ERR_clear_error();
 	sent = SSL_write(ssl, buffer_current(tcp->packet), request_length);
 	switch(SSL_get_error(ssl,sent)) {
 		case SSL_ERROR_NONE:
-			if(request_length != sent)
-				log_msg(LOG_INFO, "xfrd: incomplete write of tls");
 			break;
 		default:
 			log_msg(LOG_ERR, "xfrd: generic write problem with tls");
@@ -1012,14 +1008,14 @@ conn_read_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 						sizeof(tcp->msglen) - tcp->total_bytes);
 		if (received <= 0) {
 			int err = SSL_get_error(ssl, received);
-                       if(err == SSL_ERROR_WANT_READ && errno == EAGAIN) {
-                                return 0;
-                       }
-                       log_msg(LOG_INFO, "ssl_read returned error %d with received %zd", err, received, errno);
+			if(err == SSL_ERROR_WANT_READ && errno == EAGAIN) {
+				return 0;
+			}
 			if(err == SSL_ERROR_ZERO_RETURN) {
 				/* EOF */
 				return 0;
 			}
+			log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received, errno);
 		}
 		if(received == -1) {
 			if(errno == EAGAIN || errno == EINTR) {
@@ -1064,11 +1060,11 @@ conn_read_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 
 	if (received <= 0) {
 		int err = SSL_get_error(ssl, received);
-		log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received);
 		if(err == SSL_ERROR_ZERO_RETURN) {
 			/* EOF */
 			return 0;
 		}
+		log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received);
 	}
 	if(received == -1) {
 		if(errno == EAGAIN || errno == EINTR) {
@@ -1331,7 +1327,7 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 
 	/* fd in tcp_r and tcp_w is the same, close once */
 	if(tp->tcp_r->fd != -1)
-               close(tp->tcp_r->fd);
+		close(tp->tcp_r->fd);
 	tp->tcp_r->fd = -1;
 	tp->tcp_w->fd = -1;
 
