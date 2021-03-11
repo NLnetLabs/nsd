@@ -1,3 +1,6 @@
+11 March 2021: Wouter
+	- Fix #163: A TSIG noncompliance with RFC 2845.
+
 9 March 2021: Willem
 	- Enable configuring a control-interface by interface name.
 

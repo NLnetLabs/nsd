@@ -1516,22 +1516,17 @@ query_process(query_type *q, nsd_type *nsd)
 	}
 
 	arcount = ARCOUNT(q->packet);
-	if (arcount > 0) {
-		/* According to draft-ietf-dnsext-rfc2671bis-edns0-10:
-		 * "The placement flexibility for the OPT RR does not
-		 * override the need for the TSIG or SIG(0) RRs to be
-		 * the last in the additional section whenever they are
-		 * present."
-		 * So we should not have to check for TSIG RR before
-		 * OPT RR. Keep the code for backwards compatibility.
-		 */
-
-		/* see if tsig is before edns record */
-		if (!tsig_parse_rr(&q->tsig, q->packet))
-			return query_formerr(q, nsd);
-		if(q->tsig.status != TSIG_NOT_PRESENT)
-			--arcount;
-	}
+	/* A TSIG RR is not allowed before the EDNS OPT RR.
+	 * In RFC6891 (about EDNS) it says:
+	 * "The placement flexibility for the OPT RR does not
+	 * override the need for the TSIG or SIG(0) RRs to be
+	 * the last in the additional section whenever they are
+	 * present."
+	 * And in RFC8945 (about TSIG) it says:
+	 * "If multiple TSIG records are detected or a TSIG record is
+	 * present in any other position, the DNS message is dropped
+	 * and a response with RCODE 1 (FORMERR) MUST be returned."
+	 */
 	/* See if there is an OPT RR. */
 	if (arcount > 0) {
 		if (edns_parse_record(&q->edns, q->packet, q, nsd))

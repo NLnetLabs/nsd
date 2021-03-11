@@ -16,6 +16,7 @@ BUG FIXES:
 	- Man page documentation for dnstap options.
 	- Fix segfault on high verbosity for TLS channels with dnstap log
 	  local address.
+	- Fix #163: A TSIG noncompliance with RFC 2845.
 
 
 4.3.5
