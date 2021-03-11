@@ -142,6 +142,8 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_OPENPGPKEY 61	/* RFC 7929 */
 #define TYPE_CSYNC	62	/* RFC 7477 */
 #define TYPE_ZONEMD	63	/* draft-ietf-dnsop-dns-zone-digest */
+#define TYPE_SVCB	64	/* draft-ietf-dnsop-svcb-https-03 */
+#define TYPE_HTTPS	65	/* draft-ietf-dnsop-svcb-https-03 */
 
 #define TYPE_SPF        99      /* RFC 4408 */
 

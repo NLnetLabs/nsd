@@ -316,9 +316,17 @@ static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+1)] 
 	    RDATA_WF_BINARY }, /* digest */
 	  { RDATA_ZF_PERIOD, RDATA_ZF_BYTE, RDATA_ZF_BYTE, RDATA_ZF_HEX } },
 	/* 64 */
-	{ 64, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
+	{ TYPE_SVCB, "SVCB", T_SVCB, 2, 3,
+	  { RDATA_WF_SHORT,/* SvcFieldPriority */
+	  	RDATA_WF_UNCOMPRESSED_DNAME,/* SvcDomainName */
+		RDATA_WF_TEXT },/* SvcFieldValue */
+	  { RDATA_ZF_SHORT, RDATA_ZF_DNAME, RDATA_ZF_TEXT } },
 	/* 65 */
-	{ 65, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
+	{ TYPE_HTTPS, "HTTPS", T_HTTPS, 2, 3,
+	  { RDATA_WF_SHORT,              /* SvcFieldPriority */
+	  	RDATA_WF_UNCOMPRESSED_DNAME, /* SvcDomainName */
+		RDATA_WF_TEXT },             /* SvcFieldValue */
+	  { RDATA_ZF_SHORT, RDATA_ZF_DNAME, RDATA_ZF_TEXT } },
 	/* 66 */
 	{ 66, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 67 */
