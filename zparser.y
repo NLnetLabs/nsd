@@ -1139,11 +1139,10 @@ rdata_zonemd:	STR sp STR sp STR sp str_sp_seq trail
     ;
 
 /* draft-ietf-dnsop-dns-zone-digest */
-rdata_svcb:	STR sp STR sp STR sp str_sp_seq trail
+rdata_svcb:	STR sp dname sp STR trail
     {
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* SvcFieldPriority */
-	    zadd_rdata_wireformat(zparser_conv_dns_name(parser->region,
-	    		(const uint8_t*) $3.str,$3.len));                      /* SvcDomainName */
+	    zadd_rdata_domain($3);                                             /* SvcDomainName */
 	    zadd_rdata_wireformat(zparser_conv_text(parser->region,
 	    		$5.str, $5.len));                                      /* SvcFieldValue */
     }
