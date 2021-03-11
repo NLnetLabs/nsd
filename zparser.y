@@ -84,7 +84,8 @@ nsec3_add_params(const char* hash_algo_str, const char* flag_str,
 %type <domain>	owner dname abs_dname
 %type <dname>	rel_dname label
 %type <data>	wire_dname wire_abs_dname wire_rel_dname wire_label
-%type <data>	str concatenated_str_seq str_sp_seq str_dot_seq dotted_str
+%type <data>	str concatenated_str_seq str_sp_seq str_dot_seq
+%type <data>	unquoted_dotted_str dotted_str
 %type <data>	nxt_seq nsec_more
 %type <unknown> rdata_unknown
 
@@ -384,7 +385,7 @@ wire_rel_dname:	wire_label
     }
     ;
 
-str_seq:	dotted_str
+str_seq:	unquoted_dotted_str
     {
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $1.str, $1.len), 1);
     }
@@ -392,7 +393,7 @@ str_seq:	dotted_str
     {
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $1.str, $1.len), 1);
     }
-    |	QSTR dotted_str
+    |	QSTR unquoted_dotted_str
     {
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $1.str, $1.len), 1);
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $2.str, $2.len), 0);
@@ -401,12 +402,12 @@ str_seq:	dotted_str
     {
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $2.str, $2.len), 0);
     }
-    |	str_seq QSTR dotted_str
+    |	str_seq QSTR unquoted_dotted_str
     {
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $2.str, $2.len), 0);
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $3.str, $3.len), 0);
     }
-    |	str_seq sp dotted_str
+    |	str_seq sp unquoted_dotted_str
     {
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $3.str, $3.len), 0);
     }
@@ -414,7 +415,7 @@ str_seq:	dotted_str
     {
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $3.str, $3.len), 0);
     }
-    |	str_seq sp QSTR dotted_str
+    |	str_seq sp QSTR unquoted_dotted_str
     {
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $3.str, $3.len), 0);
 	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->rr_region, $4.str, $4.len), 0);
@@ -533,13 +534,13 @@ str_dot_seq:	str
 /*
  * A string that can contain dots.
  */
-dotted_str:	STR
+unquoted_dotted_str:	STR
     |	'.'
     {
 	$$.str = ".";
 	$$.len = 1;
     }
-    |	dotted_str '.'
+    |	unquoted_dotted_str '.'
     {
 	    char *result = (char *) region_alloc(parser->rr_region,
 						 $1.len + 2);
@@ -549,7 +550,7 @@ dotted_str:	STR
 	    $$.len = $1.len + 1;
 	    $$.str[$$.len] = '\0';
     }
-    |	dotted_str '.' STR
+    |	unquoted_dotted_str '.' STR
     {
 	    char *result = (char *) region_alloc(parser->rr_region,
 						 $1.len + $3.len + 2);
@@ -561,6 +562,11 @@ dotted_str:	STR
 	    $$.str[$$.len] = '\0';
     }
     ;
+
+/*
+ * A string that can contain dots or a quoted string.
+ */
+dotted_str:	unquoted_dotted_str | QSTR
 
 /* define what we can parse */
 type_and_rdata:
