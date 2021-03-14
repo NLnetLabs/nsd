@@ -16,6 +16,9 @@ BUG FIXES:
 	- Man page documentation for dnstap options.
 	- Fix segfault on high verbosity for TLS channels with dnstap log
 	  local address.
+	- Fix #163: A TSIG noncompliance with RFC 2845.
+	- Fix that wildcard is printed as a star instead of escaped, in
+	  logs and in written zone files.
 
 
 4.3.5
