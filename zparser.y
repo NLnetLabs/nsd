@@ -1174,13 +1174,20 @@ rdata_zonemd:	str sp str sp str sp str_sp_seq trail
     ;
 
 /* draft-ietf-dnsop-svcb-https */
-rdata_svcb:	str sp dname sp str trail
+rdata_svcb_base:	str sp dname
     {
-	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* SvcFieldPriority */
-	    zadd_rdata_domain($3);                                             /* SvcDomainName */
-	    zadd_rdata_wireformat(zparser_conv_text(parser->region,
-	    		$5.str, $5.len));                                      /* SvcFieldValue */
+	    /* SvcFieldPriority */
+	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str));
+	    /* SvcDomainName */
+	    zadd_rdata_domain($3);
+    };
+rdata_svcb:	rdata_svcb_base sp str_sp_seq trail
+    {
+	    /* SvcFieldValue */
+	    zadd_rdata_wireformat(
+		zparser_conv_text(parser->region, $3.str, $3.len));
     }
+    |	rdata_svcb_base
     ;
 
 rdata_unknown:	URR sp str sp str_sp_seq trail
