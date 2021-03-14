@@ -60,7 +60,7 @@ kx-host	3600	IN	A	127.0.0.1
 $ORIGIN low.low.blaat.nl.
 low	3600	IN	DNAME	rt-host.blaat.nl.
 $ORIGIN blaat.nl.
-mail	3600	IN	TXT	"Test-String\"Test-String\""
+mail	3600	IN	TXT	"Test-String" "Test-String"
 	3600	IN	TXT	"foo.bar.test"
 prev-nxt	3600	IN	A	127.0.0.1
 	3600	IN	AAAA	::1
