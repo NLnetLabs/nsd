@@ -1199,7 +1199,7 @@ rdata_svcb:	rdata_svcb_base sp svcparams trail
 	    /* Sort SVCB SvcParam rdata fields */
 	    /* zadd_rdata_txt_clean_wireformat(); */
     }
-    |	rdata_svcb_base
+    |	rdata_svcb_base trail
     ;
 
 rdata_unknown:	URR sp str sp str_sp_seq trail
