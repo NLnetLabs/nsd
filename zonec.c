@@ -753,6 +753,22 @@ zparser_conv_nsec(region_type *region,
 	return r;
 }
 
+uint16_t *
+zparser_conv_svcbparam(region_type *region, const char *key, const char *value)
+{
+	char buf[255];
+	fprintf(stderr, "SVCBPARAM KEY: \"%s\", VALUE: \"%s\"\n", key, value ? value : "(nil)");
+
+	buf[0] = strlen(key);
+	strcpy(buf + 1, key);
+	if (value) {
+		strcat(strcat(buf + 1, "="), value);
+		buf[0] += 1 + strlen(value);
+	}
+	return alloc_rdata_init(region, buf, buf[0] + 1);
+}
+
+
 /* Parse an int terminated in the specified range. */
 static int
 parse_int(const char *str,

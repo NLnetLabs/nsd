@@ -85,7 +85,7 @@ nsec3_add_params(const char* hash_algo_str, const char* flag_str,
 %type <dname>	rel_dname label
 %type <data>	wire_dname wire_abs_dname wire_rel_dname wire_label
 %type <data>	str concatenated_str_seq str_sp_seq str_dot_seq
-%type <data>	unquoted_dotted_str dotted_str
+%type <data>	unquoted_dotted_str dotted_str svcparam svcparams
 %type <data>	nxt_seq nsec_more
 %type <unknown> rdata_unknown
 
@@ -1173,6 +1173,18 @@ rdata_zonemd:	str sp str sp str sp str_sp_seq trail
     }
     ;
 
+svcparam:	STR QSTR
+    {
+	    zadd_rdata_wireformat(zparser_conv_svcbparam(parser->region, $1.str, $2.str));
+    }
+    |		STR
+    {
+	    zadd_rdata_wireformat(zparser_conv_svcbparam(parser->region, $1.str, NULL));
+    }
+    ;
+svcparams:	svcparam
+    |		svcparams sp svcparam
+    ;
 /* draft-ietf-dnsop-svcb-https */
 rdata_svcb_base:	str sp dname
     {
@@ -1181,11 +1193,11 @@ rdata_svcb_base:	str sp dname
 	    /* SvcDomainName */
 	    zadd_rdata_domain($3);
     };
-rdata_svcb:	rdata_svcb_base sp str_sp_seq trail
+rdata_svcb:	rdata_svcb_base sp svcparams trail
     {
 	    /* SvcFieldValue */
-	    zadd_rdata_wireformat(
-		zparser_conv_text(parser->region, $3.str, $3.len));
+	    /* Sort SVCB SvcParam rdata fields */
+	    /* zadd_rdata_txt_clean_wireformat(); */
     }
     |	rdata_svcb_base
     ;

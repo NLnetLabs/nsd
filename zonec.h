@@ -111,6 +111,7 @@ uint16_t *zparser_conv_algorithm(region_type *region, const char *algstr);
 uint16_t *zparser_conv_certificate_type(region_type *region,
 					const char *typestr);
 uint16_t *zparser_conv_apl_rdata(region_type *region, char *str);
+uint16_t *zparser_conv_svcbparam(region_type *region, const char *key, const char *value);
 
 void parse_unknown_rdata(uint16_t type, uint16_t *wireformat);
 
