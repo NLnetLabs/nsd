@@ -3,6 +3,11 @@
 	- Fix to remove configyyrename from makedist.sh and also
 	  update the flex and bison rules there to add the "c_" prefix.
 
+13 March 2021: Willem
+	- Fix #154: TXT with parentheses fails in 4.3.5.
+	- Align parsing of TXT elements with how bind does it.
+	- A -p option to nsd-checkzone to print a successfully read zone.
+
 12 March 2021: Wouter
 	- Fix that wildcard is printed as a star instead of escaped, in
 	  logs and in written zone files.
