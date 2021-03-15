@@ -11,9 +11,6 @@
 #if defined(__clang__)||(defined(__GNUC__)&&((__GNUC__ >4)||(defined(__GNUC_MINOR__)&&(__GNUC__ ==4)&&(__GNUC_MINOR__ >=2))))
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
-
-#include "config.h"
-
 #include <ctype.h>
 #include <errno.h>
 #include <string.h>

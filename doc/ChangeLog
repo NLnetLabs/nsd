@@ -1,3 +1,8 @@
+15 March 2021: Wouter
+	- Fix double config.h include in configlexer.c
+	- Fix to remove configyyrename from makedist.sh and also
+	  update the flex and bison rules there to add the "c_" prefix.
+
 12 March 2021: Wouter
 	- Fix that wildcard is printed as a star instead of escaped, in
 	  logs and in written zone files.

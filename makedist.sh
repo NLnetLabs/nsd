@@ -161,9 +161,9 @@ info "Building lexer and parser."
 echo '#include "config.h"' > zlexer.c || error_cleanup "Failed to create lexer."
 flex -i -t zlexer.lex >> zlexer.c || error_cleanup "Failed to create lexer."
 bison -y -d -o zparser.c zparser.y || error_cleanup "Failed to create parser."
-echo "#include \"configyyrename.h\"" > configlexer.c || error_cleanup "Failed to create configlexer"
-flex -i -t configlexer.lex >> configlexer.c || error_cleanup "Failed to create configlexer"
-bison -y -d -o configparser.c configparser.y || error_cleanup "Failed to create configparser"
+echo "#include \"config.h\"" > configlexer.c || error_cleanup "Failed to create configlexer"
+flex -P c_ -i -t configlexer.lex >> configlexer.c || error_cleanup "Failed to create configlexer"
+bison -y -d -p c_ -o configparser.c configparser.y || error_cleanup "Failed to create configparser"
 
 find . -name .c-mode-rc.el -exec rm {} \;
 find . -name .cvsignore -exec rm {} \;
