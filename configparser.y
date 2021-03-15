@@ -31,6 +31,7 @@ extern "C"
 extern config_parser_state_type *cfg_parser;
 
 static void append_acl(struct acl_options **list, struct acl_options *acl);
+static void add_to_last_acl(struct acl_options **list, char *ac);
 static int parse_boolean(const char *str, int *bln);
 static int parse_expire_expr(const char *str, long long *num, uint8_t *expr);
 static int parse_number(const char *str, long long *num);
@@ -832,16 +833,8 @@ pattern_or_zone_option:
         yyerror("address range used for request-xfr");
       append_acl(&cfg_parser->pattern->request_xfr, acl);
     }
-  | VAR_REQUEST_XFR STRING STRING STRING
-    {
-      acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $2, $3);
-      if(acl->blocked)
-        yyerror("blocked address used for request-xfr");
-      if(acl->rangetype != acl_range_single)
-        yyerror("address range used for request-xfr");
-      acl->tls_auth_name = region_strdup(cfg_parser->opt->region, $4);
-      append_acl(&cfg_parser->pattern->request_xfr, acl);
-    }
+	tlsauth_option
+	{ }
   | VAR_REQUEST_XFR VAR_AXFR STRING STRING
     {
       acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $3, $4);
@@ -852,17 +845,8 @@ pattern_or_zone_option:
         yyerror("address range used for request-xfr");
       append_acl(&cfg_parser->pattern->request_xfr, acl);
     }
-  | VAR_REQUEST_XFR VAR_AXFR STRING STRING STRING
-    {
-      acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $3, $4);
-      acl->use_axfr_only = 1;
-      if(acl->blocked)
-        yyerror("blocked address used for request-xfr");
-      if(acl->rangetype != acl_range_single)
-        yyerror("address range used for request-xfr");
-      acl->tls_auth_name = region_strdup(cfg_parser->opt->region, $5);
-      append_acl(&cfg_parser->pattern->request_xfr, acl);
-    }
+	tlsauth_option
+	{ }
   | VAR_REQUEST_XFR VAR_UDP STRING STRING
     {
       acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $3, $4);
@@ -968,6 +952,11 @@ boolean:
       }
     } ;
 
+tlsauth_option:
+	| STRING
+	{ char *tls_auth_name = region_strdup(cfg_parser->opt->region, $1);
+	  add_to_last_acl(&cfg_parser->pattern->request_xfr, tls_auth_name);} ;
+
 %%
 
 static void
@@ -983,6 +972,17 @@ append_acl(struct acl_options **list, struct acl_options *acl)
 			tail = tail->next;
 		tail->next = acl;
 	}
+}
+
+static void
+add_to_last_acl(struct acl_options **list, char *tls_auth_name)
+{
+	assert(list != NULL);
+	assert(*list != NULL);
+	struct acl_options *tail = *list;
+	while(tail->next != NULL)
+		tail = tail->next;
+	tail->tls_auth_name = tls_auth_name;
 }
 
 static int
