@@ -809,42 +809,18 @@ svcbparam_lookup_key(const char *key, size_t key_len)
 	return -1;
 }
 
-static int
-snprint_svcbparamkey(char *buf, size_t buf_sz, uint16_t svcparamkey)
-{
-	switch (svcparamkey) {
-	case SVCB_KEY_MANDATORY:
-		return snprintf(buf, buf_sz, "mandatory");
-	case SVCB_KEY_ALPN:
-		return snprintf(buf, buf_sz, "alpn");
-	case SVCB_KEY_NO_DEFAULT_ALPN:
-		return snprintf(buf, buf_sz, "no-default-alpn");
-	case SVCB_KEY_PORT:
-		return snprintf(buf, buf_sz, "port");
-	case SVCB_KEY_IPV4HINT:
-		return snprintf(buf, buf_sz, "ipv4hint");
-	case SVCB_KEY_ECHCONFIG:
-		return snprintf(buf, buf_sz, "echconfig");
-	case SVCB_KEY_IPV6HINT:
-		return snprintf(buf, buf_sz, "ipv6hint");
-	default:
-		return snprintf(buf, buf_sz, "key%d", (int)svcparamkey);
-	}
-}
-
 static uint16_t *
 zparser_conv_svcbparam_key_value(region_type *region,
     const char *key, size_t key_len, const char *val, size_t val_len)
 {
 	uint16_t svcparamkey = svcbparam_lookup_key(key, key_len);
-	int printed;
-	char buf[255];
-
-	printed = snprint_svcbparamkey(buf + 1, sizeof(buf), svcparamkey);
-	buf[printed + 1] = '=';
-	memcpy(buf + 1 + printed + 1, val, val_len);
-	buf[0] = printed + val_len + 1;
-	return alloc_rdata_init(region, buf, buf[0] + 1);
+	uint16_t *r;
+		
+	r = alloc_rdata(region, 2 * sizeof(uint16_t) + val_len);
+	r[1] = htons(svcparamkey);
+	r[2] = htons(val_len);
+	memcpy(r + 3, val, val_len);
+	return r;
 }
 
 uint16_t *
@@ -852,12 +828,7 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
                                           , const char *val, size_t val_len)
 {
 	const char *eq;
-	uint16_t svcparamkey;
-	int printed;
-	char buf[255];
-	fprintf(stderr, "SVCBPARAM KEY: \"%s\" (%zu)"
-			", VALUE: \"%s\" (%zu)\n"
-	              , key, key_len, val ? val : "", val_len);
+	uint16_t *r;
 
 	/* Form <key>="<value>" (or at least with quoted value) */
 	if (val) {
@@ -877,10 +848,10 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 		    region, key, new_key_len, eq+1, key_len - new_key_len - 1);
 	}
 	/* SvcParam is only a SvcParamKey */
-	svcparamkey = svcbparam_lookup_key(key, key_len);
-	printed = snprint_svcbparamkey(buf + 1, sizeof(buf), svcparamkey);
-	buf[0] = printed;
-	return alloc_rdata_init(region, buf, buf[0] + 1);
+	r = alloc_rdata(region, 2 * sizeof(uint16_t));
+	r[1] = htons(svcbparam_lookup_key(key, key_len));
+	r[2] = 0;
+	return r;
 }
 
 

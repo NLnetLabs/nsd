@@ -214,7 +214,8 @@ enum rdata_wireformat
 	RDATA_WF_ILNP64,             /* 64-bit uncompressed IPv6 address.  */
 	RDATA_WF_EUI48,	             /* 48-bit address.  */
 	RDATA_WF_EUI64,              /* 64-bit address.  */
-	RDATA_WF_LONG_TEXT           /* Long (>255) text string. */
+	RDATA_WF_LONG_TEXT,          /* Long (>255) text string. */
+	RDATA_WF_SVCPARAM            /* SvcParam <key>[=<value>] */
 };
 typedef enum rdata_wireformat rdata_wireformat_type;
 
@@ -253,6 +254,7 @@ enum rdata_zoneformat
 	RDATA_ZF_EUI64,		/* EUI64 address.  */
 	RDATA_ZF_LONG_TEXT,	/* Long (>255) text string. */
 	RDATA_ZF_TAG,		/* Text string without quotes. */
+	RDATA_ZF_SVCPARAM,	/* SvcParam <key>[=<value>] */
 	RDATA_ZF_UNKNOWN	/* Unknown data.  */
 };
 typedef enum rdata_zoneformat rdata_zoneformat_type;

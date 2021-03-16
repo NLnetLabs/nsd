@@ -642,6 +642,39 @@ rdata_loc_to_string(buffer_type *ATTR_UNUSED(output),
 	return 0;
 }
 
+static void
+buffer_print_svcparamkey(buffer_type *output, uint16_t svcparamkey)
+{
+	static const char *svcparamkey_strs[] = {
+		"mandatory", "alpn", "no-default-alpn", "port",
+		"ipv4hint", "echconfig", "ipv6hint"
+	};
+
+	if (svcparamkey < sizeof(svcparamkey_strs))
+ 		buffer_printf(output, "%s", svcparamkey_strs[svcparamkey]);
+	else
+		buffer_printf(output, "key%d", (int)svcparamkey);
+}
+
+static int
+rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
+	rr_type* ATTR_UNUSED(rr))
+{
+	uint16_t  size = rdata_atom_size(rdata);
+	uint16_t* data = (uint16_t *)rdata_atom_data(rdata);
+	uint16_t  val_len;
+
+	if (size < 4)
+		return 0;
+	buffer_print_svcparamkey(output, ntohs(data[0]));
+	if ((val_len = ntohs(data[1]))) {
+		buffer_write(output, "=\"", 2);
+		buffer_write(output, data + 2, val_len);
+		buffer_write_u8(output, '"');
+	}
+	return 1;
+}
+
 static int
 rdata_unknown_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
@@ -683,6 +716,7 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_eui64_to_string,
 	rdata_long_text_to_string,
 	rdata_tag_to_string,
+	rdata_svcparam_to_string,
 	rdata_unknown_to_string
 };
 
@@ -801,6 +835,12 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 				break;
 			}
 			break;
+		case RDATA_WF_SVCPARAM:
+			length = 4;
+			if (buffer_position(packet) + 4 <= end) {
+				length +=
+				    read_uint16(buffer_current(packet) + 2);
+			}
 		}
 
 		if (is_domain) {
