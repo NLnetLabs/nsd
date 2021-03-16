@@ -753,18 +753,133 @@ zparser_conv_nsec(region_type *region,
 	return r;
 }
 
-uint16_t *
-zparser_conv_svcbparam(region_type *region, const char *key, const char *value)
+static uint16_t
+svcbparam_lookup_key(const char *key, size_t key_len)
 {
-	char buf[255];
-	fprintf(stderr, "SVCBPARAM KEY: \"%s\", VALUE: \"%s\"\n", key, value ? value : "(nil)");
+	char buf[64];
+	char *endptr;
+	unsigned long int key_value;
 
-	buf[0] = strlen(key);
-	strcpy(buf + 1, key);
-	if (value) {
-		strcat(strcat(buf + 1, "="), value);
-		buf[0] += 1 + strlen(value);
+	if (key_len >= 4  && key_len <= 8 && !strncmp(key, "key", 3)) {
+		memcpy(buf, key + 3, key_len - 3);
+		buf[key_len - 3] = 0;
+		key_value = strtoul(buf, &endptr, 10);
+		if (endptr > buf	/* digits seen */
+		&& *endptr == 0		/* no non-digit chars after digits */
+		&&  key_value <= 65535)	/* no overflow */
+			return key_value;
+
+	} else switch (key_len) {
+	case sizeof("mandatory")-1:
+		if (!strncmp(key, "mandatory", sizeof("mandatory")-1))
+			return SVCB_KEY_MANDATORY;
+		if (!strncmp(key, "echconfig", sizeof("echconfig")-1))
+			return SVCB_KEY_ECHCONFIG;
+		break;
+
+	case sizeof("alpn")-1:
+		if (!strncmp(key, "alpn", sizeof("alpn")-1))
+			return SVCB_KEY_ALPN;
+		if (!strncmp(key, "port", sizeof("port")-1))
+			return SVCB_KEY_PORT;
+		break;
+
+	case sizeof("no-default-alpn")-1:
+		if (!strncmp( key  , "no-default-alpn"
+		            , sizeof("no-default-alpn")-1))
+			return SVCB_KEY_NO_DEFAULT_ALPN;
+		break;
+
+	case sizeof("ipv4hint")-1:
+		if (!strncmp(key, "ipv4hint", sizeof("ipv4hint")-1))
+			return SVCB_KEY_IPV4HINT;
+		if (!strncmp(key, "ipv6hint", sizeof("ipv6hint")-1))
+			return SVCB_KEY_IPV6HINT;
+		break;
+	default:
+		break;
 	}
+	if (key_len > sizeof(buf) - 1)
+		zc_error_prev_line("Unknown SvcParamKey");
+	else {
+		memcpy(buf, key, key_len);
+		buf[key_len] = 0;
+		zc_error_prev_line("Unknown SvcParamKey: %s", buf);
+	}
+	return -1;
+}
+
+static int
+snprint_svcbparamkey(char *buf, size_t buf_sz, uint16_t svcparamkey)
+{
+	switch (svcparamkey) {
+	case SVCB_KEY_MANDATORY:
+		return snprintf(buf, buf_sz, "mandatory");
+	case SVCB_KEY_ALPN:
+		return snprintf(buf, buf_sz, "alpn");
+	case SVCB_KEY_NO_DEFAULT_ALPN:
+		return snprintf(buf, buf_sz, "no-default-alpn");
+	case SVCB_KEY_PORT:
+		return snprintf(buf, buf_sz, "port");
+	case SVCB_KEY_IPV4HINT:
+		return snprintf(buf, buf_sz, "ipv4hint");
+	case SVCB_KEY_ECHCONFIG:
+		return snprintf(buf, buf_sz, "echconfig");
+	case SVCB_KEY_IPV6HINT:
+		return snprintf(buf, buf_sz, "ipv6hint");
+	default:
+		return snprintf(buf, buf_sz, "key%d", (int)svcparamkey);
+	}
+}
+
+static uint16_t *
+zparser_conv_svcbparam_key_value(region_type *region,
+    const char *key, size_t key_len, const char *val, size_t val_len)
+{
+	uint16_t svcparamkey = svcbparam_lookup_key(key, key_len);
+	int printed;
+	char buf[255];
+
+	printed = snprint_svcbparamkey(buf + 1, sizeof(buf), svcparamkey);
+	buf[printed + 1] = '=';
+	memcpy(buf + 1 + printed + 1, val, val_len);
+	buf[0] = printed + val_len + 1;
+	return alloc_rdata_init(region, buf, buf[0] + 1);
+}
+
+uint16_t *
+zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
+                                          , const char *val, size_t val_len)
+{
+	const char *eq;
+	uint16_t svcparamkey;
+	int printed;
+	char buf[255];
+	fprintf(stderr, "SVCBPARAM KEY: \"%s\" (%zu)"
+			", VALUE: \"%s\" (%zu)\n"
+	              , key, key_len, val ? val : "", val_len);
+
+	/* Form <key>="<value>" (or at least with quoted value) */
+	if (val) {
+		/* Does key end with '=' */
+		if (key_len && key[key_len - 1] == '=')
+			return zparser_conv_svcbparam_key_value(
+			    region, key, key_len - 1, val, val_len);
+
+		zc_error_prev_line( "SvcParam syntax error in param: %s\"%s\""
+		                  , key, val);
+	}
+	/* assert(val == NULL); */
+	if ((eq = memchr(key, '=', key_len))) {
+		size_t new_key_len = eq - key;
+
+		return zparser_conv_svcbparam_key_value(
+		    region, key, new_key_len, eq+1, key_len - new_key_len - 1);
+	}
+	/* SvcParam is only a SvcParamKey */
+	svcparamkey = svcbparam_lookup_key(key, key_len);
+	printed = snprint_svcbparamkey(buf + 1, sizeof(buf), svcparamkey);
+	buf[0] = printed;
 	return alloc_rdata_init(region, buf, buf[0] + 1);
 }
 

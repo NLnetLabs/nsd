@@ -167,6 +167,14 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_DLV	32769	/* RFC 4431 */
 #define PSEUDO_TYPE_DLV	RRTYPE_DESCRIPTORS_LENGTH
 
+#define SVCB_KEY_MANDATORY		0
+#define SVCB_KEY_ALPN			1
+#define SVCB_KEY_NO_DEFAULT_ALPN	2
+#define SVCB_KEY_PORT			3
+#define SVCB_KEY_IPV4HINT		4
+#define SVCB_KEY_ECHCONFIG		5
+#define SVCB_KEY_IPV6HINT		6
+
 #define MAXLABELLEN	63
 #define MAXDOMAINLEN	255
 
