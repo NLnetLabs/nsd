@@ -810,12 +810,40 @@ svcbparam_lookup_key(const char *key, size_t key_len)
 }
 
 static uint16_t *
+zparser_conv_svcbparam_port_value(region_type *region, const char *val)
+{
+	unsigned long int port;
+	char *endptr;
+	uint16_t *r;
+
+	port = strtoul(val, &endptr, 10);
+	if (endptr > val	/* digits seen */
+	&& *endptr == 0		/* no non-digit chars after digits */
+	&&  port <= 65535) {	/* no overflow */
+
+		r = alloc_rdata(region, 3 * sizeof(uint16_t));
+		r[1] = htons(SVCB_KEY_PORT);
+		r[2] = htons(sizeof(uint16_t));
+		r[3] = htons(port);
+		return r;
+	}
+	zc_error_prev_line("Could not parse port SvcParamValue: \"%s\"", val);
+	return alloc_rdata_init(region, "", 0);
+}
+
+static uint16_t *
 zparser_conv_svcbparam_key_value(region_type *region,
     const char *key, size_t key_len, const char *val, size_t val_len)
 {
 	uint16_t svcparamkey = svcbparam_lookup_key(key, key_len);
 	uint16_t *r;
-		
+	
+	switch (svcparamkey) {
+	case SVCB_KEY_PORT:
+		return zparser_conv_svcbparam_port_value(region, val);
+	default:
+		break;
+	}
 	r = alloc_rdata(region, 2 * sizeof(uint16_t) + val_len);
 	r[1] = htons(svcparamkey);
 	r[2] = htons(val_len);

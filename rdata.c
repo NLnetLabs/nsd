@@ -657,20 +657,41 @@ buffer_print_svcparamkey(buffer_type *output, uint16_t svcparamkey)
 }
 
 static int
+rdata_svcparam_port_to_string(buffer_type *output, uint16_t val_len,
+	uint16_t *data)
+{
+	if (val_len != 2)
+		return 0; /* wireformat error, a short is 2 bytes */
+	buffer_printf(output, "=%d", (int)ntohs(data[0]));
+	return 1;
+}
+
+static int
 rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
 	uint16_t  size = rdata_atom_size(rdata);
 	uint16_t* data = (uint16_t *)rdata_atom_data(rdata);
+	uint16_t  svcparamkey;
 	uint16_t  val_len;
 
 	if (size < 4)
 		return 0;
-	buffer_print_svcparamkey(output, ntohs(data[0]));
-	if ((val_len = ntohs(data[1]))) {
+	svcparamkey = ntohs(data[0]);
+	buffer_print_svcparamkey(output, svcparamkey);
+	val_len = ntohs(data[1]);
+	if (size != val_len + 4)
+		return 0; /* wireformat error */
+	if (!val_len)
+		return 1;
+	switch (svcparamkey) {
+	case SVCB_KEY_PORT:
+		return rdata_svcparam_port_to_string(output, val_len, data+2);
+	default:
 		buffer_write(output, "=\"", 2);
 		buffer_write(output, data + 2, val_len);
 		buffer_write_u8(output, '"');
+		break;
 	}
 	return 1;
 }
