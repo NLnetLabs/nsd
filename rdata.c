@@ -667,6 +667,15 @@ rdata_svcparam_port_to_string(buffer_type *output, uint16_t val_len,
 }
 
 static int
+rdata_svcparam_ipv4hint_to_string(buffer_type *output, uint16_t val_len,
+	uint16_t *data)
+{
+	// @TODO add wireformat check
+	buffer_printf(output, "=%d", (int)ntohs(data[0]));
+	return 1;
+}
+
+static int
 rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -678,6 +687,10 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	if (size < 4)
 		return 0;
 	svcparamkey = ntohs(data[0]);
+
+	// @DEBUG
+	fprintf(stderr, "key: %u\n", svcparamkey);
+
 	buffer_print_svcparamkey(output, svcparamkey);
 	val_len = ntohs(data[1]);
 	if (size != val_len + 4)
@@ -687,6 +700,9 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	switch (svcparamkey) {
 	case SVCB_KEY_PORT:
 		return rdata_svcparam_port_to_string(output, val_len, data+2);
+	case SVCB_KEY_IPV4HINT:
+		fprintf(stderr, "HERE!\n");
+		return rdata_svcparam_ipv4hint_to_string(output, val_len, data+1);
 	default:
 		buffer_write(output, "=\"", 2);
 		buffer_write(output, data + 2, val_len);

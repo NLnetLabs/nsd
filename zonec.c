@@ -817,12 +817,7 @@ zparser_conv_svcbparam_port_value(region_type *region, const char *val)
 	char *endptr;
 	uint16_t *r;
 
-	fprintf(stderr, "before port=%s\n", val);
-
 	port = strtoul(val, &endptr, 10);
-
-	fprintf(stderr, "after port=%lu\n", port);
-
 	if (endptr > val	/* digits seen */
 	&& *endptr == 0		/* no non-digit chars after digits */
 	&&  port <= 65535) {	/* no overflow */
@@ -844,17 +839,11 @@ zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 	char *endptr;
 	uint16_t *r;
 
-	fprintf(stderr, "before ipv4=%s\n", val);
-
-	int a = inet_pton(AF_INET, val, &(ipv4));
-
 	// @TODO rewrite to make room for multiple ipv4s
 	if (inet_pton(AF_INET, val, &(ipv4)) == 1)
 	{
-		fprintf(stderr, "ipv4=%u\n", ipv4);
-
 		r = alloc_rdata(region, 2 * sizeof(uint16_t) + sizeof(uint32_t));
-		r[1] = htons(SVCB_KEY_PORT);
+		r[1] = htons(SVCB_KEY_IPV4HINT);
 		r[2] = ipv4;
 		return r;
 	}
