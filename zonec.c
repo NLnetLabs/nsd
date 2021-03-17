@@ -27,6 +27,7 @@
 #endif
 
 #include <netinet/in.h>
+// #include <arpa/inet.h>
 
 #ifdef HAVE_NETDB_H
 #include <netdb.h>
@@ -816,7 +817,12 @@ zparser_conv_svcbparam_port_value(region_type *region, const char *val)
 	char *endptr;
 	uint16_t *r;
 
+	fprintf(stderr, "before port=%s\n", val);
+
 	port = strtoul(val, &endptr, 10);
+
+	fprintf(stderr, "after port=%lu\n", port);
+
 	if (endptr > val	/* digits seen */
 	&& *endptr == 0		/* no non-digit chars after digits */
 	&&  port <= 65535) {	/* no overflow */
@@ -832,6 +838,31 @@ zparser_conv_svcbparam_port_value(region_type *region, const char *val)
 }
 
 static uint16_t *
+zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
+{
+	uint32_t ipv4;
+	char *endptr;
+	uint16_t *r;
+
+	fprintf(stderr, "before ipv4=%s\n", val);
+
+	int a = inet_pton(AF_INET, val, &(ipv4));
+
+	// @TODO rewrite to make room for multiple ipv4s
+	if (inet_pton(AF_INET, val, &(ipv4)) == 1)
+	{
+		fprintf(stderr, "ipv4=%u\n", ipv4);
+
+		r = alloc_rdata(region, 2 * sizeof(uint16_t) + sizeof(uint32_t));
+		r[1] = htons(SVCB_KEY_PORT);
+		r[2] = ipv4;
+		return r;
+	}
+	zc_error_prev_line("Could not parse ipv4hint SvcParamValue: \"%s\"", val);
+	return alloc_rdata_init(region, "", 0);
+}
+
+static uint16_t *
 zparser_conv_svcbparam_key_value(region_type *region,
     const char *key, size_t key_len, const char *val, size_t val_len)
 {
@@ -841,6 +872,8 @@ zparser_conv_svcbparam_key_value(region_type *region,
 	switch (svcparamkey) {
 	case SVCB_KEY_PORT:
 		return zparser_conv_svcbparam_port_value(region, val);
+	case SVCB_KEY_IPV4HINT:
+		return zparser_conv_svcbparam_ipv4hint_value(region, val);
 	default:
 		break;
 	}
