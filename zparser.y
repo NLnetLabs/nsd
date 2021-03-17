@@ -1173,12 +1173,12 @@ rdata_zonemd:	str sp str sp str sp str_sp_seq trail
     }
     ;
 
-svcparam:	STR QSTR
+svcparam:	dotted_str QSTR
     {
 	zadd_rdata_wireformat(zparser_conv_svcbparam(
 		parser->region, $1.str, $1.len, $2.str, $2.len));
     }
-    |		STR
+    |		dotted_str
     {
 	zadd_rdata_wireformat(zparser_conv_svcbparam(
 		parser->region, $1.str, $1.len, NULL, 0));
