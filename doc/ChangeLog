@@ -1,3 +1,6 @@
+18 March 2021: Tom
+	- Add Extended DNS Errors RFC8914
+
 15 March 2021: Wouter
 	- Fix double config.h include in configlexer.c
 	- Fix to remove configyyrename from makedist.sh and also
