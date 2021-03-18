@@ -540,6 +540,9 @@ answer_chaos(struct nsd *nsd, query_type *q)
 				ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
 			} else {
 				RCODE_SET(q->packet, RCODE_REFUSE);
+				/* RFC8914 - Extended DNS Errors
+				 * 4.19. Extended DNS Error Code 18 - Prohibited */
+				q->edns.ede = EDE_PROHIBITED;
 			}
 		} else if ((q->qname->name_size == 16
 			    && memcmp(dname_name(q->qname), "\007version\006server", 16) == 0) ||
@@ -556,13 +559,23 @@ answer_chaos(struct nsd *nsd, query_type *q)
 				ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
 			} else {
 				RCODE_SET(q->packet, RCODE_REFUSE);
+				/* RFC8914 - Extended DNS Errors
+				 * 4.19. Extended DNS Error Code 18 - Prohibited */
+				q->edns.ede = EDE_PROHIBITED;
 			}
 		} else {
 			RCODE_SET(q->packet, RCODE_REFUSE);
+			/* RFC8914 - Extended DNS Errors
+			 * 4.22. Extended DNS Error Code 21 - Not Supported */
+			q->edns.ede = EDE_NOT_SUPPORTED;
+
 		}
 		break;
 	default:
 		RCODE_SET(q->packet, RCODE_REFUSE);
+		/* RFC8914 - Extended DNS Errors
+		 * 4.22. Extended DNS Error Code 21 - Not Supported */
+		q->edns.ede = EDE_NOT_SUPPORTED;
 		break;
 	}
 
@@ -1136,6 +1149,10 @@ answer_authoritative(struct nsd   *nsd,
 		++q->cname_count;
 		if(!newname) { /* newname too long */
 			RCODE_SET(q->packet, RCODE_YXDOMAIN);
+			/* RFC 8914 - Extended DNS Errors
+			 * 4.21. Extended DNS Error Code 0 - Other */
+			ASSIGN_EDE_CODE_AND_STRING_LITERAL(q->edns.ede,
+				EDE_OTHER, "DNAME expansion became too large");
 			return;
 		}
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->result is %s", dname_to_string(newname, NULL)));
@@ -1271,15 +1288,25 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	q->zone = domain_find_zone(nsd->db, closest_encloser);
 	if (!q->zone) {
 		/* no zone for this */
-		if(q->cname_count == 0)
+		if(q->cname_count == 0) {
 			RCODE_SET(q->packet, RCODE_REFUSE);
+			/* RFC 8914 - Extended DNS Errors
+			 * 4.21. Extended DNS Error Code 20 - Not Authoritative */
+			q->edns.ede = EDE_NOT_AUTHORITATIVE;
+		}
 		return;
 	}
 	assert(closest_encloser); /* otherwise, no q->zone would be found */
 	if(!q->zone->apex || !q->zone->soa_rrset) {
 		/* zone is configured but not loaded */
-		if(q->cname_count == 0)
+		if(q->cname_count == 0) {
 			RCODE_SET(q->packet, RCODE_SERVFAIL);
+			/* RFC 8914 - Extended DNS Errors
+			 * 4.15. Extended DNS Error Code 14 - Not Ready */
+			q->edns.ede = EDE_NOT_READY;
+			ASSIGN_EDE_CODE_AND_STRING_LITERAL(q->edns.ede,
+			    EDE_NOT_READY, "Zone is configured but not loaded");
+		}
 		return;
 	}
 
@@ -1316,8 +1343,14 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			q->zone = zone;
 			if(!q->zone->apex || !q->zone->soa_rrset) {
 				/* zone is configured but not loaded */
-				if(q->cname_count == 0)
+				if(q->cname_count == 0) {
 					RCODE_SET(q->packet, RCODE_SERVFAIL);
+					/* RFC 8914 - Extended DNS Errors
+					 * 4.15. Extended DNS Error Code 14 - Not Ready */
+					ASSIGN_EDE_CODE_AND_STRING_LITERAL(
+					   q->edns.ede, EDE_NOT_READY,
+					   "Zone is configured but not loaded");
+				}
 				return;
 			}
 		}
@@ -1326,8 +1359,13 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	/* see if the zone has expired (for secondary zones) */
 	if(q->zone && q->zone->opts && q->zone->opts->pattern &&
 		q->zone->opts->pattern->request_xfr != 0 && !q->zone->is_ok) {
-		if(q->cname_count == 0)
+		if(q->cname_count == 0) {
 			RCODE_SET(q->packet, RCODE_SERVFAIL);
+			/* RFC 8914 - Extended DNS Errors
+			 * 4.25. Extended DNS Error Code 24 - Invalid Data */
+			ASSIGN_EDE_CODE_AND_STRING_LITERAL(q->edns.ede,
+				EDE_INVALID_DATA, "Zone has expired");
+		}
 		return;
 	}
 
@@ -1584,10 +1622,12 @@ query_process(query_type *q, nsd_type *nsd)
 		if (q->qclass == CLASS_CH) {
 			return answer_chaos(nsd, q);
 		} else {
-			return query_error(q, NSD_RC_REFUSE);
+			/* RFC8914 - Extended DNS Errors
+			 * 4.22. Extended DNS Error Code 21 - Not Supported */
+			q->edns.ede = EDE_NOT_SUPPORTED;
+			return query_error(q, RCODE_REFUSE);
 		}
 	}
-
 	query_state = answer_axfr_ixfr(nsd, q);
 	if (query_state == QUERY_PROCESSED || query_state == QUERY_IN_AXFR) {
 		return query_state;
@@ -1621,6 +1661,14 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		if (q->edns.dnssec_ok)	edns->ok[7] = 0x80;
 		else			edns->ok[7] = 0x00;
 		buffer_write(q->packet, edns->ok, OPT_LEN);
+
+		/* Add Extended DNS Error (RFC8914)
+		 * to verify that we stay in bounds */
+		if (q->edns.ede >= 0)
+			q->edns.opt_reserved_space +=
+				6 + ( q->edns.ede_text_len
+			            ? q->edns.ede_text_len : 0);
+
 		if(q->edns.opt_reserved_space == 0 || !buffer_available(
 			q->packet, 2+q->edns.opt_reserved_space)) {
 			/* fill with NULLs */
@@ -1634,6 +1682,22 @@ query_add_optional(query_type *q, nsd_type *nsd)
 				buffer_write(q->packet, edns->nsid, OPT_HDR);
 				/* nsid payload */
 				buffer_write(q->packet, nsd->nsid, nsd->nsid_len);
+			}
+			/* Append Extended DNS Error (RFC8914) option if needed */
+			if (q->edns.ede >= 0) { /* < 0 means no EDE */
+				/* OPTION-CODE */
+				buffer_write_u16(q->packet, EDE_CODE);
+				/* OPTION-LENGTH */
+				buffer_write_u16(q->packet,
+					2 + ( q->edns.ede_text_len
+					    ? q->edns.ede_text_len : 0));
+				/* INFO-CODE */
+				buffer_write_u16(q->packet, q->edns.ede);
+				/* EXTRA-TEXT */
+				if (q->edns.ede_text_len)
+					buffer_write(q->packet,
+							q->edns.ede_text,
+							q->edns.ede_text_len);
 			}
 		}
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);

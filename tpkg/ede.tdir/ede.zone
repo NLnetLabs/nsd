@@ -1,0 +1,12 @@
+$ORIGIN com.
+example 345600  IN  SOA ns0.example.org. dingdong.example.com. (
+        4 3600 28800 2419200 3600 )
+
+	3600    IN  NS  bigserv.example.net.
+	3600    IN  NS  ns23.example.org.
+	3600    IN  NS  ns4.example.org.
+	3600    IN  NS  ns2.example.org.
+
+www.example.com. 3600    IN  A   192.0.2.10
+small.example.com.	3600	IN	DNAME	llllllllaaaaaaaarrrrrrrrggggggggeeeeeeee.example.com.
+*.llllllllaaaaaaaarrrrrrrrggggggggeeeeeeee.example.com.	3600	IN	A	192.0.2.11
