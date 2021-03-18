@@ -837,19 +837,41 @@ zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 {
 	uint16_t *r;
 	int i, count;
+	char buf[INET_ADDRSTRLEN];
+	char *next_ip_str;
+	uint32_t *ip_wire_dst;
+
 	for (i = 0, count = 1; val[i]; i++)
 		count += (val[i] == ',');
 
-	r = alloc_rdata(region, 2 * sizeof(uint16_t) + sizeof(uint32_t) * count);
+	r = alloc_rdata(region, 2 * sizeof(uint16_t) + INET_ADDRLEN * count);
 	r[1] = htons(SVCB_KEY_IPV4HINT);
 	r[2] = htons(INET_ADDRLEN * count);
+	ip_wire_dst = (void *)&r[3];
 
-	char buf[16];
-	for (int i = 0; i < count; i++){
-		strncpy(buf, val + 8 * i, 7); /* get the next ipv4 past the ',' */
-		if (inet_pton(AF_INET, buf, &r[3 + 2 * i]) != 1)
-			zc_error_prev_line("Could not parse ipv4hint SvcParamValue: \"%s\"", buf);
+	while (count) {
+		if (!(next_ip_str = strchr(val, ','))) {
+			if (inet_pton(AF_INET, val, ip_wire_dst) != 1)
+				break;
+
+			assert(count == 1);
+
+		} else if (next_ip_str - val >= (int)sizeof(buf))
+			break;
+
+		else {
+			memcpy(buf, val, next_ip_str - val);
+			buf[next_ip_str - val] = 0;
+			if (inet_pton(AF_INET, buf, ip_wire_dst) != 1)
+				break;
+
+			val = next_ip_str + 1;
+		}
+		ip_wire_dst++;
+		count--;
 	}
+	if (count)
+		zc_error_prev_line("Could not parse ipv4hint SvcParamValue");
 
 	return r;
 }

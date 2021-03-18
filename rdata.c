@@ -670,23 +670,20 @@ static int
 rdata_svcparam_ipv4hint_to_string(buffer_type *output, uint16_t val_len,
 	uint16_t *data)
 {
-	char buf[16];
-	if (val_len == INET_ADDRLEN){
-		buffer_printf(output, "=%s", inet_ntop(AF_INET, data, buf, sizeof(buf)));
-		return 1;
-	}
-	else if ((val_len % INET_ADDRLEN) == 0) {
-		buffer_printf(output, "=%s", inet_ntop(AF_INET,data,buf,sizeof(buf)));
-		data += 2;
+	char ip_str[INET_ADDRSTRLEN];
+	
+	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
 
-		for (int i = 0; i < val_len / INET_ADDRLEN - 1; i++){
-			fprintf(stderr, "i: %u\n", i);
-			buffer_printf(output, ",%s", inet_ntop(AF_INET,data,buf,sizeof(buf)));
-			data += 2;
+	if ((val_len % INET_ADDRLEN) == 0) {
+		buffer_printf(output, "=%s", inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)));
+		data += 2; /* 2 uint16_t's in an IPv4 */
+
+		while ((val_len -= INET_ADDRLEN)) {
+			buffer_printf(output, ",%s", inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)));
+			data += 2; /* 2 uint16_t's in an IPv4 */
 		}
 		return 1;
-	}
-	else
+	} else
 		return 0; /* wireformat error, a short is 2 bytes */
 }
 
