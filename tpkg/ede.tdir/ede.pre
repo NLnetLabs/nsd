@@ -10,7 +10,7 @@ get_random_port 1
 TPKG_PORT=$RND_PORT
 
 PRE="../.."
-TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_NSD_PID="nsd.pid.$$"
 TPKG_NSD="$PRE/nsd"
 
 # share the vars
