@@ -7,7 +7,7 @@ Category:
 Component:
 CmdDepends: 
 Depends: 
-Help: ede.help
+Help:
 Pre: ede.pre
 Post: ede.post
 Test: ede.test

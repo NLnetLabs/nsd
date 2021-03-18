@@ -62,11 +62,15 @@ typedef struct edns_record edns_record_type;
 #define EDE_NOT_SUPPORTED     21
 #define EDE_INVALID_DATA      24
 
-#define ASSIGN_EDE_CODE_AND_TEXT(EDE, CODE, TEXT)	\
-	do {						\
-		EDE = (CODE);				\
-		EDE ## _text = (TEXT);			\
-		EDE ## _text_len = sizeof((TEXT));	\
+/* ASSIGN_EDE_CODE_AND_STRING_LITERAL may only be used with string literals.
+ * This is guaranteed by concatenating and empty string to LITERAL, which
+ * will make compilation fail if this macro is used with variables.
+ */
+#define ASSIGN_EDE_CODE_AND_STRING_LITERAL(EDE, CODE, LITERAL)	\
+	do {							\
+		EDE = (CODE);					\
+		EDE ## _text = (LITERAL "");			\
+		EDE ## _text_len = sizeof(LITERAL) - 1;		\
 	} while (0)
 
 void edns_init_data(edns_data_type *data, uint16_t max_length);

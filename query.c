@@ -1151,8 +1151,8 @@ answer_authoritative(struct nsd   *nsd,
 			RCODE_SET(q->packet, RCODE_YXDOMAIN);
 			/* RFC 8914 - Extended DNS Errors
 			 * 4.21. Extended DNS Error Code 0 - Other */
-			ASSIGN_EDE_CODE_AND_TEXT(q->edns.ede, EDE_OTHER,
-					"DNAME expansion became too large");
+			ASSIGN_EDE_CODE_AND_STRING_LITERAL(q->edns.ede,
+				EDE_OTHER, "DNAME expansion became too large");
 			return;
 		}
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->result is %s", dname_to_string(newname, NULL)));
@@ -1304,8 +1304,8 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			/* RFC 8914 - Extended DNS Errors
 			 * 4.15. Extended DNS Error Code 14 - Not Ready */
 			q->edns.ede = EDE_NOT_READY;
-			ASSIGN_EDE_CODE_AND_TEXT(q->edns.ede, EDE_NOT_READY,
-					"Zone is configured but not loaded");
+			ASSIGN_EDE_CODE_AND_STRING_LITERAL(q->edns.ede,
+			    EDE_NOT_READY, "Zone is configured but not loaded");
 		}
 		return;
 	}
@@ -1347,9 +1347,9 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 					RCODE_SET(q->packet, RCODE_SERVFAIL);
 					/* RFC 8914 - Extended DNS Errors
 					 * 4.15. Extended DNS Error Code 14 - Not Ready */
-					ASSIGN_EDE_CODE_AND_TEXT(q->edns.ede,
-					    EDE_NOT_READY, "Zone is configured"
-					                   " but not loaded");
+					ASSIGN_EDE_CODE_AND_STRING_LITERAL(
+					   q->edns.ede, EDE_NOT_READY,
+					   "Zone is configured but not loaded");
 				}
 				return;
 			}
@@ -1363,8 +1363,8 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			RCODE_SET(q->packet, RCODE_SERVFAIL);
 			/* RFC 8914 - Extended DNS Errors
 			 * 4.25. Extended DNS Error Code 24 - Invalid Data */
-			ASSIGN_EDE_CODE_AND_TEXT(q->edns.ede, EDE_INVALID_DATA,
-					"Zone has expired");
+			ASSIGN_EDE_CODE_AND_STRING_LITERAL(q->edns.ede,
+				EDE_INVALID_DATA, "Zone has expired");
 		}
 		return;
 	}
@@ -1667,7 +1667,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		if (q->edns.ede >= 0)
 			q->edns.opt_reserved_space +=
 				6 + ( q->edns.ede_text_len
-			            ? q->edns.ede_text_len - 1 : 0);
+			            ? q->edns.ede_text_len : 0);
 
 		if(q->edns.opt_reserved_space == 0 || !buffer_available(
 			q->packet, 2+q->edns.opt_reserved_space)) {
@@ -1690,13 +1690,14 @@ query_add_optional(query_type *q, nsd_type *nsd)
 				/* OPTION-LENGTH */
 				buffer_write_u16(q->packet,
 					2 + ( q->edns.ede_text_len
-					    ? q->edns.ede_text_len - 1 : 0));
+					    ? q->edns.ede_text_len : 0));
 				/* INFO-CODE */
 				buffer_write_u16(q->packet, q->edns.ede);
 				/* EXTRA-TEXT */
-				if (q->edns.ede_text_len > 1)
-					buffer_write(q->packet, q->edns.ede_text,
-							q->edns.ede_text_len - 1);
+				if (q->edns.ede_text_len)
+					buffer_write(q->packet,
+							q->edns.ede_text,
+							q->edns.ede_text_len);
 			}
 		}
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
