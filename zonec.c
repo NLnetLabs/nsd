@@ -836,14 +836,21 @@ static uint16_t *
 zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 {
 	uint16_t *r;
+	int i, count;
+	for (i = 0, count = 1; val[i]; i++)
+		count += (val[i] == ',');
 
-	r = alloc_rdata(region, 2 * sizeof(uint16_t) + sizeof(uint32_t));
+	r = alloc_rdata(region, 2 * sizeof(uint16_t) + sizeof(uint32_t) * count);
 	r[1] = htons(SVCB_KEY_IPV4HINT);
-	r[2] = htons(4);
-	if (inet_pton(AF_INET, val, r + 3) == 1)
-		return r;
+	r[2] = htons(INET_ADDRLEN * count);
 
-	zc_error_prev_line("Could not parse ipv4hint SvcParamValue: \"%s\"", val);
+	char buf[16];
+	for (int i = 0; i < count; i++){
+		strncpy(buf, val + 8 * i, 7); /* get the next ipv4 past the ',' */
+		if (inet_pton(AF_INET, buf, &r[3 + 2 * i]) != 1)
+			zc_error_prev_line("Could not parse ipv4hint SvcParamValue: \"%s\"", buf);
+	}
+
 	return r;
 }
 

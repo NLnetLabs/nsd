@@ -670,12 +670,24 @@ static int
 rdata_svcparam_ipv4hint_to_string(buffer_type *output, uint16_t val_len,
 	uint16_t *data)
 {
-	char buf[12];
+	char buf[16];
+	if (val_len == INET_ADDRLEN){
+		buffer_printf(output, "=%s", inet_ntop(AF_INET, data, buf, sizeof(buf)));
+		return 1;
+	}
+	else if ((val_len % INET_ADDRLEN) == 0) {
+		buffer_printf(output, "=%s", inet_ntop(AF_INET,data,buf,sizeof(buf)));
+		data += 2;
 
-	if (val_len % 4)
+		for (int i = 0; i < val_len / INET_ADDRLEN - 1; i++){
+			fprintf(stderr, "i: %u\n", i);
+			buffer_printf(output, ",%s", inet_ntop(AF_INET,data,buf,sizeof(buf)));
+			data += 2;
+		}
+		return 1;
+	}
+	else
 		return 0; /* wireformat error, a short is 2 bytes */
-	buffer_printf(output, "=%s", inet_ntop(AF_INET,data,buf,sizeof(buf)));
-	return 1;
 }
 
 static int
@@ -691,11 +703,8 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		return 0;
 	svcparamkey = ntohs(data[0]);
 
-	// @DEBUG
-
 	buffer_print_svcparamkey(output, svcparamkey);
 	val_len = ntohs(data[1]);
-	fprintf(stderr, "key: %u, size: %d, val_len: %d\n", svcparamkey, (int)size, (int)val_len);
 	if (size != val_len + 4)
 		return 0; /* wireformat error */
 	if (!val_len)
@@ -704,7 +713,6 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	case SVCB_KEY_PORT:
 		return rdata_svcparam_port_to_string(output, val_len, data+2);
 	case SVCB_KEY_IPV4HINT:
-		fprintf(stderr, "HERE!\n");
 		return rdata_svcparam_ipv4hint_to_string(output, val_len, data+2);
 	default:
 		buffer_write(output, "=\"", 2);
