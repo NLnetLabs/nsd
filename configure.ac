@@ -1318,9 +1318,6 @@ AH_BOTTOM([
 #define ATTR_PACKED
 #endif
 
-#ifndef INET_ADDRLEN
-#define INET_ADDRLEN 4
-#endif
 ])
 
 # big fat warning

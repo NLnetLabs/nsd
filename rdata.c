@@ -688,6 +688,27 @@ rdata_svcparam_ipv4hint_to_string(buffer_type *output, uint16_t val_len,
 }
 
 static int
+rdata_svcparam_ipv6hint_to_string(buffer_type *output, uint16_t val_len,
+	uint16_t *data)
+{
+	char ip_str[INET6_ADDRSTRLEN];
+	
+	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
+
+	if ((val_len % IP6ADDRLEN) == 0) {
+		buffer_printf(output, "=%s", inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)));
+		data += IP6ADDRLEN;
+
+		while ((val_len -= IP6ADDRLEN)) {
+			buffer_printf(output, ",%s", inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)));
+			data += IP6ADDRLEN;
+		}
+		return 1;
+	} else
+		return 0; /* wireformat error*/
+}
+
+static int
 rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -711,6 +732,8 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		return rdata_svcparam_port_to_string(output, val_len, data+2);
 	case SVCB_KEY_IPV4HINT:
 		return rdata_svcparam_ipv4hint_to_string(output, val_len, data+2);
+	case SVCB_KEY_IPV6HINT:
+		return rdata_svcparam_ipv6hint_to_string(output, val_len, data+2);
 	default:
 		buffer_write(output, "=\"", 2);
 		buffer_write(output, data + 2, val_len);
