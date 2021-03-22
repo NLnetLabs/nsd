@@ -1326,11 +1326,9 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			/* no zone for this */
 			if(q->cname_count == 0) {
 				RCODE_SET(q->packet, RCODE_REFUSE);
-#if 0
 				/* RFC8914 - Extended DNS Errors
 				 * 4.19. Extended DNS Error Code 18 - Prohibited */
 				q->edns.ede = EDE_PROHIBITED;
-#endif
 			}
 			return;
 		}
