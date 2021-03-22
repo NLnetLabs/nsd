@@ -1,0 +1,163 @@
+# #-- allow_query.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+
+# zone example.org, allow-query: 0.0.0.0/0 hopsa.kidee
+# Test no TSIG key
+#
+$DIG @127.0.0.1 -p $TPKG_PORT SOA example.org +norec >example.org.refused1
+if ! grep -q ', status: REFUSED, ' example.org.refused1
+then
+	cat example.org.refused1
+	echo "zone example.org, allow-query: 0.0.0.0/0 hopsa.kidee"
+	echo "Test no TSIG key"
+	echo "FAILED"
+	exit 1
+fi
+
+# zone example.org, allow-query: 0.0.0.0/0 hopsa.kidee
+# Test the wrong TSIG key
+#
+$DIG @127.0.0.1 -p $TPKG_PORT SOA example.org -y blabla:K2tf3TRjvQkVCmJF3/Z9vA== +norec >example.org.refused2
+if ! grep -q ', status: REFUSED, ' example.org.refused2
+then
+	cat example.org.refused2
+	echo "zone example.org, allow-query: 0.0.0.0/0 hopsa.kidee"
+	echo "Test the wrong TSIG key"
+	echo "FAILED"
+	exit 1
+fi
+
+# zone example.org, allow-query: 0.0.0.0/0 hopsa.kidee
+# Test broken TSIG key
+#
+$DIG @127.0.0.1 -p $TPKG_PORT SOA example.org -y hmac-sha256:hopsa.kidee:k7/uC0yQoo4xCjYCYQ+HOC+Ng1wajK+3/t6PdneMAqw= +norec >example.org.notauth
+if ! grep -q ', status: NOTAUTH, ' example.org.notauth
+then
+	cat example.org.notauth
+	echo "zone example.org, allow-query: 0.0.0.0/0 hopsa.kidee"
+	echo "Test broken TSIG key"
+	echo "FAILED"
+	exit 1
+fi
+
+# zone example.org, allow-query: 0.0.0.0/0 hopsa.kidee
+# Test the right TSIG key
+#
+$DIG @127.0.0.1 -p $TPKG_PORT SOA example.org -y hmac-sha256:hopsa.kidee:K7/uC0yQoo4xCjYCYQ+HOC+Ng1wajK+3/t6PdneMAqw= +norec >example.org.noerror
+if ! grep -q ', status: NOERROR, ' example.org.noerror
+then
+	cat example.org.noerror
+	echo "zone example.org, allow-query: 0.0.0.0/0 hopsa.kidee"
+	echo "Test the right TSIG key"
+	echo "FAILED"
+	exit 1
+fi
+
+# zone example.net, allow-query: ::0/0 NOKEY
+# Test the wrong network block
+#
+$DIG @127.0.0.1 -p $TPKG_PORT SOA example.net +norec >example.net.refused
+if ! grep -q ', status: REFUSED, ' example.net.refused
+then
+	cat example.net.refused
+	echo "zone example.net, allow-query: ::0/0 NOKEY"
+	echo "Test the wrong network block"
+	echo "FAILED"
+	exit 1
+fi
+
+# zone example.net, allow-query: ::0/0 NOKEY
+# Test from allowed IPv6
+#
+$DIG @::1 -p $TPKG_PORT SOA example.net +norec >example.net.noerror
+if ! grep -q ', status: NOERROR, ' example.net.noerror
+then
+	cat example.net.noerror
+	echo "zone example.net, allow-query: ::0/0 NOKEY"
+	echo "Test from allowed IPv6"
+	echo "FAILED"
+	exit 1
+fi
+
+# zone example.com, allow-query: 0.0.0.0/0 BLOCKED
+# No queries allowed whatsoever
+#
+$DIG @127.0.0.1 -p $TPKG_PORT SOA example.com +norec >example.com.refused1
+if ! grep -q ', status: REFUSED, ' example.com.refused1
+then
+	cat example.com.refused1
+	echo "zone example.com, allow-query: 0.0.0.0/0 BLOCKED"
+	echo "No queries allowed whatsoever"
+	echo "FAILED"
+	exit 1
+fi
+
+# zone example.com, allow-query: 0.0.0.0/0 BLOCKED
+# No queries allowed whatsoever
+#
+$DIG @::1 -p $TPKG_PORT SOA example.com +norec >example.com.refused2
+if ! grep -q ', status: REFUSED, ' example.com.refused2
+then
+	cat example.com.refused2
+	echo "zone example.com, allow-query: 0.0.0.0/0 BLOCKED"
+	echo "No queries allowed whatsoever"
+	echo "FAILED"
+	exit 1
+fi
+
+# zone example.com, allow-query: 0.0.0.0/0 BLOCKED
+# No queries allowed whatsoever
+#
+$DIG @127.0.0.1 -p $TPKG_PORT -y hmac-sha256:hopsa.kidee:K7/uC0yQoo4xCjYCYQ+HOC+Ng1wajK+3/t6PdneMAqw= SOA example.com. +norec >example.com.refused3
+if ! grep -q ', status: REFUSED, ' example.com.refused3
+then
+	cat example.com.refused3
+	echo "zone example.com, allow-query: 0.0.0.0/0 BLOCKED"
+	echo "No queries allowed whatsoever"
+	echo "FAILED"
+	exit 1
+fi
+
+# zone example.com, provide-xfr: 127.0.0.1/8 hopsa.kidee
+# No queries allowed whatsoever, but transfer works!
+#
+$DIG @127.0.0.1 -p $TPKG_PORT -y hmac-sha256:hopsa.kidee:K7/uC0yQoo4xCjYCYQ+HOC+Ng1wajK+3/t6PdneMAqw= AXFR example.com. +norec >example.com.axfr
+if ! grep -q '^example.com.[[:space:]][[:space:]]*3600[[:space:]][[:space:]]*IN[[:space:]][[:space:]]*SOA' example.com.axfr
+then
+	cat example.com.axfr
+	echo "zone example.com, provide-xfr: 127.0.0.1/8 hopsa.kidee"
+	echo "No queries allowed whatsoever, but transfer works"
+	echo "FAILED"
+	exit 1
+fi
+
+# zone example, allow-query: 0.0.0.0/0 hopsa.kidee
+# Test without TSIG key
+#
+$DIG @127.0.0.1 -p $TPKG_PORT SOA example. +norec >example.refused
+if ! grep -q ', status: REFUSED, ' example.refused
+then
+	echo "zone example, allow-query: 0.0.0.0/0 hopsa.kidee"
+	echo "Test without TSIG key"
+	cat example.refused
+	exit 1
+fi
+
+# zone example, allow-query: 0.0.0.0/0 hopsa.kidee
+# Test with TSIG key
+#
+$DIG @127.0.0.1 -p $TPKG_PORT -y hmac-sha256:hopsa.kidee:K7/uC0yQoo4xCjYCYQ+HOC+Ng1wajK+3/t6PdneMAqw= SOA example. +norec >example.servfail
+if ! grep -q ', status: SERVFAIL, ' example.servfail
+then
+	cat example.servfail
+	echo "zone example, allow-query: 0.0.0.0/0 hopsa.kidee"
+	echo "Test with TSIG key"
+	echo "FAILED"
+	exit 1
+fi
+
