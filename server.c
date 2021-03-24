@@ -87,6 +87,7 @@
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 
+#ifdef USE_DNSTAP
 /*
  * log_addr() - the function to print sockaddr_in/sockaddr_in6 structures content
  * just like its done in Unbound via the same log_addr(VERB_LEVEL, const char*, sockaddr_storage*)
@@ -115,6 +116,7 @@ log_addr(const char* descr,
 #endif
 	}
 }
+#endif /* USE_DNSTAP */
 
 #ifdef USE_TCP_FASTOPEN
   #define TCP_FASTOPEN_FILE "/proc/sys/net/ipv4/tcp_fastopen"

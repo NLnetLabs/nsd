@@ -1,6 +1,7 @@
 24 March 2021: Wouter
 	- Update acx_nlnetlabs.m4 to version 38, fix deprecation test.
 	- Fix configure to use header checks with compile.
+	- Fix warning about unused function log_addr.
 
 18 March 2021: Tom
 	- Add Extended DNS Errors RFC8914

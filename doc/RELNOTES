@@ -23,6 +23,7 @@ BUG FIXES:
 	- Fix to remove configyyrename from makedist.sh and also
 	  update the flex and bison rules there to add the "c_" prefix.
 	- Fix configure to use header checks with compile.
+	- Fix warning about unused function log_addr.
 
 
 4.3.5
