@@ -22,6 +22,7 @@ BUG FIXES:
 	- Fix double config.h include in configlexer.c
 	- Fix to remove configyyrename from makedist.sh and also
 	  update the flex and bison rules there to add the "c_" prefix.
+	- Fix configure to use header checks with compile.
 
 
 4.3.5
