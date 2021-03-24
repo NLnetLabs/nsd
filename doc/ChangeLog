@@ -1,3 +1,6 @@
+24 March 2021: Wouter
+	- Update acx_nlnetlabs.m4 to version 38, fix deprecation test.
+
 18 March 2021: Tom
 	- Add Extended DNS Errors RFC8914
 
