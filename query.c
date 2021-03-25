@@ -1314,7 +1314,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			if (verbosity >= 2) {
 				char address[128];
 				addr2str(&q->addr, address, sizeof(address));
-				VERBOSITY(2, (LOG_INFO, "query %s from %s refused, %s%s",
+				VERBOSITY(2, (LOG_INFO, "query %s from %s refused, %s %s",
 					dname_to_string(q->qname, NULL),
 					address,
 					why ? ( why->nokey    ? "NOKEY"
