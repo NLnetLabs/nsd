@@ -66,6 +66,11 @@ lookup_table_type dns_algorithms[] = {
 	{ 0, NULL }
 };
 
+const char *svcparamkey_strs[] = {
+		"mandatory", "alpn", "no-default-alpn", "port",
+		"ipv4hint", "echconfig", "ipv6hint"
+	};
+
 typedef int (*rdata_to_string_type)(buffer_type *output,
 				    rdata_atom_type rdata,
 				    rr_type *rr);
@@ -645,13 +650,8 @@ rdata_loc_to_string(buffer_type *ATTR_UNUSED(output),
 static void
 buffer_print_svcparamkey(buffer_type *output, uint16_t svcparamkey)
 {
-	static const char *svcparamkey_strs[] = {
-		"mandatory", "alpn", "no-default-alpn", "port",
-		"ipv4hint", "echconfig", "ipv6hint"
-	};
-
-	if (svcparamkey < sizeof(svcparamkey_strs))
- 		buffer_printf(output, "%s", svcparamkey_strs[svcparamkey]);
+	if (svcparamkey < SVCPARAMKEY_COUNT)
+		buffer_printf(output, "%s", svcparamkey_strs[svcparamkey]);
 	else
 		buffer_printf(output, "key%d", (int)svcparamkey);
 }
@@ -707,6 +707,24 @@ rdata_svcparam_ipv6hint_to_string(buffer_type *output, uint16_t val_len,
 	} else
 		return 0; /* wireformat error*/
 }
+static int
+rdata_svcparam_mandatory_to_string(buffer_type *output, uint16_t val_len,
+	uint16_t *data)
+{
+	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
+
+	buffer_write_u8(output, '=');
+	buffer_print_svcparamkey(output, *data);
+	data += 1;
+
+	while ((val_len -= sizeof(uint16_t))) {
+		buffer_write_u8(output, ',');
+		buffer_print_svcparamkey(output, *data);
+		data += 1;
+	}
+
+	return 1;
+}
 
 static int
 rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
@@ -734,6 +752,8 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		return rdata_svcparam_ipv4hint_to_string(output, val_len, data+2);
 	case SVCB_KEY_IPV6HINT:
 		return rdata_svcparam_ipv6hint_to_string(output, val_len, data+2);
+	case SVCB_KEY_MANDATORY:
+		return rdata_svcparam_mandatory_to_string(output, val_len, data+2);
 	default:
 		buffer_write(output, "=\"", 2);
 		buffer_write(output, data + 2, val_len);

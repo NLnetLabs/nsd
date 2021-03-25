@@ -1198,8 +1198,9 @@ rdata_svcb_base:	str sp dname
 rdata_svcb:	rdata_svcb_base sp svcparams trail
     {
 	    /* SvcFieldValue */
-	    /* Sort SVCB SvcParam rdata fields */
+	    /* @TODO Sort SVCB SvcParam rdata fields */
 	    /* zadd_rdata_txt_clean_wireformat(); */
+	    /* @TODO check if mandatory keys exist */
     }
     |	rdata_svcb_base trail
     ;

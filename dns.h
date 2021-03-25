@@ -192,6 +192,8 @@ typedef enum nsd_rc nsd_rc_type;
 
 #define NSEC3_HASH_LEN 20
 
+#define SVCPARAMKEY_COUNT 7
+
 /*
  * The different types of RDATA wireformat data.
  */

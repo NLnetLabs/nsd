@@ -807,7 +807,7 @@ svcbparam_lookup_key(const char *key, size_t key_len)
 		buf[key_len] = 0;
 		zc_error_prev_line("Unknown SvcParamKey: %s", buf);
 	}
-	return -1;
+	return 65535;
 }
 
 static uint16_t *
@@ -887,8 +887,6 @@ zparser_conv_svcbparam_ipv6hint_value(region_type *region, const char *val)
 	char *next_ip6_str;
 	uint8_t *ipv6_wire_dst;
 
-	uint8_t test;
-
 	for (i = 0, count = 1; val[i]; i++)
 		count += (val[i] == ',');
 
@@ -899,10 +897,8 @@ zparser_conv_svcbparam_ipv6hint_value(region_type *region, const char *val)
 
 	while (count) {
 		if (!(next_ip6_str = strchr(val, ','))) {
-			if ((test = inet_pton(AF_INET6, val, ipv6_wire_dst) != 1)) {
-				fprintf(stderr, "inet_pton fail, test: %u\n", test);
+			if ((inet_pton(AF_INET6, val, ipv6_wire_dst) != 1))
 				break;
-			}
 
 			assert(count == 1);
 
@@ -917,13 +913,89 @@ zparser_conv_svcbparam_ipv6hint_value(region_type *region, const char *val)
 				break;
 			}
 
-			val = next_ip6_str + 1;
+			val = next_ip6_str + 1; /* skip the comma */
 		}
 		ipv6_wire_dst += IP6ADDRLEN;
 		count--;
 	}
 	if (count)
 		zc_error_prev_line("Could not parse ipv6hint SvcParamValue: %s", val);
+
+	return r;
+}
+
+static int
+network_uint16_cmp(const void *a, const void *b)
+{
+	return ((int)read_uint16(a)) - ((int)read_uint16(b));
+}
+
+static uint16_t *
+zparser_conv_svcbparam_mandatory_value(region_type *region,
+		const char *val, size_t val_len)
+{
+	uint16_t *r;
+	uint16_t key, prev_key;
+	int i, count;
+	char* next_key;
+	uint16_t* key_dst;
+
+	for (i = 0, count = 1; val[i]; i++) {
+		count += (val[i] == ',');
+
+		if (strcmp(&val[i], "mandatory") == 0) {
+			zc_error_prev_line("mandatory should not be a value of the mandatory key\n");
+			break;
+		}
+	}
+
+	r = alloc_rdata(region, (2 + count) * sizeof(uint16_t));
+	r[1] = htons(SVCB_KEY_MANDATORY);
+	r[2] = htons(sizeof(uint16_t) * count);
+	key_dst = (void *)&r[3];
+
+	// @TODO add error for forbidden keys
+
+	for(;;) {
+		if (!(next_key = strchr(val, ','))) {
+			*key_dst = svcbparam_lookup_key(val, val_len);
+			break;	
+		} else {
+			*key_dst = svcbparam_lookup_key(val, next_key - val);
+		}
+
+		val_len -= next_key - val + 1;
+		val = next_key + 1; /* skip the comma */
+		key_dst += 1;
+	}
+
+	/* In draft-ietf-dnsop-svcb-https-02 Section 7:
+	 *
+	 *     In wire format, the keys are represented by their numeric
+	 *     values in network byte order, concatenated in ascending order.
+	 */
+	qsort((void *)&r[3], count, sizeof(uint16_t), network_uint16_cmp);
+
+	/* In draft-ietf-dnsop-svcb-https-02 Section 7:
+	 *
+	 *     Keys (...) MUST NOT appear more than once.
+	 */
+	prev_key = -1;
+	for(i = 0; i < count; i++) {
+		key = read_uint16((void *)&r[3 + i]);
+
+		if (key == prev_key) {
+			if (key < SVCPARAMKEY_COUNT) {
+				zc_error_prev_line("Duplicate key found: %s\n",
+					svcparamkey_strs[key]);
+			} else {
+				zc_error_prev_line("Duplicate key found: key%hu\n", ntohs(key));
+				break;
+			}
+		} else {
+			prev_key = key;
+		}
+	}
 
 	return r;
 }
@@ -942,6 +1014,8 @@ zparser_conv_svcbparam_key_value(region_type *region,
 		return zparser_conv_svcbparam_ipv4hint_value(region, val);
 	case SVCB_KEY_IPV6HINT:
 		return zparser_conv_svcbparam_ipv6hint_value(region, val);
+	case SVCB_KEY_MANDATORY:
+		return zparser_conv_svcbparam_mandatory_value(region, val, val_len);
 	default:
 		break;
 	}
@@ -982,7 +1056,6 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 	r[2] = 0;
 	return r;
 }
-
 
 /* Parse an int terminated in the specified range. */
 static int
