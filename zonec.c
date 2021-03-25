@@ -935,19 +935,13 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 		const char *val, size_t val_len)
 {
 	uint16_t *r;
-	uint16_t key, prev_key;
+	int key, prev_key;
 	int i, count;
 	char* next_key;
 	uint16_t* key_dst;
 
-	for (i = 0, count = 1; val[i]; i++) {
+	for (i = 0, count = 1; val[i]; i++)
 		count += (val[i] == ',');
-
-		if (strcmp(&val[i], "mandatory") == 0) {
-			zc_error_prev_line("mandatory should not be a value of the mandatory key\n");
-			break;
-		}
-	}
 
 	r = alloc_rdata(region, (2 + count) * sizeof(uint16_t));
 	r[1] = htons(SVCB_KEY_MANDATORY);
@@ -984,6 +978,9 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 	for(i = 0; i < count; i++) {
 		key = read_uint16((void *)&r[3 + i]);
 
+		if (key == SVCB_KEY_MANDATORY)
+			zc_error_prev_line("mandatory should not be a value of the mandatory key\n");
+
 		if (key == prev_key) {
 			if (key < SVCPARAMKEY_COUNT) {
 				zc_error_prev_line("Duplicate key found: %s\n",
@@ -995,6 +992,30 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 		} else {
 			prev_key = key;
 		}
+	}
+
+	return r;
+}
+
+static uint16_t *
+zparser_conv_svcbparam_echconfig_value(region_type *region, const char *b64)
+{
+	uint8_t buffer[B64BUFSIZE];
+	uint16_t *r = NULL;
+	int wire_len;
+
+	if(strcmp(b64, "0") == 0) {
+		/* single 0 represents empty buffer */
+		return alloc_rdata(region, 0);
+	}
+	wire_len = b64_pton(b64, buffer, B64BUFSIZE);
+	if (wire_len == -1) {
+		zc_error_prev_line("invalid base64 data");
+	} else {
+		r = alloc_rdata(region, 2 * sizeof(uint16_t) + wire_len);
+		r[1] = htons(SVCB_KEY_ECHCONFIG);
+		r[2] = htons(wire_len);
+		memcpy(&r[3], buffer, wire_len);
 	}
 
 	return r;
@@ -1016,6 +1037,11 @@ zparser_conv_svcbparam_key_value(region_type *region,
 		return zparser_conv_svcbparam_ipv6hint_value(region, val);
 	case SVCB_KEY_MANDATORY:
 		return zparser_conv_svcbparam_mandatory_value(region, val, val_len);
+	case SVCB_KEY_NO_DEFAULT_ALPN:
+		zc_error_prev_line("no-default-alpn should not have a value\n");
+		break;
+	case SVCB_KEY_ECHCONFIG:
+		return zparser_conv_svcbparam_echconfig_value(region, val);
 	default:
 		break;
 	}

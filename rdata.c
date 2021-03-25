@@ -674,11 +674,11 @@ rdata_svcparam_ipv4hint_to_string(buffer_type *output, uint16_t val_len,
 	
 	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
 
-	if ((val_len % INET_ADDRLEN) == 0) {
+	if ((val_len % IP4ADDRLEN) == 0) {
 		buffer_printf(output, "=%s", inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)));
 		data += 2; /* 2 uint16_t's in an IPv4 */
 
-		while ((val_len -= INET_ADDRLEN)) {
+		while ((val_len -= IP4ADDRLEN)) {
 			buffer_printf(output, ",%s", inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)));
 			data += 2; /* 2 uint16_t's in an IPv4 */
 		}
@@ -727,6 +727,26 @@ rdata_svcparam_mandatory_to_string(buffer_type *output, uint16_t val_len,
 }
 
 static int
+rdata_svcparam_echconfig_to_string(buffer_type *output, uint16_t val_len,
+	uint16_t *data)
+{
+	int length;
+
+	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
+
+	buffer_write_u8(output, '=');
+
+	buffer_reserve(output, val_len * 2 + 1);
+	length = b64_ntop((uint8_t*) data, val_len,
+			  (char *) buffer_current(output), val_len * 2);
+	if (length > 0) {
+		buffer_skip(output, length);
+	}
+
+	return length != -1;
+}
+
+static int
 rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -754,6 +774,10 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		return rdata_svcparam_ipv6hint_to_string(output, val_len, data+2);
 	case SVCB_KEY_MANDATORY:
 		return rdata_svcparam_mandatory_to_string(output, val_len, data+2);
+	case SVCB_KEY_NO_DEFAULT_ALPN:
+		return 0; /* wireformat error, should not have a value */
+	case SVCB_KEY_ECHCONFIG:
+		return rdata_svcparam_echconfig_to_string(output, val_len, data+2);
 	default:
 		buffer_write(output, "=\"", 2);
 		buffer_write(output, data + 2, val_len);
