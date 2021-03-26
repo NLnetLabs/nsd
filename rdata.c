@@ -747,6 +747,38 @@ rdata_svcparam_echconfig_to_string(buffer_type *output, uint16_t val_len,
 }
 
 static int
+rdata_svcparam_alpn_to_string(buffer_type *output, uint16_t val_len,
+	uint16_t *data)
+{
+	uint8_t *dp = (void *)data;
+
+	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
+
+	buffer_write_u8(output, '=');
+	while (val_len) {
+		uint8_t i, str_len = *dp++;
+
+		if (str_len > --val_len)
+			return 0;
+
+		for (i = 0; i < str_len; i++) {
+			if (isspace(dp[i])
+			||  dp[i] == ',' || dp[i] == '"' || dp[i] == '\\')
+				buffer_printf(output, "\\%c", dp[i]);
+
+			else if (!isprint(dp[i]))
+				buffer_printf(output, "\\%03u", (unsigned) dp[i]);
+			else
+				buffer_write_u8(output, dp[i]);
+		}
+		dp += str_len;
+		if ((val_len -= str_len))
+			buffer_write_u8(output, ',');
+	}
+	return 1;
+}
+
+static int
 rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -776,6 +808,8 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		return rdata_svcparam_mandatory_to_string(output, val_len, data+2);
 	case SVCB_KEY_NO_DEFAULT_ALPN:
 		return 0; /* wireformat error, should not have a value */
+	case SVCB_KEY_ALPN:
+		return rdata_svcparam_alpn_to_string(output, val_len, data+2);
 	case SVCB_KEY_ECHCONFIG:
 		return rdata_svcparam_echconfig_to_string(output, val_len, data+2);
 	default:

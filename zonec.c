@@ -981,6 +981,21 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 		if (key == SVCB_KEY_MANDATORY)
 			zc_error_prev_line("mandatory should not be a value of the mandatory key\n");
 
+		if (parser->current_rr.type == TYPE_HTTPS) switch(key) {
+			case SVCB_KEY_PORT:
+				zc_error_prev_line("port is automatically "
+				                   "mandatory and may not be "
+						   "used in a mandatory "
+						   "SvcParam\n");
+				break;
+			case SVCB_KEY_ALPN:
+				zc_error_prev_line("alpn is automatically "
+				                   "mandatory and may not be "
+						   "used in a mandatory "
+						   "SvcParam\n");
+
+				break;
+		}
 		if (key == prev_key) {
 			if (key < SVCPARAMKEY_COUNT) {
 				zc_error_prev_line("Duplicate key found: %s\n",
@@ -1022,6 +1037,43 @@ zparser_conv_svcbparam_echconfig_value(region_type *region, const char *b64)
 }
 
 static uint16_t *
+zparser_conv_svcbparam_alpn_value(region_type *region,
+		const char *val, size_t val_len)
+{
+	uint16_t *r;
+	char *str_dst;
+	const char *next_str;
+	size_t str_len;
+
+	r = alloc_rdata(region, 2 * sizeof(uint16_t) + val_len + 1);
+	r[1] = htons(SVCB_KEY_ALPN);
+	r[2] = htons(val_len + 1);
+	str_dst = (void *)&r[3];
+
+	while (val_len) {
+		str_len = (next_str = strchr(val, ','))
+		        ? (size_t)(next_str - val) : val_len;
+
+		/* @TODO: deal with escaped comma's */
+		if (str_len > 255) {
+			zc_error_prev_line("alpn strings need to be"
+					   " smaller than 255 chars");
+			return r;
+		}
+		*str_dst++ = str_len;
+		memcpy(str_dst, val, str_len);
+		str_dst += str_len;
+
+		if (!next_str)
+			break;
+
+		val_len -= next_str - val + 1;
+		val = next_str + 1; /* skip the comma */
+	}
+	return r;
+}
+
+static uint16_t *
 zparser_conv_svcbparam_key_value(region_type *region,
     const char *key, size_t key_len, const char *val, size_t val_len)
 {
@@ -1042,6 +1094,8 @@ zparser_conv_svcbparam_key_value(region_type *region,
 		break;
 	case SVCB_KEY_ECHCONFIG:
 		return zparser_conv_svcbparam_echconfig_value(region, val);
+	case SVCB_KEY_ALPN:
+		return zparser_conv_svcbparam_alpn_value(region, val, val_len);
 	default:
 		break;
 	}
