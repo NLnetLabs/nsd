@@ -260,6 +260,15 @@ parse_options_file(struct nsd_options* opt, const char* file,
 				c_error("key %s in pattern %s could not be found",
 					acl->key_name, pat->pname);
 		}
+		for(acl=pat->allow_query; acl; acl=acl->next)
+		{
+			if(acl->nokey || acl->blocked)
+				continue;
+			acl->key_options = key_options_find(opt, acl->key_name);
+			if(!acl->key_options)
+				c_error("key %s in pattern %s could not be found",
+					acl->key_name, pat->pname);
+		}
 	}
 
 	if(cfg_parser->errors > 0)
@@ -830,6 +839,7 @@ pattern_options_create(region_type* region)
 	p->size_limit_xfr = 0;
 	p->notify = 0;
 	p->provide_xfr = 0;
+	p->allow_query = 0;
 	p->outgoing_interface = 0;
 	p->notify_retry = 5;
 	p->notify_retry_is_default = 1;
@@ -899,6 +909,7 @@ pattern_options_remove(struct nsd_options* opt, const char* name)
 	acl_list_delete(opt->region, p->request_xfr);
 	acl_list_delete(opt->region, p->notify);
 	acl_list_delete(opt->region, p->provide_xfr);
+	acl_list_delete(opt->region, p->allow_query);
 	acl_list_delete(opt->region, p->outgoing_interface);
 
 	region_recycle(opt->region, p, sizeof(struct pattern_options));
@@ -999,6 +1010,7 @@ pattern_options_add_modify(struct nsd_options* opt, struct pattern_options* p)
 		orig->request_xfr = copy_acl_list(opt, p->request_xfr);
 		orig->notify = copy_acl_list(opt, p->notify);
 		orig->provide_xfr = copy_acl_list(opt, p->provide_xfr);
+		orig->allow_query = copy_acl_list(opt, p->allow_query);
 		orig->outgoing_interface = copy_acl_list(opt,
 			p->outgoing_interface);
 		nsd_options_insert_pattern(opt, orig);
@@ -1016,6 +1028,7 @@ pattern_options_add_modify(struct nsd_options* opt, struct pattern_options* p)
 		copy_changed_acl(opt, &orig->request_xfr, p->request_xfr);
 		copy_changed_acl(opt, &orig->notify, p->notify);
 		copy_changed_acl(opt, &orig->provide_xfr, p->provide_xfr);
+		copy_changed_acl(opt, &orig->allow_query, p->allow_query);
 		copy_changed_acl(opt, &orig->outgoing_interface,
 			p->outgoing_interface);
 	}
@@ -1052,6 +1065,7 @@ pattern_options_equal(struct pattern_options* p, struct pattern_options* q)
 	if(!acl_list_equal(p->request_xfr, q->request_xfr)) return 0;
 	if(!acl_list_equal(p->notify, q->notify)) return 0;
 	if(!acl_list_equal(p->provide_xfr, q->provide_xfr)) return 0;
+	if(!acl_list_equal(p->allow_query, q->allow_query)) return 0;
 	if(!acl_list_equal(p->outgoing_interface, q->outgoing_interface))
 		return 0;
 	if(p->max_refresh_time != q->max_refresh_time) return 0;
@@ -1224,6 +1238,7 @@ pattern_options_marshal(struct buffer* b, struct pattern_options* p)
 	marshal_acl_list(b, p->request_xfr);
 	marshal_acl_list(b, p->notify);
 	marshal_acl_list(b, p->provide_xfr);
+	marshal_acl_list(b, p->allow_query);
 	marshal_acl_list(b, p->outgoing_interface);
 	marshal_u32(b, p->max_refresh_time);
 	marshal_u8(b, p->max_refresh_time_is_default);
@@ -1258,6 +1273,7 @@ pattern_options_unmarshal(region_type* r, struct buffer* b)
 	p->request_xfr = unmarshal_acl_list(r, b);
 	p->notify = unmarshal_acl_list(r, b);
 	p->provide_xfr = unmarshal_acl_list(r, b);
+	p->allow_query = unmarshal_acl_list(r, b);
 	p->outgoing_interface = unmarshal_acl_list(r, b);
 	p->max_refresh_time = unmarshal_u32(b);
 	p->max_refresh_time_is_default = unmarshal_u8(b);
@@ -2052,6 +2068,7 @@ config_apply_pattern(struct pattern_options *dest, const char* name)
 	copy_and_append_acls(&dest->request_xfr, pat->request_xfr);
 	copy_and_append_acls(&dest->notify, pat->notify);
 	copy_and_append_acls(&dest->provide_xfr, pat->provide_xfr);
+	copy_and_append_acls(&dest->allow_query, pat->allow_query);
 	copy_and_append_acls(&dest->outgoing_interface, pat->outgoing_interface);
 	if(pat->multi_master_check)
 		dest->multi_master_check = pat->multi_master_check;

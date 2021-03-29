@@ -323,6 +323,13 @@ remote-control:
 	# if label or character does not exist you get a dot '.'.
 	# for example "%s.zone" or "zones/%1/%2/%3/%s" or "secondary/%z/%s"
 	#zonefile: "%s.zone"
+	
+	# The allow-query allows an access control list to be specified
+	# for a zone to be queried. Without an allow-query option, any
+	# IP address is allowed to send queries for the zone.
+	# This could be useful for example to not leak content from a zone
+	# which is only offered for transfer to secondaries over TLS.
+	#allow-query: 192.0.2.0/24 NOKEY
 
 	# If no master and slave access control elements are provided,
 	# this zone will not be served to/from other servers.
