@@ -1599,6 +1599,37 @@ zadd_rdata_txt_clean_wireformat()
 	}
 }
 
+static int
+svcparam_key_cmp(const void *a, const void *b)
+{
+	return ((int)read_uint16(rdata_atom_data(*(rdata_atom_type *)a)))
+	     - ((int)read_uint16(rdata_atom_data(*(rdata_atom_type *)b)));
+}
+
+void
+zadd_rdata_svcb_check_wireformat()
+{
+	size_t i;
+
+	qsort( (void *)&parser->current_rr.rdatas[2]
+	     , parser->current_rr.rdata_count - 2
+	     , sizeof(rdata_atom_type *)
+	     , svcparam_key_cmp
+	     );
+
+	for (i = 2; i < parser->current_rr.rdata_count; i++) {
+		size_t    sz   = rdata_atom_size(parser->current_rr.rdatas[i]);
+		uint8_t  *data = rdata_atom_data(parser->current_rr.rdatas[i]);
+		uint16_t  key  = read_uint16(data);
+
+		fprintf(stderr, "SvcParam[%zu]: len: %zu, type:", i, sz);
+		if (key < SVCPARAMKEY_COUNT)
+			fprintf(stderr, "%s\n", svcparamkey_strs[key]);
+		else
+			fprintf(stderr, "key%hu\n", key);
+	}
+}
+
 void
 zadd_rdata_domain(domain_type *domain)
 {

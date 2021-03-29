@@ -1201,6 +1201,8 @@ rdata_svcb:	rdata_svcb_base sp svcparams trail
 	    /* @TODO Sort SVCB SvcParam rdata fields */
 	    /* zadd_rdata_txt_clean_wireformat(); */
 	    /* @TODO check if mandatory keys exist */
+
+	    zadd_rdata_svcb_check_wireformat();
     }
     |	rdata_svcb_base trail
     ;
