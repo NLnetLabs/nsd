@@ -149,8 +149,8 @@ git clone --depth=1 --no-tags -b $GITBRANCH $GITREPO nsd || error_cleanup "git c
 cd nsd || error_cleanup "NSD not exported correctly from git"
 rm -rf .git || error_cleanup "Failed to remove .git tracking information"
 
-info "Building configure script (autoconf)."
-autoconf || error_cleanup "Autoconf failed."
+info "Building configure script (autoreconf)."
+autoreconf || error_cleanup "Autoconf failed."
 
 info "Building config.h.in (autoheader)."
 autoheader || error_cleanup "Autoheader failed."

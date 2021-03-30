@@ -31,6 +31,7 @@ BUG FIXES:
 	- Fix warning about unused function log_addr.
 	- Fix #154: TXT with parentheses fails in 4.3.5.
 	- Align parsing of TXT elements with how bind does it.
+	- Fix configure failure for enable systemd because of autoconf.
 
 
 4.3.5

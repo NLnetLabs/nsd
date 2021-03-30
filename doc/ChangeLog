@@ -1,3 +1,6 @@
+30 March 2021: Wouter
+	- Fix configure failure for enable systemd because of autoconf.
+
 29 March 2021: Wouter
 	- Note unlisted changes in RELNOTES and prepare for 4.3.6rc1 tag.
 
