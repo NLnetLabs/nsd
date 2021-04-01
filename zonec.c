@@ -963,14 +963,14 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 		key_dst += 1;
 	}
 
-	/* In draft-ietf-dnsop-svcb-https-02 Section 7:
+	/* In draft-ietf-dnsop-svcb-https-04 Section 7:
 	 *
 	 *     In wire format, the keys are represented by their numeric
 	 *     values in network byte order, concatenated in ascending order.
 	 */
 	qsort((void *)&r[3], count, sizeof(uint16_t), network_uint16_cmp);
 
-	/* In draft-ietf-dnsop-svcb-https-02 Section 7:
+	/* In draft-ietf-dnsop-svcb-https-04 Section 7:
 	 *
 	 *     Keys (...) MUST NOT appear more than once.
 	 */
@@ -1607,10 +1607,18 @@ svcparam_key_cmp(const void *a, const void *b)
 }
 
 void
-zadd_rdata_svcb_check_wireformat()
+zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 {
-	size_t i;
+	size_t i, j;
+	uint8_t paramkeys[SVCPARAMKEY_COUNT - 1];
+	memset(paramkeys, 0, sizeof(paramkeys));
+	uint16_t key;
 
+	/* 
+	 * In draft-ietf-dnsop-svcb-https-04 Section 7:
+	 * In wire format, the keys are represented by their numeric values in
+	 * network byte order, concatenated in ascending order.
+	 */
 	qsort( (void *)&parser->current_rr.rdatas[2]
 	     , parser->current_rr.rdata_count - 2
 	     , sizeof(rdata_atom_type *)
@@ -1618,15 +1626,86 @@ zadd_rdata_svcb_check_wireformat()
 	     );
 
 	for (i = 2; i < parser->current_rr.rdata_count; i++) {
-		size_t    sz   = rdata_atom_size(parser->current_rr.rdatas[i]);
-		uint8_t  *data = rdata_atom_data(parser->current_rr.rdatas[i]);
-		uint16_t  key  = read_uint16(data);
+		// @TODO remove after debugging is done
+		// size_t    size = rdata_atom_size(parser->current_rr.rdatas[i]);
 
-		fprintf(stderr, "SvcParam[%zu]: len: %zu, type:", i, sz);
-		if (key < SVCPARAMKEY_COUNT)
-			fprintf(stderr, "%s\n", svcparamkey_strs[key]);
-		else
-			fprintf(stderr, "key%hu\n", key);
+		uint8_t  *data = rdata_atom_data(parser->current_rr.rdatas[i]);
+		key  = read_uint16(data);
+
+		/* keep track of keys that are present*/
+		if (key < SVCPARAMKEY_COUNT) {
+			paramkeys[key] = 1;
+		}
+
+		// @TODO check doubles
+
+		// fprintf(stderr, "SvcParam[%zu]: len: %zu, type:", i, size);
+		// if (key < SVCPARAMKEY_COUNT)
+		// 	fprintf(stderr, "%s\n", svcparamkey_strs[key]);
+		// else
+		// 	fprintf(stderr, "key%hu\n", key);
+	}
+
+	if (paramkeys[SVCB_KEY_ALPN] && paramkeys[SVCB_KEY_NO_DEFAULT_ALPN])
+		zc_error_prev_line("alpn and no-default-alpn are not allowed"
+			                   " in the same record");
+
+	/*
+	 * In draft-ietf-dnsop-svcb-https-04 Section 8, Using SVCB with HTTPS and HTTP:
+	 * The "automatically mandatory" keys (Section 7) are "port"
+	 * and "no-default-alpn". 
+	 * (...) 
+	 * "automatically mandatory", i.e. mandatory if they arepresent in an RR.
+	 */
+	if (rr_type == TYPE_HTTPS) {
+		if (!(paramkeys[SVCB_KEY_PORT]) || !(paramkeys[SVCB_KEY_NO_DEFAULT_ALPN])) {
+			zc_error_prev_line("port and no-default-alpn must be included"
+			                   " in the HTTPS record");
+		}
+	}
+
+	/* Check that the mandatory key is present */
+	if (paramkeys[SVCB_KEY_MANDATORY]) {
+		size_t    size = rdata_atom_size(parser->current_rr.rdatas[2]);
+		uint16_t  *mandatory_values = (void*)rdata_atom_data(parser->current_rr.rdatas[2]);
+		key  = read_uint16(mandatory_values);
+
+		mandatory_values += 2; /* skip the key type and length */
+
+		for (i = 0; i < (size - 4)/2; i++) {
+			key = mandatory_values[i];
+
+			if (key < SVCPARAMKEY_COUNT && !(paramkeys[key]))
+				zc_error_prev_line("mandatorySvcParamKey: %s is missing "
+				                   "the record\n", svcparamkey_strs[key]);
+
+			/* In draft-ietf-dnsop-svcb-https-04 Section 8
+			 * automatically mandatory MUST NOT appear in its own value-list
+			 */
+			else if (key < SVCPARAMKEY_COUNT && paramkeys[key]
+				 && (rr_type == TYPE_HTTPS)
+				 && (key == SVCB_KEY_PORT || key == SVCB_KEY_NO_DEFAULT_ALPN))
+						zc_error_prev_line("port and no-default-alpn must not be included"
+						                   "as mandatory in the HTTPS record");
+
+			else {
+				uint8_t found = 0;
+				uint8_t *temp_data;
+
+				for (j = 3; j < parser->current_rr.rdata_count + 1; j++) {
+					temp_data = rdata_atom_data(parser->current_rr.rdatas[j]);
+
+					if (key == read_uint16(temp_data)) {
+						found = 1;
+						break;
+					}
+				}
+
+				if (!(found))
+					zc_error_prev_line("mandatorySvcParamKey: key%hu is missing "
+					                   "the record\n", key);
+			}
+		}
 	}
 }
 

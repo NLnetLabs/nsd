@@ -120,7 +120,7 @@ uint32_t zparser_ttl2int(const char *ttlstr, int* error);
 void zadd_rdata_wireformat(uint16_t *data);
 void zadd_rdata_txt_wireformat(uint16_t *data, int first);
 void zadd_rdata_txt_clean_wireformat(void);
-void zadd_rdata_svcb_check_wireformat(void);
+void zadd_rdata_svcb_check_wireformat(uint16_t rr_type);
 void zadd_rdata_domain(domain_type *domain);
 
 void set_bitnsec(uint8_t  bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],

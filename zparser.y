@@ -709,7 +709,7 @@ type_and_rdata:
     |	T_ZONEMD sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_SVCB sp rdata_svcb
     |	T_SVCB sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    |	T_HTTPS sp rdata_svcb
+    |	T_HTTPS sp rdata_https
     |	T_HTTPS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_URI sp rdata_uri
     |	T_URI sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
@@ -1195,16 +1195,17 @@ rdata_svcb_base:	str sp dname
 	    /* SvcDomainName */
 	    zadd_rdata_domain($3);
     };
-rdata_svcb:	rdata_svcb_base sp svcparams trail
+rdata_svcb:     rdata_svcb_base sp svcparams trail
     {
-	    /* SvcFieldValue */
-	    /* @TODO Sort SVCB SvcParam rdata fields */
-	    /* zadd_rdata_txt_clean_wireformat(); */
-	    /* @TODO check if mandatory keys exist */
-
-	    zadd_rdata_svcb_check_wireformat();
+        zadd_rdata_svcb_check_wireformat(TYPE_SVCB);
     }
-    |	rdata_svcb_base trail
+    |   rdata_svcb_base trail
+    ;
+rdata_https:     rdata_svcb_base sp svcparams trail
+    {
+        zadd_rdata_svcb_check_wireformat(TYPE_HTTPS);
+    }
+    |   rdata_svcb_base trail
     ;
 
 rdata_unknown:	URR sp str sp str_sp_seq trail
