@@ -1429,6 +1429,11 @@ process_rr(void)
 		rr->owner->is_apex = 1;
 	}
 
+	if (rr->owner == error_domain
+	||  domain_dname(rr->owner) == error_dname) {
+		zc_error_prev_line("invalid owner name");
+		return 0;
+	}
 	if (!domain_is_subdomain(rr->owner, zone->apex))
 	{
 		char s[MAXDOMAINLEN*5];
