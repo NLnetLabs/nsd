@@ -174,6 +174,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define SVCB_KEY_IPV4HINT		4
 #define SVCB_KEY_ECHCONFIG		5
 #define SVCB_KEY_IPV6HINT		6
+#define SVCPARAMKEY_COUNT 7
 
 #define MAXLABELLEN	63
 #define MAXDOMAINLEN	255
@@ -191,8 +192,6 @@ typedef enum nsd_rc nsd_rc_type;
 #define EUI64ADDRLEN	(64/8)
 
 #define NSEC3_HASH_LEN 20
-
-#define SVCPARAMKEY_COUNT 7
 
 /*
  * The different types of RDATA wireformat data.

@@ -713,13 +713,15 @@ rdata_svcparam_mandatory_to_string(buffer_type *output, uint16_t val_len,
 {
 	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
 
+	if (val_len % sizeof(uint16_t))
+		return 0; /* wireformat error, val_len must be multiple of shorts */
 	buffer_write_u8(output, '=');
-	buffer_print_svcparamkey(output, *data);
+	buffer_print_svcparamkey(output, ntohs(*data));
 	data += 1;
 
 	while ((val_len -= sizeof(uint16_t))) {
 		buffer_write_u8(output, ',');
-		buffer_print_svcparamkey(output, *data);
+		buffer_print_svcparamkey(output, ntohs(*data));
 		data += 1;
 	}
 
@@ -1118,5 +1120,4 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 
 	return 1;
 }
-
 

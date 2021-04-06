@@ -27,7 +27,6 @@
 #endif
 
 #include <netinet/in.h>
-// #include <arpa/inet.h>
 
 #ifdef HAVE_NETDB_H
 #include <netdb.h>
@@ -807,7 +806,10 @@ svcbparam_lookup_key(const char *key, size_t key_len)
 		buf[key_len] = 0;
 		zc_error_prev_line("Unknown SvcParamKey: %s", buf);
 	}
-	return 65535;
+	/* Although the returned value might be used by the caller,
+	 * the parser has erred, so the zone will not be loaded.
+	 */
+	return -1;
 }
 
 static uint16_t *
@@ -841,9 +843,13 @@ zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 	char *next_ip_str;
 	uint32_t *ip_wire_dst;
 
-	for (i = 0, count = 1; val[i]; i++)
-		count += (val[i] == ',');
-
+	for (i = 0, count = 1; val[i]; i++) {
+		if (val[i] == ',')
+			count += 1;
+	}
+	/* count == number of comma's in val + 1 
+	 * so actually the number of IPv4 addresses in val
+	 */
 	r = alloc_rdata(region, 2 * sizeof(uint16_t) + IP4ADDRLEN * count);
 	r[1] = htons(SVCB_KEY_IPV4HINT);
 	r[2] = htons(IP4ADDRLEN * count);
@@ -863,7 +869,7 @@ zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 			memcpy(ip_str, val, next_ip_str - val);
 			ip_str[next_ip_str - val] = 0;
 			if (inet_pton(AF_INET, ip_str, ip_wire_dst) != 1) {
-				val = ip_str;
+				val = ip_str; /* to use in error reporting below */
 				break;
 			}
 
@@ -887,9 +893,14 @@ zparser_conv_svcbparam_ipv6hint_value(region_type *region, const char *val)
 	char *next_ip6_str;
 	uint8_t *ipv6_wire_dst;
 
-	for (i = 0, count = 1; val[i]; i++)
-		count += (val[i] == ',');
+	for (i = 0, count = 1; val[i]; i++) {
+		if (val[i] == ',')
+			count += 1;
+	}
 
+	/* count == number of comma's in val + 1 
+	 * so actually the number of IPv6 addresses in val
+	 */
 	r = alloc_rdata(region, 2 * sizeof(uint16_t) + IP6ADDRLEN * count);
 	r[1] = htons(SVCB_KEY_IPV6HINT);
 	r[2] = htons(IP6ADDRLEN * count);
@@ -909,7 +920,7 @@ zparser_conv_svcbparam_ipv6hint_value(region_type *region, const char *val)
 			memcpy(ip6_str, val, next_ip6_str - val);
 			ip6_str[next_ip6_str - val] = 0;
 			if (inet_pton(AF_INET6, ip6_str, ipv6_wire_dst) != 1) {
-				val = ip6_str;
+				val = ip6_str; /* for error reporting below */
 				break;
 			}
 
@@ -940,22 +951,22 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 	char* next_key;
 	uint16_t* key_dst;
 
-	for (i = 0, count = 1; val[i]; i++)
-		count += (val[i] == ',');
+	for (i = 0, count = 1; val[i]; i++) {
+		if (val[i] == ',')
+			count += 1;
+	}
 
 	r = alloc_rdata(region, (2 + count) * sizeof(uint16_t));
 	r[1] = htons(SVCB_KEY_MANDATORY);
 	r[2] = htons(sizeof(uint16_t) * count);
 	key_dst = (void *)&r[3];
 
-	// @TODO add error for forbidden keys
-
 	for(;;) {
 		if (!(next_key = strchr(val, ','))) {
-			*key_dst = svcbparam_lookup_key(val, val_len);
+			*key_dst = htons(svcbparam_lookup_key(val, val_len));
 			break;	
 		} else {
-			*key_dst = svcbparam_lookup_key(val, next_key - val);
+			*key_dst = htons(svcbparam_lookup_key(val, next_key - val));
 		}
 
 		val_len -= next_key - val + 1;
@@ -981,21 +992,6 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 		if (key == SVCB_KEY_MANDATORY)
 			zc_error_prev_line("mandatory should not be a value of the mandatory key\n");
 
-		if (parser->current_rr.type == TYPE_HTTPS) switch(key) {
-			case SVCB_KEY_PORT:
-				zc_error_prev_line("port is automatically "
-				                   "mandatory and may not be "
-						   "used in a mandatory "
-						   "SvcParam\n");
-				break;
-			case SVCB_KEY_ALPN:
-				zc_error_prev_line("alpn is automatically "
-				                   "mandatory and may not be "
-						   "used in a mandatory "
-						   "SvcParam\n");
-
-				break;
-		}
 		if (key == prev_key) {
 			if (key < SVCPARAMKEY_COUNT) {
 				zc_error_prev_line("Duplicate key found: %s\n",
@@ -1610,7 +1606,7 @@ void
 zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 {
 	size_t i, j;
-	uint8_t paramkeys[SVCPARAMKEY_COUNT - 1];
+	uint8_t paramkeys[65536];
 	memset(paramkeys, 0, sizeof(paramkeys));
 	uint16_t key;
 
@@ -1626,16 +1622,11 @@ zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 	     );
 
 	for (i = 2; i < parser->current_rr.rdata_count; i++) {
-		// @TODO remove after debugging is done
-		// size_t    size = rdata_atom_size(parser->current_rr.rdatas[i]);
-
 		uint8_t  *data = rdata_atom_data(parser->current_rr.rdatas[i]);
 		key  = read_uint16(data);
 
 		/* keep track of keys that are present*/
-		if (key < SVCPARAMKEY_COUNT) {
-			paramkeys[key] = 1;
-		}
+		paramkeys[key] = 1;
 
 		// @TODO check doubles
 
@@ -1657,54 +1648,38 @@ zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 	 * (...) 
 	 * "automatically mandatory", i.e. mandatory if they arepresent in an RR.
 	 */
-	if (rr_type == TYPE_HTTPS) {
-		if (!(paramkeys[SVCB_KEY_PORT]) || !(paramkeys[SVCB_KEY_NO_DEFAULT_ALPN])) {
-			zc_error_prev_line("port and no-default-alpn must be included"
+	if (rr_type == TYPE_HTTPS
+	&& (!paramkeys[SVCB_KEY_PORT] || !paramkeys[SVCB_KEY_NO_DEFAULT_ALPN])) {
+		zc_error_prev_line("port and no-default-alpn must be included"
 			                   " in the HTTPS record");
-		}
 	}
 
 	/* Check that the mandatory key is present */
 	if (paramkeys[SVCB_KEY_MANDATORY]) {
 		size_t    size = rdata_atom_size(parser->current_rr.rdatas[2]);
 		uint16_t  *mandatory_values = (void*)rdata_atom_data(parser->current_rr.rdatas[2]);
-		key  = read_uint16(mandatory_values);
-
 		mandatory_values += 2; /* skip the key type and length */
 
-		for (i = 0; i < (size - 4)/2; i++) {
-			key = mandatory_values[i];
+		if (size % 2)
+			zc_error_prev_line("mandatory rdata must be a even");
+			
+		else for (i = 0; i < (size - 4)/2; i++) {
+			key = ntohs(mandatory_values[i]);
 
 			if (key < SVCPARAMKEY_COUNT && !(paramkeys[key]))
 				zc_error_prev_line("mandatorySvcParamKey: %s is missing "
 				                   "the record\n", svcparamkey_strs[key]);
-
+			else if (!paramkeys[key])
+				zc_error_prev_line("mandatorySvcParamKey: key%hu is missing "
+				                   "the record\n", key);
 			/* In draft-ietf-dnsop-svcb-https-04 Section 8
 			 * automatically mandatory MUST NOT appear in its own value-list
 			 */
-			else if (key < SVCPARAMKEY_COUNT && paramkeys[key]
-				 && (rr_type == TYPE_HTTPS)
+			else if (rr_type == TYPE_HTTPS
 				 && (key == SVCB_KEY_PORT || key == SVCB_KEY_NO_DEFAULT_ALPN))
 						zc_error_prev_line("port and no-default-alpn must not be included"
 						                   "as mandatory in the HTTPS record");
 
-			else {
-				uint8_t found = 0;
-				uint8_t *temp_data;
-
-				for (j = 3; j < parser->current_rr.rdata_count + 1; j++) {
-					temp_data = rdata_atom_data(parser->current_rr.rdatas[j]);
-
-					if (key == read_uint16(temp_data)) {
-						found = 1;
-						break;
-					}
-				}
-
-				if (!(found))
-					zc_error_prev_line("mandatorySvcParamKey: key%hu is missing "
-					                   "the record\n", key);
-			}
 		}
 	}
 }
