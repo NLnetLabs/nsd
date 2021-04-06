@@ -1409,6 +1409,16 @@ process_rr(void)
 		zc_error_prev_line("maximum rdata length exceeds %d octets", MAX_RDLENGTH);
 		return 0;
 	}
+
+	/* We cannot print invalid owner names,
+	 * so error on that before it is used in printing other errors.
+	 */
+	if (rr->owner == error_domain
+	||  domain_dname(rr->owner) == error_dname) {
+		zc_error_prev_line("invalid owner name");
+		return 0;
+	}
+
 	/* we have the zone already */
 	assert(zone);
 	if (rr->type == TYPE_SOA) {
@@ -1429,11 +1439,6 @@ process_rr(void)
 		rr->owner->is_apex = 1;
 	}
 
-	if (rr->owner == error_domain
-	||  domain_dname(rr->owner) == error_dname) {
-		zc_error_prev_line("invalid owner name");
-		return 0;
-	}
 	if (!domain_is_subdomain(rr->owner, zone->apex))
 	{
 		char s[MAXDOMAINLEN*5];
