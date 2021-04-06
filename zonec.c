@@ -946,7 +946,6 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 		const char *val, size_t val_len)
 {
 	uint16_t *r;
-	int key, prev_key;
 	int i, count;
 	char* next_key;
 	uint16_t* key_dst;
@@ -980,30 +979,6 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 	 *     values in network byte order, concatenated in ascending order.
 	 */
 	qsort((void *)&r[3], count, sizeof(uint16_t), network_uint16_cmp);
-
-	/* In draft-ietf-dnsop-svcb-https-04 Section 7:
-	 *
-	 *     Keys (...) MUST NOT appear more than once.
-	 */
-	prev_key = -1;
-	for(i = 0; i < count; i++) {
-		key = read_uint16((void *)&r[3 + i]);
-
-		if (key == SVCB_KEY_MANDATORY)
-			zc_error_prev_line("mandatory should not be a value of the mandatory key\n");
-
-		if (key == prev_key) {
-			if (key < SVCPARAMKEY_COUNT) {
-				zc_error_prev_line("Duplicate key found: %s\n",
-					svcparamkey_strs[key]);
-			} else {
-				zc_error_prev_line("Duplicate key found: key%hu\n", ntohs(key));
-				break;
-			}
-		} else {
-			prev_key = key;
-		}
-	}
 
 	return r;
 }
@@ -1605,7 +1580,7 @@ svcparam_key_cmp(const void *a, const void *b)
 void
 zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 {
-	size_t i, j;
+	size_t i;
 	uint8_t paramkeys[65536];
 	memset(paramkeys, 0, sizeof(paramkeys));
 	uint16_t key;
@@ -1625,21 +1600,30 @@ zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 		uint8_t  *data = rdata_atom_data(parser->current_rr.rdatas[i]);
 		key  = read_uint16(data);
 
-		/* keep track of keys that are present*/
+		/* In draft-ietf-dnsop-svcb-https-04 Section 7:
+		 *
+		 *     Keys (...) MUST NOT appear more than once.
+		 * 
+		 * If they key has already been seen, we have a duplicate
+		 */
+		if (paramkeys[key] == 1 ) {
+			if (key < SVCPARAMKEY_COUNT) {
+				zc_error_prev_line("Duplicate key found: %s\n",
+					svcparamkey_strs[key]);
+			} else {
+				zc_error_prev_line("Duplicate key found: key%hu\n", key);
+				break;
+			}
+		}
+
+		/* keep track of keys that are present */
 		paramkeys[key] = 1;
 
-		// @TODO check doubles
-
-		// fprintf(stderr, "SvcParam[%zu]: len: %zu, type:", i, size);
-		// if (key < SVCPARAMKEY_COUNT)
-		// 	fprintf(stderr, "%s\n", svcparamkey_strs[key]);
-		// else
-		// 	fprintf(stderr, "key%hu\n", key);
 	}
 
 	if (paramkeys[SVCB_KEY_ALPN] && paramkeys[SVCB_KEY_NO_DEFAULT_ALPN])
 		zc_error_prev_line("alpn and no-default-alpn are not allowed"
-			                   " in the same record");
+		                   " in the same record");
 
 	/*
 	 * In draft-ietf-dnsop-svcb-https-04 Section 8, Using SVCB with HTTPS and HTTP:
@@ -1654,7 +1638,7 @@ zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 			                   " in the HTTPS record");
 	}
 
-	/* Check that the mandatory key is present */
+	/* Verify that the mandatory key is present */
 	if (paramkeys[SVCB_KEY_MANDATORY]) {
 		size_t    size = rdata_atom_size(parser->current_rr.rdatas[2]);
 		uint16_t  *mandatory_values = (void*)rdata_atom_data(parser->current_rr.rdatas[2]);
@@ -1672,13 +1656,18 @@ zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 			else if (!paramkeys[key])
 				zc_error_prev_line("mandatorySvcParamKey: key%hu is missing "
 				                   "the record\n", key);
+
 			/* In draft-ietf-dnsop-svcb-https-04 Section 8
 			 * automatically mandatory MUST NOT appear in its own value-list
 			 */
-			else if (rr_type == TYPE_HTTPS
-				 && (key == SVCB_KEY_PORT || key == SVCB_KEY_NO_DEFAULT_ALPN))
+			if (rr_type == TYPE_HTTPS
+				 && (key == SVCB_KEY_PORT || 
+				 	 key == SVCB_KEY_NO_DEFAULT_ALPN))
 						zc_error_prev_line("port and no-default-alpn must not be included"
 						                   "as mandatory in the HTTPS record");
+
+			if (key == SVCB_KEY_MANDATORY)
+				zc_error_prev_line("mandatory must not be included as mandatory parameter");
 
 		}
 	}
