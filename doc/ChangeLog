@@ -1,3 +1,26 @@
+30 March 2021: Wouter
+	- Fix configure failure for enable systemd because of autoconf.
+
+29 March 2021: Wouter
+	- Note unlisted changes in RELNOTES and prepare for 4.3.6rc1 tag.
+
+29 March 2021: Willem
+	- Per zone Access Control List for queries
+	  with an allow-query: option.
+
+24 March 2021: Wouter
+	- Update acx_nlnetlabs.m4 to version 38, fix deprecation test.
+	- Fix configure to use header checks with compile.
+	- Fix warning about unused function log_addr.
+
+18 March 2021: Tom
+	- Add Extended DNS Errors RFC8914
+
+15 March 2021: Wouter
+	- Fix double config.h include in configlexer.c
+	- Fix to remove configyyrename from makedist.sh and also
+	  update the flex and bison rules there to add the "c_" prefix.
+
 13 March 2021: Willem
 	- Fix #154: TXT with parentheses fails in 4.3.5.
 	- Align parsing of TXT elements with how bind does it.

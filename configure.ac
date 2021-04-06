@@ -449,7 +449,7 @@ fi
 
 # Checks for header files.
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([time.h arpa/inet.h signal.h string.h strings.h fcntl.h limits.h netinet/in.h netinet/tcp.h stddef.h sys/param.h sys/socket.h sys/un.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h glob.h grp.h endian.h sys/random.h ifaddrs.h])
+AC_CHECK_HEADERS([time.h arpa/inet.h signal.h string.h strings.h fcntl.h limits.h netinet/in.h netinet/tcp.h stddef.h sys/param.h sys/socket.h sys/un.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h glob.h grp.h endian.h sys/random.h ifaddrs.h],,, [AC_INCLUDES_DEFAULT])
 
 AC_DEFUN([CHECK_VALIST_DEF],
 [
@@ -634,7 +634,7 @@ AC_SYS_LARGEFILE
 AC_CHECK_SIZEOF(void*)
 AC_CHECK_SIZEOF(off_t)
 AC_CHECK_FUNCS([getrandom arc4random arc4random_uniform])
-AC_SEARCH_LIBS([setusercontext],[util],[AC_CHECK_HEADERS([login_cap.h])])
+AC_SEARCH_LIBS([setusercontext],[util],[AC_CHECK_HEADERS([login_cap.h],,, [AC_INCLUDES_DEFAULT])])
 AC_CHECK_FUNCS([tzset alarm chroot dup2 endpwent gethostname memset memcpy pwrite socket strcasecmp strchr strdup strerror strncasecmp strtol writev getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime strftime localtime_r setusercontext glob initgroups setresuid setreuid setresgid setregid getpwnam mmap ppoll clock_gettime accept4 getifaddrs])
 
 AC_CHECK_TYPE([struct mmsghdr], AC_DEFINE(HAVE_MMSGHDR, 1, [If sys/socket.h has a struct mmsghdr.]), [], [
@@ -694,7 +694,7 @@ if echo $target_os | $EGREP -i 'linux|hurd' > /dev/null; then
 fi
 
 # see comment on _GNU_SOURCE above
-AC_CHECK_HEADERS([sched.h sys/cpuset.h])
+AC_CHECK_HEADERS([sched.h sys/cpuset.h],,, [AC_INCLUDES_DEFAULT])
 
 # Check for cpu_set_t (Linux) and cpuset_t (FreeBSD and NetBSD)
 AC_CHECK_TYPES([cpu_set_t, cpuset_t, cpuid_t],,,[
@@ -1056,7 +1056,7 @@ esac
 AC_ARG_ENABLE(mmap, AS_HELP_STRING([--enable-mmap],[Use mmap instead of malloc. Experimental.]))
 case "$enable_mmap" in
         yes)
-		AC_CHECK_HEADERS([sys/mman.h])
+		AC_CHECK_HEADERS([sys/mman.h],,, [AC_INCLUDES_DEFAULT])
 		AC_LIBGTOP_CHECK_TYPE(uintptr_t, void*)
 		AC_CHECK_FUNCS([mmap munmap])
 		AC_DEFINE_UNQUOTED([USE_MMAP_ALLOC], [], [Define this to enable mmap instead of malloc. Experimental.])

@@ -1,10 +1,15 @@
 NSD RELEASE NOTES
 
-4.3.6 (in development)
+4.3.6
 ================
 FEATURES:
 	- Fix #146 with #147: DNSTAP log the local address of the server
 	  with the dnstap logs.
+	- Enable configuring a control-interface by interface name.
+	- A -p option to nsd-checkzone to print a successfully read zone.
+	- Add Extended DNS Errors RFC8914
+	- Per zone Access Control List for queries
+	  with an allow-query: option.
 BUG FIXES:
 	- Prevent a few more yacc clashes.
 	- Merge PR #153 from fobser: Repair -fno-common linker errors
@@ -19,6 +24,14 @@ BUG FIXES:
 	- Fix #163: A TSIG noncompliance with RFC 2845.
 	- Fix that wildcard is printed as a star instead of escaped, in
 	  logs and in written zone files.
+	- Fix double config.h include in configlexer.c
+	- Fix to remove configyyrename from makedist.sh and also
+	  update the flex and bison rules there to add the "c_" prefix.
+	- Fix configure to use header checks with compile.
+	- Fix warning about unused function log_addr.
+	- Fix #154: TXT with parentheses fails in 4.3.5.
+	- Align parsing of TXT elements with how bind does it.
+	- Fix configure failure for enable systemd because of autoconf.
 
 
 4.3.5

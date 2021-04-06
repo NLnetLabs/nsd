@@ -213,6 +213,7 @@ struct pattern_options {
 	struct acl_options* request_xfr;
 	struct acl_options* notify;
 	struct acl_options* provide_xfr;
+	struct acl_options* allow_query;
 	struct acl_options* outgoing_interface;
 	const char* zonestats;
 #ifdef RATELIMIT

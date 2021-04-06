@@ -11,9 +11,6 @@
 #if defined(__clang__)||(defined(__GNUC__)&&((__GNUC__ >4)||(defined(__GNUC_MINOR__)&&(__GNUC__ ==4)&&(__GNUC_MINOR__ >=2))))
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
-
-#include "config.h"
-
 #include <ctype.h>
 #include <errno.h>
 #include <string.h>
@@ -240,6 +237,7 @@ request-xfr{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_REQUEST_XFR;}
 notify{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_NOTIFY;}
 notify-retry{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_NOTIFY_RETRY;}
 provide-xfr{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_PROVIDE_XFR;}
+allow-query{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ALLOW_QUERY;}
 outgoing-interface{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_OUTGOING_INTERFACE;}
 allow-axfr-fallback{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ALLOW_AXFR_FALLBACK;}
 key{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_KEY;}
