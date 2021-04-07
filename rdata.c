@@ -797,8 +797,20 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	val_len = ntohs(data[1]);
 	if (size != val_len + 4)
 		return 0; /* wireformat error */
-	if (!val_len)
-		return 1;
+	if (!val_len) {
+		/* Some SvcParams MUST have values */
+		switch (svcparamkey) {
+		case SVCB_KEY_ECHCONFIG:
+		case SVCB_KEY_ALPN:
+		case SVCB_KEY_PORT:
+		case SVCB_KEY_IPV4HINT:
+		case SVCB_KEY_IPV6HINT:
+		case SVCB_KEY_MANDATORY:
+			return 0;
+		default:
+			return 1;
+		}
+	}
 	switch (svcparamkey) {
 	case SVCB_KEY_PORT:
 		return rdata_svcparam_port_to_string(output, val_len, data+2);

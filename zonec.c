@@ -1083,6 +1083,7 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 {
 	const char *eq;
 	uint16_t *r;
+	uint16_t svcparamkey;
 
 	/* Form <key>="<value>" (or at least with quoted value) */
 	if (val) {
@@ -1101,9 +1102,25 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 		return zparser_conv_svcbparam_key_value(
 		    region, key, new_key_len, eq+1, key_len - new_key_len - 1);
 	}
+
+	/* Some SvcParamKeys require values */
+	svcparamkey = svcbparam_lookup_key(key, key_len);
+	switch (svcparamkey) {
+		case SVCB_KEY_ECHCONFIG:
+		case SVCB_KEY_ALPN:
+		case SVCB_KEY_PORT:
+		case SVCB_KEY_IPV4HINT:
+		case SVCB_KEY_IPV6HINT:
+		case SVCB_KEY_MANDATORY:
+			zc_error_prev_line("value expected for SvcParam: %s", key);
+			break;
+		default:
+			break;
+	}
+
 	/* SvcParam is only a SvcParamKey */
 	r = alloc_rdata(region, 2 * sizeof(uint16_t));
-	r[1] = htons(svcbparam_lookup_key(key, key_len));
+	r[1] = htons(svcparamkey);
 	r[2] = 0;
 	return r;
 }
