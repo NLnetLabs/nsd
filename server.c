@@ -95,16 +95,22 @@
 static void
 log_addr(const char* descr,
 #ifdef INET6
-	struct sockaddr_storage* addr,
+	struct sockaddr_storage* addr
 #else
-	struct sockaddr_in* addr,
+	struct sockaddr_in* addr
 #endif
-	short family)
+	)
 {
 	char str_buf[64];
 	if(verbosity < 6)
 		return;
-	if(family == AF_INET) {
+	if(
+#ifdef INET6
+		addr->ss_family == AF_INET
+#else
+		addr->sin_family == AF_INET
+#endif
+		) {
 		struct sockaddr_in* s = (struct sockaddr_in*)addr;
 		inet_ntop(AF_INET, &s->sin_addr.s_addr, str_buf, sizeof(str_buf));
 		VERBOSITY(6, (LOG_INFO, "%s: address is: %s, port is: %d", descr, str_buf, ntohs(s->sin_port)));
@@ -3343,9 +3349,9 @@ handle_udp(int fd, short event, void* arg)
 		/*
 		 * sending UDP-query with server address (local) and client address to dnstap process
 		 */
-		log_addr("query from client", &q->addr, data->socket->addr.ai_family);
-		log_addr("to server (local)", &data->socket->addr.ai_addr, data->socket->addr.ai_family);
-		dt_collector_submit_auth_query(data->nsd, &data->socket->addr.ai_addr, &q->addr, q->addrlen,
+		log_addr("query from client", &q->addr);
+		log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
+		dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &q->addr, q->addrlen,
 			q->tcp, q->packet);
 #endif /* USE_DNSTAP */
 
@@ -3382,9 +3388,9 @@ handle_udp(int fd, short event, void* arg)
 			/*
 			 * sending UDP-response with server address (local) and client address to dnstap process
 			 */
-			log_addr("from server (local)", &data->socket->addr.ai_addr, data->socket->addr.ai_family);
-			log_addr("response to client", &q->addr, data->socket->addr.ai_family);
-			dt_collector_submit_auth_response(data->nsd, &data->socket->addr.ai_addr,
+			log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
+			log_addr("response to client", &q->addr);
+			dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr,
 				&q->addr, q->addrlen, q->tcp, q->packet,
 				q->zone);
 #endif /* USE_DNSTAP */
@@ -3689,9 +3695,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 	/*
 	 * and send TCP-query with found address (local) and client address to dnstap process
 	 */
-	log_addr("query from client", &data->query->addr, data->query->addr.ss_family);
-	log_addr("to server (local)", &data->socket->addr.ai_addr, data->query->addr.ss_family);
-	dt_collector_submit_auth_query(data->nsd, &data->socket->addr.ai_addr, &data->query->addr,
+	log_addr("query from client", &data->query->addr);
+	log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
+	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
 	data->query_state = server_process_query(data->nsd, data->query);
@@ -3742,9 +3748,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 	/*
 	 * sending TCP-response with found (earlier) address (local) and client address to dnstap process
 	 */
-	log_addr("from server (local)", &data->socket->addr.ai_addr, data->query->addr.ss_family);
-	log_addr("response to client", &data->query->addr, data->query->addr.ss_family);
-	dt_collector_submit_auth_response(data->nsd, &data->socket->addr.ai_addr, &data->query->addr,
+	log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
+	log_addr("response to client", &data->query->addr);
+	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
 #endif /* USE_DNSTAP */
@@ -4177,9 +4183,9 @@ handle_tls_reading(int fd, short event, void* arg)
 	/*
 	 * and send TCP-query with found address (local) and client address to dnstap process
 	 */
-	log_addr("query from client", &data->query->addr, data->query->addr.ss_family);
-	log_addr("to server (local)", &data->socket->addr.ai_addr, data->query->addr.ss_family);
-	dt_collector_submit_auth_query(data->nsd, &data->socket->addr.ai_addr, &data->query->addr,
+	log_addr("query from client", &data->query->addr);
+	log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
+	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
 	data->query_state = server_process_query(data->nsd, data->query);
@@ -4230,9 +4236,9 @@ handle_tls_reading(int fd, short event, void* arg)
 	/*
 	 * sending TCP-response with found (earlier) address (local) and client address to dnstap process
 	 */
-	log_addr("from server (local)", &data->socket->addr.ai_addr, data->query->addr.ss_family);
-	log_addr("response to client", &data->query->addr, data->query->addr.ss_family);
-	dt_collector_submit_auth_response(data->nsd, &data->socket->addr.ai_addr, &data->query->addr,
+	log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
+	log_addr("response to client", &data->query->addr);
+	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->addr,
 		data->query->addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
 #endif /* USE_DNSTAP */
