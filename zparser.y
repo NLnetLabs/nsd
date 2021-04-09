@@ -709,7 +709,7 @@ type_and_rdata:
     |	T_ZONEMD sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_SVCB sp rdata_svcb
     |	T_SVCB sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    |	T_HTTPS sp rdata_https
+    |	T_HTTPS sp rdata_svcb
     |	T_HTTPS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_URI sp rdata_uri
     |	T_URI sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
@@ -1197,13 +1197,7 @@ rdata_svcb_base:	str sp dname
     };
 rdata_svcb:     rdata_svcb_base sp svcparams trail
     {
-        zadd_rdata_svcb_check_wireformat(TYPE_SVCB);
-    }
-    |   rdata_svcb_base trail
-    ;
-rdata_https:     rdata_svcb_base sp svcparams trail
-    {
-        zadd_rdata_svcb_check_wireformat(TYPE_HTTPS);
+        zadd_rdata_svcb_check_wireformat();
     }
     |   rdata_svcb_base trail
     ;

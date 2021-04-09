@@ -1646,7 +1646,7 @@ svcparam_key_cmp(const void *a, const void *b)
 }
 
 void
-zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
+zadd_rdata_svcb_check_wireformat()
 {
 	size_t i;
 	uint8_t paramkeys[65536];
@@ -1688,20 +1688,6 @@ zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 		paramkeys[key] = 1;
 
 	}
-
-	/*
-	 * In draft-ietf-dnsop-svcb-https-04 Section 8, Using SVCB with HTTPS and HTTP:
-	 * The "automatically mandatory" keys (Section 7) are "port"
-	 * and "no-default-alpn". 
-	 * (...) 
-	 * "automatically mandatory", i.e. mandatory if they arepresent in an RR.
-	 */
-	if (rr_type == TYPE_HTTPS
-	&& (!paramkeys[SVCB_KEY_PORT] || !paramkeys[SVCB_KEY_NO_DEFAULT_ALPN])) {
-		zc_error_prev_line("port and no-default-alpn must be included"
-			                   " in the HTTPS record");
-	}
-
 	/* Verify that the mandatory key is present */
 	if (paramkeys[SVCB_KEY_MANDATORY]) {
 		size_t    size = rdata_atom_size(parser->current_rr.rdatas[2]);
@@ -1709,7 +1695,7 @@ zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 		mandatory_values += 2; /* skip the key type and length */
 
 		if (size % 2)
-			zc_error_prev_line("mandatory rdata must be a even");
+			zc_error_prev_line("mandatory rdata must be a multiple of shorts");
 			
 		else for (i = 0; i < (size - 4)/2; i++) {
 			key = ntohs(mandatory_values[i]);
@@ -1724,14 +1710,8 @@ zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 			/* In draft-ietf-dnsop-svcb-https-04 Section 8
 			 * automatically mandatory MUST NOT appear in its own value-list
 			 */
-			if (rr_type == TYPE_HTTPS
-				 && (key == SVCB_KEY_PORT || 
-				 	 key == SVCB_KEY_NO_DEFAULT_ALPN))
-						zc_error_prev_line("port and no-default-alpn must not be included"
-						                   "as mandatory in the HTTPS record");
-
 			if (key == SVCB_KEY_MANDATORY)
-				zc_error_prev_line("mandatory must not be included as mandatory parameter");
+				zc_error_prev_line("mandatory MUST not be included as mandatory parameter");
 
 		}
 	}
