@@ -1650,7 +1650,7 @@ zadd_rdata_svcb_check_wireformat()
 {
 	size_t i;
 	uint8_t paramkeys[65536];
-	uint16_t key;
+	int key, prev_key = - 1;
 
 	memset(paramkeys, 0, sizeof(paramkeys));
 	/* 
@@ -1712,7 +1712,10 @@ zadd_rdata_svcb_check_wireformat()
 			 */
 			if (key == SVCB_KEY_MANDATORY)
 				zc_error_prev_line("mandatory MUST not be included as mandatory parameter");
-
+			if (key == prev_key)
+				zc_error_prev_line("Keys in SVcParam mandatory"
+				    "MUST NOT appear more than once.");
+			prev_key = key;
 		}
 	}
 }
