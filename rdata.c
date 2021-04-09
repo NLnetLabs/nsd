@@ -757,6 +757,7 @@ rdata_svcparam_alpn_to_string(buffer_type *output, uint16_t val_len,
 	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
 
 	buffer_write_u8(output, '=');
+	buffer_write_u8(output, '"');
 	while (val_len) {
 		uint8_t i, str_len = *dp++;
 
@@ -764,12 +765,12 @@ rdata_svcparam_alpn_to_string(buffer_type *output, uint16_t val_len,
 			return 0;
 
 		for (i = 0; i < str_len; i++) {
-			if (isspace(dp[i])
-			||  dp[i] == ',' || dp[i] == '"' || dp[i] == '\\')
+			if (dp[i] == '"' || dp[i] == '\\')
 				buffer_printf(output, "\\%c", dp[i]);
 
 			else if (!isprint(dp[i]))
 				buffer_printf(output, "\\%03u", (unsigned) dp[i]);
+
 			else
 				buffer_write_u8(output, dp[i]);
 		}
@@ -777,6 +778,7 @@ rdata_svcparam_alpn_to_string(buffer_type *output, uint16_t val_len,
 		if ((val_len -= str_len))
 			buffer_write_u8(output, ',');
 	}
+	buffer_write_u8(output, '"');
 	return 1;
 }
 
@@ -786,8 +788,9 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 {
 	uint16_t  size = rdata_atom_size(rdata);
 	uint16_t* data = (uint16_t *)rdata_atom_data(rdata);
-	uint16_t  svcparamkey;
-	uint16_t  val_len;
+	uint16_t  svcparamkey, val_len;
+	uint8_t*  dp; 
+	size_t i;
 
 	if (size < 4)
 		return 0;
@@ -828,7 +831,18 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		return rdata_svcparam_echconfig_to_string(output, val_len, data+2);
 	default:
 		buffer_write(output, "=\"", 2);
-		buffer_write(output, data + 2, val_len);
+		dp = (void*) (data + 2);
+
+		for (i = 0; i < val_len; i++) {
+			if (dp[i] == '"' || dp[i] == '\\')
+				buffer_printf(output, "\\%c", dp[i]);
+
+			else if (!isprint(dp[i]))
+				buffer_printf(output, "\\%03u", (unsigned) dp[i]);
+
+			else
+				buffer_write_u8(output, dp[i]);
+		}
 		buffer_write_u8(output, '"');
 		break;
 	}

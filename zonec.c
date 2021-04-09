@@ -834,19 +834,35 @@ zparser_conv_svcbparam_port_value(region_type *region, const char *val)
 	return alloc_rdata_init(region, "", 0);
 }
 
+static int count_commas(const char *val)
+{
+	size_t i;
+	int count = 0;
+	char c;
+
+	for (i = 0, count = 1; val[i]; i++) {
+		/* ignore escaped commas, while counting the rest */
+		if ( (i > 1 && c != '\\' && val[i] == ',') 
+		  || (i == 0 && val[i] == ',') )
+			count += 1;
+
+		c = val[i];
+	}
+
+	return count;
+}
+
 static uint16_t *
 zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 {
 	uint16_t *r;
-	int i, count;
+	int count;
 	char ip_str[INET_ADDRSTRLEN];
 	char *next_ip_str;
 	uint32_t *ip_wire_dst;
 
-	for (i = 0, count = 1; val[i]; i++) {
-		if (val[i] == ',')
-			count += 1;
-	}
+	count = count_commas(val);
+
 	/* count == number of comma's in val + 1 
 	 * so actually the number of IPv4 addresses in val
 	 */
@@ -946,7 +962,7 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 		const char *val, size_t val_len)
 {
 	uint16_t *r;
-	int i, count;
+	size_t i, count;
 	char* next_key;
 	uint16_t* key_dst;
 
@@ -1007,6 +1023,23 @@ zparser_conv_svcbparam_echconfig_value(region_type *region, const char *b64)
 	return r;
 }
 
+static const char* parse_comma_separated_list(const char *val)
+{
+	while (*val) {
+		/* Only return when the comma is not escaped*/
+		if (*val == '\\'){
+			++val;
+			if (!*val)
+				break;
+		} else if (*val == ',')
+				return val;
+
+		val++;
+	}
+
+	return NULL;
+}
+
 static uint16_t *
 zparser_conv_svcbparam_alpn_value(region_type *region,
 		const char *val, size_t val_len)
@@ -1022,10 +1055,9 @@ zparser_conv_svcbparam_alpn_value(region_type *region,
 	str_dst = (void *)&r[3];
 
 	while (val_len) {
-		str_len = (next_str = strchr(val, ','))
+		str_len = (next_str = parse_comma_separated_list(val))
 		        ? (size_t)(next_str - val) : val_len;
 
-		/* @TODO: deal with escaped comma's */
 		if (str_len > 255) {
 			zc_error_prev_line("alpn strings need to be"
 					   " smaller than 255 chars");
@@ -1033,13 +1065,15 @@ zparser_conv_svcbparam_alpn_value(region_type *region,
 		}
 		*str_dst++ = str_len;
 		memcpy(str_dst, val, str_len);
+
 		str_dst += str_len;
 
 		if (!next_str)
 			break;
 
+		/* skip the comma for the next iteration */
 		val_len -= next_str - val + 1;
-		val = next_str + 1; /* skip the comma */
+		val = next_str + 1;
 	}
 	return r;
 }
@@ -1050,7 +1084,7 @@ zparser_conv_svcbparam_key_value(region_type *region,
 {
 	uint16_t svcparamkey = svcbparam_lookup_key(key, key_len);
 	uint16_t *r;
-	
+
 	switch (svcparamkey) {
 	case SVCB_KEY_PORT:
 		return zparser_conv_svcbparam_port_value(region, val);
@@ -1105,17 +1139,23 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 
 	/* Some SvcParamKeys require values */
 	svcparamkey = svcbparam_lookup_key(key, key_len);
-	switch (svcparamkey) {
-		case SVCB_KEY_ECHCONFIG:
-		case SVCB_KEY_ALPN:
-		case SVCB_KEY_PORT:
-		case SVCB_KEY_IPV4HINT:
-		case SVCB_KEY_IPV6HINT:
-		case SVCB_KEY_MANDATORY:
-			zc_error_prev_line("value expected for SvcParam: %s", key);
-			break;
-		default:
-			break;
+
+	if (svcparamkey > SVCPARAMKEY_COUNT) 
+		zc_error_prev_line("value expected for SvcParam: %s", key);
+	
+	else {
+		switch (svcparamkey) {
+			case SVCB_KEY_ECHCONFIG:
+			case SVCB_KEY_ALPN:
+			case SVCB_KEY_PORT:
+			case SVCB_KEY_IPV4HINT:
+			case SVCB_KEY_IPV6HINT:
+			case SVCB_KEY_MANDATORY:
+				zc_error_prev_line("value expected for SvcParam: %s", key);
+				break;
+			default:
+				break;
+		}
 	}
 
 	/* SvcParam is only a SvcParamKey */
@@ -1637,10 +1677,6 @@ zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 		paramkeys[key] = 1;
 
 	}
-
-	if (paramkeys[SVCB_KEY_ALPN] && paramkeys[SVCB_KEY_NO_DEFAULT_ALPN])
-		zc_error_prev_line("alpn and no-default-alpn are not allowed"
-		                   " in the same record");
 
 	/*
 	 * In draft-ietf-dnsop-svcb-https-04 Section 8, Using SVCB with HTTPS and HTTP:
