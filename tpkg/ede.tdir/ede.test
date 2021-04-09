@@ -9,7 +9,7 @@ dig @127.0.0.1 -p $TPKG_PORT +norec +qr soa example.net &> out
 
 if grep "^; EDE: 14 " out; then
 	echo OK
-elif grep "^; OPT=15: 00 12 " out ; then
+elif grep "^; OPT=15: 00 0e " out ; then
 	echo OK
 else
 	echo Not Ready EDE code not in response

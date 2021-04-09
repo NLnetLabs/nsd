@@ -834,24 +834,6 @@ zparser_conv_svcbparam_port_value(region_type *region, const char *val)
 	return alloc_rdata_init(region, "", 0);
 }
 
-static int count_commas(const char *val)
-{
-	size_t i;
-	int count = 0;
-	char c;
-
-	for (i = 0, count = 1; val[i]; i++) {
-		/* ignore escaped commas, while counting the rest */
-		if ( (i > 1 && c != '\\' && val[i] == ',') 
-		  || (i == 0 && val[i] == ',') )
-			count += 1;
-
-		c = val[i];
-	}
-
-	return count;
-}
-
 static uint16_t *
 zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 {
@@ -860,8 +842,12 @@ zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 	char ip_str[INET_ADDRSTRLEN];
 	char *next_ip_str;
 	uint32_t *ip_wire_dst;
+	size_t i;
 
-	count = count_commas(val);
+	for (i = 0, count = 1; val[i]; i++) {
+		if (val[i] == ',')
+			count += 1;
+	}
 
 	/* count == number of comma's in val + 1 
 	 * so actually the number of IPv4 addresses in val
@@ -1639,9 +1625,9 @@ zadd_rdata_svcb_check_wireformat(uint16_t rr_type)
 {
 	size_t i;
 	uint8_t paramkeys[65536];
-	memset(paramkeys, 0, sizeof(paramkeys));
 	uint16_t key;
 
+	memset(paramkeys, 0, sizeof(paramkeys));
 	/* 
 	 * In draft-ietf-dnsop-svcb-https-04 Section 7:
 	 * In wire format, the keys are represented by their numeric values in
