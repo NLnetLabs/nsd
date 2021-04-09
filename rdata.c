@@ -676,11 +676,11 @@ rdata_svcparam_ipv4hint_to_string(buffer_type *output, uint16_t val_len,
 
 	if ((val_len % IP4ADDRLEN) == 0) {
 		buffer_printf(output, "=%s", inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)));
-		data += 2; /* 2 uint16_t's in an IPv4 */
+		data += IP4ADDRLEN / sizeof(uint16_t);
 
 		while ((val_len -= IP4ADDRLEN)) {
 			buffer_printf(output, ",%s", inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)));
-			data += 2; /* 2 uint16_t's in an IPv4 */
+			data += IP4ADDRLEN / sizeof(uint16_t);
 		}
 		return 1;
 	} else
@@ -697,11 +697,11 @@ rdata_svcparam_ipv6hint_to_string(buffer_type *output, uint16_t val_len,
 
 	if ((val_len % IP6ADDRLEN) == 0) {
 		buffer_printf(output, "=%s", inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)));
-		data += IP6ADDRLEN;
+		data += IP6ADDRLEN / sizeof(uint16_t);
 
 		while ((val_len -= IP6ADDRLEN)) {
 			buffer_printf(output, ",%s", inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)));
-			data += IP6ADDRLEN;
+			data += IP6ADDRLEN / sizeof(uint16_t);
 		}
 		return 1;
 	} else
