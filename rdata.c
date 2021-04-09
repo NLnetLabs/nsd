@@ -806,7 +806,6 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	if (!val_len) {
 		/* Some SvcParams MUST have values */
 		switch (svcparamkey) {
-		case SVCB_KEY_ECHCONFIG:
 		case SVCB_KEY_ALPN:
 		case SVCB_KEY_PORT:
 		case SVCB_KEY_IPV4HINT:

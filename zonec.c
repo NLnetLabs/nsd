@@ -1150,25 +1150,17 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 
 	/* Some SvcParamKeys require values */
 	svcparamkey = svcbparam_lookup_key(key, key_len);
-
-	if (svcparamkey > SVCPARAMKEY_COUNT) 
-		zc_error_prev_line("value expected for SvcParam: %s", key);
-	
-	else {
-		switch (svcparamkey) {
-			case SVCB_KEY_ECHCONFIG:
-			case SVCB_KEY_ALPN:
-			case SVCB_KEY_PORT:
-			case SVCB_KEY_IPV4HINT:
-			case SVCB_KEY_IPV6HINT:
-			case SVCB_KEY_MANDATORY:
-				zc_error_prev_line("value expected for SvcParam: %s", key);
-				break;
-			default:
-				break;
-		}
+	switch (svcparamkey) {
+		case SVCB_KEY_MANDATORY:
+		case SVCB_KEY_ALPN:
+		case SVCB_KEY_PORT:
+		case SVCB_KEY_IPV4HINT:
+		case SVCB_KEY_IPV6HINT:
+			zc_error_prev_line("value expected for SvcParam: %s", key);
+			break;
+		default:
+			break;
 	}
-
 	/* SvcParam is only a SvcParamKey */
 	r = alloc_rdata(region, 2 * sizeof(uint16_t));
 	r[1] = htons(svcparamkey);
@@ -1714,7 +1706,7 @@ zadd_rdata_svcb_check_wireformat()
 				zc_error_prev_line("mandatory MUST not be included as mandatory parameter");
 			if (key == prev_key)
 				zc_error_prev_line("Keys in SVcParam mandatory"
-				    "MUST NOT appear more than once.");
+				    " MUST NOT appear more than once.");
 			prev_key = key;
 		}
 	}
