@@ -956,7 +956,6 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 		if (val[i] == ',')
 			count += 1;
 	}
-
 	r = alloc_rdata(region, (2 + count) * sizeof(uint16_t));
 	r[1] = htons(SVCB_KEY_MANDATORY);
 	r[2] = htons(sizeof(uint16_t) * count);
@@ -1022,7 +1021,6 @@ static const char* parse_alpn_next_unescaped_comma(const char *val)
 
 		val++;
 	}
-
 	return NULL;
 }
 
@@ -1131,7 +1129,7 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 	uint16_t svcparamkey;
 
 	/* Form <key>="<value>" (or at least with quoted value) */
-	if (val) {
+	if (val && val_len) {
 		/* Does key end with '=' */
 		if (key_len && key[key_len - 1] == '=')
 			return zparser_conv_svcbparam_key_value(
@@ -1144,10 +1142,11 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 	if ((eq = memchr(key, '=', key_len))) {
 		size_t new_key_len = eq - key;
 
-		return zparser_conv_svcbparam_key_value(
-		    region, key, new_key_len, eq+1, key_len - new_key_len - 1);
+		if (key_len - new_key_len - 1 > 0)
+			return zparser_conv_svcbparam_key_value(region,
+			    key, new_key_len, eq+1, key_len - new_key_len - 1);
+		key_len = new_key_len;
 	}
-
 	/* Some SvcParamKeys require values */
 	svcparamkey = svcbparam_lookup_key(key, key_len);
 	switch (svcparamkey) {
@@ -1643,6 +1642,8 @@ zadd_rdata_svcb_check_wireformat()
 	size_t i;
 	uint8_t paramkeys[65536];
 	int key, prev_key = - 1;
+	size_t size;
+	uint16_t *mandatory_values;
 
 	memset(paramkeys, 0, sizeof(paramkeys));
 	/* 
@@ -1675,40 +1676,42 @@ zadd_rdata_svcb_check_wireformat()
 				break;
 			}
 		}
-
 		/* keep track of keys that are present */
 		paramkeys[key] = 1;
-
 	}
-	/* Verify that the mandatory key is present */
-	if (paramkeys[SVCB_KEY_MANDATORY]) {
-		size_t    size = rdata_atom_size(parser->current_rr.rdatas[2]);
-		uint16_t  *mandatory_values = (void*)rdata_atom_data(parser->current_rr.rdatas[2]);
-		mandatory_values += 2; /* skip the key type and length */
+	/* Checks when a mandatory key is present */
+	if (!paramkeys[SVCB_KEY_MANDATORY])
+		return;
 
-		if (size % 2)
-			zc_error_prev_line("mandatory rdata must be a multiple of shorts");
-			
-		else for (i = 0; i < (size - 4)/2; i++) {
-			key = ntohs(mandatory_values[i]);
+	size = rdata_atom_size(parser->current_rr.rdatas[2]);
+	mandatory_values = (void*)rdata_atom_data(parser->current_rr.rdatas[2]);
+	mandatory_values += 2; /* skip the key type and length */
 
-			if (key < SVCPARAMKEY_COUNT && !(paramkeys[key]))
-				zc_error_prev_line("mandatorySvcParamKey: %s is missing "
-				                   "the record\n", svcparamkey_strs[key]);
-			else if (!paramkeys[key])
-				zc_error_prev_line("mandatorySvcParamKey: key%hu is missing "
-				                   "the record\n", key);
+	if (size % 2)
+		zc_error_prev_line("mandatory rdata must be a multiple of shorts");
+		
+	else for (i = 0; i < (size - 4)/2; i++) {
+		key = ntohs(mandatory_values[i]);
 
-			/* In draft-ietf-dnsop-svcb-https-04 Section 8
-			 * automatically mandatory MUST NOT appear in its own value-list
-			 */
-			if (key == SVCB_KEY_MANDATORY)
-				zc_error_prev_line("mandatory MUST not be included as mandatory parameter");
-			if (key == prev_key)
-				zc_error_prev_line("Keys in SVcParam mandatory"
-				    " MUST NOT appear more than once.");
-			prev_key = key;
-		}
+		if (paramkeys[key])
+			; /* pass */
+
+		else if (key < SVCPARAMKEY_COUNT)
+			zc_error_prev_line("mandatory SvcParamKey: %s is missing "
+					   "the record\n", svcparamkey_strs[key]);
+		else
+			zc_error_prev_line("mandatory SvcParamKey: key%hu is missing "
+					   "the record\n", key);
+
+		/* In draft-ietf-dnsop-svcb-https-04 Section 8
+		 * automatically mandatory MUST NOT appear in its own value-list
+		 */
+		if (key == SVCB_KEY_MANDATORY)
+			zc_error_prev_line("mandatory MUST not be included as mandatory parameter");
+		if (key == prev_key)
+			zc_error_prev_line("Keys in SVcParam mandatory "
+			                   "MUST NOT appear more than once.");
+		prev_key = key;
 	}
 }
 
