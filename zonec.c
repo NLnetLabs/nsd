@@ -1009,7 +1009,7 @@ zparser_conv_svcbparam_echconfig_value(region_type *region, const char *b64)
 	return r;
 }
 
-static const char* parse_comma_separated_list(const char *val)
+static const char* parse_alpn_next_unescaped_comma(const char *val)
 {
 	while (*val) {
 		/* Only return when the comma is not escaped*/
@@ -1026,22 +1026,43 @@ static const char* parse_comma_separated_list(const char *val)
 	return NULL;
 }
 
+static size_t
+parse_alpn_copy_unescaped(uint8_t *dst, const char *src, size_t len)
+{
+	uint8_t *orig_dst = dst;
+
+	while (len) {
+		if (*src == '\\') {
+			src++;
+			len--;
+			if (!len)
+				break;
+		}
+		*dst++ = *src++;
+		len--;
+	}
+	return (size_t)(dst - orig_dst);
+}
+
 static uint16_t *
 zparser_conv_svcbparam_alpn_value(region_type *region,
 		const char *val, size_t val_len)
 {
-	uint16_t *r;
-	char *str_dst;
+	uint8_t     unescaped_dst[65536];
+	uint8_t    *dst = unescaped_dst;
 	const char *next_str;
-	size_t str_len;
+	size_t      str_len;
+	size_t      dst_len;
+	uint16_t   *r = NULL;
 
-	r = alloc_rdata(region, 2 * sizeof(uint16_t) + val_len + 1);
-	r[1] = htons(SVCB_KEY_ALPN);
-	r[2] = htons(val_len + 1);
-	str_dst = (void *)&r[3];
-
+	if (val_len > sizeof(unescaped_dst)) {
+		zc_error_prev_line("invalid alpn");
+		return r;
+	}
 	while (val_len) {
-		str_len = (next_str = parse_comma_separated_list(val))
+		size_t dst_len;
+
+		str_len = (next_str = parse_alpn_next_unescaped_comma(val))
 		        ? (size_t)(next_str - val) : val_len;
 
 		if (str_len > 255) {
@@ -1049,10 +1070,9 @@ zparser_conv_svcbparam_alpn_value(region_type *region,
 					   " smaller than 255 chars");
 			return r;
 		}
-		*str_dst++ = str_len;
-		memcpy(str_dst, val, str_len);
-
-		str_dst += str_len;
+		dst_len = parse_alpn_copy_unescaped(dst + 1, val, str_len);
+		*dst++ = dst_len;
+		 dst  += dst_len;
 
 		if (!next_str)
 			break;
@@ -1061,6 +1081,11 @@ zparser_conv_svcbparam_alpn_value(region_type *region,
 		val_len -= next_str - val + 1;
 		val = next_str + 1;
 	}
+	dst_len = dst - unescaped_dst;
+	r = alloc_rdata(region, 2 * sizeof(uint16_t) + dst_len);
+	r[1] = htons(SVCB_KEY_ALPN);
+	r[2] = htons(dst_len);
+	memcpy(&r[3], unescaped_dst, dst_len);
 	return r;
 }
 

@@ -766,7 +766,10 @@ rdata_svcparam_alpn_to_string(buffer_type *output, uint16_t val_len,
 
 		for (i = 0; i < str_len; i++) {
 			if (dp[i] == '"' || dp[i] == '\\')
-				buffer_printf(output, "\\%c", dp[i]);
+				buffer_printf(output, "\\\\\\%c", dp[i]);
+
+			else if (dp[i] == ',')
+				buffer_printf(output, "\\\\%c", dp[i]);
 
 			else if (!isprint(dp[i]))
 				buffer_printf(output, "\\%03u", (unsigned) dp[i]);
