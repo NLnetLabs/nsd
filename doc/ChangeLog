@@ -1,3 +1,6 @@
+9 April 2021: Wouter
+	- Fix for #170: Fix build warnings when IPv6 is disabled.
+
 30 March 2021: Wouter
 	- Fix configure failure for enable systemd because of autoconf.
 	- This became release 4.3.6, the repository continues for 4.3.7

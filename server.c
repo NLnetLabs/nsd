@@ -857,10 +857,10 @@ set_nonblock(struct nsd_socket *sock)
 	return 1;
 }
 
+#ifdef INET6
 static int
 set_ipv6_v6only(struct nsd_socket *sock)
 {
-#ifdef INET6
 #ifdef IPV6_V6ONLY
 	int on = 1;
 	const char *socktype =
@@ -875,16 +875,19 @@ set_ipv6_v6only(struct nsd_socket *sock)
 	log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed for %s: %s",
 		socktype, strerror(errno));
 	return -1;
+#else
+	(void)sock;
 #endif /* IPV6_V6ONLY */
-#endif /* INET6 */
 
 	return 0;
 }
+#endif /* INET6 */
 
+#ifdef INET6
 static int
 set_ipv6_use_min_mtu(struct nsd_socket *sock)
 {
-#if defined(INET6) && (defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU))
+#if defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)
 #if defined(IPV6_USE_MIN_MTU)
 	/* There is no fragmentation of IPv6 datagrams during forwarding in the
 	 * network. Therefore we do not send UDP datagrams larger than the
@@ -917,6 +920,7 @@ set_ipv6_use_min_mtu(struct nsd_socket *sock)
 
 	return 0;
 }
+#endif /* INET6 */
 
 static int
 set_ipv4_no_pmtu_disc(struct nsd_socket *sock)
@@ -2864,7 +2868,7 @@ add_tcp_handler(
 		data->tls_accept = 1;
 		if(verbosity >= 2) {
 			char buf[48];
-			addrport2str((struct sockaddr_storage*)&sock->addr.ai_addr, buf, sizeof(buf));
+			addrport2str((void*)(struct sockaddr_storage*)&sock->addr.ai_addr, buf, sizeof(buf));
 			VERBOSITY(2, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
 		}
 	} else {
@@ -3448,7 +3452,7 @@ handle_udp(int fd, short event, void* arg)
 			   errno != EAGAIN) {
 				const char* es = strerror(errno);
 				char a[64];
-				addrport2str(&queries[i]->addr, a, sizeof(a));
+				addrport2str((void*)&queries[i]->addr, a, sizeof(a));
 				log_msg(LOG_ERR, "sendmmsg [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
 			}
 #ifdef BIND8_STATS

@@ -1,5 +1,12 @@
 NSD RELEASE NOTES
 
+4.3.7 (in development)
+================
+FEATURES:
+BUG FIXES:
+	- Fix for #170: Fix build warnings when IPv6 is disabled.
+
+
 4.3.6
 ================
 FEATURES:
