@@ -1017,6 +1017,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 				length +=
 				    read_uint16(buffer_current(packet) + 2);
 			}
+			break;
 		}
 
 		if (is_domain) {
