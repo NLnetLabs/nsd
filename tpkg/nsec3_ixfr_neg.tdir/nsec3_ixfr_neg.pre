@@ -1,0 +1,25 @@
+# #-- nsec3_ixfr_neg.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+LDNS_PORT=$RND_PORT
+echo port: $LDNS_PORT
+
+# start ldns-testns, be extra verbose
+ldns-testns -p $LDNS_PORT nsec3_ixfr_neg.datafile >master.log 2>&1 &
+echo "export TESTNS_PID=$!" >> .tpkg.var.test
+wait_ldns_testns_up master.log
+
+# share the vars
+echo "export LDNS_PORT=$LDNS_PORT" >> .tpkg.var.test
+
+# replace RANDOM with $LDNS_PORT and put it in nsd_update.conf
+cat nsec3_ixfr_neg.conf | sed "s/RANDOM/$LDNS_PORT/g" > nsd.conf
+if [[ $? -ne 0 ]]; then
+        exit 1
+fi
