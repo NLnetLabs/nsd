@@ -2,6 +2,7 @@
 	- Fix for #128: Skip over sendmmsg invalid argument when port is zero.
 	- Fix #171: Invalid negative response (NSEC3) after IXFR.
 	- Fix to make nsec3_chain_find_prev return NULL if one nsec3 left.
+	- remove debug settings from unit test.
 
 9 April 2021: Wouter
 	- Fix for #170: Fix build warnings when IPv6 is disabled.
