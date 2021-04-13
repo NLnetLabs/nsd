@@ -1104,7 +1104,10 @@ zparser_conv_svcbparam_key_value(region_type *region,
 	case SVCB_KEY_MANDATORY:
 		return zparser_conv_svcbparam_mandatory_value(region, val, val_len);
 	case SVCB_KEY_NO_DEFAULT_ALPN:
-		zc_error_prev_line("no-default-alpn should not have a value\n");
+		if(zone_is_slave(parser->current_zone->opts))
+			zc_warning_prev_line("no-default-alpn should not have a value\n");
+		else
+			zc_error_prev_line("no-default-alpn should not have a value\n");
 		break;
 	case SVCB_KEY_ECHCONFIG:
 		return zparser_conv_svcbparam_echconfig_value(region, val);
@@ -1644,7 +1647,8 @@ zadd_rdata_svcb_check_wireformat()
 {
 	size_t i;
 	uint8_t paramkeys[65536];
-	int key, prev_key = - 1;
+	int prev_key = - 1;
+	int key = 0;
 	size_t size;
 	uint16_t *mandatory_values;
 
@@ -1661,8 +1665,7 @@ zadd_rdata_svcb_check_wireformat()
 	     );
 
 	for (i = 2; i < parser->current_rr.rdata_count; i++) {
-		uint8_t  *data = rdata_atom_data(parser->current_rr.rdatas[i]);
-		key  = read_uint16(data);
+		key  = read_uint16(rdata_atom_data(parser->current_rr.rdatas[i]));
 
 		/* In draft-ietf-dnsop-svcb-https-04 Section 7:
 		 *
@@ -1686,10 +1689,10 @@ zadd_rdata_svcb_check_wireformat()
 			}
 		} else if(zone_is_slave(parser->current_zone->opts))
 			zc_warning_prev_line(
-					"Duplicate key found: key%hu\n", key);
+					"Duplicate key found: key%d\n", key);
 		else
 			zc_error_prev_line(
-					"Duplicate key found: key%hu\n", key);
+					"Duplicate key found: key%d\n", key);
 	}
 	/* Checks when a mandatory key is present */
 	if (!paramkeys[SVCB_KEY_MANDATORY])
@@ -1717,10 +1720,10 @@ zadd_rdata_svcb_check_wireformat()
 						   "the record\n", svcparamkey_strs[key]);
 		} else {
 			if(zone_is_slave(parser->current_zone->opts))
-				zc_warning_prev_line("mandatory SvcParamKey: key%hu is missing "
+				zc_warning_prev_line("mandatory SvcParamKey: key%d is missing "
 						     "the record\n", key);
 			else
-				zc_error_prev_line("mandatory SvcParamKey: key%hu is missing "
+				zc_error_prev_line("mandatory SvcParamKey: key%d is missing "
 						   "the record\n", key);
 		}
 
