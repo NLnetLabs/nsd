@@ -7,6 +7,7 @@ BUG FIXES:
 	- Fix for #170: Fix build warnings when IPv6 is disabled.
 	- Fix #170: Disabled IPv6 and DNSTAP enabled triggers a build error.
 	- Fix for #128: Skip over sendmmsg invalid argument when port is zero.
+	- Fix #171: Invalid negative response (NSEC3) after IXFR.
 
 
 4.3.6
