@@ -3291,6 +3291,30 @@ nsd_sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen, int flags)
 }
 #endif /* HAVE_SENDMMSG */
 
+static int
+port_is_zero(
+#ifdef INET6
+        struct sockaddr_storage *addr
+#else
+        struct sockaddr_in *addr
+#endif
+	)
+{
+#ifdef INET6
+	if(addr->ss_family == AF_INET6) {
+		return (((struct sockaddr_in6 *)addr)->sin6_port) == 0;
+	} else if(addr->ss_family == AF_INET) {
+		return (((struct sockaddr_in *)addr)->sin_port) == 0;
+	}
+	return 0;
+#else
+	if(addr->sin_family == AF_INET) {
+		return addr->sin_port == 0;
+	}
+	return 0;
+#endif
+}
+
 static void
 handle_udp(int fd, short event, void* arg)
 {
@@ -3448,6 +3472,19 @@ handle_udp(int fd, short event, void* arg)
 					continue;
 				}
 				errno = errstore;
+			}
+			if(errno == EINVAL) {
+				/* skip the invalid argument entry,
+				 * send the remaining packets in the list */
+				if(!(port_is_zero((void*)&queries[i]->addr) &&
+					verbosity < 3)) {
+					const char* es = strerror(errno);
+					char a[64];
+					addrport2str((void*)&queries[i]->addr, a, sizeof(a));
+					log_msg(LOG_ERR, "sendmmsg skip invalid argument [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
+				}
+				i += 1;
+				continue;
 			}
 			/* don't log transient network full errors, unless
 			 * on higher verbosity */
