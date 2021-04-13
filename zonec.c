@@ -1155,7 +1155,10 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 		case SVCB_KEY_PORT:
 		case SVCB_KEY_IPV4HINT:
 		case SVCB_KEY_IPV6HINT:
-			zc_error_prev_line("value expected for SvcParam: %s", key);
+			if(zone_is_slave(parser->current_zone->opts))
+				zc_warning_prev_line("value expected for SvcParam: %s", key);
+			else
+				zc_error_prev_line("value expected for SvcParam: %s", key);
 			break;
 		default:
 			break;
