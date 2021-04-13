@@ -8,8 +8,8 @@ Component:
 CmdDepends: 
 Depends: 
 Help:
-Pre:
-Post:
+Pre: svcb.pre
+Post: svcb.post
 Test: svcb.test
 AuxFiles: 
 Passed:

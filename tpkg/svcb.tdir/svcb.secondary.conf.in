@@ -1,0 +1,25 @@
+server:
+	logfile: "nsd-secondary.log"
+	database: ""
+	zonesdir: ""
+	xfrdfile: ""
+	ip-address: 127.0.0.1
+
+remote-control:
+	control-enable: yes
+	control-interface: 127.0.0.1
+	control-port: @TPKG_CTRL_PORT@
+	server-key-file: "nsd_server.key"
+	server-cert-file: "nsd_server.pem"
+	control-key-file: "nsd_control.key"
+	control-cert-file: "nsd_control.pem"
+
+zone:
+	name: test-vectors.
+	zonefile: test-vectors-secondary.zone
+	request-xfr: 127.0.0.1@@TPKG_PRI_PORT@ NOKEY
+
+zone:
+	name: failure-cases.
+	zonefile: failure-cases.zone
+	request-xfr: 127.0.0.1@@TPKG_PRI_PORT@ NOKEY

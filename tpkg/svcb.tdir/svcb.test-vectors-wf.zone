@@ -1,7 +1,10 @@
 $ORIGIN test-vectors.
 $TTL 3600
 
-@	SOA	primary admin 0 0 0 0 0
+@	SOA	primary admin 1 3600 1800 7200 3600
+
+	NS	primary
+primary	A	127.0.0.1
 
 ; D.1. AliasForm
 

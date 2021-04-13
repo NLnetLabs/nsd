@@ -181,3 +181,23 @@ then
 else
 	echo "All particular success cases parsed and printed successfully"
 fi
+
+$PRE/nsd-control -c svcb.secondary.conf write
+while [ ! -f test-vectors-secondary.zone ]
+do
+	sleep 1
+done
+while ! grep '^v20' test-vectors-secondary.zone
+do
+	sleep 1
+done
+grep -v '^;' svcb.test-vectors-pf.zone.out > svcb.test-vectors-pf.zone.out2
+grep -v '^;' test-vectors-secondary.zone > test-vectors-secondary.zone.out
+if ! diff svcb.test-vectors-pf.zone.out2 test-vectors-secondary.zone.out
+then
+	echo "Output from secondary did not match output from primary"
+	exit 1
+else
+	echo "Output from secondary did match output from primary"
+fi
+

@@ -1,0 +1,29 @@
+# #-- svcb.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+
+. ../common.sh
+rm -f svcb.db
+rm -f svcb.ixfr.db
+rm -f svcb.xfrd.state
+rm -f svcb.current_response
+
+# do your teardown here
+if [ ! -z "$TPKG_NSD_PRI_PID" ]; then
+	# kill primary NSD
+	NSD_PRI_PID=`cat $TPKG_NSD_PRI_PID`
+	kill_pid $NSD_PRI_PID
+fi
+
+# do your teardown here
+if [ ! -z "$TPKG_NSD_SEC_PID" ]; then
+	# kill primary NSD
+	NSD_SEC_PID=`cat $TPKG_NSD_SEC_PID`
+	kill_pid $NSD_SEC_PID
+fi
+
+
