@@ -663,7 +663,10 @@ zparser_conv_rrtype(region_type *region, const char *text)
 	uint16_t type = rrtype_from_string(text);
 
 	if (type == 0) {
-		zc_error_prev_line("unrecognized RR type '%s'", text);
+		if(zone_is_slave(parser->current_zone->opts))
+			zc_warning_prev_line("unrecognized RR type '%s'", text);
+		else
+			zc_error_prev_line("unrecognized RR type '%s'", text);
 	} else {
 		type = htons(type);
 		r = alloc_rdata_init(region, &type, sizeof(type));
@@ -800,11 +803,18 @@ svcbparam_lookup_key(const char *key, size_t key_len)
 		break;
 	}
 	if (key_len > sizeof(buf) - 1)
-		zc_error_prev_line("Unknown SvcParamKey");
+		if(zone_is_slave(parser->current_zone->opts))
+			zc_warning_prev_line("Unknown SvcParamKey");
+		else
+			zc_error_prev_line("Unknown SvcParamKey");
 	else {
 		memcpy(buf, key, key_len);
 		buf[key_len] = 0;
-		zc_error_prev_line("Unknown SvcParamKey: %s", buf);
+
+		if(zone_is_slave(parser->current_zone->opts))
+			zc_error_prev_line("Unknown SvcParamKey: %s", buf);
+		else
+			zc_error_prev_line("Unknown SvcParamKey: %s", buf);
 	}
 	/* Although the returned value might be used by the caller,
 	 * the parser has erred, so the zone will not be loaded.
@@ -830,7 +840,10 @@ zparser_conv_svcbparam_port_value(region_type *region, const char *val)
 		r[3] = htons(port);
 		return r;
 	}
-	zc_error_prev_line("Could not parse port SvcParamValue: \"%s\"", val);
+	if(zone_is_slave(parser->current_zone->opts))
+		zc_warning_prev_line("Could not parse port SvcParamValue: \"%s\"", val);
+	else
+		zc_error_prev_line("Could not parse port SvcParamValue: \"%s\"", val);
 	return alloc_rdata_init(region, "", 0);
 }
 
@@ -880,8 +893,12 @@ zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 		ip_wire_dst++;
 		count--;
 	}
-	if (count)
-		zc_error_prev_line("Could not parse ipv4hint SvcParamValue: %s", val);
+	if (count) {
+		if(zone_is_slave(parser->current_zone->opts))
+			zc_warning_prev_line("Could not parse ipv4hint SvcParamValue: %s", val);
+		else
+			zc_error_prev_line("Could not parse ipv4hint SvcParamValue: %s", val);
+	}
 
 	return r;
 }
@@ -931,8 +948,12 @@ zparser_conv_svcbparam_ipv6hint_value(region_type *region, const char *val)
 		ipv6_wire_dst += IP6ADDRLEN;
 		count--;
 	}
-	if (count)
-		zc_error_prev_line("Could not parse ipv6hint SvcParamValue: %s", val);
+	if (count) {
+		if(zone_is_slave(parser->current_zone->opts))
+			zc_warning_prev_line("Could not parse ipv6hint SvcParamValue: %s", val);
+		else
+			zc_error_prev_line("Could not parse ipv6hint SvcParamValue: %s", val);
+	}
 
 	return r;
 }
@@ -997,7 +1018,10 @@ zparser_conv_svcbparam_echconfig_value(region_type *region, const char *b64)
 	}
 	wire_len = b64_pton(b64, buffer, B64BUFSIZE);
 	if (wire_len == -1) {
-		zc_error_prev_line("invalid base64 data");
+		if(zone_is_slave(parser->current_zone->opts))
+			zc_warning_prev_line("invalid base64 data");
+		else
+			zc_error_prev_line("invalid base64 data");
 	} else {
 		r = alloc_rdata(region, 2 * sizeof(uint16_t) + wire_len);
 		r[1] = htons(SVCB_KEY_ECHCONFIG);
@@ -1054,7 +1078,10 @@ zparser_conv_svcbparam_alpn_value(region_type *region,
 	uint16_t   *r = NULL;
 
 	if (val_len > sizeof(unescaped_dst)) {
-		zc_error_prev_line("invalid alpn");
+		if(zone_is_slave(parser->current_zone->opts))
+			zc_warning_prev_line("invalid alpn");
+		else
+			zc_error_prev_line("invalid alpn");
 		return r;
 	}
 	while (val_len) {
@@ -1104,7 +1131,10 @@ zparser_conv_svcbparam_key_value(region_type *region,
 	case SVCB_KEY_MANDATORY:
 		return zparser_conv_svcbparam_mandatory_value(region, val, val_len);
 	case SVCB_KEY_NO_DEFAULT_ALPN:
-		zc_error_prev_line("no-default-alpn should not have a value\n");
+		if(zone_is_slave(parser->current_zone->opts))
+			zc_warning_prev_line("no-default-alpn should not have a value\n");
+		else
+			zc_error_prev_line("no-default-alpn should not have a value\n");
 		break;
 	case SVCB_KEY_ECHCONFIG:
 		return zparser_conv_svcbparam_echconfig_value(region, val);
@@ -1134,9 +1164,12 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 		if (key_len && key[key_len - 1] == '=')
 			return zparser_conv_svcbparam_key_value(
 			    region, key, key_len - 1, val, val_len);
-
-		zc_error_prev_line( "SvcParam syntax error in param: %s\"%s\""
-		                  , key, val);
+		if(zone_is_slave(parser->current_zone->opts))
+			zc_warning_prev_line( "SvcParam syntax error in param: %s\"%s\""
+			                  , key, val);
+		else
+			zc_error_prev_line( "SvcParam syntax error in param: %s\"%s\""
+			                  , key, val);
 	}
 	/* assert(val == NULL); */
 	if ((eq = memchr(key, '=', key_len))) {
@@ -1155,7 +1188,10 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 		case SVCB_KEY_PORT:
 		case SVCB_KEY_IPV4HINT:
 		case SVCB_KEY_IPV6HINT:
-			zc_error_prev_line("value expected for SvcParam: %s", key);
+			if(zone_is_slave(parser->current_zone->opts))
+				zc_warning_prev_line("value expected for SvcParam: %s", key);
+			else
+				zc_error_prev_line("value expected for SvcParam: %s", key);
 			break;
 		default:
 			break;
@@ -1669,12 +1705,19 @@ zadd_rdata_svcb_check_wireformat()
 		 */
 		if (paramkeys[key] == 1 ) {
 			if (key < SVCPARAMKEY_COUNT) {
-				zc_error_prev_line("Duplicate key found: %s\n",
-					svcparamkey_strs[key]);
+				if(zone_is_slave(parser->current_zone->opts))
+					zc_warning_prev_line("Duplicate key found: %s\n",
+						svcparamkey_strs[key]);
+				else
+					zc_error_prev_line("Duplicate key found: %s\n",
+						svcparamkey_strs[key]);
 			} else {
-				zc_error_prev_line("Duplicate key found: key%hu\n", key);
-				break;
+				if(zone_is_slave(parser->current_zone->opts))
+					zc_warning_prev_line("Duplicate key found: key%d\n", key);
+				else
+					zc_error_prev_line("Duplicate key found: key%d\n", key);
 			}
+			break;
 		}
 		/* keep track of keys that are present */
 		paramkeys[key] = 1;
@@ -1688,7 +1731,10 @@ zadd_rdata_svcb_check_wireformat()
 	mandatory_values += 2; /* skip the key type and length */
 
 	if (size % 2)
-		zc_error_prev_line("mandatory rdata must be a multiple of shorts");
+		if(zone_is_slave(parser->current_zone->opts))
+			zc_warning_prev_line("mandatory rdata must be a multiple of shorts");
+		else
+			zc_error_prev_line("mandatory rdata must be a multiple of shorts");
 		
 	else for (i = 0; i < (size - 4)/2; i++) {
 		key = ntohs(mandatory_values[i]);
@@ -1696,20 +1742,35 @@ zadd_rdata_svcb_check_wireformat()
 		if (paramkeys[key])
 			; /* pass */
 
-		else if (key < SVCPARAMKEY_COUNT)
-			zc_error_prev_line("mandatory SvcParamKey: %s is missing "
-					   "the record\n", svcparamkey_strs[key]);
-		else
-			zc_error_prev_line("mandatory SvcParamKey: key%hu is missing "
-					   "the record\n", key);
+		else if (key < SVCPARAMKEY_COUNT) {
+			if(zone_is_slave(parser->current_zone->opts))
+				zc_warning_prev_line("mandatory SvcParamKey: %s is missing "
+						   "the record\n", svcparamkey_strs[key]);
+			else
+				zc_error_prev_line("mandatory SvcParamKey: %s is missing "
+						   "the record\n", svcparamkey_strs[key]);
+		} else {
+			if(zone_is_slave(parser->current_zone->opts))
+				zc_warning_prev_line("mandatory SvcParamKey: key%d is missing "
+						     "the record\n", key);
+			else
+				zc_error_prev_line("mandatory SvcParamKey: key%d is missing "
+						   "the record\n", key);
+		}
 
 		/* In draft-ietf-dnsop-svcb-https-04 Section 8
 		 * automatically mandatory MUST NOT appear in its own value-list
 		 */
-		if (key == SVCB_KEY_MANDATORY)
-			zc_error_prev_line("mandatory MUST not be included as mandatory parameter");
+		if (key == SVCB_KEY_MANDATORY) {
+			if(zone_is_slave(parser->current_zone->opts))
+				zc_warning_prev_line("mandatory MUST not be included as"
+						     "mandatory parameter");
+			else
+				zc_error_prev_line("mandatory MUST not be included as"
+						   "mandatory parameter");
+		}
 		if (key == prev_key)
-			zc_error_prev_line("Keys in SVcParam mandatory "
+			zc_error_prev_line("Keys in SvcParam mandatory "
 			                   "MUST NOT appear more than once.");
 		prev_key = key;
 	}
