@@ -1696,21 +1696,41 @@ zadd_rdata_svcb_check_wireformat()
 		if (paramkeys[key])
 			; /* pass */
 
-		else if (key < SVCPARAMKEY_COUNT)
-			zc_error_prev_line("mandatory SvcParamKey: %s is missing "
-					   "the record\n", svcparamkey_strs[key]);
-		else
-			zc_error_prev_line("mandatory SvcParamKey: key%hu is missing "
-					   "the record\n", key);
+		else if (key < SVCPARAMKEY_COUNT) {
+			if(zone_is_slave(parser->current_zone->opts))
+				zc_warning_prev_line("mandatory SvcParamKey: %s is missing "
+						     "the record\n", svcparamkey_strs[key]);
+			else
+				zc_error_prev_line("mandatory SvcParamKey: %s is missing "
+						   "the record\n", svcparamkey_strs[key]);
+		} else {
+			if(zone_is_slave(parser->current_zone->opts))
+				zc_warning_prev_line("mandatory SvcParamKey: key%hu is missing "
+						     "the record\n", key);
+			else
+				zc_error_prev_line("mandatory SvcParamKey: key%hu is missing "
+						   "the record\n", key);
+		}
 
 		/* In draft-ietf-dnsop-svcb-https-04 Section 8
 		 * automatically mandatory MUST NOT appear in its own value-list
 		 */
-		if (key == SVCB_KEY_MANDATORY)
-			zc_error_prev_line("mandatory MUST not be included as mandatory parameter");
-		if (key == prev_key)
-			zc_error_prev_line("Keys in SVcParam mandatory "
-			                   "MUST NOT appear more than once.");
+		if (key == SVCB_KEY_MANDATORY) {
+			if(zone_is_slave(parser->current_zone->opts))
+				zc_warning_prev_line("mandatory MUST not be included"
+						     " as mandatory parameter");
+			else
+				zc_error_prev_line("mandatory MUST not be included"
+						   " as mandatory parameter");
+		}
+		if (key == prev_key) {
+			if(zone_is_slave(parser->current_zone->opts))
+				zc_warning_prev_line("Keys in SVcParam mandatory "
+				                   "MUST NOT appear more than once.");
+			else
+				zc_error_prev_line("Keys in SVcParam mandatory "
+				                   "MUST NOT appear more than once.");
+		}
 		prev_key = key;
 	}
 }
