@@ -1670,17 +1670,26 @@ zadd_rdata_svcb_check_wireformat()
 		 * 
 		 * If they key has already been seen, we have a duplicate
 		 */
-		if (paramkeys[key] == 1 ) {
-			if (key < SVCPARAMKEY_COUNT) {
-				zc_error_prev_line("Duplicate key found: %s\n",
+		if (!paramkeys[key])
+			/* keep track of keys that are present */
+			paramkeys[key] = 1;
+
+		else if (key < SVCPARAMKEY_COUNT) {
+			if(zone_is_slave(parser->current_zone->opts))
+				zc_warning_prev_line(
+					"Duplicate key found: %s\n",
 					svcparamkey_strs[key]);
-			} else {
-				zc_error_prev_line("Duplicate key found: key%hu\n", key);
-				break;
+			else {
+				zc_error_prev_line(
+					"Duplicate key found: %s\n",
+					svcparamkey_strs[key]);
 			}
-		}
-		/* keep track of keys that are present */
-		paramkeys[key] = 1;
+		} else if(zone_is_slave(parser->current_zone->opts))
+			zc_warning_prev_line(
+					"Duplicate key found: key%hu\n", key);
+		else
+			zc_error_prev_line(
+					"Duplicate key found: key%hu\n", key);
 	}
 	/* Checks when a mandatory key is present */
 	if (!paramkeys[SVCB_KEY_MANDATORY])
