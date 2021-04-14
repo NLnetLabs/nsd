@@ -1,5 +1,11 @@
+9 April 2021: Wouter
+	- Fix for #170: Fix build warnings when IPv6 is disabled.
+	- Fix #170: Disabled IPv6 and DNSTAP enabled triggers a build error.
+
 30 March 2021: Wouter
 	- Fix configure failure for enable systemd because of autoconf.
+	- This became release 4.3.6, the repository continues for 4.3.7
+	  in development.
 
 29 March 2021: Wouter
 	- Note unlisted changes in RELNOTES and prepare for 4.3.6rc1 tag.
