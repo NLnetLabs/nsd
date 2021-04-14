@@ -1317,7 +1317,6 @@ AH_BOTTOM([
 #else
 #define ATTR_PACKED
 #endif
-
 ])
 
 # big fat warning
