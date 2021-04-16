@@ -675,16 +675,22 @@ rdata_svcparam_ipv4hint_to_string(buffer_type *output, uint16_t val_len,
 	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
 
 	if ((val_len % IP4ADDRLEN) == 0) {
-		buffer_printf(output, "=%s", inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)));
+		if (inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)) == NULL)
+			return 0; /* wireformat error, incorrect size or inet family */
+
+		buffer_printf(output, ",%s", ip_str);
 		data += IP4ADDRLEN / sizeof(uint16_t);
 
 		while ((val_len -= IP4ADDRLEN)) {
-			buffer_printf(output, ",%s", inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)));
+			if (inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)) == NULL)
+				return 0; /* wireformat error, incorrect size or inet family */
+
+			buffer_printf(output, ",%s", ip_str);
 			data += IP4ADDRLEN / sizeof(uint16_t);
 		}
 		return 1;
 	} else
-		return 0; /* wireformat error, a short is 2 bytes */
+		return 0;
 }
 
 static int
@@ -696,17 +702,24 @@ rdata_svcparam_ipv6hint_to_string(buffer_type *output, uint16_t val_len,
 	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
 
 	if ((val_len % IP6ADDRLEN) == 0) {
-		buffer_printf(output, "=%s", inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)));
+		if (inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)) == NULL)
+			return 0; /* wireformat error, incorrect size or inet family */
+
+		buffer_printf(output, "=%s", ip_str);
 		data += IP6ADDRLEN / sizeof(uint16_t);
 
 		while ((val_len -= IP6ADDRLEN)) {
-			buffer_printf(output, ",%s", inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)));
+			if (inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)) == NULL)
+				return 0; /* wireformat error, incorrect size or inet family */
+
+			buffer_printf(output, ",%s", buffer_printf(output, "=%s", ip_str););
 			data += IP6ADDRLEN / sizeof(uint16_t);
 		}
 		return 1;
 	} else
-		return 0; /* wireformat error*/
+		return 0;
 }
+
 static int
 rdata_svcparam_mandatory_to_string(buffer_type *output, uint16_t val_len,
 	uint16_t *data)
