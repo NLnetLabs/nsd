@@ -670,7 +670,7 @@ static int
 rdata_svcparam_ipv4hint_to_string(buffer_type *output, uint16_t val_len,
 	uint16_t *data)
 {
-	char ip_str[INET_ADDRSTRLEN];
+	char ip_str[INET_ADDRSTRLEN + 1];
 	
 	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
 
@@ -697,7 +697,7 @@ static int
 rdata_svcparam_ipv6hint_to_string(buffer_type *output, uint16_t val_len,
 	uint16_t *data)
 {
-	char ip_str[INET6_ADDRSTRLEN];
+	char ip_str[INET6_ADDRSTRLEN + 1];
 	
 	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
 
