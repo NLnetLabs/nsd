@@ -681,7 +681,7 @@ rdata_svcparam_ipv4hint_to_string(buffer_type *output, uint16_t val_len,
 		buffer_printf(output, ",%s", ip_str);
 		data += IP4ADDRLEN / sizeof(uint16_t);
 
-		while ((val_len -= IP4ADDRLEN)) {
+		while ((val_len -= IP4ADDRLEN) > 0) {
 			if (inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)) == NULL)
 				return 0; /* wireformat error, incorrect size or inet family */
 
@@ -708,11 +708,11 @@ rdata_svcparam_ipv6hint_to_string(buffer_type *output, uint16_t val_len,
 		buffer_printf(output, "=%s", ip_str);
 		data += IP6ADDRLEN / sizeof(uint16_t);
 
-		while ((val_len -= IP6ADDRLEN)) {
+		while ((val_len -= IP6ADDRLEN) > 0) {
 			if (inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)) == NULL)
 				return 0; /* wireformat error, incorrect size or inet family */
 
-			buffer_printf(output, ",%s", buffer_printf(output, "=%s", ip_str););
+			buffer_printf(output, ",%s", ip_str);
 			data += IP6ADDRLEN / sizeof(uint16_t);
 		}
 		return 1;
