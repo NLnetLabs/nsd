@@ -152,7 +152,8 @@ static int read_into_buffer(int fd, struct buffer* buf)
 			}
 			log_msg(LOG_ERR, "dnstap collector: read failed: %s",
 				strerror(errno));
-			return 0;
+			
+			return errno == EFAULT || errno == EINVAL ? -1 : 0;
 		}
 		buffer_skip(buf, r);
 		if(buffer_position(buf) < 4)
@@ -173,7 +174,8 @@ static int read_into_buffer(int fd, struct buffer* buf)
 		}
 		log_msg(LOG_ERR, "dnstap collector: read failed: %s",
 			strerror(errno));
-		return 0;
+
+		return errno == EFAULT || errno == EINVAL ? -1 : 0;
 	}
 	buffer_skip(buf, r);
 	if(buffer_position(buf) < 4 + msglen)
@@ -243,9 +245,13 @@ dt_handle_input(int fd, short event, void* arg)
 	struct dt_collector_input* dt_input = (struct dt_collector_input*)arg;
 	if((event&EV_READ) != 0) {
 		/* read */
-		if(!read_into_buffer(fd, dt_input->buffer))
+		int r = read_into_buffer(fd, dt_input->buffer);
+		if(r == 0)
 			return;
-
+		else if(r < 0) {
+			event_base_loopexit(dt_input->dt_collector->event_base, NULL);
+			return;
+		}
 		/* once data is complete, write it to dnstap */
 		VERBOSITY(4, (LOG_INFO, "dnstap collector: received msg len %d",
 			(int)buffer_remaining(dt_input->buffer)));
@@ -386,6 +392,9 @@ void dt_collector_start(struct dt_collector* dt_col, struct nsd* nsd)
 		/* close the nsd side of the command channel */
 		close(dt_col->cmd_socket_nsd);
 		dt_col->cmd_socket_nsd = -1;
+#ifdef HAVE_SETPROCTITLE
+		setproctitle("dnstap_collector");
+#endif
 		dt_collector_run(dt_col, nsd);
 		/* NOTREACH */
 		exit(0);
