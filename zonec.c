@@ -46,6 +46,8 @@
 
 #define ILNP_MAXDIGITS 4
 #define ILNP_NUMGROUPS 4
+#define SVCB_MAX_COMMA_SEPARATED_VALUES 1000
+
 
 const dname_type *error_dname;
 domain_type *error_domain;
@@ -847,10 +849,12 @@ zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 	for (i = 0, count = 1; val[i]; i++) {
 		if (val[i] == ',')
 			count += 1;
+		if (count > SVCB_MAX_COMMA_SEPARATED_VALUES)
+			zc_error_prev_line("Too many IPV4 addresses in ipv4hint");
 	}
 
-	/* count == number of comma's in val + 1 
-	 * so actually the number of IPv4 addresses in val
+	/* count == number of comma's in val + 1, so the actual number of IPv4
+	 * addresses in val
 	 */
 	r = alloc_rdata(region, 2 * sizeof(uint16_t) + IP4ADDRLEN * count);
 	r[1] = htons(SVCB_KEY_IPV4HINT);
@@ -898,6 +902,8 @@ zparser_conv_svcbparam_ipv6hint_value(region_type *region, const char *val)
 	for (i = 0, count = 1; val[i]; i++) {
 		if (val[i] == ',')
 			count += 1;
+		if (count > SVCB_MAX_COMMA_SEPARATED_VALUES)
+			zc_error_prev_line("Too many IPV6 addresses in ipv6hint");
 	}
 
 	/* count == number of comma's in val + 1 
@@ -955,7 +961,10 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 	for (i = 0, count = 1; val[i]; i++) {
 		if (val[i] == ',')
 			count += 1;
+		if (count > SVCB_MAX_COMMA_SEPARATED_VALUES)
+			zc_error_prev_line("Too many keys in mandatory");
 	}
+
 	r = alloc_rdata(region, (2 + count) * sizeof(uint16_t));
 	r[1] = htons(SVCB_KEY_MANDATORY);
 	r[2] = htons(sizeof(uint16_t) * count);
@@ -1740,10 +1749,10 @@ zadd_rdata_svcb_check_wireformat()
 		}
 		if (key == prev_key) {
 			if(zone_is_slave(parser->current_zone->opts))
-				zc_warning_prev_line("Keys in SVcParam mandatory "
+				zc_warning_prev_line("Keys inSvcParam mandatory "
 				                   "MUST NOT appear more than once.");
 			else
-				zc_error_prev_line("Keys in SVcParam mandatory "
+				zc_error_prev_line("Keys in SvcParam mandatory "
 				                   "MUST NOT appear more than once.");
 		}
 		prev_key = key;
