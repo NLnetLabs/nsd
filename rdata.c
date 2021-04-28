@@ -678,7 +678,7 @@ rdata_svcparam_ipv4hint_to_string(buffer_type *output, uint16_t val_len,
 		if (inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)) == NULL)
 			return 0; /* wireformat error, incorrect size or inet family */
 
-		buffer_printf(output, ",%s", ip_str);
+		buffer_printf(output, "=%s", ip_str);
 		data += IP4ADDRLEN / sizeof(uint16_t);
 
 		while ((val_len -= IP4ADDRLEN) > 0) {
