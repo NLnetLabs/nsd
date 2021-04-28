@@ -742,7 +742,7 @@ rdata_svcparam_mandatory_to_string(buffer_type *output, uint16_t val_len,
 }
 
 static int
-rdata_svcparam_echconfig_to_string(buffer_type *output, uint16_t val_len,
+rdata_svcparam_ech_to_string(buffer_type *output, uint16_t val_len,
 	uint16_t *data)
 {
 	int length;
@@ -842,8 +842,8 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		return 0; /* wireformat error, should not have a value */
 	case SVCB_KEY_ALPN:
 		return rdata_svcparam_alpn_to_string(output, val_len, data+2);
-	case SVCB_KEY_ECHCONFIG:
-		return rdata_svcparam_echconfig_to_string(output, val_len, data+2);
+	case SVCB_KEY_ECH:
+		return rdata_svcparam_ech_to_string(output, val_len, data+2);
 	default:
 		buffer_write(output, "=\"", 2);
 		dp = (void*) (data + 2);

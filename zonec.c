@@ -776,7 +776,7 @@ svcbparam_lookup_key(const char *key, size_t key_len)
 		if (!strncmp(key, "mandatory", sizeof("mandatory")-1))
 			return SVCB_KEY_MANDATORY;
 		if (!strncmp(key, "echconfig", sizeof("echconfig")-1))
-			return SVCB_KEY_ECHCONFIG;
+			return SVCB_KEY_ECH; /* allow "echconfig as well as "ech" */
 		break;
 
 	case sizeof("alpn")-1:
@@ -797,6 +797,10 @@ svcbparam_lookup_key(const char *key, size_t key_len)
 			return SVCB_KEY_IPV4HINT;
 		if (!strncmp(key, "ipv6hint", sizeof("ipv6hint")-1))
 			return SVCB_KEY_IPV6HINT;
+		break;
+	case sizeof("ech")-1:
+		if (!strncmp(key, "ech", sizeof("ech")-1))
+			return SVCB_KEY_ECH;
 		break;
 	default:
 		break;
@@ -1000,7 +1004,7 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 }
 
 static uint16_t *
-zparser_conv_svcbparam_echconfig_value(region_type *region, const char *b64)
+zparser_conv_svcbparam_ech_value(region_type *region, const char *b64)
 {
 	uint8_t buffer[B64BUFSIZE];
 	uint16_t *r = NULL;
@@ -1012,10 +1016,10 @@ zparser_conv_svcbparam_echconfig_value(region_type *region, const char *b64)
 	}
 	wire_len = b64_pton(b64, buffer, B64BUFSIZE);
 	if (wire_len == -1) {
-		zc_error_prev_line("invalid base64 data");
+		zc_error_prev_line("invalid base64 data in ech");
 	} else {
 		r = alloc_rdata(region, 2 * sizeof(uint16_t) + wire_len);
-		r[1] = htons(SVCB_KEY_ECHCONFIG);
+		r[1] = htons(SVCB_KEY_ECH);
 		r[2] = htons(wire_len);
 		memcpy(&r[3], buffer, wire_len);
 	}
@@ -1124,8 +1128,8 @@ zparser_conv_svcbparam_key_value(region_type *region,
 		else
 			zc_error_prev_line("no-default-alpn should not have a value\n");
 		break;
-	case SVCB_KEY_ECHCONFIG:
-		return zparser_conv_svcbparam_echconfig_value(region, val);
+	case SVCB_KEY_ECH:
+		return zparser_conv_svcbparam_ech_value(region, val);
 	case SVCB_KEY_ALPN:
 		return zparser_conv_svcbparam_alpn_value(region, val, val_len);
 	default:

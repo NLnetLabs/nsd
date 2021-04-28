@@ -165,6 +165,13 @@ then
 	echo "Failure case 20: multiple instances of the same SvcParamKey in the mandatory list"
 	echo "Incorrectly succeeded"
 	exit 1
+
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-21
+then
+	echo "Failure case 21: ech value is not base64 encoded"
+	echo "Incorrectly succeeded"
+	exit 1
+
 else
 	echo "All failure cases test successfully"
 fi
