@@ -851,6 +851,7 @@ zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 			count += 1;
 		if (count > SVCB_MAX_COMMA_SEPARATED_VALUES)
 			zc_error_prev_line("Too many IPV4 addresses in ipv4hint");
+			return alloc_rdata_init(region, "", 0);
 	}
 
 	/* count == number of comma's in val + 1, so the actual number of IPv4
@@ -904,6 +905,7 @@ zparser_conv_svcbparam_ipv6hint_value(region_type *region, const char *val)
 			count += 1;
 		if (count > SVCB_MAX_COMMA_SEPARATED_VALUES)
 			zc_error_prev_line("Too many IPV6 addresses in ipv6hint");
+			return alloc_rdata_init(region, "", 0);
 	}
 
 	/* count == number of comma's in val + 1 
@@ -963,6 +965,7 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 			count += 1;
 		if (count > SVCB_MAX_COMMA_SEPARATED_VALUES)
 			zc_error_prev_line("Too many keys in mandatory");
+			return alloc_rdata_init(region, "", 0);
 	}
 
 	r = alloc_rdata(region, (2 + count) * sizeof(uint16_t));
