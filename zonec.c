@@ -839,7 +839,7 @@ zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 {
 	uint16_t *r;
 	int count;
-	char ip_str[INET_ADDRSTRLEN];
+	char ip_str[INET_ADDRSTRLEN+1];
 	char *next_ip_str;
 	uint32_t *ip_wire_dst;
 	size_t i;
@@ -891,7 +891,7 @@ zparser_conv_svcbparam_ipv6hint_value(region_type *region, const char *val)
 {
 	uint16_t *r;
 	int i, count;
-	char ip6_str[INET6_ADDRSTRLEN];
+	char ip6_str[INET6_ADDRSTRLEN+1];
 	char *next_ip6_str;
 	uint8_t *ipv6_wire_dst;
 

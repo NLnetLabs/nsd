@@ -6,7 +6,7 @@
 . ../common.sh
 
 # start NSD
-get_random_port 2
+get_random_port 3
 TPKG_PRI_PORT=$RND_PORT
 TPKG_SEC_PORT=`expr $TPKG_PRI_PORT + 1`
 TPKG_CTRL_PORT=`expr $TPKG_PRI_PORT + 2`
@@ -28,3 +28,4 @@ sed -e "s/@TPKG_PRI_PORT@/$TPKG_PRI_PORT/g" \
 $TPKG_NSD -c svcb.primary.conf -u $LOGNAME -p $TPKG_PRI_PORT -P $TPKG_NSD_PRI_PID 
 $TPKG_NSD -c svcb.secondary.conf -u $LOGNAME -p $TPKG_SEC_PORT -P $TPKG_NSD_SEC_PID 
 wait_nsd_up nsd.log
+wait_nsd_up nsd-secondary.log
