@@ -837,7 +837,7 @@ zparser_conv_svcbparam_port_value(region_type *region, const char *val)
 		return r;
 	}
 	zc_error_prev_line("Could not parse port SvcParamValue: \"%s\"", val);
-	return alloc_rdata_init(region, "", 0);
+	return NULL;
 }
 
 static uint16_t *
@@ -855,7 +855,7 @@ zparser_conv_svcbparam_ipv4hint_value(region_type *region, const char *val)
 			count += 1;
 		if (count > SVCB_MAX_COMMA_SEPARATED_VALUES) {
 			zc_error_prev_line("Too many IPV4 addresses in ipv4hint");
-			return alloc_rdata_init(region, "", 0);
+			return NULL;
 		}
 	}
 
@@ -910,7 +910,7 @@ zparser_conv_svcbparam_ipv6hint_value(region_type *region, const char *val)
 			count += 1;
 		if (count > SVCB_MAX_COMMA_SEPARATED_VALUES) {
 			zc_error_prev_line("Too many IPV6 addresses in ipv6hint");
-			return alloc_rdata_init(region, "", 0);
+			return NULL;
 		}
 	}
 
@@ -971,7 +971,7 @@ zparser_conv_svcbparam_mandatory_value(region_type *region,
 			count += 1;
 		if (count > SVCB_MAX_COMMA_SEPARATED_VALUES) {
 			zc_error_prev_line("Too many keys in mandatory");
-			return alloc_rdata_init(region, "", 0);
+			return NULL;
 		}
 	}
 
@@ -1124,9 +1124,9 @@ zparser_conv_svcbparam_key_value(region_type *region,
 		return zparser_conv_svcbparam_mandatory_value(region, val, val_len);
 	case SVCB_KEY_NO_DEFAULT_ALPN:
 		if(zone_is_slave(parser->current_zone->opts))
-			zc_warning_prev_line("no-default-alpn should not have a value\n");
+			zc_warning_prev_line("no-default-alpn should not have a value");
 		else
-			zc_error_prev_line("no-default-alpn should not have a value\n");
+			zc_error_prev_line("no-default-alpn should not have a value");
 		break;
 	case SVCB_KEY_ECH:
 		return zparser_conv_svcbparam_ech_value(region, val);
@@ -1671,11 +1671,32 @@ zadd_rdata_svcb_check_wireformat()
 	size_t size;
 	uint16_t *mandatory_values;
 
+	if (parser->current_rr.rdata_count <= 2) {
+		if (!parser->error_occurred)
+			zc_error_prev_line("invalid SVCB or HTTPS rdata");
+		return;
+	} else for (i = 2; i < parser->current_rr.rdata_count; i++) {
+		if (parser->current_rr.rdatas[i].data == NULL
+		||  rdata_atom_data(parser->current_rr.rdatas[i]) == NULL
+		||  rdata_atom_size(parser->current_rr.rdatas[i]) < 4) {
+			if (!parser->error_occurred)
+				zc_error_prev_line("invalid SVCB or HTTPS rdata");
+			return;
+		}
+	}
+	/* After this point, all rdatas do have data larger than 4 bytes.
+	 * So we may assume a uint16_t SVCB key followed by uint16_t length
+	 * in each rdata in the remainder of this function.
+	 */
 	memset(paramkeys, 0, sizeof(paramkeys));
 	/* 
 	 * In draft-ietf-dnsop-svcb-https-04 Section 7:
 	 * In wire format, the keys are represented by their numeric values in
 	 * network byte order, concatenated in ascending order.
+	 *
+	 * svcparam_key_cmp assumes the rdatas to have a SVCB key, which is
+	 * safe because we checked.
+	 *
 	 */
 	qsort( (void *)&parser->current_rr.rdatas[2]
 	     , parser->current_rr.rdata_count - 2
@@ -1684,7 +1705,11 @@ zadd_rdata_svcb_check_wireformat()
 	     );
 
 	for (i = 2; i < parser->current_rr.rdata_count; i++) {
-		key  = read_uint16(rdata_atom_data(parser->current_rr.rdatas[i]));
+		/* assert(rdata_atom_data(parser->current_rr.rdatas[i].data);
+		 * assert(rdata_atom_data(parser->current_rr.rdatas[i]);
+		 * assert(rdata_atom_size(parser->current_rr.rdatas[i]) > 2);
+		 */
+		key = read_uint16(rdata_atom_data(parser->current_rr.rdatas[i]));
 
 		/* In draft-ietf-dnsop-svcb-https-04 Section 7:
 		 *
@@ -1699,25 +1724,26 @@ zadd_rdata_svcb_check_wireformat()
 		else if (key < SVCPARAMKEY_COUNT) {
 			if(zone_is_slave(parser->current_zone->opts))
 				zc_warning_prev_line(
-					"Duplicate key found: %s\n",
+					"Duplicate key found: %s",
 					svcparamkey_strs[key]);
 			else {
 				zc_error_prev_line(
-					"Duplicate key found: %s\n",
+					"Duplicate key found: %s",
 					svcparamkey_strs[key]);
 			}
 		} else if(zone_is_slave(parser->current_zone->opts))
 			zc_warning_prev_line(
-					"Duplicate key found: key%d\n", key);
+					"Duplicate key found: key%d", key);
 		else
 			zc_error_prev_line(
-					"Duplicate key found: key%d\n", key);
+					"Duplicate key found: key%d", key);
 	}
 	/* Checks when a mandatory key is present */
 	if (!paramkeys[SVCB_KEY_MANDATORY])
 		return;
 
 	size = rdata_atom_size(parser->current_rr.rdatas[2]);
+	/* assert(size >= 4); */
 	mandatory_values = (void*)rdata_atom_data(parser->current_rr.rdatas[2]);
 	mandatory_values += 2; /* skip the key type and length */
 
@@ -1733,17 +1759,17 @@ zadd_rdata_svcb_check_wireformat()
 		else if (key < SVCPARAMKEY_COUNT) {
 			if(zone_is_slave(parser->current_zone->opts))
 				zc_warning_prev_line("mandatory SvcParamKey: %s is missing "
-						     "the record\n", svcparamkey_strs[key]);
+						     "the record", svcparamkey_strs[key]);
 			else
 				zc_error_prev_line("mandatory SvcParamKey: %s is missing "
-						   "the record\n", svcparamkey_strs[key]);
+						   "the record", svcparamkey_strs[key]);
 		} else {
 			if(zone_is_slave(parser->current_zone->opts))
 				zc_warning_prev_line("mandatory SvcParamKey: key%d is missing "
-						     "the record\n", key);
+						     "the record", key);
 			else
 				zc_error_prev_line("mandatory SvcParamKey: key%d is missing "
-						   "the record\n", key);
+						   "the record", key);
 		}
 
 		/* In draft-ietf-dnsop-svcb-https-04 Section 8

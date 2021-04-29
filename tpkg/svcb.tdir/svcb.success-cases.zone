@@ -32,3 +32,9 @@ s04	HTTPS	0 . no-default-alpn
 
 s05	HTTPS	0 . alpn="dot" no-default-alpn port=853 mandatory=port
 
+; Any valid base64 is okay for ech
+s06     HTTPS   0 . ech="aGVsbG93b3JsZCE="
+
+; echconfig is an alias for ech
+s07     HTTPS   0 . echconfig="aGVsbG93b3JsZCE="
+

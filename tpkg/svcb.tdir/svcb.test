@@ -172,6 +172,11 @@ then
 	echo "Incorrectly succeeded"
 	exit 1
 
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-22
+then
+	echo "Failure case 22: port value needs to be a positive integer < 65536"
+	echo "Incorrectly succeeded"
+	exit 1
 else
 	echo "All failure cases test successfully"
 fi
