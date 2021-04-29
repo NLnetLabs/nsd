@@ -1160,7 +1160,7 @@ zparser_conv_svcbparam(region_type *region, const char *key, size_t key_len
 		zc_error_prev_line( "SvcParam syntax error in param: %s\"%s\""
 		                  , key, val);
 	}
-	/* assert(val == NULL); */
+	assert(val == NULL);
 	if ((eq = memchr(key, '=', key_len))) {
 		size_t new_key_len = eq - key;
 
@@ -1705,10 +1705,10 @@ zadd_rdata_svcb_check_wireformat()
 	     );
 
 	for (i = 2; i < parser->current_rr.rdata_count; i++) {
-		/* assert(rdata_atom_data(parser->current_rr.rdatas[i].data);
-		 * assert(rdata_atom_data(parser->current_rr.rdatas[i]);
-		 * assert(rdata_atom_size(parser->current_rr.rdatas[i]) > 2);
-		 */
+		assert(parser->current_rr.rdatas[i].data);
+		assert(rdata_atom_data(parser->current_rr.rdatas[i]));
+		assert(rdata_atom_size(parser->current_rr.rdatas[i]) >= sizeof(uint16_t));
+		 
 		key = read_uint16(rdata_atom_data(parser->current_rr.rdatas[i]));
 
 		/* In draft-ietf-dnsop-svcb-https-04 Section 7:
@@ -1743,7 +1743,7 @@ zadd_rdata_svcb_check_wireformat()
 		return;
 
 	size = rdata_atom_size(parser->current_rr.rdatas[2]);
-	/* assert(size >= 4); */
+	assert(size >= 4);
 	mandatory_values = (void*)rdata_atom_data(parser->current_rr.rdatas[2]);
 	mandatory_values += 2; /* skip the key type and length */
 
