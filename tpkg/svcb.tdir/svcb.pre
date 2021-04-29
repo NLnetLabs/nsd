@@ -1,0 +1,31 @@
+# #-- svcb.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 3
+TPKG_PRI_PORT=$RND_PORT
+TPKG_SEC_PORT=`expr $TPKG_PRI_PORT + 1`
+TPKG_CTRL_PORT=`expr $TPKG_PRI_PORT + 2`
+
+PRE="../.."
+TPKG_NSD_PRI_PID="nsd.pri.pid.$$"
+TPKG_NSD_SEC_PID="nsd.sec.pid.$$"
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export TPKG_PRI_PORT=$TPKG_PRI_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PRI_PID=$TPKG_NSD_PRI_PID" >> .tpkg.var.test
+echo "export TPKG_SEC_PORT=$TPKG_SEC_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_SEC_PID=$TPKG_NSD_SEC_PID" >> .tpkg.var.test
+
+sed -e "s/@TPKG_PRI_PORT@/$TPKG_PRI_PORT/g" \
+    -e "s/@TPKG_CTRL_PORT@/$TPKG_CTRL_PORT/g" svcb.secondary.conf.in > svcb.secondary.conf
+
+$TPKG_NSD -c svcb.primary.conf -u $LOGNAME -p $TPKG_PRI_PORT -P $TPKG_NSD_PRI_PID 
+$TPKG_NSD -c svcb.secondary.conf -u $LOGNAME -p $TPKG_SEC_PORT -P $TPKG_NSD_SEC_PID 
+wait_nsd_up nsd.log
+wait_nsd_up nsd-secondary.log
