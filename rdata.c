@@ -68,7 +68,7 @@ lookup_table_type dns_algorithms[] = {
 
 const char *svcparamkey_strs[] = {
 		"mandatory", "alpn", "no-default-alpn", "port",
-		"ipv4hint", "echconfig", "ipv6hint"
+		"ipv4hint", "ech", "ipv6hint"
 	};
 
 typedef int (*rdata_to_string_type)(buffer_type *output,
