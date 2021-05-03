@@ -1700,7 +1700,7 @@ zadd_rdata_svcb_check_wireformat()
 	 */
 	qsort( (void *)&parser->current_rr.rdatas[2]
 	     , parser->current_rr.rdata_count - 2
-	     , sizeof(rdata_atom_type *)
+	     , sizeof(rdata_atom_type)
 	     , svcparam_key_cmp
 	     );
 
