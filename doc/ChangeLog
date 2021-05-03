@@ -1,7 +1,7 @@
 4 May 2021: Wouter
 	- Fix SVCB sort call sizeof to be the size of the elements sorted.
 
-9 April 2021: Tom
+29 April 2021: Tom
 	- Implement Syntax of SVCB and HTTPS RR type as per draft-ietf-dnsop-svcb-https
 
 13 April 2021: Wouter
