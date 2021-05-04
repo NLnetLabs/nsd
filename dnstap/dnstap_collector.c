@@ -165,7 +165,12 @@ static int read_into_buffer(int fd, struct buffer* buf)
 	/* assert we have enough space, if we don't and we wanted to continue,
 	 * we would have to skip the message somehow, but that should never
 	 * happen because send_buffer and receive_buffer have the same size */
-	assert(buffer_capacity(buf) >= msglen + 4);
+	/* assert(buffer_capacity(buf) >= msglen + 4); */
+	if(msglen + 4 > buffer_capacity(buf)) {
+		log_msg(LOG_ERR, "dnstap collector: out of sync (msglen: %u)",
+			(unsigned int) msglen);
+		return -1;
+	}
 	r = read(fd, buffer_current(buf), msglen - (buffer_position(buf) - 4));
 	if(r == -1) {
 		if(errno == EAGAIN || errno == EINTR) {

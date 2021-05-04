@@ -2487,6 +2487,19 @@ server_main(struct nsd *nsd)
 						log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
 							strerror(errno));
 					}
+#ifdef USE_DNSTAP
+				} else if(child_pid == nsd->dt_collector->dt_pid) {
+					log_msg(LOG_WARNING,
+					       "dnstap-collector %d terminated with status %d",
+					       (int) child_pid, status);
+					if(nsd->options->dnstap_enable) {
+						dt_collector_close(nsd->dt_collector, nsd);
+						dt_collector_destroy(nsd->dt_collector, nsd);
+						nsd->dt_collector = dt_collector_create(nsd);
+						dt_collector_start(nsd->dt_collector, nsd);
+						nsd->mode = NSD_RELOAD;
+					}
+#endif
 				} else if(status != 0) {
 					/* check for status, because we get
 					 * the old-servermain because reload

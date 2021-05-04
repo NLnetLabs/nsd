@@ -1586,13 +1586,6 @@ main(int argc, char *argv[])
 	options_zonestatnames_create(nsd.options);
 	server_zonestat_alloc(&nsd);
 #endif /* USE_ZONE_STATS */
-#ifdef USE_DNSTAP
-	if(nsd.options->dnstap_enable) {
-		nsd.dt_collector = dt_collector_create(&nsd);
-		dt_collector_start(nsd.dt_collector, &nsd);
-	}
-#endif /* USE_DNSTAP */
-
 	if(nsd.server_kind == NSD_SERVER_MAIN) {
 		server_prepare_xfrd(&nsd);
 		/* xfrd forks this before reading database, so it does not get
@@ -1607,6 +1600,12 @@ main(int argc, char *argv[])
 			"not be started", argv0);
 	}
 	if(nsd.server_kind == NSD_SERVER_MAIN) {
+#ifdef USE_DNSTAP
+		if(nsd.options->dnstap_enable) {
+			nsd.dt_collector = dt_collector_create(&nsd);
+			dt_collector_start(nsd.dt_collector, &nsd);
+		}
+#endif /* USE_DNSTAP */
 		server_send_soa_xfrd(&nsd, 0);
 	}
 
