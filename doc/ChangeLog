@@ -1,3 +1,7 @@
+6 May 2021: Wouter
+	- Fix #174: NS Records below delegation are not ignored (nsd-checkzone
+	  also does not raise any issue).
+
 4 May 2021: Wouter
 	- Fix SVCB sort call sizeof to be the size of the elements sorted.
 

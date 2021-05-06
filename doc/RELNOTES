@@ -9,6 +9,8 @@ BUG FIXES:
 	- Fix for #128: Skip over sendmmsg invalid argument when port is zero.
 	- Fix #171: Invalid negative response (NSEC3) after IXFR.
 	- Fix to make nsec3_chain_find_prev return NULL if one nsec3 left.
+	- Fix #174: NS Records below delegation are not ignored (nsd-checkzone
+	  also does not raise any issue).
 
 
 4.3.6
