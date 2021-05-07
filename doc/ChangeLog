@@ -1,3 +1,6 @@
+7 May 2021: Wouter
+	- Fix #176: please review Loglevel on missing zonefile.
+
 6 May 2021: Wouter
 	- Fix #174: NS Records below delegation are not ignored (nsd-checkzone
 	  also does not raise any issue).

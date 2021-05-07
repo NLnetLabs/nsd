@@ -11,6 +11,7 @@ BUG FIXES:
 	- Fix to make nsec3_chain_find_prev return NULL if one nsec3 left.
 	- Fix #174: NS Records below delegation are not ignored (nsd-checkzone
 	  also does not raise any issue).
+	- Fix #176: please review Loglevel on missing zonefile.
 
 
 4.3.6
