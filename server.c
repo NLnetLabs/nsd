@@ -2239,6 +2239,31 @@ reload_do_stats(int cmdfd, struct nsd* nsd, udb_ptr* last)
 }
 #endif /* BIND8_STATS */
 
+#ifdef USE_DNSTAP
+static void
+dt_collector_quit_close_destroy_fds(struct dt_collector* dt_col, int* fd_send, int* fd_recv)
+{
+	sig_atomic_t cmd = NSD_QUIT;
+
+	if(dt_col->cmd_socket_nsd >= 0
+	&& !write_socket(dt_col->cmd_socket_nsd, &cmd, sizeof(cmd))) {
+		log_msg(LOG_ERR, "problems sending quit dnstap collector: %s",
+				strerror(errno));
+	}
+	dt_collector_close_fds(dt_col, fd_send, fd_recv);
+	dt_collector_destroy_fds(dt_col, fd_send, fd_recv);
+}
+static void
+dt_collector_quit_close_destroy(struct nsd* nsd)
+{
+	dt_collector_quit_close_destroy_fds(nsd->dt_collector,
+			nsd->dt_collector_fd_send,
+			nsd->dt_collector_fd_recv);
+	nsd->dt_collector_fd_recv = NULL;
+	nsd->dt_collector_fd_send = NULL;
+}
+#endif
+
 /*
  * Reload the database, stop parent, re-fork children and continue.
  * as server_main.
@@ -2247,6 +2272,11 @@ static void
 server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int cmdsocket)
 {
+#ifdef USE_DNSTAP
+	struct dt_collector* dt_collector_bak = NULL;
+	int *dt_collector_fd_send_bak = NULL;
+	int *dt_collector_fd_recv_bak = NULL;
+#endif
 	pid_t mypid;
 	sig_atomic_t cmd = NSD_QUIT_SYNC;
 	int ret;
@@ -2295,10 +2325,37 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	/* listen for the signals of failed children again */
 	sigaction(SIGCHLD, &old_sigchld, NULL);
+#ifdef USE_DNSTAP
+	/* if dnstap collector crashed before, respawn it on every reload */
+	if (!nsd->dt_collector) {
+		/* no dnstap collector running */
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: no dnstap collector running"));
+	} else if (nsd->dt_collector->respawn_on_reload == 0) {
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: no need to respawn dnstap collector"));
+	} else if (nsd->dt_collector->respawn_on_reload == 1) {
+		/* will be set to 2 after reload finished successfully */
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: dnstap was already respawn (due to crash or out of sync data)"));
+	} else if (nsd->dt_collector->respawn_on_reload == 2) {
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: respawning dnstap collector"));
+		/* create and start a new dnstap collector. Backup the old
+		 * dnstap collector, to send quit only after reload succeeded */
+		dt_collector_bak = nsd->dt_collector;
+		dt_collector_fd_send_bak = nsd->dt_collector_fd_send;
+		dt_collector_fd_recv_bak = nsd->dt_collector_fd_recv;
+		nsd->dt_collector = dt_collector_create(nsd);
+		nsd->dt_collector->respawn_on_reload = 2;
+		dt_collector_start(nsd->dt_collector, nsd);
+	}
+#endif
 	/* Start new child processes */
 	if (server_start_children(nsd, server_region, netio, &nsd->
 		xfrd_listener->fd) != 0) {
 		send_children_quit(nsd);
+#if USE_DNSTAP
+		/* Quit respawn dnstap collector if reload failed */
+		if (nsd->dt_collector && nsd->dt_collector->respawn_on_reload)
+			dt_collector_quit_close_destroy(nsd);
+#endif
 		exit(1);
 	}
 
@@ -2308,6 +2365,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		if(cmd == NSD_QUIT) {
 			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: quit to follow nsd"));
 			send_children_quit(nsd);
+#if USE_DNSTAP
+			/* quit respawn dnstap collector if reload failed */
+			if (nsd->dt_collector && nsd->dt_collector->respawn_on_reload)
+				dt_collector_quit_close_destroy(nsd);
+#endif
 			exit(0);
 		}
 	}
@@ -2336,9 +2398,24 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	if(cmd == NSD_QUIT) {
 		/* small race condition possible here, parent got quit cmd. */
 		send_children_quit(nsd);
+#if USE_DNSTAP
+		/* Quit respawn dnstap collector if reload failed */
+		if (nsd->dt_collector && nsd->dt_collector->respawn_on_reload)
+			dt_collector_quit_close_destroy(nsd);
+#endif
 		exit(1);
 	}
 	assert(ret==-1 || ret == 0 || cmd == NSD_RELOAD);
+#if USE_DNSTAP
+	/* close and destroy an old (respawn) dnstap collector. */
+	if (dt_collector_bak) {
+		/* close and destroy an old (respawn) dnstap collector.*/
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: closing old dnstap collector"));
+		dt_collector_quit_close_destroy_fds(dt_collector_bak,
+				dt_collector_fd_send_bak,
+				dt_collector_fd_recv_bak);
+	}
+#endif
 #ifdef BIND8_STATS
 	reload_do_stats(cmdsocket, nsd, &last_task);
 #endif
@@ -2499,8 +2576,9 @@ server_main(struct nsd *nsd)
 					}
 					if(nsd->options->dnstap_enable) {
 						nsd->dt_collector = dt_collector_create(nsd);
+						nsd->dt_collector->respawn_on_reload = 1;
 						dt_collector_start(nsd->dt_collector, nsd);
-						nsd->mode = NSD_RELOAD;
+						nsd->mode = NSD_RELOAD_REQ;
 					}
 #endif
 				} else if(status != 0) {
@@ -2618,6 +2696,10 @@ server_main(struct nsd *nsd)
 				reload_listener.fd = -1;
 				reload_listener.event_types = NETIO_EVENT_NONE;
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload resetup; run"));
+#ifdef USE_DNSTAP
+				if (nsd->dt_collector && nsd->dt_collector->respawn_on_reload == 1)
+					nsd->dt_collector->respawn_on_reload = 2;
+#endif
 				break;
 			case 0:
 				/* CHILD */

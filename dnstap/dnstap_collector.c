@@ -87,22 +87,31 @@ struct dt_collector* dt_collector_create(struct nsd* nsd)
 	}
 	dt_col->cmd_socket_dt = sv[0];
 	dt_col->cmd_socket_nsd = sv[1];
-
+	dt_col->respawn_on_reload = 0;
 	return dt_col;
+}
+
+void dt_collector_destroy_fds(struct dt_collector* dt_col,
+		int* fd_send, int* fd_recv)
+{
+	if(!dt_col) return;
+	free(fd_recv);
+	free(fd_send);
+	region_destroy(dt_col->region);
+	free(dt_col);
 }
 
 void dt_collector_destroy(struct dt_collector* dt_col, struct nsd* nsd)
 {
 	if(!dt_col) return;
-	free(nsd->dt_collector_fd_recv);
+	dt_collector_destroy_fds(dt_col, nsd->dt_collector_fd_send,
+			nsd->dt_collector_fd_recv);
 	nsd->dt_collector_fd_recv = NULL;
-	free(nsd->dt_collector_fd_send);
 	nsd->dt_collector_fd_send = NULL;
-	region_destroy(dt_col->region);
-	free(dt_col);
 }
 
-void dt_collector_close(struct dt_collector* dt_col, struct nsd* nsd)
+void dt_collector_close_fds(struct dt_collector* dt_col,
+		int* fd_send, int* fd_recv)
 {
 	int i;
 	if(!dt_col) return;
@@ -115,15 +124,21 @@ void dt_collector_close(struct dt_collector* dt_col, struct nsd* nsd)
 		dt_col->cmd_socket_nsd = -1;
 	}
 	for(i=0; i<dt_col->count; i++) {
-		if(nsd->dt_collector_fd_recv[i] != -1) {
-			close(nsd->dt_collector_fd_recv[i]);
-			nsd->dt_collector_fd_recv[i] = -1;
+		if(fd_recv[i] != -1) {
+			close(fd_recv[i]);
+			fd_recv[i] = -1;
 		}
-		if(nsd->dt_collector_fd_send[i] != -1) {
-			close(nsd->dt_collector_fd_send[i]);
-			nsd->dt_collector_fd_send[i] = -1;
+		if(fd_send[i] != -1) {
+			close(fd_send[i]);
+			fd_send[i] = -1;
 		}
 	}
+}
+
+void dt_collector_close(struct dt_collector* dt_col, struct nsd* nsd)
+{
+	dt_collector_close_fds(dt_col, nsd->dt_collector_fd_send,
+			nsd->dt_collector_fd_recv);
 }
 
 /* handle command from nsd to dt collector.

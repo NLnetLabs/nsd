@@ -43,6 +43,12 @@ struct dt_collector {
 	struct region* region;
 	/* buffer for sending data to the collector */
 	struct buffer* send_buffer;
+	/* when a dnstap collector exits (because it became out of sync or
+	 * otherwise), it is respawn from main and will have the zone content
+	 * in memory. After that it needs to be respawn at every reload to not
+	 * diverge for the zone content in the serve childs and as such incur
+	 * a memory leak. */
+	unsigned respawn_on_reload : 2;
 };
 
 /* information per worker to get input from that worker. */
@@ -59,8 +65,12 @@ struct dt_collector_input {
 struct dt_collector* dt_collector_create(struct nsd* nsd);
 /* destroy the dt_collector structure */
 void dt_collector_destroy(struct dt_collector* dt_col, struct nsd* nsd);
+void dt_collector_destroy_fds(struct dt_collector* dt_col,
+	int* fd_send, int* fd_recv);
 /* close file descriptors */
 void dt_collector_close(struct dt_collector* dt_col, struct nsd* nsd);
+void dt_collector_close_fds(struct dt_collector* dt_col,
+	int* fd_send, int* fd_recv);
 /* start the collector process */
 void dt_collector_start(struct dt_collector* dt_col, struct nsd* nsd);
 
