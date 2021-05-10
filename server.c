@@ -2492,9 +2492,12 @@ server_main(struct nsd *nsd)
 					log_msg(LOG_WARNING,
 					       "dnstap-collector %d terminated with status %d",
 					       (int) child_pid, status);
-					if(nsd->options->dnstap_enable) {
+					if(nsd->dt_collector) {
 						dt_collector_close(nsd->dt_collector, nsd);
 						dt_collector_destroy(nsd->dt_collector, nsd);
+						nsd->dt_collector = NULL;
+					}
+					if(nsd->options->dnstap_enable) {
 						nsd->dt_collector = dt_collector_create(nsd);
 						dt_collector_start(nsd->dt_collector, nsd);
 						nsd->mode = NSD_RELOAD;
