@@ -26,7 +26,7 @@ ubuntu_2004_gcc11: &ubuntu_2004_gcc11
   bootstrap_script:
     - apt-get update
     - apt-get install -y gnupg2 ca-certificates wget curl software-properties-common
-    - add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
+    - add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - apt-get update
   install_script:
     - apt-get install -y autoconf automake make gcc-11 clang libc-dev libevent-dev libssl-dev flex bison
