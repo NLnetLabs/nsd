@@ -7,14 +7,6 @@
 # For now builds are limited to Linux, FreeBSD and macOS builds on AMD64, more
 # may be added in the future.
 
-ubuntu_1804: &ubuntu_1804
-  container:
-    image: ubuntu:bionic
-  env:
-    UBUNTU_CODENAME: bionic
-    COV_COMPTYPE: gcc
-    COV_PLATFORM: linux64
-
 ubuntu_2004_gcc11: &ubuntu_2004_gcc11
   container:
     image: ubuntu:focal
@@ -31,15 +23,16 @@ ubuntu_2004_gcc11: &ubuntu_2004_gcc11
   install_script:
     - apt-get install -y autoconf automake make gcc-11 clang libc-dev libevent-dev libssl-dev flex bison
 
-ubuntu_1804_clang10: &ubuntu_1804_clang10
-  <<: *ubuntu_1804
+ubuntu_2104_clang12: &ubuntu_2104_clang12
+  container:
+    image: ubuntu:hirsute
   env:
-    CC: clang-10
-    CLANG_VERSION: 10
+    UBUNTU_CODENAME: hirsute
+    CC: clang-12
+    CLANG_VERSION: 12
   bootstrap_script:
     - apt-get update
     - apt-get install -y gnupg2 ca-certificates wget curl software-properties-common
-    - add-apt-repository -y ppa:ubuntu-mozilla-security/ppa 
     - apt-get update
   install_script:
     - apt-get install -y autoconf automake make clang-${CLANG_VERSION} libc-dev libevent-dev libssl-dev flex bison
@@ -108,12 +101,12 @@ task:
 
 task:
   matrix:
-    - name: "Build and test on Ubuntu 20.04 LTS with GCC 11"
-      <<: *ubuntu_2004_gcc11
-#    - name: "Build and test on Ubuntu 18.04 LTS with Clang 10 (ASan+UBSan+LSan)"
-#      <<: *ubuntu_1804_clang10
-#      env:
-#        CFLAGS: "-g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all"
+#    - name: "Build and test on Ubuntu 20.04 LTS with GCC 11"
+#      <<: *ubuntu_2004_gcc11
+    - name: "Build and test on Ubuntu 21.04 LTS with Clang 12 (ASan+UBSan+LSan)"
+      <<: *ubuntu_2104_clang12
+      env:
+        CFLAGS: "-g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all"
 #    - name: "Build and test on FreeBSD 12.2 (ASan+UBSan)"
 #      <<: *freebsd_12_2
 #      env:
