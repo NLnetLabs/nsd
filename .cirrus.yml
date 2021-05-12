@@ -21,7 +21,7 @@ ubuntu_1804_gcc9: &ubuntu_1804_gcc9
     CC: gcc-9
   bootstrap_script:
     - apt-get update
-    - apt-get install -y gnupg2 ca-certificates wget curl
+    - apt-get install -y gnupg2 ca-certificates wget curl software-properties-common
     - add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
     - apt-get update
   install_script:
@@ -34,7 +34,7 @@ ubuntu_1804_clang10: &ubuntu_1804_clang10
     CLANG_VERSION: 10
   bootstrap_script:
     - apt-get update
-    - apt-get install -y gnupg2 ca-certificates wget curl
+    - apt-get install -y gnupg2 ca-certificates wget curl software-properties-common
     - add-apt-repository -y ppa:ubuntu-mozilla-security/ppa 
     - apt-get update
   install_script:
