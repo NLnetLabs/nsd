@@ -15,9 +15,13 @@ ubuntu_1804: &ubuntu_1804
     COV_COMPTYPE: gcc
     COV_PLATFORM: linux64
 
-ubuntu_1804_gcc11: &ubuntu_1804_gcc11
-  <<: *ubuntu_1804
+ubuntu_2004_gcc11: &ubuntu_2004_gcc11
+  container:
+    image: ubuntu:focal
   env:
+    UBUNTU_CODENAME: focal
+    COV_COMPTYPE: gcc
+    COV_PLATFORM: linux64
     CC: gcc-11
   bootstrap_script:
     - apt-get update
@@ -92,8 +96,8 @@ env:
 
 task:
   only_if: $CIRRUS_CRON != ''
-  name: "Build on Ubuntu 18.04 LTS with GCC 11 (Coverity Scan)"
-  <<: *ubuntu_1804_gcc11
+  name: "Build on Ubuntu 20.04 LTS with GCC 11 (Coverity Scan)"
+  <<: *ubuntu_2004_gcc11
   <<: *install_coverity
   build_script:
     - autoconf && autoheader
@@ -104,12 +108,12 @@ task:
 
 task:
   matrix:
-    - name: "Build and test on Ubuntu 18.04 LTS with GCC 11"
-      <<: *ubuntu_1804_gcc11
-    - name: "Build and test on Ubuntu 18.04 LTS with Clang 10 (ASan+UBSan+LSan)"
-      <<: *ubuntu_1804_clang10
-      env:
-        CFLAGS: "-g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all"
+    - name: "Build and test on Ubuntu 20.04 LTS with GCC 11"
+      <<: *ubuntu_2004_gcc11
+#    - name: "Build and test on Ubuntu 18.04 LTS with Clang 10 (ASan+UBSan+LSan)"
+#      <<: *ubuntu_1804_clang10
+#      env:
+#        CFLAGS: "-g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all"
 #    - name: "Build and test on FreeBSD 12.2 (ASan+UBSan)"
 #      <<: *freebsd_12_2
 #      env:
