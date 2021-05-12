@@ -15,17 +15,17 @@ ubuntu_1804: &ubuntu_1804
     COV_COMPTYPE: gcc
     COV_PLATFORM: linux64
 
-ubuntu_1804_gcc9: &ubuntu_1804_gcc9
+ubuntu_1804_gcc11: &ubuntu_1804_gcc11
   <<: *ubuntu_1804
   env:
-    CC: gcc-9
+    CC: gcc-11
   bootstrap_script:
     - apt-get update
     - apt-get install -y gnupg2 ca-certificates wget curl software-properties-common
     - add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
     - apt-get update
   install_script:
-    - apt-get install -y autoconf automake make gcc-9 clang libc-dev libevent-dev libssl-dev flex bison
+    - apt-get install -y autoconf automake make gcc-11 clang libc-dev libevent-dev libssl-dev flex bison
 
 ubuntu_1804_clang10: &ubuntu_1804_clang10
   <<: *ubuntu_1804
@@ -92,8 +92,8 @@ env:
 
 task:
   only_if: $CIRRUS_CRON != ''
-  name: "Build on Ubuntu 18.04 LTS with GCC 9 (Coverity Scan)"
-  <<: *ubuntu_1804_gcc9
+  name: "Build on Ubuntu 18.04 LTS with GCC 11 (Coverity Scan)"
+  <<: *ubuntu_1804_gcc11
   <<: *install_coverity
   build_script:
     - autoconf && autoheader
@@ -104,8 +104,8 @@ task:
 
 task:
   matrix:
-    - name: "Build and test on Ubuntu 18.04 LTS with GCC 9"
-      <<: *ubuntu_1804_gcc9
+    - name: "Build and test on Ubuntu 18.04 LTS with GCC 11"
+      <<: *ubuntu_1804_gcc11
     - name: "Build and test on Ubuntu 18.04 LTS with Clang 10 (ASan+UBSan+LSan)"
       <<: *ubuntu_1804_clang10
       env:
