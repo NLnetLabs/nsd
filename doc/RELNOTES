@@ -12,6 +12,8 @@ BUG FIXES:
 	- Fix #174: NS Records below delegation are not ignored (nsd-checkzone
 	  also does not raise any issue).
 	- Fix #176: please review Loglevel on missing zonefile.
+	- Update the ACX_CHECK_NONBLOCKING_BROKEN test for the configure
+	  script.
 
 
 4.3.6
