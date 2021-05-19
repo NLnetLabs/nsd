@@ -305,8 +305,14 @@ struct	nsd
 	/* the dnstap collector process info */
 	struct dt_collector* dt_collector;
 	/* the pipes from server processes to the dt_collector,
-	 * arrays of size child_count.  Kept open for (re-)forks. */
+	 * arrays of size child_count * 2.  Kept open for (re-)forks. */
 	int *dt_collector_fd_send, *dt_collector_fd_recv;
+	/* the pipes from server processes to the dt_collector. Initially
+	 * these point halfway into dt_collector_fd_send, but during reload
+	 * the pointer is swapped with dt_collector_fd_send in order to
+	 * to prevent writing to the dnstap collector by old serve childs
+	 * simultaneous with new serve childs. */
+	int *dt_collector_fd_swap;
 #endif /* USE_DNSTAP */
 	/* ratelimit for errors, time value */
 	time_t err_limit_time;

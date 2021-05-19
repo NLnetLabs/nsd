@@ -38,7 +38,7 @@ struct dt_collector* dt_collector_create(struct nsd* nsd)
 	int i, sv[2];
 	struct dt_collector* dt_col = (struct dt_collector*)xalloc_zero(
 		sizeof(*dt_col));
-	dt_col->count = nsd->child_count;
+	dt_col->count = nsd->child_count * 2;
 	dt_col->dt_env = NULL;
 	dt_col->region = region_create(xalloc, free);
 	dt_col->send_buffer = buffer_create(dt_col->region,
@@ -73,6 +73,7 @@ struct dt_collector* dt_collector_create(struct nsd* nsd)
 		nsd->dt_collector_fd_recv[i] = fd[0];
 		nsd->dt_collector_fd_send[i] = fd[1];
 	}
+	nsd->dt_collector_fd_swap = nsd->dt_collector_fd_send + nsd->child_count;
 
 	/* open socketpair */
 	if(socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
@@ -104,10 +105,13 @@ void dt_collector_destroy_fds(struct dt_collector* dt_col,
 void dt_collector_destroy(struct dt_collector* dt_col, struct nsd* nsd)
 {
 	if(!dt_col) return;
-	dt_collector_destroy_fds(dt_col, nsd->dt_collector_fd_send,
-			nsd->dt_collector_fd_recv);
+	dt_collector_destroy_fds(dt_col,
+		( nsd->dt_collector_fd_send < nsd->dt_collector_fd_swap
+		? nsd->dt_collector_fd_send : nsd->dt_collector_fd_swap ),
+		nsd->dt_collector_fd_recv);
 	nsd->dt_collector_fd_recv = NULL;
 	nsd->dt_collector_fd_send = NULL;
+	nsd->dt_collector_fd_swap = NULL;
 }
 
 void dt_collector_close_fds(struct dt_collector* dt_col,
@@ -137,8 +141,10 @@ void dt_collector_close_fds(struct dt_collector* dt_col,
 
 void dt_collector_close(struct dt_collector* dt_col, struct nsd* nsd)
 {
-	dt_collector_close_fds(dt_col, nsd->dt_collector_fd_send,
-			nsd->dt_collector_fd_recv);
+	dt_collector_close_fds(dt_col,
+		( nsd->dt_collector_fd_send < nsd->dt_collector_fd_swap
+		? nsd->dt_collector_fd_send : nsd->dt_collector_fd_swap ),
+		nsd->dt_collector_fd_recv);
 }
 
 /* handle command from nsd to dt collector.

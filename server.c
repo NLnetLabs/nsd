@@ -2257,10 +2257,12 @@ static void
 dt_collector_quit_close_destroy(struct nsd* nsd)
 {
 	dt_collector_quit_close_destroy_fds(nsd->dt_collector,
-			nsd->dt_collector_fd_send,
-			nsd->dt_collector_fd_recv);
+		( nsd->dt_collector_fd_send < nsd->dt_collector_fd_swap
+		? nsd->dt_collector_fd_send : nsd->dt_collector_fd_swap ),
+		nsd->dt_collector_fd_recv);
 	nsd->dt_collector_fd_recv = NULL;
 	nsd->dt_collector_fd_send = NULL;
+	nsd->dt_collector_fd_swap = NULL;
 }
 #endif
 
@@ -2331,7 +2333,14 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		/* no dnstap collector running */
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: no dnstap collector running"));
 	} else if (nsd->dt_collector->respawn_on_reload == 0) {
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: no need to respawn dnstap collector"));
+		int *swap_fd_send;
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: swap dnstap collector pipes"));
+		/* Swap fd_send with fd_swap so old serve child and new serve
+		 * childs will not write to the same pipe ends simultaneously */
+		swap_fd_send = nsd->dt_collector_fd_send;
+		nsd->dt_collector_fd_send = nsd->dt_collector_fd_swap;
+		nsd->dt_collector_fd_swap = swap_fd_send;
+
 	} else if (nsd->dt_collector->respawn_on_reload == 1) {
 		/* will be set to 2 after reload finished successfully */
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: dnstap was already respawn (due to crash or out of sync data)"));
@@ -2340,8 +2349,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		/* create and start a new dnstap collector. Backup the old
 		 * dnstap collector, to send quit only after reload succeeded */
 		dt_collector_bak = nsd->dt_collector;
-		dt_collector_fd_send_bak = nsd->dt_collector_fd_send;
+		dt_collector_fd_send_bak =
+			nsd->dt_collector_fd_send < nsd->dt_collector_fd_swap
+		      ? nsd->dt_collector_fd_send : nsd->dt_collector_fd_swap;
 		dt_collector_fd_recv_bak = nsd->dt_collector_fd_recv;
+
 		nsd->dt_collector = dt_collector_create(nsd);
 		nsd->dt_collector->respawn_on_reload = 2;
 		dt_collector_start(nsd->dt_collector, nsd);
