@@ -3215,7 +3215,13 @@ service_remaining_tcp(struct nsd* nsd)
 	if(nsd->current_tcp_count == 0 || tcp_active_list == NULL)
 		return;
 	VERBOSITY(4, (LOG_INFO, "service remaining TCP connections"));
-
+#ifdef USE_DNSTAP
+	/* remove dnstap collector, we cannot write there because the new
+	 * child process is using the file descriptor, or the child
+	 * process after that. */
+	dt_collector_destroy(nsd->dt_collector, nsd);
+	nsd->dt_collector = NULL;
+#endif
 	/* setup event base */
 	event_base = nsd_child_event_base();
 	if(!event_base) {
