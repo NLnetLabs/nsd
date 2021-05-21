@@ -1,5 +1,11 @@
 #!/bin/bash
 . ./common.sh
+quiet=0
+if test "$1" = "-q"; then
+	quiet=1
+	tdirarg="-q"
+	shift
+fi
 
 # you need to have the following tools in your $PATH:
 # export PATH=$PATH:/usr/local/bin
@@ -47,8 +53,8 @@ CPU_AFFINITY=no
 if [ -n "$(cpu_count)" ] && [ "$(cpu_count)" -gt 1 ]; then CPU_AFFINITY=yes; fi
 
 # run the tests
-tdir -a ../../ fake 0000_nsd-compile.tdir
-tdir -a ../../ fake 0001_nsd-debug-comp.tdir
+tdir -a ../../ $tdirarg fake 0000_nsd-compile.tdir
+tdir -a ../../ $tdirarg fake 0001_nsd-debug-comp.tdir
 for i in *.tdir; do
 	skip=no
 	if [ $DIG9 = no ] && echo $NEED_DIG9 | grep `basename $i .tdir` >/dev/null; then
@@ -81,10 +87,10 @@ for i in *.tdir; do
         fi
 	if [ $skip = no ]; then
 		echo ">>> next test $i at "`date`
-		tdir -a ../../ exe $i
+		tdir -a ../../ $tdirarg exe $i
 	fi
 done
-tdir report
+tdir $tdirarg report
 #tdir clean
 
 do_long=yes
@@ -93,9 +99,9 @@ if [ $do_long = yes ]; then
 	cd long
 	for i in $LONGTESTS; do
 		echo ">>> next test $i at "`date`
-		tdir -a ../../ exe $i
+		tdir -a ../../ $tdirarg exe $i
 	done
-	tdir report
+	tdir $tdirarg report
 	#tdir clean
 	cd ..
 fi

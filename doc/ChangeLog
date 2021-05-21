@@ -1,3 +1,6 @@
+21 May 2021: Wouter
+	- Test code has -q option for quiet output.
+
 17 May 2021: Wouter
 	- Update the ACX_CHECK_NONBLOCKING_BROKEN test for the configure
 	  script.
