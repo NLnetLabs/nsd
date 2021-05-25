@@ -1,3 +1,6 @@
+25 May 2021: Wouter
+	- Fix #179: log notice and server-count.
+
 21 May 2021: Wouter
 	- Test code has -q option for quiet output.
 
