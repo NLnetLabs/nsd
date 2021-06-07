@@ -2285,6 +2285,18 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	/* listen for the signals of failed children again */
 	sigaction(SIGCHLD, &old_sigchld, NULL);
+#ifdef USE_DNSTAP
+	if (nsd->dt_collector) {
+		int *swap_fd_send;
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: swap dnstap collector pipes"));
+		/* Swap fd_send with fd_swap so old serve child and new serve
+		 * childs will not write to the same pipe ends simultaneously */
+		swap_fd_send = nsd->dt_collector_fd_send;
+		nsd->dt_collector_fd_send = nsd->dt_collector_fd_swap;
+		nsd->dt_collector_fd_swap = swap_fd_send;
+
+	}
+#endif
 	/* Start new child processes */
 	if (server_start_children(nsd, server_region, netio, &nsd->
 		xfrd_listener->fd) != 0) {
@@ -2477,6 +2489,22 @@ server_main(struct nsd *nsd)
 						log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
 							strerror(errno));
 					}
+#ifdef USE_DNSTAP
+				} else if(nsd->dt_collector && child_pid == nsd->dt_collector->dt_pid) {
+					log_msg(LOG_WARNING,
+					       "dnstap-collector %d terminated with status %d",
+					       (int) child_pid, status);
+					if(nsd->dt_collector) {
+						dt_collector_close(nsd->dt_collector, nsd);
+						dt_collector_destroy(nsd->dt_collector, nsd);
+						nsd->dt_collector = NULL;
+					}
+					if(nsd->options->dnstap_enable) {
+						nsd->dt_collector = dt_collector_create(nsd);
+						dt_collector_start(nsd->dt_collector, nsd);
+						nsd->mode = NSD_RELOAD_REQ;
+					}
+#endif
 				} else if(status != 0) {
 					/* check for status, because we get
 					 * the old-servermain because reload
@@ -3107,7 +3135,13 @@ service_remaining_tcp(struct nsd* nsd)
 	if(nsd->current_tcp_count == 0 || tcp_active_list == NULL)
 		return;
 	VERBOSITY(4, (LOG_INFO, "service remaining TCP connections"));
-
+#ifdef USE_DNSTAP
+	/* remove dnstap collector, we cannot write there because the new
+	 * child process is using the file descriptor, or the child
+	 * process after that. */
+	dt_collector_destroy(nsd->dt_collector, nsd);
+	nsd->dt_collector = NULL;
+#endif
 	/* setup event base */
 	event_base = nsd_child_event_base();
 	if(!event_base) {

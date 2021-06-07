@@ -33,12 +33,15 @@
 #include "namedb.h"
 #include "options.h"
 
+#include "udb.h"
+#include "rrl.h"
+
 struct dt_collector* dt_collector_create(struct nsd* nsd)
 {
 	int i, sv[2];
 	struct dt_collector* dt_col = (struct dt_collector*)xalloc_zero(
 		sizeof(*dt_col));
-	dt_col->count = nsd->child_count;
+	dt_col->count = nsd->child_count * 2;
 	dt_col->dt_env = NULL;
 	dt_col->region = region_create(xalloc, free);
 	dt_col->send_buffer = buffer_create(dt_col->region,
@@ -73,6 +76,7 @@ struct dt_collector* dt_collector_create(struct nsd* nsd)
 		nsd->dt_collector_fd_recv[i] = fd[0];
 		nsd->dt_collector_fd_send[i] = fd[1];
 	}
+	nsd->dt_collector_fd_swap = nsd->dt_collector_fd_send + nsd->child_count;
 
 	/* open socketpair */
 	if(socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
@@ -96,8 +100,12 @@ void dt_collector_destroy(struct dt_collector* dt_col, struct nsd* nsd)
 	if(!dt_col) return;
 	free(nsd->dt_collector_fd_recv);
 	nsd->dt_collector_fd_recv = NULL;
-	free(nsd->dt_collector_fd_send);
+	if (nsd->dt_collector_fd_send < nsd->dt_collector_fd_swap)
+		free(nsd->dt_collector_fd_send);
+	else
+		free(nsd->dt_collector_fd_swap);
 	nsd->dt_collector_fd_send = NULL;
+	nsd->dt_collector_fd_swap = NULL;
 	region_destroy(dt_col->region);
 	free(dt_col);
 }
@@ -152,7 +160,8 @@ static int read_into_buffer(int fd, struct buffer* buf)
 			}
 			log_msg(LOG_ERR, "dnstap collector: read failed: %s",
 				strerror(errno));
-			return 0;
+			
+			return errno == EFAULT || errno == EINVAL ? -1 : 0;
 		}
 		buffer_skip(buf, r);
 		if(buffer_position(buf) < 4)
@@ -164,7 +173,12 @@ static int read_into_buffer(int fd, struct buffer* buf)
 	/* assert we have enough space, if we don't and we wanted to continue,
 	 * we would have to skip the message somehow, but that should never
 	 * happen because send_buffer and receive_buffer have the same size */
-	assert(buffer_capacity(buf) >= msglen + 4);
+	/* assert(buffer_capacity(buf) >= msglen + 4); */
+	if(msglen + 4 > buffer_capacity(buf)) {
+		log_msg(LOG_ERR, "dnstap collector: out of sync (msglen: %u)",
+			(unsigned int) msglen);
+		return -1;
+	}
 	r = read(fd, buffer_current(buf), msglen - (buffer_position(buf) - 4));
 	if(r == -1) {
 		if(errno == EAGAIN || errno == EINTR) {
@@ -173,7 +187,8 @@ static int read_into_buffer(int fd, struct buffer* buf)
 		}
 		log_msg(LOG_ERR, "dnstap collector: read failed: %s",
 			strerror(errno));
-		return 0;
+
+		return errno == EFAULT || errno == EINVAL ? -1 : 0;
 	}
 	buffer_skip(buf, r);
 	if(buffer_position(buf) < 4 + msglen)
@@ -243,9 +258,13 @@ dt_handle_input(int fd, short event, void* arg)
 	struct dt_collector_input* dt_input = (struct dt_collector_input*)arg;
 	if((event&EV_READ) != 0) {
 		/* read */
-		if(!read_into_buffer(fd, dt_input->buffer))
+		int r = read_into_buffer(fd, dt_input->buffer);
+		if(r == 0)
 			return;
-
+		else if(r < 0) {
+			event_base_loopexit(dt_input->dt_collector->event_base, NULL);
+			return;
+		}
 		/* once data is complete, write it to dnstap */
 		VERBOSITY(4, (LOG_INFO, "dnstap collector: received msg len %d",
 			(int)buffer_remaining(dt_input->buffer)));
@@ -386,6 +405,18 @@ void dt_collector_start(struct dt_collector* dt_col, struct nsd* nsd)
 		/* close the nsd side of the command channel */
 		close(dt_col->cmd_socket_nsd);
 		dt_col->cmd_socket_nsd = -1;
+#ifdef HAVE_SETPROCTITLE
+		setproctitle("dnstap_collector");
+#endif
+		/* Free serve process specific memory pages */
+#ifdef RATELIMIT
+		rrl_mmap_deinit_keep_mmap();
+#endif
+		udb_base_free_keep_mmap(nsd->task[0]);
+		udb_base_free_keep_mmap(nsd->task[1]);
+		namedb_close_udb(nsd->db); /* keeps mmap */
+		namedb_close(nsd->db);
+
 		dt_collector_run(dt_col, nsd);
 		/* NOTREACH */
 		exit(0);
