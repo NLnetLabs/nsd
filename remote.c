@@ -2157,6 +2157,100 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 	send_ok(ssl);
 }
 
+/* returns `0` on failure */
+static int
+cookie_secret_file_dump(RES* ssl, nsd_type const* nsd) {
+	char const* secret_file = nsd->options->cookie_secret_file;
+	assert( secret_file != NULL );
+	/* open write only and truncate */
+	FILE* f = fopen(secret_file, "w");
+	if( f == NULL ) {
+		(void)ssl_printf(ssl, "unable to open cookie secret file %s: %s",
+		                 secret_file, strerror(errno));
+		return 0;
+	}
+	char secret_hex[NSD_COOKIE_SECRET_SIZE * 2 + 1];
+	for(size_t i = 0; i < nsd->cookie_count; i++) {
+		struct cookie_secret const* cs = &nsd->cookie_secrets[i];
+		ssize_t const len = hex_ntop(cs->cookie_secret, NSD_COOKIE_SECRET_SIZE,
+																 secret_hex, sizeof(secret_hex));
+		(void)len; /* silence unused variable warning with -DNDEBUG */
+		assert( len == NSD_COOKIE_SECRET_SIZE * 2 );
+		secret_hex[NSD_COOKIE_SECRET_SIZE * 2] = '\0';
+		fprintf(f, "%s\n", secret_hex);
+	}
+	fclose(f);
+	return 1;
+}
+
+static void
+do_drop_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
+  (void)arg;
+	nsd_type* nsd = xrfd->nsd;
+	if(nsd->cookie_count <= 1 ) {
+		(void)ssl_printf(ssl, "error: can not drop the currently active cookie secret\n");
+		return;
+	}
+	nsd->cookie_count--;
+	(void)cookie_secret_file_dump(ssl, nsd);
+	task_new_drop_cookie_secret(xfrd->nsd->task[xfrd->nsd->mytask],
+	    xfrd->last_task);
+	xfrd_set_reload_now(xfrd);
+	send_ok(ssl);
+}
+
+static void
+do_push_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
+	nsd_type* nsd = xrfd->nsd;
+	if(*arg == '\0') {
+		(void)ssl_printf(ssl, "error: missing argument (cookie_secret)\n");
+		return;
+	}
+	size_t arg_len = strlen(arg);
+	if(arg_len != 32) {
+		(void)ssl_printf(ssl, "invalid cookie secret: invalid argument length\n");
+		(void)ssl_printf(ssl, "please provide a 128bit hex encoded secret\n");
+		return;
+	}
+	uint8_t secret[NSD_COOKIE_SECRET_SIZE];
+	ssize_t decoded_len = hex_pton(arg, secret, NSD_COOKIE_SECRET_SIZE);
+	if(decoded_len != NSD_COOKIE_SECRET_SIZE ) {
+		(void)ssl_printf(ssl, "invalid cookie secret: parse error\n");
+		(void)ssl_printf(ssl, "please provide a 128bit hex encoded secret\n");
+	  return;
+	}
+	/* shift all secrets up one position */
+	size_t const cookie_secrets_size = sizeof(struct cookie_secret) *
+	    ( NSD_COOKIE_HISTORY_SIZE - 1 );
+	memmove(&nsd->cookie_secrets[1], &nsd->cookie_secrets[0], cookie_secrets_size);
+	memcpy(nsd->cookie_secrets->cookie_secret, secret, NSD_COOKIE_SECRET_SIZE);
+	nsd->cookie_count = nsd->cookie_count < NSD_COOKIE_HISTORY_SIZE
+	    ? nsd->cookie_count + 1
+	    : NSD_COOKIE_HISTORY_SIZE;
+	(void)cookie_secret_file_dump(ssl, nsd);
+	task_new_push_cookie_secret(xfrd->nsd->task[xfrd->nsd->mytask],
+	    xfrd->last_task, arg);
+	xfrd_set_reload_now(xfrd);
+	send_ok(ssl);
+}
+
+static void
+do_print_cookie_secrets(RES* ssl, xfrd_state_type* xrfd, char* arg) {
+  (void)arg;
+	nsd_type* nsd = xrfd->nsd;
+	(void)ssl_printf(ssl, "cookie_secret_count=%zu\n", nsd->cookie_count);
+	char secret_hex[NSD_COOKIE_SECRET_SIZE * 2 + 1];
+	for(size_t i = 0; i < nsd->cookie_count; i++) {
+		struct cookie_secret const* cs = &nsd->cookie_secrets[i];
+		ssize_t const len = hex_ntop(cs->cookie_secret, NSD_COOKIE_SECRET_SIZE,
+		                             secret_hex, sizeof(secret_hex));
+		(void)len; /* silence unused variable warning with -DNDEBUG */
+		assert( len == NSD_COOKIE_SECRET_SIZE * 2 );
+		secret_hex[NSD_COOKIE_SECRET_SIZE * 2] = '\0';
+		(void)ssl_printf(ssl, "cookie_secrets[%zu].secret=%s\n", i, secret_hex);
+	}
+}
+
 /** check for name with end-of-string, space or tab after it */
 static int
 cmdcmp(char* p, const char* cmd, size_t len)
@@ -2220,6 +2314,12 @@ execute_cmd(struct daemon_remote* rc, RES* ssl, char* cmd, struct rc_state* rs)
 		do_assoc_tsig(ssl, rc->xfrd, skipwhite(p+10));
 	} else if(cmdcmp(p, "del_tsig", 8)) {
 		do_del_tsig(ssl, rc->xfrd, skipwhite(p+8));
+	} else if(cmdcmp(p, "drop_cookie_secret", 18)) {
+		do_drop_cookie_secret(ssl, rc->xfrd, skipwhite(p+18));
+	} else if(cmdcmp(p, "push_cookie_secret", 18)) {
+		do_push_cookie_secret(ssl, rc->xfrd, skipwhite(p+18));
+	} else if(cmdcmp(p, "print_cookie_secrets", 20)) {
+		do_print_cookie_secrets(ssl, rc->xfrd, skipwhite(p+20));
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}

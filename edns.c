@@ -226,10 +226,11 @@ subtract_1982(uint32_t a, uint32_t b)
 	return 0;
 }
 
-void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p)
-{
+void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p) {
 	uint8_t hash[8], hash2verify[8];
 	uint32_t cookie_time, now_uint32;
+	size_t verify_size;
+	int i;
 
 	/* We support only draft-sury-toorop-dnsop-server-cookies sizes */
 	if(q->edns.cookie_len != 24)
@@ -237,6 +238,8 @@ void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p)
 
 	if(q->edns.cookie[8] != 1)
 		return;
+
+	q->edns.cookie_status = COOKIE_INVALID;
 
 	cookie_time = (q->edns.cookie[12] << 24)
 	            | (q->edns.cookie[13] << 16)
@@ -246,29 +249,41 @@ void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p)
 	now_uint32 = *now_p ? *now_p : (*now_p = (uint32_t)time(NULL));
 
 	if(compare_1982(now_uint32, cookie_time) > 0) {
-                /* ignore cookies > 1 hour in past */
+		/* ignore cookies > 1 hour in past */
 		if (subtract_1982(cookie_time, now_uint32) > 3600)
 			return;
-	} else if (subtract_1982(now_uint32, cookie_time) > 300)
-                /* ignore cookies > 5 minutes in future */
-                return;
+	} else if (subtract_1982(now_uint32, cookie_time) > 300) {
+		/* ignore cookies > 5 minutes in future */
+		return;
+	}
+
 	memcpy(hash2verify, q->edns.cookie + 16, 8);
+	verify_size = 0;
+
 #ifdef INET6
-	if (q->addr.ss_family == AF_INET6) {
-		memcpy( q->edns.cookie + 16
-		      , &((struct sockaddr_in6 *)&q->addr)->sin6_addr, 16);
-		siphash(q->edns.cookie, 32, nsd->cookie_secret, hash, 8);
+	if(q->addr.ss_family == AF_INET6) {
+		memcpy(q->edns.cookie + 16, &((struct sockaddr_in6 *)&q->addr)->sin6_addr, 16);
+		verify_size = 32;
 	} else {
-		memcpy( q->edns.cookie + 16
-		      , &((struct sockaddr_in *)&q->addr)->sin_addr, 4);
-		siphash(q->edns.cookie, 20, nsd->cookie_secret, hash, 8);
+		memcpy(q->edns.cookie + 16, &((struct sockaddr_in *)&q->addr)->sin_addr, 4);
+		verify_size = 20;
 	}
 #else
 	memcpy( q->edns.cookie + 16, &q->addr->sin_addr, 4);
-	siphash(q->edns.cookie, 20, nsd->cookie_secret, hash, 8);
+	verify_size = 20;
 #endif
-	q->edns.cookie_status = memcmp(hash2verify, hash, 8)
-	                      ? COOKIE_INVALID : COOKIE_VALID;
+
+	q->edns.cookie_status = COOKIE_INVALID;
+	for(i = 0;
+	    i < (int)nsd->cookie_count && i < NSD_COOKIE_HISTORY_SIZE;
+	    i++) {
+		siphash(q->edns.cookie, verify_size,
+		        nsd->cookie_secrets[i].cookie_secret, hash, 8);
+		if( memcmp(hash2verify, hash, 8) == 0 ) {
+			q->edns.cookie_status = COOKIE_VALID;
+			return;
+		}
+	}
 }
 
 void cookie_create(query_type *q, struct nsd* nsd, uint32_t *now_p)
@@ -289,15 +304,15 @@ void cookie_create(query_type *q, struct nsd* nsd, uint32_t *now_p)
 	if (q->addr.ss_family == AF_INET6) {
 		memcpy( q->edns.cookie + 16
 		      , &((struct sockaddr_in6 *)&q->addr)->sin6_addr, 16);
-		siphash(q->edns.cookie, 32, nsd->cookie_secret, hash, 8);
+		siphash(q->edns.cookie, 32, nsd->cookie_secrets[0].cookie_secret, hash, 8);
 	} else {
 		memcpy( q->edns.cookie + 16
 		      , &((struct sockaddr_in *)&q->addr)->sin_addr, 4);
-		siphash(q->edns.cookie, 20, nsd->cookie_secret, hash, 8);
+		siphash(q->edns.cookie, 20, nsd->cookie_secrets[0].cookie_secret, hash, 8);
 	}
 #else
 	memcpy( q->edns.cookie + 16, &q->addr->sin_addr, 4);
-	siphash(q->edns.cookie, 20, nsd->cookie_secret, hash, 8);
+	siphash(q->edns.cookie, 20, nsd->cookies[0].cookie_secret, hash, 8);
 #endif
 	memcpy(q->edns.cookie + 16, hash, 8);
 }

@@ -313,12 +313,21 @@ struct	nsd
 	/* ratelimit for errors, packet count */
 	unsigned int err_limit_count;
 
+#define NSD_COOKIE_HISTORY_SIZE 2
+#define NSD_COOKIE_SECRET_SIZE 16
+
 	/** do answer with server cookie when request contained cookie option */
 	int do_answer_cookie;
-	/** cookie secret */
-	uint8_t cookie_secret[32];
-	/** cookie secret length */
-	size_t  cookie_secret_len;
+
+	/** how many cookies are there in the cookies array */
+	size_t cookie_count;
+
+	/* keep track of the last `NSD_COOKIE_HISTORY_SIZE`
+	 * cookies as per rfc requirement .*/
+	struct cookie_secret {
+		/** cookie secret */
+		uint8_t cookie_secret[NSD_COOKIE_SECRET_SIZE];
+	} cookie_secrets[NSD_COOKIE_HISTORY_SIZE];
 
 	struct nsd_options* options;
 

@@ -1715,6 +1715,36 @@ void task_new_del_key(udb_base* udb, udb_ptr* last, const char* name)
 	udb_ptr_unlink(&e, udb);
 }
 
+void task_new_push_cookie_secret(udb_base* udb, udb_ptr* last,
+                                 const char* secret) {
+	udb_ptr e;
+	char* p;
+	size_t const secret_size = strlen(secret) + 1;
+
+	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "add task push_cookie_secret"));
+
+	if(!task_create_new_elem(udb, last, &e,
+	                         sizeof(struct task_list_d) + secret_size, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add push_cookie_secret");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_push_cookie_secret;
+	p = (char*)TASKLIST(&e)->zname;
+	memmove(p, secret, secret_size);
+	udb_ptr_unlink(&e, udb);
+}
+
+void task_new_drop_cookie_secret(udb_base* udb, udb_ptr* last) {
+	udb_ptr e;
+	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "add task drop_cookie_secret"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d), NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add drop_cookie_secret");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_drop_cookie_secret;
+	udb_ptr_unlink(&e, udb);
+}
+
 void task_new_add_pattern(udb_base* udb, udb_ptr* last,
 	struct pattern_options* p)
 {
@@ -1956,6 +1986,50 @@ task_process_del_key(struct nsd* nsd, struct task_list_d* task)
 }
 
 static void
+task_process_push_cookie_secret(struct nsd* nsd, struct task_list_d* task) {
+	uint8_t secret_tmp[NSD_COOKIE_SECRET_SIZE];
+	ssize_t decoded_len;
+	char* secret = (char*)task->zname;
+	size_t const cookie_secrets_size = sizeof( struct cookie_secret ) *
+	    ( NSD_COOKIE_HISTORY_SIZE - 1 );
+
+	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "push_cookie_secret task %s", secret));
+
+	if( strlen(secret) != 32 ) {
+		log_msg(LOG_ERR, "invalid cookie secret: %s", secret);
+		return;
+	}
+
+	decoded_len = hex_pton(secret, secret_tmp, NSD_COOKIE_SECRET_SIZE);
+	if( decoded_len != 16 ) {
+		log_msg(LOG_ERR, "unable to parse cookie secret: %s", secret);
+	  return;
+	}
+
+	/* shift all secrets up one position */
+
+	memmove(&nsd->cookie_secrets[1], &nsd->cookie_secrets[0], cookie_secrets_size);
+	memcpy(nsd->cookie_secrets->cookie_secret, secret_tmp, NSD_COOKIE_SECRET_SIZE);
+	nsd->cookie_count = nsd->cookie_count < NSD_COOKIE_HISTORY_SIZE
+	    ? nsd->cookie_count + 1
+	    : NSD_COOKIE_HISTORY_SIZE;
+	memset(secret_tmp, 0, sizeof(secret_tmp));
+	memset(secret, 0xdd, strlen(secret));
+}
+
+static void
+task_process_drop_cookie_secret(struct nsd* nsd, struct task_list_d* task)
+{
+	(void)task;
+	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "drop_cookie_secret task"));
+	if( nsd->cookie_count <= 1 ) {
+	  log_msg(LOG_ERR, "can not drop the only active cookie secret");
+		return;
+	}
+	nsd->cookie_count--;
+}
+
+static void
 task_process_add_pattern(struct nsd* nsd, struct task_list_d* task)
 {
 	region_type* temp = region_create(xalloc, free);
@@ -2086,6 +2160,12 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 #endif
 	case task_apply_xfr:
 		task_process_apply_xfr(nsd, udb, last_task, task);
+		break;
+	case task_drop_cookie_secret:
+		task_process_drop_cookie_secret(nsd, TASKLIST(task));
+		break;
+	case task_push_cookie_secret:
+		task_process_push_cookie_secret(nsd, TASKLIST(task));
 		break;
 	default:
 		log_msg(LOG_WARNING, "unhandled task in reload type %d",

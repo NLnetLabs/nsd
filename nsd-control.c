@@ -106,6 +106,9 @@ usage()
 	printf("  add_tsig <name> <secret> [algo] add new key with the given parameters\n");
 	printf("  assoc_tsig <zone> <key_name>	associate <zone> with given tsig <key_name> name\n");
 	printf("  del_tsig <key_name>		delete tsig <key_name> from configuration\n");
+	printf("  push_cookie_secret <secret>	push a new server cookie secret <secret>\n");
+	printf("  drop_cookie_secret		drop ( oldest ) server cookie secret\n");
+	printf("  print_cookie_secrets		show all server cookie secrets\n");
 	exit(1);
 }
 

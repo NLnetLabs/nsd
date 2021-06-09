@@ -77,8 +77,6 @@
 
 int siphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
             uint8_t *out, const size_t outlen) {
-
-    assert((outlen == 8) || (outlen == 16));
     uint64_t v0 = 0x736f6d6570736575ULL;
     uint64_t v1 = 0x646f72616e646f6dULL;
     uint64_t v2 = 0x6c7967656e657261ULL;
@@ -95,6 +93,7 @@ int siphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
     v1 ^= k1;
     v0 ^= k0;
 
+    assert((outlen == 8) || (outlen == 16));
     if (outlen == 16)
         v1 ^= 0xee;
 
