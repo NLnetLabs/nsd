@@ -20,7 +20,6 @@ struct query;
 #define NSID_CODE       3               /* nsid option code */
 #define COOKIE_CODE    10               /* COOKIE option code */
 #define EDE_CODE       15               /* Extended DNS Errors option code */
->>>>>>> master
 #define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
 
 struct edns_data
