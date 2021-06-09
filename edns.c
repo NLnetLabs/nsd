@@ -262,7 +262,6 @@ void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p) {
 	}
 
 	memcpy(hash2verify, q->edns.cookie + 16, 8);
-	verify_size = 0;
 
 #ifdef INET6
 	if(q->addr.ss_family == AF_INET6) {

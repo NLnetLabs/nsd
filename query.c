@@ -1555,7 +1555,7 @@ query_process(query_type *q, nsd_type *nsd, uint32_t *now_p)
 				if(process_edns(nsd, q) == NSD_RC_OK) {
 					int opcode = OPCODE(q->packet);
 					(void)query_error(q, NSD_RC_FORMAT);
-					query_add_optional(q, nsd);
+					query_add_optional(q, nsd, now_p);
 					FLAGS_SET(q->packet, FLAGS(q->packet) & 0x0100U);
 						/* Preserve the RD flag. Clear the rest. */
 					OPCODE_SET(q->packet, opcode);

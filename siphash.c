@@ -111,16 +111,22 @@ int siphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
     switch (left) {
     case 7:
         b |= ((uint64_t)in[6]) << 48;
+	/* fallthrough */
     case 6:
         b |= ((uint64_t)in[5]) << 40;
+	/* fallthrough */
     case 5:
         b |= ((uint64_t)in[4]) << 32;
+	/* fallthrough */
     case 4:
         b |= ((uint64_t)in[3]) << 24;
+	/* fallthrough */
     case 3:
         b |= ((uint64_t)in[2]) << 16;
+	/* fallthrough */
     case 2:
         b |= ((uint64_t)in[1]) << 8;
+	/* fallthrough */
     case 1:
         b |= ((uint64_t)in[0]);
         break;
