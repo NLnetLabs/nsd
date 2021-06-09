@@ -1,0 +1,79 @@
+$ORIGIN rio.
+$TTL 7200
+
+ENTRY_BEGIN
+; first give MATCH lines, that say what queries are matched
+; by this entry.
+; ’opcode’ makes the query match the opcode from the reply
+; if you leave it out, any opcode matches this entry.
+; ’qtype’ makes the query match the qtype from the reply
+; ’qname’ makes the query match the qname from the reply
+; ’serial=1023’ makes the query match if ixfr serial is 1023.
+MATCH opcode qtype qname
+
+; Then the REPLY header is specified.
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+
+; any additional actions to do.
+ADJUST copy_id		; ’copy_id’ copies the ID from the query to the answer.
+
+SECTION QUESTION
+rio. IN IXFR
+SECTION ANSWER
+rio.			172800 IN SOA a.dns.br. hostmaster.registro.br. ( 2021099482 1800 900 604800 900 )
+;				2021099482 ; serial
+;				1800       ; refresh (30 minutes)
+;				900        ; retry (15 minutes)
+;				604800     ; expire (1 week)
+;				900        ; minimum (15 minutes)
+;				)
+rio.			172800 IN SOA a.dns.br. hostmaster.registro.br. ( 2021099481 1800 900 604800 900 )
+;				2021099481 ; serial
+;				1800       ; refresh (30 minutes)
+;				900        ; retry (15 minutes)
+;				604800     ; expire (1 week)
+;				900        ; minimum (15 minutes)
+;				)
+kcsk2lki1e9ejuor0k1h6f3j9gu12feg.rio. 900 IN RRSIG NSEC3 13 2 900 ( 20210424200219 20210409190219 11785 rio.  q0NfjbHJoFq/NXZOClskXF8LVJQEN59SvnmHlQx53Prf oA1c36eo7ApZ5oH2NTXetywLp6m97WG8uyMz/Uw4QQ== )
+kcsk2lki1e9ejuor0k1h6f3j9gu12feg.rio. 900 IN NSEC3 1 1 10 5006EC564A930C4C53DB ( 1NE8EM00ATU3F9C9O2PGCC1FB96MJOHV NS SOA RRSIG DNSKEY NSEC3PARAM )
+nic.rio.		3600 IN	RRSIG DS 13 2 3600 ( 20210424200219 20210409190219 11785 rio.  z0lZFQlHpjvfqqaHtD9ZGN5/BMqk40wY8PGUV9LhaG73 WFHRgzIAI+GHU4qZs7pUwBJ0xptNeZo3LHe8uvn2ag== )
+rio.			172800 IN RRSIG	SOA 13 1 172800 ( 20210424200219 20210409190219 11785 rio.  ZSDKfxbNUhQXI2bdcbPHlsotG0tWdH3F3D939LBcAyqI cUKfvtxkgkgEH63uj9KEE1YN9YWD1+b1wUOHDtR8Yw== )
+rio.			172800 IN RRSIG	NSEC3PARAM 13 1 172800 ( 20210424200219 20210409190219 11785 rio.  MBSMfyrW0rmJawhAWGB5NlpQkv3ZINBgTHC1pTz7eD0y MYP16KbL3TTTtAR9Gaaejk7UStP250twiXAQZDTLFA== )
+rio.			172800 IN RRSIG	NS 13 1 172800 ( 20210424200219 20210409190219 11785 rio.  PEkrG9YkGEeV1WCuDuY3xIJ7feV9DEsEaCKhHIGG8p+z jzsfSppL2h1Gy/yF/THG9vPa7S5LU+s0X1YCNsVyjw== )
+1ne8em00atu3f9c9o2pgcc1fb96mjohv.rio. 900 IN RRSIG NSEC3 13 2 900 ( 20210424200219 20210409190219 11785 rio.  M/Y+0mZY7Qw/1gmtoI4e/DpFIKXUdlDVAlEAU7o4YY3C jvrp2XHCDZNNw+cqWl+ui232DfjF/hS/MZ/LmyUdkw== )
+1ne8em00atu3f9c9o2pgcc1fb96mjohv.rio. 900 IN NSEC3 1 1 10 5006EC564A930C4C53DB ( KCSK2LKI1E9EJUOR0K1H6F3J9GU12FEG NS DS RRSIG )
+rio.			172800 IN SOA a.dns.br. hostmaster.registro.br. ( 2021099482 1800 900 604800 900 )
+;				2021099482 ; serial
+;				1800       ; refresh (30 minutes)
+;				900        ; retry (15 minutes)
+;				604800     ; expire (1 week)
+;				900        ; minimum (15 minutes)
+;				)
+emporiodosoculos.rio.	3600 IN	NS ns01.one.com.
+emporiodosoculos.rio.	3600 IN	NS ns02.one.com.
+scenalaguna.rio.	3600 IN	NS ns02.one.com.
+scenalaguna.rio.	3600 IN	NS ns01.one.com.
+volpi.rio.		3600 IN	NS ns01.one.com.
+volpi.rio.		3600 IN	NS ns02.one.com.
+kcsk2lki1e9ejuor0k1h6f3j9gu12feg.rio. 900 IN RRSIG NSEC3 13 2 900 ( 20210424200456 20210409190456 11785 rio.  jHyxWA8CpTpvWIl4/pOmb+sLvx4h0Hs+SAnR1BzVktz5 pMJfjBhnAmu1RC1gZVrP6XrYQ1gO3w7ODxXYmjGtxQ== )
+kcsk2lki1e9ejuor0k1h6f3j9gu12feg.rio. 900 IN NSEC3 1 1 10 5006EC564A930C4C53DB ( 1NE8EM00ATU3F9C9O2PGCC1FB96MJOHV NS SOA RRSIG DNSKEY NSEC3PARAM )
+1ne8em00atu3f9c9o2pgcc1fb96mjohv.rio. 900 IN RRSIG NSEC3 13 2 900 ( 20210424200456 20210409190456 11785 rio.  2fneXy3c6EQNJuZ+FAYAsTT237tC4b5fYplGXS2KlxpO KHD7+Ujv+I0Ip9qUwJuHodwHoPqOJ3vtc+YJgnH+5g== )
+1ne8em00atu3f9c9o2pgcc1fb96mjohv.rio. 900 IN NSEC3 1 1 10 5006EC564A930C4C53DB ( KCSK2LKI1E9EJUOR0K1H6F3J9GU12FEG NS DS RRSIG )
+rio.			172800 IN RRSIG	NS 13 1 172800 ( 20210424200456 20210409190456 11785 rio.  r9hax8kaGlGJbemPCLqq08LMKGvp2CXr924cyUATDPAx F1GLtoe1Ws/7AvZR4MOn5OzhLO9tgHLx77XCSdHNEg== )
+rio.			172800 IN RRSIG	SOA 13 1 172800 ( 20210424200456 20210409190456 11785 rio.  2/9N0qRTassIh4cclCLyiwc11JNW6MwQUMWxAba8AzKU 8bKAoW+hdSLcv+6pMt9kvI/8A+4+rQ+D5f72kL8F+Q== )
+rio.			172800 IN RRSIG	NSEC3PARAM 13 1 172800 ( 20210424200456 20210409190456 11785 rio.  CU+VJw2riFnTyY1OxJV6BIO2TX9AprtXSS4JU5/225js TjGOso6/+L56csn4ONqXNXKDacTQUtq2MoZKOvzcjg== )
+nic.rio.		3600 IN	RRSIG DS 13 2 3600 ( 20210424200456 20210409190456 11785 rio.  fgGTdBo+idrgbtQnxFGdq3nZTeMupyHvo7FHRRlzxTlV kte4MbEbRf+a8m8SNZJSNNbjnZxrjIKkF1lQjuUaTA== )
+sobrepisos.rio.		3600 IN	NS ns01.one.com.
+sobrepisos.rio.		3600 IN	NS ns02.one.com.
+rio.			172800 IN SOA a.dns.br. hostmaster.registro.br. ( 2021099482 1800 900 604800 900 )
+;				2021099482 ; serial
+;				1800       ; refresh (30 minutes)
+;				900        ; retry (15 minutes)
+;				604800     ; expire (1 week)
+;				900        ; minimum (15 minutes)
+;				)
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END

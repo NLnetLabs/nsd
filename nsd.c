@@ -44,7 +44,9 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#ifdef HAVE_IFADDRS_H
 #include <ifaddrs.h>
+#endif
 
 #include "nsd.h"
 #include "options.h"
@@ -142,139 +144,10 @@ version(void)
 		);
 #endif
 	fprintf(stderr,
-		"Copyright (C) 2001-2006 NLnet Labs.  This is free software.\n"
+		"Copyright (C) 2001-2020 NLnet Labs.  This is free software.\n"
 		"There is NO warranty; not even for MERCHANTABILITY or FITNESS\n"
 		"FOR A PARTICULAR PURPOSE.\n");
 	exit(0);
-}
-
-#ifdef HAVE_GETIFADDRS
-static void
-resolve_ifa_name(struct ifaddrs *ifas, const char *search_ifa, char ***ip_addresses, size_t *ip_addresses_size)
-{
-	struct ifaddrs *ifa;
-	size_t last_ip_addresses_size = *ip_addresses_size;
-
-	for(ifa = ifas; ifa != NULL; ifa = ifa->ifa_next) {
-		sa_family_t family;
-		const char* atsign;
-#ifdef INET6      /* |   address ip    | % |  ifa name  | @ |  port  | nul */
-		char addr_buf[INET6_ADDRSTRLEN + 1 + IF_NAMESIZE + 1 + 16 + 1];
-#else
-		char addr_buf[INET_ADDRSTRLEN + 1 + 16 + 1];
-#endif
-
-		if((atsign=strrchr(search_ifa, '@')) != NULL) {
-			if(strlen(ifa->ifa_name) != (size_t)(atsign-search_ifa)
-			   || strncmp(ifa->ifa_name, search_ifa,
-			   atsign-search_ifa) != 0)
-				continue;
-		} else {
-			if(strcmp(ifa->ifa_name, search_ifa) != 0)
-				continue;
-			atsign = "";
-		}
-
-		if(ifa->ifa_addr == NULL)
-			continue;
-
-		family = ifa->ifa_addr->sa_family;
-		if(family == AF_INET) {
-			char a4[INET_ADDRSTRLEN + 1];
-			struct sockaddr_in *in4 = (struct sockaddr_in *)
-				ifa->ifa_addr;
-			if(!inet_ntop(family, &in4->sin_addr, a4, sizeof(a4)))
-				error("inet_ntop");
-			snprintf(addr_buf, sizeof(addr_buf), "%s%s",
-				a4, atsign);
-		}
-#ifdef INET6
-		else if(family == AF_INET6) {
-			struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)
-				ifa->ifa_addr;
-			char a6[INET6_ADDRSTRLEN + 1];
-			char if_index_name[IF_NAMESIZE + 1];
-			if_index_name[0] = 0;
-			if(!inet_ntop(family, &in6->sin6_addr, a6, sizeof(a6)))
-				error("inet_ntop");
-			if_indextoname(in6->sin6_scope_id,
-				(char *)if_index_name);
-			if (strlen(if_index_name) != 0) {
-				snprintf(addr_buf, sizeof(addr_buf),
-					"%s%%%s%s", a6, if_index_name, atsign);
-			} else {
-				snprintf(addr_buf, sizeof(addr_buf), "%s%s",
-					a6, atsign);
-			}
-		}
-#endif
-		else {
-			continue;
-		}
-		VERBOSITY(4, (LOG_INFO, "interface %s has address %s",
-			search_ifa, addr_buf));
-
-		*ip_addresses = xrealloc(*ip_addresses, sizeof(char *) * (*ip_addresses_size + 1));
-		(*ip_addresses)[*ip_addresses_size] = xstrdup(addr_buf);
-		(*ip_addresses_size)++;
-	}
-
-	if (*ip_addresses_size == last_ip_addresses_size) {
-		*ip_addresses = xrealloc(*ip_addresses, sizeof(char *) * (*ip_addresses_size + 1));
-		(*ip_addresses)[*ip_addresses_size] = xstrdup(search_ifa);
-		(*ip_addresses_size)++;
-	}
-}
-#endif /* HAVE_GETIFADDRS */
-
-static void
-resolve_interface_names(struct nsd_options* options)
-{
-#ifdef HAVE_GETIFADDRS
-	struct ifaddrs *addrs;
-	struct ip_address_option *ip_addr;
-	struct ip_address_option *last = NULL;
-	struct ip_address_option *first = NULL;
-
-	if(getifaddrs(&addrs) == -1)
-		  error("failed to list interfaces");
-
-	/* replace the list of ip_adresses with a new list where the
-	 * interface names are replaced with their ip-address strings
-	 * from getifaddrs.  An interface can have several addresses. */
-	for(ip_addr = options->ip_addresses; ip_addr; ip_addr = ip_addr->next) {
-		char **ip_addresses = NULL;
-		size_t ip_addresses_size = 0, i;
-		resolve_ifa_name(addrs, ip_addr->address, &ip_addresses,
-			&ip_addresses_size);
-
-		for (i = 0; i < ip_addresses_size; i++) {
-			struct ip_address_option *current;
-			/* this copies the range_option, dev, and fib from
-			 * the original ip_address option to the new ones
-			 * with the addresses spelled out by resolve_ifa_name*/
-			current = region_alloc_init(options->region, ip_addr,
-				sizeof(*ip_addr));
-			current->address = region_strdup(options->region,
-				ip_addresses[i]);
-			current->next = NULL;
-			free(ip_addresses[i]);
-
-			if(first == NULL) {
-				first = current;
-			} else {
-				last->next = current;
-			}
-			last = current;
-		}
-		free(ip_addresses);
-	}
-
-	freeifaddrs(addrs);
-	options->ip_addresses = first;
-#else
-	(void)options;
-#endif /* HAVE_GETIFADDRS */
 }
 
 static void
@@ -390,7 +263,6 @@ figure_default_sockets(
 	const char *udp_port, const char *tcp_port,
 	const struct addrinfo *hints)
 {
-	int r;
 	size_t i = 0, n = 1;
 	struct addrinfo ai[2] = { *hints, *hints };
 
@@ -431,6 +303,7 @@ figure_default_sockets(
 		 * automatically mapped to our IPv6 socket.
 		 */
 #ifdef IPV6_V6ONLY
+		int r;
 		struct addrinfo *addrs[2] = { NULL, NULL };
 
 		if((r = getaddrinfo(NULL, udp_port, &ai[0], &addrs[0])) == 0 &&
@@ -468,6 +341,7 @@ figure_default_sockets(
 	figure_socket_servers(&(*tcp)[i], NULL);
 }
 
+#ifdef HAVE_GETIFADDRS
 static int
 find_device(
 	struct nsd_socket *sock,
@@ -516,6 +390,7 @@ find_device(
 
 	return 0;
 }
+#endif /* HAVE_GETIFADDRS */
 
 static void
 figure_sockets(
@@ -527,7 +402,9 @@ figure_sockets(
 	size_t i = 0;
 	struct addrinfo ai = *hints;
 	struct ip_address_option *ip;
+#ifdef HAVE_GETIFADDRS
 	struct ifaddrs *ifa = NULL;
+#endif
 	int bind_device = 0;
 
 	if(!ips) {
@@ -542,9 +419,11 @@ figure_sockets(
 		bind_device |= (ip->dev != 0);
 	}
 
+#ifdef HAVE_GETIFADDRS
 	if(bind_device && getifaddrs(&ifa) == -1) {
 		error("getifaddrs failed: %s", strerror(errno));
 	}
+#endif
 
 	*udp = xalloc_zero((*ifs + 1) * sizeof(struct nsd_socket));
 	*tcp = xalloc_zero((*ifs + 1) * sizeof(struct nsd_socket));
@@ -563,6 +442,7 @@ figure_sockets(
 			(*udp)[i].fib = ip->fib;
 			(*tcp)[i].fib = ip->fib;
 		}
+#ifdef HAVE_GETIFADDRS
 		if(ip->dev != 0) {
 			(*udp)[i].flags |= NSD_BIND_DEVICE;
 			(*tcp)[i].flags |= NSD_BIND_DEVICE;
@@ -573,13 +453,16 @@ figure_sockets(
 				      ip->address);
 			}
 		}
+#endif
 	}
 
 	assert(i == *ifs);
 
+#ifdef HAVE_GETIFADDRS
 	if(ifa != NULL) {
 		freeifaddrs(ifa);
 	}
+#endif
 }
 
 /* print server affinity for given socket. "*" if socket has no affinity with
@@ -671,12 +554,12 @@ print_sockets(
 
 	for(i = 0; i < ifs; i++) {
 		assert(udp[i].servers->size == servercnt);
-		addrport2str(&udp[i].addr.ai_addr, sockbuf, sizeof(sockbuf));
+		addrport2str((void*)&udp[i].addr.ai_addr, sockbuf, sizeof(sockbuf));
 		print_socket_servers(&udp[i], serverbuf, serverbufsz);
 		nsd_bitset_or(servers, servers, udp[i].servers);
 		VERBOSITY(3, (LOG_NOTICE, fmt, sockbuf, "udp", serverbuf));
 		assert(tcp[i].servers->size == servercnt);
-		addrport2str(&tcp[i].addr.ai_addr, sockbuf, sizeof(sockbuf));
+		addrport2str((void*)&tcp[i].addr.ai_addr, sockbuf, sizeof(sockbuf));
 		print_socket_servers(&tcp[i], serverbuf, serverbufsz);
 		nsd_bitset_or(servers, servers, tcp[i].servers);
 		VERBOSITY(3, (LOG_NOTICE, fmt, sockbuf, "tcp", serverbuf));
@@ -747,26 +630,43 @@ readpid(const char *file)
 int
 writepid(struct nsd *nsd)
 {
-	FILE * fd;
+	int fd;
 	char pidbuf[32];
+	size_t count = 0;
 	if(!nsd->pidfile || !nsd->pidfile[0])
 		return 0;
 
 	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid);
 
-	if ((fd = fopen(nsd->pidfile, "w")) ==  NULL ) {
+	if((fd = open(nsd->pidfile, O_WRONLY | O_CREAT | O_TRUNC
+#ifdef O_NOFOLLOW
+		| O_NOFOLLOW
+#endif
+		, 0644)) == -1) {
 		log_msg(LOG_ERR, "cannot open pidfile %s: %s",
 			nsd->pidfile, strerror(errno));
 		return -1;
 	}
 
-	if (!write_data(fd, pidbuf, strlen(pidbuf))) {
-		log_msg(LOG_ERR, "cannot write pidfile %s: %s",
-			nsd->pidfile, strerror(errno));
-		fclose(fd);
-		return -1;
+	while(count < strlen(pidbuf)) {
+		ssize_t r = write(fd, pidbuf+count, strlen(pidbuf)-count);
+		if(r == -1) {
+			if(errno == EAGAIN || errno == EINTR)
+				continue;
+			log_msg(LOG_ERR, "cannot write pidfile %s: %s",
+				nsd->pidfile, strerror(errno));
+			close(fd);
+			return -1;
+		} else if(r == 0) {
+			log_msg(LOG_ERR, "cannot write any bytes to "
+				"pidfile %s: write returns 0 bytes written",
+				nsd->pidfile);
+			close(fd);
+			return -1;
+		}
+		count += r;
 	}
-	fclose(fd);
+	close(fd);
 
 	if (chown(nsd->pidfile, nsd->uid, nsd->gid) == -1) {
 		log_msg(LOG_ERR, "cannot chown %u.%u %s: %s",

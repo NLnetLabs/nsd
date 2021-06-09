@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 # run tdir tests from within a VM.  Looks for loopback addr.
 # if run not from within a VM, runs the tests as usual.
 # with one argument: run that tdir, otherwise, run all tdirs.

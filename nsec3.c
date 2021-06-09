@@ -391,7 +391,7 @@ nsec3_chain_find_prev(struct zone* zone, struct domain* domain)
 			return (domain_type*)r->key;
 		}
 	}
-	if(zone->nsec3_last)
+	if(zone->nsec3_last && zone->nsec3_last != domain)
 		return zone->nsec3_last;
 	return NULL;
 }
@@ -977,6 +977,10 @@ nsec3_add_nonexist_proof(struct query* query, struct answer* answer,
 		VERBOSITY(3, (LOG_ERR, "nsec3 hash collision for name=%s hash=%s reverse=%s",
 			dname_to_string(to_prove, NULL), hashbuf, reversebuf));
 		RCODE_SET(query->packet, RCODE_SERVFAIL);
+		/* RFC 8914 - Extended DNS Errors
+		 * 4.21. Extended DNS Error Code 0 - Other */
+		ASSIGN_EDE_CODE_AND_STRING_LITERAL(query->edns.ede,
+			EDE_OTHER, "NSEC3 hash collision");
 		return;
 	}
 	else
@@ -1077,6 +1081,17 @@ nsec3_answer_nodata(struct query* query, struct answer* answer,
 		}
 		/* query->zone must be the parent zone */
 		nsec3_add_ds_proof(query, answer, original, 0);
+		/* if the DS is from a wildcard match */
+		if (original==original->wildcard_child_closest_match
+			&& label_is_wildcard(dname_name(domain_dname(original)))) {
+			/* denial for wildcard is already there */
+			/* add parent proof to have a closest encloser proof for wildcard parent */
+			/* in other words: nsec3 matching closest encloser */
+			if(original->parent && original->parent->nsec3 &&
+				original->parent->nsec3->nsec3_is_exact)
+				nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
+					original->parent->nsec3->nsec3_cover);
+		}
 	}
 	/* the nodata is result from a wildcard match */
 	else if (original==original->wildcard_child_closest_match
@@ -1176,6 +1191,10 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 			/* wildcard exists below the domain */
 			/* wildcard and nsec3 domain clash. server failure. */
 			RCODE_SET(query->packet, RCODE_SERVFAIL);
+			/* RFC 8914 - Extended DNS Errors
+			 * 4.21. Extended DNS Error Code 0 - Other */
+			ASSIGN_EDE_CODE_AND_STRING_LITERAL(query->edns.ede,
+				EDE_OTHER, "Wildcard and NSEC3 domain clash");
 		}
 		return;
 	}

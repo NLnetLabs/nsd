@@ -9,7 +9,7 @@ query_do foo.org. IN A
 ; QUERY SECTION
 foo.org.	IN	A
 ; ADDITIONAL SECTION
-. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+. size:4096 rcode:0 vs:0 DO OPT	\# 6 000f00020014
 end_reply
 query foo.zap. IN A
 ;; opcode 0 ; rcode 5 REFUSED ; id 0 ; flags QR ; QD:1 AN:0 NS:0 AR:0
@@ -21,7 +21,7 @@ query_do foo.zap. IN A
 ; QUERY SECTION
 foo.zap.	IN	A
 ; ADDITIONAL SECTION
-. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+. size:4096 rcode:0 vs:0 DO OPT	\# 6 000f00020014
 end_reply
 query example.org. IN SOA
 ;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:3
@@ -342,9 +342,9 @@ end_reply
 query *.wc.example.org. IN A
 ;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:3
 ; QUERY SECTION
-\042.wc.example.org.	IN	A
+*.wc.example.org.	IN	A
 ; ANSWER SECTION
-\042.wc.example.org.	3600	IN	A	6.7.6.7
+*.wc.example.org.	3600	IN	A	6.7.6.7
 ; AUTHORITY SECTION
 example.org.	86400	IN	NS	a.ns.example.org.
 ; ADDITIONAL SECTION
@@ -355,9 +355,9 @@ end_reply
 query_do *.wc.example.org. IN A
 ;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
 ; QUERY SECTION
-\042.wc.example.org.	IN	A
+*.wc.example.org.	IN	A
 ; ANSWER SECTION
-\042.wc.example.org.	3600	IN	A	6.7.6.7
+*.wc.example.org.	3600	IN	A	6.7.6.7
 ; AUTHORITY SECTION
 example.org.	86400	IN	NS	a.ns.example.org.
 ; ADDITIONAL SECTION
@@ -441,9 +441,9 @@ end_reply
 query *.wc.example.org. IN MX
 ;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:4
 ; QUERY SECTION
-\042.wc.example.org.	IN	MX
+*.wc.example.org.	IN	MX
 ; ANSWER SECTION
-\042.wc.example.org.	3600	IN	MX	10 mx.example.org.
+*.wc.example.org.	3600	IN	MX	10 mx.example.org.
 ; AUTHORITY SECTION
 example.org.	86400	IN	NS	a.ns.example.org.
 ; ADDITIONAL SECTION
@@ -455,9 +455,9 @@ end_reply
 query_do *.wc.example.org. IN MX
 ;; opcode 0 ; rcode 0 NO ERROR ; id 0 ; flags QR AA ; QD:1 AN:1 NS:1 AR:5
 ; QUERY SECTION
-\042.wc.example.org.	IN	MX
+*.wc.example.org.	IN	MX
 ; ANSWER SECTION
-\042.wc.example.org.	3600	IN	MX	10 mx.example.org.
+*.wc.example.org.	3600	IN	MX	10 mx.example.org.
 ; AUTHORITY SECTION
 example.org.	86400	IN	NS	a.ns.example.org.
 ; ADDITIONAL SECTION
@@ -676,7 +676,7 @@ query_do 1234567890.1234567890.1234567890.1234567890.1234567890.1234567890.12345
 ; ANSWER SECTION
 dname.example.org.	3600	IN	DNAME	destination.to.the.example.com.
 ; ADDITIONAL SECTION
-. size:4096 rcode:0 vs:0 DO OPT	\# 0 
+. size:4096 rcode:0 vs:0 DO OPT	\# 38 000f00220000444e414d4520657870616e73696f6e20626563616d6520746f6f206c61726765
 end_reply
 
 bufsize 4096

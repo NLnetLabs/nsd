@@ -1,0 +1,76 @@
+# #-- ede.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+# test zone configured but not loaded
+dig @127.0.0.1 -p $TPKG_PORT +norec +qr soa example.net &> out
+
+if grep "^; EDE: 14 " out; then
+	echo OK
+elif grep "^; OPT=15: 00 0e " out ; then
+	echo OK
+else
+	echo Not Ready EDE code not in response
+
+	cat out
+	rm -f out
+	exit 1
+fi
+
+# test not authoritative
+dig @127.0.0.1 -p $TPKG_PORT qwerqwer.qwerqwer. A +norec &> out
+
+if grep "^; EDE: 20 " out; then
+	echo OK
+elif grep "^; OPT=15: 00 14 " out ; then
+	echo OK
+else
+	cat out
+	rm -f out
+	exit 1
+fi
+
+# test chaos "version.bind" query prohibited
+dig @127.0.0.1 -p $TPKG_PORT version.bind TXT CH +norec &> out
+
+if grep "^; EDE: 18 " out ; then
+	echo OK
+elif grep "^; OPT=15: 00 12 " out ; then
+	echo OK
+else
+	cat out
+	rm -f out
+	exit 1
+fi
+
+# test chaos query not supported
+dig @127.0.0.1 -p $TPKG_PORT something.else TXT CH +norec &> out
+
+if grep "^; EDE: 21 " out ; then
+	echo OK
+elif grep "^; OPT=15: 00 15 " out ; then
+	echo OK
+else
+	cat out
+	rm -f out
+	exit 1
+fi
+
+# test other: DNAME expansion became too large
+dig @127.0.0.1 -p $TPKG_PORT aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddd.small.example.com. A +norec &> out
+
+if grep "^; EDE: 0 " out ; then
+	echo OK
+elif grep "^; OPT=15: 00 00 " out ; then
+	echo OK
+else
+	cat out
+	rm -f out
+	exit 1
+fi
+
+rm -f out
+
+exit 0

@@ -10,7 +10,6 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include "config.h"
 #include <stdarg.h>
 #include "region-allocator.h"
 #include "rbtree.h"
@@ -221,6 +220,7 @@ struct pattern_options {
 	struct acl_options* request_xfr;
 	struct acl_options* notify;
 	struct acl_options* provide_xfr;
+	struct acl_options* allow_query;
 	struct acl_options* outgoing_interface;
 	const char* zonestats;
 #ifdef RATELIMIT
@@ -479,5 +479,9 @@ void config_apply_pattern(struct pattern_options *dest, const char* name);
  * when a fileread fails because it is a directory, helps the user figure
  * out what just happened */
 void warn_if_directory(const char* filetype, FILE* f, const char* fname);
+/* resolve interface names in the options "ip-address:" (or "interface:")
+ * and "control-interface:" into the ip-addresses associated with those
+ * names. */
+void resolve_interface_names(struct nsd_options* options);
 
 #endif /* OPTIONS_H */

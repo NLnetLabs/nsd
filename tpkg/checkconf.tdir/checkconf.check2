@@ -26,7 +26,7 @@ server:
 	tcp-timeout: 120
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
-	ipv4-edns-size: 4096
+	ipv4-edns-size: 1232
 	ipv6-edns-size: 1220
 	pidfile: "/var/pid/nsd.pid"
 	port: "53"
@@ -138,8 +138,8 @@ server:
 	tcp-timeout: 120
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
-	ipv4-edns-size: 4096
-	ipv6-edns-size: 4096
+	ipv4-edns-size: 1232
+	ipv6-edns-size: 1232
 	pidfile: "/var/pid/nsd.pid"
 	port: "53"
 	statistics: 0
@@ -203,8 +203,8 @@ server:
 	tcp-timeout: 120
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
-	ipv4-edns-size: 4096
-	ipv6-edns-size: 4096
+	ipv4-edns-size: 1232
+	ipv6-edns-size: 1232
 	pidfile: "/var/run/nsd.pid"
 	port: "53"
 	statistics: 0
@@ -277,8 +277,8 @@ server:
 	tcp-timeout: 120
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
-	ipv4-edns-size: 4096
-	ipv6-edns-size: 4096
+	ipv4-edns-size: 1232
+	ipv6-edns-size: 1232
 	pidfile: "/var/run/nsd.pid"
 	port: "53"
 	statistics: 0
@@ -395,8 +395,8 @@ server:
 	tcp-timeout: 120
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
-	ipv4-edns-size: 4096
-	ipv6-edns-size: 4096
+	ipv4-edns-size: 1232
+	ipv6-edns-size: 1232
 	pidfile: "/var/run/nsd.pid"
 	port: "53"
 	statistics: 0

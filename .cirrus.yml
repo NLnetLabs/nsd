@@ -7,53 +7,40 @@
 # For now builds are limited to Linux, FreeBSD and macOS builds on AMD64, more
 # may be added in the future.
 
-ubuntu_1804: &ubuntu_1804
+ubuntu_2004_gcc11: &ubuntu_2004_gcc11
   container:
-    image: ubuntu:bionic
+    image: ubuntu:focal
   env:
-    UBUNTU_CODENAME: bionic
+    UBUNTU_CODENAME: focal
     COV_COMPTYPE: gcc
     COV_PLATFORM: linux64
-
-ubuntu_1804_gcc9: &ubuntu_1804_gcc9
-  <<: *ubuntu_1804
-  env:
-    CC: gcc-9
+    CC: gcc-11
   bootstrap_script:
     - apt-get update
-    - apt-get install -y gnupg2 ca-certificates wget curl
-    - |
-      cat << EOF > /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-      deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${UBUNTU_CODENAME} main
-      deb-src http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${UBUNTU_CODENAME} main
-      EOF
-    - apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F
+    - apt-get install -y gnupg2 ca-certificates wget curl software-properties-common
+    - add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - apt-get update
   install_script:
-    - apt-get install -y autoconf automake make gcc-9 clang libc-dev libevent-dev libssl-dev flex bison
+    - apt-get install -y autoconf automake make gcc-11 clang libc-dev libevent-dev libssl-dev flex bison
 
-ubuntu_1804_clang10: &ubuntu_1804_clang10
-  <<: *ubuntu_1804
+ubuntu_2104_clang12: &ubuntu_2104_clang12
+  container:
+    image: ubuntu:hirsute
   env:
-    CC: clang-10
-    CLANG_VERSION: 10
+    UBUNTU_CODENAME: hirsute
+    CC: clang-12
+    CLANG_VERSION: 12
   bootstrap_script:
     - apt-get update
-    - apt-get install -y gnupg2 ca-certificates wget curl
-    - |
-      cat << EOF > /etc/apt/sources.list.d/llvm-toolchain.list
-      deb http://apt.llvm.org/${UBUNTU_CODENAME} llvm-toolchain-${UBUNTU_CODENAME}-${CLANG_VERSION} main
-      deb-src http://apt.llvm.org/${UBUNTU_CODENAME} llvm-toolchain-${UBUNTU_CODENAME}-${CLANG_VERSION} main
-      EOF
-    - apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 15CF4D18AF4F7421
+    - apt-get install -y gnupg2 ca-certificates wget curl software-properties-common
     - apt-get update
   install_script:
     - apt-get install -y autoconf automake make clang-${CLANG_VERSION} libc-dev libevent-dev libssl-dev flex bison
     - update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_VERSION} 10
 
-freebsd_12_1: &freebsd_12_1
+freebsd_12_2: &freebsd_12_2
   freebsd_instance:
-    image_family: freebsd-12-1
+    image_family: freebsd-12-2
   env:
     CC: clang
   install_script:
@@ -102,8 +89,8 @@ env:
 
 task:
   only_if: $CIRRUS_CRON != ''
-  name: "Build on Ubuntu 18.04 LTS with GCC 9 (Coverity Scan)"
-  <<: *ubuntu_1804_gcc9
+  name: "Build on Ubuntu 20.04 LTS with GCC 11 (Coverity Scan)"
+  <<: *ubuntu_2004_gcc11
   <<: *install_coverity
   build_script:
     - autoconf && autoheader
@@ -114,14 +101,14 @@ task:
 
 task:
   matrix:
-    - name: "Build and test on Ubuntu 18.04 LTS with GCC 9"
-      <<: *ubuntu_1804_gcc9
-    - name: "Build and test on Ubuntu 18.04 LTS with Clang 10 (ASan+UBSan+LSan)"
-      <<: *ubuntu_1804_clang10
+    - name: "Build and test on Ubuntu 20.04 LTS with GCC 11"
+      <<: *ubuntu_2004_gcc11
+    - name: "Build and test on Ubuntu 21.04 LTS with Clang 12 (ASan+UBSan+LSan)"
+      <<: *ubuntu_2104_clang12
       env:
         CFLAGS: "-g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all"
-    - name: "Build and test on FreeBSD 12.1 (ASan+UBSan)"
-      <<: *freebsd_12_1
+    - name: "Build and test on FreeBSD 12.2 (ASan+UBSan)"
+      <<: *freebsd_12_2
       env:
         CFLAGS: "-g2 -O0 -fsanitize=address,undefined -fno-sanitize-recover=all"
     - name: "Build and test on macOS 10.15 with Xcode 11.3.1 (ASan+UBSan)"

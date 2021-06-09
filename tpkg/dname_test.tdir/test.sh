@@ -372,7 +372,9 @@ testexpect a.x. CNAME a.y.
 testretcode NOERROR
 testquery b.x CNAME
 testexpect b.x. CNAME b.y.
-testretcode NXDOMAIN
+# because - Fix #148: CNAME need not be followed after a synthesized CNAME for a CNAME query.
+# this is not NXDOMAIN but NOERROR
+testretcode NOERROR
 
 echo %%% 2.3. Wildcard
 setup_zone "*.x. DNAME y." "a.y. A 10.0.0.10"

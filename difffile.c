@@ -559,6 +559,12 @@ nsec3_add_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 	if(zone->nsec3_param && rr->type == TYPE_NSEC3 &&
 		(!rr->owner->nsec3 || !rr->owner->nsec3->nsec3_node.key)
 		&& nsec3_rr_uses_params(rr, zone)) {
+		if(!zone->nsec3_last) {
+			/* all nsec3s have previously been deleted, but
+			 * we have nsec3 parameters, set it up again from
+			 * being cleared. */
+			nsec3_precompile_newparam(db, zone);
+		}
 		/* added NSEC3 into the chain */
 		nsec3_precompile_nsec3rr(db, rr->owner, zone);
 		/* the domain has become an NSEC3-domain, if it was precompiled
@@ -1349,7 +1355,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 					apex->name_size)) {
 					/* out of disk space perhaps */
 					log_msg(LOG_ERR, "could not udb_create_zone "
-						"%s, disk space full?", log_buf);
+						"%s, disk space full?", zone_buf);
 					return 0;
 				}
 			}
