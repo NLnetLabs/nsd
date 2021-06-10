@@ -283,7 +283,9 @@ void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p) {
 		siphash(q->edns.cookie, verify_size,
 		        nsd->cookie_secrets[i].cookie_secret, hash, 8);
 		if( memcmp(hash2verify, hash, 8) == 0 ) {
-			q->edns.cookie_status = COOKIE_VALID;
+			q->edns.cookie_status = 
+				  subtract_1982(cookie_time, now_uint32) < 1800
+				? COOKIE_VALID_REUSE : COOKIE_VALID;
 			return;
 		}
 	}
@@ -292,9 +294,12 @@ void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p) {
 void cookie_create(query_type *q, struct nsd* nsd, uint32_t *now_p)
 {
 	uint8_t  hash[8];
-	uint32_t now_uint32 = *now_p
-	                    ? *now_p : (*now_p = (uint32_t)time(NULL));
+	uint32_t now_uint32;
+       
+	if (q->edns.cookie_status == COOKIE_VALID_REUSE)
+		return;
 
+	now_uint32 = *now_p ? *now_p : (*now_p = (uint32_t)time(NULL));
 	q->edns.cookie[ 8] = 1;
 	q->edns.cookie[ 9] = 0;
 	q->edns.cookie[10] = 0;

@@ -2758,6 +2758,7 @@ server_process_query_udp(struct nsd *nsd, struct query *query, uint32_t *now_p)
 #ifdef RATELIMIT
 	if(query_process(query, nsd, now_p) != QUERY_DISCARDED) {
 		if(query->edns.cookie_status != COOKIE_VALID
+		&& query->edns.cookie_status != COOKIE_VALID_REUSE
 		&& rrl_process_query(query))
 			return rrl_slip(query);
 		else	return QUERY_PROCESSED;

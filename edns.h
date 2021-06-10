@@ -46,6 +46,7 @@ enum cookie_status
 	COOKIE_NOT_PRESENT,
 	COOKIE_UNVERIFIED,
 	COOKIE_VALID,
+	COOKIE_VALID_REUSE,
 	COOKIE_INVALID
 };
 typedef enum cookie_status cookie_status_type;
