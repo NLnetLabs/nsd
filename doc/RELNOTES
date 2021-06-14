@@ -15,6 +15,7 @@ BUG FIXES:
 	- Update the ACX_CHECK_NONBLOCKING_BROKEN test for the configure
 	  script.
 	- Fix #179: log notice and server-count.
+	- Update configure nonblocking test to use host.
 
 
 4.3.6

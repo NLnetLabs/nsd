@@ -1,3 +1,6 @@
+14 June 2021: Wouter
+	- Update configure nonblocking test to use host.
+
 25 May 2021: Wouter
 	- Fix #179: log notice and server-count.
 
