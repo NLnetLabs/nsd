@@ -12,4 +12,4 @@ echo "Starting test A2"
 unshare -rUn bash dns-cookies.test.A2
 
 echo "Starting test A3"
-unshare -rUn bash dns-cookies.test.A2
+unshare -rUn bash dns-cookies.test.A3
