@@ -6,7 +6,7 @@
 . ../common.sh
 
 # set environment interfaces
-ip address add 198.51.100.100 dev lo
+ip address add 2001:db8:8f::53 dev lo
 ip link set dev lo up
 
 # set NSD environment variables
@@ -20,13 +20,13 @@ TPKG_NSD_SEC_PID="nsd.sec.pid.$$"
 TPKG_NSD="$PRE/nsd"
 
 # start nsd with faketime
-TZ=UTC faketime -f '2019-06-05 11:33:05' $TPKG_NSD -c dns-cookies.test.conf -P $TPKG_NSD_PRI_PID &
+TZ=UTC faketime -f '2019-06-05 13:39:21' $TPKG_NSD -c dns-cookies.test.conf -P $TPKG_NSD_PRI_PID &
 
-echo "faketime nsd instance A2 running"
+echo "faketime nsd instance A4 running"
 
 sleep 1
 
-dig -b 198.51.100.100 @198.51.100.100 +cookie=2464c4abcf10c957010000005cf79f111f8130c3eee29480 > dig.output.a2
+dig -b 203.0.113.203 @203.0.113.203 +cookie=22681ab97d52c298010000005cf7c57926556bd0934c72f8 > dig.output.a4
 
 if [ ! -z "$TPKG_NSD_PRI_PID" ]; then
 	# kill NSD
@@ -34,11 +34,11 @@ if [ ! -z "$TPKG_NSD_PRI_PID" ]; then
 	kill_pid $NSD_PRI_PID
 fi
 
-if grep -q "2464c4abcf10c957010000005cf7a871d4a564a1442aca77" dig.output.a2
+if grep -q "22681ab97d52c298010000005cf7c609a6bb79d16625507a" dig.output.a4
 then
-	echo "A.2. Learning a New Server Cookie: Cookie matches"
+	echo "A.4. Learning a New Server Cookie: Cookie matches"
 	exit 0
 else
-	echo "A.2. Learning a New Server Cookie: Cookie does not match"
+	echo "A.4. Learning a New Server Cookie: Cookie does not match"
 	exit 1
 fi

@@ -13,7 +13,6 @@ ip link set dev lo up
 get_random_port 3
 TPKG_PRI_PORT=$RND_PORT
 TPKG_SEC_PORT=`expr $TPKG_PRI_PORT + 1`
-TPKG_CTRL_PORT=`expr $TPKG_PRI_PORT + 2`
 
 PRE="../.."
 TPKG_NSD_PRI_PID="nsd.pri.pid.$$"
