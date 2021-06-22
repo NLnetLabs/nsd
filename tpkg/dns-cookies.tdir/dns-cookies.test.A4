@@ -6,7 +6,7 @@
 . ../common.sh
 
 # set environment interfaces
-ip address add 2001:db8:8f::53 dev lo
+ip address add 2001:db8:220:1:59de:d0f4:8769:82b8 dev lo
 ip link set dev lo up
 
 # set NSD environment variables
@@ -20,13 +20,34 @@ TPKG_NSD_SEC_PID="nsd.sec.pid.$$"
 TPKG_NSD="$PRE/nsd"
 
 # start nsd with faketime
-TZ=UTC faketime -f '2019-06-05 13:39:21' $TPKG_NSD -c dns-cookies.test.conf -P $TPKG_NSD_PRI_PID &
+TZ=UTC faketime -f '2019-06-05 13:39:21' $TPKG_NSD -c dns-cookies.test.conf.a4 -P $TPKG_NSD_PRI_PID &
 
 echo "faketime nsd instance A4 running"
 
 sleep 1
 
-dig -b 2001:db8:8f::53 @2001:db8:8f::53 +cookie=22681ab97d52c298010000005cf7c57926556bd0934c72f8 > dig.output.a4
+# add secret
+nsd-control -c dns-cookies.test.conf.a4  push_cookie_secret dd3bdf9344b678b185a6f5cb60fca715
+
+sleep 1
+
+# check this valid cookie before rollover
+dig -b 2001:db8:220:1:59de:d0f4:8769:82b8 @2001:db8:220:1:59de:d0f4:8769:82b8 +cookie=22681ab97d52c298010000005cf7c57926556bd0934c72f8 > dig.output.a4-1
+
+if grep -q "22681ab97d52c298010000005cf7c57926556bd0934c72f8" dig.output.a4-1
+then
+	echo "A.4. IPv6 Query with Rolled Over Secret: Cookie matches pre-rollover"
+else
+	echo "A.4. IPv6 Query with Rolled Over Secret: Cookie does not match pre-rollover"
+	exit 1
+fi
+
+# secret rollover
+nsd-control -c dns-cookies.test.conf.a4 push_cookie_secret 445536bcd2513298075a5d379663c962
+
+sleep 1
+
+dig -b 2001:db8:220:1:59de:d0f4:8769:82b8 @2001:db8:220:1:59de:d0f4:8769:82b8 +cookie=22681ab97d52c298010000005cf7c57926556bd0934c72f8 > dig.output.a4-2
 
 if [ ! -z "$TPKG_NSD_PRI_PID" ]; then
 	# kill NSD
@@ -34,11 +55,11 @@ if [ ! -z "$TPKG_NSD_PRI_PID" ]; then
 	kill_pid $NSD_PRI_PID
 fi
 
-if grep -q "22681ab97d52c298010000005cf7c609a6bb79d16625507a" dig.output.a4
+if grep -q "22681ab97d52c298010000005cf7c609a6bb79d16625507a" dig.output.a4-2
 then
-	echo "A.4. Learning a New Server Cookie: Cookie matches"
+	echo "A.4. IPv6 Query with Rolled Over Secret: Cookie matches after rollover"
 	exit 0
 else
-	echo "A.4. Learning a New Server Cookie: Cookie does not match"
+	echo "A.4. IPv6 Query with Rolled Over Secret: Cookie does not match after rollover"
 	exit 1
 fi

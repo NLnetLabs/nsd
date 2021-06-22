@@ -9,7 +9,7 @@ CmdDepends:
 Depends: 
 Help:
 Pre:
-Post: dns-cookies.post
+Post:
 Test: dns-cookies.test
 AuxFiles: 
 Passed:

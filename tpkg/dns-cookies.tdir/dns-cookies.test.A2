@@ -36,9 +36,9 @@ fi
 
 if grep -q "2464c4abcf10c957010000005cf7a871d4a564a1442aca77" dig.output.a2
 then
-	echo "A.2. Learning a New Server Cookie: Cookie matches"
+	echo "A.2. The Same Client Learning a Renewed (Fresh) Server Cookie: Cookie matches"
 	exit 0
 else
-	echo "A.2. Learning a New Server Cookie: Cookie does not match"
+	echo "A.2. The Same Client Learning a Renewed (Fresh) Server Cookie: Cookie does not match"
 	exit 1
 fi
