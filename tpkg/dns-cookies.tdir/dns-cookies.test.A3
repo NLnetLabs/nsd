@@ -27,9 +27,15 @@ echo "faketime nsd instance A3 running"
 
 sleep 1
 
-dig -b 198.51.100.100 @198.51.100.100 +cookie=fc93fc62807ddb8601abcdef5cf78f71a314227b6679ebf5 > dig.output.a2
+dig -b 203.0.113.203 @203.0.113.203 +cookie=fc93fc62807ddb8601abcdef5cf78f71a314227b6679ebf5 > dig.output.a3
 
-if grep -q "fc93fc62807ddb86010000005cf7a9acf73a7810aca2381e" dig.output.a2
+if [ ! -z "$TPKG_NSD_PRI_PID" ]; then
+	# kill NSD
+	NSD_PRI_PID=`cat $TPKG_NSD_PRI_PID`
+	kill_pid $NSD_PRI_PID
+fi
+
+if grep -q "fc93fc62807ddb86010000005cf7a9acf73a7810aca2381e" dig.output.a3
 then
 	echo "A.3. Learning a New Server Cookie: Cookie matches"
 	exit 0

@@ -29,6 +29,12 @@ sleep 1
 
 dig -b 198.51.100.100 @198.51.100.100 +cookie=2464c4abcf10c957010000005cf79f111f8130c3eee29480 > dig.output.a2
 
+if [ ! -z "$TPKG_NSD_PRI_PID" ]; then
+	# kill NSD
+	NSD_PRI_PID=`cat $TPKG_NSD_PRI_PID`
+	kill_pid $NSD_PRI_PID
+fi
+
 if grep -q "2464c4abcf10c957010000005cf7a871d4a564a1442aca77" dig.output.a2
 then
 	echo "A.2. Learning a New Server Cookie: Cookie matches"
