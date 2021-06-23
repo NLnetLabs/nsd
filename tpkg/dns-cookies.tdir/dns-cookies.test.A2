@@ -10,34 +10,26 @@ ip address add 198.51.100.100 dev lo
 ip link set dev lo up
 
 # set NSD environment variables
-get_random_port 3
-TPKG_PRI_PORT=$RND_PORT
-TPKG_SEC_PORT=`expr $TPKG_PRI_PORT + 1`
-
 PRE="../.."
-TPKG_NSD_PRI_PID="nsd.pri.pid.$$"
-TPKG_NSD_SEC_PID="nsd.sec.pid.$$"
+TPKG_NSD_PID="nsd.pid.$$"
 TPKG_NSD="$PRE/nsd"
 
 # start nsd with faketime
-TZ=UTC faketime -f '2019-06-05 11:33:05' $TPKG_NSD -c dns-cookies.test.conf -P $TPKG_NSD_PRI_PID &
+TZ=UTC faketime -f '2019-06-05 11:33:05' $TPKG_NSD -c dns-cookies.test.conf -P $TPKG_NSD_PID &
 
+wait_nsd_up nsd.log
 echo "faketime nsd instance A2 running"
 
-sleep 1
+dig @198.51.100.100 +cookie=2464c4abcf10c957010000005cf79f111f8130c3eee29480 > dig.output.a2
 
-dig -b 198.51.100.100 @198.51.100.100 +cookie=2464c4abcf10c957010000005cf79f111f8130c3eee29480 > dig.output.a2
-
-if [ ! -z "$TPKG_NSD_PRI_PID" ]; then
-	# kill NSD
-	NSD_PRI_PID=`cat $TPKG_NSD_PRI_PID`
-	kill_pid $NSD_PRI_PID
-fi
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill_pid $NSD_PID
+rm -f nsd.log
 
 if grep -q "2464c4abcf10c957010000005cf7a871d4a564a1442aca77" dig.output.a2
 then
 	echo "A.2. The Same Client Learning a Renewed (Fresh) Server Cookie: Cookie matches"
-	exit 0
 else
 	echo "A.2. The Same Client Learning a Renewed (Fresh) Server Cookie: Cookie does not match"
 	exit 1
