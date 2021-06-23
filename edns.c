@@ -277,15 +277,23 @@ void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p) {
 #endif
 
 	q->edns.cookie_status = COOKIE_INVALID;
-	for(i = 0;
+	siphash(q->edns.cookie, verify_size,
+		nsd->cookie_secrets[0].cookie_secret, hash, 8);
+	if( memcmp(hash2verify, hash, 8) == 0 ) {
+		if (subtract_1982(cookie_time, now_uint32) < 1800) {
+			q->edns.cookie_status = COOKIE_VALID_REUSE;
+			memcpy(q->edns.cookie + 16, hash, 8);
+		} else
+			q->edns.cookie_status = COOKIE_VALID;
+		return;
+	}
+	for(i = 1;
 	    i < (int)nsd->cookie_count && i < NSD_COOKIE_HISTORY_SIZE;
 	    i++) {
 		siphash(q->edns.cookie, verify_size,
 		        nsd->cookie_secrets[i].cookie_secret, hash, 8);
 		if( memcmp(hash2verify, hash, 8) == 0 ) {
-			q->edns.cookie_status = 
-				  subtract_1982(cookie_time, now_uint32) < 1800
-				? COOKIE_VALID_REUSE : COOKIE_VALID;
+			q->edns.cookie_status = COOKIE_VALID;
 			return;
 		}
 	}
