@@ -2499,7 +2499,7 @@ server_main(struct nsd *nsd)
 						dt_collector_destroy(nsd->dt_collector, nsd);
 						nsd->dt_collector = NULL;
 					}
-					if(nsd->options->dnstap_enable) {
+					if(reload_pid == -1 && nsd->options->dnstap_enable) {
 						nsd->dt_collector = dt_collector_create(nsd);
 						dt_collector_start(nsd->dt_collector, nsd);
 						nsd->mode = NSD_RELOAD_REQ;

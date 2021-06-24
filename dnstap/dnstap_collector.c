@@ -112,7 +112,7 @@ void dt_collector_destroy(struct dt_collector* dt_col, struct nsd* nsd)
 
 void dt_collector_close(struct dt_collector* dt_col, struct nsd* nsd)
 {
-	int i;
+	int i, *fd_send;
 	if(!dt_col) return;
 	if(dt_col->cmd_socket_dt != -1) {
 		close(dt_col->cmd_socket_dt);
@@ -122,14 +122,16 @@ void dt_collector_close(struct dt_collector* dt_col, struct nsd* nsd)
 		close(dt_col->cmd_socket_nsd);
 		dt_col->cmd_socket_nsd = -1;
 	}
+	fd_send = nsd->dt_collector_fd_send < nsd->dt_collector_fd_swap
+	        ? nsd->dt_collector_fd_send : nsd->dt_collector_fd_swap;
 	for(i=0; i<dt_col->count; i++) {
 		if(nsd->dt_collector_fd_recv[i] != -1) {
 			close(nsd->dt_collector_fd_recv[i]);
 			nsd->dt_collector_fd_recv[i] = -1;
 		}
-		if(nsd->dt_collector_fd_send[i] != -1) {
-			close(nsd->dt_collector_fd_send[i]);
-			nsd->dt_collector_fd_send[i] = -1;
+		if(fd_send[i] != -1) {
+			close(fd_send[i]);
+			fd_send[i] = -1;
 		}
 	}
 }
@@ -395,6 +397,7 @@ static void dt_collector_run(struct dt_collector* dt_col, struct nsd* nsd)
 
 void dt_collector_start(struct dt_collector* dt_col, struct nsd* nsd)
 {
+	int i, *fd_send;
 	/* fork */
 	dt_col->dt_pid = fork();
 	if(dt_col->dt_pid == -1) {
@@ -405,6 +408,17 @@ void dt_collector_start(struct dt_collector* dt_col, struct nsd* nsd)
 		/* close the nsd side of the command channel */
 		close(dt_col->cmd_socket_nsd);
 		dt_col->cmd_socket_nsd = -1;
+
+		/* close the send side of the communication pipes */
+		assert(nsd->dt_collector_fd_send < nsd->dt_collector_fd_swap);
+		fd_send = nsd->dt_collector_fd_send < nsd->dt_collector_fd_swap
+			? nsd->dt_collector_fd_send : nsd->dt_collector_fd_swap;
+		for(i=0; i<dt_col->count; i++) {
+			if(fd_send[i] != -1) {
+				close(fd_send[i]);
+				fd_send[i] = -1;
+			}
+		}
 #ifdef HAVE_SETPROCTITLE
 		setproctitle("dnstap_collector");
 #endif
@@ -425,6 +439,14 @@ void dt_collector_start(struct dt_collector* dt_col, struct nsd* nsd)
 		/* close the dt side of the command channel */
 		close(dt_col->cmd_socket_dt);
 		dt_col->cmd_socket_dt = -1;
+
+		/* close the receive side of the communication pipes */
+		for(i=0; i<dt_col->count; i++) {
+			if(nsd->dt_collector_fd_recv[i] != -1) {
+				close(nsd->dt_collector_fd_recv[i]);
+				nsd->dt_collector_fd_recv[i] = -1;
+			}
+		}
 	}
 }
 
