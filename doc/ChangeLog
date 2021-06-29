@@ -1,3 +1,6 @@
+29 June 2021: Willem
+	- Fix #168: Buffer overflow in the dname_to_string() function
+
 14 June 2021: Wouter
 	- Update configure nonblocking test to use host.
 
