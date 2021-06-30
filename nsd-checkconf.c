@@ -398,6 +398,9 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_STR(tls_service_ocsp, o);
 		SERV_GET_STR(tls_service_pem, o);
 		SERV_GET_STR(tls_port, o);
+		SERV_GET_STR(cookie_secret, o);
+		SERV_GET_STR(cookie_secret_file, o);
+		SERV_GET_BIN(answer_cookie, o);
 		/* int */
 		SERV_GET_INT(server_count, o);
 		SERV_GET_INT(tcp_count, o);
@@ -609,6 +612,9 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\tanswer-cookie: %s\n", opt->answer_cookie?"yes":"no");
 	if (opt->cookie_secret)
 		print_string_var("cookie-secret:", opt->cookie_secret);
+	if (opt->cookie_secret_file)
+		print_string_var("cookie-secret-file:", opt->cookie_secret_file);
+
 
 #ifdef USE_DNSTAP
 	printf("\ndnstap:\n");
