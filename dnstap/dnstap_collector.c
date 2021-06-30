@@ -159,7 +159,7 @@ static int recv_into_buffer(int fd, struct buffer* buf)
 	assert(buffer_position(buf) == 0);
 	r = recv(fd, buffer_current(buf), buffer_capacity(buf), MSG_DONTWAIT);
 	if(r == -1) {
-		if(errno == EAGAIN || errno == EINTR) {
+		if(errno == EAGAIN || errno == EINTR || errno == EMSGSIZE) {
 			/* continue to receive a message later */
 			return 0;
 		}
@@ -526,6 +526,7 @@ void dt_collector_submit_auth_query(struct nsd* nsd,
 {
 	if(!nsd->dt_collector) return;
 	if(!nsd->options->dnstap_log_auth_query_messages) return;
+	if(nsd->dt_collector_fd_send[nsd->this_child->child_num] == -1) return;
 	VERBOSITY(4, (LOG_INFO, "dnstap submit auth query"));
 
 	/* marshal data into send buffer */
@@ -557,6 +558,7 @@ void dt_collector_submit_auth_response(struct nsd* nsd,
 {
 	if(!nsd->dt_collector) return;
 	if(!nsd->options->dnstap_log_auth_response_messages) return;
+	if(nsd->dt_collector_fd_send[nsd->this_child->child_num] == -1) return;
 	VERBOSITY(4, (LOG_INFO, "dnstap submit auth response"));
 
 	/* marshal data into send buffer */
