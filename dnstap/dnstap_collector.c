@@ -179,7 +179,7 @@ static int recv_into_buffer(int fd, struct buffer* buf)
 		 * type SOCK_DGRAM? I think not, but better safe than sorry. */
 		log_msg(LOG_ERR, "dnstap collector: out of sync (msglen: %u)",
 			(unsigned int) msglen);
-		return -1;
+		return 0;
 	}
 	buffer_skip(buf, r);
 	buffer_flip(buf);
