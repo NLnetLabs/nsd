@@ -506,6 +506,15 @@ xfrd_init_slave_zone(xfrd_state_type* xfrd, struct zone_options* zone_opt)
 	/* set refreshing anyway, if we have data it may be old */
 	xfrd_set_refresh_now(xzone);
 
+	/*Check all or none of acls use XoT*/
+	int num=0, num_xot=0;
+	for (; xzone->master != NULL; xzone->master = xzone->master->next, num++) {
+		if (xzone->master->tls_auth_options != NULL) num_xot++; 
+	}
+	if (num_xot != 0 && num != num_xot)
+		log_msg(LOG_WARNING, "Some but not all request-xfrs for %s have XFR-over-TLS configured",
+			xzone->apex_str);
+
 	xzone->node.key = xzone->apex;
 	rbtree_insert(xfrd->zones, (rbnode_type*)xzone);
 }

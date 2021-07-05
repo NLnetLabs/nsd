@@ -11,6 +11,10 @@
 #define XFRD_TCP_H
 
 #include "xfrd.h"
+#ifdef HAVE_TLS_1_3
+#include <openssl/ssl.h>
+#endif
+
 
 struct buffer;
 struct xfrd_zone;
@@ -35,6 +39,10 @@ struct xfrd_tcp_set {
 	int tcp_timeout;
 	/* rbtree with pipelines sorted by master */
 	rbtree_type* pipetree;
+#ifdef HAVE_TLS_1_3
+	/* XoT: SSL context */
+	SSL_CTX* ssl_ctx;
+#endif
 	/* double linked list of zones waiting for a TCP connection */
 	struct xfrd_zone *tcp_waiting_first, *tcp_waiting_last;
 };
@@ -105,6 +113,10 @@ struct xfrd_tcp_pipeline {
 	struct xfrd_tcp* tcp_w;
 	/* once a byte has been written, handshake complete */
 	int connection_established;
+#ifdef HAVE_TLS_1_3
+	/* XoT: SSL object */
+	SSL *ssl;
+#endif
 
 	/* list of queries that want to send, first to get write event,
 	 * if NULL, no write event interest */
