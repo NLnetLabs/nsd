@@ -318,7 +318,7 @@ remote-control:
 # tls-auth:
 	# The tls-auth name. Used to refer to this TLS auth information in the access control list.
 	#name: "tls-authname"
-    # The authentication domain name as defined in RFC8310.
+	# The authentication domain name as defined in RFC8310.
 	#auth-domain-name: "example.com"
 
 # Patterns have zone configuration and they are shared by one or more zones.
@@ -365,9 +365,9 @@ remote-control:
 	# By default, a slave will request a zone transfer with IXFR/TCP.
 	# If you want to make use of IXFR/UDP use: UDP addr tsigkey
 	# for a master that only speaks AXFR (like NSD) use AXFR addr tsigkey
-    # If you want to require use of XFR-over-TLS use: addr tsigkey tlsauthname
+	# If you want to require use of XFR-over-TLS use: addr tsigkey tlsauthname
 	#request-xfr: 192.0.2.2 the_tsig_key_name
-    #request-xfr: 192.0.2.2 the_tsig_key_name the_tls_auth_name
+	#request-xfr: 192.0.2.2 the_tsig_key_name the_tls_auth_name
 	# Attention: You cannot use UDP and AXFR together. AXFR is always over
 	# TCP. If you use UDP, we higly recommend you to deploy TSIG.
 	# Allow AXFR fallback if the master does not support IXFR. Default

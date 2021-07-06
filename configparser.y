@@ -983,9 +983,9 @@ append_acl(struct acl_options **list, struct acl_options *acl)
 static void
 add_to_last_acl(struct acl_options **list, char *tls_auth_name)
 {
+	struct acl_options *tail = *list;
 	assert(list != NULL);
 	assert(*list != NULL);
-	struct acl_options *tail = *list;
 	while(tail->next != NULL)
 		tail = tail->next;
 	tail->tls_auth_name = tls_auth_name;

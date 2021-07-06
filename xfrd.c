@@ -465,6 +465,7 @@ xfrd_clean_pending_tasks(struct nsd* nsd, udb_base* u)
 void
 xfrd_init_slave_zone(xfrd_state_type* xfrd, struct zone_options* zone_opt)
 {
+	int num, num_xot;
 	xfrd_zone_type *xzone;
 	xzone = (xfrd_zone_type*)region_alloc(xfrd->region,
 		sizeof(xfrd_zone_type));
@@ -507,7 +508,8 @@ xfrd_init_slave_zone(xfrd_state_type* xfrd, struct zone_options* zone_opt)
 	xfrd_set_refresh_now(xzone);
 
 	/*Check all or none of acls use XoT*/
-	int num=0, num_xot=0;
+	num = 0;
+	num_xot = 0;
 	for (; xzone->master != NULL; xzone->master = xzone->master->next, num++) {
 		if (xzone->master->tls_auth_options != NULL) num_xot++; 
 	}

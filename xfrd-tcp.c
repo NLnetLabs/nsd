@@ -670,6 +670,8 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	if (zone->master->tls_auth_options &&
 		zone->master->tls_auth_options->auth_domain_name) {
 #ifdef HAVE_TLS_1_3
+		int ret, err;
+
 		if (!setup_ssl(tp, set, zone->master->tls_auth_options->auth_domain_name)) {
 			log_msg(LOG_ERR, "xfrd: Cannot setup TLS on pipeline for %s to %s",
 					zone->apex_str, zone->master->ip_address_spec);
@@ -682,7 +684,6 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 		// returning SSL_ERROR_WANT_READ for the tcp_timeout (120s). This can 
 		// be handled various ways, not sure of the best one, need to discuss
 		// with Wouter...
-		int ret, err;
 		while (1) {
 			ERR_clear_error();
 			if ((ret = SSL_do_handshake(tp->ssl)) == 1) {
@@ -781,12 +782,13 @@ tcp_conn_ready_for_reading(struct xfrd_tcp* tcp)
 static int
 conn_write_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 {
+	int request_length;
 	ssize_t sent;
 
 	if(tcp->total_bytes < sizeof(tcp->msglen)) {
 		uint16_t sendlen = htons(tcp->msglen);
 		// send
-		int request_length = sizeof(tcp->msglen) - tcp->total_bytes;
+		request_length = sizeof(tcp->msglen) - tcp->total_bytes;
 		ERR_clear_error();
 		sent = SSL_write(ssl, (const char*)&sendlen + tcp->total_bytes,
 						 request_length);
@@ -818,7 +820,7 @@ conn_write_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 
 	assert(tcp->total_bytes < tcp->msglen + sizeof(tcp->msglen));
 
-	int request_length = buffer_remaining(tcp->packet);
+	request_length = buffer_remaining(tcp->packet);
 	ERR_clear_error();
 	sent = SSL_write(ssl, buffer_current(tcp->packet), request_length);
 	switch(SSL_get_error(ssl,sent)) {
@@ -1015,7 +1017,7 @@ conn_read_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 				/* EOF */
 				return 0;
 			}
-			log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received, errno);
+			log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received);
 		}
 		if(received == -1) {
 			if(errno == EAGAIN || errno == EINTR) {
