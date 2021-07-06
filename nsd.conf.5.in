@@ -523,6 +523,11 @@ openssl ocsp -no_nonce \\
 .B tls\-port:\fR <number>
 The port number on which to provide TCP TLS service, default is 853, only
 interfaces configured with that port number as @number get DNS over TLS service.
+.TP
+.B tls\-cert\-bundle:\fR <filename>
+If null or "", the default verify locations are used. Set it to the certificate
+bundle file, for example "/etc/pki/tls/certs/ca-bundle.crt". These certificates
+are used for authenticating Transfer over TLS (XoT) connections.
 .SS "Remote Control"
 The
 .B remote\-control:

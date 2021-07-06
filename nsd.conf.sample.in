@@ -250,6 +250,10 @@ server:
 	# tls-service-pem: "path/to/publiccertfile.pem"
 	# tls-service-ocsp: "path/to/ocsp.pem"
 	# tls-port: 853
+	
+	# Certificates used to authenticate connections made upstream for
+	# Transfers over TLS (XoT). Default is "" (default verify locations).
+	# tls-cert-bundle: "path/to/ca-bundle.pem"
 
 # DNSTAP config section, if compiled with that
 # dnstap:

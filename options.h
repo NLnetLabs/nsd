@@ -121,6 +121,8 @@ struct nsd_options {
 	char* tls_service_pem;
 	/* TLS dedicated port */
 	const char* tls_port;
+	/* TLS certificate bundle */
+	const char* tls_cert_bundle;
 
 	/** remote control section. enable toggle. */
 	int control_enable;

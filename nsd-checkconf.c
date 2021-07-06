@@ -422,6 +422,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_STR(tls_service_ocsp, o);
 		SERV_GET_STR(tls_service_pem, o);
 		SERV_GET_STR(tls_port, o);
+		SERV_GET_STR(tls_cert_bundle, o);
 		/* int */
 		SERV_GET_INT(server_count, o);
 		SERV_GET_INT(tcp_count, o);
@@ -631,6 +632,7 @@ config_test_print_server(nsd_options_type* opt)
 	print_string_var("tls-service-pem:", opt->tls_service_pem);
 	print_string_var("tls-service-ocsp:", opt->tls_service_ocsp);
 	print_string_var("tls-port:", opt->tls_port);
+	print_string_var("tls-cert-bundle:", opt->tls_cert_bundle);
 
 #ifdef USE_DNSTAP
 	printf("\ndnstap:\n");

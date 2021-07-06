@@ -127,7 +127,7 @@ xfrd_pipe_cmp(const void* a, const void* b)
 	return (uintptr_t)x < (uintptr_t)y ? -1 : 1;
 }
 
-struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region)
+struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_cert_bundle)
 {
 	int i;
 	struct xfrd_tcp_set* tcp_set = region_alloc(region,
@@ -141,8 +141,14 @@ struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region)
 	tcp_set->ssl_ctx = create_ssl_context();
 	if (tcp_set->ssl_ctx == NULL)
 		log_msg(LOG_ERR, "xfrd: XFR-over-TLS not available");
+
+	else if (tls_cert_bundle && tls_cert_bundle[0] && SSL_CTX_load_verify_locations(
+				tcp_set->ssl_ctx, tls_cert_bundle, NULL) != 1) {
+		log_msg(LOG_ERR, "xfrd tls: Unable to set the certificate bundle file %s",
+				tls_cert_bundle);
+	}
 #else
-	log_msg(LOG_WARNING, "xfrd: No TLS 1.3 support - XFR-over-TLS not available");
+	log_msg(LOG_INFO, "xfrd: No TLS 1.3 support - XFR-over-TLS not available");
 #endif
 	for(i=0; i<XFRD_MAX_TCP; i++)
 		tcp_set->tcp_state[i] = xfrd_tcp_pipeline_create(region);

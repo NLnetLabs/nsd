@@ -137,7 +137,7 @@ struct xfrd_tcp_pipeline {
 };
 
 /* create set of tcp connections */
-struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region);
+struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_cert_bundle);
 
 /* init tcp state */
 struct xfrd_tcp* xfrd_tcp_create(struct region* region, size_t bufsize);
