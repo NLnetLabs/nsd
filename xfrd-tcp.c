@@ -30,6 +30,8 @@
 #endif
 
 #ifdef HAVE_TLS_1_3
+void log_crypto_err(const char* str); /* in server.c */
+
 static SSL_CTX*
 create_ssl_context()
 {
@@ -101,6 +103,26 @@ setup_ssl(struct xfrd_tcp_pipeline* tp, struct xfrd_tcp_set* tcp_set,
 		return 0;
 	}
 	return 1;
+}
+
+static int
+ssl_handshake(struct xfrd_tcp_pipeline* tp)
+{
+	int ret;
+
+	ERR_clear_error();
+	ret = SSL_do_handshake(tp->ssl);
+	if(ret == 1) {
+		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "xfrd: TLS handshake sucessful"));
+		tp->handshake_done = 1;
+		return 1;
+	}
+	tp->handshake_want = SSL_get_error(tp->ssl, ret);
+	if(tp->handshake_want == SSL_ERROR_WANT_READ
+	|| tp->handshake_want == SSL_ERROR_WANT_WRITE)
+		return 1;
+
+	return 0;
 }
 #endif
 
@@ -430,7 +452,15 @@ tcp_pipe_reset_timeout(struct xfrd_tcp_pipeline* tp)
 		event_del(&tp->handler);
 	memset(&tp->handler, 0, sizeof(tp->handler));
 	event_set(&tp->handler, fd, EV_PERSIST|EV_TIMEOUT|EV_READ|
-		(tp->tcp_send_first?EV_WRITE:0), xfrd_handle_tcp_pipe, tp);
+#ifdef HAVE_TLS_1_3
+		( tp->ssl
+		? ( tp->handshake_done ?  ( tp->tcp_send_first ? EV_WRITE : 0 )
+		  : tp->handshake_want == SSL_ERROR_WANT_WRITE ? EV_WRITE : 0 )
+		: tp->tcp_send_first ? EV_WRITE : 0 ),
+#else
+		( tp->tcp_send_first ? EV_WRITE : 0 ),
+#endif
+		xfrd_handle_tcp_pipe, tp);
 	if(event_base_set(xfrd->event_base, &tp->handler) != 0)
 		log_msg(LOG_ERR, "xfrd tcp: event_base_set failed");
 	if(event_add(&tp->handler, &tv) != 0)
@@ -676,8 +706,6 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	if (zone->master->tls_auth_options &&
 		zone->master->tls_auth_options->auth_domain_name) {
 #ifdef HAVE_TLS_1_3
-		int ret, err;
-
 		if (!setup_ssl(tp, set, zone->master->tls_auth_options->auth_domain_name)) {
 			log_msg(LOG_ERR, "xfrd: Cannot setup TLS on pipeline for %s to %s",
 					zone->apex_str, zone->master->ip_address_spec);
@@ -685,26 +713,26 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 			xfrd_set_refresh_now(zone);
 			return 0;
 		}
-		// TODO: There is a nasty case where the far end is listening on TCP 
-		// but not TLS. In that case the SSL_do_handshake function will loop, 
-		// returning SSL_ERROR_WANT_READ for the tcp_timeout (120s). This can 
-		// be handled various ways, not sure of the best one, need to discuss
-		// with Wouter...
-		while (1) {
-			ERR_clear_error();
-			if ((ret = SSL_do_handshake(tp->ssl)) == 1) {
-				DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "xfrd: TLS handshake sucessful"));
-				break;
+		tp->handshake_done = 0;
+		if(!ssl_handshake(tp)) {
+			if(tp->handshake_want == SSL_ERROR_SYSCALL) {
+				log_msg(LOG_ERR, "xfrd: TLS handshake failed "
+					"for %s to %s: %s", zone->apex_str,
+					zone->master->ip_address_spec,
+					strerror(errno));
+
+			} else if(tp->handshake_want == SSL_ERROR_SSL) {
+				if(SSL_get_verify_result(tp->ssl) == X509_V_OK)
+					log_crypto_err("xfrd: TLS handshake failed");
+			} else {
+				log_msg(LOG_ERR, "xfrd: TLS handshake failed "
+					"for %s to %s with %d", zone->apex_str,
+					zone->master->ip_address_spec,
+					tp->handshake_want);
 			}
-			err = SSL_get_error(tp->ssl, ret);
-			if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
-				log_msg(LOG_ERR, "xfrd: TLS handshake failed for %s to %s with value: %d", 
-						zone->apex_str, zone->master->ip_address_spec, err);
-				close(fd);
-				xfrd_set_refresh_now(zone);
-				return 0;
-			}
-			/* else wants to be called again */
+			close(fd);
+			xfrd_set_refresh_now(zone);
+			return 0;
 		}
 #else
 		log_msg(LOG_ERR, "xfrd: TLS 1.3 is not available, XFR-over-TLS is "
@@ -720,8 +748,15 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	if(tp->handler_added)
 		event_del(&tp->handler);
 	memset(&tp->handler, 0, sizeof(tp->handler));
-	event_set(&tp->handler, fd, EV_PERSIST|EV_TIMEOUT|EV_READ|EV_WRITE,
-		xfrd_handle_tcp_pipe, tp);
+	event_set(&tp->handler, fd, EV_PERSIST|EV_TIMEOUT|EV_READ|
+#ifdef HAVE_TLS_1_3
+		( !tp->ssl
+		|| tp->handshake_done
+		|| tp->handshake_want == SSL_ERROR_WANT_WRITE ? EV_WRITE : 0),
+#else
+		EV_WRITE,
+#endif
+	        xfrd_handle_tcp_pipe, tp);
 	if(event_base_set(xfrd->event_base, &tp->handler) != 0)
 		log_msg(LOG_ERR, "xfrd tcp: event_base_set failed");
 	tv.tv_sec = set->tcp_timeout;
@@ -954,9 +989,30 @@ xfrd_tcp_write(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 		}
 	}
 #ifdef HAVE_TLS_1_3
-	if (tp->ssl)
-		ret = conn_write_ssl(tcp, tp->ssl);
-	else
+	if (tp->ssl) {
+		if(tp->handshake_done) {
+			ret = conn_write_ssl(tcp, tp->ssl);
+
+		} else if(ssl_handshake(tp)) {
+			tcp_pipe_reset_timeout(tp); /* reschedule */
+			return;
+
+		} else {
+			if(tp->handshake_want == SSL_ERROR_SYSCALL) {
+				log_msg(LOG_ERR, "xfrd: TLS handshake failed: %s",
+					strerror(errno));
+
+			} else if(tp->handshake_want == SSL_ERROR_SSL) {
+				if (SSL_get_verify_result(tp->ssl) == X509_V_OK)
+					log_crypto_err("xfrd: TLS handshake failed");
+			} else {
+				log_msg(LOG_ERR, "xfrd: TLS handshake failed "
+					"with value: %d", tp->handshake_want);
+			}
+			xfrd_tcp_pipe_stop(tp);
+			return;
+		}
+	} else
 #endif
 		ret = conn_write(tcp);
 	if(ret == -1) {
@@ -1189,9 +1245,30 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 	int ret;
 	enum xfrd_packet_result pkt_result;
 #ifdef HAVE_TLS_1_3
-	if (tp->ssl)
-		ret = conn_read_ssl(tcp, tp->ssl);
-	else 
+	if(tp->ssl) {
+		if(tp->handshake_done) {
+			ret = conn_read_ssl(tcp, tp->ssl);
+
+		} else if(ssl_handshake(tp)) {
+			tcp_pipe_reset_timeout(tp); /* reschedule */
+			return;
+
+		} else {
+			if(tp->handshake_want == SSL_ERROR_SYSCALL) {
+				log_msg(LOG_ERR, "xfrd: TLS handshake failed: %s",
+					strerror(errno));
+
+			} else if(tp->handshake_want == SSL_ERROR_SSL) {
+				if (SSL_get_verify_result(tp->ssl) == X509_V_OK)
+					log_crypto_err("xfrd: TLS handshake failed");
+			} else {
+				log_msg(LOG_ERR, "xfrd: TLS handshake failed "
+					"with value: %d", tp->handshake_want);
+			}
+			xfrd_tcp_pipe_stop(tp);
+			return;
+		}
+	} else 
 #endif
 		ret = conn_read(tcp);
 	if(ret == -1) {

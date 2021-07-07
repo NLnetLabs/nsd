@@ -116,6 +116,13 @@ struct xfrd_tcp_pipeline {
 #ifdef HAVE_TLS_1_3
 	/* XoT: SSL object */
 	SSL *ssl;
+	/* XoT: if SSL handshake is not done, handshake_want indicates the
+	 * last error. This may be SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE
+	 * when the handshake is still in progress.
+	 */
+	int  handshake_want;
+	/* XoT: 1 if the SSL handshake has succeeded, 0 otherwise */
+	int  handshake_done;
 #endif
 
 	/* list of queries that want to send, first to get write event,

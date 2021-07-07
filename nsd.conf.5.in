@@ -719,7 +719,7 @@ transmitted using TCP.
 If a tls-auth-name is given then TLS (by default on port 853) will be used
 for all zone transfers for the zone. If authentication of the master based on
 the specified tls-auth authentication information fails, the XFR request will
- not be sent. Support for TLS 1.3 is required for XFR-over-TLS.
+not be sent. Support for TLS 1.3 is required for XFR-over-TLS.
 .RE
 .TP
 .B allow\-axfr\-fallback:\fR <yes or no>
