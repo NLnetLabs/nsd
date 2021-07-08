@@ -722,8 +722,12 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 					strerror(errno));
 
 			} else if(tp->handshake_want == SSL_ERROR_SSL) {
-				if(SSL_get_verify_result(tp->ssl) == X509_V_OK)
-					log_crypto_err("xfrd: TLS handshake failed");
+				char errmsg[1024];
+				snprintf(errmsg, sizeof(errmsg), "xfrd: "
+					"TLS handshake failed for %s to %s",
+					zone->apex_str,
+					zone->master->ip_address_spec);
+				log_crypto_err(errmsg);
 			} else {
 				log_msg(LOG_ERR, "xfrd: TLS handshake failed "
 					"for %s to %s with %d", zone->apex_str,
@@ -1003,8 +1007,7 @@ xfrd_tcp_write(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 					strerror(errno));
 
 			} else if(tp->handshake_want == SSL_ERROR_SSL) {
-				if (SSL_get_verify_result(tp->ssl) == X509_V_OK)
-					log_crypto_err("xfrd: TLS handshake failed");
+				log_crypto_err("xfrd: TLS handshake failed");
 			} else {
 				log_msg(LOG_ERR, "xfrd: TLS handshake failed "
 					"with value: %d", tp->handshake_want);
@@ -1259,8 +1262,7 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 					strerror(errno));
 
 			} else if(tp->handshake_want == SSL_ERROR_SSL) {
-				if (SSL_get_verify_result(tp->ssl) == X509_V_OK)
-					log_crypto_err("xfrd: TLS handshake failed");
+				log_crypto_err("xfrd: TLS handshake failed");
 			} else {
 				log_msg(LOG_ERR, "xfrd: TLS handshake failed "
 					"with value: %d", tp->handshake_want);
