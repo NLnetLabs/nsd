@@ -27,7 +27,7 @@ zone:
 	zonefile: example.org.tertiary
 	allow-notify: 0.0.0.0/0 xot.
 	# Should fail because we have not configured the correct CA
-	request-xfr: 127.0.0.1@@TPKG_PRI_PORT@ xot. primary.example.org
+	request-xfr: 127.0.0.1@@TPKG_PRI_PORT_TLS@ xot. primary.example.org
 
 zone:
 	name: example.net
