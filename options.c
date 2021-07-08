@@ -248,8 +248,10 @@ parse_options_file(struct nsd_options* opt, const char* file,
 		for(acl=pat->request_xfr; acl; acl=acl->next)
 		{
 			/* Find tls_auth */
-			acl->tls_auth_options = tls_auth_options_find(opt, acl->tls_auth_name);
-			if(acl->tls_auth_name && !acl->tls_auth_options)
+			if (!acl->tls_auth_name)
+				; /* pass */
+			else if (!(acl->tls_auth_options =
+			                tls_auth_options_find(opt, acl->tls_auth_name)))
 				c_error("tls_auth %s in pattern %s could not be found",
 						acl->tls_auth_name, pat->pname);
 			/* Find key */
@@ -1975,6 +1977,7 @@ parse_acl_info(region_type* region, char* ip, const char* key)
 	acl->bad_xfr_count = 0;
 	acl->key_options = 0;
 	acl->tls_auth_options = 0;
+	acl->tls_auth_name = 0;
 	acl->is_ipv6 = 0;
 	acl->port = 0;
 	memset(&acl->addr, 0, sizeof(union acl_addr_storage));
