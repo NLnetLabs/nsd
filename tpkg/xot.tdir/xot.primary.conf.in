@@ -14,7 +14,7 @@ server:
 include: "xot.tsig"
 
 remote-control:
-	control-enable: yes
+	control-enable: @TPKG_CONTROL_ENABLE@
 	control-interface: 127.0.0.1
 	control-port: @TPKG_PRI_PORT_CTL@
 	server-key-file: "nsd_server.key"

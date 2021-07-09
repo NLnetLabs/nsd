@@ -25,14 +25,30 @@
 # Beware this certificate will expire Jun 15 14:50:51 2111 GMT
 
 # start NSD
-get_random_port 7
+# control is not used in the test but convenient for test construction.
+TPKG_CONTROL_ENABLE="no"
+
+if [ "$TPKG_CONTROL_ENABLE" = "yes" ]
+then
+	get_random_port 7
+else
+	get_random_port 4
+fi
 TPKG_PRI_PORT=$RND_PORT
 TPKG_SEC_PORT=`expr $TPKG_PRI_PORT + 1`
 TPKG_TER_PORT=`expr $TPKG_PRI_PORT + 2`
 TPKG_PRI_PORT_TLS=`expr $TPKG_PRI_PORT + 3`
-TPKG_PRI_PORT_CTL=`expr $TPKG_PRI_PORT + 4`
-TPKG_SEC_PORT_CTL=`expr $TPKG_PRI_PORT + 5`
-TPKG_TER_PORT_CTL=`expr $TPKG_PRI_PORT + 6`
+
+if [ "$TPKG_CONTROL_ENABLE" = "yes" ]
+then
+	TPKG_PRI_PORT_CTL=`expr $TPKG_PRI_PORT + 4`
+	TPKG_SEC_PORT_CTL=`expr $TPKG_PRI_PORT + 5`
+	TPKG_TER_PORT_CTL=`expr $TPKG_PRI_PORT + 6`
+else
+	TPKG_PRI_PORT_CTL=8952
+	TPKG_SEC_PORT_CTL=8952
+	TPKG_TER_PORT_CTL=8952
+fi
 
 PRE="../.."
 TPKG_NSD="$PRE/nsd"
@@ -49,6 +65,7 @@ sed -e "s/@TPKG_PRI_PORT@/$TPKG_PRI_PORT/g" \
     -e "s/@TPKG_PRI_PORT_CTL@/$TPKG_PRI_PORT_CTL/g" \
     -e "s/@TPKG_SEC_PORT_CTL@/$TPKG_SEC_PORT_CTL/g" \
     -e "s/@TPKG_TER_PORT_CTL@/$TPKG_TER_PORT_CTL/g" \
+    -e "s/@TPKG_CONTROL_ENABLE@/$TPKG_CONTROL_ENABLE/g" \
 	xot.primary.conf.in > xot.primary.conf
 
 sed -e "s/@TPKG_PRI_PORT@/$TPKG_PRI_PORT/g" \
@@ -58,6 +75,7 @@ sed -e "s/@TPKG_PRI_PORT@/$TPKG_PRI_PORT/g" \
     -e "s/@TPKG_PRI_PORT_CTL@/$TPKG_PRI_PORT_CTL/g" \
     -e "s/@TPKG_SEC_PORT_CTL@/$TPKG_SEC_PORT_CTL/g" \
     -e "s/@TPKG_TER_PORT_CTL@/$TPKG_TER_PORT_CTL/g" \
+    -e "s/@TPKG_CONTROL_ENABLE@/$TPKG_CONTROL_ENABLE/g" \
 	xot.secondary.conf.in > xot.secondary.conf
 
 sed -e "s/@TPKG_PRI_PORT@/$TPKG_PRI_PORT/g" \
@@ -67,6 +85,7 @@ sed -e "s/@TPKG_PRI_PORT@/$TPKG_PRI_PORT/g" \
     -e "s/@TPKG_PRI_PORT_CTL@/$TPKG_PRI_PORT_CTL/g" \
     -e "s/@TPKG_SEC_PORT_CTL@/$TPKG_SEC_PORT_CTL/g" \
     -e "s/@TPKG_TER_PORT_CTL@/$TPKG_TER_PORT_CTL/g" \
+    -e "s/@TPKG_CONTROL_ENABLE@/$TPKG_CONTROL_ENABLE/g" \
 	xot.tertiary.conf.in > xot.tertiary.conf
 
 $TPKG_NSD -c xot.primary.conf

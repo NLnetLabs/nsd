@@ -9,7 +9,7 @@ server:
 	tls-cert-bundle: "xot.ca.cert.pem"
 
 remote-control:
-	control-enable: yes
+	control-enable: @TPKG_CONTROL_ENABLE@
 	control-interface: 127.0.0.1
 	control-port: @TPKG_SEC_PORT_CTL@
 	server-key-file: "nsd_server.key"
