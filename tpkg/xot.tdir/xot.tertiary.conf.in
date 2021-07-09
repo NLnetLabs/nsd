@@ -1,0 +1,40 @@
+server:
+	username: ""
+	database: ""
+	zonesdir: ""
+	xfrdfile: ""
+	pidfile: "nsd-tertiary.pid"
+	logfile: "nsd-tertiary.log"
+        interface: 127.0.0.1@@TPKG_TER_PORT@
+
+remote-control:
+	control-enable: @TPKG_CONTROL_ENABLE@
+	control-interface: 127.0.0.1
+	control-port: @TPKG_TER_PORT_CTL@
+	server-key-file: "nsd_server.key"
+	server-cert-file: "nsd_server.pem"
+	control-key-file: "nsd_control.key"
+	control-cert-file: "nsd_control.pem"
+
+include: "xot.tsig"
+
+tls-auth:
+	name: primary.example.org
+	auth-domain-name: primary.example.org
+
+zone:
+	name: example.org
+	zonefile: example.org.tertiary
+	allow-notify: 0.0.0.0/0 xot.
+	# Should fail because we have not configured the correct CA
+	request-xfr: 127.0.0.1@@TPKG_PRI_PORT_TLS@ xot. primary.example.org
+
+zone:
+	name: example.net
+	zonefile: example.net.tertiary
+	allow-notify: 0.0.0.0/0 xot.
+	# A normal transfer from a normal service should fail
+	# when this zone is offered over XoT only. (still TODO)
+	request-xfr: 127.0.0.1@@TPKG_PRI_PORT@ xot. 
+
+

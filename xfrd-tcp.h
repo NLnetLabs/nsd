@@ -11,6 +11,10 @@
 #define XFRD_TCP_H
 
 #include "xfrd.h"
+#ifdef HAVE_TLS_1_3
+#include <openssl/ssl.h>
+#endif
+
 
 struct buffer;
 struct xfrd_zone;
@@ -35,6 +39,10 @@ struct xfrd_tcp_set {
 	int tcp_timeout;
 	/* rbtree with pipelines sorted by master */
 	rbtree_type* pipetree;
+#ifdef HAVE_TLS_1_3
+	/* XoT: SSL context */
+	SSL_CTX* ssl_ctx;
+#endif
 	/* double linked list of zones waiting for a TCP connection */
 	struct xfrd_zone *tcp_waiting_first, *tcp_waiting_last;
 };
@@ -105,6 +113,17 @@ struct xfrd_tcp_pipeline {
 	struct xfrd_tcp* tcp_w;
 	/* once a byte has been written, handshake complete */
 	int connection_established;
+#ifdef HAVE_TLS_1_3
+	/* XoT: SSL object */
+	SSL *ssl;
+	/* XoT: if SSL handshake is not done, handshake_want indicates the
+	 * last error. This may be SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE
+	 * when the handshake is still in progress.
+	 */
+	int  handshake_want;
+	/* XoT: 1 if the SSL handshake has succeeded, 0 otherwise */
+	int  handshake_done;
+#endif
 
 	/* list of queries that want to send, first to get write event,
 	 * if NULL, no write event interest */
@@ -125,7 +144,7 @@ struct xfrd_tcp_pipeline {
 };
 
 /* create set of tcp connections */
-struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region);
+struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_cert_bundle);
 
 /* init tcp state */
 struct xfrd_tcp* xfrd_tcp_create(struct region* region, size_t bufsize);
