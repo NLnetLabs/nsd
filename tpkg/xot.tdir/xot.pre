@@ -1,0 +1,97 @@
+# #-- xot.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# Created CA with:
+#
+# openssl genrsa -aes256 -out xot.ca.key.pem 4096
+# openssl req -key xot.ca.key.pem -new -x509 -days 36500 -sha256 \
+# 	-extensions v3_ca -out xot.ca.cert.pem
+#
+# Created client Certificate Signing Request with:
+#
+# openssl genrsa -out xot.pri.key.pem 2048
+# openssl req -key xot.pri.key.pem -new -out xot.pri.csr.pem
+#
+# Signed the signing request with:
+#
+# openssl x509 -req -days 32850 -CA xot.ca.cert.pem -CAkey xot.ca.key.pem \
+# 	-CAcreateserial -CAserial xot.serial \
+# 	-in xot.pri.csr.pem -out xot.pri.cert.pem
+#
+# Beware this certificate will expire Jun 15 14:50:51 2111 GMT
+
+# start NSD
+# control is not used in the test but convenient for test construction.
+TPKG_CONTROL_ENABLE="no"
+
+if [ "$TPKG_CONTROL_ENABLE" = "yes" ]
+then
+	get_random_port 7
+else
+	get_random_port 4
+fi
+TPKG_PRI_PORT=$RND_PORT
+TPKG_SEC_PORT=`expr $TPKG_PRI_PORT + 1`
+TPKG_TER_PORT=`expr $TPKG_PRI_PORT + 2`
+TPKG_PRI_PORT_TLS=`expr $TPKG_PRI_PORT + 3`
+
+if [ "$TPKG_CONTROL_ENABLE" = "yes" ]
+then
+	TPKG_PRI_PORT_CTL=`expr $TPKG_PRI_PORT + 4`
+	TPKG_SEC_PORT_CTL=`expr $TPKG_PRI_PORT + 5`
+	TPKG_TER_PORT_CTL=`expr $TPKG_PRI_PORT + 6`
+else
+	TPKG_PRI_PORT_CTL=8952
+	TPKG_SEC_PORT_CTL=8952
+	TPKG_TER_PORT_CTL=8952
+fi
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export TPKG_PRI_PORT=$TPKG_PRI_PORT" >> .tpkg.var.test
+echo "export TPKG_SEC_PORT=$TPKG_SEC_PORT" >> .tpkg.var.test
+echo "export TPKG_TER_PORT=$TPKG_TER_PORT" >> .tpkg.var.test
+
+sed -e "s/@TPKG_PRI_PORT@/$TPKG_PRI_PORT/g" \
+    -e "s/@TPKG_SEC_PORT@/$TPKG_SEC_PORT/g" \
+    -e "s/@TPKG_TER_PORT@/$TPKG_TER_PORT/g" \
+    -e "s/@TPKG_PRI_PORT_TLS@/$TPKG_PRI_PORT_TLS/g" \
+    -e "s/@TPKG_PRI_PORT_CTL@/$TPKG_PRI_PORT_CTL/g" \
+    -e "s/@TPKG_SEC_PORT_CTL@/$TPKG_SEC_PORT_CTL/g" \
+    -e "s/@TPKG_TER_PORT_CTL@/$TPKG_TER_PORT_CTL/g" \
+    -e "s/@TPKG_CONTROL_ENABLE@/$TPKG_CONTROL_ENABLE/g" \
+	xot.primary.conf.in > xot.primary.conf
+
+sed -e "s/@TPKG_PRI_PORT@/$TPKG_PRI_PORT/g" \
+    -e "s/@TPKG_SEC_PORT@/$TPKG_SEC_PORT/g" \
+    -e "s/@TPKG_TER_PORT@/$TPKG_TER_PORT/g" \
+    -e "s/@TPKG_PRI_PORT_TLS@/$TPKG_PRI_PORT_TLS/g" \
+    -e "s/@TPKG_PRI_PORT_CTL@/$TPKG_PRI_PORT_CTL/g" \
+    -e "s/@TPKG_SEC_PORT_CTL@/$TPKG_SEC_PORT_CTL/g" \
+    -e "s/@TPKG_TER_PORT_CTL@/$TPKG_TER_PORT_CTL/g" \
+    -e "s/@TPKG_CONTROL_ENABLE@/$TPKG_CONTROL_ENABLE/g" \
+	xot.secondary.conf.in > xot.secondary.conf
+
+sed -e "s/@TPKG_PRI_PORT@/$TPKG_PRI_PORT/g" \
+    -e "s/@TPKG_SEC_PORT@/$TPKG_SEC_PORT/g" \
+    -e "s/@TPKG_TER_PORT@/$TPKG_TER_PORT/g" \
+    -e "s/@TPKG_PRI_PORT_TLS@/$TPKG_PRI_PORT_TLS/g" \
+    -e "s/@TPKG_PRI_PORT_CTL@/$TPKG_PRI_PORT_CTL/g" \
+    -e "s/@TPKG_SEC_PORT_CTL@/$TPKG_SEC_PORT_CTL/g" \
+    -e "s/@TPKG_TER_PORT_CTL@/$TPKG_TER_PORT_CTL/g" \
+    -e "s/@TPKG_CONTROL_ENABLE@/$TPKG_CONTROL_ENABLE/g" \
+	xot.tertiary.conf.in > xot.tertiary.conf
+
+$TPKG_NSD -c xot.primary.conf
+$TPKG_NSD -c xot.secondary.conf
+$TPKG_NSD -c xot.tertiary.conf
+wait_nsd_up nsd-tertiary.log
+wait_nsd_up nsd-secondary.log
+wait_nsd_up nsd-primary.log
+

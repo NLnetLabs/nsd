@@ -1,3 +1,7 @@
+9 July 2021: Willem
+	- Client side DNS Zone Transfer-over-TLS (XoT) support as per
+	  draft-ietf-dprive-xfr-over-tls
+
 29 June 2021: Willem
 	- Fix #168: Buffer overflow in the dname_to_string() function
 

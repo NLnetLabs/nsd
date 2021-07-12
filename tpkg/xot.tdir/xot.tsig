@@ -1,0 +1,4 @@
+key:
+	name: xot.
+	algorithm: hmac-sha256
+	secret: "SXMgdGhpcyBhIHNlY3JldCBvciBqdXN0IHRleHQ/Pz8="
