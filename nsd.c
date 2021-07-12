@@ -1502,7 +1502,8 @@ main(int argc, char *argv[])
 	}
 #endif /* HAVE_SSL */
 
-	if( !cookie_secret_file_read(&nsd) ) {
+	if(nsd.options->cookie_secret_file && nsd.options->cookie_secret_file[0]
+	   && !cookie_secret_file_read(&nsd) ) {
 		log_msg(LOG_ERR, "cookie secret file corrupt or not readable");
 	}
 

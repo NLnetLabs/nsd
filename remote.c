@@ -2199,6 +2199,15 @@ do_activate_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		(void)ssl_printf(ssl, "error: no staging cookie secret to activate\n");
 		return;
 	}
+	if(!nsd->options->cookie_secret_file || !nsd->options->cookie_secret_file[0]) {
+		(void)ssl_printf(ssl, "error: no cookie secret file configured\n");
+		return;
+	}
+	if(!cookie_secret_file_dump(ssl, nsd)) {
+		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n",
+				nsd->options->cookie_secret_file);
+		return;
+	}
 	activate_cookie_secret(nsd);
 	(void)cookie_secret_file_dump(ssl, nsd);
 	task_new_activate_cookie_secret(xfrd->nsd->task[xfrd->nsd->mytask],
@@ -2214,6 +2223,15 @@ do_drop_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 
 	if(nsd->cookie_count <= 1 ) {
 		(void)ssl_printf(ssl, "error: can not drop the currently active cookie secret\n");
+		return;
+	}
+	if(!nsd->options->cookie_secret_file || !nsd->options->cookie_secret_file[0]) {
+		(void)ssl_printf(ssl, "error: no cookie secret file configured\n");
+		return;
+	}
+	if(!cookie_secret_file_dump(ssl, nsd)) {
+		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n",
+				nsd->options->cookie_secret_file);
 		return;
 	}
 	drop_cookie_secret(nsd);
@@ -2242,6 +2260,17 @@ do_add_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	if(hex_pton(arg, secret, NSD_COOKIE_SECRET_SIZE) != NSD_COOKIE_SECRET_SIZE ) {
 		(void)ssl_printf(ssl, "invalid cookie secret: parse error\n");
 		(void)ssl_printf(ssl, "please provide a 128bit hex encoded secret\n");
+		memset(arg, 0xdd, strlen(arg));
+		return;
+	}
+	if(!nsd->options->cookie_secret_file || !nsd->options->cookie_secret_file[0]) {
+		(void)ssl_printf(ssl, "error: no cookie secret file configured\n");
+		memset(arg, 0xdd, strlen(arg));
+		return;
+	}
+	if(!cookie_secret_file_dump(ssl, nsd)) {
+		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n",
+				nsd->options->cookie_secret_file);
 		memset(arg, 0xdd, strlen(arg));
 		return;
 	}
