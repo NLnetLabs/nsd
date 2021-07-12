@@ -1,0 +1,65 @@
+# #-- nsec3_ixfr_neg.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+
+$TPKG_NSD -c nsd.conf -p $TPKG_PORT -V 3
+wait_nsd_up nsd.log
+
+cat nsd.log
+cat master.log
+
+echo port: $TPKG_PORT
+dig @127.0.0.1 -p $TPKG_PORT +dnssec brt.rio. NS | tee data
+if grep 1ne8em00atu3f9c9o2pgcc1fb96mjohv.rio data; then
+	echo OK
+else
+	if grep TYPE50 data; then
+		echo old-dig
+	else
+		echo "Invalid NSEC3 negative response"
+		exit 1
+	fi
+fi
+echo
+
+echo ">>> perform update"
+# make IXFR update happen
+sed -e 's/#request-xfr:/request-xfr:/' < nsd.conf > nsd.conf.2
+mv nsd.conf.2 nsd.conf
+kill_pid `cat nsd.pid`
+$TPKG_NSD -c nsd.conf -p $TPKG_PORT -V 5 -F -1 -L 2
+echo ">>> wait_logfile nsd.log"
+wait_logfile nsd.log "serial 2021099481 is updated to 2021099482" 45
+cat nsd.log
+cat master.log
+
+echo ">>> check again"
+dig @127.0.0.1 -p $TPKG_PORT +dnssec brt.rio. NS | tee data
+if grep 1ne8em00atu3f9c9o2pgcc1fb96mjohv.rio data; then
+	echo OK
+else
+	if grep TYPE50 data; then
+		echo old-dig
+	else
+		echo "Invalid NSEC3 negative response"
+		exit 1
+	fi
+fi
+echo
+
+
+cat nsd.log
+cat master.log
+exit 0

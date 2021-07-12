@@ -1,0 +1,57 @@
+server:
+	username: ""
+	database: ""
+	zonesdir: ""
+	xfrdfile: ""
+	pidfile: "nsd-secondary.pid"
+	logfile: "nsd-secondary.log"
+        interface: 127.0.0.1@@TPKG_SEC_PORT@
+	tls-cert-bundle: "xot.ca.cert.pem"
+
+remote-control:
+	control-enable: @TPKG_CONTROL_ENABLE@
+	control-interface: 127.0.0.1
+	control-port: @TPKG_SEC_PORT_CTL@
+	server-key-file: "nsd_server.key"
+	server-cert-file: "nsd_server.pem"
+	control-key-file: "nsd_control.key"
+	control-cert-file: "nsd_control.pem"
+
+include: "xot.tsig"
+
+tls-auth:
+	name: primary.example.org
+	auth-domain-name: primary.example.org
+
+tls-auth:
+	name: primary.example.net
+	auth-domain-name: primary.example.net
+
+zone:
+	name: example.org
+	zonefile: example.org.secondary
+	allow-notify: 0.0.0.0/0 xot.
+	# A XoT transfer from a XoT service should succeed.
+	request-xfr: 127.0.0.1@@TPKG_PRI_PORT_TLS@ xot. primary.example.org
+
+zone:
+	name: example.net
+	zonefile: example.net.secondary
+	allow-notify: 0.0.0.0/0 xot.
+	# A XoT transfer from a XoT service, but with wrong name should fail.
+	request-xfr: 127.0.0.1@@TPKG_PRI_PORT_TLS@ xot. primary.example.net
+
+zone:
+	name: example.com
+	zonefile: example.com.secondary
+	allow-notify: 0.0.0.0/0 xot.
+	# A normal transfer from a XoT service should fail.
+	request-xfr: 127.0.0.1@@TPKG_PRI_PORT_TLS@ xot.
+
+zone:
+	name: example.edu
+	zonefile: example.edu.secondary
+	allow-notify: 0.0.0.0/0 xot.
+	# A XoT transfer from a normal service should fail.
+	request-xfr: 127.0.0.1@@TPKG_PRI_PORT@ xot. primary.example.org
+

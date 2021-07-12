@@ -1,0 +1,47 @@
+server:
+	username: ""
+	database: ""
+	zonesdir: ""
+	xfrdfile: ""
+	pidfile: "nsd-primary.pid"
+	logfile: "nsd-primary.log"
+	interface: 127.0.0.1@@TPKG_PRI_PORT@
+	interface: 127.0.0.1@@TPKG_PRI_PORT_TLS@
+	tls-port: @TPKG_PRI_PORT_TLS@
+	tls-service-key: "xot.pri.key.pem"
+	tls-service-pem: "xot.pri.cert.pem"
+
+include: "xot.tsig"
+
+remote-control:
+	control-enable: @TPKG_CONTROL_ENABLE@
+	control-interface: 127.0.0.1
+	control-port: @TPKG_PRI_PORT_CTL@
+	server-key-file: "nsd_server.key"
+	server-cert-file: "nsd_server.pem"
+	control-key-file: "nsd_control.key"
+	control-cert-file: "nsd_control.pem"
+
+zone:
+	name: example.org
+	zonefile: example.org
+	notify: 127.0.0.1@@TPKG_SEC_PORT@ xot.
+	provide-xfr: 0.0.0.0/0 xot.
+
+zone:
+	name: example.net
+	zonefile: example.net
+	notify: 127.0.0.1@@TPKG_SEC_PORT@ xot.
+	provide-xfr: 0.0.0.0/0 xot.
+
+zone:
+	name: example.com
+	zonefile: example.com
+	notify: 127.0.0.1@@TPKG_SEC_PORT@ xot.
+	provide-xfr: 0.0.0.0/0 xot.
+
+zone:
+	name: example.edu
+	zonefile: example.edu
+	notify: 127.0.0.1@@TPKG_SEC_PORT@ xot.
+	provide-xfr: 0.0.0.0/0 xot.

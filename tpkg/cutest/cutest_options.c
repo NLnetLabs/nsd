@@ -48,9 +48,11 @@ static void acl_1(CuTest *tc)
 {
 	uint32_t min, x, max;
 	int exp;
+#ifdef INET6
 	uint32_t a[4] = {0,0,0,0};
 	uint32_t b[4] = {0,0,0,0};
 	uint32_t c[4] = {0,0,0,0};
+#endif
 	/* check 32-bit performance */
 #define CHK CuAssert(tc, "check acl_range", \
 	exp==acl_addr_match_range_v4(&min, &x, &max, sizeof(uint32_t)));

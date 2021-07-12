@@ -1,0 +1,113 @@
+# #-- xot.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE=../..
+
+for i in {1..20}
+do
+	dig @127.0.0.1 -p ${TPKG_SEC_PORT} -t A example.org +norec > dig-sec-example.org-A.out1
+	if (  grep -q ', status: NOERROR,' dig-sec-example.org-A.out1 \
+	   && grep -q ', ANSWER: 1,'       dig-sec-example.org-A.out1 )
+	then
+		break
+	else
+		sleep .1
+	fi
+done
+if [ $i -eq 20 ]
+then
+	echo "Zone example.org not transferred to secondary (over XoT)"
+	exit 1
+else
+	echo "Zone example.org successfully transferred to secondary (over XoT)"
+fi
+
+for i in {1..20}
+do
+	dig @127.0.0.1 -p ${TPKG_SEC_PORT} -t A example.net +norec > dig-sec-example.net-A.out1
+	if (  grep -q ', status: SERVFAIL,' dig-sec-example.net-A.out1 \
+	   && grep -q ', ANSWER: 0,'       dig-sec-example.net-A.out1 )
+	then
+		break
+	else
+		sleep .1
+	fi
+done
+if [ $i -eq 20 ]
+then
+	echo "Zone example.net wrongly transferred to secondary!"
+	echo "  - The TLS connection should have failed verification of the name."
+	exit 1
+else
+	echo "Zone example.net correctly not transferred to secondary (over XoT),"
+	echo "  - because the TLS handshake failed verification of the name"
+fi
+
+for i in {1..20}
+do
+	dig @127.0.0.1 -p ${TPKG_SEC_PORT} -t A example.com +norec > dig-sec-example.com-A.out1
+	if (  grep -q ', status: SERVFAIL,' dig-sec-example.com-A.out1 \
+	   && grep -q ', ANSWER: 0,'       dig-sec-example.com-A.out1 )
+	then
+		break
+	else
+		sleep .1
+	fi
+done
+if [ $i -eq 20 ]
+then
+	echo "Zone example.com wrongly transferred to secondary!"
+	echo "  - zone is transferred unprotected in the clear!"
+	exit 1
+else
+	echo "Zone example.com correctly not transferred to secondary (over XoT),"
+	echo "  - because we tried to transfer without TLS over the TLS serviced port"
+fi
+
+for i in {1..20}
+do
+	dig @127.0.0.1 -p ${TPKG_SEC_PORT} -t A example.edu +norec > dig-sec-example.edu-A.out1
+	if (  grep -q ', status: SERVFAIL,' dig-sec-example.edu-A.out1 \
+	   && grep -q ', ANSWER: 0,'       dig-sec-example.edu-A.out1 )
+	then
+		break
+	else
+		sleep .1
+	fi
+done
+if [ $i -eq 20 ]
+then
+	echo "Zone example.edu wrongly transferred to secondary!"
+	echo "  - zone is transferred over TLS from the non-TLS serviced port"
+	exit 1
+else
+	echo "Zone example.edu correctly not transferred to secondary (over XoT),"
+	echo "  - because we tried to transfer over TLS on the non-TLS serviced port"
+fi
+
+for i in {1..20}
+do
+	dig @127.0.0.1 -p ${TPKG_TER_PORT} -t A example.org +norec > dig-ter-example.org-A.out1
+	if (  grep -q ', status: SERVFAIL,' dig-ter-example.org-A.out1 \
+	   && grep -q ', ANSWER: 0,'       dig-ter-example.org-A.out1 )
+	then
+		break
+	else
+		sleep .1
+	fi
+done
+if [ $i -eq 20 ]
+then
+	echo "Zone example.org wrongly transferred to secondary!"
+	echo "  - The TLS connection should have failed verification because of a missing CA."
+	exit 1
+else
+	echo "Zone example.org correctly not transferred to secondary (over XoT),"
+	echo "  - because the TLS handshake failed verification of the cert (by missing CA)"
+fi
+
+# TODO: dig @127.0.0.1 -p ${TPKG_TER_PORT} -t A example.net +norec
+#       to fail because of an still to make acl that allows for transfer over TLS only
