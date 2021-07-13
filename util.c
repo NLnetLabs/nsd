@@ -1247,18 +1247,18 @@ void add_cookie_secret(struct nsd* nsd, uint8_t* secret)
 		memcpy( nsd->cookie_secrets->cookie_secret
 		       , secret, NSD_COOKIE_SECRET_SIZE);
 		nsd->cookie_count = 1;
-		memset(secret, 0, NSD_COOKIE_SECRET_SIZE);
+		explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
 		return;
 	}
 #if NSD_COOKIE_HISTORY_SIZE > 2
-	memmove( &nsd->cookie_secrets[1], &nsd->cookie_secrets[2]
+	memmove( &nsd->cookie_secrets[2], &nsd->cookie_secrets[1]
 	       , sizeof(struct cookie_secret) * (NSD_COOKIE_HISTORY_SIZE - 2));
 #endif
 	memcpy( nsd->cookie_secrets[1].cookie_secret
 	      , secret, NSD_COOKIE_SECRET_SIZE);
 	nsd->cookie_count = nsd->cookie_count     < NSD_COOKIE_HISTORY_SIZE
 	                  ? nsd->cookie_count + 1 : NSD_COOKIE_HISTORY_SIZE;
-	memset(secret, 0, NSD_COOKIE_SECRET_SIZE);
+	explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
 }
 
 void activate_cookie_secret(struct nsd* nsd)
@@ -1266,7 +1266,7 @@ void activate_cookie_secret(struct nsd* nsd)
 	uint8_t active_secret[NSD_COOKIE_SECRET_SIZE];
 	/* The staging secret becomes the active secret.
 	 * The active secret becomes a staging secret.
-	 * If the NSD_COOKIE_HISTORY_SIZE > 2 then all stagin secrets are moved
+	 * If the NSD_COOKIE_HISTORY_SIZE > 2 then all staging secrets are moved
 	 * one position up and the previously active secret becomes the last
 	 * staging secret.
 	 */
@@ -1278,7 +1278,7 @@ void activate_cookie_secret(struct nsd* nsd)
 	       , sizeof(struct cookie_secret) * (NSD_COOKIE_HISTORY_SIZE - 1));
 	memcpy( nsd->cookie_secrets[nsd->cookie_count - 1].cookie_secret
 	      , active_secret, NSD_COOKIE_SECRET_SIZE);
-	memset(active_secret, 0, NSD_COOKIE_SECRET_SIZE);
+	explicit_bzero(active_secret, NSD_COOKIE_SECRET_SIZE);
 }
 
 void drop_cookie_secret(struct nsd* nsd)
@@ -1287,7 +1287,7 @@ void drop_cookie_secret(struct nsd* nsd)
 	 * drop the last staging secret. */
 	if(nsd->cookie_count < 2)
 		return;
-	memset(nsd->cookie_secrets[nsd->cookie_count - 1].cookie_secret
-	      , 0, NSD_COOKIE_SECRET_SIZE);
+	explicit_bzero( nsd->cookie_secrets[nsd->cookie_count - 1].cookie_secret
+	              , NSD_COOKIE_SECRET_SIZE);
 	nsd->cookie_count -= 1;
 }

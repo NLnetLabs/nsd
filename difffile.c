@@ -2012,17 +2012,20 @@ task_process_add_cookie_secret(struct nsd* nsd, struct task_list_d* task) {
 
 	if( strlen(secret) != 32 ) {
 		log_msg(LOG_ERR, "invalid cookie secret: %s", secret);
+		explicit_bzero(secret, strlen(secret));
 		return;
 	}
 
 	decoded_len = hex_pton(secret, secret_tmp, NSD_COOKIE_SECRET_SIZE);
 	if( decoded_len != 16 ) {
+		explicit_bzero(secret_tmp, NSD_COOKIE_SECRET_SIZE);
 		log_msg(LOG_ERR, "unable to parse cookie secret: %s", secret);
-	  return;
+		explicit_bzero(secret, strlen(secret));
+		return;
 	}
-
+	explicit_bzero(secret, strlen(secret));
 	add_cookie_secret(nsd, secret_tmp);
-	memset(secret, 0xdd, strlen(secret));
+	explicit_bzero(secret_tmp, NSD_COOKIE_SECRET_SIZE);
 }
 
 static void
@@ -2031,7 +2034,7 @@ task_process_drop_cookie_secret(struct nsd* nsd, struct task_list_d* task)
 	(void)task;
 	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "drop_cookie_secret task"));
 	if( nsd->cookie_count <= 1 ) {
-	  log_msg(LOG_ERR, "can not drop the only active cookie secret");
+		log_msg(LOG_ERR, "can not drop the only active cookie secret");
 		return;
 	}
 	drop_cookie_secret(nsd);
@@ -2043,7 +2046,7 @@ task_process_activate_cookie_secret(struct nsd* nsd, struct task_list_d* task)
 	(void)task;
 	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "activate_cookie_secret task"));
 	if( nsd->cookie_count <= 1 ) {
-	  log_msg(LOG_ERR, "can not activate the only active cookie secret");
+		log_msg(LOG_ERR, "can not activate the only active cookie secret");
 		return;
 	}
 	activate_cookie_secret(nsd);

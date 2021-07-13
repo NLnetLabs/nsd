@@ -2186,6 +2186,7 @@ cookie_secret_file_dump(RES* ssl, nsd_type const* nsd) {
 		secret_hex[NSD_COOKIE_SECRET_SIZE * 2] = '\0';
 		fprintf(f, "%s\n", secret_hex);
 	}
+	explicit_bzero(secret_hex, sizeof(secret_hex));
 	fclose(f);
 	return 1;
 }
@@ -2252,33 +2253,37 @@ do_add_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		return;
 	}
 	if(strlen(arg) != 32) {
+		explicit_bzero(arg, strlen(arg));
 		(void)ssl_printf(ssl, "invalid cookie secret: invalid argument length\n");
 		(void)ssl_printf(ssl, "please provide a 128bit hex encoded secret\n");
-		memset(arg, 0xdd, strlen(arg));
 		return;
 	}
 	if(hex_pton(arg, secret, NSD_COOKIE_SECRET_SIZE) != NSD_COOKIE_SECRET_SIZE ) {
+		explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
+		explicit_bzero(arg, strlen(arg));
 		(void)ssl_printf(ssl, "invalid cookie secret: parse error\n");
 		(void)ssl_printf(ssl, "please provide a 128bit hex encoded secret\n");
-		memset(arg, 0xdd, strlen(arg));
 		return;
 	}
 	if(!nsd->options->cookie_secret_file || !nsd->options->cookie_secret_file[0]) {
+		explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
+		explicit_bzero(arg, strlen(arg));
 		(void)ssl_printf(ssl, "error: no cookie secret file configured\n");
-		memset(arg, 0xdd, strlen(arg));
 		return;
 	}
 	if(!cookie_secret_file_dump(ssl, nsd)) {
+		explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
+		explicit_bzero(arg, strlen(arg));
 		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n",
 				nsd->options->cookie_secret_file);
-		memset(arg, 0xdd, strlen(arg));
 		return;
 	}
 	add_cookie_secret(nsd, secret);
+	explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
 	(void)cookie_secret_file_dump(ssl, nsd);
 	task_new_add_cookie_secret(xfrd->nsd->task[xfrd->nsd->mytask],
 	    xfrd->last_task, arg);
-	memset(arg, 0xdd, strlen(arg));
+	explicit_bzero(arg, strlen(arg));
 	xfrd_set_reload_now(xfrd);
 	send_ok(ssl);
 }
@@ -2305,6 +2310,7 @@ do_print_cookie_secrets(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		else
 			(void)ssl_printf(ssl, "staging[%d]: %s\n", i, secret_hex);
 	}
+	explicit_bzero(secret_hex, sizeof(secret_hex));
 }
 
 /** check for name with end-of-string, space or tab after it */

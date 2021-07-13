@@ -251,6 +251,25 @@ if test $ac_cv_c_unused_attribute = yes; then
 fi
 ])dnl
 
+AC_DEFUN([CHECK_WEAK_ATTRIBUTE],
+[AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "weak" attribute)
+AC_CACHE_VAL(ac_cv_c_weak_attribute,
+[ac_cv_c_weak_attribute=no
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <stdio.h>
+__attribute__((weak)) void f(int x) { printf("%d", x); }
+]], [[
+   f(1);
+]])],[ac_cv_c_weak_attribute="yes"],[ac_cv_c_weak_attribute="no"])
+])
+
+AC_MSG_RESULT($ac_cv_c_weak_attribute)
+if test $ac_cv_c_weak_attribute = yes; then
+  AC_DEFINE(HAVE_ATTR_WEAK, 1, [Whether the C compiler accepts the "weak" attribute])
+  AC_DEFINE(ATTR_WEAK, [__attribute__((weak))], [apply the weak attribute to a symbol])
+fi
+])dnl End of CHECK_WEAK_ATTRIBUTE
+
 AC_DEFUN([CHECK_NORETURN_ATTRIBUTE],
 [AC_REQUIRE([AC_PROG_CC])
 AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "noreturn" attribute)
@@ -332,6 +351,7 @@ AC_TYPE_OFF_T
 
 AC_CHECK_FORMAT_ATTRIBUTE
 AC_CHECK_UNUSED_ATTRIBUTE
+CHECK_WEAK_ATTRIBUTE
 CHECK_NORETURN_ATTRIBUTE
 ACX_CHECK_MEMCMP_SIGNED
 AC_CHECK_CTIME_R
@@ -796,6 +816,7 @@ AC_REPLACE_FUNCS(b64_ntop)
 AC_REPLACE_FUNCS(pselect)
 AC_REPLACE_FUNCS(memmove)
 AC_REPLACE_FUNCS(setproctitle)
+AC_REPLACE_FUNCS(explicit_bzero)
 AC_MSG_CHECKING([for reallocarray])
 AC_LINK_IFELSE([AC_LANG_SOURCE(
 [[
@@ -1261,6 +1282,10 @@ int inet_aton(const char *cp, struct in_addr *addr);
 #endif
 #ifndef HAVE_MEMMOVE
 void *memmove(void *dest, const void *src, size_t n);
+#endif
+#ifndef HAVE_EXPLICIT_BZERO
+#define explicit_bzero nsd_explicit_bzero
+void explicit_bzero(void* buf, size_t len);
 #endif
 #ifndef HAVE_STRLCAT
 size_t strlcat(char *dst, const char *src, size_t siz);
