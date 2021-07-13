@@ -1,0 +1,87 @@
+# #-- dns-cookies.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# set environment interfaces
+ip address add 2001:db8:220:1:59de:d0f4:8769:82b8 dev lo
+ip link set dev lo up
+
+# set NSD environment variables
+
+PRE="../.."
+TPKG_NSD_PRI_PID="nsd.pri.pid.$$"
+TPKG_NSD="$PRE/nsd"
+TPKG_NSD_CONTROL="$PRE/nsd-control"
+
+# An empty cookiesecrets.txt file means override the cookie-secret:
+# option in the config file, but no cookies configured.
+touch cookiesecrets.txt
+# start nsd with faketime
+TZ=UTC faketime -f '2019-06-05 13:39:21' $TPKG_NSD -c dns-cookies.test.conf -P $TPKG_NSD_PRI_PID &
+
+wait_nsd_up nsd.log
+echo "faketime nsd instance A4 running"
+
+# add secret
+$TPKG_NSD_CONTROL -c dns-cookies.test.conf add_cookie_secret dd3bdf9344b678b185a6f5cb60fca715
+$TPKG_NSD_CONTROL -c dns-cookies.test.conf add_cookie_secret 445536bcd2513298075a5d379663c962
+
+$TPKG_NSD_CONTROL -c dns-cookies.test.conf print_cookie_secrets > cookie_secrets.a4-1
+if ! grep -q "445536bcd2513298075a5d379663c962" cookie_secrets.a4-1 \
+|| ! grep -q "dd3bdf9344b678b185a6f5cb60fca715" cookie_secrets.a4-1
+then
+	sleep 1
+	$TPKG_NSD_CONTROL -c dns-cookies.test.conf print_cookie_secrets > cookie_secrets.a4-1
+	if ! grep -q "445536bcd2513298075a5d379663c962" cookie_secrets.a4-1 \
+	|| ! grep -q "dd3bdf9344b678b185a6f5cb60fca715" cookie_secrets.a4-1
+	then
+		cat cookie_secrets.a4-1
+		echo "A.4. Cookies did not get provisioned"
+		exit 1
+	fi
+fi
+
+# check this valid cookie before rollover
+dig -b 2001:db8:220:1:59de:d0f4:8769:82b8 @2001:db8:220:1:59de:d0f4:8769:82b8 +cookie=22681ab97d52c298010000005cf7c57926556bd0934c72f8 > dig.output.a4-1
+
+if grep -q "22681ab97d52c298010000005cf7c57926556bd0934c72f8" dig.output.a4-1
+then
+	echo "A.4. IPv6 Query with Rolled Over Secret: Cookie matches pre-rollover"
+else
+	echo "A.4. IPv6 Query with Rolled Over Secret: Cookie does not match pre-rollover"
+	exit 1
+fi
+
+# secret rollover
+$TPKG_NSD_CONTROL -c dns-cookies.test.conf activate_cookie_secret
+
+$TPKG_NSD_CONTROL -c dns-cookies.test.conf print_cookie_secrets > cookie_secrets.a4-2
+if ! grep -q "^active.*445536bcd2513298075a5d379663c962" cookie_secrets.a4-2
+then
+	sleep 1
+	$TPKG_NSD_CONTROL -c dns-cookies.test.conf print_cookie_secrets > cookie_secrets.a4-2
+	if ! grep -q "^active.*445536bcd2513298075a5d379663c962" cookie_secrets.a4-2 
+	then
+		cat cookie_secrets.a4-2
+		echo "A.4. Cookie did not get activated"
+		exit 1
+	fi
+fi
+
+dig -b 2001:db8:220:1:59de:d0f4:8769:82b8 @2001:db8:220:1:59de:d0f4:8769:82b8 +cookie=22681ab97d52c298010000005cf7c57926556bd0934c72f8 > dig.output.a4-2
+
+# kill NSD
+NSD_PRI_PID=`cat $TPKG_NSD_PRI_PID`
+kill_pid $NSD_PRI_PID
+rm -f nsd.log
+
+if grep -q "22681ab97d52c298010000005cf7c609a6bb79d16625507a" dig.output.a4-2
+then
+	echo "A.4. IPv6 Query with Rolled Over Secret: Cookie matches after rollover"
+else
+	echo "A.4. IPv6 Query with Rolled Over Secret: Cookie does not match after rollover"
+	exit 1
+fi

@@ -492,6 +492,29 @@ specific queries to receive this qps limit instead of the normal limit.
 With the value 0 the rate is unlimited.
 .\" rrlend
 .TP
+.B answer\-cookie:\fR <yes or no>
+Enable to answer to requests containig DNS Cookies as specified in RFC7873.
+Default is yes.
+.TP
+.B cookie\-secret:\fR <128 bit hex string>
+Servers in an anycast deployment need to be able to  verify  each other's DNS
+Server Cookies.  For  this they need to share the secret used to construct and
+verify the DNS Cookies.  Default is a 128 bits random secret generated at
+startup time.  This option is ignored if a \fBcookie\-secret\-file\fR is
+present.  In that case the secrets from that file are used in DNS Cookie
+calculations.
+.TP
+.B cookie\-secret\-file:\fR <filename>
+File from which the secrets are read used in DNS Cookie calculations. When this
+file exists, the secrets in this file are used and the secret specified by the
+\fBcookie-secret\fR option is ignored.
+Default is @configdir@/nsd_cookiesecrets.txt
+
+The content of this file must be manipulated with the \fBadd_cookie_secret\fR,
+\fBdrop_cookie_secret\fR and \fBactivate_cookie_secret\fR commands to the
+\fInsd\-control\fR(8) tool. Please see that manpage how to perform a safe
+cookie secret rollover.
+.TP
 .B tls\-service\-key:\fR <filename>
 If enabled, the server provides TLS service on TCP sockets with the TLS
 service port number.  The port number (853) is configured with tls\-port.

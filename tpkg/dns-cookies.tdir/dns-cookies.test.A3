@@ -1,0 +1,36 @@
+# #-- dns-cookies.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# set environment interfaces
+ip address add 203.0.113.203 dev lo
+ip link set dev lo up
+
+# set NSD environment variables
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+
+# start nsd with faketime
+TZ=UTC faketime -f '2019-06-05 11:38:20' $TPKG_NSD -c dns-cookies.test.conf -P $TPKG_NSD_PID &
+
+wait_nsd_up nsd.log
+echo "faketime nsd instance A3 running"
+
+dig @203.0.113.203 +cookie=fc93fc62807ddb8601abcdef5cf78f71a314227b6679ebf5 > dig.output.a3
+
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill_pid $NSD_PID
+rm -f nsd.log
+
+if grep -q "fc93fc62807ddb86010000005cf7a9acf73a7810aca2381e" dig.output.a3
+then
+	echo "A.3. Another Client Learning a Renewed Server Cookie: Cookie matches"
+else
+	echo "A.3. Another Client Learning a Renewed Server Cookie: Cookie does not match"
+	exit 1
+fi

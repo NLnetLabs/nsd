@@ -185,6 +185,15 @@ struct nsd_child
 #endif
 };
 
+#define NSD_COOKIE_HISTORY_SIZE 2
+#define NSD_COOKIE_SECRET_SIZE 16
+
+typedef struct cookie_secret cookie_secret_type;
+struct cookie_secret {
+	/** cookie secret */
+	uint8_t cookie_secret[NSD_COOKIE_SECRET_SIZE];
+};
+
 /* NSD configuration and run-time variables */
 typedef struct nsd nsd_type;
 struct	nsd
@@ -312,6 +321,16 @@ struct	nsd
 	time_t err_limit_time;
 	/* ratelimit for errors, packet count */
 	unsigned int err_limit_count;
+
+	/** do answer with server cookie when request contained cookie option */
+	int do_answer_cookie;
+
+	/** how many cookies are there in the cookies array */
+	size_t cookie_count;
+
+	/* keep track of the last `NSD_COOKIE_HISTORY_SIZE`
+	 * cookies as per rfc requirement .*/
+	cookie_secret_type cookie_secrets[NSD_COOKIE_HISTORY_SIZE];
 
 	struct nsd_options* options;
 

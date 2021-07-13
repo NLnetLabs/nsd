@@ -1,0 +1,18 @@
+# #-- dns-cookies.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+echo "Starting test A1"
+unshare -rUn bash dns-cookies.test.A1 || exit 1
+
+echo "Starting test A2"
+unshare -rUn bash dns-cookies.test.A2 || exit 1
+
+echo "Starting test A3"
+unshare -rUn bash dns-cookies.test.A3 || exit 1
+
+echo "Starting test A4"
+unshare -rUn bash dns-cookies.test.A4 || exit 1
