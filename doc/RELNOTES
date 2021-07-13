@@ -21,7 +21,8 @@ BUG FIXES:
 	- Fix #179: log notice and server-count.
 	- Update configure nonblocking test to use host.
 	- Fix #168: Buffer overflow in the dname_to_string() function
-
+	- Fixes for child server processes getting out of sync with the
+	  dnstap-collector process
 
 4.3.6
 ================

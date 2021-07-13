@@ -1,4 +1,8 @@
 13 July 2021: Willem
+	- Fixes for child server processes getting out of sync with the
+	  dnstap-collector process
+
+13 July 2021: Willem
 	- Interoperable DNS Cookies support as per RFC7873 and RFC9018
 
 9 July 2021: Willem
