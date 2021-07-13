@@ -1,3 +1,6 @@
+13 July 2021: Willem
+	- Interoperable DNS Cookies support as per RFC7873 and RFC9018
+
 9 July 2021: Willem
 	- Client side DNS Zone Transfer-over-TLS (XoT) support as per
 	  draft-ietf-dprive-xfr-over-tls
