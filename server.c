@@ -3583,7 +3583,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 	ssize_t received;
 	struct event_base* ev_base;
 	struct timeval timeout;
-	uint32_t now;
+	uint32_t now = 0;
 
 	if ((event & EV_TIMEOUT)) {
 		/* Connection timed out.  */

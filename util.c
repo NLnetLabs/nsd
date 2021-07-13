@@ -1247,6 +1247,7 @@ void add_cookie_secret(struct nsd* nsd, uint8_t* secret)
 		memcpy( nsd->cookie_secrets->cookie_secret
 		       , secret, NSD_COOKIE_SECRET_SIZE);
 		nsd->cookie_count = 1;
+		memset(secret, 0, NSD_COOKIE_SECRET_SIZE);
 		return;
 	}
 #if NSD_COOKIE_HISTORY_SIZE > 2
