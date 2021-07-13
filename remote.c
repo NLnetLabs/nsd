@@ -2180,7 +2180,7 @@ cookie_secret_file_dump(RES* ssl, nsd_type const* nsd) {
 	for(size_t i = 0; i < nsd->cookie_count; i++) {
 		struct cookie_secret const* cs = &nsd->cookie_secrets[i];
 		ssize_t const len = hex_ntop(cs->cookie_secret, NSD_COOKIE_SECRET_SIZE,
-																 secret_hex, sizeof(secret_hex));
+			secret_hex, sizeof(secret_hex));
 		(void)len; /* silence unused variable warning with -DNDEBUG */
 		assert( len == NSD_COOKIE_SECRET_SIZE * 2 );
 		secret_hex[NSD_COOKIE_SECRET_SIZE * 2] = '\0';
