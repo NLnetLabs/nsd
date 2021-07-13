@@ -2509,6 +2509,27 @@ server_main(struct nsd *nsd)
 						dt_collector_destroy(nsd->dt_collector, nsd);
 						nsd->dt_collector = NULL;
 					}
+					/* Only respawn a crashed (or exited)
+					 * dnstap-collector when not reloading,
+					 * to not induce a reload during a
+					 * reload (which would seriously
+					 * disrupt nsd procedures and lead to
+					 * unpredictable results)!
+					 *
+					 * This will *leave* a dnstap-collector
+					 * process terminated, but because
+					 * signalling of the reload process to
+					 * the main process to respawn in this
+					 * situation will be cumbersome, and
+					 * because this situation is so
+					 * specific (and therefore hopefully
+					 * extremely rare or non-existing at
+					 * all), plus the fact that we are left
+					 * with a perfectly function NSD
+					 * (besides not logging dnstap
+					 * messages), I consider it acceptable
+					 * to leave this unresolved.
+					 */
 					if(reload_pid == -1 && nsd->options->dnstap_enable) {
 						nsd->dt_collector = dt_collector_create(nsd);
 						dt_collector_start(nsd->dt_collector, nsd);
