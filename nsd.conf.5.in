@@ -288,6 +288,11 @@ Default is 0, meaning there is no maximum.
 Overrides the default TCP timeout. This also affects zone transfers over TCP.
 The default is 120 seconds.
 .TP
+.B tcp\-idle\-timeout:\fR <number>
+Overrides the default TCP idle timeout. This is used when closing outgoing
+TCP connections used for zone transfers when the xfrd\-conn\-reuse option is enabled. 
+The default is 10 seconds.
+.TP
 .B tcp-mss:\fR <number>
 Maximum segment size (MSS) of TCP socket on which the server responds
 to queries. Value lower than common MSS on Ethernet 
@@ -377,6 +382,12 @@ transfer. If positive xfrd will trigger a reload after a zone
 transfer, then it will wait for the number of seconds before it will 
 trigger a new reload. Setting this value throttles the reloads to 
 once per the number of seconds. The default is 1 second.
+.TP
+.B xfrd\-conn\-reuse:\fR <yes or no>
+When making outgoing XFR requests to the same master an open TCP connection 
+will be used in preference to opening a new connection for each request. 
+After all transfers complete, connections will be left open for 
+tcp\-idle\-timeout seconds to increase the chance of reuse. Default is no.
 .TP
 .B verbosity:\fR <level>
 This value specifies the verbosity level for (non\-debug) logging. 

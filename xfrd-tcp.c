@@ -416,27 +416,45 @@ tcp_pipe_id_remove(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 	(void)rbtree_insert(xfrd->tcp_set->pipetree, &tp->node);
 }
 
+/* determine if pipeline is actually in use*/
+static int 
+tcp_pipe_in_use(struct xfrd_tcp_pipeline* tp) {
+    /* Check there are no active transfers (outstanding query ids) but we 
+       need to ignore any outstanding responses for skipped transactions
+       - in other check we do not have at least one 'nonskip' ID */
+    /* NOTE: There is a minor question if a tcp connection still with skipped
+       transactions is truely 'idle', but for our purposes we are going to treat
+       it as if it is...*/
+    return (ID_PIPE_NUM - tp->num_unused > tp->num_skip)?1:0; 
+}
+
 /* stop the tcp pipe (and all its zones need to retry) */
 static void
 xfrd_tcp_pipe_stop(struct xfrd_tcp_pipeline* tp)
 {
 	int i, conn = -1;
-	assert(tp->num_unused < ID_PIPE_NUM); /* at least one 'in-use' */
-	assert(ID_PIPE_NUM - tp->num_unused > tp->num_skip); /* at least one 'nonskip' */
-	/* need to retry for all the zones connected to it */
-	/* these could use different lists and go to a different nextmaster*/
-	for(i=0; i<ID_PIPE_NUM; i++) {
-		if(tp->id[i] && tp->id[i] != TCP_NULL_SKIP) {
-			xfrd_zone_type* zone = tp->id[i];
-			conn = zone->tcp_conn;
-			zone->tcp_conn = -1;
-			zone->tcp_waiting = 0;
-			tcp_pipe_sendlist_remove(tp, zone);
-			tcp_pipe_id_remove(tp, zone);
-			xfrd_set_refresh_now(zone);
-		}
-	}
-	assert(conn != -1);
+    /* With connections now left open when (effectively) idle, it is possible to
+       arrive here because the far end shuts the idle connection (causing a read
+       event with no data). So just warn if we get here while the pipe is still 
+       in use */
+    if (tcp_pipe_in_use(tp)) {
+        log_msg(LOG_WARNING, "xfrd: an in use TCP connection was closed by the" 
+                             "far end, retrying all zones");
+    	/* need to retry for all the zones connected to it */
+    	/* these could use different lists and go to a different nextmaster*/
+    	for(i=0; i<ID_PIPE_NUM; i++) {
+    		if(tp->id[i] && tp->id[i] != TCP_NULL_SKIP) {
+    			xfrd_zone_type* zone = tp->id[i];
+    			conn = zone->tcp_conn;
+    			zone->tcp_conn = -1;
+    			zone->tcp_waiting = 0;
+    			tcp_pipe_sendlist_remove(tp, zone);
+    			tcp_pipe_id_remove(tp, zone);
+    			xfrd_set_refresh_now(zone);
+    		}
+    	}
+    	assert(conn != -1);
+    }
 	/* now release the entire tcp pipe */
 	xfrd_tcp_pipe_release(xfrd->tcp_set, tp, conn);
 }
@@ -446,7 +464,12 @@ tcp_pipe_reset_timeout(struct xfrd_tcp_pipeline* tp)
 {
 	int fd = tp->handler.ev_fd;
 	struct timeval tv;
-	tv.tv_sec = xfrd->tcp_set->tcp_timeout;
+    /* pipe is unused - for now set a fixed idle timeout until EDNS0 
+       Keepalive is implemented */
+    if(!tcp_pipe_in_use(tp))
+        tv.tv_sec = xfrd->tcp_set->tcp_idle_timeout;
+    else
+	    tv.tv_sec = xfrd->tcp_set->tcp_timeout;
 	tv.tv_usec = 0;
 	if(tp->handler_added)
 		event_del(&tp->handler);
@@ -488,8 +511,16 @@ xfrd_handle_tcp_pipe(int ATTR_UNUSED(fd), short event, void* arg)
 	}
 	if((event & EV_TIMEOUT) && tp->handler_added) {
 		/* tcp connection timed out */
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: event tcp timeout"));
-		xfrd_tcp_pipe_stop(tp);
+        /* pipe is unused (timeout triggered while idle), just release it but
+           note that we don't have access to the conn for the pipe from here */
+        if(!tcp_pipe_in_use(tp)){
+    		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: idle pipeline had tcp timeout"
+                "event"));
+             xfrd_tcp_pipe_release(xfrd->tcp_set, tp, -1);
+         }
+        else
+            /* timed out while in use, do cleanup before releasing */
+		    xfrd_tcp_pipe_stop(tp);
 	}
 }
 
@@ -528,61 +559,12 @@ pipeline_setup_new_zone(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	}
 }
 
-void
-xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
-{
-	struct xfrd_tcp_pipeline* tp;
-	assert(zone->tcp_conn == -1);
-	assert(zone->tcp_waiting == 0);
 
-	if(set->tcp_count < XFRD_MAX_TCP) {
-		int i;
-		assert(!set->tcp_waiting_first);
-		set->tcp_count ++;
-		/* find a free tcp_buffer */
-		for(i=0; i<XFRD_MAX_TCP; i++) {
-			if(set->tcp_state[i]->tcp_r->fd == -1) {
-				zone->tcp_conn = i;
-				break;
-			}
-		}
-		/** What if there is no free tcp_buffer? return; */
-		if (zone->tcp_conn < 0) {
-			return;
-		}
+static struct xfrd_tcp_pipeline*
+xfrd_tcp_find_pipeline(struct xfrd_tcp_set* set, xfrd_zone_type* zone) {
 
-		tp = set->tcp_state[zone->tcp_conn];
-		zone->tcp_waiting = 0;
-
-		/* stop udp use (if any) */
-		if(zone->zone_handler.ev_fd != -1)
-			xfrd_udp_release(zone);
-
-		if(!xfrd_tcp_open(set, tp, zone)) {
-			zone->tcp_conn = -1;
-			set->tcp_count --;
-			xfrd_set_refresh_now(zone);
-			return;
-		}
-		/* ip and ip_len set by tcp_open */
-		tp->node.key = tp;
-		tp->num_unused = ID_PIPE_NUM;
-		tp->num_skip = 0;
-		tp->tcp_send_first = NULL;
-		tp->tcp_send_last = NULL;
-		memset(tp->id, 0, sizeof(tp->id));
-		for(i=0; i<ID_PIPE_NUM; i++) {
-			tp->unused[i] = i;
-		}
-
-		/* insert into tree */
-		(void)rbtree_insert(set->pipetree, &tp->node);
-		xfrd_deactivate_zone(zone);
-		xfrd_unset_timer(zone);
-		pipeline_setup_new_zone(set, tp, zone);
-		return;
-	}
-	/* check for a pipeline to the same master with unused ID */
+	struct xfrd_tcp_pipeline* tp;    
+    /* check for a pipeline to the same master with unused ID */
 	if((tp = pipeline_find(set, zone))!= NULL) {
 		int i;
 		if(zone->zone_handler.ev_fd != -1)
@@ -594,9 +576,92 @@ xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 		xfrd_deactivate_zone(zone);
 		xfrd_unset_timer(zone);
 		pipeline_setup_new_zone(set, tp, zone);
-		return;
+    	DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+            "xfrd: zone %s is re-using tcp conn pipeline %d",
+    		zone->apex_str, zone->tcp_conn));
+		return tp;
 	}
+    return NULL;    
+}
 
+static struct xfrd_tcp_pipeline*
+xfrd_tcp_new_pipeline(struct xfrd_tcp_set* set, xfrd_zone_type* zone) {
+
+	struct xfrd_tcp_pipeline* tp;
+    /* Open a new pipeline if one is available*/
+    if(set->tcp_count < XFRD_MAX_TCP) {
+    	int i;
+    	assert(!set->tcp_waiting_first);
+    	set->tcp_count ++;
+    	/* find a free tcp_buffer */
+    	for(i=0; i<XFRD_MAX_TCP; i++) {
+    		if(set->tcp_state[i]->tcp_r->fd == -1) {
+    			zone->tcp_conn = i;
+    			break;
+    		}
+    	}
+    	/** What if there is no free tcp_buffer? return; */
+    	if (zone->tcp_conn < 0) {
+            zone->tcp_conn = -1;
+            set->tcp_count --;
+            xfrd_set_refresh_now(zone);
+    		return NULL;
+    	}
+
+    	tp = set->tcp_state[zone->tcp_conn];
+    	zone->tcp_waiting = 0;
+
+    	/* stop udp use (if any) */
+    	if(zone->zone_handler.ev_fd != -1)
+    		xfrd_udp_release(zone);
+
+    	if(!xfrd_tcp_open(set, tp, zone)) {
+    		zone->tcp_conn = -1;
+    		set->tcp_count --;
+    		xfrd_set_refresh_now(zone);
+    		return NULL;
+    	}
+    	/* ip and ip_len set by tcp_open */
+    	tp->node.key = tp;
+    	tp->num_unused = ID_PIPE_NUM;
+    	tp->num_skip = 0;
+    	tp->tcp_send_first = NULL;
+    	tp->tcp_send_last = NULL;
+    	memset(tp->id, 0, sizeof(tp->id));
+    	for(i=0; i<ID_PIPE_NUM; i++) {
+    		tp->unused[i] = i;
+    	}
+
+    	/* insert into tree */
+    	(void)rbtree_insert(set->pipetree, &tp->node);
+    	xfrd_deactivate_zone(zone);
+    	xfrd_unset_timer(zone);
+    	pipeline_setup_new_zone(set, tp, zone);
+    	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s opened a new tcp conn num %d with fd %d",
+    		zone->apex_str, zone->tcp_conn, set->tcp_state[zone->tcp_conn]->tcp_r->fd));
+    	return tp;
+    }
+    return NULL;
+}
+
+void
+xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
+{
+	struct xfrd_tcp_pipeline* tp;
+	assert(zone->tcp_conn == -1);
+	assert(zone->tcp_waiting == 0);
+
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: connection reuse is set to %s",
+		set->xfrd_conn_reuse?"yes":"no"));
+    
+    /* Select an existing or new pipeline first depending on the configuration*/
+    tp = set->xfrd_conn_reuse?xfrd_tcp_find_pipeline(set, zone): 
+                         xfrd_tcp_new_pipeline(set, zone);
+    if (tp != NULL) return;
+    tp = set->xfrd_conn_reuse?xfrd_tcp_new_pipeline(set, zone): 
+                         xfrd_tcp_find_pipeline(set, zone);
+    if (tp != NULL) return;
+    
 	/* wait, at end of line */
 	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: max number of tcp "
 		"connections (%d) reached.", XFRD_MAX_TCP));
@@ -1321,7 +1386,7 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 				xfrd_make_request(zone);
 				break;
 			}
-			xfrd_tcp_release(xfrd->tcp_set, zone);
+            xfrd_tcp_release(xfrd->tcp_set, zone);
 			assert(zone->round_num == -1);
 			break;
 		case xfrd_packet_notimpl:
@@ -1348,8 +1413,9 @@ xfrd_tcp_release(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 {
 	int conn = zone->tcp_conn;
 	struct xfrd_tcp_pipeline* tp = set->tcp_state[conn];
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s released tcp conn to %s",
-		zone->apex_str, zone->master->ip_address_spec));
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+        "xfrd: zone %s mapping to tcp conn %d (%s) is released",
+		zone->apex_str, zone->tcp_conn, zone->master->ip_address_spec));
 	assert(zone->tcp_conn != -1);
 	assert(zone->tcp_waiting == 0);
 	zone->tcp_conn = -1;
@@ -1360,8 +1426,9 @@ xfrd_tcp_release(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	/* remove it from the ID list */
 	if(tp->id[zone->query_id] != TCP_NULL_SKIP)
 		tcp_pipe_id_remove(tp, zone);
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: released tcp pipe now %d unused",
-		tp->num_unused));
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+        "xfrd: zone %s query id removed from pipeline, %d unused ids",
+		zone->apex_str, tp->num_unused));
 	/* if pipe was full, but no more, then see if waiting element is
 	 * for the same master, and can fill the unused ID */
 	if(tp->num_unused == 1 && set->tcp_waiting_first) {
@@ -1387,16 +1454,22 @@ xfrd_tcp_release(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 		/* waiting zone did not go to same server */
 	}
 
-	/* if all unused, or only skipped leftover, close the pipeline */
-	if(tp->num_unused >= ID_PIPE_NUM || tp->num_skip >= ID_PIPE_NUM - tp->num_unused)
-		xfrd_tcp_pipe_release(set, tp, conn);
+    if (!set->xfrd_conn_reuse) {
+    	/* if all unused, or only skipped leftover, close the pipeline */
+        if(!tcp_pipe_in_use(tp))
+            xfrd_tcp_pipe_release(set, tp, conn);
+    } else {
+        tcp_pipe_reset_timeout(tp);        
+    }
 }
 
 void
 xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	int conn)
 {
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: tcp pipe released"));
+
+    DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: tcp pipeline %d being released - has fd %d", 
+          conn, tp->tcp_r->fd));
 	/* one handler per tcp pipe */
 	if(tp->handler_added)
 		event_del(&tp->handler);
@@ -1420,6 +1493,20 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 
 	/* remove from pipetree */
 	(void)rbtree_delete(xfrd->tcp_set->pipetree, &tp->node);
+
+    /* this signals the pipe should not be reused e.g., if we are shutting down */
+    if (conn == -2)
+        return;
+
+    /* the calling function didn't know the conn (e.g. timeout)
+       find the connection for this pipeline so it can be re-used*/
+    if (conn == -1) {
+		for(int i=0; i<XFRD_MAX_TCP; i++) {
+			if(set->tcp_state[i] == tp)
+				conn = i;
+		}
+    }
+    assert(conn >= 0);
 
 	/* a waiting zone can use the free tcp slot (to another server) */
 	/* if that zone fails to set-up or connect, we try to start the next
@@ -1466,6 +1553,8 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	/* no task to start, cleanup */
 	assert(!set->tcp_waiting_first);
 	set->tcp_count --;
+    DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+        "xfrd: %d tcp pipelines in use", set->tcp_count));
 	assert(set->tcp_count >= 0);
 }
 

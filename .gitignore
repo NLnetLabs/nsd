@@ -46,3 +46,6 @@
 .cproject
 .project
 .settings/
+
+# Separate build directory
+build/*

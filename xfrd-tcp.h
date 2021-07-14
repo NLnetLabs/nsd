@@ -37,6 +37,10 @@ struct xfrd_tcp_set {
 	int tcp_count;
 	/* TCP timeout. */
 	int tcp_timeout;
+	/* TCP idle timeout. */
+	int tcp_idle_timeout;
+	/* TCP connection reuse. */
+	int xfrd_conn_reuse;
 	/* rbtree with pipelines sorted by master */
 	rbtree_type* pipetree;
 #ifdef HAVE_TLS_1_3

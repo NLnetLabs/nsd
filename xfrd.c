@@ -198,6 +198,8 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region, nsd->options->tls_cert_bundle);
 	xfrd->tcp_set->tcp_timeout = nsd->tcp_timeout;
+	xfrd->tcp_set->tcp_idle_timeout = nsd->tcp_idle_timeout;
+	xfrd->tcp_set->xfrd_conn_reuse = nsd->xfrd_conn_reuse;
 #if !defined(HAVE_ARC4RANDOM) && !defined(HAVE_GETRANDOM)
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 #endif
@@ -369,6 +371,13 @@ xfrd_shutdown()
 		}
 	}
 	close_notify_fds(xfrd->notify_zones);
+    /* and any open TCP connections so the far end knows we are gone */
+    struct xfrd_tcp_pipeline* tp;
+    for(int i=0; i<XFRD_MAX_TCP; i++) {
+		tp = xfrd->tcp_set->tcp_state[i];
+        if (tp->tcp_r->fd != -1)
+            xfrd_tcp_pipe_release(xfrd->tcp_set, tp, -2);
+    }
 
 	/* wait for server parent (if necessary) */
 	if(xfrd->reload_pid != -1) {

@@ -91,12 +91,14 @@ static int parse_range(const char *str, long long *low, long long *high);
 %token VAR_TCP_REJECT_OVERFLOW
 %token VAR_TCP_QUERY_COUNT
 %token VAR_TCP_TIMEOUT
+%token VAR_TCP_IDLE_TIMEOUT
 %token VAR_TCP_MSS
 %token VAR_OUTGOING_TCP_MSS
 %token VAR_IPV4_EDNS_SIZE
 %token VAR_IPV6_EDNS_SIZE
 %token VAR_STATISTICS
 %token VAR_XFRD_RELOAD_TIMEOUT
+%token VAR_XFRD_CONN_REUSE
 %token VAR_LOG_TIME_ASCII
 %token VAR_ROUND_ROBIN
 %token VAR_MINIMAL_RESPONSES
@@ -320,6 +322,8 @@ server_option:
     { cfg_parser->opt->tcp_query_count = (int)$2; }
   | VAR_TCP_TIMEOUT number
     { cfg_parser->opt->tcp_timeout = (int)$2; }
+  | VAR_TCP_IDLE_TIMEOUT number
+    { cfg_parser->opt->tcp_idle_timeout = (int)$2; }
   | VAR_TCP_MSS number
     { cfg_parser->opt->tcp_mss = (int)$2; }
   | VAR_OUTGOING_TCP_MSS number
@@ -357,6 +361,8 @@ server_option:
     { cfg_parser->opt->xfrdir = region_strdup(cfg_parser->opt->region, $2); }
   | VAR_XFRD_RELOAD_TIMEOUT number
     { cfg_parser->opt->xfrd_reload_timeout = (int)$2; }
+  | VAR_XFRD_CONN_REUSE boolean
+    { cfg_parser->opt->xfrd_conn_reuse = $2; }
   | VAR_VERBOSITY number
     { cfg_parser->opt->verbosity = (int)$2; }
   | VAR_RRL_SIZE number
