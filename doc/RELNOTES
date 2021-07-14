@@ -23,6 +23,7 @@ BUG FIXES:
 	- Fix #168: Buffer overflow in the dname_to_string() function
 	- Fixes for child server processes getting out of sync with the
 	  dnstap-collector process
+	- Fix gcc-11 warning on array bounds.
 
 4.3.6
 ================

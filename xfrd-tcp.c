@@ -340,7 +340,7 @@ pipeline_find(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	key->ip_len = xfrd_acl_sockaddr_to(zone->master, &key->ip);
 	key->num_unused = ID_PIPE_NUM;
 	/* lookup existing tcp transfer to the master with highest unused */
-	if(rbtree_find_less_equal(set->pipetree, &key, &sme)) {
+	if(rbtree_find_less_equal(set->pipetree, key, &sme)) {
 		/* exact match, strange, fully unused tcp cannot be open */
 		assert(0);
 	} 
