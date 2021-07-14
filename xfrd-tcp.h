@@ -78,13 +78,10 @@ struct xfrd_tcp {
 #define ID_PIPE_NUM 65536
 
 /**
- * Structure to keep track of a pipelined set of queries on
- * an open tcp connection.  The queries may be answered with
- * interleaved answer packets, the ID number disambiguates.
- * Sorted by the master IP address so you can use lookup with
- * smaller-or-equal to find the tcp connection most suitable.
+ * The tcp pipeline key structure. By ip_len, ip, num_unused and unique by
+ * pointer value.
  */
-struct xfrd_tcp_pipeline {
+struct xfrd_tcp_pipeline_key {
 	/* the rbtree node, sorted by IP and nr of unused queries */
 	rbnode_type node;
 	/* destination IP address */
@@ -101,6 +98,19 @@ struct xfrd_tcp_pipeline {
 	int num_unused;
 	/* number of skip-set IDs (these are 'in-use') */
 	int num_skip;
+};
+
+/**
+ * Structure to keep track of a pipelined set of queries on
+ * an open tcp connection.  The queries may be answered with
+ * interleaved answer packets, the ID number disambiguates.
+ * Sorted by the master IP address so you can use lookup with
+ * smaller-or-equal to find the tcp connection most suitable.
+ */
+struct xfrd_tcp_pipeline {
+	/* the key information for the tcp pipeline, in its own
+	 * struct so it can be referenced on its own for comparison funcs */
+	struct xfrd_tcp_pipeline_key key;
 
 	int handler_added;
 	/* the event handler for this pipe (it'll disambiguate by ID) */

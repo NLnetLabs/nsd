@@ -135,15 +135,15 @@ xfrd_pipe_cmp(const void* a, const void* b)
 	int r;
 	if(x == y)
 		return 0;
-	if(y->ip_len != x->ip_len)
+	if(y->key.ip_len != x->key.ip_len)
 		/* subtraction works because nonnegative and small numbers */
-		return (int)y->ip_len - (int)x->ip_len;
-	r = memcmp(&x->ip, &y->ip, x->ip_len);
+		return (int)y->key.ip_len - (int)x->key.ip_len;
+	r = memcmp(&x->key.ip, &y->key.ip, x->key.ip_len);
 	if(r != 0)
 		return r;
 	/* sort that num_unused is sorted ascending, */
-	if(x->num_unused != y->num_unused) {
-		return (x->num_unused < y->num_unused) ? -1 : 1;
+	if(x->key.num_unused != y->key.num_unused) {
+		return (x->key.num_unused < y->key.num_unused) ? -1 : 1;
 	}
 	/* different pipelines are different still, even with same numunused*/
 	return (uintptr_t)x < (uintptr_t)y ? -1 : 1;
@@ -184,7 +184,7 @@ xfrd_tcp_pipeline_create(region_type* region)
 	int i;
 	struct xfrd_tcp_pipeline* tp = (struct xfrd_tcp_pipeline*)
 		region_alloc_zero(region, sizeof(*tp));
-	tp->num_unused = ID_PIPE_NUM;
+	tp->key.num_unused = ID_PIPE_NUM;
 	assert(sizeof(tp->unused)/sizeof(tp->unused[0]) == ID_PIPE_NUM);
 	for(i=0; i<ID_PIPE_NUM; i++)
 		tp->unused[i] = (uint16_t)i;
@@ -335,17 +335,12 @@ pipeline_find(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	/* smaller buf than a full pipeline with 64kb ID array, only need
 	 * the front part with the key info, this front part contains the
 	 * members that the compare function uses. */
-	enum { keysize = sizeof(struct xfrd_tcp_pipeline) -
-		ID_PIPE_NUM*(sizeof(struct xfrd_zone*) + sizeof(uint16_t)) };
-	/* void* type for alignment of the struct,
-	 * divide the keysize by ptr-size and then add one to round up */
-	void* buf[ (keysize / sizeof(void*)) + 1 ];
-	struct xfrd_tcp_pipeline* key = (struct xfrd_tcp_pipeline*)((void*)buf);
+	struct xfrd_tcp_pipeline_key k, *key=&k;
 	key->node.key = key;
 	key->ip_len = xfrd_acl_sockaddr_to(zone->master, &key->ip);
 	key->num_unused = ID_PIPE_NUM;
 	/* lookup existing tcp transfer to the master with highest unused */
-	if(rbtree_find_less_equal(set->pipetree, key, &sme)) {
+	if(rbtree_find_less_equal(set->pipetree, &key, &sme)) {
 		/* exact match, strange, fully unused tcp cannot be open */
 		assert(0);
 	} 
@@ -353,12 +348,12 @@ pipeline_find(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 		return NULL;
 	r = (struct xfrd_tcp_pipeline*)sme->key;
 	/* <= key pointed at, is the master correct ? */
-	if(r->ip_len != key->ip_len)
+	if(r->key.ip_len != key->ip_len)
 		return NULL;
-	if(memcmp(&r->ip, &key->ip, key->ip_len) != 0)
+	if(memcmp(&r->key.ip, &key->ip, key->ip_len) != 0)
 		return NULL;
 	/* correct master, is there a slot free for this transfer? */
-	if(r->num_unused == 0)
+	if(r->key.num_unused == 0)
 		return NULL;
 	return r;
 }
@@ -406,14 +401,14 @@ tcp_pipe_sendlist_popfirst(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 static void
 tcp_pipe_id_remove(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 {
-	assert(tp->num_unused < ID_PIPE_NUM && tp->num_unused >= 0);
+	assert(tp->key.num_unused < ID_PIPE_NUM && tp->key.num_unused >= 0);
 	assert(tp->id[zone->query_id] == zone);
 	tp->id[zone->query_id] = NULL;
-	tp->unused[tp->num_unused] = zone->query_id;
+	tp->unused[tp->key.num_unused] = zone->query_id;
 	/* must remove and re-add for sort order in tree */
-	(void)rbtree_delete(xfrd->tcp_set->pipetree, &tp->node);
-	tp->num_unused++;
-	(void)rbtree_insert(xfrd->tcp_set->pipetree, &tp->node);
+	(void)rbtree_delete(xfrd->tcp_set->pipetree, &tp->key.node);
+	tp->key.num_unused++;
+	(void)rbtree_insert(xfrd->tcp_set->pipetree, &tp->key.node);
 }
 
 /* stop the tcp pipe (and all its zones need to retry) */
@@ -421,8 +416,8 @@ static void
 xfrd_tcp_pipe_stop(struct xfrd_tcp_pipeline* tp)
 {
 	int i, conn = -1;
-	assert(tp->num_unused < ID_PIPE_NUM); /* at least one 'in-use' */
-	assert(ID_PIPE_NUM - tp->num_unused > tp->num_skip); /* at least one 'nonskip' */
+	assert(tp->key.num_unused < ID_PIPE_NUM); /* at least one 'in-use' */
+	assert(ID_PIPE_NUM - tp->key.num_unused > tp->key.num_skip); /* at least one 'nonskip' */
 	/* need to retry for all the zones connected to it */
 	/* these could use different lists and go to a different nextmaster*/
 	for(i=0; i<ID_PIPE_NUM; i++) {
@@ -500,16 +495,16 @@ pipeline_setup_new_zone(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 {
 	/* assign the ID */
 	int idx;
-	assert(tp->num_unused > 0);
+	assert(tp->key.num_unused > 0);
 	/* we pick a random ID, even though it is TCP anyway */
-	idx = random_generate(tp->num_unused);
+	idx = random_generate(tp->key.num_unused);
 	zone->query_id = tp->unused[idx];
-	tp->unused[idx] = tp->unused[tp->num_unused-1];
+	tp->unused[idx] = tp->unused[tp->key.num_unused-1];
 	tp->id[zone->query_id] = zone;
 	/* decrement unused counter, and fixup tree */
-	(void)rbtree_delete(set->pipetree, &tp->node);
-	tp->num_unused--;
-	(void)rbtree_insert(set->pipetree, &tp->node);
+	(void)rbtree_delete(set->pipetree, &tp->key.node);
+	tp->key.num_unused--;
+	(void)rbtree_insert(set->pipetree, &tp->key.node);
 
 	/* add to sendlist, at end */
 	zone->tcp_send_next = NULL;
@@ -565,9 +560,9 @@ xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 			return;
 		}
 		/* ip and ip_len set by tcp_open */
-		tp->node.key = tp;
-		tp->num_unused = ID_PIPE_NUM;
-		tp->num_skip = 0;
+		tp->key.node.key = tp;
+		tp->key.num_unused = ID_PIPE_NUM;
+		tp->key.num_skip = 0;
 		tp->tcp_send_first = NULL;
 		tp->tcp_send_last = NULL;
 		memset(tp->id, 0, sizeof(tp->id));
@@ -576,7 +571,7 @@ xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 		}
 
 		/* insert into tree */
-		(void)rbtree_insert(set->pipetree, &tp->node);
+		(void)rbtree_insert(set->pipetree, &tp->key.node);
 		xfrd_deactivate_zone(zone);
 		xfrd_unset_timer(zone);
 		pipeline_setup_new_zone(set, tp, zone);
@@ -680,7 +675,7 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 #endif
 	}
 
-	tp->ip_len = xfrd_acl_sockaddr_to(zone->master, &tp->ip);
+	tp->key.ip_len = xfrd_acl_sockaddr_to(zone->master, &tp->key.ip);
 
 	/* bind it */
 	if (!xfrd_bind_local_interface(fd, zone->zone_options->pattern->
@@ -690,7 +685,7 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 		return 0;
         }
 
-	conn = connect(fd, (struct sockaddr*)&tp->ip, tp->ip_len);
+	conn = connect(fd, (struct sockaddr*)&tp->key.ip, tp->key.ip_len);
 	if (conn == -1 && errno != EINPROGRESS) {
 		log_msg(LOG_ERR, "xfrd: connect %s failed: %s",
 			zone->master->ip_address_spec, strerror(errno));
@@ -1312,7 +1307,7 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 		case xfrd_packet_newlease:
 			/* set to skip if more packets with this ID */
 			tp->id[zone->query_id] = TCP_NULL_SKIP;
-			tp->num_skip++;
+			tp->key.num_skip++;
 			/* fall through to remove zone from tp */
 			/* fallthrough */
 		case xfrd_packet_transfer:
@@ -1335,7 +1330,7 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 		default:
 			/* set to skip if more packets with this ID */
 			tp->id[zone->query_id] = TCP_NULL_SKIP;
-			tp->num_skip++;
+			tp->key.num_skip++;
 			xfrd_tcp_release(xfrd->tcp_set, zone);
 			/* query next server */
 			xfrd_make_request(zone);
@@ -1361,10 +1356,10 @@ xfrd_tcp_release(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	if(tp->id[zone->query_id] != TCP_NULL_SKIP)
 		tcp_pipe_id_remove(tp, zone);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: released tcp pipe now %d unused",
-		tp->num_unused));
+		tp->key.num_unused));
 	/* if pipe was full, but no more, then see if waiting element is
 	 * for the same master, and can fill the unused ID */
-	if(tp->num_unused == 1 && set->tcp_waiting_first) {
+	if(tp->key.num_unused == 1 && set->tcp_waiting_first) {
 #ifdef INET6
 		struct sockaddr_storage to;
 #else
@@ -1372,7 +1367,7 @@ xfrd_tcp_release(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 #endif
 		socklen_t to_len = xfrd_acl_sockaddr_to(
 			set->tcp_waiting_first->master, &to);
-		if(to_len == tp->ip_len && memcmp(&to, &tp->ip, to_len) == 0) {
+		if(to_len == tp->key.ip_len && memcmp(&to, &tp->key.ip, to_len) == 0) {
 			/* use this connection for the waiting zone */
 			zone = set->tcp_waiting_first;
 			assert(zone->tcp_conn == -1);
@@ -1388,7 +1383,7 @@ xfrd_tcp_release(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	}
 
 	/* if all unused, or only skipped leftover, close the pipeline */
-	if(tp->num_unused >= ID_PIPE_NUM || tp->num_skip >= ID_PIPE_NUM - tp->num_unused)
+	if(tp->key.num_unused >= ID_PIPE_NUM || tp->key.num_skip >= ID_PIPE_NUM - tp->key.num_unused)
 		xfrd_tcp_pipe_release(set, tp, conn);
 }
 
@@ -1419,7 +1414,7 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	tp->tcp_w->fd = -1;
 
 	/* remove from pipetree */
-	(void)rbtree_delete(xfrd->tcp_set->pipetree, &tp->node);
+	(void)rbtree_delete(xfrd->tcp_set->pipetree, &tp->key.node);
 
 	/* a waiting zone can use the free tcp slot (to another server) */
 	/* if that zone fails to set-up or connect, we try to start the next
@@ -1445,9 +1440,9 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 		}
 		/* re-init this tcppipe */
 		/* ip and ip_len set by tcp_open */
-		tp->node.key = tp;
-		tp->num_unused = ID_PIPE_NUM;
-		tp->num_skip = 0;
+		tp->key.node.key = tp;
+		tp->key.num_unused = ID_PIPE_NUM;
+		tp->key.num_skip = 0;
 		tp->tcp_send_first = NULL;
 		tp->tcp_send_last = NULL;
 		memset(tp->id, 0, sizeof(tp->id));
@@ -1456,7 +1451,7 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 		}
 
 		/* insert into tree */
-		(void)rbtree_insert(set->pipetree, &tp->node);
+		(void)rbtree_insert(set->pipetree, &tp->key.node);
 		/* setup write */
 		xfrd_unset_timer(zone);
 		pipeline_setup_new_zone(set, tp, zone);
