@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.3.7 (in development)
+4.3.7
 ================
 FEATURES:
 	- Syntax of SVCB and HTTPS RR type as per draft-ietf-dnsop-svcb-https
