@@ -340,7 +340,7 @@ pipeline_find(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	/* void* type for alignment of the struct,
 	 * divide the keysize by ptr-size and then add one to round up */
 	void* buf[ (keysize / sizeof(void*)) + 1 ];
-	struct xfrd_tcp_pipeline* key = (struct xfrd_tcp_pipeline*)buf;
+	struct xfrd_tcp_pipeline* key = (struct xfrd_tcp_pipeline*)((void*)buf);
 	key->node.key = key;
 	key->ip_len = xfrd_acl_sockaddr_to(zone->master, &key->ip);
 	key->num_unused = ID_PIPE_NUM;
