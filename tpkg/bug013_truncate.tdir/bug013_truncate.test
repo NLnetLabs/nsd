@@ -50,10 +50,13 @@ echo '>> a_before_aaaa(known_good) is'
 cat bug013_truncate.known_good_respons_a_before_aaaa
 echo '>> a_before_aaaa(known_good2) is'
 cat bug013_truncate.known_good_respons_a_before_aaaa2
+echo '>> a_before_aaaa(known_good3) (one less because of edns cookie) is'
+cat bug013_truncate.known_good_respons_a_before_aaaa3
 
 (
 wdiff bug013_truncate.known_good_respons_a_before_aaaa bug013_truncate.current_respons_a_before_aaaa || \
-wdiff bug013_truncate.known_good_respons_a_before_aaaa2 bug013_truncate.current_respons_a_before_aaaa )
+wdiff bug013_truncate.known_good_respons_a_before_aaaa2 bug013_truncate.current_respons_a_before_aaaa || \
+wdiff bug013_truncate.known_good_respons_a_before_aaaa3 bug013_truncate.current_respons_a_before_aaaa )
 if test $? -ne 0; then
 	echo "a before aaaa is wrong"
 	exit 1
