@@ -272,7 +272,7 @@ void cookie_verify(query_type *q, struct nsd* nsd, uint32_t *now_p) {
 		verify_size = 20;
 	}
 #else
-	memcpy( q->edns.cookie + 16, &q->addr->sin_addr, 4);
+	memcpy( q->edns.cookie + 16, &q->addr.sin_addr, 4);
 	verify_size = 20;
 #endif
 
@@ -327,8 +327,8 @@ void cookie_create(query_type *q, struct nsd* nsd, uint32_t *now_p)
 		siphash(q->edns.cookie, 20, nsd->cookie_secrets[0].cookie_secret, hash, 8);
 	}
 #else
-	memcpy( q->edns.cookie + 16, &q->addr->sin_addr, 4);
-	siphash(q->edns.cookie, 20, nsd->cookies[0].cookie_secret, hash, 8);
+	memcpy( q->edns.cookie + 16, &q->addr.sin_addr, 4);
+	siphash(q->edns.cookie, 20, nsd->cookie_secrets[0].cookie_secret, hash, 8);
 #endif
 	memcpy(q->edns.cookie + 16, hash, 8);
 }
