@@ -1,6 +1,7 @@
 15 July 2021: Wouter
 	- tag for 4.3.7rc1.
 	- Fix compile of cookies on FreeBSD without IPv6.
+	- Fix for loop initial declaration for nonc99 compiler.
 
 14 July 2021: Wouter
 	- Fix truncate test for EDNS COOKIE making one less RR is added.
