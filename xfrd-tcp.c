@@ -113,7 +113,7 @@ ssl_handshake(struct xfrd_tcp_pipeline* tp)
 	ERR_clear_error();
 	ret = SSL_do_handshake(tp->ssl);
 	if(ret == 1) {
-		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "xfrd: TLS handshake sucessful"));
+		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "xfrd: TLS handshake successful"));
 		tp->handshake_done = 1;
 		return 1;
 	}
