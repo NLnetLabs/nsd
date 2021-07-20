@@ -149,12 +149,14 @@ xfrd_pipe_cmp(const void* a, const void* b)
 	return (uintptr_t)x < (uintptr_t)y ? -1 : 1;
 }
 
-struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_cert_bundle)
+struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_cert_bundle, int tcp_max)
 {
 	int i;
 	struct xfrd_tcp_set* tcp_set = region_alloc(region,
 		sizeof(struct xfrd_tcp_set));
 	memset(tcp_set, 0, sizeof(struct xfrd_tcp_set));
+	tcp_set->tcp_state = NULL;
+	tcp_set->tcp_max = tcp_max;
 	tcp_set->tcp_count = 0;
 	tcp_set->tcp_waiting_first = 0;
 	tcp_set->tcp_waiting_last = 0;
@@ -172,7 +174,9 @@ struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_
 #else
 	log_msg(LOG_INFO, "xfrd: No TLS 1.3 support - XFR-over-TLS not available");
 #endif
-	for(i=0; i<XFRD_MAX_TCP; i++)
+	tcp_set->tcp_state = region_alloc(region,
+		sizeof(*tcp_set->tcp_state)*tcp_set->tcp_max);
+	for(i=0; i<tcp_set->tcp_max; i++)
 		tcp_set->tcp_state[i] = xfrd_tcp_pipeline_create(region);
 	tcp_set->pipetree = rbtree_create(region, &xfrd_pipe_cmp);
 	return tcp_set;
@@ -530,12 +534,12 @@ xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	assert(zone->tcp_conn == -1);
 	assert(zone->tcp_waiting == 0);
 
-	if(set->tcp_count < XFRD_MAX_TCP) {
+	if(set->tcp_count < set->tcp_max) {
 		int i;
 		assert(!set->tcp_waiting_first);
 		set->tcp_count ++;
 		/* find a free tcp_buffer */
-		for(i=0; i<XFRD_MAX_TCP; i++) {
+		for(i=0; i<set->tcp_max; i++) {
 			if(set->tcp_state[i]->tcp_r->fd == -1) {
 				zone->tcp_conn = i;
 				break;
@@ -582,7 +586,7 @@ xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 		int i;
 		if(zone->zone_handler.ev_fd != -1)
 			xfrd_udp_release(zone);
-		for(i=0; i<XFRD_MAX_TCP; i++) {
+		for(i=0; i<set->tcp_max; i++) {
 			if(set->tcp_state[i] == tp)
 				zone->tcp_conn = i;
 		}
@@ -594,7 +598,7 @@ xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 
 	/* wait, at end of line */
 	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: max number of tcp "
-		"connections (%d) reached.", XFRD_MAX_TCP));
+		"connections (%d) reached.", set->tcp_max));
 	zone->tcp_waiting_next = 0;
 	zone->tcp_waiting_prev = set->tcp_waiting_last;
 	zone->tcp_waiting = 1;
@@ -1419,7 +1423,7 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	/* a waiting zone can use the free tcp slot (to another server) */
 	/* if that zone fails to set-up or connect, we try to start the next
 	 * waiting zone in the list */
-	while(set->tcp_count == XFRD_MAX_TCP && set->tcp_waiting_first) {
+	while(set->tcp_count == set->tcp_max && set->tcp_waiting_first) {
 		int i;
 
 		/* pop first waiting process */

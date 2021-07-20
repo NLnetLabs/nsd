@@ -112,6 +112,7 @@ struct nsd_options {
 	int minimal_responses;
 	int refuse_any;
 	int reuseport;
+	int xfrd_tcp_max;
 
 	/* private key file for TLS */
 	char* tls_service_key;

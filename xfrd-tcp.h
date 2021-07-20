@@ -31,8 +31,10 @@ typedef struct xfrd_tcp_set xfrd_tcp_set_type;
  * A set of xfrd tcp connections.
  */
 struct xfrd_tcp_set {
-	/* tcp connections, each has packet and read/wr state */
-	struct xfrd_tcp_pipeline *tcp_state[XFRD_MAX_TCP];
+	/* tcp connections, array, each has packet and read/wr state */
+	struct xfrd_tcp_pipeline **tcp_state;
+	/* max number of tcp connections, size of tcp_state array */
+	int tcp_max;
 	/* number of TCP connections in use. */
 	int tcp_count;
 	/* TCP timeout. */
@@ -154,7 +156,7 @@ struct xfrd_tcp_pipeline {
 };
 
 /* create set of tcp connections */
-struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_cert_bundle);
+struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_cert_bundle, int tcp_max);
 
 /* init tcp state */
 struct xfrd_tcp* xfrd_tcp_create(struct region* region, size_t bufsize);

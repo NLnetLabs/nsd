@@ -119,6 +119,7 @@ static int parse_range(const char *str, long long *low, long long *high);
 %token VAR_XFRD_CPU_AFFINITY
 %token <llng> VAR_SERVER_CPU_AFFINITY
 %token VAR_DROP_UPDATES
+%token VAR_XFRD_TCP_MAX
 
 /* dnstap */
 %token VAR_DNSTAP
@@ -451,6 +452,8 @@ server_option:
     { cfg_parser->opt->cookie_secret = region_strdup(cfg_parser->opt->region, $2); }
   | VAR_COOKIE_SECRET_FILE STRING
     { cfg_parser->opt->cookie_secret_file = region_strdup(cfg_parser->opt->region, $2); }
+  | VAR_XFRD_TCP_MAX number
+    { cfg_parser->opt->xfrd_tcp_max = (int)$2; }
   | VAR_CPU_AFFINITY cpus
     {
       cfg_parser->opt->cpu_affinity = $2;

@@ -294,6 +294,7 @@ tls-cert-bundle{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_TLS_CERT_BUNDLE;
 answer-cookie{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ANSWER_COOKIE;}
 cookie-secret{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_COOKIE_SECRET;}
 cookie-secret-file{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_COOKIE_SECRET_FILE;}
+xfrd-tcp-max{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_XFRD_TCP_MAX;}
 {NEWLINE}		{ LEXOUT(("NL\n")); cfg_parser->line++;}
 
 servers={UNQUOTEDLETTER}*	{
