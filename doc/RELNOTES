@@ -24,6 +24,9 @@ BUG FIXES:
 	- Fixes for child server processes getting out of sync with the
 	  dnstap-collector process
 	- Fix gcc-11 warning on array bounds.
+	- Fix compile of cookies on FreeBSD without IPv6.
+	- Fix for loop initial declaration for nonc99 compiler
+	- Fix typo in xfrd-tcp.c.
 
 4.3.6
 ================

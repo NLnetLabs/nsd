@@ -1,3 +1,6 @@
+22 July 2021: Wouter
+	- tag 4.3.7 release, with the fixes between rc1 and this release.
+
 20 July 2021: Wouter
 	- Fix typo in xfrd-tcp.c.
 
