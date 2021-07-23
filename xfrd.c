@@ -402,6 +402,8 @@ xfrd_shutdown()
 	daemon_remote_delete(xfrd->nsd->rc); /* ssl-delete secret keys */
 	if (xfrd->nsd->tls_ctx)
 		SSL_CTX_free(xfrd->nsd->tls_ctx);
+	if (xfrd->tcp_set->ssl_ctx)
+		SSL_CTX_free(xfrd->tcp_set->ssl_ctx);
 #endif
 #ifdef USE_DNSTAP
 	dt_collector_close(nsd.dt_collector, &nsd);
