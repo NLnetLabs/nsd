@@ -1,3 +1,10 @@
+23 July 2021: Wouter
+	- Fix free on shutdown of XoT SSL context.
+
+22 July 2021: Wouter
+	- tag 4.3.7 release, with the fixes between rc1 and this release.
+	- main branch continues for 4.3.8.
+
 20 July 2021: Wouter
 	- Fix typo in xfrd-tcp.c.
 
