@@ -305,6 +305,21 @@ Note that not all platform supports socket option to set MSS (TCP_MAXSEG).
 Default is system default MSS determined by interface MTU and
 negotiation between NSD and other servers.
 .TP
+.B xfrd\-tcp\-max:\fR <number>
+Number of sockets for xfrd to use for outgoing zone transfers. Default 128.
+To save memory, this can be lowered, set it lower together with some other
+settings to have reduced memory footprint for NSD. xfrd\-tcp\-max: 32
+and xfrd\-tcp\-pipeline: 128 and rrl\-size: 1000
+.IP
+This reduces memory footprint, other memory usage is caused mainly by
+the server\-count setting, the number of server processes, and the
+tcp\-count setting, which keeps buffers per server process, and by the
+size of the zone data.
+.TP
+.B xfrd\-tcp\-pipeline:\fR <number>
+Number of simultaneous outgoing zone transfers that are possible on the
+tcp sockets of xfrd. Default is 65536.
+.TP
 .B ipv4\-edns\-size:\fR <number>
 Preferred EDNS buffer size for IPv4.  Default 1232.
 .TP
