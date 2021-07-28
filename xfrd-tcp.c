@@ -184,19 +184,49 @@ struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_
 	return tcp_set;
 }
 
+void pick_id_values(uint16_t* array, int num, int max)
+{
+	uint8_t inserted[65536];
+	int j, done;
+	if(num == 65536) {
+		/* all of them, loop and insert */
+		int i;
+		for(i=0; i<num; i++)
+			array[i] = (uint16_t)i;
+		return;
+	}
+	assert(max <= 65536);
+	/* This uses the Robert Floyd sampling algorithm */
+	/* keep track if values are already inserted, using the bitmap
+	 * in insert array */
+	memset(inserted, 0, sizeof(inserted[0])*max);
+	done=0;
+	for(j = max-num; j<max; j++) {
+		/* random generate creates from 0..arg-1 */
+		int t;
+		if(j+1 <= 1)
+			t = 0;
+		else	t = random_generate(j+1);
+		if(!inserted[t]) {
+			array[done++]=t;
+			inserted[t] = 1;
+		} else {
+			array[done++]=j;
+			inserted[j] = 1;
+		}
+	}
+}
+
 static void
 xfrd_tcp_pipeline_init(struct xfrd_tcp_pipeline* tp)
 {
-	int i;
 	tp->key.node.key = tp;
 	tp->key.num_unused = tp->pipe_num;
 	tp->key.num_skip = 0;
 	tp->tcp_send_first = NULL;
 	tp->tcp_send_last = NULL;
 	memset(tp->id, 0, sizeof(tp->id[0])*tp->pipe_num);
-	for(i=0; i<tp->pipe_num; i++) {
-		tp->unused[i] = (uint16_t)i;
-	}
+	pick_id_values(tp->unused, tp->pipe_num, 65536);
 }
 
 struct xfrd_tcp_pipeline*

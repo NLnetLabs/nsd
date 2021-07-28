@@ -227,5 +227,7 @@ socklen_t xfrd_acl_sockaddr_frm(struct acl_options* acl,
 /* create pipeline tcp structure */
 struct xfrd_tcp_pipeline* xfrd_tcp_pipeline_create(region_type* region,
 	int tcp_pipeline);
+/* pick num uint16_t values, from 0..max-1, store in array */
+void pick_id_values(uint16_t* array, int num, int max);
 
 #endif /* XFRD_TCP_H */
