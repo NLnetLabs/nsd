@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix to compile with OpenSSL 3.0.0beta2.
 
 4.3.7
 ================

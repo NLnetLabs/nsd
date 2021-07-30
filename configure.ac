@@ -388,11 +388,16 @@ AC_DEFUN([CHECK_SSL], [
         else
             AC_MSG_RESULT([found in $ssldir])
             HAVE_SSL=yes
+	    if test ! -d "$ssldir/lib" -a -d "$ssldir/lib64"; then
+		ssldir_lib="$ssldir/lib64"
+	    else
+		ssldir_lib="$ssldir/lib"
+	    fi
             if test x_$ssldir != x_/usr; then
-                LDFLAGS="$LDFLAGS -L$ssldir/lib";
+                LDFLAGS="$LDFLAGS -L$ssldir_lib";
             fi
 	    if test x_$ssldir = x_/usr/sfw; then
-		LDFLAGS="$LDFLAGS -R$ssldir/lib";
+		LDFLAGS="$LDFLAGS -R$ssldir_lib";
 	    fi
         fi
         AC_SUBST(HAVE_SSL)
@@ -1016,7 +1021,7 @@ if test x$HAVE_SSL = x"yes"; then
 	SSL_LIBS="-lssl"
 	AC_SUBST(SSL_LIBS)
 	AC_CHECK_HEADERS([openssl/ssl.h openssl/err.h openssl/rand.h openssl/ocsp.h openssl/core_names.h],,, [AC_INCLUDES_DEFAULT])
-	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new EVP_cleanup ERR_load_crypto_strings OPENSSL_init_crypto SSL_CTX_set_security_level CRYPTO_memcmp EC_KEY_new_by_curve_name EVP_MAC_CTX_new EVP_MAC_CTX_set_params])
+	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new EVP_cleanup ERR_load_crypto_strings OPENSSL_init_crypto SSL_CTX_set_security_level CRYPTO_memcmp EC_KEY_new_by_curve_name EVP_MAC_CTX_new EVP_MAC_CTX_set_params EVP_MAC_CTX_get_mac_size])
 	AC_CHECK_DECLS([SSL_CTX_set_ecdh_auto,SSL_CTX_set_tmp_ecdh], [], [], [
 AC_INCLUDES_DEFAULT
 #ifdef HAVE_OPENSSL_ERR_H
@@ -1043,7 +1048,7 @@ AC_INCLUDES_DEFAULT
 
 	BAKLIBS="$LIBS"
 	LIBS="-lssl $LIBS"
-	AC_CHECK_FUNCS([OPENSSL_init_ssl])
+	AC_CHECK_FUNCS([OPENSSL_init_ssl SSL_get1_peer_certificate])
 	LIBS="$BAKLIBS"
 
 else
