@@ -66,6 +66,7 @@ iterated_hash(unsigned char out[SHA_DIGEST_LENGTH],
 		inlength=SHA_DIGEST_LENGTH;
 	}
 #if defined(HAVE_SHA1_INIT) && !defined(DEPRECATED_SHA1_INIT)
+#else
 	EVP_MD_CTX_destroy(ctx);
 #endif
 	return SHA_DIGEST_LENGTH;
