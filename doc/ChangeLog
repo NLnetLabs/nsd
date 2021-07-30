@@ -1,3 +1,6 @@
+30 July 2021: Wouter
+	- Move acx_nlnetlabs.m4 to version 41, with lib64 openssl dir check.
+
 23 July 2021: Wouter
 	- Fix free on shutdown of XoT SSL context.
 
