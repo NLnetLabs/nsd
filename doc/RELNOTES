@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix to compile with OpenSSL 3.0.0beta2.
+	- Fix configure detection of SSL_CTX_set_security_level.
 
 4.3.7
 ================
