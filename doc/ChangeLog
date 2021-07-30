@@ -2,6 +2,7 @@
 	- Move acx_nlnetlabs.m4 to version 41, with lib64 openssl dir check.
 	- Fix to compile with OpenSSL 3.0.0beta2.
 	- Fix configure detection of SSL_CTX_set_security_level.
+	- Fix deprecated functions use from openssl 3.0.0beta2.
 
 23 July 2021: Wouter
 	- Fix free on shutdown of XoT SSL context.
