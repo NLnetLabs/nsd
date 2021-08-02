@@ -86,7 +86,8 @@ for i in *.tdir; do
 		skip=yes
         fi
 	if [ $skip = no ]; then
-		echo ">>> next test $i at "`date`
+		if test "$quiet" = "1"; then echo $i; else
+			echo ">>> next test $i at "`date`; fi
 		tdir -a ../../ $tdirarg exe $i
 	fi
 done
@@ -98,7 +99,8 @@ if [ $do_long = yes ]; then
 	LONGTESTS="testplan_axfr testplan_ixfr_pkts testplan_mess testplan_axfr_tsig testplan_ixfr_remove testplan_timeout testplan_deadlock testplan_ixfr testplan_tsig_34 ixfr_rollback reload_timeout xfrd_connect_ip6 xfrd_tcp_overload notify_interrupts_axfr bug137_compile_outdir bug145_multiple_zone_xfr ixfr_malformed ixfr_remove_unknown socket10kxfr"
 	cd long
 	for i in $LONGTESTS; do
-		echo ">>> next test $i at "`date`
+		if test "$quiet" = "1"; then echo $i; else
+			echo ">>> next test $i at "`date`; fi
 		tdir -a ../../ $tdirarg exe $i
 	done
 	tdir $tdirarg report
