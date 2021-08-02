@@ -1,5 +1,7 @@
 2 August 2021: Wouter
 	- Quieter tpkg/do-tests shell script with -q flag.
+	- For #184: Note that all zones can be targeted by some nsd-control
+	  commands in the man page.
 
 30 July 2021: Wouter
 	- Move acx_nlnetlabs.m4 to version 41, with lib64 openssl dir check.

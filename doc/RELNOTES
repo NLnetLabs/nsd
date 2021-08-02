@@ -7,6 +7,8 @@ BUG FIXES:
 	- Fix to compile with OpenSSL 3.0.0beta2.
 	- Fix configure detection of SSL_CTX_set_security_level.
 	- Fix deprecated functions use from openssl 3.0.0beta2.
+	- For #184: Note that all zones can be targeted by some nsd-control
+	  commands in the man page.
 
 4.3.7
 ================
