@@ -1,3 +1,6 @@
+10 August 2021: Wouter
+	- Merge #185 by cesarkuroiwa: Mutual TLS.
+
 2 August 2021: Wouter
 	- Quieter tpkg/do-tests shell script with -q flag.
 	- For #184: Note that all zones can be targeted by some nsd-control
