@@ -675,19 +675,20 @@ tls_auth_option:
   | VAR_TLS_AUTH_DOMAIN_NAME STRING
     {
       cfg_parser->tls_auth->auth_domain_name = region_strdup(cfg_parser->opt->region, $2);
-    };
+    }
   | VAR_TLS_AUTH_CLIENT_CERT STRING
     {
 	    cfg_parser->tls_auth->client_cert = region_strdup(cfg_parser->opt->region, $2);
-    };
+    }
   | VAR_TLS_AUTH_CLIENT_KEY STRING
     {
 	    cfg_parser->tls_auth->client_key = region_strdup(cfg_parser->opt->region, $2);
-    };
+    }
   | VAR_TLS_AUTH_CLIENT_KEY_PW STRING
     {
 	    cfg_parser->tls_auth->client_key_pw = region_strdup(cfg_parser->opt->region, $2);
-    };
+    }
+  ;
 
 key:
     VAR_KEY

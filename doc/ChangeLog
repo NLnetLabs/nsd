@@ -1,5 +1,9 @@
 10 August 2021: Wouter
 	- Merge #185 by cesarkuroiwa: Mutual TLS.
+	- Fixes for #185: Document client-cert, client-key and client-key-pw
+	  in the man page. Fix yacc semicolon. Fix unused variable warning.
+	  Use strlcpy instead of strncpy. Fix spelling error in error
+	  printout.
 
 2 August 2021: Wouter
 	- Quieter tpkg/do-tests shell script with -q flag.

@@ -125,10 +125,9 @@ ssl_handshake(struct xfrd_tcp_pipeline* tp)
 	return 0;
 }
 
-int password_cb(char *buf, int size, int rwflag, void *u)
+int password_cb(char *buf, int size, int ATTR_UNUSED(rwflag), void *u)
 {
-	strncpy(buf, (char *)u, size);
-	buf[size - 1] = '\0';
+	strlcpy(buf, (char*)u, size);
 	return strlen(buf);
 }
 
@@ -731,7 +730,7 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 			}
 
 			if (SSL_CTX_use_PrivateKey_file(set->ssl_ctx, zone->master->tls_auth_options->client_key, SSL_FILETYPE_PEM) != 1) {
-				log_msg(LOG_ERR, "xfrd tls: Unable to load private key from file from file %s", zone->master->tls_auth_options->client_key);
+				log_msg(LOG_ERR, "xfrd tls: Unable to load private key from file %s", zone->master->tls_auth_options->client_key);
 			}
 		}
 

@@ -10,6 +10,10 @@ BUG FIXES:
 	- Fix deprecated functions use from openssl 3.0.0beta2.
 	- For #184: Note that all zones can be targeted by some nsd-control
 	  commands in the man page.
+	- Fixes for #185: Document client-cert, client-key and client-key-pw
+	  in the man page. Fix yacc semicolon. Fix unused variable warning.
+	  Use strlcpy instead of strncpy. Fix spelling error in error
+	  printout.
 
 4.3.7
 ================
