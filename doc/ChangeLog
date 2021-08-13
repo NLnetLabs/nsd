@@ -1,3 +1,6 @@
+13 August 2021: Wouter
+	- Merge #187: Support using system-wide crypto policies.
+
 10 August 2021: Wouter
 	- Merge #185 by cesarkuroiwa: Mutual TLS.
 	- Fixes for #185: Document client-cert, client-key and client-key-pw

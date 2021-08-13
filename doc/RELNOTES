@@ -14,6 +14,7 @@ BUG FIXES:
 	  in the man page. Fix yacc semicolon. Fix unused variable warning.
 	  Use strlcpy instead of strncpy. Fix spelling error in error
 	  printout.
+	- Merge #187: Support using system-wide crypto policies.
 
 4.3.7
 ================
