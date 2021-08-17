@@ -381,11 +381,11 @@ AC_DEFUN([CHECK_SSL], [
                         ssldir_include="$ssldir"
                         CPPFLAGS="$CPPFLAGS -I$ssldir_include";
                         dnl find the libdir
-                        ssldir_lib=`echo $ssldir | sed -e '/include/lib/'`
+                        ssldir_lib=`echo $ssldir | sed -e 's/include/lib/'`
                         if test -f "$ssldir_lib/libssl.a" -o -f "$ssldir_lib/libssl.so"; then
                                 : # found here
                         else
-                                ssldir_lib=`echo $ssldir | sed -e '/include/lib64/'`
+                                ssldir_lib=`echo $ssldir | sed -e 's/include/lib64/'`
                                 if test -f "$ssldir_lib/libssl.a" -o -f "$ssldir_lib/libssl.so"; then
                                         : # found here
                                 else

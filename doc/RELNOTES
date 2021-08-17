@@ -16,6 +16,7 @@ BUG FIXES:
 	  printout.
 	- Merge #187: Support using system-wide crypto policies.
 	- Fix #188: NSD fails to build against openssl 1.1 on CentOS 7.
+	- Fix sed script in ssldir split handling.
 
 4.3.7
 ================
