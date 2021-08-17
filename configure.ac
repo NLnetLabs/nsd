@@ -369,6 +369,31 @@ AC_DEFUN([CHECK_SSL], [
         ])
     if test x_$withval != x_no; then
         AC_MSG_CHECKING(for SSL)
+	if test -n "$withval"; then
+        	dnl look for openssl install with different version, eg.
+                dnl in /usr/include/openssl11/openssl/ssl.h
+                dnl and /usr/lib64/openssl11/libssl.so
+                dnl with the --with-ssl=/usr/include/openssl11
+                if test ! -f "$withval/include/openssl/ssl.h" -a -f "$withval/openssl/ssl.h"; then
+                        ssldir="$withval"
+                        found_ssl="yes"
+                        withval=""
+                        ssldir_include="$ssldir"
+                        CPPFLAGS="$CPPFLAGS -I$ssldir_include";
+                        dnl find the libdir
+                        ssldir_lib=`echo $ssldir | sed -e '/include/lib/'`
+                        if test -f "$ssldir_lib/libssl.a" -o -f "$ssldir_lib/libssl.so"; then
+                                : # found here
+                        else
+                                ssldir_lib=`echo $ssldir | sed -e '/include/lib64/'`
+                                if test -f "$ssldir_lib/libssl.a" -o -f "$ssldir_lib/libssl.so"; then
+                                        : # found here
+                                else
+                                        AC_MSG_ERROR([Could not find openssl lib file, $ssldir_lib/libssl.[so,a], pass like "/usr/local" or "/usr/include/openssl11"])
+                                fi
+                        fi
+                fi
+	fi
         if test x_$withval = x_ -o x_$withval = x_yes; then
             withval="/usr/local/ssl /usr/lib/ssl /usr/ssl /usr/pkg /usr/sfw /usr/local /usr /usr/local/opt/openssl"
         fi
@@ -376,10 +401,15 @@ AC_DEFUN([CHECK_SSL], [
             ssldir="$dir"
             if test -f "$dir/include/openssl/ssl.h"; then
                 found_ssl="yes";
-                AC_DEFINE_UNQUOTED([HAVE_SSL], [], [Define if you have the SSL libraries installed.])
                 if test x_$ssldir != x_/usr; then
                     CPPFLAGS="$CPPFLAGS -I$ssldir/include";
                 fi
+		ssldir_include="$ssldir/include"
+		if test ! -d "$ssldir/lib" -a -d "$ssldir/lib64"; then
+			ssldir_lib="$ssldir/lib64"
+		else
+			ssldir_lib="$ssldir/lib"
+		fi
                 break;
             fi
         done
@@ -388,11 +418,7 @@ AC_DEFUN([CHECK_SSL], [
         else
             AC_MSG_RESULT([found in $ssldir])
             HAVE_SSL=yes
-	    if test ! -d "$ssldir/lib" -a -d "$ssldir/lib64"; then
-		ssldir_lib="$ssldir/lib64"
-	    else
-		ssldir_lib="$ssldir/lib"
-	    fi
+            AC_DEFINE_UNQUOTED([HAVE_SSL], [], [Define if you have the SSL libraries installed.])
             if test x_$ssldir != x_/usr; then
                 LDFLAGS="$LDFLAGS -L$ssldir_lib";
             fi
