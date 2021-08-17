@@ -15,6 +15,7 @@ BUG FIXES:
 	  Use strlcpy instead of strncpy. Fix spelling error in error
 	  printout.
 	- Merge #187: Support using system-wide crypto policies.
+	- Fix #188: NSD fails to build against openssl 1.1 on CentOS 7.
 
 4.3.7
 ================
