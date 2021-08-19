@@ -80,6 +80,19 @@ struct xfrd_tcp {
 #define TCP_NULL_SKIP ((struct xfrd_zone*)-1)
 
 /**
+ * The per-id zone pointers, with TCP_NULL_SKIP or a zone pointer for the
+ * ID value.
+ */
+struct xfrd_tcp_pipeline_id {
+	/** rbtree node as first member, this is the key. */
+	rbnode_type node;
+	/** the ID of this member */
+	uint16_t id;
+	/** zone pointer or TCP_NULL_SKIP */
+	struct xfrd_zone* zone;
+};
+
+/**
  * The tcp pipeline key structure. By ip_len, ip, num_unused and unique by
  * pointer value.
  */
@@ -143,7 +156,8 @@ struct xfrd_tcp_pipeline {
 
 	/* size of the id and unused arrays. */
 	int pipe_num;
-	/* Array of xfrd_zone pointers, per id number.
+	/* The xfrd_zone pointers, per id number.
+	 * The key is struct xfrd_tcp_pipeline_id.
 	 * per-ID number the queries that have this ID number, every
 	 * query owns one ID numbers (until it is done). NULL: unused
 	 * When a query is done but not all answer-packets have been
@@ -151,9 +165,9 @@ struct xfrd_tcp_pipeline {
 	 * is denoted with the pointer-value TCP_NULL_SKIP, the ids that
 	 * are skipped are not on the unused list.  They may be
 	 * removed once the last answer packet is skipped.
-	 * pipe_num-num_unused values in the id array are nonNULL (either
+	 * pipe_num-num_unused values are in the tree (either
 	 * a zone pointer or SKIP) */
-	struct xfrd_zone** id;
+	rbtree_type* zone_per_id;
 	/* Array of uint16_t, with ID values.
 	 * unused ID numbers; the first part of the array contains the IDs */
 	uint16_t* unused;
