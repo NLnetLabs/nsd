@@ -1,3 +1,6 @@
+31 August 2021: Willem
+	- Fix #191: dname_parse_wire() returns fqdn wireformat length.
+
 26 August 2021: Wouter
 	- Fix #190: NSD returns 3 NSEC3 records for NODATA response.
 
