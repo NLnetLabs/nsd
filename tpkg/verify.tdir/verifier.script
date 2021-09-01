@@ -1,0 +1,21 @@
+#!/usr/bin/bash
+
+# Echo environment variables to ensure basic environment is correct
+
+for var in VERIFY_ZONE VERIFY_ZONE_ON_STDIN \
+           VERIFY_IP_ADDRESS VERIFY_IP_ADDRESSES VERIFY_PORT \
+           VERIFY_IPV4_ADDRESS VERIFY_IPV4_PORT \
+           VERIFY_IPV6_ADDRESS VERIFY_IPV6_PORT
+do
+  eval "val=\${${var}}"
+  echo "${var}=\"${val}\""
+done
+
+# Read from stdin, reformat and write
+ldns-read-zone -c /dev/stdin > verifier.zone.stdin
+
+# Request AXFR, reformat and write
+dig @${VERIFY_IP_ADDRESS} -p ${VERIFY_PORT} example.net AXFR | \
+  ldns-read-zone -c /dev/stdin > verifier.zone.axfr
+
+exit 0 # no verification takes place here

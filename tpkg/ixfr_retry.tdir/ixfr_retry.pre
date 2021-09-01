@@ -1,0 +1,20 @@
+# #-- xfr_retry.pre --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+get_random_port 2
+NSD_PORT=${RND_PORT}
+TESTNS_PORT=$((${RND_PORT} + 1))
+
+# start ldns-testns, be extra verbose
+ldns-testns -v -p ${TESTNS_PORT} ixfr_retry.datafile >testns.log 2>&1 &
+
+# share the vars
+echo "export NSD_PORT=${NSD_PORT}" >> .tpkg.var.test
+echo "export TESTNS_PID=${!}" >> .tpkg.var.test
+echo "export TESTNS_PORT=${TESTNS_PORT}" >> .tpkg.var.test
+
+sed -e "s/TESTNS_PORT/${TESTNS_PORT}/g" ixfr_retry.conf > nsd.conf

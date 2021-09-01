@@ -1,0 +1,51 @@
+# #-- ixfr_gone.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# test whether the handling of disappearance of difffiles, and consequently
+# the failed update check in xfrd, work as expected
+
+PRE="../.."
+NSD="${PRE}/nsd"
+
+${NSD} -c $(pwd)/nsd.conf -p ${NSD_PORT} -V 5
+wait_nsd_up nsd.log
+
+# notify nsd an update is available
+ldns-notify -z example.net -p ${NSD_PORT} -s 1 127.0.0.1
+# wait for verifier to execute (verifier will block)
+wait_logfile nsd.log "started verifier" 10
+
+# take a snapshot of xfrdir
+find ${NSD_XFRDIR} -type f | sort > xfrdir.1
+
+# notify nsd another update is available
+ldns-notify -z example.net -p ${NSD_PORT} -s 2 127.0.0.1
+# wait for transfer to complete
+wait_logfile nsd.log "received update to serial 2" 10
+
+# take another snapshot of xfrdir
+find ${NSD_XFRDIR} -type f | sort > xfrdir.2
+
+# determine latest difffile
+xfrfile=$(diff xfrdir.1 xfrdir.2 | sed -n -e 's#^> ##p')
+# remove it to verify failed update check after second reload
+rm -v ${xfrfile}
+
+# unblock verifier
+echo "continue" > ${NSD_VERIFIER_IN}
+
+wait_logfile nsd.log "serial 1 is updated to 2" 10
+
+count=$(grep 'xfrd:.*received update to serial 2' nsd.log | wc -l)
+if [ ${count} -eq 2 ]; then
+  exit_code=0
+else
+  exit_code=1
+fi
+
+cat nsd.log
+exit ${exit_code}

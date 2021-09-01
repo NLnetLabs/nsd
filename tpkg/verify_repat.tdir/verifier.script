@@ -1,0 +1,12 @@
+#!/bin/sh
+
+case "${0}" in
+  *1.script)
+    echo "verifier 1 says hi!"
+    ;;
+  *2.script)
+    echo "verifier 2 says hi!"
+    ;;
+esac
+
+exit 0

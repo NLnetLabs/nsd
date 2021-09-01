@@ -1,0 +1,11 @@
+include: "@abs_top_builddir@/sigs/proxy-notify-slave.@ZONE@.tsig"
+include: "@abs_top_builddir@/sigs/slave-xfr-from-master.@ZONE@.tsig"
+include: "@abs_top_builddir@/sigs/slave-xfr-from-proxy.@ZONE@.tsig"
+
+zone:
+    name:         @ZONE@
+    zonefile:     @abs_builddir@/@ZONE@
+    allow-notify: @PROXY_IP@		proxy-notify-slave.@ZONE@.
+    request-xfr:  @MASTER_IP@@@MASTER_PORT@	slave-xfr-from-master.@ZONE@.
+    xfr-only-notified-serials:	yes
+    without-serial-request-xfr: @PROXY_IP@@@PROXY_PORT@	slave-xfr-from-proxy.@ZONE@.

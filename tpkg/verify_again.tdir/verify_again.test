@@ -1,0 +1,38 @@
+# #-- verify_again.test --#
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# Use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# test that verified updates are not verified again if reload fails due to
+# an error in another zone or update
+
+PRE="../.."
+NSD="${PRE}/nsd"
+
+${NSD} -c $(pwd)/nsd.conf -p ${NSD_PORT} -V 5 -L 5 -F 0xFFFF
+wait_nsd_up nsd.log
+
+# notify nsd updates are available
+ldns-notify -z example.net -p ${NSD_PORT} -s 1 127.0.0.1
+ldns-notify -z example.com -p ${NSD_PORT} -s 1 127.0.0.1
+# wait for both zones to be updated
+wait_logfile nsd.log "zone example.net. serial 0 is updated to 1" 10
+wait_logfile nsd.log "zone example.com. serial 0 is updated to 1" 10
+# notify nsd even newer updates are available
+ldns-notify -z example.net -p ${NSD_PORT} -s 2 127.0.0.1
+ldns-notify -z example.com -p ${NSD_PORT} -s 2 127.0.0.1
+# wait for example.net update to fail
+wait_logfile nsd.log "exited with 1" 10
+# wait for example.com to be updated
+wait_logfile nsd.log "zone example.net. serial 1 is updated to 2" 10
+
+executed=$(grep 'started verifier for zone example.net' nsd.log | wc -l)
+if [ ${executed} -eq 2 ]; then
+  exit_code=0
+else
+  exit_code=1
+fi
+
+cat nsd.log
+exit ${exit_code}

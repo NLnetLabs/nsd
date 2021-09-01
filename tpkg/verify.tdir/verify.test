@@ -1,0 +1,65 @@
+# #-- verify.test --#
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# Use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+NSD="${PRE}/nsd"
+
+if ! ${NSD} -h 2>&1 | grep "L level" >/dev/null; then
+  echo "Debug output not available, skipping test"
+  exit 0
+fi
+
+${NSD} -c $(pwd)/nsd.conf -p ${NSD_PORT} -V 5 -L 5 -F 0xFFFF
+wait_nsd_up nsd.log
+wait_logfile nsd.log 'zone example.net serial 1 is updated to 2' 45
+
+cat << EOF > vars.test
+VERIFY_ZONE="example.net"
+VERIFY_ZONE_ON_STDIN="yes"
+VERIFY_IP_ADDRESS="127.0.0.1"
+VERIFY_IP_ADDRESSES="127.0.0.1@${NSD_VERIFY_PORT1} 127.0.0.1@${NSD_VERIFY_PORT2}"
+VERIFY_PORT="${NSD_VERIFY_PORT1}"
+VERIFY_IPV4_ADDRESS="127.0.0.1"
+VERIFY_IPV4_PORT="${NSD_VERIFY_PORT1}"
+VERIFY_IPV6_ADDRESS=""
+VERIFY_IPV6_PORT=""
+EOF
+
+sed -n -e 's/^.*\(VERIFY_[_A-Z0-9]*="[^"]*"\).*$/\1/p' nsd.log > vars.script
+
+exit_code=0
+
+diff vars.test vars.script
+if [ ${?} -ne 0 ]; then
+  exit_code=1
+fi
+
+diff verifier.zone verifier.zone.stdin
+if [ ${?} -ne 0 ]; then
+  exit_code=1
+fi
+
+diff verifier.zone verifier.zone.axfr
+if [ ${?} -ne 0 ]; then
+  exit_code=1
+fi
+
+if [ ${exit_code} -ne 0 ]; then
+  cat nsd.log
+  echo "Expected environment:"
+  cat vars.test
+  echo "Environment:"
+  cat vars.script
+  echo "Expected zone:"
+  cat verifier.zone
+  echo "Zone received over stdin:"
+  cat verifier.zone.stdin
+  echo "Zone received over AXFR:"
+  cat verifier.zone.axfr
+  exit 1
+fi
+
+echo "Environment in script and zones were correct"

@@ -1,0 +1,11 @@
+#!/usr/bin/bash
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+# Do nothing, double the NSD_VERIFIER_TIMEOUT value and sleep
+TIMEOUT=$((${NSD_VERIFIER_TIMEOUT} * 2))
+
+echo "verifier.script going to sleep for ${TIMEOUT} seconds"
+sleep ${TIMEOUT}

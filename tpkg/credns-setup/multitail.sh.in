@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# When this exits, exit all back ground process also.
+trap 'echo killing: $(jobs -p); kill $(jobs -p)' 0
+
+# iterate through the each given file names,
+for file in "$@"
+do
+	# show tails of each in background.
+        DIRNAME=`dirname $file`
+        BASENAME=`basename $DIRNAME`
+	stdbuf -i 0 -o 0 -e 0 tail -f $file \
+      | stdbuf -i 0 -o L -e L sed "s/nsd\[/$BASENAME[/g" &
+done
+
+# wait .. until CTRL+C
+wait
+
+echo exit...

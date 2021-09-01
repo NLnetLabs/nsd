@@ -1,0 +1,124 @@
+# #-- credns.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+
+export NSD_PATH="../../nsd"
+
+echo "** Starting servers"
+make start-slave
+wait_nsd_up slave/nsd.log
+make start-proxy
+wait_nsd_up proxy/nsd.log
+make start-master
+wait_nsd_up master/nsd.log
+
+echo "** Waiting for proxy zone to be loaded"
+if ! wait_for_soa_serial credns.test 1 127.0.0.1 $PROXY_PORT 30
+then
+	echo "** Did not see serial 1 at proxy after startup"
+	make serials
+	cat proxy/nsd.log
+	exit 1
+else
+	echo "** Proxy zone loaded"
+fi
+
+echo "** Waiting for slave zone to be loaded"
+if ! wait_for_soa_serial credns.test 1 127.0.0.1 $SLAVE_PORT 30
+then
+	echo "** Did not see serial 1 at proxy after startup"
+	make serials
+	cat slave/nsd.log
+	exit 1
+else
+	echo "** Slave zone loaded"
+fi
+
+
+echo "** Update zone to serial 2"
+make update
+
+echo "** Waiting for proxy zone have updated to serial 2"
+if ! wait_for_soa_serial credns.test 2 127.0.0.1 $PROXY_PORT 30
+then
+	echo "** Did not see serial 2 at proxy."
+	make serials
+	cat proxy/nsd.log
+	exit 1
+else
+	echo "** Proxy has serial 2."
+fi
+
+echo "** Waiting for slave zone to have updated to serial 2"
+if ! wait_for_soa_serial credns.test 2 127.0.0.1 $SLAVE_PORT 30
+then
+	echo "** Did not see serial 2 at slave."
+	make serials
+	exit 1
+else
+	echo "** Slave has serial 2."
+fi
+
+echo "** Corrupting zone to serial 3"
+make bad-update
+
+echo "** Waiting for proxy zone to have updated to serial 3"
+if wait_for_soa_serial credns.test 3 127.0.0.1 $PROXY_PORT 15
+then
+	echo "*** Did see serial 3 at proxy after bad-update"
+	make serials
+	cat proxy/nsd.log
+	exit 1
+else
+	echo "*** Did not see serial 3 at proxy after bad-update (good!)"
+fi
+
+echo "** Waiting for slave zone to have updated to serial 3"
+if wait_for_soa_serial credns.test 3 127.0.0.1 $SLAVE_PORT 15
+then
+	echo "*** Did see serial 3 at slave after bad-update"
+	make serials
+	exit 1
+else
+	echo "*** Did not see serial 3 at slave after bad-update (good!)"
+fi
+
+echo "** Update zone to serial 4"
+make update
+
+echo "** Waiting for proxy zone have updated to serial 4"
+if ! wait_for_soa_serial credns.test 4 127.0.0.1 $PROXY_PORT 30
+then
+	echo "** Did not see serial 4 at proxy."
+	make serials
+	cat proxy/nsd.log
+	exit 1
+else
+	echo "** Proxy has serial 4."
+fi
+
+echo "** Waiting for slave zone to have updated to serial 4"
+if ! wait_for_soa_serial credns.test 4 127.0.0.1 $SLAVE_PORT 30
+then
+	echo "** Did not see serial 4 at slave."
+	make serials
+	exit 1
+else
+	echo "** Slave has serial 4."
+fi
+
+if test "`uniq verifier.log | awk '{t+=$0}END{print t}'`" = "10"
+then
+	echo "** Verifier saw all serials"
+	echo "** Test is done"
+	exit 0
+else
+	echo "** Verifier did not see all serials"
+	cat verifier.log
+	exit 1
+fi
+

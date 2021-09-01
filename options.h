@@ -31,6 +31,10 @@ typedef struct key_options key_options_type;
 typedef struct tls_auth_options tls_auth_options_type;
 typedef struct config_parser_state config_parser_state_type;
 
+#define VERIFY_ZONE_INHERIT (2)
+#define VERIFIER_FEED_ZONE_INHERIT (2)
+#define VERIFIER_TIMEOUT_INHERIT (-1)
+
 /*
  * Options global for nsd.
  */
@@ -176,6 +180,23 @@ struct nsd_options {
 	/** path to cookie secret store */
 	char const* cookie_secret_file;
 
+	/** enable verify */
+	int verify_enable;
+	/** list of ip addresses used to serve zones for verification */
+	struct ip_address_option* verify_ip_addresses;
+	/** default port 5347 */
+	char *verify_port;
+	/** verify zones by default */
+	int verify_zones;
+	/** default command to verify zones with */
+	char **verifier;
+	/** maximum number of verifiers that may run simultaneously */
+	int verifier_count;
+	/** whether or not to feed the zone to the verifier over stdin */
+	uint8_t verifier_feed_zone;
+	/** maximum number of seconds that a verifier may take */
+	uint32_t verifier_timeout;
+
 	region_type* region;
 };
 
@@ -254,6 +275,13 @@ struct pattern_options {
 	uint8_t min_expire_time_expr;
 	uint64_t size_limit_xfr;
 	uint8_t multi_master_check;
+	uint8_t verify_zone;
+	uint8_t verify_zone_is_default;
+	char **verifier;
+	uint8_t verifier_feed_zone;
+	uint8_t verifier_feed_zone_is_default;
+	int32_t verifier_timeout;
+	uint8_t verifier_timeout_is_default;
 } ATTR_PACKED;
 
 #define PATTERN_IMPLICIT_MARKER "_implicit_"

@@ -1,0 +1,3 @@
+dig @$VERIFY_IP_ADDRESS -p $VERIFY_PORT $VERIFY_ZONE SOA +short \
+	    | awk '{ print $3 }' >> verifier.log
+exec ldns-verify-zone -V 5

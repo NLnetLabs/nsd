@@ -1,0 +1,23 @@
+server:
+    zonesdir:            @ZONESDIR@
+    username:            @USERNAME@
+    database:           ""
+    logfile:            "@abs_builddir@/nsd.log"
+    pidfile:            "@abs_builddir@/nsd.pid"
+    difffile:           "@abs_builddir@/ixfr.db"
+    xfrdfile:           "@abs_builddir@/xfrd.state"
+    xfrdir:             "@abs_builddir@/xfrs"
+    verbosity:           @VERBOSITY@
+    xfrd-reload-timeout: @RELOAD_TIMEOUT@
+    ip-address:          @SLAVE_IP@
+    port:                @SLAVE_PORT@
+
+remote-control:
+    control-enable:	yes
+    control-port:	@SLAVE_CONTROL_PORT@
+    server-key-file:   "@abs_builddir@/nsd_server.key"
+    server-cert-file:  "@abs_builddir@/nsd_server.pem"
+    control-key-file:  "@abs_builddir@/nsd_control.key"
+    control-cert-file: "@abs_builddir@/nsd_control.pem"
+
+@SLAVE_INCLUDES@

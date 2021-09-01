@@ -1,0 +1,6 @@
+@  IN SOA    ns hostmaster 0 5 4 3000 5
+   IN NS     ns
+   IN MX  10 mx
+   IN A      1.2.3.4
+ns IN A      2.3.4.5
+mx IN A      3.4.5.6

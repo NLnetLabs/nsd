@@ -1,0 +1,14 @@
+$ORIGIN @ZONE@.
+$TTL @TTL@
+@	SOA	public.@ZONE@. hostmaster.@ZONE@. (
+		  @SERIAL@  ; Serial
+		  @REFRESH@ ; Refresh
+		  @RETRY@   ; Retry
+		  @EXPIRE@  ; Expire
+		  @MINIMUM@ ; Minimum
+        )
+	NS	public
+public	A	@SLAVE_IP@
+	AAAA	::1
+this	TXT	"Isn't this sexy?"
+

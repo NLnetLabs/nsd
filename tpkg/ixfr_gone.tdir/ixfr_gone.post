@@ -1,0 +1,14 @@
+# #-- verify.post --#
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# Use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+rm -f ${NSD_VERIFIER_IN}
+rm -f ${NSD_VERIFIER_OUT}
+
+kill_pid ${TESTNS_PID}
+
+if test -e nsd.pid; then
+        kill_pid $(head -n 1 nsd.pid)
+fi

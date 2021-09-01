@@ -1,0 +1,68 @@
+# #-- concurrent_credns.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+
+export NSD_PATH="../../nsd"
+
+echo "** Starting servers"
+make start-slave
+wait_nsd_up slave/nsd.log
+make start-proxy
+wait_nsd_up proxy/nsd.log
+make start-master
+wait_nsd_up master/nsd.log
+
+echo "** Waiting for verifiers to have started"
+for i in {0..30}
+do
+	if [ -f verifiers.log ]
+	then
+		break
+	fi
+	sleep 1
+done
+if [ ! -f verifiers.log ]
+then
+	echo "** Fatal! Verifiers have not started after 10 seconds"
+	exit 1
+fi
+echo "** Verifiers have started"
+echo "** Checking number of concurrent verifiers <= $VERIFIER_COUNT"
+NZONES2=`expr $NZONES + $NZONES`
+for i in {0..30}
+do
+	if awk -v v=$VERIFIER_COUNT 'BEGIN{a=0}/^\+/{a+=1}/^-/{a-=1}
+				     {if(a>v)exit 1 }' verifiers.log
+	then
+		NRAN=`wc verifiers.log |awk '{print $1 }'`
+		if test "$NRAN" = "$NZONES2"
+		then
+			break
+		fi
+	else
+		echo "** More than $VERIFIER_COUNT concurrent verifiers"
+			"have been seen"
+		exit 1
+	fi
+	sleep 1
+done
+if ! test "$NRAN" = "$NZONES2"
+then
+	echo "** Not all concurrent verifiers have ran within 30 seconds"
+else
+	echo "** Maximum of $VERIFIER_COUNT concurrent verifiers have been"\
+		"seen within 30 seconds"
+fi
+
+for i in `awk -v n=$NZONES 'BEGIN{for(i=0;i<n;i++)print i}'`
+do
+	if ! wait_for_soa_serial credns-${i}.test 1 127.0.0.1 $SLAVE_PORT 30
+	then
+		exit 1
+	fi
+done
+

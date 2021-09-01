@@ -1,0 +1,3 @@
+Please describe how to use this test.
+i.e. tpkg -a ARG exe testname:
+   ARG is used to determine location of the nsd software

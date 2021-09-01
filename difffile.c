@@ -156,6 +156,36 @@ diff_write_commit(const char* zone, uint32_t old_serial, uint32_t new_serial,
 	fclose(df);
 }
 
+void
+diff_update_commit(
+	const char* zone, uint8_t commit, struct nsd* nsd, uint64_t filenumber)
+{
+	FILE *df;
+
+	assert(zone != NULL);
+	assert(nsd != NULL);
+	assert(commit == DIFF_NOT_COMMITTED ||
+	       commit == DIFF_COMMITTED ||
+	       commit == DIFF_CORRUPT ||
+	       commit == DIFF_INCONSISTENT ||
+	       commit == DIFF_VERIFIED);
+
+	df = xfrd_open_xfrfile(nsd, filenumber, "r+");
+	if(!df) {
+		log_msg(LOG_ERR, "could not open transfer %s file %lld: %s",
+			zone, (long long)filenumber, strerror(errno));
+		return;
+	}
+	if(!write_32(df, DIFF_PART_XFRF) || !write_8(df, commit)) {
+		log_msg(LOG_ERR, "could not write transfer %s file %lld: %s",
+			zone, (long long)filenumber, strerror(errno));
+		fclose(df);
+		return;
+	}
+	fflush(df);
+	fclose(df);
+}
+
 int
 diff_read_64(FILE *in, uint64_t* result)
 {
@@ -180,11 +210,11 @@ diff_read_32(FILE *in, uint32_t* result)
 int
 diff_read_8(FILE *in, uint8_t* result)
 {
-        if (fread(result, sizeof(*result), 1, in) == 1) {
-                return 1;
-        } else {
-                return 0;
-        }
+	if (fread(result, sizeof(*result), 1, in) == 1) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 int
@@ -1283,6 +1313,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 	uint8_t committed;
 	uint32_t i;
 	int num_bytes = 0;
+	(void)last_task;
 	assert(zonedb);
 
 	/* read zone name and serial */
@@ -1319,9 +1350,21 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 			zone_buf, domain_to_string(zonedb->apex));
 		return 0;
 	}
-	if(!committed) {
+	switch(committed) {
+	case DIFF_NOT_COMMITTED:
 		log_msg(LOG_ERR, "diff file %s was not committed", zone_buf);
 		return 0;
+	case DIFF_CORRUPT:
+		log_msg(LOG_ERR, "diff file %s was corrupt", zone_buf);
+		return 0;
+	case DIFF_INCONSISTENT:
+		log_msg(LOG_ERR, "diff file %s was inconsistent", zone_buf);
+		return 0;
+	case DIFF_VERIFIED:
+		log_msg(LOG_INFO, "diff file %s already verified", zone_buf);
+		break;
+	default:
+		break;
 	}
 	if(num_parts == 0) {
 		log_msg(LOG_ERR, "diff file %s was not completed", zone_buf);
@@ -1333,7 +1376,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 		return 1;
 	}
 
-	if(committed)
+	if(!zonedb->is_skipped)
 	{
 		int is_axfr=0, delete_mode=0, rr_count=0, softfail=0;
 		const dname_type* apex = domain_dname_const(zonedb->apex);
@@ -1343,8 +1386,9 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 		memset(&z, 0, sizeof(z)); /* if udb==NULL, have &z defined */
 		if(nsd->db->udb) {
 			if(udb_base_get_userflags(nsd->db->udb) != 0) {
+				diff_update_commit(
+					zone_buf, DIFF_CORRUPT, nsd, xfrfilenr);
 				log_msg(LOG_ERR, "database corrupted, cannot update");
-				xfrd_unlink_xfrfile(nsd, xfrfilenr);
 				exit(1);
 			}
 			/* all parts were checked by xfrd before commit */
@@ -1373,7 +1417,8 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 			assert(zonedb);
 			if(ret == 0) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d in diff file for %s", (int)i, zone_buf);
-				xfrd_unlink_xfrfile(nsd, xfrfilenr);
+				diff_update_commit(
+					zone_buf, DIFF_CORRUPT, nsd, xfrfilenr);
 				/* the udb is still dirty, it is bad */
 				exit(1);
 			} else if(ret == 2) {
@@ -1392,9 +1437,12 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 		if(zonedb) prehash_zone(nsd->db, zonedb);
 #endif /* NSEC3 */
 		zonedb->is_changed = 1;
+		zonedb->is_updated = 1;
+		zonedb->is_checked = (committed == DIFF_VERIFIED);
 		if(nsd->db->udb) {
 			assert(z.base);
 			ZONE(&z)->is_changed = 1;
+			/* FIXME: need to set is_updated here? */
 			ZONE(&z)->mtime = time_end_0;
 			ZONE(&z)->mtime_nsec = time_end_1*1000;
 			udb_zone_set_log_str(nsd->db->udb, &z, log_buf);
@@ -1418,10 +1466,9 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 				"Zone %s contents is different from master, "
 				"starting AXFR. Transfer %s", zone_buf, log_buf);
 			/* add/del failures in IXFR, get an AXFR */
-			task_new_soainfo(taskudb, last_task, zonedb, 1);
-		} else {
-			if(taskudb)
-				task_new_soainfo(taskudb, last_task, zonedb, 0);
+			diff_update_commit(
+				zone_buf, DIFF_INCONSISTENT, nsd, xfrfilenr);
+			exit(1);
 		}
 
 		if(1 <= verbosity) {
@@ -1471,7 +1518,7 @@ task_create_new_elem(struct udb_base* udb, udb_ptr* last, udb_ptr* e,
 }
 
 void task_new_soainfo(struct udb_base* udb, udb_ptr* last, struct zone* z,
-	int gone)
+	enum soainfo_hint hint)
 {
 	/* calculate size */
 	udb_ptr e;
@@ -1484,7 +1531,7 @@ void task_new_soainfo(struct udb_base* udb, udb_ptr* last, struct zone* z,
 		domain_to_string(z->apex)));
 	apex = domain_dname(z->apex);
 	sz = sizeof(struct task_list_d) + dname_total_size(apex);
-	if(z->soa_rrset && !gone) {
+	if(z->soa_rrset && hint == soainfo_ok) {
 		ns = domain_dname(rdata_atom_domain(
 			z->soa_rrset->rrs[0].rdatas[0]));
 		em = domain_dname(rdata_atom_domain(
@@ -1502,8 +1549,9 @@ void task_new_soainfo(struct udb_base* udb, udb_ptr* last, struct zone* z,
 		return;
 	}
 	TASKLIST(&e)->task_type = task_soa_info;
+	TASKLIST(&e)->yesno = (uint64_t)hint;
 
-	if(z->soa_rrset && !gone) {
+	if(z->soa_rrset && hint == soainfo_ok) {
 		uint32_t ttl = htonl(z->soa_rrset->rrs[0].ttl);
 		uint8_t* p = (uint8_t*)TASKLIST(&e)->zname;
 		p += dname_total_size(apex);
@@ -2114,28 +2162,28 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	if(!zone) {
 		/* assume the zone has been deleted and a zone transfer was
 		 * still waiting to be processed */
-		xfrd_unlink_xfrfile(nsd, TASKLIST(task)->yesno);
 		return;
 	}
+
 	/* apply the XFR */
 	/* oldserial, newserial, yesno is filenumber */
 	df = xfrd_open_xfrfile(nsd, TASKLIST(task)->yesno, "r");
 	if(!df) {
 		/* could not open file to update */
-		/* there is no reply to xfrd failed-update,
-		 * because xfrd has a scan for apply-failures. */
-		xfrd_unlink_xfrfile(nsd, TASKLIST(task)->yesno);
+		/* soainfo_gone will be communicated from server_reload, unless
+		   preceding updates have been applied */
+		zone->is_skipped = 1;
 		return;
 	}
 	/* read and apply zone transfer */
 	if(!apply_ixfr_for_zone(nsd, zone, df, nsd->options, udb,
 		last_task, TASKLIST(task)->yesno)) {
-		/* there is no reply to xfrd failed-update,
-		 * because xfrd has a scan for apply-failures. */
+		/* soainfo_gone will be communicated from server_reload, unless
+		   preceding updates have been applied  */
+		zone->is_skipped = 1;
 	}
 
 	fclose(df);
-	xfrd_unlink_xfrfile(nsd, TASKLIST(task)->yesno);
 }
 
 

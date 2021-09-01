@@ -250,6 +250,33 @@ wait_server_up_or_fail () {
 	done
 }
 
+# $1: zone
+# $2: serial to be expected
+# $3: server to query
+# $4: port
+# $5: # times to try (# seconds dig is ran)
+wait_for_soa_serial () {
+	TS_START=`date +%s`
+	for i in `seq 1 $5`
+	do
+		SERIAL=`dig -p $4 @$3 $1 SOA +short | awk '{ print $3 }'`
+		if test "$?" != "0"
+		then
+			echo "** \"dig -p $4 @$3 $1 SOA +short\" failed!"
+			return 1
+		fi
+		if test "$SERIAL" = "$2"
+		then
+			TS_END=`date +%s`
+			echo "*** Serial $2 was seen in $i tries (`expr $TS_END - $TS_START`) seconds"
+			return 0
+		fi
+		sleep 1
+	done
+	echo "** Serial $2 was not seen in $5 tries (did see: $SERIAL)"
+	return 1
+}
+
 # kill a pid, make sure and wait for it to go down.
 # $1 : pid to kill
 kill_pid () {

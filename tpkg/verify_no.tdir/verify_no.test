@@ -1,0 +1,21 @@
+# #-- verify_no.test --#
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# Use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+NSD="${PRE}/nsd"
+
+if ! ${NSD} -h 2>&1 | grep "L level" >/dev/null; then
+  echo "Debug output not available, skipping test"
+  exit 0
+fi
+
+${NSD} -c $(pwd)/nsd.conf -p ${NSD_PORT} -V 5 -L 5 -F 0xFFFF
+wait_nsd_up nsd.log
+wait_logfile nsd.log 'SOAINFO for example.net. kept zone' 45
+
+if !grep "verifier for zone example.net .* exited with 1"; then
+  cat nsd.log
+fi

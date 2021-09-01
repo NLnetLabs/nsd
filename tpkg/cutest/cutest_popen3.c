@@ -3,6 +3,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
+#include <assert.h>
 
 #include "config.h"
 #include "popen3.h"
@@ -16,18 +18,20 @@
 static int popen3_echo(const char *str, int fds)
 {
 	int ret, wret, wstatus, status;
-	FILE *fin, *fout, *ferr;
-	FILE **finptr, **foutptr, **ferrptr;
+	int fdin, fdout, fderr;
+	int *fdinptr, *fdoutptr, *fderrptr;
 	char *cmd[] = { NULL, NULL };
 	pid_t pid;
 	char *buf = NULL;
 	size_t len, size = 128;
+	ssize_t got = -1;
+	char *new_ln = NULL;
 
 	ret = -1;
-	fin = fout = ferr = NULL;
-	finptr = (use_stdin(fds) ? &fin : NULL);
-	foutptr = (use_stdout(fds) ? &fout : NULL);
-	ferrptr = (use_stderr(fds) ? &ferr : NULL);
+	fdin = fdout = fderr = -1;
+	fdinptr = (use_stdin(fds) ? &fdin : NULL);
+	fdoutptr = (use_stdout(fds) ? &fdout : NULL);
+	fderrptr = (use_stderr(fds) ? &fderr : NULL);
 
 	if((cmd[0] = getenv("POPEN3_ECHO")) == NULL) {
 		cmd[0] = "./popen3_echo";
@@ -42,25 +46,24 @@ static int popen3_echo(const char *str, int fds)
 		goto bail;
 	}
 
-	if((pid = popen3(cmd, finptr, foutptr, ferrptr)) == -1) {
+	if((pid = popen3(cmd, fdinptr, fdoutptr, fderrptr)) == -1) {
 		fprintf(stderr, "%s: popen3: %s\n", __func__, strerror(errno));
 		goto bail;
 	}
 
-	if((use_stdin(fds) && fin == NULL) ||
-	   (use_stdout(fds) && fout == NULL) ||
-	   (use_stderr(fds) && ferr == NULL))
+	if((use_stdin(fds) && fdin == -1) ||
+	   (use_stdout(fds) && fdout == -1) ||
+	   (use_stderr(fds) && fderr == -1))
 	{
 		fprintf(stderr, "%s: Opened pipes do not match requested\n", __func__);
 		goto bail;
 	}
 
 	if(use_stdin(fds)) {
-		if (fputs(str, fin) == EOF) {
-			fprintf(stderr, "%s: fputs: %s\n", __func__, strerror(errno));
+		if (write(fdin, str, len) == -1) {
+			fprintf(stderr, "%s: write: %s\n", __func__, strerror(errno));
 			goto bail;
 		}
-		fflush(fin);
 	}
 	/* wait for popen3_echo to terminate */
 
@@ -85,22 +88,36 @@ static int popen3_echo(const char *str, int fds)
 	}
 
 	if(use_stdout(fds)) {
-		if(fgets(buf, size, fout) == NULL) {
+		if ((got = read(fdout, buf, size)) == -1) {
+			fprintf(stderr, "%s: read: %s\n", __func__, strerror(errno));
+			goto bail;
+		}
+		assert(got <= (ssize_t)size);
+		buf[got] = 0;
+		if (!(new_ln = strchr(buf, '\n'))) {
 			fprintf(stderr, "%s: Could not read header from stdout\n", __func__);
 			goto bail;
 		}
-		if(fread(buf, 1, size, fout) != len || strncmp(buf, str, len) != 0) {
+		new_ln += 1;
+		if ((got - (new_ln - buf)) != (int)len || strncmp(new_ln, str, len) != 0) {
 			fprintf(stderr, "%s: Output on stdout did not match input\n", __func__);
 			goto bail;
 		}
 	}
 
 	if(use_stderr(fds)) {
-		if(fgets(buf, size, ferr) == NULL) {
+		if ((got = read(fderr, buf, size)) == -1) {
+			fprintf(stderr, "%s: read: %s\n", __func__, strerror(errno));
+			goto bail;
+		}
+		assert(got <= (ssize_t)size);
+		buf[got] = 0;
+		if (!(new_ln = strchr(buf, '\n'))) {
 			fprintf(stderr, "%s: Could not read header from stderr\n", __func__);
 			goto bail;
 		}
-		if(fread(buf, 1, size, ferr) != len || strncmp(buf, str, len) != 0) {
+		new_ln += 1;
+		if ((got - (new_ln - buf)) != (int)len || strncmp(new_ln, str, len) != 0) {
 			fprintf(stderr, "%s: Output on stderr did not match input\n", __func__);
 			goto bail;
 		}
@@ -111,14 +128,14 @@ bail:
 	if(buf != NULL) {
 		free(buf);
 	}
-	if(fin != NULL) {
-		fclose(fin);
+	if(fdin != -1) {
+		close(fdin);
 	}
-	if(fout != NULL) {
-		fclose(fout);
+	if(fdout != -1) {
+		close(fdout);
 	}
-	if(ferr != NULL) {
-		fclose(ferr);
+	if(fderr != -1) {
+		close(fderr);
 	}
 	return ret;
 }
@@ -126,16 +143,16 @@ bail:
 static void popen3_non_existing(CuTest *tc)
 {
 	char *command[] = { "./foobarbaz", NULL };
-	FILE *fin, *fout, *ferr;
+	int fin, fout, ferr;
 	pid_t pid;
 
-	fin = fout = ferr = NULL;
+	fin = fout = ferr = -1;
 
 	pid = popen3(command, &fin, &fout, &ferr);
 	CuAssert(tc, "", pid == -1);
-	CuAssert(tc, "", fin == NULL);
-	CuAssert(tc, "", fout == NULL);
-	CuAssert(tc, "", ferr == NULL);
+	CuAssert(tc, "", fin == -1);
+	CuAssert(tc, "", fout == -1);
+	CuAssert(tc, "", ferr == -1);
 }
 
 static void popen3_all_opened(CuTest *tc)

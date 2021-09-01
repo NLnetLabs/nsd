@@ -1,0 +1,637 @@
+==
+==  CREDNS-SETUP
+=================
+
+This set of scripts can be used to try out credns. The configure script
+configures three credns instances - master, proxy and slave - and configures
+TSIGs for all notify and transfer communication needed in a credns setup.
+
+
+==
+==  CONFIGURING A CREDNS-SETUP
+===============================
+
+Parameters in the configuration can be set via environment variables. For a
+full overview of configurable settings use: "configure --help":
+
+  DEFAULT_IP  Default IP address for all nameservers (default 127.0.0.1)
+  MASTER      Name of the hidden master (default: master)
+  MASTER_IP   IP address on which the hidden master listens (default:
+              DEFAULT_IP)
+  MASTER_PORT Port on which the hidden master listens (default: 53470)
+  MASTER_CONTROL_PORT
+              Port on which the hidden master is controlled (default: 53471)
+  PROXY       Name for the credns proxy server (default: proxy)
+  PROXY_IP    IP address for the credns proxy server (default: DEFAULT_IP)
+  PROXY_PORT  Port for the credns proxy server (default: 53473)
+  PROXY_CONTROL_PORT
+              Port on which the credns proxy is controlled (default: 53474)
+  SLAVE       Name of the public slave (default: slave)
+  SLAVE_IP    IP address on which the public slave listens (default:
+              DEFAULT_IP)
+  SLAVE_PORT  Port on which the public slave listens (default: 53476)
+  SLAVE_CONTROL_PORT
+              Port on which the public slave is controlled (default: 53477)
+  VERIFY_IP   IP address for querying the zone to be assessed (default:
+              PROXY_IP)
+  VERIFY_PORT Port for querying the zone to be assessed (default: 5347)
+  NZONES      Number of zones to serve (default: 1)
+  ZONE        Zone to serve (default: credns.test)
+  ZONE<n>     When multiple zones are specified the name of the <n>th zone
+              counting from 0 (defaults to the value of ZONE)
+  SERIAL      Initial serial of SOA RR (default: 1)
+  REFRESH     Initial refresh time of SOA RR (default: 120 (2 minutes))
+  RETRY       Initial retry time of SOA RR (default: 30 (0.5 minutes))
+  EXPIRE      Initial expire time of SOA RR (default: 180 (3 minutes))
+  MINIMUM     Initial minimum time of SOA RR (default: 75 (1.25 minutes))
+  TTL         Time to live (TTL) for zone RRs (default: 30 (0.5 minute))
+  VERBOSITY   Verbosity in log files (default: 1)
+  RELOAD_TIMEOUT
+              Throttles reloads to once per the number of seconds (default: 2)
+  VERIFIER_COUNT
+              Number of verifiers to run simultaneously (default: 1)
+  VERIFIER_FEED_ZONE
+              Feed zone on stdin (default: yes)
+  VERIFIER_TIMEOUT
+              How long may a verifier take (default: 0 (forever))
+  VERIFIER    Verifier program the proxy server starts when a zone is updates.
+              (default: ldns-verify-zone)
+              For interactive debugging use "debug". The debugger is entered
+              via "make debug" which should be done before verifiers are
+              called.
+  VERIFIER<n> When multiple zones are specified the verifier program the proxy
+              server starts when the <n>th zone is updated.
+              (defaults to the value of VERIFIER)
+
+
+==
+==  CONTROLLING THE CONFIGURED CREDNS-SETUP
+============================================
+
+The nameservers are controlled by a Makefile. The following special targets
+may be used to control the credns-setup.
+
+  start-master
+              Start (hidden) master
+  start-proxy Start proxy
+  start-slave Start slave
+  start       Start all nameservers
+
+  stop-master Stop (hidden) master
+  stop-proxy  Stop proxy
+  stop-slave  Stop slave
+  stop        Stop all nameservers
+
+  update      Increase serial of zone credns.test, sign and reload master
+  update<n>   Increase serial of zone credns-<n>.test, sign and reload master
+  bad-update  Increase serial of zone credns.test, sign, make the zone bogus
+              by modifying the content of the this.credns.text TXT RR
+              and reload master
+  bad-update<n>
+              Increase serial of zone credns-<n>.test, sign, make the zone
+              bogus by modifying the content of the this.credns-<n>.text TXT RR
+              and reload master
+
+  incr<n>     Increase serial of zone credns-<n>.test, sign, but do not reload
+  ruin<n>     Increase serial of zone credns-<n>.test, sign
+              and make the zone bogus by modifying the content of the
+              this.credns-<n>.test TXT RR, but do not reload
+  reload-master
+              Reload (hidden) master
+
+  serials     Print the SOA serial numbers of all zones for all nameservers
+  watch-serials
+              Monitor the SOA serial numbers of all zones for all nameservers
+  log         Watch the log of all running nameservers
+
+  debug       Start the interactive verifier (when VERIFIER=debug is given).
+
+  clean       Remove configuration of all the nameservers, but leave the
+              Makefile, config.log and config.status files so that the
+              configuration can easily be regenerated by running make.
+
+  realclean   Remove everything configured (the entire setup).
+
+
+==
+==  EXAMPLE USAGE
+=================
+
+To setup an interactive debugging credns configuration for three zones:
+
+1.  Create a directory for the setup and enter.
+    For example, when in the credns-setup directory:
+
+    credns-setup$ mkdir test
+    credns-setup$ cd test
+    credns-setup/test$
+
+2.  Configure the setup.
+    To configure a setup for three zones with interactive debugging:
+
+    credns-setup/test$ ../configure NZONES=3 VERIFIER=debug
+
+    A brief overview will be given with the settings of the configuration.
+
+3.  Start the setup:
+
+    credns-setup/test$ make start
+    -- Creating master/credns-0.test.private ...
+    -- Creating master/credns-1.test.private ...
+    -- Signing zone credns-1.test ...
+    -- Creating master/credns-2.test.private ...
+    -- Signing zone credns-2.test ...
+    -- Creating tsigs/master-notify-proxy.credns-0.test.tsig ...
+    -- Creating tsigs/proxy-xfr-from-master.credns-0.test.tsig ...
+    -- Creating tsigs/proxy-notify-slave.credns-0.test.tsig ...
+    ...
+    zonec: reading zone "credns-0.test".
+    zonec: processed 18 RRs in "credns-0.test".
+    zonec: reading zone "credns-1.test".
+    zonec: processed 18 RRs in "credns-1.test".
+    zonec: reading zone "credns-2.test".
+    zonec: processed 18 RRs in "credns-2.test".
+    ...
+    -- Rebuilt master ...
+    -- Started master ...
+    ...
+    -- Rebuilt proxy ...
+    -- Started proxy ...
+    ...
+    -- Rebuilt slave ...
+    -- Started slave ...
+    credns-setup/test$
+
+4.  Because we have not started the debugger yet, the zone will *not* be
+    transfered to the proxy and the slave server. We can see this with:
+
+    credns-setup/test$ make serials
+    credns-0.test master		1
+                   proxy
+                   slave
+    credns-1.test master		1
+                   proxy
+                   slave
+    credns-2.test master		1
+                   proxy
+                   slave
+
+5.  Now open a new seperate shell, cd to the test directory and start the
+    interactive debugger:
+
+    credns-setup/test$ make debug
+    sh "../debug.sh" "proxy"
+    Waiting for credns hook to be called...
+
+6.  Now lets update the three zones, but make the second zone bogus.
+
+    credns-setup/test$ make incr0
+    -- Increment serial of zone  to 2 ...
+    -- Signing zone credns-0.test ...
+    credns-setup/test$ make ruin1
+    -- Increment serial of zone  to 2 ...
+    -- Signing zone credns-1.test ...
+    -- Creating bogus RR for credns-1.test ...
+    credns-setup/test$ make incr2
+    -- Increment serial of zone  to 2 ...
+    -- Signing zone credns-2.test ...
+    credns-setup/test$ make reload-master
+    zonec: reading zone "credns-0.test".
+    zonec: processed 18 RRs in "credns-0.test".
+    zonec: reading zone "credns-1.test".
+    zonec: processed 18 RRs in "credns-1.test".
+    zonec: reading zone "credns-2.test".
+    zonec: processed 18 RRs in "credns-2.test".
+    zonec: done with no errors.
+    -- Rebuilt master ...
+    -- Reloaded master ...
+    credns-setup/test$
+
+7.  In the interactive debugger we have now a prompt to assess the first zone:
+
+    Verifying request for credns-0.test
+    Write messages to proxy/stdout and error messages to proxy/stderr
+    Exit with: exit <status>, where success means status == 0
+    ------------------------------------------------------------
+    validate credns-0.test>
+
+8.  Information on which zone is to be assessed and how it may be assessed is
+    available through environment variables:
+
+    validate credns-0.test> printenv | grep VERIFY
+    VERIFY_IPV4_ADDRESS=127.0.0.1
+    VERIFY_IP_ADDRESSES=127.0.0.1@5347
+    VERIFY_IPV4_PORT=5347
+    VERIFY_IPV6_PORT=
+    VERIFY_IPV6_ADDRESS=
+    VERIFY_PORT=5347
+    VERIFY_ZONE_ON_STDIN=yes
+    VERIFY_ZONE=credns-0.test
+    VERIFY_IP_ADDRESS=127.0.0.1
+    validate credns-0.test>
+
+9.  Because we have VERIFY_ZONE_ON_STDIN=yes, the complete zone is in the file
+    proxy/stdin for the debugger. A real verifier would receive the zone on its
+    standard input.
+
+    validate credns-0.test> ldns-verify-zone proxy/stdin
+    Checking: credns-0.test.
+    Checking: public.credns-0.test.
+    Checking: this.credns-0.test.
+    Zone is verified and complete
+    validate credns-0.test> 
+
+10. Alternatively we can query the zone to be assessed.
+
+    validate credns-0.test> drill -k master/$VERIFY_ZONE.key @$VERIFY_IP_ADDRESS -p $VERIFY_PORT this.$VERIFY_ZONE TXT
+    ;; Number of trusted keys: 1
+    ;; ->>HEADER<<- opcode: QUERY, rcode: NOERROR, id: 43021
+    ;; flags: qr aa rd ; QUERY: 1, ANSWER: 2, AUTHORITY: 2, ADDITIONAL: 4
+    ;; QUESTION SECTION:
+    ;; this.credns-0.test.	IN	TXT
+
+    ;; ANSWER SECTION:
+    this.credns-0.test.	30	IN	TXT	"Isn't this sexy?"
+    this.credns-0.test.	30	IN	RRSIG	TXT 8 3 30 20120523193300 20120425193300 4491 credns-0.test. W6pg0nJ4DPX5ZImukt9z0CJupUn7NdLj0+N9ybTT147NCyzB8Actxc0tAutmut+7xPHjzph8/U3Bkv0yIfn9pJLLvWx54NImEtJf89YEywoxSDd4T+8W3pEq7Q6x/SztRtDhR8wS+L6a4/mpj02SHLCpAvOor+woiYWwrkb5M68=
+
+    ;; AUTHORITY SECTION:
+    credns-0.test.	30	IN	NS	public.credns-0.test.
+    credns-0.test.	30	IN	RRSIG	NS 8 2 30 20120523193300 20120425193300 4491 credns-0.test. w3DlH0TPQX9qO1DK9Zie7IetNMyFC/PTjPrhCbDhLXucYGMpOEC4fUy7PWXzfhV6E3Eu6EfA7bNyg0dELMyhR+/uxvhgM7USHCWSm9033gj1wcrCAHzFiuT4TYIHdzeN58Uh/9g7/brfGjQDUBEXmnWCt8xElFx7Q2G0zTzJJ4Y=
+
+    ;; ADDITIONAL SECTION:
+    public.credns-0.test.	30	IN	A	127.0.0.1
+    public.credns-0.test.	30	IN	RRSIG	A 8 3 30 20120523193300 20120425193300 4491 credns-0.test. jC9qV3F5QRk6qsyB+gBBYmEZocHFKF2gMlkY5nCyNRzJPieLvDZjIexm90RjF853cOVpeVNwgIiN9COhvYB9HTxUc3PB4oySeYmzghBdL6/dL/jGTuDyqNLhFykGbBgPx+/cZSdduJ7C/C53M7zAjXZ4MjTDNAun8vABYdZLleU=
+    public.credns-0.test.	30	IN	AAAA	::1
+    public.credns-0.test.	30	IN	RRSIG	AAAA 8 3 30 20120523193300 20120425193300 4491 credns-0.test. qNI2sIG24kecuCknt4AcbM7dlWt82ayLM1/gdve//29h5VmtcbhXzkF2fAVrIJwuIgSqN8cjQKJmAUW41YNwZOkZV2S9RAGL/ARUgeWqM/9cedVzbu5vUjZfAXXvJYLvLTVS7aO3NyJwMml21gsvHOYRSdlmqEmlOaiiCUijx84=
+
+    ;; Query time: 0 msec
+    ;; EDNS: version 0; flags: do ; udp: 4096
+    ;; SERVER: 127.0.0.1
+    ;; WHEN: Wed Apr 25 21:43:48 2012
+    ;; MSG SIZE  rcvd: 838
+    ; this.credns-0.test.	30	IN	TXT	"Isn't this sexy?"
+    ; VALIDATED by id = 4491, owner = credns-0.test.
+    validate credns-0.test>
+
+11. Since the zone is okay, we can indicate this by simply exiting:
+
+    validate credns-0.test> exit
+    exit
+    ------------------------------------------------------------
+    Waiting for credns hook to be called...
+    Verifying request for credns-1.test
+    Write messages to proxy/stdout and error messages to proxy/stderr
+    Exit with: exit <status>, where success means status == 0
+    ------------------------------------------------------------
+    validate credns-1.test>
+
+    A new interactive session is started to asses the second zone.
+
+    Note that because processing of multiple transfers is bundled by credns,
+    the zone is likely not yet loaded and the proxy server is waiting for us
+    to asses the second and third zone.
+
+12. Now we now the second is bad, and indeed:
+
+    validate credns-1.test> ~/local/bin/ldns-verify-zone proxy/stdin
+    Checking: credns-1.test.
+    Checking: public.credns-1.test.
+    Checking: this.credns-1.test.
+    Error: Bogus DNSSEC signature for this.credns-1.test.	TXT
+    There were errors in the zone
+    validate credns-1.test>
+
+    And querying:
+
+    validate credns-1.test> drill -k master/credns-1.test.key @127.0.0.1 -p 5347 this.credns-1.test TXT
+    ;; Number of trusted keys: 1
+    ;; ->>HEADER<<- opcode: QUERY, rcode: NOERROR, id: 17960
+    ;; flags: qr aa rd ; QUERY: 1, ANSWER: 2, AUTHORITY: 2, ADDITIONAL: 4
+    ;; QUESTION SECTION:
+    ;; this.credns-1.test.	IN	TXT
+
+    ;; ANSWER SECTION:
+    this.credns-1.test.	30	IN	TXT	"Isn't this bad?"
+    this.credns-1.test.	30	IN	RRSIG	TXT 8 3 30 20120523193303 20120425193303 21261 credns-1.test. lKa4kdxrujobU7R8ZMH3mnqUoKHlG1UWzpNgaZheRnTD8yh9/GgF3zWjux0ypkKQajy+OFZW242uIPeTBOdNiRg8F4BbVOsqo7gtNfKd3JdFgnTubZ7/W/Gkep/B82EDgrGNqo3OLKwiJrnbWakHLOiNvTeR8s6BZioe1HtZixQ=
+
+    ;; AUTHORITY SECTION:
+    credns-1.test.	30	IN	NS	public.credns-1.test.
+    credns-1.test.	30	IN	RRSIG	NS 8 2 30 20120523193303 20120425193303 21261 credns-1.test. Ri/uTUzs6exzsqk4EzUp9abrS7nXXMA/Hh2uecKhsJFLl6SV5TKGFdrcQpNtbU9nXqQuzhdzkdmHfvkHxo5N/pl8Q/wMoc8QdsnbSIUgzXKbuq6A1DZuubDLCGF18VFQukC3mIsf8a9PyaCrIUki86l0PcezAG/kKj7UySRwUKY=
+
+    ;; ADDITIONAL SECTION:
+    public.credns-1.test.	30	IN	A	127.0.0.1
+    public.credns-1.test.	30	IN	RRSIG	A 8 3 30 20120523193303 20120425193303 21261 credns-1.test. BlKyjSYRiNEhpDmGRz8X9JwkN2YrODgHDnOOdNsn/BihMAiqlkEuDvu5FviiWCuRFJbLlBU2foKbimBj9tVsWP1tfvLAFA+xtuS5s33Gqj/xIwe3Vr/YsVnZP6CWRX5357fiZYWrzATd0Nq7CKRdt+OeyDno4mIo+wFPum5GII0=
+    public.credns-1.test.	30	IN	AAAA	::1
+    public.credns-1.test.	30	IN	RRSIG	AAAA 8 3 30 20120523193303 20120425193303 21261 credns-1.test. XKHUMhIXR5nXHq/4NJfas+ahytkkB3yuiafm18q67efbgdWvfeMA01msmImvrJqT0enG9dswn4qu/F62pS6KNKFc240x2prc/mkADmEqgu0oGwHxErr+LAYN01YmDRVBz5rbX8/QWOV8Ws0pu6nF+KrpBTx/lzo2l/WC8gDVsA8=
+
+    ;; Query time: 0 msec
+    ;; EDNS: version 0; flags: do ; udp: 4096
+    ;; SERVER: 127.0.0.1
+    ;; WHEN: Wed Apr 25 22:00:42 2012
+    ;; MSG SIZE  rcvd: 837
+    ; this.credns-1.test.	30	IN	TXT	"Isn't this bad?"
+    ; Bogus DNSSEC signature for id = 21261, owner = credns-1.test.
+    validate credns-1.test>
+
+13. Lets log an error message and tell the proxy that it should load the zone.
+
+    validate credns-1.test> echo This zone is really bad > proxy/stderr
+    validate credns-1.test> exit 666
+    exit
+    ------------------------------------------------------------
+    Waiting for credns hook to be called...
+    Verifying request for credns-2.test
+    Write messages to proxy/stdout and error messages to proxy/stderr
+    Exit with: exit <status>, where success means status == 0
+    ------------------------------------------------------------
+    validate credns-2.test>
+
+    In proxy/credns.log we find the error message:
+
+    credns-setup/test$ grep error proxy/credns.log
+    ...
+    [<time>] credns[<pid>]: error: This zone is really bad
+    [<time>] credns[<pid>]: error: Zone verifier for zone credns-1.test exited with status: 154
+
+    Exit codes are in the range 0..255
+
+14. Now we may interactively asses the third (good) zone:
+
+    validate credns-2.test> ldns-verify-zone proxy/stdin
+    Checking: credns-2.test.
+    Checking: public.credns-2.test.
+    Checking: this.credns-2.test.
+    Zone is verified and complete
+    validate credns-2.test> echo All OK, now go and get served > proxy/stdout
+    validate credns-2.test> exit
+    exit
+    ------------------------------------------------------------
+    Waiting for credns hook to be called...
+
+15. You should be able to find the message in proxy/credns.log:
+
+    [<time>] credns[<pid>]: info: All OK, now go and get served
+    [<time>] credns[<pid>]: info: Zone credns-2.test verified successfully.
+    [<time>] credns[<pid>]: notice: Zone verifying done... Good: 2, Bad: 1.
+
+    That last line might actually differ depending on how many zones were
+    bundled in the transfer.
+
+16. Now we should see two zones updated in the proxy and one not:
+
+    credns-setup/test$ make serials
+    credns-0.test master		2
+                   proxy		2
+                   slave		2
+    credns-1.test master		2
+                   proxy
+                   slave
+    credns-2.test master		2
+                   proxy		2
+                   slave		2
+    credns-setup/test$
+
+17. To quickly update the second zone good:
+
+    credns-setup/test$ make update1
+    -- Increment serial of zone  to 3 ...
+    -- Signing zone credns-1.test ...
+    ...
+    zonec: reading zone "credns-1.test".
+    zonec: processed 18 RRs in "credns-1.test".
+    ...
+    zonec: done with no errors.
+    -- Rebuilt master ...
+    -- Reloaded master ...
+    credns-setup/test$
+
+18. Okay, lets asses in the debugger:
+
+    Verifying request for credns-1.test
+    Write messages to proxy/stdout and error messages to proxy/stderr
+    Exit with: exit <status>, where success means status == 0
+    ------------------------------------------------------------
+    validate credns-1.test> drill -k master/credns-1.test.key @127.0.0.1 -p 5347 this.credns-1.test TXT
+    ;; Number of trusted keys: 1
+    ;; ->>HEADER<<- opcode: QUERY, rcode: NOERROR, id: 52082
+    ;; flags: qr aa rd ; QUERY: 1, ANSWER: 2, AUTHORITY: 2, ADDITIONAL: 4
+    ;; QUESTION SECTION:
+    ;; this.credns-1.test.	IN	TXT
+
+    ;; ANSWER SECTION:
+    this.credns-1.test.	30	IN	TXT	"Isn't this sexy?"
+    this.credns-1.test.	30	IN	RRSIG	TXT 8 3 30 20120523201835 20120425201835 21261 credns-1.test. fUJeAebfBwa/L19D9cGKVQQjPRDGbwca7/3UE7LLXgtCM9YEyfY5wnvn1Vtp4ahP+WgHmVH814642fbrg3WW4w7KhnSd5i0aP96YYMIB6EcDbrpM8RJ0GV1ZjU2J1IlQHt7SItQEerBz8bfd8sfVZ3NUVqtORWgLZRy2QBTGeSs=
+
+    ;; AUTHORITY SECTION:
+    credns-1.test.	30	IN	NS	public.credns-1.test.
+    credns-1.test.	30	IN	RRSIG	NS 8 2 30 20120523201835 20120425201835 21261 credns-1.test. R1XV+fjE4lhJ23OYmdzR1/Ylraq54gyycu1TNl87H3gsGMLHMA1fouTSSzbQ6zUJHLGKJGAviuvUdGgx1Pqd+5+h088C5lbS1VvH/Ev1E4syzACaEoiJW8ANA1+O6/22QcEUyUFpvqT/hN68dscWxJ3d6CaC8naZtXxhiXwkLYU=
+
+    ;; ADDITIONAL SECTION:
+    public.credns-1.test.	30	IN	A	127.0.0.1
+    public.credns-1.test.	30	IN	RRSIG	A 8 3 30 20120523201835 20120425201835 21261 credns-1.test. hRmnjq3vNnkxBGb+BIkmxIL/E1T7od0ohJoCpB9o20bY9pS5sGiMPlh7IGNlrWcSEmoXbZ/YiV3ON2R3t5VeylH0Hde+IujVggq5UImy1yluCG6LYK11+tCmNovnsq0Jtusu1h+ZqWHiX+52ci1JJFdZR4IKI4u/Wi8I1Q/aeq8=
+    public.credns-1.test.	30	IN	AAAA	::1
+    public.credns-1.test.	30	IN	RRSIG	AAAA 8 3 30 20120523201835 20120425201835 21261 credns-1.test. BjQIVKC3YsTX1LE96G+F9/EhyqGUB03Pvj21QrTDD5vBVt/hcykPlRMrFfNj/+6/c71OAqKBRNtKgHeDznpFtepVdYSJiBtYbffgQmD5in5n/In57qew4yIK5TUBqIfZO6fyQn8o7A17OJpZKSS1PeVzvdQnIBQTCG9yW8QjJko=
+
+    ;; Query time: 0 msec
+    ;; EDNS: version 0; flags: do ; udp: 4096
+    ;; SERVER: 127.0.0.1
+    ;; WHEN: Wed Apr 25 22:20:34 2012
+    ;; MSG SIZE  rcvd: 838
+    ; this.credns-1.test.	30	IN	TXT	"Isn't this sexy?"
+    ; VALIDATED by id = 21261, owner = credns-1.test.
+    validate credns-1.test> 
+    validate credns-1.test> echo "Now you're good" > proxy/stdout
+    validate credns-1.test> exit
+    exit
+    ------------------------------------------------------------
+    Waiting for credns hook to be called...
+
+19. Now when we quickly make the first zone bad:
+
+    credns-setup/test$ make bad-update0
+    -- Increment serial of zone  to 3 ...
+    -- Signing zone credns-0.test ...
+    -- Creating bogus RR for credns-0.test ...
+    ....
+    -- Rebuilt master ...
+    -- Reloaded master ...
+    credns-setup/test$
+
+    And in the debugger:
+
+    Verifying request for credns-0.test
+    Write messages to proxy/stdout and error messages to proxy/stderr
+    Exit with: exit <status>, where success means status == 0
+    ------------------------------------------------------------
+    validate credns-0.test> exit -1
+    exit
+    ------------------------------------------------------------
+    Waiting for credns hook to be called...
+
+    We will have the following serials:
+
+    credns-setup/test$ make serials
+    credns-0.test master		3
+                   proxy		2
+                   slave		2
+    credns-1.test master		3
+                   proxy		3
+                   slave		3
+    credns-2.test master		2
+                   proxy		2
+                   slave		2
+    credns-setup/test$
+
+20. When we wait for a minute or ten when both the proxy and the slave will
+    have expired, the slave still servers the good zone because the proxy
+    transfers it even if it is expired.
+
+    credns-setup/test$ make serials
+    credns-0.test master		3
+                   proxy
+                   slave		2
+    credns-1.test master		3
+                   proxy		3
+                   slave		3
+    credns-2.test master		2
+                   proxy		2
+                   slave		2
+    credns-setup/test$
+
+21. Note that you have to be careful specifying timeouts on verifiers as the
+    interactive debugger will be interrupted when the alarm rings!
+
+    If we modify the configuration for the third zone so that its verifier may
+    not take longer than 10 seconds:
+
+    credns-setup/test$ vi proxy/proxy.credns-2.test.cf
+    ---------------------------------------------------------------------------
+    include: "tsigs/master-notify-proxy.credns-2.test.tsig"
+    include: "tsigs/proxy-xfr-from-master.credns-2.test.tsig"
+    include: "tsigs/proxy-notify-slave.credns-2.test.tsig"
+    include: "tsigs/slave-xfr-from-proxy.credns-2.test.tsig"
+
+    zone:
+        name:          credns-2.test
+        zonefile:     "proxy/credns-2.test"
+        allow-notify:  127.0.0.1        master-notify-proxy.credns-2.test.
+        request-xfr:   127.0.0.1@53470  proxy-xfr-from-master.credns-2.test.
+        notify:        127.0.0.1@53476  proxy-notify-slave.credns-2.test.
+        provide-xfr:   127.0.0.1        slave-xfr-from-proxy.credns-2.test.
+        verifier:      /bin/bash ../hook.sh proxy
+        verifier-timeout: 10
+    ---------------------------------------------------------------------------
+    credns-setup/test$ make start-proxy
+    process 16399 exists, please use restart
+    -- Restarted proxy ...
+    credns-setup/test$ make update2
+    -- Increment serial of zone  to 3 ...
+    -- Signing zone credns-2.test ...
+    ...
+    zonec: done with no errors.
+    -- Rebuilt master ...
+    -- Reloaded master ...
+    willem@lappie:~/credns-setup/test$
+
+    Verifying request for credns-2.test
+    Write messages to proxy/stdout and error messages to proxy/stderr
+    Exit with: exit <status>, where success means status == 0
+    ------------------------------------------------------------
+    validate credns-2.test> credns hook killed (timeout)
+    Waiting for credns hook to be called...
+
+22. To exit a (waiting) debugger simply press Ctrl-C
+
+    Waiting for credns hook to be called...
+    ^C../debug.sh: 35: cannot open proxy/proxyin: Interrupted system call
+    make: *** [debug] Interrupt
+
+    credns-setup/test$
+
+23. We can now stop everything and clean everything up.
+
+    credns-setup/test$ make clean
+    -- Stopped master ...
+    -- Stopped proxy ...
+    -- Stopped slave ...
+    -- Removing configuration files and includes ...
+    -- Removing zone files ...
+    -- Removing DNSSEC keys ...
+    -- Removing servers state ...
+    -- Removing TSIG keys ...
+    echo "-- Removing multitail script ...";
+    -- Removing multitail script ...
+    rm -f multitail.sh
+    credns-setup/test$ ls
+    config.log  config.status  Makefile
+    credns-setup/test$
+
+23. Note that the Makefile and config.status files are still there. We can
+    easily reconfigure and start the setup (but with new keys and TSIGs) with:
+
+    credns-setup/test$ make start
+    ./config.status
+    config.status: creating master/credns-0.test
+    config.status: creating master/master.credns-0.test.cf
+    config.status: creating proxy/proxy.credns-0.test.cf
+    config.status: creating slave/slave.credns-0.test.cf
+    config.status: creating master/credns-1.test
+    config.status: creating master/master.credns-1.test.cf
+    config.status: creating proxy/proxy.credns-1.test.cf
+    config.status: creating slave/slave.credns-1.test.cf
+    config.status: creating master/credns-2.test
+    config.status: creating master/master.credns-2.test.cf
+    config.status: creating proxy/proxy.credns-2.test.cf
+    config.status: creating slave/slave.credns-2.test.cf
+    config.status: creating master/master.cf
+    config.status: creating proxy/proxy.cf
+    config.status: creating slave/slave.cf
+    config.status: creating Makefile
+    -- Creating master/credns-0.test.private ...
+    -- Signing zone credns-0.test ...
+    -- Creating master/credns-1.test.private ...
+    -- Signing zone credns-1.test ...
+    -- Creating master/credns-2.test.private ...
+    -- Signing zone credns-2.test ...
+    -- Creating tsigs/master-notify-proxy.credns-0.test.tsig ...
+    -- Creating tsigs/proxy-xfr-from-master.credns-0.test.tsig ...
+    -- Creating tsigs/proxy-notify-slave.credns-0.test.tsig ...
+    -- Creating tsigs/slave-xfr-from-proxy.credns-0.test.tsig ...
+    -- Creating tsigs/slave-xfr-from-master.credns-0.test.tsig ...
+    -- Creating tsigs/master-notify-proxy.credns-1.test.tsig ...
+    -- Creating tsigs/proxy-xfr-from-master.credns-1.test.tsig ...
+    -- Creating tsigs/proxy-notify-slave.credns-1.test.tsig ...
+    -- Creating tsigs/slave-xfr-from-proxy.credns-1.test.tsig ...
+    -- Creating tsigs/slave-xfr-from-master.credns-1.test.tsig ...
+    -- Creating tsigs/master-notify-proxy.credns-2.test.tsig ...
+    -- Creating tsigs/proxy-xfr-from-master.credns-2.test.tsig ...
+    -- Creating tsigs/proxy-notify-slave.credns-2.test.tsig ...
+    -- Creating tsigs/slave-xfr-from-proxy.credns-2.test.tsig ...
+    -- Creating tsigs/slave-xfr-from-master.credns-2.test.tsig ...
+    ...
+    -- Rebuilt master ...
+    -- Started master ...
+    ...
+    -- Rebuilt proxy ...
+    -- Started proxy ...
+    ...
+    -- Rebuilt slave ...
+    -- Started slave ...
+    credns-setup/test$
+
+24. A definite stop and cleanup should be done with:
+
+    credns-setup/test$ make realclean
+    -- Stopped master ...
+    -- Stopped proxy ...
+    -- Stopped slave ...
+    -- Removing configuration files and includes ...
+    -- Removing zone files ...
+    -- Removing DNSSEC keys ...
+    -- Removing servers state ...
+    -- Removing TSIG keys ...
+    -- Removing multitail script ...
+    rm -f config.log config.status Makefile
+    credns-setup/test$ ls
+    credns-setup/test$
+

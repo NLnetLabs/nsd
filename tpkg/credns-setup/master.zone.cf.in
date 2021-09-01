@@ -1,0 +1,8 @@
+include: "@abs_top_builddir@/tsigs/master-notify-proxy.@ZONE@.tsig"
+include: "@abs_top_builddir@/tsigs/proxy-xfr-from-master.@ZONE@.tsig"
+
+zone:
+    name:         @ZONE@
+    zonefile:     @abs_builddir@/@ZONE@.signed
+    provide-xfr:  @PROXY_IP@		proxy-xfr-from-master.@ZONE@.
+    notify:       @PROXY_IP@@@PROXY_PORT@	master-notify-proxy.@ZONE@.
