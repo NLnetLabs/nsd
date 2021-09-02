@@ -90,6 +90,8 @@ struct xfrd_tcp_pipeline_id {
 	uint16_t id;
 	/** zone pointer or TCP_NULL_SKIP */
 	struct xfrd_zone* zone;
+	/** next free in free list */
+	struct xfrd_tcp_pipeline_id* next_free;
 };
 
 /**
@@ -156,6 +158,9 @@ struct xfrd_tcp_pipeline {
 
 	/* size of the id and unused arrays. */
 	int pipe_num;
+	/* list of free xfrd_tcp_pipeline_id nodes, these are not in the
+	 * zone_per_id tree. preallocated at pipe_num amount. */
+	struct xfrd_tcp_pipeline_id* pipe_id_free_list;
 	/* The xfrd_zone pointers, per id number.
 	 * The key is struct xfrd_tcp_pipeline_id.
 	 * per-ID number the queries that have this ID number, every
