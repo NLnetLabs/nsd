@@ -1,3 +1,6 @@
+3 September 2021: Wouter
+	- Fix not reachable annotation in radix_find_prefix_node.
+
 31 August 2021: Willem
 	- Fix #191: dname_parse_wire() returns fqdn wireformat length.
 
