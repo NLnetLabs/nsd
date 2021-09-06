@@ -178,9 +178,10 @@ server:
 	# xfrd-tcp-max: 32 and xfrd-tcp-pipeline: 128, also rrl-size: 1000
 	# other memory is determined by server-count, tcp-count and zone data
 	# max number of sockets used for outgoing zone transfers.
-	# xfrd-tcp-max: 128
+	# Increase this to allow more sockets for zone transfers.
+	# xfrd-tcp-max: 32
 	# max number of simultaneous outgoing zone transfers over one socket.
-	# xfrd-tcp-pipeline: 65536
+	# xfrd-tcp-pipeline: 128
 
 	# Preferred EDNS buffer size for IPv4.
 	# ipv4-edns-size: 1232
