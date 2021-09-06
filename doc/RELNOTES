@@ -17,6 +17,9 @@ BUG FIXES:
 	- Merge #187: Support using system-wide crypto policies.
 	- Fix #188: NSD fails to build against openssl 1.1 on CentOS 7.
 	- Fix sed script in ssldir split handling.
+	- Fix #189: nsd 4.3.7 crash answer_delegation: Assertion
+	  `query->delegation_rrset' failed.
+	- Fix #190: NSD returns 3 NSEC3 records for NODATA response.
 
 4.3.7
 ================
