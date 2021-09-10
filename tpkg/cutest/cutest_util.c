@@ -188,33 +188,24 @@ static void check_nodupes(CuTest* tc, uint16_t* array, int num)
 	}
 }
 
-static void util_5(CuTest *tc)
+static void testarray(CuTest* tc, int num, int max)
 {
 	uint16_t array[65536];
-	/* test void pick_id_values(uint16_t* array, int num, int max); */
 	memset(array, 0, sizeof(array[0])*65536);
-	pick_id_values(array, 1, 1);
-	check_nodupes(tc, array, 1);
-	pick_id_values(array, 10, 10);
-	check_nodupes(tc, array, 10);
-	pick_id_values(array, 100, 100);
-	check_nodupes(tc, array, 100);
-	pick_id_values(array, 32768, 32768);
-	check_nodupes(tc, array, 32768);
-	pick_id_values(array, 5, 10);
-	check_nodupes(tc, array, 5);
-	pick_id_values(array, 5, 10);
-	check_nodupes(tc, array, 5);
-	pick_id_values(array, 5, 10);
-	check_nodupes(tc, array, 5);
-	pick_id_values(array, 5, 32768);
-	check_nodupes(tc, array, 5);
-	pick_id_values(array, 32000, 32768);
-	check_nodupes(tc, array, 32000);
-	pick_id_values(array, 32000, 65536);
-	check_nodupes(tc, array, 32000);
-	pick_id_values(array, 128, 65536);
-	check_nodupes(tc, array, 128);
-	pick_id_values(array, 4, 65536);
-	check_nodupes(tc, array, 4);
+	pick_id_values(array, num, max);
+	check_nodupes(tc, array, num);
+}
+
+static void util_5(CuTest *tc)
+{
+	/* test void pick_id_values(uint16_t* array, int num, int max); */
+	testarray(tc, 1, 1);
+	testarray(tc, 10, 10);
+	testarray(tc, 1, 1);
+	testarray(tc, 10, 10);
+	testarray(tc, 100, 100);
+	testarray(tc, 32768, 32768);
+	testarray(tc, 5, 10);
+	testarray(tc, 5, 10);
+	testarray(tc, 5, 65536);
 }
