@@ -20,6 +20,7 @@ BUG FIXES:
 	- Fix #189: nsd 4.3.7 crash answer_delegation: Assertion
 	  `query->delegation_rrset' failed.
 	- Fix #190: NSD returns 3 NSEC3 records for NODATA response.
+	- Fix compile failure with openssl 1.0.2.
 
 4.3.7
 ================
