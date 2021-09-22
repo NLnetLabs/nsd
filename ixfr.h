@@ -17,12 +17,25 @@ struct ixfr_data;
 struct zone_ixfr {
 	/* the IXFR that is available for this zone */
 	struct ixfr_data* data;
+	/* total size stored at this time, in bytes,
+	 * sum of sizes of the ixfr data elements */
+	size_t total_size;
 };
 
 /* Data structure that stores one IXFR.
  * The RRs are stored in uncompressed wireformat, that means
  * an uncompressed domain name, type, class, TTL, rdatalen,
- * uncompressed rdata in wireformat. */
+ * uncompressed rdata in wireformat.
+ *
+ * The data structure is formatted like this so that making an IXFR
+ * that moves across several versions can be done by collating the
+ * pieces precisely from the versions involved. In particular, for
+ * an IXFR from olddata to newdata, for a combined output:
+ * newdata.newsoa olddata.oldsoa olddata.del olddata.add
+ * newdata.del newdata.add
+ * in sequence should produce a valid, non-condensed, IXFR with multiple
+ * versions inside.
+ */
 struct ixfr_data {
 	/* from what serial the IXFR starts from, the 'old' serial */
 	uint32_t oldserial;
