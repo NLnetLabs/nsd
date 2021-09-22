@@ -1,3 +1,7 @@
+22 September 2021: Wouter
+	- Fix #194: Incorrect NSEC3 response for SOA query below delegation
+	  point.
+
 13 September 2021: Wouter
 	- Fix compile failure with openssl 1.0.2.
 
