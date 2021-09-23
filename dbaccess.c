@@ -30,6 +30,7 @@
 #include "nsec3.h"
 #include "difffile.h"
 #include "nsd.h"
+#include "ixfr.h"
 
 static time_t udb_time = 0;
 static unsigned long udb_rrsets = 0;
@@ -269,6 +270,7 @@ namedb_zone_create(namedb_type* db, const dname_type* dname,
 	zone->dshashtree = NULL;
 #endif
 	zone->opts = zo;
+	zone->ixfr = NULL;
 	zone->filename = NULL;
 	zone->logstr = NULL;
 	zone->mtime.tv_sec = 0;
@@ -309,6 +311,7 @@ namedb_zone_delete(namedb_type* db, zone_type* zone)
 	hash_tree_delete(db->region, zone->wchashtree);
 	hash_tree_delete(db->region, zone->dshashtree);
 #endif
+	zone_ixfr_free(zone->ixfr);
 	if(zone->filename)
 		region_recycle(db->region, zone->filename,
 			strlen(zone->filename)+1);

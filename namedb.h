@@ -21,6 +21,7 @@ struct nsd_options;
 struct udb_base;
 struct udb_ptr;
 struct nsd;
+struct zone_ixfr;
 
 typedef union rdata_atom rdata_atom_type;
 typedef struct rrset rrset_type;
@@ -137,6 +138,7 @@ struct zone
 	rbtree_type* dshashtree; /* tree, ds-parent-hash domains */
 #endif
 	struct zone_options* opts;
+	struct zone_ixfr* ixfr;
 	char*        filename; /* set if read from file, which file */
 	char*        logstr; /* set for zone xfer, the log string */
 	struct timespec mtime; /* time of last modification */
