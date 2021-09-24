@@ -17,11 +17,15 @@ You can learn more about NSD by reading our
 
 ## Compiling
 
-Make sure you have the C toolchain, OpenSSL and its include files, and
-libevent with its include files and flex and bison installed.
-The repository does not contain ./configure and you can generate it like
-this (./configure is included in release tarballs, and then you do not
-have to generate it first):
+Make sure you have the following installed:
+  * C toolchain (the set of tools to compile C such as a compiler, linker, and assembler)
+  * OpenSSL, with its include files (usually these are included in the "dev" version of the library)
+  * libevent, with its include files (usually these are included in the "dev" version of the library)
+  * flex
+  * bison
+
+The repository does not contain `./configure`, but you can generate it like
+this (note that the `./configure` is included in release tarballs so they do not have to be generated):
 
 ```
 aclocal && autoconf && autoheader
