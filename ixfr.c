@@ -69,6 +69,20 @@ static int parse_qserial(struct buffer* packet, uint32_t* qserial,
 	return 0;
 }
 
+/* get the current serial from the zone */
+static uint32_t get_current_serial(struct zone* zone)
+{
+	if(!zone || !zone->soa_rrset)
+		return 0;
+	if(zone->soa_rrset->rr_count == 0)
+		return 0;
+	if(zone->soa_rrset->rrs[0].rdata_count < 3)
+		return 0;
+	if(zone->soa_rrset->rrs[0].rdatas[2].data[0] != 4)
+		return 0;
+	return read_uint32(&zone->soa_rrset->rrs[0].rdatas[2].data[1]);
+}
+
 query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 {
 	uint32_t qserial = 0;
@@ -109,6 +123,9 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		/* the specific version is not available, make an AXFR */
 		return query_axfr(nsd, query);
 	}
+	/* see if the IXFR ends at the current served zone, if not, AXFR */
+	if(ixfr_data->newserial != get_current_serial(zone))
+		return query_axfr(nsd, query);
 
 	return QUERY_PROCESSED;
 }
@@ -539,7 +556,13 @@ void zone_ixfr_add(struct zone_ixfr* ixfr, struct ixfr_data* data)
 struct ixfr_data* zone_ixfr_find_serial(struct zone_ixfr* ixfr,
 	uint32_t qserial)
 {
-	(void)ixfr;
-	(void)qserial;
+	if(!ixfr)
+		return NULL;
+	if(!ixfr->data)
+		return NULL;
+	if(ixfr->data->oldserial == qserial) {
+		return ixfr->data;
+	}
+	/* not found */
 	return NULL;
 }
