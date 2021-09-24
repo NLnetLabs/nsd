@@ -12,6 +12,7 @@
 #include "ixfr.h"
 #include "packet.h"
 #include "rdata.h"
+#include "axfr.h"
 
 /*
  * For optimal compression IXFR response packets are limited in size
@@ -22,10 +23,93 @@
 /* initial space in rrs data for storing records */
 #define IXFR_STORE_INITIAL_SIZE 4096
 
+/* parse the serial number from the IXFR query */
+static int parse_qserial(struct buffer* packet, uint32_t* qserial,
+	size_t* snip_pos)
+{
+	unsigned int i;
+	uint16_t type, rdlen;
+	/* we must have a SOA in the authority section */
+	if(NSCOUNT(packet) == 0)
+		return 0;
+	/* skip over the question section, we want only one */
+	buffer_set_position(packet, QHEADERSZ);
+	if(QDCOUNT(packet) != 1)
+		return 0;
+	if(!packet_skip_rr(packet, 1))
+		return 0;
+	/* set position to snip off the authority section */
+	*snip_pos = buffer_position(packet);
+	/* skip over the authority section RRs until we find the SOA */
+	for(i=0; i<NSCOUNT(packet); i++) {
+		/* is this the SOA record? */
+		if(!packet_skip_dname(packet))
+			return 0; /* malformed name */
+		if(!buffer_available(packet, 10))
+			return 0; /* no type,class,ttl,rdatalen */
+		type = buffer_read_u16(packet);
+		buffer_skip(packet, 6);
+		rdlen = buffer_read_u16(packet);
+		if(!buffer_available(packet, rdlen))
+			return 0;
+		if(type == TYPE_SOA) {
+			/* read serial from rdata, skip two dnames, then
+			 * read the 32bit value */
+			if(!packet_skip_dname(packet))
+				return 0; /* malformed nsname */
+			if(!packet_skip_dname(packet))
+				return 0; /* malformed rname */
+			if(!buffer_available(packet, 4))
+				return 0;
+			*qserial = buffer_read_u32(packet);
+			return 1;
+		}
+		buffer_skip(packet, rdlen);
+	}
+	return 0;
+}
+
 query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 {
-	(void)nsd;
-	(void)query;
+	uint32_t qserial = 0;
+	struct zone* zone;
+	struct ixfr_data* ixfr_data;
+	size_t oldpos;
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "ixfr query routine, %s",
+		dname_to_string(query->qname, NULL)));
+
+	/* parse the serial number from the IXFR request */
+	oldpos = QHEADERSZ;
+	if(!parse_qserial(query->packet, &qserial, &oldpos)) {
+		NSCOUNT_SET(query->packet, 0);
+		ARCOUNT_SET(query->packet, 0);
+		buffer_set_position(query->packet, oldpos);
+		RCODE_SET(query->packet, RCODE_FORMAT);
+		return QUERY_PROCESSED;
+	}
+	NSCOUNT_SET(query->packet, 0);
+	ARCOUNT_SET(query->packet, 0);
+	buffer_set_position(query->packet, oldpos);
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "ixfr query routine, %s IXFR=%u",
+		dname_to_string(query->qname, NULL), (unsigned)qserial));
+
+	/* do we have an IXFR with this serial number? If not, serve AXFR */
+	zone = namedb_find_zone(nsd->db, query->qname);
+	if(!zone) {
+		/* no zone is present */
+		RCODE_SET(query->packet, RCODE_NOTAUTH);
+		return QUERY_PROCESSED;
+	}
+	if(!zone->ixfr) {
+		/* we have no ixfr information for the zone, make an AXFR */
+		return query_axfr(nsd, query);
+	}
+	ixfr_data = zone_ixfr_find_serial(zone->ixfr, qserial);
+	if(!ixfr_data) {
+		/* the specific version is not available, make an AXFR */
+		return query_axfr(nsd, query);
+	}
+
 	return QUERY_PROCESSED;
 }
 
@@ -39,6 +123,13 @@ static void ixfr_data_free(struct ixfr_data* data)
 	free(data->del);
 	free(data->add);
 	free(data);
+}
+
+/* size of the ixfr data */
+static size_t ixfr_data_size(struct ixfr_data* data)
+{
+	return sizeof(struct ixfr_data) + data->newsoa_len + data->oldsoa_len
+		+ data->del_len + data->add_len;
 }
 
 struct ixfr_store* ixfr_store_start(struct zone* zone,
@@ -432,13 +523,6 @@ void zone_ixfr_free(struct zone_ixfr* ixfr)
 	ixfr_data_free(ixfr->data);
 }
 
-/* size of the ixfr data */
-static size_t ixfr_data_size(struct ixfr_data* data)
-{
-	return sizeof(struct ixfr_data) + data->newsoa_len + data->oldsoa_len
-		+ data->del_len + data->add_len;
-}
-
 void zone_ixfr_remove(struct zone_ixfr* ixfr)
 {
 	ixfr->total_size -= ixfr_data_size(ixfr->data);
@@ -450,4 +534,12 @@ void zone_ixfr_add(struct zone_ixfr* ixfr, struct ixfr_data* data)
 {
 	ixfr->data = data;
 	ixfr->total_size += ixfr_data_size(ixfr->data);
+}
+
+struct ixfr_data* zone_ixfr_find_serial(struct zone_ixfr* ixfr,
+	uint32_t qserial)
+{
+	(void)ixfr;
+	(void)qserial;
+	return NULL;
 }

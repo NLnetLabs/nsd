@@ -182,4 +182,8 @@ void zone_ixfr_remove(struct zone_ixfr* ixfr);
 /* add ixfr data to the zone_ixfr */
 void zone_ixfr_add(struct zone_ixfr* ixfr, struct ixfr_data* data);
 
+/* find serial number in ixfr list, or NULL if not found */
+struct ixfr_data* zone_ixfr_find_serial(struct zone_ixfr* ixfr,
+	uint32_t qserial);
+
 #endif /* _IXFR_H_ */
