@@ -122,11 +122,85 @@ static size_t count_rr_length(uint8_t* data, size_t data_len, size_t current)
 	return i-current;
 }
 
+/* Copy RRs into packet until packet full, return number RRs added */
+static uint16_t ixfr_copy_rrs_into_packet(struct query* query)
+{
+	uint16_t total_added = 0;
+
+	/* Copy RRs into the packet until the answer is full,
+	 * when an RR does not fit, we return and add no more. */
+
+	/* Add first SOA */
+	if(query->ixfr_count_newsoa < query->ixfr_data->newsoa_len) {
+		if(buffer_position(query->packet) < query->maxlen &&
+			buffer_position(query->packet) +
+			query->ixfr_data->newsoa_len < query->maxlen) {
+			buffer_write(query->packet, query->ixfr_data->newsoa,
+				query->ixfr_data->newsoa_len);
+			query->ixfr_count_newsoa = query->ixfr_data->newsoa_len;
+			total_added++;
+		} else {
+			/* cannot add another RR, so return */
+			return total_added;
+		}
+	}
+
+	/* Add second SOA */
+	if(query->ixfr_count_oldsoa < query->ixfr_data->oldsoa_len) {
+		if(buffer_position(query->packet) < query->maxlen &&
+			buffer_position(query->packet) +
+			query->ixfr_data->oldsoa_len < query->maxlen) {
+			buffer_write(query->packet, query->ixfr_data->oldsoa,
+				query->ixfr_data->oldsoa_len);
+			query->ixfr_count_oldsoa = query->ixfr_data->oldsoa_len;
+			total_added++;
+		} else {
+			/* cannot add another RR, so return */
+			return total_added;
+		}
+	}
+
+	/* Add del data, with deleted RRs and a SOA */
+	while(query->ixfr_count_del < query->ixfr_data->del_len) {
+		size_t rrlen = count_rr_length(query->ixfr_data->del,
+			query->ixfr_data->del_len, query->ixfr_count_del);
+		if(rrlen && buffer_position(query->packet) < query->maxlen &&
+			buffer_position(query->packet) + rrlen <
+			query->maxlen) {
+			buffer_write(query->packet, query->ixfr_data->del +
+				query->ixfr_count_del, rrlen);
+			query->ixfr_count_del += rrlen;
+			total_added++;
+		} else {
+			/* the next record does not fit in the remaining
+			 * space of the packet */
+			return total_added;
+		}
+	}
+
+	/* Add add data, with added RRs and a SOA */
+	while(query->ixfr_count_add < query->ixfr_data->add_len) {
+		size_t rrlen = count_rr_length(query->ixfr_data->add,
+			query->ixfr_data->add_len, query->ixfr_count_add);
+		if(rrlen && buffer_position(query->packet) < query->maxlen &&
+			buffer_position(query->packet) + rrlen <
+			query->maxlen) {
+			buffer_write(query->packet, query->ixfr_data->add +
+				query->ixfr_count_add, rrlen);
+			query->ixfr_count_add += rrlen;
+			total_added++;
+		} else {
+			/* the next record does not fit in the remaining
+			 * space of the packet */
+			return total_added;
+		}
+	}
+	return total_added;
+}
+
 query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 {
 	uint16_t total_added = 0;
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "ixfr query routine, %s",
-		dname_to_string(query->qname, NULL)));
 
 	if (query->ixfr_is_done)
 		return QUERY_PROCESSED;
@@ -206,64 +280,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		query_prepare_response(query);
 	}
 
-	/* Copy RRs into the packet until the answer is full */
-	/* Add first SOA */
-	if(query->ixfr_count_newsoa < query->ixfr_data->newsoa_len &&
-		buffer_position(query->packet) < query->maxlen &&
-		buffer_position(query->packet) + query->ixfr_data->newsoa_len
-		< query->maxlen) {
-		buffer_write(query->packet, query->ixfr_data->newsoa,
-			query->ixfr_data->newsoa_len);
-		query->ixfr_count_newsoa = query->ixfr_data->newsoa_len;
-		total_added++;
-	}
-
-	/* Add second SOA */
-	if(query->ixfr_count_oldsoa < query->ixfr_data->oldsoa_len &&
-		buffer_position(query->packet) < query->maxlen &&
-		buffer_position(query->packet) + query->ixfr_data->oldsoa_len
-		< query->maxlen) {
-		buffer_write(query->packet, query->ixfr_data->oldsoa,
-			query->ixfr_data->oldsoa_len);
-		query->ixfr_count_oldsoa = query->ixfr_data->oldsoa_len;
-		total_added++;
-	}
-
-	/* Add del data, with deleted RRs and a SOA */
-	while(query->ixfr_count_del < query->ixfr_data->del_len &&
-		buffer_position(query->packet) < query->maxlen) {
-		size_t rrlen = count_rr_length(query->ixfr_data->del,
-			query->ixfr_data->del_len, query->ixfr_count_del);
-		if(rrlen && buffer_position(query->packet) + rrlen <
-			query->maxlen) {
-			buffer_write(query->packet, query->ixfr_data->del +
-				query->ixfr_count_del, rrlen);
-			query->ixfr_count_del += rrlen;
-			total_added++;
-		} else {
-			/* the next record does not fit in the remaining
-			 * space of the packet */
-			break;
-		}
-	}
-
-	/* Add add data, with added RRs and a SOA */
-	while(query->ixfr_count_add < query->ixfr_data->add_len &&
-		buffer_position(query->packet) < query->maxlen) {
-		size_t rrlen = count_rr_length(query->ixfr_data->add,
-			query->ixfr_data->add_len, query->ixfr_count_add);
-		if(rrlen && buffer_position(query->packet) + rrlen <
-			query->maxlen) {
-			buffer_write(query->packet, query->ixfr_data->add +
-				query->ixfr_count_add, rrlen);
-			query->ixfr_count_add += rrlen;
-			total_added++;
-		} else {
-			/* the next record does not fit in the remaining
-			 * space of the packet */
-			break;
-		}
-	}
+	total_added = ixfr_copy_rrs_into_packet(query);
 
 	if(query->ixfr_count_add >= query->ixfr_data->add_len) {
 		/* finished the ixfr_data */
@@ -615,9 +632,9 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	if(ixfr_store->cancelled)
 		return;
 
-	/* the SOA record is stored separately in the IXFR storage, we
-	 * do not have to store it here when called from difffile's IXFR
-	 * processing with type SOA. */
+	/* The SOA data is stored with separate calls. And then appended
+	 * during the finish operation. We do not have to store it here
+	 * when called from difffile's IXFR processing with type SOA. */
 	if(type == TYPE_SOA)
 		return;
 
