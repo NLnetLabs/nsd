@@ -81,6 +81,7 @@
 #include "remote.h"
 #include "lookup3.h"
 #include "rrl.h"
+#include "ixfr.h"
 #ifdef USE_DNSTAP
 #include "dnstap/dnstap_collector.h"
 #endif
@@ -1530,6 +1531,7 @@ server_shutdown(struct nsd *nsd)
 #endif
 	udb_base_free_keep_mmap(nsd->task[0]);
 	udb_base_free_keep_mmap(nsd->task[1]);
+	namedb_free_ixfr(nsd->db);
 	namedb_close_udb(nsd->db); /* keeps mmap */
 	namedb_close(nsd->db);
 	nsd_options_destroy(nsd->options);
@@ -3980,10 +3982,13 @@ handle_tcp_writing(int fd, short event, void* arg)
 
 	assert(data->bytes_transmitted == q->tcplen + sizeof(q->tcplen));
 
-	if (data->query_state == QUERY_IN_AXFR) {
+	if (data->query_state == QUERY_IN_AXFR ||
+		data->query_state == QUERY_IN_IXFR) {
 		/* Continue processing AXFR and writing back results.  */
 		buffer_clear(q->packet);
-		data->query_state = query_axfr(data->nsd, q);
+		if(data->query_state == QUERY_IN_AXFR)
+			data->query_state = query_axfr(data->nsd, q);
+		else data->query_state = query_ixfr(data->nsd, q);
 		if (data->query_state != QUERY_PROCESSED) {
 			query_add_optional(data->query, data->nsd, &now);
 
@@ -4444,10 +4449,13 @@ handle_tls_writing(int fd, short event, void* arg)
 
 	assert(data->bytes_transmitted == q->tcplen + sizeof(q->tcplen));
 
-	if (data->query_state == QUERY_IN_AXFR) {
+	if (data->query_state == QUERY_IN_AXFR ||
+		data->query_state == QUERY_IN_IXFR) {
 		/* Continue processing AXFR and writing back results.  */
 		buffer_clear(q->packet);
-		data->query_state = query_axfr(data->nsd, q);
+		if(data->query_state == QUERY_IN_AXFR)
+			data->query_state = query_axfr(data->nsd, q);
+		else data->query_state = query_ixfr(data->nsd, q);
 		if (data->query_state != QUERY_PROCESSED) {
 			query_add_optional(data->query, data->nsd, &now);
 

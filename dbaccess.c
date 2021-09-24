@@ -63,6 +63,15 @@ namedb_close_udb(struct namedb* db)
 }
 
 void
+namedb_free_ixfr(struct namedb* db)
+{
+	struct radnode* n;
+	for(n=radix_first(db->zonetree); n; n=radix_next(n)) {
+		zone_ixfr_free(((zone_type*)n->elem)->ixfr);
+	}
+}
+
+void
 apex_rrset_checks(namedb_type* db, rrset_type* rrset, domain_type* domain)
 {
 	uint32_t soa_minimum;

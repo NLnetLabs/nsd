@@ -383,6 +383,8 @@ int namedb_lookup (struct namedb* db,
 struct namedb *namedb_open(const char *filename, struct nsd_options* opt);
 void namedb_close_udb(struct namedb* db);
 void namedb_close(struct namedb* db);
+/* free ixfr data stored for zones */
+void namedb_free_ixfr(struct namedb* db);
 void namedb_check_zonefiles(struct nsd* nsd, struct nsd_options* opt,
 	struct udb_base* taskudb, struct udb_ptr* last_task);
 void namedb_check_zonefile(struct nsd* nsd, struct udb_base* taskudb,

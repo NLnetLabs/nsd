@@ -70,7 +70,7 @@ static int parse_qserial(struct buffer* packet, uint32_t* qserial,
 }
 
 /* get the current serial from the zone */
-static uint32_t get_current_serial(struct zone* zone)
+static uint32_t zone_get_current_serial(struct zone* zone)
 {
 	if(!zone || !zone->soa_rrset)
 		return 0;
@@ -78,56 +78,214 @@ static uint32_t get_current_serial(struct zone* zone)
 		return 0;
 	if(zone->soa_rrset->rrs[0].rdata_count < 3)
 		return 0;
-	if(zone->soa_rrset->rrs[0].rdatas[2].data[0] != 4)
+	if(zone->soa_rrset->rrs[0].rdatas[2].data[0] < 4)
 		return 0;
 	return read_uint32(&zone->soa_rrset->rrs[0].rdatas[2].data[1]);
 }
 
+/* Count length of next record in data */
+static size_t count_rr_length(uint8_t* data, size_t data_len, size_t current)
+{
+	uint8_t label_size;
+	uint16_t rdlen;
+	size_t i = current;
+	if(current >= data_len)
+		return 0;
+	/* pass the owner dname */
+	while(1) {
+		if(i+1 > data_len)
+			return 0;
+		label_size = data[i++];
+		if(label_size == 0) {
+			break;
+		} else if((label_size &0xc0) != 0) {
+			return 0; /* uncompressed dnames in IXFR store */
+		} else if(i+label_size > data_len) {
+			return 0;
+		} else {
+			i += label_size;
+		}
+	}
+	/* after dname, we pass type, class, ttl, rdatalen */
+	if(i+10 > data_len)
+		return 0;
+	i += 8;
+	rdlen = read_uint16(data+i);
+	i += 2;
+	/* pass over the rdata */
+	if(i+((size_t)rdlen) > data_len)
+		return 0;
+	i += ((size_t)rdlen);
+	return i-current;
+}
+
 query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 {
-	uint32_t qserial = 0;
-	struct zone* zone;
-	struct ixfr_data* ixfr_data;
-	size_t oldpos;
+	uint16_t total_added = 0;
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "ixfr query routine, %s",
 		dname_to_string(query->qname, NULL)));
 
-	/* parse the serial number from the IXFR request */
-	oldpos = QHEADERSZ;
-	if(!parse_qserial(query->packet, &qserial, &oldpos)) {
+	if (query->ixfr_is_done)
+		return QUERY_PROCESSED;
+
+	if (query->maxlen > IXFR_MAX_MESSAGE_LEN)
+		query->maxlen = IXFR_MAX_MESSAGE_LEN;
+
+	assert(!query_overflow(query));
+	/* only keep running values for most packets */
+	query->tsig_prepare_it = 0;
+	query->tsig_update_it = 1;
+	if(query->tsig_sign_it) {
+		/* prepare for next updates */
+		query->tsig_prepare_it = 1;
+		query->tsig_sign_it = 0;
+	}
+
+	if (query->ixfr_data == NULL) {
+		/* This is the first packet, process the query further */
+		uint32_t qserial = 0;
+		struct zone* zone;
+		struct ixfr_data* ixfr_data;
+		size_t oldpos;
+
+		/* parse the serial number from the IXFR request */
+		oldpos = QHEADERSZ;
+		if(!parse_qserial(query->packet, &qserial, &oldpos)) {
+			NSCOUNT_SET(query->packet, 0);
+			ARCOUNT_SET(query->packet, 0);
+			buffer_set_position(query->packet, oldpos);
+			RCODE_SET(query->packet, RCODE_FORMAT);
+			return QUERY_PROCESSED;
+		}
 		NSCOUNT_SET(query->packet, 0);
 		ARCOUNT_SET(query->packet, 0);
 		buffer_set_position(query->packet, oldpos);
-		RCODE_SET(query->packet, RCODE_FORMAT);
-		return QUERY_PROCESSED;
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "ixfr query routine, %s IXFR=%u",
+			dname_to_string(query->qname, NULL), (unsigned)qserial));
+
+		/* do we have an IXFR with this serial number? If not, serve AXFR */
+		zone = namedb_find_zone(nsd->db, query->qname);
+		if(!zone) {
+			/* no zone is present */
+			RCODE_SET(query->packet, RCODE_NOTAUTH);
+			return QUERY_PROCESSED;
+		}
+		if(!zone->ixfr) {
+			/* we have no ixfr information for the zone, make an AXFR */
+			return query_axfr(nsd, query);
+		}
+		ixfr_data = zone_ixfr_find_serial(zone->ixfr, qserial);
+		if(!ixfr_data) {
+			/* the specific version is not available, make an AXFR */
+			return query_axfr(nsd, query);
+		}
+		/* see if the IXFR ends at the current served zone, if not, AXFR */
+		if(ixfr_data->newserial != zone_get_current_serial(zone))
+			return query_axfr(nsd, query);
+
+		query->ixfr_data = ixfr_data;
+		query->ixfr_is_done = 0;
+		query->ixfr_count_newsoa = 0;
+		query->ixfr_count_oldsoa = 0;
+		query->ixfr_count_del = 0;
+		query->ixfr_count_add = 0;
+		if(query->tsig.status == TSIG_OK) {
+			query->tsig_sign_it = 1; /* sign first packet in stream */
+		}
+	} else {
+		/*
+		 * Query name and EDNS need not be repeated after the
+		 * first response packet.
+		 */
+		query->edns.status = EDNS_NOT_PRESENT;
+		buffer_set_limit(query->packet, QHEADERSZ);
+		QDCOUNT_SET(query->packet, 0);
+		query_prepare_response(query);
 	}
+
+	/* Copy RRs into the packet until the answer is full */
+	/* Add first SOA */
+	if(query->ixfr_count_newsoa < query->ixfr_data->newsoa_len &&
+		buffer_position(query->packet) < query->maxlen &&
+		buffer_position(query->packet) + query->ixfr_data->newsoa_len
+		< query->maxlen) {
+		buffer_write(query->packet, query->ixfr_data->newsoa,
+			query->ixfr_data->newsoa_len);
+		query->ixfr_count_newsoa = query->ixfr_data->newsoa_len;
+		total_added++;
+	}
+
+	/* Add second SOA */
+	if(query->ixfr_count_oldsoa < query->ixfr_data->oldsoa_len &&
+		buffer_position(query->packet) < query->maxlen &&
+		buffer_position(query->packet) + query->ixfr_data->oldsoa_len
+		< query->maxlen) {
+		buffer_write(query->packet, query->ixfr_data->oldsoa,
+			query->ixfr_data->oldsoa_len);
+		query->ixfr_count_oldsoa = query->ixfr_data->oldsoa_len;
+		total_added++;
+	}
+
+	/* Add del data, with deleted RRs and a SOA */
+	while(query->ixfr_count_del < query->ixfr_data->del_len &&
+		buffer_position(query->packet) < query->maxlen) {
+		size_t rrlen = count_rr_length(query->ixfr_data->del,
+			query->ixfr_data->del_len, query->ixfr_count_del);
+		if(rrlen && buffer_position(query->packet) + rrlen <
+			query->maxlen) {
+			buffer_write(query->packet, query->ixfr_data->del +
+				query->ixfr_count_del, rrlen);
+			query->ixfr_count_del += rrlen;
+			total_added++;
+		} else {
+			/* the next record does not fit in the remaining
+			 * space of the packet */
+			break;
+		}
+	}
+
+	/* Add add data, with added RRs and a SOA */
+	while(query->ixfr_count_add < query->ixfr_data->add_len &&
+		buffer_position(query->packet) < query->maxlen) {
+		size_t rrlen = count_rr_length(query->ixfr_data->add,
+			query->ixfr_data->add_len, query->ixfr_count_add);
+		if(rrlen && buffer_position(query->packet) + rrlen <
+			query->maxlen) {
+			buffer_write(query->packet, query->ixfr_data->add +
+				query->ixfr_count_add, rrlen);
+			query->ixfr_count_add += rrlen;
+			total_added++;
+		} else {
+			/* the next record does not fit in the remaining
+			 * space of the packet */
+			break;
+		}
+	}
+
+	if(query->ixfr_count_add >= query->ixfr_data->add_len) {
+		/* finished the ixfr_data */
+		/* sign the last packet */
+		query->tsig_sign_it = 1;
+		query->ixfr_is_done = 1;
+	}
+
+	/* return the answer */
+	AA_SET(query->packet);
+	ANCOUNT_SET(query->packet, total_added);
 	NSCOUNT_SET(query->packet, 0);
 	ARCOUNT_SET(query->packet, 0);
-	buffer_set_position(query->packet, oldpos);
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "ixfr query routine, %s IXFR=%u",
-		dname_to_string(query->qname, NULL), (unsigned)qserial));
 
-	/* do we have an IXFR with this serial number? If not, serve AXFR */
-	zone = namedb_find_zone(nsd->db, query->qname);
-	if(!zone) {
-		/* no zone is present */
-		RCODE_SET(query->packet, RCODE_NOTAUTH);
-		return QUERY_PROCESSED;
+	/* check if it needs tsig signatures */
+	if(query->tsig.status == TSIG_OK) {
+#if AXFR_TSIG_SIGN_EVERY_NTH > 0
+		if(query->tsig.updates_since_last_prepare >= AXFR_TSIG_SIGN_EVERY_NTH) {
+#endif
+			query->tsig_sign_it = 1;
+#if AXFR_TSIG_SIGN_EVERY_NTH > 0
+		}
+#endif
 	}
-	if(!zone->ixfr) {
-		/* we have no ixfr information for the zone, make an AXFR */
-		return query_axfr(nsd, query);
-	}
-	ixfr_data = zone_ixfr_find_serial(zone->ixfr, qserial);
-	if(!ixfr_data) {
-		/* the specific version is not available, make an AXFR */
-		return query_axfr(nsd, query);
-	}
-	/* see if the IXFR ends at the current served zone, if not, AXFR */
-	if(ixfr_data->newserial != get_current_serial(zone))
-		return query_axfr(nsd, query);
-
-	return QUERY_PROCESSED;
+	return QUERY_IN_IXFR;
 }
 
 /* free ixfr_data structure */
@@ -359,6 +517,7 @@ void ixfr_store_add_newsoa(struct ixfr_store* ixfr_store,
 		/* not possible already parsed, but fail nicely anyway */
 		log_msg(LOG_ERR, "ixfr_store: not enough space in packet");
 		ixfr_store_cancel(ixfr_store);
+		buffer_set_position(packet, oldpos);
 		return;
 	}
 	ttl = buffer_read_u32(packet);
@@ -369,12 +528,14 @@ void ixfr_store_add_newsoa(struct ixfr_store* ixfr_store,
 		/* not possible already parsed, but fail nicely anyway */
 		log_msg(LOG_ERR, "ixfr_store: not enough rdata space in packet");
 		ixfr_store_cancel(ixfr_store);
+		buffer_set_position(packet, oldpos);
 		return;
 	}
 	if(!read_soa_rdata(packet, primns, &primns_len, email, &email_len,
 		&serial, &refresh, &retry, &expire, &minimum, &sz)) {
 		log_msg(LOG_ERR, "ixfr_store newsoa: cannot parse packet");
 		ixfr_store_cancel(ixfr_store);
+		buffer_set_position(packet, oldpos);
 		return;
 	}
 	rdlen_uncompressed = primns_len + email_len + 4 + 4 + 4 + 4 + 4;
@@ -409,17 +570,19 @@ void ixfr_store_add_oldsoa(struct ixfr_store* ixfr_store, uint32_t ttl,
 
 	/* calculate the length */
 	sz = domain_dname(ixfr_store->zone->apex)->name_size;
-	sz += 2 /* type */ + 2 /* class */ + 4 /* ttl */;
+	sz += 2 /*type*/ + 2 /*class*/ + 4 /*ttl*/ + 2 /*rdlen*/;
 	if(!buffer_available(packet, rrlen)) {
 		/* not possible already parsed, but fail nicely anyway */
 		log_msg(LOG_ERR, "ixfr_store oldsoa: not enough rdata space in packet");
 		ixfr_store_cancel(ixfr_store);
+		buffer_set_position(packet, oldpos);
 		return;
 	}
 	if(!read_soa_rdata(packet, primns, &primns_len, email, &email_len,
 		&serial, &refresh, &retry, &expire, &minimum, &sz)) {
 		log_msg(LOG_ERR, "ixfr_store oldsoa: cannot parse packet");
 		ixfr_store_cancel(ixfr_store);
+		buffer_set_position(packet, oldpos);
 		return;
 	}
 	rdlen_uncompressed = primns_len + email_len + 4 + 4 + 4 + 4 + 4;
@@ -443,16 +606,24 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	rdata_atom_type *rdatas;
 	ssize_t rdata_num;
 	int i;
-	size_t rdlen_uncompressed, sz;
+	size_t rdlen_uncompressed, sz, oldpos;
 	uint8_t* sp;
 
 	if(ixfr_store->cancelled)
 		return;
 
+	/* the SOA record is stored separately in the IXFR storage, we
+	 * do not have to store it here when called from difffile's IXFR
+	 * processing with type SOA. */
+	if(type == TYPE_SOA)
+		return;
+
 	/* parse rdata */
+	oldpos = buffer_position(packet);
 	temptable = domain_table_create(temp_region);
 	rdata_num = rdata_wireformat_to_rdata_atoms(temp_region, temptable,
 		type, rrlen, packet, &rdatas);
+	buffer_set_position(packet, oldpos);
 	if(rdata_num == -1) {
 		log_msg(LOG_ERR, "ixfr_store addrr: cannot parse packet");
 		ixfr_store_cancel(ixfr_store);
@@ -538,6 +709,7 @@ void zone_ixfr_free(struct zone_ixfr* ixfr)
 	if(!ixfr)
 		return;
 	ixfr_data_free(ixfr->data);
+	free(ixfr);
 }
 
 void zone_ixfr_remove(struct zone_ixfr* ixfr)
