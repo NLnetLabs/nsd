@@ -20,6 +20,9 @@
  */
 #define IXFR_MAX_MESSAGE_LEN MAX_COMPRESSION_OFFSET
 
+/* draft-ietf-dnsop-rfc2845bis-06, section 5.3.1 says to sign every packet */
+#define IXFR_TSIG_SIGN_EVERY_NTH	0	/* tsig sign every N packets. */
+
 /* initial space in rrs data for storing records */
 #define IXFR_STORE_INITIAL_SIZE 4096
 
@@ -277,11 +280,11 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 
 	/* check if it needs tsig signatures */
 	if(query->tsig.status == TSIG_OK) {
-#if AXFR_TSIG_SIGN_EVERY_NTH > 0
-		if(query->tsig.updates_since_last_prepare >= AXFR_TSIG_SIGN_EVERY_NTH) {
+#if IXFR_TSIG_SIGN_EVERY_NTH > 0
+		if(query->tsig.updates_since_last_prepare >= IXFR_TSIG_SIGN_EVERY_NTH) {
 #endif
 			query->tsig_sign_it = 1;
-#if AXFR_TSIG_SIGN_EVERY_NTH > 0
+#if IXFR_TSIG_SIGN_EVERY_NTH > 0
 		}
 #endif
 	}
