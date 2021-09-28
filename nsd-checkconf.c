@@ -348,6 +348,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		ZONE_GET_RRL(rrl_whitelist, o, zone->pattern);
 #endif
 		ZONE_GET_BIN(multi_master_check, o, zone->pattern);
+		ZONE_GET_BIN(store_ixfr, o, zone->pattern);
 		printf("Zone option not handled: %s %s\n", z, o);
 		exit(1);
 	} else if(pat) {
@@ -381,6 +382,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		ZONE_GET_RRL(rrl_whitelist, o, p);
 #endif
 		ZONE_GET_BIN(multi_master_check, o, p);
+		ZONE_GET_BIN(store_ixfr, o, p);
 		printf("Pattern option not handled: %s %s\n", pat, o);
 		exit(1);
 	} else {

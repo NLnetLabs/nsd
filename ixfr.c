@@ -13,6 +13,7 @@
 #include "packet.h"
 #include "rdata.h"
 #include "axfr.h"
+#include "options.h"
 
 /*
  * For optimal compression IXFR response packets are limited in size
@@ -715,8 +716,7 @@ void ixfr_store_addrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 
 int zone_is_ixfr_enabled(struct zone* zone)
 {
-	(void)zone;
-	return 1;
+	return zone->opts->pattern->store_ixfr;
 }
 
 struct zone_ixfr* zone_ixfr_create(void)
