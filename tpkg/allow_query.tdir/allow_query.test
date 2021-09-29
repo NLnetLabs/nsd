@@ -72,9 +72,7 @@ then
 fi
 
 # check if we have IPv6
-if test "127.0.0.1" = "127.0.0.127"; then
-	echo "Skip this part of the test no IPv6"
-else
+if ifconfig | grep " ::1 " >/dev/null; then
 # zone example.net, allow-query: ::0/0 NOKEY
 # Test from allowed IPv6
 #
@@ -87,6 +85,8 @@ then
 	echo "FAILED"
 	exit 1
 fi
+else
+	echo "Skip this part of the test no IPv6"
 fi
 
 # zone example.com, allow-query: 0.0.0.0/0 BLOCKED
@@ -103,9 +103,7 @@ then
 fi
 
 # check if we have IPv6
-if test "127.0.0.1" = "127.0.0.127"; then
-	echo "Skip this part of the test no IPv6"
-else
+if ifconfig | grep " ::1 " >/dev/null; then
 # zone example.com, allow-query: 0.0.0.0/0 BLOCKED
 # No queries allowed whatsoever
 #
@@ -118,6 +116,8 @@ then
 	echo "FAILED"
 	exit 1
 fi
+else
+	echo "Skip this part of the test no IPv6"
 fi
 
 # zone example.com, allow-query: 0.0.0.0/0 BLOCKED

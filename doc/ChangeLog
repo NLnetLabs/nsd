@@ -4,6 +4,7 @@
 	- Fix unit test for xot tertiary config for zonelistfile default.
 	- Fix unit test for dns-cookies for no unshare, and allow-query
 	  for no IPv6 loopback.
+	- Fix unit test allow query to check for IPv6.
 
 22 September 2021: Wouter
 	- Fix #194: Incorrect NSEC3 response for SOA query below delegation
