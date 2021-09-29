@@ -1,6 +1,7 @@
 29 September 2021: Wouter
 	- Fix unit tests for svcb and xot to not touch the default
 	  zonelistfile.
+	- Fix unit test for xot tertiary config for zonelistfile default.
 
 22 September 2021: Wouter
 	- Fix #194: Incorrect NSEC3 response for SOA query below delegation
