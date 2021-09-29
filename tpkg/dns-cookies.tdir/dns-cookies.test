@@ -4,6 +4,10 @@
 # use .tpkg.var.test for in test variable passing
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 . ../common.sh
+if test ! -x "`which unshare 2>&1`"; then
+	echo "no unshare (from util-linux package) available, skip test"
+	exit 0
+fi
 
 echo "Starting test A1"
 unshare -rUn bash dns-cookies.test.A1 || exit 1

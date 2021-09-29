@@ -2,6 +2,8 @@
 	- Fix unit tests for svcb and xot to not touch the default
 	  zonelistfile.
 	- Fix unit test for xot tertiary config for zonelistfile default.
+	- Fix unit test for dns-cookies for no unshare, and allow-query
+	  for no IPv6 loopback.
 
 22 September 2021: Wouter
 	- Fix #194: Incorrect NSEC3 response for SOA query below delegation
