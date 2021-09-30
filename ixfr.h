@@ -11,6 +11,7 @@
 #define _IXFR_H_
 struct nsd;
 #include "query.h"
+#include "rbtree.h"
 struct ixfr_data;
 struct zone;
 struct buffer;
@@ -18,8 +19,11 @@ struct region;
 
 /* data structure that stores IXFR contents for a zone. */
 struct zone_ixfr {
-	/* the IXFR that is available for this zone */
-	struct ixfr_data* data;
+	/* Items are of type ixfr_data. The key is old_serial.
+	 * So it can be looked up on an incoming IXFR. They are sorted
+	 * by old_serial, so the looked up and next are the versions needed.
+	 * Tree of ixfr data for versions */
+	struct rbtree* data;
 	/* total size stored at this time, in bytes,
 	 * sum of sizes of the ixfr data elements */
 	size_t total_size;
@@ -40,6 +44,8 @@ struct zone_ixfr {
  * versions inside.
  */
 struct ixfr_data {
+	/* Node in the rbtree. Key is oldserial */
+	struct rbnode node;
 	/* from what serial the IXFR starts from, the 'old' serial */
 	uint32_t oldserial;
 	/* where to IXFR goes to, the 'new' serial */
@@ -127,15 +133,16 @@ void ixfr_store_free(struct ixfr_store* ixfr_store);
 /*
  * Finish ixfr store processing. Links the data into the zone ixfr data.
  * ixfr_store: Data is linked into the zone struct. The ixfr_store is freed.
+ * nsd: nsd structure for allocation region and global options.
  * log_buf: log string for the update.
  * time_start_0: time when download initiated, sec.
  * time_start_1: time when download initiated, nsec.
  * time_end_0: time when download finished, sec.
  * time_end_1: time when download finished, nsec.
  */
-void ixfr_store_finish(struct ixfr_store* ixfr_store, char* log_buf,
-	uint64_t time_start_0, uint32_t time_start_1, uint64_t time_end_0,
-	uint32_t time_end_1);
+void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
+	char* log_buf, uint64_t time_start_0, uint32_t time_start_1,
+	uint64_t time_end_0, uint32_t time_end_1);
 
 /*
  * Add the new SOA record to the ixfr store.
@@ -171,13 +178,17 @@ void ixfr_store_addrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 int zone_is_ixfr_enabled(struct zone* zone);
 
 /* create new zone_ixfr structure */
-struct zone_ixfr* zone_ixfr_create(void);
+struct zone_ixfr* zone_ixfr_create(struct nsd* nsd);
 
 /* free the zone_ixfr */
 void zone_ixfr_free(struct zone_ixfr* ixfr);
 
+/* make space to fit in the data */
+void zone_ixfr_make_space(struct zone_ixfr* ixfr, struct zone* zone,
+	struct ixfr_data* data);
+
 /* remove ixfr data from the zone_ixfr */
-void zone_ixfr_remove(struct zone_ixfr* ixfr);
+void zone_ixfr_remove(struct zone_ixfr* ixfr, struct ixfr_data* data);
 
 /* add ixfr data to the zone_ixfr */
 void zone_ixfr_add(struct zone_ixfr* ixfr, struct ixfr_data* data);

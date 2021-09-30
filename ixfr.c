@@ -404,9 +404,9 @@ static void ixfr_trim_capacity(uint8_t** rrs, size_t* len, size_t* capacity)
 	*capacity = *len;
 }
 
-void ixfr_store_finish(struct ixfr_store* ixfr_store, char* log_buf,
-	uint64_t time_start_0, uint32_t time_start_1, uint64_t time_end_0,
-	uint32_t time_end_1)
+void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
+	char* log_buf, uint64_t time_start_0, uint32_t time_start_1,
+	uint64_t time_end_0, uint32_t time_end_1)
 {
 	if(ixfr_store->cancelled) {
 		ixfr_store_free(ixfr_store);
@@ -433,9 +433,9 @@ void ixfr_store_finish(struct ixfr_store* ixfr_store, char* log_buf,
 
 	/* store the data in the zone */
 	if(!ixfr_store->zone->ixfr)
-		ixfr_store->zone->ixfr = zone_ixfr_create();
-	if(ixfr_store->zone->ixfr->data)
-		zone_ixfr_remove(ixfr_store->zone->ixfr);
+		ixfr_store->zone->ixfr = zone_ixfr_create(nsd);
+	zone_ixfr_make_space(ixfr_store->zone->ixfr, ixfr_store->zone,
+		ixfr_store->data);
 	zone_ixfr_add(ixfr_store->zone->ixfr, ixfr_store->data);
 	ixfr_store->data = NULL;
 
@@ -587,6 +587,9 @@ void ixfr_store_add_oldsoa(struct ixfr_store* ixfr_store, uint32_t ttl,
 		ixfr_store->data->oldsoa = NULL;
 		ixfr_store->data->oldsoa_len = 0;
 	}
+	/* we have the old SOA and thus we are sure it is an IXFR, make space*/
+	zone_ixfr_make_space(ixfr_store->zone->ixfr, ixfr_store->zone,
+		ixfr_store->data);
 	oldpos = buffer_position(packet);
 
 	/* calculate the length */
@@ -638,6 +641,10 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	 * when called from difffile's IXFR processing with type SOA. */
 	if(type == TYPE_SOA)
 		return;
+	/* make space for these RRs we have now; basically once we
+	 * grow beyond the current allowed amount an older IXFR is deleted. */
+	zone_ixfr_make_space(ixfr_store->zone->ixfr, ixfr_store->zone,
+		ixfr_store->data);
 
 	/* parse rdata */
 	oldpos = buffer_position(packet);
@@ -719,41 +726,86 @@ int zone_is_ixfr_enabled(struct zone* zone)
 	return zone->opts->pattern->store_ixfr;
 }
 
-struct zone_ixfr* zone_ixfr_create(void)
+/* compare ixfr elements */
+static int ixfrcompare(const void* x, const void* y)
 {
-	return xalloc_zero(sizeof(struct zone_ixfr));
+	uint32_t* serial_x = (uint32_t*)x;
+	uint32_t* serial_y = (uint32_t*)y;
+	if(*serial_x < *serial_y)
+		return -1;
+	if(*serial_x > *serial_y)
+		return 1;
+	return 0;
+}
+
+struct zone_ixfr* zone_ixfr_create(struct nsd* nsd)
+{
+	struct zone_ixfr* ixfr = xalloc_zero(sizeof(struct zone_ixfr));
+	ixfr->data = rbtree_create(nsd->region, &ixfrcompare);
+	return ixfr;
+}
+
+/* traverse tree postorder */
+static void ixfr_tree_del(struct rbnode* node)
+{
+	if(node == NULL || node == RBTREE_NULL)
+		return;
+	ixfr_tree_del(node->left);
+	ixfr_tree_del(node->right);
+	ixfr_data_free((struct ixfr_data*)node);
 }
 
 void zone_ixfr_free(struct zone_ixfr* ixfr)
 {
 	if(!ixfr)
 		return;
-	ixfr_data_free(ixfr->data);
+	if(ixfr->data) {
+		ixfr_tree_del(ixfr->data->root);
+		ixfr->data = NULL;
+	}
 	free(ixfr);
 }
 
-void zone_ixfr_remove(struct zone_ixfr* ixfr)
+void zone_ixfr_make_space(struct zone_ixfr* ixfr, struct zone* zone,
+	struct ixfr_data* data)
 {
-	ixfr->total_size -= ixfr_data_size(ixfr->data);
-	ixfr_data_free(ixfr->data);
-	ixfr->data = NULL;
+	(void)zone;
+	(void)data;
+	/* one element only: */
+	if(ixfr->data->count > 0) {
+		struct ixfr_data* oldest = (struct ixfr_data*)rbtree_first(
+			ixfr->data);
+		zone_ixfr_remove(ixfr, oldest);
+	}
+}
+
+void zone_ixfr_remove(struct zone_ixfr* ixfr, struct ixfr_data* data)
+{
+	rbtree_delete(ixfr->data, &data->node.key);
+	ixfr->total_size -= ixfr_data_size(data);
+	ixfr_data_free(data);
 }
 
 void zone_ixfr_add(struct zone_ixfr* ixfr, struct ixfr_data* data)
 {
-	ixfr->data = data;
-	ixfr->total_size += ixfr_data_size(ixfr->data);
+	memset(&data->node, 0, sizeof(data->node));
+	data->node.key = &data->oldserial;
+	rbtree_insert(ixfr->data, &data->node);
+	ixfr->total_size += ixfr_data_size(data);
 }
 
 struct ixfr_data* zone_ixfr_find_serial(struct zone_ixfr* ixfr,
 	uint32_t qserial)
 {
+	struct ixfr_data* data;
 	if(!ixfr)
 		return NULL;
 	if(!ixfr->data)
 		return NULL;
-	if(ixfr->data->oldserial == qserial) {
-		return ixfr->data;
+	data = (struct ixfr_data*)rbtree_search(ixfr->data, &qserial);
+	if(data) {
+		assert(data->oldserial == qserial);
+		return data;
 	}
 	/* not found */
 	return NULL;
