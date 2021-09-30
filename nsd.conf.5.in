@@ -635,6 +635,7 @@ The zone options such as
 .BR notify ,
 .BR notify\-retry ,
 .BR provide\-xfr ,
+.BR store\-ixfr ,
 .BR zonestats ,
 and
 .B outgoing\-interface 
@@ -793,6 +794,12 @@ The ip\-address is a plain IP address (IPv4 or IPv6).
 A port number can be added using a suffix of @number, for example 
 1.2.3.4@5300.
 .RE
+.TP
+.B store\-ixfr:\fR <yes or no>
+If enabled, IXFR contents are stored and provided to the set of clients
+specified in the provide\-xfr statement. Default is no. IXFR contents is
+a smaller set of changes that differ between zone versions, where an AXFR
+contains the full contents of the zone.
 .TP
 .B max\-refresh\-time:\fR <seconds>
 Limit refresh time for secondary zones.  This is the timer which checks to see
