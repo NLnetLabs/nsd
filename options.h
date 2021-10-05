@@ -256,6 +256,10 @@ struct pattern_options {
 	uint8_t multi_master_check;
 	uint8_t store_ixfr;
 	uint8_t store_ixfr_is_default;
+	uint64_t ixfr_max_size;
+	uint8_t ixfr_max_size_is_default;
+	uint32_t ixfr_max_number;
+	uint8_t ixfr_max_number_is_default;
 } ATTR_PACKED;
 
 #define PATTERN_IMPLICIT_MARKER "_implicit_"

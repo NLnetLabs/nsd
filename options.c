@@ -882,6 +882,10 @@ pattern_options_create(region_type* region)
 	p->multi_master_check = 0;
 	p->store_ixfr = 0;
 	p->store_ixfr_is_default = 1;
+	p->ixfr_max_size = 1024*1024; /* 1 Mb */
+	p->ixfr_max_size_is_default = 1;
+	p->ixfr_max_number = 5;
+	p->ixfr_max_number_is_default = 1;
 	return p;
 }
 
@@ -1028,6 +1032,10 @@ copy_pat_fixed(region_type* region, struct pattern_options* orig,
 	orig->multi_master_check = p->multi_master_check;
 	orig->store_ixfr = p->store_ixfr;
 	orig->store_ixfr_is_default = p->store_ixfr_is_default;
+	orig->ixfr_max_size = p->ixfr_max_size;
+	orig->ixfr_max_size_is_default = p->ixfr_max_size_is_default;
+	orig->ixfr_max_number = p->ixfr_max_number;
+	orig->ixfr_max_number_is_default = p->ixfr_max_number_is_default;
 }
 
 void
@@ -1123,6 +1131,10 @@ pattern_options_equal(struct pattern_options* p, struct pattern_options* q)
 	if(p->size_limit_xfr != q->size_limit_xfr) return 0;
 	if(!booleq(p->store_ixfr,q->store_ixfr)) return 0;
 	if(!booleq(p->store_ixfr_is_default,q->store_ixfr_is_default)) return 0;
+	if(p->ixfr_max_size != q->ixfr_max_size) return 0;
+	if(!booleq(p->ixfr_max_size_is_default,q->ixfr_max_size_is_default)) return 0;
+	if(p->ixfr_max_number != q->ixfr_max_number) return 0;
+	if(!booleq(p->ixfr_max_number_is_default,q->ixfr_max_number_is_default)) return 0;
 	return 1;
 }
 
@@ -1291,6 +1303,10 @@ pattern_options_marshal(struct buffer* b, struct pattern_options* p)
 	marshal_u8(b, p->multi_master_check);
 	marshal_u8(b, p->store_ixfr);
 	marshal_u8(b, p->store_ixfr_is_default);
+	marshal_u64(b, p->ixfr_max_size);
+	marshal_u8(b, p->ixfr_max_size_is_default);
+	marshal_u32(b, p->ixfr_max_number);
+	marshal_u8(b, p->ixfr_max_number_is_default);
 }
 
 struct pattern_options*
@@ -1328,6 +1344,10 @@ pattern_options_unmarshal(region_type* r, struct buffer* b)
 	p->multi_master_check = unmarshal_u8(b);
 	p->store_ixfr = unmarshal_u8(b);
 	p->store_ixfr_is_default = unmarshal_u8(b);
+	p->ixfr_max_size = unmarshal_u64(b);
+	p->ixfr_max_size_is_default = unmarshal_u8(b);
+	p->ixfr_max_number = unmarshal_u32(b);
+	p->ixfr_max_number_is_default = unmarshal_u8(b);
 	return p;
 }
 
@@ -2128,6 +2148,14 @@ config_apply_pattern(struct pattern_options *dest, const char* name)
 	if(!pat->store_ixfr_is_default) {
 		dest->store_ixfr = pat->store_ixfr;
 		dest->store_ixfr_is_default = 0;
+	}
+	if(!pat->ixfr_max_size_is_default) {
+		dest->ixfr_max_size = pat->ixfr_max_size;
+		dest->ixfr_max_size_is_default = 0;
+	}
+	if(!pat->ixfr_max_number_is_default) {
+		dest->ixfr_max_number = pat->ixfr_max_number;
+		dest->ixfr_max_number_is_default = 0;
 	}
 	dest->size_limit_xfr = pat->size_limit_xfr;
 #ifdef RATELIMIT

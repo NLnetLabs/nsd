@@ -185,7 +185,7 @@ void zone_ixfr_free(struct zone_ixfr* ixfr);
 
 /* make space to fit in the data */
 void zone_ixfr_make_space(struct zone_ixfr* ixfr, struct zone* zone,
-	struct ixfr_data* data);
+	struct ixfr_data* data, struct ixfr_store* ixfr_store);
 
 /* remove ixfr data from the zone_ixfr */
 void zone_ixfr_remove(struct zone_ixfr* ixfr, struct ixfr_data* data);

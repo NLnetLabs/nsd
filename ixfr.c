@@ -356,7 +356,7 @@ void ixfr_store_free(struct ixfr_store* ixfr_store)
 }
 
 /* make space in record data for the new size, grows the allocation */
-static void ixfr_make_space(uint8_t** rrs, size_t* len, size_t* capacity,
+static void ixfr_rrs_make_space(uint8_t** rrs, size_t* len, size_t* capacity,
 	size_t added)
 {
 	size_t newsize = 0;
@@ -383,7 +383,7 @@ static void ixfr_put_newsoa(struct ixfr_store* ixfr_store, uint8_t** rrs,
 {
 	uint8_t* soa = ixfr_store->data->newsoa;
 	size_t soa_len = ixfr_store->data->newsoa_len;
-	ixfr_make_space(rrs, len, capacity, soa_len);
+	ixfr_rrs_make_space(rrs, len, capacity, soa_len);
 	if(!*rrs || *len + soa_len > *capacity) {
 		log_msg(LOG_ERR, "ixfr_store addrr: cannot allocate space");
 		ixfr_store_cancel(ixfr_store);
@@ -435,7 +435,11 @@ void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
 	if(!ixfr_store->zone->ixfr)
 		ixfr_store->zone->ixfr = zone_ixfr_create(nsd);
 	zone_ixfr_make_space(ixfr_store->zone->ixfr, ixfr_store->zone,
-		ixfr_store->data);
+		ixfr_store->data, ixfr_store);
+	if(ixfr_store->cancelled) {
+		ixfr_store_free(ixfr_store);
+		return;
+	}
 	zone_ixfr_add(ixfr_store->zone->ixfr, ixfr_store->data);
 	ixfr_store->data = NULL;
 
@@ -589,7 +593,9 @@ void ixfr_store_add_oldsoa(struct ixfr_store* ixfr_store, uint32_t ttl,
 	}
 	/* we have the old SOA and thus we are sure it is an IXFR, make space*/
 	zone_ixfr_make_space(ixfr_store->zone->ixfr, ixfr_store->zone,
-		ixfr_store->data);
+		ixfr_store->data, ixfr_store);
+	if(ixfr_store->cancelled)
+		return;
 	oldpos = buffer_position(packet);
 
 	/* calculate the length */
@@ -644,7 +650,9 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	/* make space for these RRs we have now; basically once we
 	 * grow beyond the current allowed amount an older IXFR is deleted. */
 	zone_ixfr_make_space(ixfr_store->zone->ixfr, ixfr_store->zone,
-		ixfr_store->data);
+		ixfr_store->data, ixfr_store);
+	if(ixfr_store->cancelled)
+		return;
 
 	/* parse rdata */
 	oldpos = buffer_position(packet);
@@ -672,7 +680,7 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 		2 /*rdlen*/ + rdlen_uncompressed;
 
 	/* store RR in IXFR data */
-	ixfr_make_space(rrs, rrs_len, rrs_capacity, sz);
+	ixfr_rrs_make_space(rrs, rrs_len, rrs_capacity, sz);
 	if(!*rrs || *rrs_len + sz > *rrs_capacity) {
 		log_msg(LOG_ERR, "ixfr_store addrr: cannot allocate space");
 		ixfr_store_cancel(ixfr_store);
@@ -766,16 +774,53 @@ void zone_ixfr_free(struct zone_ixfr* ixfr)
 	free(ixfr);
 }
 
-void zone_ixfr_make_space(struct zone_ixfr* ixfr, struct zone* zone,
-	struct ixfr_data* data)
+/* remove the oldest data entry from the ixfr versions */
+static void zone_ixfr_remove_oldest(struct zone_ixfr* ixfr)
 {
-	(void)zone;
-	(void)data;
-	/* one element only: */
 	if(ixfr->data->count > 0) {
 		struct ixfr_data* oldest = (struct ixfr_data*)rbtree_first(
 			ixfr->data);
 		zone_ixfr_remove(ixfr, oldest);
+	}
+}
+
+void zone_ixfr_make_space(struct zone_ixfr* ixfr, struct zone* zone,
+	struct ixfr_data* data, struct ixfr_store* ixfr_store)
+{
+	size_t addsize;
+	if(!ixfr || !data)
+		return;
+	if(zone->opts->pattern->ixfr_max_number == 0) {
+		ixfr_store_cancel(ixfr_store);
+		return;
+	}
+
+	/* Check the number of IXFRs allowed for this zone, if too many,
+	 * shorten the number to make space for another one */
+	while(ixfr->data->count >= zone->opts->pattern->ixfr_max_number) {
+		zone_ixfr_remove_oldest(ixfr);
+	}
+
+	if(zone->opts->pattern->ixfr_max_size == 0) {
+		/* no size limits imposed */
+		return;
+	}
+
+	/* Check the size of the current added data element 'data', and
+	 * see if that overflows the maximum storage size for IXFRs for
+	 * this zone, and if so, delete the oldest IXFR to make space */
+	addsize = ixfr_data_size(data);
+	while(ixfr->data->count > 0 && ixfr->total_size + addsize >
+		zone->opts->pattern->ixfr_max_size) {
+		zone_ixfr_remove_oldest(ixfr);
+	}
+
+	/* if deleting the oldest elements does not work, then this
+	 * IXFR is too big to store and we cancel it */
+	if(ixfr->data->count == 0 && ixfr->total_size + addsize >
+		zone->opts->pattern->ixfr_max_size) {
+		ixfr_store_cancel(ixfr_store);
+		return;
 	}
 }
 
