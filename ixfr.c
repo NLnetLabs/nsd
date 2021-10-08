@@ -253,12 +253,12 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		 * serial, then serve a single SOA with our current serial */
 		current_serial = zone_get_current_serial(zone);
 		if(compare_serial(qserial, current_serial) >= 0) {
-			query_add_compression_domain(query, zone->apex,
-				QHEADERSZ);
 			if(!zone->soa_rrset || zone->soa_rrset->rr_count != 1){
 				RCODE_SET(query->packet, RCODE_SERVFAIL);
 				return QUERY_PROCESSED;
 			}
+			query_add_compression_domain(query, zone->apex,
+				QHEADERSZ);
 			if(packet_encode_rr(query, zone->apex,
 				&zone->soa_rrset->rrs[0],
 				zone->soa_rrset->rrs[0].ttl)) {
