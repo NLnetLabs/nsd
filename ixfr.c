@@ -221,7 +221,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 
 	if (query->ixfr_data == NULL) {
 		/* This is the first packet, process the query further */
-		uint32_t qserial = 0;
+		uint32_t qserial = 0, current_serial = 0;
 		struct zone* zone;
 		struct ixfr_data* ixfr_data;
 		size_t oldpos;
@@ -248,6 +248,29 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 			RCODE_SET(query->packet, RCODE_NOTAUTH);
 			return QUERY_PROCESSED;
 		}
+
+		/* if the query is for same or newer serial than our current
+		 * serial, then serve a single SOA with our current serial */
+		current_serial = zone_get_current_serial(zone);
+		if(compare_serial(qserial, current_serial) >= 0) {
+			query_add_compression_domain(query, zone->apex,
+				QHEADERSZ);
+			if(!zone->soa_rrset || zone->soa_rrset->rr_count != 1){
+				RCODE_SET(query->packet, RCODE_SERVFAIL);
+				return QUERY_PROCESSED;
+			}
+			if(packet_encode_rr(query, zone->apex,
+				&zone->soa_rrset->rrs[0],
+				zone->soa_rrset->rrs[0].ttl)) {
+				ANCOUNT_SET(query->packet, 1);
+			} else {
+				RCODE_SET(query->packet, RCODE_SERVFAIL);
+			}
+			AA_SET(query->packet);
+			query_clear_compression_tables(query);
+			return QUERY_PROCESSED;
+		}
+
 		if(!zone->ixfr) {
 			/* we have no ixfr information for the zone, make an AXFR */
 			return query_axfr(nsd, query);
@@ -258,8 +281,10 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 			return query_axfr(nsd, query);
 		}
 		/* see if the IXFR ends at the current served zone, if not, AXFR */
-		if(ixfr_data->newserial != zone_get_current_serial(zone))
+		if(ixfr_data->newserial != current_serial) {
+			log_msg(LOG_INFO, "IXFR does not end in current serial");
 			return query_axfr(nsd, query);
+		}
 
 		query->ixfr_data = ixfr_data;
 		query->ixfr_is_done = 0;
