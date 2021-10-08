@@ -87,6 +87,31 @@ static uint32_t zone_get_current_serial(struct zone* zone)
 	return read_uint32(&zone->soa_rrset->rrs[0].rdatas[2].data[1]);
 }
 
+/* connect IXFRs, return true if connected, false if not. Return last serial */
+static int connect_ixfrs(struct ixfr_data* data, uint32_t* end_serial)
+{
+	struct rbnode* p = &data->node;
+	while(p && p != RBTREE_NULL) {
+		struct rbnode* next = rbtree_next(p);
+		struct ixfr_data* pdata = (struct ixfr_data*)p;
+		if(next && next != RBTREE_NULL) {
+			struct ixfr_data* n = (struct ixfr_data*)next;
+			if(pdata->newserial != n->oldserial) {
+				/* These ixfrs are not connected,
+				 * during IXFR processing that could already
+				 * have been deleted, but we check here
+				 * in any case */
+				return 0;
+			}
+		} else {
+			/* the chain of IXFRs ends in this serial number */
+			*end_serial = pdata->newserial;
+		}
+		p = next;
+	}
+	return 1;
+}
+
 /* Count length of next record in data */
 static size_t count_rr_length(uint8_t* data, size_t data_len, size_t current)
 {
@@ -132,13 +157,15 @@ static uint16_t ixfr_copy_rrs_into_packet(struct query* query)
 	 * when an RR does not fit, we return and add no more. */
 
 	/* Add first SOA */
-	if(query->ixfr_count_newsoa < query->ixfr_data->newsoa_len) {
+	if(query->ixfr_count_newsoa < query->ixfr_end_data->newsoa_len) {
+		/* the new SOA is added from the end_data segment, it is
+		 * the final SOA of the result of the IXFR */
 		if(buffer_position(query->packet) < query->maxlen &&
 			buffer_position(query->packet) +
-			query->ixfr_data->newsoa_len < query->maxlen) {
-			buffer_write(query->packet, query->ixfr_data->newsoa,
-				query->ixfr_data->newsoa_len);
-			query->ixfr_count_newsoa = query->ixfr_data->newsoa_len;
+			query->ixfr_end_data->newsoa_len < query->maxlen) {
+			buffer_write(query->packet, query->ixfr_end_data->newsoa,
+				query->ixfr_end_data->newsoa_len);
+			query->ixfr_count_newsoa = query->ixfr_end_data->newsoa_len;
 			total_added++;
 		} else {
 			/* cannot add another RR, so return */
@@ -221,7 +248,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 
 	if (query->ixfr_data == NULL) {
 		/* This is the first packet, process the query further */
-		uint32_t qserial = 0, current_serial = 0;
+		uint32_t qserial = 0, current_serial = 0, end_serial = 0;
 		struct zone* zone;
 		struct ixfr_data* ixfr_data;
 		size_t oldpos;
@@ -280,14 +307,18 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 			/* the specific version is not available, make an AXFR */
 			return query_axfr(nsd, query);
 		}
-		/* see if the IXFR ends at the current served zone, if not, AXFR */
-		if(ixfr_data->newserial != current_serial) {
-			log_msg(LOG_INFO, "IXFR does not end in current serial");
+		/* see if the IXFRs connect to the next IXFR, and if it ends
+		 * at the current served zone, if not, AXFR */
+		if(!connect_ixfrs(ixfr_data, &end_serial) ||
+			end_serial != current_serial) {
 			return query_axfr(nsd, query);
 		}
 
 		query->ixfr_data = ixfr_data;
 		query->ixfr_is_done = 0;
+		/* set up to copy the last version's SOA as first SOA */
+		query->ixfr_end_data = (struct ixfr_data*)rbtree_last(
+			zone->ixfr->data);
 		query->ixfr_count_newsoa = 0;
 		query->ixfr_count_oldsoa = 0;
 		query->ixfr_count_del = 0;
@@ -297,10 +328,9 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		}
 	} else {
 		/*
-		 * Query name and EDNS need not be repeated after the
+		 * Query name need not be repeated after the
 		 * first response packet.
 		 */
-		query->edns.status = EDNS_NOT_PRESENT;
 		buffer_set_limit(query->packet, QHEADERSZ);
 		QDCOUNT_SET(query->packet, 0);
 		query_prepare_response(query);
@@ -308,11 +338,27 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 
 	total_added = ixfr_copy_rrs_into_packet(query);
 
-	if(query->ixfr_count_add >= query->ixfr_data->add_len) {
+	while(query->ixfr_count_add >= query->ixfr_data->add_len) {
+		struct rbnode* nextdata = rbtree_next(&query->ixfr_data->node);
 		/* finished the ixfr_data */
-		/* sign the last packet */
-		query->tsig_sign_it = 1;
-		query->ixfr_is_done = 1;
+		if(nextdata && nextdata != RBTREE_NULL) {
+			struct ixfr_data* n = (struct ixfr_data*)nextdata;
+			/* move to the next IXFR */
+			query->ixfr_data = n;
+			/* we need to skip the SOA records, set len to done*/
+			/* the newsoa count is already done, at end_data len */
+			query->ixfr_count_oldsoa = n->oldsoa_len;
+			/* and then set up to copy the del and add sections */
+			query->ixfr_count_del = 0;
+			query->ixfr_count_add = 0;
+			total_added += ixfr_copy_rrs_into_packet(query);
+		} else {
+			/* we finished the IXFR */
+			/* sign the last packet */
+			query->tsig_sign_it = 1;
+			query->ixfr_is_done = 1;
+			break;
+		}
 	}
 
 	/* return the answer */

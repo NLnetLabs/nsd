@@ -124,6 +124,8 @@ struct query {
 	int ixfr_is_done;
 	/* the ixfr data that is processed */
 	struct ixfr_data* ixfr_data;
+	/* the ixfr data that is the last segment */
+	struct ixfr_data* ixfr_end_data;
 	/* ixfr count of newsoa bytes added, 0 none, len means done */
 	size_t ixfr_count_newsoa;
 	/* ixfr count of oldsoa bytes added, 0 none, len means done */
