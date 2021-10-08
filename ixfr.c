@@ -790,18 +790,18 @@ void zone_ixfr_make_space(struct zone_ixfr* ixfr, struct zone* zone,
 	size_t addsize;
 	if(!ixfr || !data)
 		return;
-	if(zone->opts->pattern->ixfr_max_number == 0) {
+	if(zone->opts->pattern->ixfr_number == 0) {
 		ixfr_store_cancel(ixfr_store);
 		return;
 	}
 
 	/* Check the number of IXFRs allowed for this zone, if too many,
 	 * shorten the number to make space for another one */
-	while(ixfr->data->count >= zone->opts->pattern->ixfr_max_number) {
+	while(ixfr->data->count >= zone->opts->pattern->ixfr_number) {
 		zone_ixfr_remove_oldest(ixfr);
 	}
 
-	if(zone->opts->pattern->ixfr_max_size == 0) {
+	if(zone->opts->pattern->ixfr_size == 0) {
 		/* no size limits imposed */
 		return;
 	}
@@ -811,14 +811,14 @@ void zone_ixfr_make_space(struct zone_ixfr* ixfr, struct zone* zone,
 	 * this zone, and if so, delete the oldest IXFR to make space */
 	addsize = ixfr_data_size(data);
 	while(ixfr->data->count > 0 && ixfr->total_size + addsize >
-		zone->opts->pattern->ixfr_max_size) {
+		zone->opts->pattern->ixfr_size) {
 		zone_ixfr_remove_oldest(ixfr);
 	}
 
 	/* if deleting the oldest elements does not work, then this
 	 * IXFR is too big to store and we cancel it */
 	if(ixfr->data->count == 0 && ixfr->total_size + addsize >
-		zone->opts->pattern->ixfr_max_size) {
+		zone->opts->pattern->ixfr_size) {
 		ixfr_store_cancel(ixfr_store);
 		return;
 	}

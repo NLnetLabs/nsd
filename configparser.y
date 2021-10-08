@@ -180,6 +180,8 @@ static int parse_range(const char *str, long long *low, long long *high);
 %token VAR_ZONESTATS
 %token VAR_INCLUDE_PATTERN
 %token VAR_STORE_IXFR
+%token VAR_IXFR_SIZE
+%token VAR_IXFR_NUMBER
 
 /* zone */
 %token VAR_ZONE
@@ -962,6 +964,16 @@ pattern_or_zone_option:
     {
       cfg_parser->pattern->store_ixfr = $2;
       cfg_parser->pattern->store_ixfr_is_default = 0;
+    }
+  | VAR_IXFR_SIZE number
+    {
+      cfg_parser->pattern->ixfr_size = $2;
+      cfg_parser->pattern->ixfr_size_is_default = 0;
+    }
+  | VAR_IXFR_NUMBER number
+    {
+      cfg_parser->pattern->ixfr_number = $2;
+      cfg_parser->pattern->ixfr_number_is_default = 0;
     } ;
 
 ip_address:

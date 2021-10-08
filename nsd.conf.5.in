@@ -636,6 +636,8 @@ The zone options such as
 .BR notify\-retry ,
 .BR provide\-xfr ,
 .BR store\-ixfr ,
+.BR ixfr\-number ,
+.BR ixfr\-size ,
 .BR zonestats ,
 and
 .B outgoing\-interface 
@@ -800,6 +802,14 @@ If enabled, IXFR contents are stored and provided to the set of clients
 specified in the provide\-xfr statement. Default is no. IXFR contents is
 a smaller set of changes that differ between zone versions, where an AXFR
 contains the full contents of the zone.
+.TP
+.B ixfr\-number:\fR <number>
+The number of IXFR versions to store for this zone, at most. Default is 5.
+.TP
+.B ixfr\-size:\fR <number>
+The max storage to use for IXFR versions for this zone, in bytes.
+Default is 1048576. A value of 0 means unlimited, if you want to turn off
+IXFR storage, use the store\-ixfr option.
 .TP
 .B max\-refresh\-time:\fR <seconds>
 Limit refresh time for secondary zones.  This is the timer which checks to see
