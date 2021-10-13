@@ -167,6 +167,7 @@ static uint16_t ixfr_copy_rrs_into_packet(struct query* query)
 				query->ixfr_end_data->newsoa_len);
 			query->ixfr_count_newsoa = query->ixfr_end_data->newsoa_len;
 			total_added++;
+			query->ixfr_pos_of_newsoa = buffer_position(query->packet);
 		} else {
 			/* cannot add another RR, so return */
 			return total_added;
@@ -323,6 +324,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		query->ixfr_count_oldsoa = 0;
 		query->ixfr_count_del = 0;
 		query->ixfr_count_add = 0;
+		query->ixfr_pos_of_newsoa = 0;
 		if(query->tsig.status == TSIG_OK) {
 			query->tsig_sign_it = 1; /* sign first packet in stream */
 		}
@@ -366,6 +368,18 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 	ANCOUNT_SET(query->packet, total_added);
 	NSCOUNT_SET(query->packet, 0);
 	ARCOUNT_SET(query->packet, 0);
+
+	if(!query->tcp && !query->ixfr_is_done) {
+		TC_SET(query->packet);
+		if(query->ixfr_pos_of_newsoa) {
+			/* if we recorded the newsoa in the result, snip off
+			 * the rest of the response, the RFC1995 response for
+			 * when it does not fit is only the latest SOA */
+			buffer_set_position(query->packet, query->ixfr_pos_of_newsoa);
+			ANCOUNT_SET(query->packet, 1);
+		}
+		query->ixfr_is_done = 1;
+	}
 
 	/* check if it needs tsig signatures */
 	if(query->tsig.status == TSIG_OK) {

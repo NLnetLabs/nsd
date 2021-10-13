@@ -134,6 +134,8 @@ struct query {
 	size_t ixfr_count_del;
 	/* ixfr count of add bytes added, 0 none, len means done */
 	size_t ixfr_count_add;
+	/* position for the end of SOA record, for UDP truncation */
+	size_t ixfr_pos_of_newsoa;
 
 #ifdef RATELIMIT
 	/* if we encountered a wildcard, its domain */

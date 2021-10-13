@@ -224,30 +224,18 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 		RCODE_SET(q->packet, RCODE_IMPL);
 		return QUERY_PROCESSED;
 	case TYPE_IXFR:
-		if(q->tcp) {
-			if(!axfr_ixfr_can_admit_query(nsd, q)) {
-				/* get rid of authority section, if present */
-				NSCOUNT_SET(q->packet, 0);
-				ARCOUNT_SET(q->packet, 0);
-				if(QDCOUNT(q->packet) > 0 && (size_t)QHEADERSZ+4+
-					q->qname->name_size <= buffer_limit(q->packet)) {
-					buffer_set_position(q->packet, QHEADERSZ+4+
-						q->qname->name_size);
-				}
-				return QUERY_PROCESSED;
+		if(!axfr_ixfr_can_admit_query(nsd, q)) {
+			/* get rid of authority section, if present */
+			NSCOUNT_SET(q->packet, 0);
+			ARCOUNT_SET(q->packet, 0);
+			if(QDCOUNT(q->packet) > 0 && (size_t)QHEADERSZ+4+
+				q->qname->name_size <= buffer_limit(q->packet)) {
+				buffer_set_position(q->packet, QHEADERSZ+4+
+					q->qname->name_size);
 			}
-			return query_ixfr(nsd, q);
+			return QUERY_PROCESSED;
 		}
-		/* get rid of authority section, if present */
-		NSCOUNT_SET(q->packet, 0);
-		ARCOUNT_SET(q->packet, 0);
-		if(QDCOUNT(q->packet) > 0 && (size_t)QHEADERSZ+4+
-			q->qname->name_size <= buffer_limit(q->packet)) {
-			buffer_set_position(q->packet, QHEADERSZ+4+
-				q->qname->name_size);
-		}
-		RCODE_SET(q->packet, RCODE_IMPL);
-		return QUERY_PROCESSED;
+		return query_ixfr(nsd, q);
 	default:
 		return QUERY_DISCARDED;
 	}
