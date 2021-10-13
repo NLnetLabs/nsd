@@ -1,9 +1,16 @@
 NSD RELEASE NOTES
 
-4.3.8 (in development)
+4.3.9 (in development)
+================
+FEATURES:
+BUG FIXES:
+
+4.3.8
 ================
 FEATURES:
 	- Merge #185 by cesarkuroiwa: Mutual TLS.
+	- Set default for answer-cookie to no. Because in server deployments
+	  with mixed server software, a default of yes causes issues.
 BUG FIXES:
 	- Fix to compile with OpenSSL 3.0.0beta2.
 	- Fix configure detection of SSL_CTX_set_security_level.
