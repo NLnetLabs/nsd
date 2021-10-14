@@ -660,6 +660,8 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 					strlen(zone->logstr)+1);
 			zone->logstr = NULL;
 		}
+		if(zone_is_ixfr_enabled(zone))
+			ixfr_read_from_file(nsd, zone, fname);
 	}
 	if(taskudb) task_new_soainfo(taskudb, last_task, zone, 0);
 #ifdef NSEC3

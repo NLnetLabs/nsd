@@ -23,6 +23,7 @@
 #include "udbzone.h"
 #include "options.h"
 #include "nsd.h"
+#include "ixfr.h"
 
 /* pathname directory separator character */
 #define PATHSEP '/'
@@ -409,6 +410,8 @@ namedb_write_zonefile(struct nsd* nsd, struct zone_options* zopt)
 					strlen(zone->logstr)+1);
 			zone->logstr = NULL;
 		}
+		if(zone_is_ixfr_enabled(zone) && zone->ixfr)
+			ixfr_write_to_file(zone, zfile);
 	}
 }
 

@@ -27,6 +27,8 @@ struct zone_ixfr {
 	/* total size stored at this time, in bytes,
 	 * sum of sizes of the ixfr data elements */
 	size_t total_size;
+	/* total number of ixfr files on disk */
+	int num_files;
 };
 
 /* Data structure that stores one IXFR.
@@ -196,5 +198,11 @@ void zone_ixfr_add(struct zone_ixfr* ixfr, struct ixfr_data* data);
 /* find serial number in ixfr list, or NULL if not found */
 struct ixfr_data* zone_ixfr_find_serial(struct zone_ixfr* ixfr,
 	uint32_t qserial);
+
+/* write ixfr contents to file for the zone */
+void ixfr_write_to_file(struct zone* zone, const char* zfile);
+
+/* read ixfr contents from file for the zone */
+void ixfr_read_from_file(struct nsd* nsd, struct zone* zone, const char* zfile);
 
 #endif /* _IXFR_H_ */

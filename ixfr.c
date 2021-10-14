@@ -9,11 +9,16 @@
 
 #include "config.h"
 
+#include <errno.h>
+#include <string.h>
+#include <ctype.h>
+
 #include "ixfr.h"
 #include "packet.h"
 #include "rdata.h"
 #include "axfr.h"
 #include "options.h"
+#include "zonec.h"
 
 /*
  * For optimal compression IXFR response packets are limited in size
@@ -71,6 +76,16 @@ static int parse_qserial(struct buffer* packet, uint32_t* qserial,
 		buffer_skip(packet, rdlen);
 	}
 	return 0;
+}
+
+/* get serial from SOA RR */
+static uint32_t soa_rr_get_serial(struct rr* rr)
+{
+	if(rr->rdata_count < 3)
+		return 0;
+	if(rr->rdatas[2].data[0] < 4)
+		return 0;
+	return read_uint32(&rr->rdatas[2].data[1]);
 }
 
 /* get the current serial from the zone */
@@ -712,6 +727,59 @@ void ixfr_store_add_oldsoa(struct ixfr_store* ixfr_store, uint32_t ttl,
 	buffer_set_position(packet, oldpos);
 }
 
+/* store RR in data segment */
+static int ixfr_putrr(const struct dname* dname, uint16_t type, uint16_t klass,
+	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num,
+	uint8_t** rrs, size_t* rrs_len, size_t* rrs_capacity)
+{
+	size_t rdlen_uncompressed, sz;
+	uint8_t* sp;
+	int i;
+
+	/* find rdatalen */
+	rdlen_uncompressed = 0;
+	for(i=0; i<rdata_num; i++) {
+		if(rdata_atom_is_domain(type, i)) {
+			rdlen_uncompressed += domain_dname(rdatas[i].domain)
+				->name_size;
+		} else {
+			rdlen_uncompressed += rdatas[i].data[0];
+		}
+	}
+	sz = dname->name_size + 2 /*type*/ + 2 /*class*/ + 4 /*ttl*/ +
+		2 /*rdlen*/ + rdlen_uncompressed;
+
+	/* store RR in IXFR data */
+	ixfr_rrs_make_space(rrs, rrs_len, rrs_capacity, sz);
+	if(!*rrs || *rrs_len + sz > *rrs_capacity) {
+		return 0;
+	}
+	/* copy data into add */
+	sp = *rrs + *rrs_len;
+	*rrs_len += sz;
+	memmove(sp, dname_name(dname), dname->name_size);
+	sp += dname->name_size;
+	write_uint16(sp, type);
+	sp += 2;
+	write_uint16(sp, klass);
+	sp += 2;
+	write_uint32(sp, ttl);
+	sp += 4;
+	write_uint16(sp, rdlen_uncompressed);
+	sp += 2;
+	for(i=0; i<rdata_num; i++) {
+		if(rdata_atom_is_domain(type, i)) {
+			memmove(sp, dname_name(domain_dname(rdatas[i].domain)),
+				domain_dname(rdatas[i].domain)->name_size);
+			sp += domain_dname(rdatas[i].domain)->name_size;
+		} else {
+			memmove(sp, &rdatas[i].data[1], rdatas[i].data[0]);
+			sp += rdatas[i].data[0];
+		}
+	}
+	return 1;
+}
+
 void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
 	uint16_t rrlen, struct region* temp_region, uint8_t** rrs,
@@ -720,9 +788,7 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	domain_table_type *temptable;
 	rdata_atom_type *rdatas;
 	ssize_t rdata_num;
-	int i;
-	size_t rdlen_uncompressed, sz, oldpos;
-	uint8_t* sp;
+	size_t oldpos;
 
 	if(ixfr_store->cancelled)
 		return;
@@ -751,48 +817,11 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 		return;
 	}
 
-	/* find rdatalen */
-	rdlen_uncompressed = 0;
-	for(i=0; i<rdata_num; i++) {
-		if(rdata_atom_is_domain(type, i)) {
-			rdlen_uncompressed += domain_dname(rdatas[i].domain)
-				->name_size;
-		} else {
-			rdlen_uncompressed += rdatas[i].data[0];
-		}
-	}
-	sz = dname->name_size + 2 /*type*/ + 2 /*class*/ + 4 /*ttl*/ +
-		2 /*rdlen*/ + rdlen_uncompressed;
-
-	/* store RR in IXFR data */
-	ixfr_rrs_make_space(rrs, rrs_len, rrs_capacity, sz);
-	if(!*rrs || *rrs_len + sz > *rrs_capacity) {
+	if(!ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
+		rrs, rrs_len, rrs_capacity)) {
 		log_msg(LOG_ERR, "ixfr_store addrr: cannot allocate space");
 		ixfr_store_cancel(ixfr_store);
 		return;
-	}
-	/* copy data into add */
-	sp = *rrs + *rrs_len;
-	*rrs_len += sz;
-	memmove(sp, dname_name(dname), dname->name_size);
-	sp += dname->name_size;
-	write_uint16(sp, type);
-	sp += 2;
-	write_uint16(sp, klass);
-	sp += 2;
-	write_uint32(sp, ttl);
-	sp += 4;
-	write_uint16(sp, rdlen_uncompressed);
-	sp += 2;
-	for(i=0; i<rdata_num; i++) {
-		if(rdata_atom_is_domain(type, i)) {
-			memmove(sp, dname_name(domain_dname(rdatas[i].domain)),
-				domain_dname(rdatas[i].domain)->name_size);
-			sp += domain_dname(rdatas[i].domain)->name_size;
-		} else {
-			memmove(sp, &rdatas[i].data[1], rdatas[i].data[0]);
-			sp += rdatas[i].data[0];
-		}
 	}
 }
 
@@ -846,6 +875,19 @@ static void ixfr_tree_del(struct rbnode* node)
 	ixfr_tree_del(node->left);
 	ixfr_tree_del(node->right);
 	ixfr_data_free((struct ixfr_data*)node);
+}
+
+/* clear the ixfr data elements */
+static void zone_ixfr_clear(struct zone_ixfr* ixfr)
+{
+	if(!ixfr)
+		return;
+	if(ixfr->data) {
+		ixfr_tree_del(ixfr->data->root);
+		ixfr->data->root = RBTREE_NULL;
+		ixfr->data->count = 0;
+	}
+	ixfr->total_size = 0;
 }
 
 void zone_ixfr_free(struct zone_ixfr* ixfr)
@@ -939,4 +981,295 @@ struct ixfr_data* zone_ixfr_find_serial(struct zone_ixfr* ixfr,
 	}
 	/* not found */
 	return NULL;
+}
+
+void ixfr_write_to_file(struct zone* zone, const char* zfile)
+{
+	char ixfrfile[1024+24];
+	snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr", zfile);
+	VERBOSITY(1, (LOG_INFO, "writing zone %s IXFR data to file %s",
+		zone->opts->name, ixfrfile));
+}
+
+/* skip whitespace */
+static char* skipwhite(char* str)
+{
+	while(isspace((unsigned char)*str))
+		str++;
+	return str;
+}
+
+/* read one RR from file */
+static int ixfr_data_readrr(struct zone* zone, FILE* in, const char* ixfrfile,
+	struct region* tempregion, struct domain_table* temptable,
+	struct zone* tempzone, struct rr** rr)
+{
+	char line[65536];
+	char* str;
+	struct domain* domain_parsed = NULL;
+	int num_rrs = 0;
+	line[sizeof(line)-1]=0;
+	while(!feof(in)) {
+		if(!fgets(line, sizeof(line), in)) {
+			log_msg(LOG_ERR, "zone %s IXFR data %s: "
+				"cannot read: %s", zone->opts->name, ixfrfile,
+				strerror(errno));
+			return 0;
+		}
+		str = skipwhite(line);
+		if(str[0] == 0) {
+			/* empty line */
+			continue;
+		}
+		if(str[0] == ';') {
+			/* comment line */
+			continue;
+		}
+		if(zonec_parse_string(tempregion, temptable, tempzone,
+			line, &domain_parsed, &num_rrs)) {
+			log_msg(LOG_ERR, "zone %s IXFR data %s: parse error",
+				zone->opts->name, ixfrfile);
+			return 0;
+		}
+		if(num_rrs != 1) {
+			log_msg(LOG_ERR, "zone %s IXFR data %s: parse error",
+				zone->opts->name, ixfrfile);
+			return 0;
+		}
+		*rr = &domain_parsed->rrsets->rrs[0];
+		return 1;
+	}
+	log_msg(LOG_ERR, "zone %s IXFR data %s: file too short, no newsoa",
+		zone->opts->name, ixfrfile);
+	return 0;
+}
+
+/* delete from domain table */
+static void domain_table_delete(struct domain_table* table,
+	struct domain* domain)
+{
+#ifdef USE_RADIX_TREE
+	radix_delete(table->nametree, domain->rnode);
+#else
+	rbtree_delete(table->names_to_domains, domain->node.key);
+#endif
+}
+
+/* clear out the just read RR from the temp table */
+static void clear_temp_table_of_rr(struct domain_table* temptable,
+	struct zone* tempzone, struct rr* rr)
+{
+	/* clear domains in the rdata */
+	unsigned i;
+	for(i=0; i<rr->rdata_count; i++) {
+		switch(rdata_atom_wireformat_type(rr->type, i)) {
+		case RDATA_WF_COMPRESSED_DNAME:
+		case RDATA_WF_UNCOMPRESSED_DNAME:
+			{
+				/* clear out that dname */
+				struct domain* domain =
+					rdata_atom_domain(rr->rdatas[i]);
+				if(domain != tempzone->apex) {
+					domain_table_delete(temptable, domain);
+				}
+				break;
+			}
+		default:
+			break;
+		}
+	}
+
+	/* clear domain_parsed */
+	if(rr->owner == tempzone->apex) {
+		tempzone->apex->rrsets = NULL;
+	} else {
+		domain_table_delete(temptable, rr->owner);
+	}
+}
+
+/* read ixfr data new SOA */
+static int ixfr_data_readnewsoa(struct ixfr_data* data, struct zone* zone,
+	FILE* in, const char* ixfrfile, struct region* tempregion,
+	struct domain_table* temptable, struct zone* tempzone)
+{
+	struct rr* rr;
+	size_t capacity = 0;
+	if(!ixfr_data_readrr(zone, in, ixfrfile, tempregion, temptable,
+		tempzone, &rr))
+		return 0;
+	if(rr->type != TYPE_SOA) {
+		log_msg(LOG_ERR, "zone %s ixfr data %s: IXFR data does not start with SOA",
+			zone->opts->name, ixfrfile);
+		return 0;
+	}
+	if(rr->klass != CLASS_IN) {
+		log_msg(LOG_ERR, "zone %s ixfr data %s: IXFR data is not class IN",
+			zone->opts->name, ixfrfile);
+		return 0;
+	}
+	if(!zone->apex) {
+		log_msg(LOG_ERR, "zone %s ixfr data %s: zone has no apex, no zone data",
+			zone->opts->name, ixfrfile);
+		return 0;
+	}
+	if(dname_compare(domain_dname(zone->apex), domain_dname(rr->owner)) != 0) {
+		log_msg(LOG_ERR, "zone %s ixfr data %s: IXFR data wrong SOA for zone %s",
+			zone->opts->name, ixfrfile, domain_to_string(rr->owner));
+		return 0;
+	}
+	data->newserial = soa_rr_get_serial(rr);
+	if(!ixfr_putrr(domain_dname(rr->owner), rr->type, rr->klass, rr->ttl, rr->rdatas, rr->rdata_count, &data->newsoa, &data->newsoa_len, &capacity)) {
+		log_msg(LOG_ERR, "zone %s ixfr data %s: cannot allocate space",
+			zone->opts->name, ixfrfile);
+		return 0;
+	}
+	ixfr_trim_capacity(&data->newsoa, &data->newsoa_len, &capacity);
+	clear_temp_table_of_rr(temptable, tempzone, rr);
+	region_free_all(tempregion);
+	return 1;
+}
+
+/* read ixfr data old SOA */
+static int ixfr_data_readoldsoa(struct ixfr_data* data, FILE* in,
+	const char* ixfrfile)
+{
+	(void)data;
+	(void)in;
+	(void)ixfrfile;
+	return 1;
+}
+
+/* read ixfr data del section */
+static int ixfr_data_readdel(struct ixfr_data* data, FILE* in,
+	const char* ixfrfile)
+{
+	(void)data;
+	(void)in;
+	(void)ixfrfile;
+	return 1;
+}
+
+/* read ixfr data add section */
+static int ixfr_data_readadd(struct ixfr_data* data, FILE* in,
+	const char* ixfrfile)
+{
+	(void)data;
+	(void)in;
+	(void)ixfrfile;
+	return 1;
+}
+
+/* read ixfr data from file */
+static int ixfr_data_read(struct nsd* nsd, struct zone* zone, FILE* in,
+	const char* ixfrfile)
+{
+	struct ixfr_data* data = NULL;
+	struct region* tempregion, *stayregion;
+	struct domain_table* temptable;
+	struct zone* tempzone;
+	/* the file has header comments, new soa, old soa, delsection,
+	 * addsection. The delsection and addsection end in a SOA of oldver
+	 * and newver respectively. */
+	data = xalloc_zero(sizeof(*data));
+
+	/* the temp region is cleared after every RR */
+	tempregion = region_create(xalloc, free);
+	/* the stay region holds the temporary data that stays between RRs */
+	stayregion = region_create(xalloc, free);
+	temptable = domain_table_create(stayregion);
+	tempzone = region_alloc_zero(stayregion, sizeof(zone_type));
+	if(!zone->apex) {
+		ixfr_data_free(data);
+		region_destroy(tempregion);
+		region_destroy(stayregion);
+		return 0;
+	}
+	tempzone->apex = domain_table_insert(temptable,
+		domain_dname(zone->apex));
+	tempzone->opts = zone->opts;
+	/* switch to per RR region for new allocations in temp domain table */
+	temptable->region = tempregion;
+
+	if(!ixfr_data_readnewsoa(data, zone, in, ixfrfile, tempregion,
+		temptable, tempzone)) {
+		ixfr_data_free(data);
+		region_destroy(tempregion);
+		region_destroy(stayregion);
+		return 0;
+	}
+	if(!ixfr_data_readoldsoa(data, in, ixfrfile)) {
+		ixfr_data_free(data);
+		region_destroy(tempregion);
+		region_destroy(stayregion);
+		return 0;
+	}
+	if(!ixfr_data_readdel(data, in, ixfrfile)) {
+		ixfr_data_free(data);
+		region_destroy(tempregion);
+		region_destroy(stayregion);
+		return 0;
+	}
+	if(!ixfr_data_readadd(data, in, ixfrfile)) {
+		ixfr_data_free(data);
+		region_destroy(tempregion);
+		region_destroy(stayregion);
+		return 0;
+	}
+
+	region_destroy(tempregion);
+	region_destroy(stayregion);
+
+	if(!zone->ixfr)
+		zone->ixfr = zone_ixfr_create(nsd);
+	zone_ixfr_add(zone->ixfr, data);
+	return 1;
+}
+
+/* try to read the next ixfr file. returns false if it fails or if it
+ * does not fit in the configured sizes */
+static int ixfr_read_one_more_file(struct nsd* nsd, struct zone* zone,
+	const char* zfile, int num_file)
+{
+	char ixfrfile[1024+24];
+	FILE* in;
+	if(num_file == 0)
+		snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr", zfile);
+	else snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr.%d", zfile,
+		num_file+1);
+	in = fopen(ixfrfile, "r");
+	if(!in) {
+		if(errno == ENOENT) {
+			/* the file does not exist, we reached the end
+			 * of the list of IXFR files */
+			return 0;
+		}
+		log_msg(LOG_ERR, "could not read zone %s IXFR file %s: %s",
+			zone->opts->name, ixfrfile, strerror(errno));
+		return 0;
+	}
+	warn_if_directory("IXFR data", in, ixfrfile);
+	if(!ixfr_data_read(nsd, zone, in, ixfrfile)) {
+		fclose(in);
+		return 0;
+	}
+	fclose(in);
+	return 1;
+}
+
+void ixfr_read_from_file(struct nsd* nsd, struct zone* zone, const char* zfile)
+{
+	int num_files = 0;
+	/* delete the existing data, the zone data in memory has likely
+	 * changed, eg. due to reading a new zonefile. So that needs new
+	 * IXFRs */
+	zone_ixfr_clear(zone->ixfr);
+
+	while(ixfr_read_one_more_file(nsd, zone, zfile, num_files)) {
+		num_files++;
+	}
+	if(num_files > 0) {
+		VERBOSITY(1, (LOG_INFO, "zone %s read %d IXFR data with success",
+			zone->opts->name, num_files));
+		zone->ixfr->num_files = num_files;
+	}
 }

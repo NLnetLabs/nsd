@@ -21,6 +21,13 @@
 extern char *optarg;
 extern int optind;
 static void usage(void) ATTR_NORETURN;
+int zonec_parse_string(region_type* ATTR_UNUSED(region),
+	domain_table_type* ATTR_UNUSED(domains), zone_type* ATTR_UNUSED(zone),
+	char* ATTR_UNUSED(str), domain_type** ATTR_UNUSED(parsed),
+	int* ATTR_UNUSED(num_rrs))
+{
+	return 0;
+}
 
 #define ZONE_GET_ACL(NAME, VAR, PATTERN) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
