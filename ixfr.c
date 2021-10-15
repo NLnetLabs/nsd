@@ -1011,6 +1011,11 @@ static int ixfr_data_readrr(struct zone* zone, FILE* in, const char* ixfrfile,
 	line[sizeof(line)-1]=0;
 	while(!feof(in)) {
 		if(!fgets(line, sizeof(line), in)) {
+			if(errno == 0) {
+				log_msg(LOG_ERR, "zone %s IXFR data %s: "
+					"unexpected end of file", zone->opts->name, ixfrfile);
+				return 0;
+			}
 			log_msg(LOG_ERR, "zone %s IXFR data %s: "
 				"cannot read: %s", zone->opts->name, ixfrfile,
 				strerror(errno));
@@ -1055,6 +1060,40 @@ static void domain_table_delete(struct domain_table* table,
 #endif
 }
 
+/* can we delete temp domain */
+static int can_del_temp_domain(struct domain* domain)
+{
+	struct domain* n;
+	if(domain->is_apex)
+		return 0;
+	if(domain->rrsets)
+		return 0;
+	if(domain->usage)
+		return 0;
+	n = domain_next(domain);
+	if(n && domain_is_subdomain(n, domain))
+		return 0;
+	return 1;
+}
+
+/* delete temporary domain */
+static void ixfr_temp_deldomain(struct domain_table* temptable,
+	struct domain* domain)
+{
+	struct domain* p;
+	if(!can_del_temp_domain(domain))
+		return;
+	p = domain->parent;
+	domain_table_delete(temptable, domain);
+	while(p) {
+		struct domain* up = p->parent;
+		if(!can_del_temp_domain(p))
+			break;
+		domain_table_delete(temptable, p);
+		p = up;
+	}
+}
+
 /* clear out the just read RR from the temp table */
 static void clear_temp_table_of_rr(struct domain_table* temptable,
 	struct zone* tempzone, struct rr* rr)
@@ -1062,20 +1101,13 @@ static void clear_temp_table_of_rr(struct domain_table* temptable,
 	/* clear domains in the rdata */
 	unsigned i;
 	for(i=0; i<rr->rdata_count; i++) {
-		switch(rdata_atom_wireformat_type(rr->type, i)) {
-		case RDATA_WF_COMPRESSED_DNAME:
-		case RDATA_WF_UNCOMPRESSED_DNAME:
-			{
-				/* clear out that dname */
-				struct domain* domain =
-					rdata_atom_domain(rr->rdatas[i]);
-				if(domain != tempzone->apex) {
-					domain_table_delete(temptable, domain);
-				}
-				break;
-			}
-		default:
-			break;
+		if(rdata_atom_is_domain(rr->type, i)) {
+			/* clear out that dname */
+			struct domain* domain =
+				rdata_atom_domain(rr->rdatas[i]);
+			domain->usage --;
+			if(domain != tempzone->apex && domain->usage == 0)
+				ixfr_temp_deldomain(temptable, domain);
 		}
 	}
 
@@ -1083,7 +1115,10 @@ static void clear_temp_table_of_rr(struct domain_table* temptable,
 	if(rr->owner == tempzone->apex) {
 		tempzone->apex->rrsets = NULL;
 	} else {
-		domain_table_delete(temptable, rr->owner);
+		rr->owner->usage --;
+		if(rr->owner->usage == 0) {
+			ixfr_temp_deldomain(temptable, rr->owner);
+		}
 	}
 }
 
@@ -1198,9 +1233,9 @@ static int ixfr_data_readdel(struct ixfr_data* data, struct zone* zone,
 		}
 		/* check SOA and also serial, because there could be other
 		 * add and del sections from older versions collated, we can
-		 * see this del section end when it has the oldserial */
+		 * see this del section end when it has the serial */
 		if(rr->type == TYPE_SOA &&
-			soa_rr_get_serial(rr) == data->oldserial) {
+			soa_rr_get_serial(rr) == data->newserial) {
 			/* end of del section. */
 			clear_temp_table_of_rr(temptable, tempzone, rr);
 			region_free_all(tempregion);
