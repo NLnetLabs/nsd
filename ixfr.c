@@ -1064,12 +1064,14 @@ static void domain_table_delete(struct domain_table* table,
 static int can_del_temp_domain(struct domain* domain)
 {
 	struct domain* n;
+	/* we want to keep the zone apex */
 	if(domain->is_apex)
 		return 0;
 	if(domain->rrsets)
 		return 0;
 	if(domain->usage)
 		return 0;
+	/* check if there are domains under it */
 	n = domain_next(domain);
 	if(n && domain_is_subdomain(n, domain))
 		return 0;
