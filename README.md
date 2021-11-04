@@ -13,7 +13,7 @@ have any feedback, we would love to hear from you. Don’t hesitate to
 or post a message on the
 [NSD mailing list](https://lists.nlnetlabs.nl/mailman/listinfo/nsd-users).
 You can learn more about NSD by reading our
-[documentation](https://nlnetlabs.nl/documentation/nsd/).
+[documentation](https://nsd.docs.nlnetlabs.nl/).
 
 ## Compiling
 
@@ -41,7 +41,7 @@ NSD can be compiled and installed using:
 
 The configuration options for NSD are described in the man pages, which are
 installed (use `man nsd.conf`) and are available on the NSD
-[documentation page](https://nlnetlabs.nl/documentation/nsd/).
+[documentation page](https://nsd.docs.nlnetlabs.nl/).
 
 An example configuration file is located in
 [nsd.conf.sample](https://github.com/NLnetLabs/nsd/blob/master/nsd.conf.sample.in).

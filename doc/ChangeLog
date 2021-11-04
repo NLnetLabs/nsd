@@ -1,3 +1,6 @@
+3 November 2021: Wouter
+	- Fix #198: nsd-control reconfig core dump.
+
 12 October 2021: Wouter
 	- Tag for 4.3.8 release, from 4.3.8rc2. The main branch continues
 	  with version 4.3.9 in development.
