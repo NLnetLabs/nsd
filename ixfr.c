@@ -12,6 +12,13 @@
 #include <errno.h>
 #include <string.h>
 #include <ctype.h>
+#ifdef HAVE_SYS_TYPES_H
+#  include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_STAT_H
+#  include <sys/stat.h>
+#endif
+#include <unistd.h>
 
 #include "ixfr.h"
 #include "packet.h"
@@ -418,6 +425,7 @@ static void ixfr_data_free(struct ixfr_data* data)
 	free(data->oldsoa);
 	free(data->del);
 	free(data->add);
+	free(data->log_str);
 	free(data);
 }
 
@@ -531,6 +539,8 @@ void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
 		return;
 	}
 
+	ixfr_store->data->log_str = strdup(log_buf);
+
 	/* store the data in the zone */
 	if(!ixfr_store->zone->ixfr)
 		ixfr_store->zone->ixfr = zone_ixfr_create(nsd);
@@ -543,7 +553,6 @@ void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
 	zone_ixfr_add(ixfr_store->zone->ixfr, ixfr_store->data);
 	ixfr_store->data = NULL;
 
-	(void)log_buf;
 	(void)time_start_0;
 	(void)time_start_1;
 	(void)time_end_0;
@@ -983,12 +992,430 @@ struct ixfr_data* zone_ixfr_find_serial(struct zone_ixfr* ixfr,
 	return NULL;
 }
 
-void ixfr_write_to_file(struct zone* zone, const char* zfile)
+/* calculate the number of files we want */
+static int ixfr_target_number_files(struct zone* zone)
+{
+	int dest_num_files;
+	if(!zone->ixfr || !zone->ixfr->data)
+		return 0;
+	if(!zone_is_ixfr_enabled(zone))
+		return 0;
+	/* if we store ixfr, it is the configured number of files */
+	dest_num_files = (int)zone->opts->pattern->ixfr_number;
+	/* but if the number of available transfers is smaller, store less */
+	if(dest_num_files > (int)zone->ixfr->data->count)
+		dest_num_files = (int)zone->ixfr->data->count;
+	return dest_num_files;
+}
+
+/* see if ixfr file exists */
+static int ixfr_file_exists(const char* zfile, int file_num)
+{
+	struct stat statbuf;
+	char ixfrfile[1024+24];
+	if(file_num == 1)
+		snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr", zfile);
+	else snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr.%d", zfile,
+		file_num+1);
+	memset(&statbuf, 0, sizeof(statbuf));
+	if(stat(ixfrfile, &statbuf) < 0) {
+		if(errno == ENOENT)
+			return 0;
+		/* file is not usable */
+		return 0;
+	}
+	return 1;
+}
+
+/* unlink an ixfr file */
+static int ixfr_unlink_it(struct zone* zone, const char* zfile, int file_num)
 {
 	char ixfrfile[1024+24];
-	snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr", zfile);
+	if(file_num == 1)
+		snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr", zfile);
+	else snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr.%d", zfile,
+		file_num+1);
+	VERBOSITY(3, (LOG_INFO, "delete zone %s IXFR data file %s",
+		zone->opts->name, ixfrfile));
+	if(unlink(ixfrfile) < 0) {
+		log_msg(LOG_ERR, "error to delete file %s: %s", ixfrfile,
+			strerror(errno));
+		return 0;
+	}
+	return 1;
+}
+
+/* delete rest ixfr files, that are after the current item */
+static void ixfr_delete_rest_files(struct zone* zone, struct ixfr_data* from,
+	const char* zfile)
+{
+	struct ixfr_data* data = from;
+	while(data && (struct rbnode*)data != RBTREE_NULL &&
+		data->file_num == 0) {
+		if(data->file_num != 0) {
+			(void)ixfr_unlink_it(zone, zfile, data->file_num);
+			data->file_num = 0;
+		}
+		data = (struct ixfr_data*)rbtree_previous(&data->node);
+	}
+}
+
+/* delete the ixfr files that are too many */
+static void ixfr_delete_superfluous_files(struct zone* zone, const char* zfile,
+	int dest_num_files)
+{
+	int i = dest_num_files + 1;
+	if(!ixfr_file_exists(zfile, i))
+		return;
+	while(ixfr_unlink_it(zone, zfile, i)) {
+		i++;
+	}
+}
+
+/* rename the file */
+static int ixfr_rename_it(struct zone* zone, const char* zfile, int oldnum,
+	int newnum)
+{
+	char ixfrfile_old[1024+24];
+	char ixfrfile_new[1024+24];
+	if(oldnum == 1)
+		snprintf(ixfrfile_old, sizeof(ixfrfile_old), "%s.ixfr", zfile);
+	else snprintf(ixfrfile_old, sizeof(ixfrfile_old), "%s.ixfr.%d", zfile,
+		oldnum+1);
+	if(newnum == 1)
+		snprintf(ixfrfile_new, sizeof(ixfrfile_new), "%s.ixfr", zfile);
+	else snprintf(ixfrfile_new, sizeof(ixfrfile_new), "%s.ixfr.%d", zfile,
+		newnum+1);
+	VERBOSITY(3, (LOG_INFO, "rename zone %s IXFR data file %s to %s",
+		zone->opts->name, ixfrfile_old, ixfrfile_new));
+	if(rename(ixfrfile_old, ixfrfile_new) < 0) {
+		log_msg(LOG_ERR, "error to rename file %s: %s", ixfrfile_old,
+			strerror(errno));
+		return 0;
+	}
+	return 1;
+}
+
+/* rename the ixfr files that need to change name */
+static int ixfr_rename_files(struct zone* zone, const char* zfile,
+	int dest_num_files)
+{
+	struct ixfr_data* data;
+	int destnum;
+	if(!zone->ixfr || !zone->ixfr->data)
+		return 1;
+
+	/* the oldest file is at the largest number */
+	data = (struct ixfr_data*)rbtree_first(zone->ixfr->data);
+	destnum = dest_num_files;
+	while(data && (struct rbnode*)data != RBTREE_NULL &&
+		data->file_num != 0) {
+		if(data->file_num == destnum) {
+			/* nothing to do for rename */
+			return 1;
+		}
+
+		/* if there is an existing file, delete it */
+		if(ixfr_file_exists(zfile, destnum)) {
+			(void)ixfr_unlink_it(zone, zfile, destnum);
+		}
+
+		if(!ixfr_rename_it(zone, zfile, data->file_num, destnum)) {
+			/* failure, we cannot store files */
+			struct ixfr_data* prev;
+			/* delete the previously renamed files */
+			prev = (struct ixfr_data*)rbtree_previous(&data->node);
+			if(prev && (struct rbnode*)prev != RBTREE_NULL) {
+				ixfr_delete_rest_files(zone, prev, zfile);
+			}
+			return 0;
+		}
+		data->file_num = destnum;
+
+		data = (struct ixfr_data*)rbtree_next(&data->node);
+		destnum--;
+		if(destnum == 0)
+			return 1; /* not possible to hit 0 file num */
+	}
+	return 1;
+}
+
+/* write the ixfr data file header */
+static int ixfr_write_file_header(struct zone* zone, struct ixfr_data* data,
+	FILE* out)
+{
+	if(!fprintf(out, "; IXFR data file\n"))
+		return 0;
+	if(!fprintf(out, "; zone %s\n", zone->opts->name))
+		return 0;
+	if(!fprintf(out, "; from_serial %u\n", (unsigned)data->oldserial))
+		return 0;
+	if(!fprintf(out, "; to_serial %u\n", (unsigned)data->newserial))
+		return 0;
+	if(data->log_str) {
+		if(!fprintf(out, "; %s\n", data->log_str))
+			return 0;
+	}
+	return 1;
+}
+
+/* print rdata on one line */
+static int
+oneline_print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
+	rr_type* record)
+{
+	size_t i;
+	size_t saved_position = buffer_position(output);
+
+	for (i = 0; i < record->rdata_count; ++i) {
+		if (i == 0) {
+			buffer_printf(output, "\t");
+		} else {
+			buffer_printf(output, " ");
+		}
+		if (!rdata_atom_to_string(
+			    output,
+			    (rdata_zoneformat_type) descriptor->zoneformat[i],
+			    record->rdatas[i], record))
+		{
+			buffer_set_position(output, saved_position);
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+/* parse wireformat RR into a struct RR in temp region */
+static int parse_wirerr_into_temp(struct zone* zone, char* fname,
+	struct region* temp, uint8_t* buf, size_t len,
+	const dname_type** dname, struct rr* rr)
+{
+	size_t bufpos = 0;
+	uint16_t rdlen;
+	ssize_t rdata_num;
+	buffer_type packet;
+	domain_table_type* owners;
+	owners = domain_table_create(temp);
+	memset(rr, 0, sizeof(*rr));
+	*dname = dname_make(temp, buf, 1);
+	if(!*dname) {
+		log_msg(LOG_ERR, "failed to write zone %s IXFR data %s: failed to parse dname", zone->opts->name, fname);
+		return 0;
+	}
+	bufpos = (*dname)->name_size;
+	if(bufpos+10 > len) {
+		log_msg(LOG_ERR, "failed to write zone %s IXFR data %s: buffer too short", zone->opts->name, fname);
+		return 0;
+	}
+	rr->type = read_uint16(buf+bufpos);
+	bufpos += 2;
+	rr->klass = read_uint16(buf+bufpos);
+	bufpos += 2;
+	rr->ttl = read_uint32(buf+bufpos);
+	bufpos += 4;
+	rdlen = read_uint16(buf+bufpos);
+	bufpos += 2;
+	if(bufpos + rdlen > len) {
+		log_msg(LOG_ERR, "failed to write zone %s IXFR data %s: buffer too short for rdatalen", zone->opts->name, fname);
+		return 0;
+	}
+	buffer_create_from(&packet, buf+bufpos, rdlen);
+	rdata_num = rdata_wireformat_to_rdata_atoms(
+		temp, owners, rr->type, rdlen, &packet, &rr->rdatas);
+	if(rdata_num == -1) {
+		log_msg(LOG_ERR, "failed to write zone %s IXFR data %s: cannot parse rdata", zone->opts->name, fname);
+		return 0;
+	}
+	rr->rdata_count = rdata_num;
+	return 1;
+}
+
+/* print RR on one line in output buffer. caller must zeroterminate, if
+ * that is needed. */
+static int print_rr_oneline(struct buffer* rr_buffer, const dname_type* dname,
+	struct rr* rr)
+{
+        rrtype_descriptor_type *descriptor;
+	descriptor = rrtype_descriptor_by_type(rr->type);
+	buffer_printf(rr_buffer, "%s", dname_to_string(dname, NULL));
+	buffer_printf(rr_buffer, "\t%lu\t%s\t%s", (unsigned long)rr->ttl,
+		rrclass_to_string(rr->klass), rrtype_to_string(rr->type));
+	if(!oneline_print_rdata(rr_buffer, descriptor, rr)) {
+		if(!rdata_atoms_to_unknown_string(rr_buffer,
+			descriptor, rr->rdata_count, rr->rdatas)) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+/* write one RR to file, on one line */
+static int ixfr_write_rr(struct zone* zone, FILE* out, char* fname,
+	uint8_t* buf, size_t len, struct region* temp, buffer_type* rr_buffer)
+{
+	const dname_type* dname;
+	struct rr rr;
+
+	if(!parse_wirerr_into_temp(zone, fname, temp, buf, len, &dname, &rr)) {
+		region_free_all(temp);
+		return 0;
+	}
+
+	buffer_clear(rr_buffer);
+	if(!print_rr_oneline(rr_buffer, dname, &rr)) {
+		log_msg(LOG_ERR, "failed to write zone %s IXFR data %s: cannot spool RR string into buffer", zone->opts->name, fname);
+		region_free_all(temp);
+		return 0;
+	}
+	buffer_write_u8(rr_buffer, 0);
+	buffer_flip(rr_buffer);
+
+	if(!fprintf(out, "%s\n", buffer_begin(rr_buffer))) {
+		log_msg(LOG_ERR, "failed to write zone %s IXFR data %s: cannot print RR string to file: %s", zone->opts->name, fname, strerror(errno));
+		region_free_all(temp);
+		return 0;
+	}
+	region_free_all(temp);
+	return 1;
+}
+
+/* write ixfr RRs to file */
+static int ixfr_write_rrs(struct zone* zone, FILE* out, char* fname,
+	uint8_t* buf, size_t len, struct region* temp, buffer_type* rr_buffer)
+{
+	size_t current = 0;
+	if(!buf || len == 0)
+		return 1;
+	while(current < len) {
+		size_t rrlen = count_rr_length(buf, len, current);
+		if(rrlen == 0)
+			return 0;
+		if(current + rrlen > len)
+			return 0;
+		if(!ixfr_write_rr(zone, out, fname, buf+current, rrlen,
+			temp, rr_buffer))
+			return 0;
+		current += rrlen;
+	}
+	return 1;
+}
+
+/* write the ixfr data file data */
+static int ixfr_write_file_data(struct zone* zone, struct ixfr_data* data,
+	FILE* out, char* fname)
+{
+	struct region* temp, *rrtemp;
+	buffer_type* rr_buffer;
+	temp = region_create(xalloc, free);
+	rrtemp = region_create(xalloc, free);
+	rr_buffer = buffer_create(rrtemp, MAX_RDLENGTH);
+
+	if(!ixfr_write_rrs(zone, out, fname, data->newsoa, data->newsoa_len,
+		temp, rr_buffer)) {
+		region_destroy(temp);
+		region_destroy(rrtemp);
+		return 0;
+	}
+	if(!ixfr_write_rrs(zone, out, fname, data->oldsoa, data->oldsoa_len,
+		temp, rr_buffer)) {
+		region_destroy(temp);
+		region_destroy(rrtemp);
+		return 0;
+	}
+	if(!ixfr_write_rrs(zone, out, fname, data->del, data->del_len,
+		temp, rr_buffer)) {
+		region_destroy(temp);
+		region_destroy(rrtemp);
+		return 0;
+	}
+	if(!ixfr_write_rrs(zone, out, fname, data->add, data->add_len,
+		temp, rr_buffer)) {
+		region_destroy(temp);
+		region_destroy(rrtemp);
+		return 0;
+	}
+	region_destroy(temp);
+	region_destroy(rrtemp);
+	return 1;
+}
+
+/* write the ixfr data to file */
+static int ixfr_write_file(struct zone* zone, struct ixfr_data* data,
+	const char* zfile, int file_num)
+{
+	char ixfrfile[1024+24];
+	FILE* out;
+	if(file_num == 1)
+		snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr", zfile);
+	else snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr.%d", zfile,
+		file_num+1);
 	VERBOSITY(1, (LOG_INFO, "writing zone %s IXFR data to file %s",
 		zone->opts->name, ixfrfile));
+	out = fopen(ixfrfile, "w");
+	if(!out) {
+		log_msg(LOG_ERR, "could not open for writing zone %s IXFR file %s: %s",
+			zone->opts->name, ixfrfile, strerror(errno));
+		return 0;
+	}
+
+	if(!ixfr_write_file_header(zone, data, out)) {
+		fclose(out);
+		return 0;
+	}
+	if(!ixfr_write_file_data(zone, data, out, ixfrfile)) {
+		fclose(out);
+		return 0;
+	}
+
+	fclose(out);
+	data->file_num = file_num;
+	return 1;
+}
+
+/* write the ixfr files that need to be stored on disk */
+static void ixfr_write_files(struct zone* zone, const char* zfile)
+{
+	int num;
+	struct ixfr_data* data;
+	if(!zone->ixfr || !zone->ixfr->data)
+		return; /* nothing to write */
+
+	/* write unwritten files to disk */
+	data = (struct ixfr_data*)rbtree_last(zone->ixfr->data);
+	num=1;
+	while(data && (struct rbnode*)data != RBTREE_NULL &&
+		data->file_num == 0) {
+		if(!ixfr_write_file(zone, data, zfile, num)) {
+			/* there could be more files that are sitting on the
+			 * disk, * remove them, they are not used without
+			 * this ixfr file */
+			ixfr_delete_rest_files(zone, data, zfile);
+			return;
+		}
+		num++;
+		data = (struct ixfr_data*)rbtree_previous(&data->node);
+	}
+}
+
+void ixfr_write_to_file(struct zone* zone, const char* zfile)
+{
+	int dest_num_files = 0;
+	/* we just wrote the zonefile zfile, and it is time to write
+	 * the IXFR contents to the disk too. */
+	/* find out what the target number of files is that we want on
+	 * the disk */
+	dest_num_files = ixfr_target_number_files(zone);
+
+	/* delete if we have more than we need */
+	ixfr_delete_superfluous_files(zone, zfile, dest_num_files);
+
+	/* rename the transfers that we have that already have a file */
+	if(!ixfr_rename_files(zone, zfile, dest_num_files))
+		return;
+
+	/* write the transfers that are not written yet */
+	ixfr_write_files(zone, zfile);
 }
 
 /* skip whitespace */

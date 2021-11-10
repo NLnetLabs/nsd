@@ -73,6 +73,8 @@ struct ixfr_data {
 	uint8_t* add;
 	/* byte length of the uncompressed wireformat RRs in add */
 	size_t add_len;
+	/* log string (if not NULL) about where data is from */
+	char* log_str;
 	/* the number of the ixfr.<num> file on disk. If 0, there is no
 	 * file. If 1, it is file ixfr<nothingafterit>. */
 	int file_num;
