@@ -1282,7 +1282,7 @@ static int ixfr_data_readadd(struct ixfr_data* data, struct zone* zone,
 
 /* read ixfr data from file */
 static int ixfr_data_read(struct nsd* nsd, struct zone* zone, FILE* in,
-	const char* ixfrfile, uint32_t* dest_serial)
+	const char* ixfrfile, uint32_t* dest_serial, int file_num)
 {
 	struct ixfr_data* data = NULL;
 	struct region* tempregion, *stayregion;
@@ -1300,6 +1300,7 @@ static int ixfr_data_read(struct nsd* nsd, struct zone* zone, FILE* in,
 	 * addsection. The delsection and addsection end in a SOA of oldver
 	 * and newver respectively. */
 	data = xalloc_zero(sizeof(*data));
+	data->file_num = file_num;
 
 	/* the temp region is cleared after every RR */
 	tempregion = region_create(xalloc, free);
@@ -1390,7 +1391,7 @@ static int ixfr_read_one_more_file(struct nsd* nsd, struct zone* zone,
 		return 0;
 	}
 	warn_if_directory("IXFR data", in, ixfrfile);
-	if(!ixfr_data_read(nsd, zone, in, ixfrfile, dest_serial)) {
+	if(!ixfr_data_read(nsd, zone, in, ixfrfile, dest_serial, num_file)) {
 		fclose(in);
 		return 0;
 	}
@@ -1415,7 +1416,7 @@ void ixfr_read_from_file(struct nsd* nsd, struct zone* zone, const char* zfile)
 		num_files++;
 	}
 	if(num_files > 0) {
-		VERBOSITY(1, (LOG_INFO, "zone %s read %d IXFR data with success",
+		VERBOSITY(1, (LOG_INFO, "zone %s read %d IXFR transfers with success",
 			zone->opts->name, num_files));
 		zone->ixfr->num_files = num_files;
 	}
