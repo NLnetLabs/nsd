@@ -109,16 +109,113 @@ static uint32_t zone_get_current_serial(struct zone* zone)
 	return read_uint32(&zone->soa_rrset->rrs[0].rdatas[2].data[1]);
 }
 
-/* connect IXFRs, return true if connected, false if not. Return last serial */
-static int connect_ixfrs(struct ixfr_data* data, uint32_t* end_serial)
+/* iterator over ixfr data. find first element, eg. oldest zone version
+ * change.
+ * The iterator can be started with the ixfr_data_first, but also with
+ * ixfr_data_last, or with an existing ixfr_data element to start from.
+ * Continue by using ixfr_data_next or ixfr_data_prev to ask for more elements
+ * until that returns NULL. NULL because end of list or loop was detected.
+ * The ixfr_data_prev uses a counter, start it at 0, it returns NULL when
+ * a loop is detected.
+ */
+static struct ixfr_data* ixfr_data_first(struct zone_ixfr* ixfr)
 {
-	struct rbnode* p = &data->node;
-	while(p && p != RBTREE_NULL) {
-		struct rbnode* next = rbtree_next(p);
-		struct ixfr_data* pdata = (struct ixfr_data*)p;
-		if(next && next != RBTREE_NULL) {
-			struct ixfr_data* n = (struct ixfr_data*)next;
-			if(pdata->newserial != n->oldserial) {
+	struct ixfr_data* n;
+	if(!ixfr || !ixfr->data)
+		return NULL;
+	n = (struct ixfr_data*)rbtree_search(ixfr->data, &ixfr->oldest_serial);
+	if(!n || n == (struct ixfr_data*)RBTREE_NULL)
+		return NULL;
+	return n;
+}
+
+/* iterator over ixfr data. find last element, eg. newest zone version
+ * change. */
+static struct ixfr_data* ixfr_data_last(struct zone_ixfr* ixfr)
+{
+	struct ixfr_data* n;
+	if(!ixfr || !ixfr->data)
+		return NULL;
+	n = (struct ixfr_data*)rbtree_search(ixfr->data, &ixfr->newest_serial);
+	if(!n || n == (struct ixfr_data*)RBTREE_NULL)
+		return NULL;
+	return n;
+}
+
+/* iterator over ixfr data. fetch next item. If loop or nothing, NULL */
+static struct ixfr_data* ixfr_data_next(struct zone_ixfr* ixfr,
+	struct ixfr_data* cur)
+{
+	struct ixfr_data* n;
+	if(!cur || cur == (struct ixfr_data*)RBTREE_NULL)
+		return NULL;
+	if(cur->oldserial == ixfr->newest_serial)
+		return NULL; /* that was the last element */
+	n = (struct ixfr_data*)rbtree_next(&cur->node);
+	if(n && n != (struct ixfr_data*)RBTREE_NULL &&
+		cur->newserial == n->oldserial) {
+		/* the next rbtree item is the next ixfr data item */
+		return n;
+	}
+	/* If the next item is last of tree, and we have to loop around,
+	 * the search performs the lookup for the next item we need.
+	 * If the next item is the last, but also not connected, the search
+	 * finds the correct connected ixfr in the sorted tree. */
+	/* try searching for the correct ixfr data item */
+	n = (struct ixfr_data*)rbtree_search(ixfr->data, &cur->newserial);
+	if(!n || n == (struct ixfr_data*)RBTREE_NULL)
+		return NULL;
+	return n;
+}
+
+/* iterator over ixfr data. fetch the previous item. If loop or nothing NULL.*/
+static struct ixfr_data* ixfr_data_prev(struct zone_ixfr* ixfr,
+	struct ixfr_data* cur, size_t* prevcount)
+{
+	struct ixfr_data* prev;
+	if(!cur || cur == (struct ixfr_data*)RBTREE_NULL)
+		return NULL;
+	if(cur->oldserial == ixfr->oldest_serial)
+		return NULL; /* this was the first element */
+	prev = (struct ixfr_data*)rbtree_previous(&cur->node);
+	while(prev && prev != (struct ixfr_data*)RBTREE_NULL) {
+		if(prev->newserial == cur->oldserial) {
+			/* This is the correct matching previous ixfr data */
+			/* Increase the prevcounter every time the routine
+			 * returns an item, and if that becomes too large, we
+			 * are in a loop. in that case, stop. */
+			if(prevcount) {
+				(*prevcount)++;
+				if(*prevcount > ixfr->data->count + 12) {
+					/* Larger than the max number of items
+					 * plus a small margin. The longest
+					 * chain is all the ixfr elements in
+					 * the tree. It loops. */
+					return NULL;
+				}
+			}
+			return prev;
+		}
+		prev = (struct ixfr_data*)rbtree_previous(&cur->node);
+		if(!prev || prev == (struct ixfr_data*)RBTREE_NULL) {
+			/* We hit the first element in the tree, go again
+			 * at the last one. Wrap around. */
+			prev = (struct ixfr_data*)rbtree_last(ixfr->data);
+		}
+	}
+	/* no elements in list */
+	return NULL;
+}
+
+/* connect IXFRs, return true if connected, false if not. Return last serial */
+static int connect_ixfrs(struct zone_ixfr* ixfr, struct ixfr_data* data,
+	uint32_t* end_serial)
+{
+	struct ixfr_data* p = data;
+	while(p != NULL) {
+		struct ixfr_data* next = ixfr_data_next(ixfr, p);
+		if(next) {
+			if(p->newserial != next->oldserial) {
 				/* These ixfrs are not connected,
 				 * during IXFR processing that could already
 				 * have been deleted, but we check here
@@ -127,7 +224,7 @@ static int connect_ixfrs(struct ixfr_data* data, uint32_t* end_serial)
 			}
 		} else {
 			/* the chain of IXFRs ends in this serial number */
-			*end_serial = pdata->newserial;
+			*end_serial = p->newserial;
 		}
 		p = next;
 	}
@@ -332,7 +429,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		}
 		/* see if the IXFRs connect to the next IXFR, and if it ends
 		 * at the current served zone, if not, AXFR */
-		if(!connect_ixfrs(ixfr_data, &end_serial) ||
+		if(!connect_ixfrs(zone->ixfr, ixfr_data, &end_serial) ||
 			end_serial != current_serial) {
 			return query_axfr(nsd, query);
 		}
@@ -340,8 +437,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		query->ixfr_data = ixfr_data;
 		query->ixfr_is_done = 0;
 		/* set up to copy the last version's SOA as first SOA */
-		query->ixfr_end_data = (struct ixfr_data*)rbtree_last(
-			zone->ixfr->data);
+		query->ixfr_end_data = ixfr_data_last(zone->ixfr);
 		query->ixfr_count_newsoa = 0;
 		query->ixfr_count_oldsoa = 0;
 		query->ixfr_count_del = 0;
@@ -363,15 +459,15 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 	total_added = ixfr_copy_rrs_into_packet(query);
 
 	while(query->ixfr_count_add >= query->ixfr_data->add_len) {
-		struct rbnode* nextdata = rbtree_next(&query->ixfr_data->node);
+		struct ixfr_data* next = ixfr_data_next(query->zone->ixfr,
+			query->ixfr_data);
 		/* finished the ixfr_data */
-		if(nextdata && nextdata != RBTREE_NULL) {
-			struct ixfr_data* n = (struct ixfr_data*)nextdata;
+		if(next) {
 			/* move to the next IXFR */
-			query->ixfr_data = n;
+			query->ixfr_data = next;
 			/* we need to skip the SOA records, set len to done*/
 			/* the newsoa count is already done, at end_data len */
-			query->ixfr_count_oldsoa = n->oldsoa_len;
+			query->ixfr_count_oldsoa = next->oldsoa_len;
 			/* and then set up to copy the del and add sections */
 			query->ixfr_count_del = 0;
 			query->ixfr_count_add = 0;
@@ -551,7 +647,7 @@ void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
 		ixfr_store_free(ixfr_store);
 		return;
 	}
-	zone_ixfr_add(ixfr_store->zone->ixfr, ixfr_store->data);
+	zone_ixfr_add(ixfr_store->zone->ixfr, ixfr_store->data, 1);
 	ixfr_store->data = NULL;
 
 	(void)time_start_0;
@@ -915,8 +1011,18 @@ void zone_ixfr_free(struct zone_ixfr* ixfr)
 static void zone_ixfr_remove_oldest(struct zone_ixfr* ixfr)
 {
 	if(ixfr->data->count > 0) {
-		struct ixfr_data* oldest = (struct ixfr_data*)rbtree_first(
-			ixfr->data);
+		struct ixfr_data* oldest = ixfr_data_first(ixfr);
+		if(ixfr->oldest_serial == oldest->oldserial) {
+			if(ixfr->data->count > 1) {
+				ixfr->oldest_serial = oldest->newserial;
+			} else {
+				ixfr->oldest_serial = 0;
+			}
+		}
+		if(ixfr->newest_serial == oldest->oldserial) {
+			ixfr->newest_serial = 0;
+			ixfr->newest_newserial = 0;
+		}
 		zone_ixfr_remove(ixfr, oldest);
 	}
 }
@@ -968,9 +1074,21 @@ void zone_ixfr_remove(struct zone_ixfr* ixfr, struct ixfr_data* data)
 	ixfr_data_free(data);
 }
 
-void zone_ixfr_add(struct zone_ixfr* ixfr, struct ixfr_data* data)
+void zone_ixfr_add(struct zone_ixfr* ixfr, struct ixfr_data* data, int isnew)
 {
 	memset(&data->node, 0, sizeof(data->node));
+	if(ixfr->data->count == 0) {
+		ixfr->oldest_serial = data->oldserial;
+		ixfr->newest_serial = data->oldserial;
+		ixfr->newest_newserial = data->newserial;
+	} else if(isnew) {
+		/* newest entry is last there is */
+		ixfr->newest_serial = data->oldserial;
+		ixfr->newest_newserial = data->newserial;
+	} else {
+		/* added older entry, before the others */
+		ixfr->oldest_serial = data->oldserial;
+	}
 	data->node.key = &data->oldserial;
 	rbtree_insert(ixfr->data, &data->node);
 	ixfr->total_size += ixfr_data_size(data);
@@ -1056,14 +1174,14 @@ static int ixfr_unlink_it(struct zone* zone, const char* zfile, int file_num,
 static void ixfr_delete_rest_files(struct zone* zone, struct ixfr_data* from,
 	const char* zfile)
 {
+	size_t prevcount = 0;
 	struct ixfr_data* data = from;
-	while(data && (struct rbnode*)data != RBTREE_NULL &&
-		data->file_num == 0) {
+	while(data && data->file_num == 0) {
 		if(data->file_num != 0) {
 			(void)ixfr_unlink_it(zone, zfile, data->file_num, 0);
 			data->file_num = 0;
 		}
-		data = (struct ixfr_data*)rbtree_previous(&data->node);
+		data = ixfr_data_prev(zone->ixfr, data, &prevcount);
 	}
 }
 
@@ -1125,10 +1243,9 @@ static int ixfr_rename_files(struct zone* zone, const char* zfile,
 		return 1;
 
 	/* the oldest file is at the largest number */
-	data = (struct ixfr_data*)rbtree_first(zone->ixfr->data);
+	data = ixfr_data_first(zone->ixfr);
 	destnum = dest_num_files;
-	while(data && (struct rbnode*)data != RBTREE_NULL &&
-		data->file_num != 0) {
+	while(data && data->file_num != 0) {
 		if(data->file_num == destnum) {
 			/* nothing to do for rename */
 			return 1;
@@ -1141,17 +1258,17 @@ static int ixfr_rename_files(struct zone* zone, const char* zfile,
 
 		if(!ixfr_rename_it(zone, zfile, data->file_num, destnum)) {
 			/* failure, we cannot store files */
-			struct ixfr_data* prev;
+			struct ixfr_data* prev = ixfr_data_prev(zone->ixfr,
+				data, NULL);
 			/* delete the previously renamed files */
-			prev = (struct ixfr_data*)rbtree_previous(&data->node);
-			if(prev && (struct rbnode*)prev != RBTREE_NULL) {
+			if(prev) {
 				ixfr_delete_rest_files(zone, prev, zfile);
 			}
 			return 0;
 		}
 		data->file_num = destnum;
 
-		data = (struct ixfr_data*)rbtree_next(&data->node);
+		data = ixfr_data_next(zone->ixfr, data);
 		destnum--;
 		if(destnum == 0)
 			return 1; /* not possible to hit 0 file num */
@@ -1394,16 +1511,16 @@ static int ixfr_write_file(struct zone* zone, struct ixfr_data* data,
 /* write the ixfr files that need to be stored on disk */
 static void ixfr_write_files(struct zone* zone, const char* zfile)
 {
+	size_t prevcount = 0;
 	int num;
 	struct ixfr_data* data;
 	if(!zone->ixfr || !zone->ixfr->data)
 		return; /* nothing to write */
 
 	/* write unwritten files to disk */
-	data = (struct ixfr_data*)rbtree_last(zone->ixfr->data);
+	data = ixfr_data_last(zone->ixfr);
 	num=1;
-	while(data && (struct rbnode*)data != RBTREE_NULL &&
-		data->file_num == 0) {
+	while(data && data->file_num == 0) {
 		if(!ixfr_write_file(zone, data, zfile, num)) {
 			/* there could be more files that are sitting on the
 			 * disk, remove them, they are not used without
@@ -1412,7 +1529,7 @@ static void ixfr_write_files(struct zone* zone, const char* zfile)
 			return;
 		}
 		num++;
-		data = (struct ixfr_data*)rbtree_previous(&data->node);
+		data = ixfr_data_prev(zone->ixfr, data, &prevcount);
 	}
 }
 
@@ -1810,7 +1927,7 @@ static int ixfr_data_read(struct nsd* nsd, struct zone* zone, FILE* in,
 		ixfr_data_free(data);
 		return 0;
 	}
-	zone_ixfr_add(zone->ixfr, data);
+	zone_ixfr_add(zone->ixfr, data, 0);
 	VERBOSITY(3, (LOG_INFO, "zone %s read %s IXFR data of %u bytes",
 		zone->opts->name, ixfrfile, (unsigned)ixfr_data_size(data)));
 	return 1;
