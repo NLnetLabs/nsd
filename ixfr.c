@@ -159,7 +159,7 @@ static struct ixfr_data* ixfr_data_next(struct zone_ixfr* ixfr,
 	}
 	/* If the next item is last of tree, and we have to loop around,
 	 * the search performs the lookup for the next item we need.
-	 * If the next item is the last, but also not connected, the search
+	 * If the next item exists, but also is not connected, the search
 	 * finds the correct connected ixfr in the sorted tree. */
 	/* try searching for the correct ixfr data item */
 	n = (struct ixfr_data*)rbtree_search(ixfr->data, &cur->newserial);
@@ -178,6 +178,11 @@ static struct ixfr_data* ixfr_data_prev(struct zone_ixfr* ixfr,
 	if(cur->oldserial == ixfr->oldest_serial)
 		return NULL; /* this was the first element */
 	prev = (struct ixfr_data*)rbtree_previous(&cur->node);
+	if(!prev || prev == (struct ixfr_data*)RBTREE_NULL) {
+		/* We hit the first element in the tree, go again
+		 * at the last one. Wrap around. */
+		prev = (struct ixfr_data*)rbtree_last(ixfr->data);
+	}
 	while(prev && prev != (struct ixfr_data*)RBTREE_NULL) {
 		if(prev->newserial == cur->oldserial) {
 			/* This is the correct matching previous ixfr data */
@@ -196,7 +201,7 @@ static struct ixfr_data* ixfr_data_prev(struct zone_ixfr* ixfr,
 			}
 			return prev;
 		}
-		prev = (struct ixfr_data*)rbtree_previous(&cur->node);
+		prev = (struct ixfr_data*)rbtree_previous(&prev->node);
 		if(!prev || prev == (struct ixfr_data*)RBTREE_NULL) {
 			/* We hit the first element in the tree, go again
 			 * at the last one. Wrap around. */
