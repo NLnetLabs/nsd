@@ -1176,7 +1176,7 @@ static void ixfr_delete_rest_files(struct zone* zone, struct ixfr_data* from,
 {
 	size_t prevcount = 0;
 	struct ixfr_data* data = from;
-	while(data && data->file_num == 0) {
+	while(data) {
 		if(data->file_num != 0) {
 			(void)ixfr_unlink_it(zone, zfile, data->file_num, 0);
 			data->file_num = 0;
@@ -1260,7 +1260,9 @@ static int ixfr_rename_files(struct zone* zone, const char* zfile,
 			/* failure, we cannot store files */
 			struct ixfr_data* prev = ixfr_data_prev(zone->ixfr,
 				data, NULL);
-			/* delete the previously renamed files */
+			/* delete the previously renamed files, so in
+			 * memory stays as is, on disk we have the current
+			 * item (and newer transfers) okay. */
 			if(prev) {
 				ixfr_delete_rest_files(zone, prev, zfile);
 			}
@@ -1522,9 +1524,17 @@ static void ixfr_write_files(struct zone* zone, const char* zfile)
 	num=1;
 	while(data && data->file_num == 0) {
 		if(!ixfr_write_file(zone, data, zfile, num)) {
-			/* there could be more files that are sitting on the
+			/* There could be more files that are sitting on the
 			 * disk, remove them, they are not used without
-			 * this ixfr file */
+			 * this ixfr file.
+			 *
+			 * Give this element a file num, so it can be
+			 * deleted, it failed to write. It may be partial,
+			 * and we do not want to read that back in.
+			 * We are left with the newer transfers, that form
+			 * a correct list of transfers, that are wholly
+			 * written. */
+			data->file_num = num;
 			ixfr_delete_rest_files(zone, data, zfile);
 			return;
 		}
