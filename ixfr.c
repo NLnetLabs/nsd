@@ -1237,7 +1237,7 @@ static int parse_wirerr_into_temp(struct zone* zone, char* fname,
 static int print_rr_oneline(struct buffer* rr_buffer, const dname_type* dname,
 	struct rr* rr)
 {
-        rrtype_descriptor_type *descriptor;
+	rrtype_descriptor_type *descriptor;
 	descriptor = rrtype_descriptor_by_type(rr->type);
 	buffer_printf(rr_buffer, "%s", dname_to_string(dname, NULL));
 	buffer_printf(rr_buffer, "\t%lu\t%s\t%s", (unsigned long)rr->ttl,
@@ -1358,6 +1358,8 @@ static int ixfr_write_file(struct zone* zone, struct ixfr_data* data,
 	}
 
 	if(!ixfr_write_file_header(zone, data, out)) {
+		log_msg(LOG_ERR, "could not write file header for zone %s IXFR file %s: %s",
+			zone->opts->name, ixfrfile, strerror(errno));
 		fclose(out);
 		return 0;
 	}
@@ -1386,7 +1388,7 @@ static void ixfr_write_files(struct zone* zone, const char* zfile)
 		data->file_num == 0) {
 		if(!ixfr_write_file(zone, data, zfile, num)) {
 			/* there could be more files that are sitting on the
-			 * disk, * remove them, they are not used without
+			 * disk, remove them, they are not used without
 			 * this ixfr file */
 			ixfr_delete_rest_files(zone, data, zfile);
 			return;
