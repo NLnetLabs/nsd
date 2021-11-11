@@ -1009,15 +1009,21 @@ static int ixfr_target_number_files(struct zone* zone)
 	return dest_num_files;
 }
 
+/* create ixfrfile name in buffer for file_num. The num is 1 .. number. */
+static void make_ixfr_name(char* buf, size_t len, const char* zfile,
+	int file_num)
+{
+	if(file_num == 1)
+		snprintf(buf, len, "%s.ixfr", zfile);
+	else snprintf(buf, len, "%s.ixfr.%d", zfile, file_num);
+}
+
 /* see if ixfr file exists */
 static int ixfr_file_exists(const char* zfile, int file_num)
 {
 	struct stat statbuf;
 	char ixfrfile[1024+24];
-	if(file_num == 1)
-		snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr", zfile);
-	else snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr.%d", zfile,
-		file_num+1);
+	make_ixfr_name(ixfrfile, sizeof(ixfrfile), zfile, file_num);
 	memset(&statbuf, 0, sizeof(statbuf));
 	if(stat(ixfrfile, &statbuf) < 0) {
 		if(errno == ENOENT)
@@ -1032,10 +1038,7 @@ static int ixfr_file_exists(const char* zfile, int file_num)
 static int ixfr_unlink_it(struct zone* zone, const char* zfile, int file_num)
 {
 	char ixfrfile[1024+24];
-	if(file_num == 1)
-		snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr", zfile);
-	else snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr.%d", zfile,
-		file_num+1);
+	make_ixfr_name(ixfrfile, sizeof(ixfrfile), zfile, file_num);
 	VERBOSITY(3, (LOG_INFO, "delete zone %s IXFR data file %s",
 		zone->opts->name, ixfrfile));
 	if(unlink(ixfrfile) < 0) {
@@ -1079,14 +1082,8 @@ static int ixfr_rename_it(struct zone* zone, const char* zfile, int oldnum,
 {
 	char ixfrfile_old[1024+24];
 	char ixfrfile_new[1024+24];
-	if(oldnum == 1)
-		snprintf(ixfrfile_old, sizeof(ixfrfile_old), "%s.ixfr", zfile);
-	else snprintf(ixfrfile_old, sizeof(ixfrfile_old), "%s.ixfr.%d", zfile,
-		oldnum+1);
-	if(newnum == 1)
-		snprintf(ixfrfile_new, sizeof(ixfrfile_new), "%s.ixfr", zfile);
-	else snprintf(ixfrfile_new, sizeof(ixfrfile_new), "%s.ixfr.%d", zfile,
-		newnum+1);
+	make_ixfr_name(ixfrfile_old, sizeof(ixfrfile_old), zfile, oldnum);
+	make_ixfr_name(ixfrfile_new, sizeof(ixfrfile_new), zfile, newnum);
 	VERBOSITY(3, (LOG_INFO, "rename zone %s IXFR data file %s to %s",
 		zone->opts->name, ixfrfile_old, ixfrfile_new));
 	if(rename(ixfrfile_old, ixfrfile_new) < 0) {
@@ -1347,10 +1344,7 @@ static int ixfr_write_file(struct zone* zone, struct ixfr_data* data,
 {
 	char ixfrfile[1024+24];
 	FILE* out;
-	if(file_num == 1)
-		snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr", zfile);
-	else snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr.%d", zfile,
-		file_num+1);
+	make_ixfr_name(ixfrfile, sizeof(ixfrfile), zfile, file_num);
 	VERBOSITY(1, (LOG_INFO, "writing zone %s IXFR data to file %s",
 		zone->opts->name, ixfrfile));
 	out = fopen(ixfrfile, "w");
@@ -1799,14 +1793,12 @@ static int ixfr_data_read(struct nsd* nsd, struct zone* zone, FILE* in,
 /* try to read the next ixfr file. returns false if it fails or if it
  * does not fit in the configured sizes */
 static int ixfr_read_one_more_file(struct nsd* nsd, struct zone* zone,
-	const char* zfile, int num_file, uint32_t *dest_serial)
+	const char* zfile, int num_files, uint32_t *dest_serial)
 {
 	char ixfrfile[1024+24];
 	FILE* in;
-	if(num_file == 0)
-		snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr", zfile);
-	else snprintf(ixfrfile, sizeof(ixfrfile), "%s.ixfr.%d", zfile,
-		num_file+1);
+	int file_num = num_files+1;
+	make_ixfr_name(ixfrfile, sizeof(ixfrfile), zfile, file_num);
 	in = fopen(ixfrfile, "r");
 	if(!in) {
 		if(errno == ENOENT) {
@@ -1819,7 +1811,7 @@ static int ixfr_read_one_more_file(struct nsd* nsd, struct zone* zone,
 		return 0;
 	}
 	warn_if_directory("IXFR data", in, ixfrfile);
-	if(!ixfr_data_read(nsd, zone, in, ixfrfile, dest_serial, num_file)) {
+	if(!ixfr_data_read(nsd, zone, in, ixfrfile, dest_serial, file_num)) {
 		fclose(in);
 		return 0;
 	}
