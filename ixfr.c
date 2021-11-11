@@ -1097,6 +1097,24 @@ static int ixfr_rename_it(struct zone* zone, const char* zfile, int oldnum,
 	return 1;
 }
 
+/* delete if we have too many items in memory */
+static void ixfr_delete_memory_items(struct zone* zone, int dest_num_files)
+{
+	if(!zone->ixfr || !zone->ixfr->data)
+		return;
+	if(dest_num_files == (int)zone->ixfr->data->count)
+		return;
+	if(dest_num_files > (int)zone->ixfr->data->count) {
+		/* impossible, dest_num_files should be smaller */
+		return;
+	}
+
+	/* delete oldest ixfr, until we have dest_num_files entries */
+	while(dest_num_files < (int)zone->ixfr->data->count) {
+		zone_ixfr_remove_oldest(zone->ixfr);
+	}
+}
+
 /* rename the ixfr files that need to change name */
 static int ixfr_rename_files(struct zone* zone, const char* zfile,
 	int dest_num_files)
@@ -1409,6 +1427,9 @@ void ixfr_write_to_file(struct zone* zone, const char* zfile)
 
 	/* delete if we have more than we need */
 	ixfr_delete_superfluous_files(zone, zfile, dest_num_files);
+
+	/* delete if we have too much in memory */
+	ixfr_delete_memory_items(zone, dest_num_files);
 
 	/* rename the transfers that we have that already have a file */
 	if(!ixfr_rename_files(zone, zfile, dest_num_files))
