@@ -1035,13 +1035,16 @@ static int ixfr_file_exists(const char* zfile, int file_num)
 }
 
 /* unlink an ixfr file */
-static int ixfr_unlink_it(struct zone* zone, const char* zfile, int file_num)
+static int ixfr_unlink_it(struct zone* zone, const char* zfile, int file_num,
+	int ignore_enoent)
 {
 	char ixfrfile[1024+24];
 	make_ixfr_name(ixfrfile, sizeof(ixfrfile), zfile, file_num);
 	VERBOSITY(3, (LOG_INFO, "delete zone %s IXFR data file %s",
 		zone->opts->name, ixfrfile));
 	if(unlink(ixfrfile) < 0) {
+		if(ignore_enoent && errno == ENOENT)
+			return 0;
 		log_msg(LOG_ERR, "error to delete file %s: %s", ixfrfile,
 			strerror(errno));
 		return 0;
@@ -1057,7 +1060,7 @@ static void ixfr_delete_rest_files(struct zone* zone, struct ixfr_data* from,
 	while(data && (struct rbnode*)data != RBTREE_NULL &&
 		data->file_num == 0) {
 		if(data->file_num != 0) {
-			(void)ixfr_unlink_it(zone, zfile, data->file_num);
+			(void)ixfr_unlink_it(zone, zfile, data->file_num, 0);
 			data->file_num = 0;
 		}
 		data = (struct ixfr_data*)rbtree_previous(&data->node);
@@ -1071,7 +1074,7 @@ static void ixfr_delete_superfluous_files(struct zone* zone, const char* zfile,
 	int i = dest_num_files + 1;
 	if(!ixfr_file_exists(zfile, i))
 		return;
-	while(ixfr_unlink_it(zone, zfile, i)) {
+	while(ixfr_unlink_it(zone, zfile, i, 1)) {
 		i++;
 	}
 }
@@ -1115,7 +1118,7 @@ static int ixfr_rename_files(struct zone* zone, const char* zfile,
 
 		/* if there is an existing file, delete it */
 		if(ixfr_file_exists(zfile, destnum)) {
-			(void)ixfr_unlink_it(zone, zfile, destnum);
+			(void)ixfr_unlink_it(zone, zfile, destnum, 0);
 		}
 
 		if(!ixfr_rename_it(zone, zfile, data->file_num, destnum)) {
