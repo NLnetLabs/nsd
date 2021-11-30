@@ -1,3 +1,6 @@
+30 November 2021: Wouter
+	- Fix to remove git tracking and ci information from release tarballs.
+
 3 November 2021: Wouter
 	- Fix #198: nsd-control reconfig core dump.
 
