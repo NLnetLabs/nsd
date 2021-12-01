@@ -1,3 +1,6 @@
+1 December 2021: Wouter
+	- Set up for branch for 4.3.9 release.
+
 30 November 2021: Wouter
 	- Fix to remove git tracking and ci information from release tarballs.
 

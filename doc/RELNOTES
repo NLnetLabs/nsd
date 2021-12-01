@@ -1,8 +1,7 @@
 NSD RELEASE NOTES
 
-4.3.9 (in development)
+4.3.9
 ================
-FEATURES:
 BUG FIXES:
 	- Fix #198: nsd-control reconfig core dump.
 	- Fix to remove git tracking and ci information from release tarballs.
