@@ -33,7 +33,7 @@ echo "XFRD: ${xfrd_pid}"
 echo "CHILD 1: ${child1_pid}"
 echo "CHILD 2: ${child2_pid}"
 
-if which lsof >/dev/null 2>&1; then
+if ! which sockstat >/dev/null 2>&1; then
 	lsof -i :${NSD_PORT1} -i :${NSD_PORT2}
 
 	main_sock_cnt=$(lsof -p ${main_pid} -a -i :${NSD_PORT1} -i :${NSD_PORT2} | tail -n +2 | wc -l)
@@ -68,7 +68,7 @@ if [ -z "${child2_sock_cnt}" ] || [ ${child2_sock_cnt} -ne 2 ]; then
 fi
 
 # verify child processes listen on the right port
-if which lsof >/dev/null 2>&1; then
+if ! which sockstat >/dev/null 2>&1; then
 	child1_sock_cnt=$(lsof -p ${child1_pid} -a -i :${NSD_PORT1} | tail -n +2 | wc -l)
 	child2_sock_cnt=$(lsof -p ${child2_pid} -a -i :${NSD_PORT2} | tail -n +2 | wc -l)
 else
