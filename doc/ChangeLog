@@ -1,6 +1,7 @@
 2 December 2021: Wouter
 	- Fix socket_partitioning unit test for FreeBSD.
 	- Fix SVCB test to work around older dig with drill.
+	- Fix unit test to not syslog setlogin failures.
 
 1 December 2021: Wouter
 	- Set up for branch for 4.3.9 release.

@@ -14,7 +14,7 @@ CONTROL_PORT=$(($NSD_PORT + 3))
 
 PRE="../.."
 NSD_PID="nsd.pid.$$"
-NSD="$PRE/nsd -p $NSD_PORT -P $NSD_PID -u $LOGNAME"
+NSD="$PRE/nsd -p $NSD_PORT -P $NSD_PID"
 TESTNS="ldns-testns -v"
 
 # share the vars

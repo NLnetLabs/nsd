@@ -21,5 +21,5 @@ echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 
 sed -e "s/TLSPORT/$TPKG_PORT2/" < tls.conf > edit.conf
 
-$TPKG_NSD -c edit.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID
+$TPKG_NSD -c edit.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID
 wait_nsd_up nsd.log

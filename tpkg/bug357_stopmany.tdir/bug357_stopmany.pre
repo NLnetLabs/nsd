@@ -66,8 +66,8 @@ echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
 wait_ldns_testns_up fwd.log
 
 # debug echo of command.
-echo $TPKG_NSD -c myconf -u $LOGNAME -p $TPKG_PORT -f bug357_stopmany.db
-$TPKG_NSD -c myconf -u $LOGNAME -p $TPKG_PORT -f bug357_stopmany.db
+echo $TPKG_NSD -c myconf -u "" -p $TPKG_PORT -f bug357_stopmany.db
+$TPKG_NSD -c myconf -u "" -p $TPKG_PORT -f bug357_stopmany.db
 wait_logfile log " started (NSD " 500
 
 cat fwd.log

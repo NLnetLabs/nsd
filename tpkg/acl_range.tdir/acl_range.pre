@@ -17,5 +17,5 @@ TPKG_NSD="$PRE/nsd"
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 
-$TPKG_NSD -c acl_range.conf -u $LOGNAME -l nsd.log -p $TPKG_PORT -P $TPKG_NSD_PID -f acl_range.db
+$TPKG_NSD -c acl_range.conf -u "" -l nsd.log -p $TPKG_PORT -P $TPKG_NSD_PID -f acl_range.db
 wait_nsd_up nsd.log

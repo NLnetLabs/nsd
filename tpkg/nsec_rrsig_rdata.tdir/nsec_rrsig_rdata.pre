@@ -33,9 +33,9 @@ cat nsec_rrsig_rdata.slave.conf2
 
 cat nsec_rrsig_rdata.master.zone.signed
 
-$TPKG_NSD -c nsec_rrsig_rdata.master.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f nsec_rrsig_rdata.master.db
+$TPKG_NSD -c nsec_rrsig_rdata.master.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f nsec_rrsig_rdata.master.db
 # slave
-$TPKG_NSD -c nsec_rrsig_rdata.slave.conf2 -u $LOGNAME -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f nsec_rrsig_rdata.slave.db >> result.nsec_rrsig_rdata 2>&1
+$TPKG_NSD -c nsec_rrsig_rdata.slave.conf2 -u "" -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f nsec_rrsig_rdata.slave.db >> result.nsec_rrsig_rdata 2>&1
 
 echo master at port $TPKG_PORT $TPKG_NSD_PID = `cat $TPKG_NSD_PID`
 echo slave at port $TPKG_PORT2 $TPKG_NSD_PID2 = `cat $TPKG_NSD_PID2`

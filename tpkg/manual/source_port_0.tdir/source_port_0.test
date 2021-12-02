@@ -11,7 +11,7 @@ PATH=$PATH:"/usr/sbin"
 HPING=`which hping`
 
 chmod a+x .
-../../../nsd -d -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -c source_port_0.conf &
+../../../nsd -d -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -c source_port_0.conf &
 wait_nsd_up nsd.log
 
 if test -x $HPING; then

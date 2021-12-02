@@ -25,9 +25,9 @@ sed -e "s/TPKGPORT/$TPKG_PORT/" < tsig_nsdnsd.conf2 > tsig_nsdnsd.conf3
 cat tsig_nsdnsd.conf3
 
 # master
-$TPKG_NSD -c tsig_nsdnsd.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f tsig_nsdnsd.db
+$TPKG_NSD -c tsig_nsdnsd.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f tsig_nsdnsd.db
 # slave
-$TPKG_NSD -c tsig_nsdnsd.conf3 -u $LOGNAME -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f tsig_nsdnsd.2.db
+$TPKG_NSD -c tsig_nsdnsd.conf3 -u "" -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f tsig_nsdnsd.2.db
 
 echo master at port $TPKG_PORT $TPKG_NSD_PID
 echo slave at port $TPKG_PORT2 $TPKG_NSD_PID2

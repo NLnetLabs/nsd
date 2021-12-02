@@ -25,7 +25,7 @@ sed -e "s/MASTERPORT/$MASTER_PORT/" < ixfr_rollback.conf > slave.conf
 cat slave.conf
 
 # slave
-$TPKG_NSD -c slave.conf -u $LOGNAME -p $SLAVE_PORT -P $TPKG_NSD_PID2 -V 2
+$TPKG_NSD -c slave.conf -u "" -p $SLAVE_PORT -P $TPKG_NSD_PID2 -V 2
 
 sleep 1 # wait for it to come up.
 echo master has port $MASTER_PORT $TPKG_NSD_PID

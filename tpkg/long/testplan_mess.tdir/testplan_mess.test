@@ -108,7 +108,7 @@ kill `cat $TPKG_NSD_PID_I2`
 sleep $WAITTIME
 echo "-------wait-----------------------------------------"
 echo ">>> restart i2"
-$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
+$TPKG_NSD -c i2.conf -u "" -p $PORT_I2 -P $TPKG_NSD_PID_I2
 sleep $WAITTIME
 echo "-------wait-----------------------------------------"
 check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
@@ -122,7 +122,7 @@ echo ">>> del xfrdfile: xfrd.i2.db"
 rm -f xfrd.i2.db
 # difffile: diff.i2.db
 echo ">>> restart i2"
-$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
+$TPKG_NSD -c i2.conf -u "" -p $PORT_I2 -P $TPKG_NSD_PID_I2
 sleep $WAITTIME
 echo "-------wait-----------------------------------------"
 check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
@@ -134,7 +134,7 @@ echo "-------wait-----------------------------------------"
 echo ">>> del xfrdfile: diff.i2.db"
 rm -f diff.i2.db
 echo ">>> restart i2"
-$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
+$TPKG_NSD -c i2.conf -u "" -p $PORT_I2 -P $TPKG_NSD_PID_I2
 sleep $WAITTIME
 echo "-------wait-----------------------------------------"
 check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
@@ -146,7 +146,7 @@ echo "-------wait-----------------------------------------"
 echo ">>> del xfrdfile: diff.i2.db and xfrd.i2.db"
 rm -f diff.i2.db xfrd.i2.db
 echo ">>> restart i2"
-$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
+$TPKG_NSD -c i2.conf -u "" -p $PORT_I2 -P $TPKG_NSD_PID_I2
 sleep $WAITTIME
 echo "-------wait-----------------------------------------"
 check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
@@ -190,7 +190,7 @@ soa_notify_acquired: 0
 
 EOF
 echo ">>> restart i2"
-$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
+$TPKG_NSD -c i2.conf -u "" -p $PORT_I2 -P $TPKG_NSD_PID_I2
 sleep $WAITTIME
 echo "-------wait-----------------------------------------"
 check_zones_are testplan_mess.zone_m1 testplan_mess.zone_m2 testplan_mess.zone_m1
