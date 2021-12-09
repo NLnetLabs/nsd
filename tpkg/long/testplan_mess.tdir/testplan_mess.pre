@@ -69,13 +69,13 @@ convert_conf testplan_mess.conf_s2 s2.conf
 cp testplan_mess.zone_m2 testplan_mess.zone_m1 # masters are the same.
 
 echo "start nsd"
-$TPKG_NSD -c m1.conf -u $LOGNAME -p $PORT_M1 -P $TPKG_NSD_PID_M1
-$TPKG_NSD -c m2.conf -u $LOGNAME -p $PORT_M2 -P $TPKG_NSD_PID_M2
-$TPKG_NSD -c i1.conf -u $LOGNAME -p $PORT_I1 -P $TPKG_NSD_PID_I1
-$TPKG_NSD -c i2.conf -u $LOGNAME -p $PORT_I2 -P $TPKG_NSD_PID_I2
-$TPKG_NSD -c i3.conf -u $LOGNAME -p $PORT_I3 -P $TPKG_NSD_PID_I3
-$TPKG_NSD -c s1.conf -u $LOGNAME -p $PORT_S1 -P $TPKG_NSD_PID_S1
-$TPKG_NSD -c s2.conf -u $LOGNAME -p $PORT_S2 -P $TPKG_NSD_PID_S2
+$TPKG_NSD -c m1.conf -u "" -p $PORT_M1 -P $TPKG_NSD_PID_M1
+$TPKG_NSD -c m2.conf -u "" -p $PORT_M2 -P $TPKG_NSD_PID_M2
+$TPKG_NSD -c i1.conf -u "" -p $PORT_I1 -P $TPKG_NSD_PID_I1
+$TPKG_NSD -c i2.conf -u "" -p $PORT_I2 -P $TPKG_NSD_PID_I2
+$TPKG_NSD -c i3.conf -u "" -p $PORT_I3 -P $TPKG_NSD_PID_I3
+$TPKG_NSD -c s1.conf -u "" -p $PORT_S1 -P $TPKG_NSD_PID_S1
+$TPKG_NSD -c s2.conf -u "" -p $PORT_S2 -P $TPKG_NSD_PID_S2
 echo "started"
 
 sleep 5 # wait for them to come up.

@@ -36,6 +36,6 @@ done
 echo "done generating config"
 
 # debug echo of command.
-echo $TPKG_NSD -c myconf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug153_socketlimit.db
-$TPKG_NSD -c myconf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug153_socketlimit.db
+echo $TPKG_NSD -c myconf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f bug153_socketlimit.db
+$TPKG_NSD -c myconf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f bug153_socketlimit.db
 wait_nsd_up log

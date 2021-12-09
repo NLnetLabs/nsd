@@ -3,6 +3,7 @@ server:
 	database: ""
 	zonesdir: ""
 	xfrdfile: ""
+	zonelistfile: ""
 	pidfile: "nsd-tertiary.pid"
 	logfile: "nsd-tertiary.log"
         interface: 127.0.0.1@@TPKG_TER_PORT@

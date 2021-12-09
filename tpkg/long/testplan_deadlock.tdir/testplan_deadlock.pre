@@ -54,7 +54,7 @@ echo "Generated zones: $NUMZONES"
 #cat master.qs
 
 # slave
-$TPKG_NSD -c slave.conf -u $LOGNAME -p $SLAVE_PORT -P $TPKG_NSD_PID2
+$TPKG_NSD -c slave.conf -u "" -p $SLAVE_PORT -P $TPKG_NSD_PID2
 wait_nsd_up nsd.log
 
 echo master has port $MASTER_PORT $TPKG_NSD_PID

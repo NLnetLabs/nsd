@@ -54,7 +54,7 @@ server:
 	#tls-service-pem:
 	#tls-service-ocsp:
 	tls-port: "853"
-	answer-cookie: yes
+	answer-cookie: no
 
 remote-control:
 	control-enable: no
@@ -178,7 +178,7 @@ server:
 	#tls-service-pem:
 	#tls-service-ocsp:
 	tls-port: "853"
-	answer-cookie: yes
+	answer-cookie: no
 
 remote-control:
 	control-enable: no
@@ -245,7 +245,7 @@ server:
 	#tls-service-pem:
 	#tls-service-ocsp:
 	tls-port: "853"
-	answer-cookie: yes
+	answer-cookie: no
 
 remote-control:
 	control-enable: no
@@ -321,7 +321,7 @@ server:
 	#tls-service-pem:
 	#tls-service-ocsp:
 	tls-port: "853"
-	answer-cookie: yes
+	answer-cookie: no
 
 remote-control:
 	control-enable: no
@@ -441,7 +441,7 @@ server:
 	#tls-service-pem:
 	#tls-service-ocsp:
 	tls-port: "853"
-	answer-cookie: yes
+	answer-cookie: no
 
 remote-control:
 	control-enable: no

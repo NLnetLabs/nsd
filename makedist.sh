@@ -147,7 +147,7 @@ info "git clone --depth=1 --no-tags -b $GITBRANCH $GITREPO nsd"
 git clone --depth=1 --no-tags -b $GITBRANCH $GITREPO nsd || error_cleanup "git clone command failed"
 
 cd nsd || error_cleanup "NSD not exported correctly from git"
-rm -rf .git || error_cleanup "Failed to remove .git tracking information"
+rm -rf .git .cirrus.yml .github .gitignore || error_cleanup "Failed to remove .git tracking and ci information"
 
 info "Building configure script (autoreconf)."
 autoreconf || error_cleanup "Autoconf failed."

@@ -12,7 +12,7 @@ echo pcat-print: $PCAT_PRINT
 get_random_port 1
 PORT=$RND_PORT
 
-../../nsd -u $LOGNAME -p $PORT -f root.db -c query_diff_root.nsd30.conf -P nsd.pid
+../../nsd -u "" -p $PORT -f root.db -c query_diff_root.nsd30.conf -P nsd.pid
 if [[ $? -ne 0 ]]; then
         exit 1
 fi

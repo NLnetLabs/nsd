@@ -6,7 +6,7 @@
 . ../common.sh
 
 PRE="../.."
-NSD="$PRE/nsd -p $NSD_PORT -P $NSD_PID -u $LOGNAME"
+NSD="$PRE/nsd -p $NSD_PORT -P $NSD_PID"
 CTRL="$PRE/nsd-control -c nsd.conf"
 
 $CTRL status

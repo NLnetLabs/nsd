@@ -26,9 +26,9 @@ sed -e "s/TPKGPORT/$TPKG_PORT2/" < notify_nsdnsd.conf > notify_nsdnsd.conf1_r
 cat notify_nsdnsd.conf?_r
 
 # master
-$TPKG_NSD -c notify_nsdnsd.conf1_r -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f notify_nsdnsd.db
+$TPKG_NSD -c notify_nsdnsd.conf1_r -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f notify_nsdnsd.db
 # slave
-$TPKG_NSD -c notify_nsdnsd.conf2_r -u $LOGNAME -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f notify_nsdnsd.2.db
+$TPKG_NSD -c notify_nsdnsd.conf2_r -u "" -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f notify_nsdnsd.2.db
 
 sleep 3
 echo master at port $TPKG_PORT $TPKG_NSD_PID = `cat $TPKG_NSD_PID`

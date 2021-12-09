@@ -55,7 +55,7 @@ server:
 	#tls-service-ocsp:
 	tls-port: "853"
 	#tls-cert-bundle:
-	answer-cookie: yes
+	answer-cookie: no
 	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
 
 remote-control:
@@ -181,7 +181,7 @@ server:
 	#tls-service-ocsp:
 	tls-port: "853"
 	#tls-cert-bundle:
-	answer-cookie: yes
+	answer-cookie: no
 	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
 
 remote-control:
@@ -250,7 +250,7 @@ server:
 	#tls-service-ocsp:
 	tls-port: "853"
 	#tls-cert-bundle:
-	answer-cookie: yes
+	answer-cookie: no
 	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
 
 remote-control:
@@ -328,7 +328,7 @@ server:
 	#tls-service-ocsp:
 	tls-port: "853"
 	#tls-cert-bundle:
-	answer-cookie: yes
+	answer-cookie: no
 	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
 
 remote-control:
@@ -450,7 +450,7 @@ server:
 	#tls-service-ocsp:
 	tls-port: "853"
 	#tls-cert-bundle:
-	answer-cookie: yes
+	answer-cookie: no
 	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
 
 remote-control:

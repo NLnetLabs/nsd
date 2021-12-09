@@ -17,7 +17,7 @@ echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 echo port: $TPKG_PORT
 
-$TPKG_NSD -c nsd_1.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -V 5
+$TPKG_NSD -c nsd_1.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -V 5
 wait_nsd_up nsd.log
 
 # wait for it if necessary

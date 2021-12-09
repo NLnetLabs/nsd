@@ -180,6 +180,7 @@ struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_
 				tls_cert_bundle);
 	}
 #else
+	(void)tls_cert_bundle;
 	log_msg(LOG_INFO, "xfrd: No TLS 1.3 support - XFR-over-TLS not available");
 #endif
 	tcp_set->tcp_state = region_alloc(region,
