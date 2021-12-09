@@ -5,6 +5,9 @@
 
 1 December 2021: Wouter
 	- Set up for branch for 4.3.9 release.
+	  This became release 4.3.9 on 9 Dec 2021 and included the changes
+	  until the SVCB fix on 2 dec 2021, but not the setlogin fix.
+	  The main branch continues as 4.3.10.
 	- Fix unit tests for new answer-cookie default.
 
 30 November 2021: Wouter
