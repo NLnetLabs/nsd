@@ -121,7 +121,7 @@ static uint32_t zone_get_current_serial(struct zone* zone)
 static struct ixfr_data* ixfr_data_first(struct zone_ixfr* ixfr)
 {
 	struct ixfr_data* n;
-	if(!ixfr || !ixfr->data)
+	if(!ixfr || !ixfr->data || ixfr->data->count==0)
 		return NULL;
 	n = (struct ixfr_data*)rbtree_search(ixfr->data, &ixfr->oldest_serial);
 	if(!n || n == (struct ixfr_data*)RBTREE_NULL)
@@ -134,7 +134,7 @@ static struct ixfr_data* ixfr_data_first(struct zone_ixfr* ixfr)
 static struct ixfr_data* ixfr_data_last(struct zone_ixfr* ixfr)
 {
 	struct ixfr_data* n;
-	if(!ixfr || !ixfr->data)
+	if(!ixfr || !ixfr->data || ixfr->data->count==0)
 		return NULL;
 	n = (struct ixfr_data*)rbtree_search(ixfr->data, &ixfr->newest_serial);
 	if(!n || n == (struct ixfr_data*)RBTREE_NULL)
@@ -439,6 +439,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 			return query_axfr(nsd, query);
 		}
 
+		query->zone = zone;
 		query->ixfr_data = ixfr_data;
 		query->ixfr_is_done = 0;
 		/* set up to copy the last version's SOA as first SOA */
@@ -1141,12 +1142,22 @@ static void make_ixfr_name(char* buf, size_t len, const char* zfile,
 	else snprintf(buf, len, "%s.ixfr.%d", zfile, file_num);
 }
 
+/* create temp ixfrfile name in buffer for file_num. The num is 1 .. number. */
+static void make_ixfr_name_temp(char* buf, size_t len, const char* zfile,
+	int file_num, int temp)
+{
+	if(file_num == 1)
+		snprintf(buf, len, "%s.ixfr%s", zfile, (temp?".temp":""));
+	else snprintf(buf, len, "%s.ixfr.%d%s", zfile, file_num,
+		(temp?".temp":""));
+}
+
 /* see if ixfr file exists */
-static int ixfr_file_exists(const char* zfile, int file_num)
+static int ixfr_file_exists_ctmp(const char* zfile, int file_num, int temp)
 {
 	struct stat statbuf;
 	char ixfrfile[1024+24];
-	make_ixfr_name(ixfrfile, sizeof(ixfrfile), zfile, file_num);
+	make_ixfr_name_temp(ixfrfile, sizeof(ixfrfile), zfile, file_num, temp);
 	memset(&statbuf, 0, sizeof(statbuf));
 	if(stat(ixfrfile, &statbuf) < 0) {
 		if(errno == ENOENT)
@@ -1157,16 +1168,28 @@ static int ixfr_file_exists(const char* zfile, int file_num)
 	return 1;
 }
 
+/* see if ixfr file exists */
+static int ixfr_file_exists(const char* zfile, int file_num)
+{
+	return ixfr_file_exists_ctmp(zfile, file_num, 0);
+}
+
+/* see if ixfr file exists */
+static int ixfr_file_exists_temp(const char* zfile, int file_num)
+{
+	return ixfr_file_exists_ctmp(zfile, file_num, 1);
+}
+
 /* unlink an ixfr file */
-static int ixfr_unlink_it(struct zone* zone, const char* zfile, int file_num,
-	int ignore_enoent)
+static int ixfr_unlink_it_ctmp(struct zone* zone, const char* zfile,
+	int file_num, int silent_enoent, int temp)
 {
 	char ixfrfile[1024+24];
-	make_ixfr_name(ixfrfile, sizeof(ixfrfile), zfile, file_num);
+	make_ixfr_name_temp(ixfrfile, sizeof(ixfrfile), zfile, file_num, temp);
 	VERBOSITY(3, (LOG_INFO, "delete zone %s IXFR data file %s",
 		zone->opts->name, ixfrfile));
 	if(unlink(ixfrfile) < 0) {
-		if(ignore_enoent && errno == ENOENT)
+		if(silent_enoent && errno == ENOENT)
 			return 0;
 		log_msg(LOG_ERR, "error to delete file %s: %s", ixfrfile,
 			strerror(errno));
@@ -1175,15 +1198,30 @@ static int ixfr_unlink_it(struct zone* zone, const char* zfile, int file_num,
 	return 1;
 }
 
+/* unlink an ixfr file */
+static int ixfr_unlink_it(struct zone* zone, const char* zfile, int file_num,
+	int silent_enoent)
+{
+	return ixfr_unlink_it_ctmp(zone, zfile, file_num, silent_enoent, 0);
+}
+
+/* unlink an ixfr file */
+static int ixfr_unlink_it_temp(struct zone* zone, const char* zfile,
+	int file_num, int silent_enoent)
+{
+	return ixfr_unlink_it_ctmp(zone, zfile, file_num, silent_enoent, 1);
+}
+
 /* delete rest ixfr files, that are after the current item */
 static void ixfr_delete_rest_files(struct zone* zone, struct ixfr_data* from,
-	const char* zfile)
+	const char* zfile, int temp)
 {
 	size_t prevcount = 0;
 	struct ixfr_data* data = from;
 	while(data) {
 		if(data->file_num != 0) {
-			(void)ixfr_unlink_it(zone, zfile, data->file_num, 0);
+			(void)ixfr_unlink_it_ctmp(zone, zfile, data->file_num,
+				0, temp);
 			data->file_num = 0;
 		}
 		data = ixfr_data_prev(zone->ixfr, data, &prevcount);
@@ -1204,12 +1242,14 @@ static void ixfr_delete_superfluous_files(struct zone* zone, const char* zfile,
 
 /* rename the file */
 static int ixfr_rename_it(struct zone* zone, const char* zfile, int oldnum,
-	int newnum)
+	int oldtemp, int newnum, int newtemp)
 {
 	char ixfrfile_old[1024+24];
 	char ixfrfile_new[1024+24];
-	make_ixfr_name(ixfrfile_old, sizeof(ixfrfile_old), zfile, oldnum);
-	make_ixfr_name(ixfrfile_new, sizeof(ixfrfile_new), zfile, newnum);
+	make_ixfr_name_temp(ixfrfile_old, sizeof(ixfrfile_old), zfile, oldnum,
+		oldtemp);
+	make_ixfr_name_temp(ixfrfile_new, sizeof(ixfrfile_new), zfile, newnum,
+		newtemp);
 	VERBOSITY(3, (LOG_INFO, "rename zone %s IXFR data file %s to %s",
 		zone->opts->name, ixfrfile_old, ixfrfile_new));
 	if(rename(ixfrfile_old, ixfrfile_new) < 0) {
@@ -1242,7 +1282,8 @@ static void ixfr_delete_memory_items(struct zone* zone, int dest_num_files)
 static int ixfr_rename_files(struct zone* zone, const char* zfile,
 	int dest_num_files)
 {
-	struct ixfr_data* data;
+	struct ixfr_data* data, *startspot = NULL;
+	size_t prevcount = 0;
 	int destnum;
 	if(!zone->ixfr || !zone->ixfr->data)
 		return 1;
@@ -1250,35 +1291,59 @@ static int ixfr_rename_files(struct zone* zone, const char* zfile,
 	/* the oldest file is at the largest number */
 	data = ixfr_data_first(zone->ixfr);
 	destnum = dest_num_files;
+	if(!data)
+		return 1; /* nothing to do */
+	if(data->file_num == destnum)
+		return 1; /* nothing to do for rename */
+
+	/* rename the files to temporary files, because otherwise the
+	 * items would overwrite each other when the list touches itself.
+	 * On fail, the temporary files are removed and we end up with
+	 * the newly written data plus the remaining files, in order.
+	 * Thus, start the temporary rename at the oldest, then rename
+	 * to the final names starting from the newest. */
 	while(data && data->file_num != 0) {
-		if(data->file_num == destnum) {
-			/* nothing to do for rename */
-			return 1;
+		/* if existing file at temporary name, delete that */
+		if(ixfr_file_exists_temp(zfile, data->file_num)) {
+			(void)ixfr_unlink_it_temp(zone, zfile, data->file_num, 0);
 		}
+
+		/* rename to temporary name */
+		if(!ixfr_rename_it(zone, zfile, data->file_num, 0, destnum, 1)) {
+			/* failure, we cannot store files */
+			/* delete the renamed files */
+			ixfr_delete_rest_files(zone, data, zfile, 1);
+			return 0;
+		}
+
+		/* the next cycle should start at the newest file that
+		 * has been renamed to a temporary name */
+		startspot = data;
+		data = ixfr_data_next(zone->ixfr, data);
+		destnum--;
+	}
+
+	/* rename the files to their final name position */
+	data = startspot;
+	while(data && data->file_num != 0) {
+		destnum++;
 
 		/* if there is an existing file, delete it */
 		if(ixfr_file_exists(zfile, destnum)) {
 			(void)ixfr_unlink_it(zone, zfile, destnum, 0);
 		}
 
-		if(!ixfr_rename_it(zone, zfile, data->file_num, destnum)) {
+		if(!ixfr_rename_it(zone, zfile, data->file_num, 1, destnum, 0)) {
 			/* failure, we cannot store files */
-			struct ixfr_data* prev = ixfr_data_prev(zone->ixfr,
-				data, NULL);
+			ixfr_delete_rest_files(zone, data, zfile, 1);
 			/* delete the previously renamed files, so in
 			 * memory stays as is, on disk we have the current
 			 * item (and newer transfers) okay. */
-			if(prev) {
-				ixfr_delete_rest_files(zone, prev, zfile);
-			}
 			return 0;
 		}
 		data->file_num = destnum;
 
-		data = ixfr_data_next(zone->ixfr, data);
-		destnum--;
-		if(destnum == 0)
-			return 1; /* not possible to hit 0 file num */
+		data = ixfr_data_prev(zone->ixfr, data, &prevcount);
 	}
 	return 1;
 }
@@ -1540,7 +1605,7 @@ static void ixfr_write_files(struct zone* zone, const char* zfile)
 			 * a correct list of transfers, that are wholly
 			 * written. */
 			data->file_num = num;
-			ixfr_delete_rest_files(zone, data, zfile);
+			ixfr_delete_rest_files(zone, data, zfile, 0);
 			return;
 		}
 		num++;
