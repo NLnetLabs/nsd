@@ -30,11 +30,11 @@ cat master.conf
 echo "hello world" > $TPKG_NSD_PID
 cat $TPKG_NSD_PID
 
-echo $TPKG_NSD -c master.conf -u $LOGNAME -p $MASTER_PORT -P $TPKG_NSD_PID
-$TPKG_NSD -c master.conf -u $LOGNAME -p $MASTER_PORT -P $TPKG_NSD_PID
+echo $TPKG_NSD -c master.conf -u "" -p $MASTER_PORT -P $TPKG_NSD_PID
+$TPKG_NSD -c master.conf -u "" -p $MASTER_PORT -P $TPKG_NSD_PID
 # slave
-echo $TPKG_NSD -c slave.conf -u $LOGNAME -p $SLAVE_PORT -P $TPKG_NSD_PID2
-$TPKG_NSD -c slave.conf -u $LOGNAME -p $SLAVE_PORT -P $TPKG_NSD_PID2
+echo $TPKG_NSD -c slave.conf -u "" -p $SLAVE_PORT -P $TPKG_NSD_PID2
+$TPKG_NSD -c slave.conf -u "" -p $SLAVE_PORT -P $TPKG_NSD_PID2
 
 sleep 1 # wait for them to come up.
 echo master at port $MASTER_PORT $TPKG_NSD_PID = `cat $TPKG_NSD_PID`

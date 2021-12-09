@@ -12,8 +12,8 @@ TPKG_PORT=$RND_PORT
 TPKG_NSD_PID="nsd.pid.$$"
 echo "export TPKG_NSD_PID=nsd.pid.$$" >> .tpkg.var.test
 chmod a+rx .
-echo ../../../nsd -c size_0.conf -d -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID &
-../../../nsd -c size_0.conf -d -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID &
+echo ../../../nsd -c size_0.conf -d -u "" -p $TPKG_PORT -P $TPKG_NSD_PID &
+../../../nsd -c size_0.conf -d -u "" -p $TPKG_PORT -P $TPKG_NSD_PID &
 wait_nsd_up nsd.log
 
 if test -x $HPING; then

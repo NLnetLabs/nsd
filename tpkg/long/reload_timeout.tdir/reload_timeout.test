@@ -59,7 +59,7 @@ function check_slave_zone() { # <testnr> <checkfile>
 setup_miniserver reload_timeout.qs_1
 # wait for server to come up.
 sleep 1
-$TPKG_NSD -c slave.conf -u $LOGNAME -p $SLAVE_PORT -P $TPKG_NSD_PID2
+$TPKG_NSD -c slave.conf -u "" -p $SLAVE_PORT -P $TPKG_NSD_PID2
 sleep 1
 
 # first trigger a reload so that the timeout starts

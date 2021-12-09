@@ -25,7 +25,7 @@ sed -e "s/MASTERPORT/$MASTER_PORT/" < testplan_ixfr_remove.conf > slave.conf
 cat slave.conf
 
 # slave
-$TPKG_NSD -c slave.conf -u $LOGNAME -V 2 -p $SLAVE_PORT -P $TPKG_NSD_PID2
+$TPKG_NSD -c slave.conf -u "" -V 2 -p $SLAVE_PORT -P $TPKG_NSD_PID2
 wait_nsd_up nsd.log
 
 echo master has port $MASTER_PORT $TPKG_NSD_PID

@@ -16,7 +16,7 @@ TPKG_NSD="$PRE/nsd"
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 
-$TPKG_NSD -c nsd.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID
+$TPKG_NSD -c nsd.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID
 
 sleep 3
 

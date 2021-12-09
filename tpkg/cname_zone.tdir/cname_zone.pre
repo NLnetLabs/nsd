@@ -18,5 +18,5 @@ TPKG_NSD="$PRE/nsd"
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 
-$TPKG_NSD -c cname_zone.conf -u $LOGNAME -l nsd.log -p $TPKG_PORT -P $TPKG_NSD_PID -f cname_zone.db
+$TPKG_NSD -c cname_zone.conf -u "" -l nsd.log -p $TPKG_PORT -P $TPKG_NSD_PID -f cname_zone.db
 wait_nsd_up nsd.log

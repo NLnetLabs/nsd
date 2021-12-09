@@ -12,7 +12,7 @@ CONTROL_PORT=$(($NSD_PORT + 1))
 
 PRE="../.."
 NSD_PID="nsd.pid.$$"
-NSD="$PRE/nsd -p $NSD_PORT -P $NSD_PID -u $LOGNAME"
+NSD="$PRE/nsd -p $NSD_PORT -P $NSD_PID"
 
 # share the vars
 echo "export NSD_PORT=$NSD_PORT" >> .tpkg.var.test

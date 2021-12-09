@@ -1,10 +1,18 @@
 NSD RELEASE NOTES
 
-4.3.9 (in development)
+4.3.10 (upcoming)
 ================
 FEATURES:
 BUG FIXES:
+
+4.3.9
+================
+BUG FIXES:
 	- Fix #198: nsd-control reconfig core dump.
+	- Fix to remove git tracking and ci information from release tarballs.
+	- Fix unit tests for new answer-cookie default.
+	- Fix socket_partitioning unit test for FreeBSD.
+	- Fix SVCB test to work around older dig with drill.
 
 4.3.8
 ================
