@@ -1000,7 +1000,6 @@ static void zone_ixfr_clear(struct zone_ixfr* ixfr)
 		ixfr->data->count = 0;
 	}
 	ixfr->total_size = 0;
-	ixfr->num_files = 0;
 	ixfr->oldest_serial = 0;
 	ixfr->newest_serial = 0;
 	ixfr->newest_newserial = 0;
@@ -2074,6 +2073,5 @@ void ixfr_read_from_file(struct nsd* nsd, struct zone* zone, const char* zfile)
 	if(num_files > 0) {
 		VERBOSITY(1, (LOG_INFO, "zone %s read %d IXFR transfers with success",
 			zone->opts->name, num_files));
-		zone->ixfr->num_files = num_files;
 	}
 }

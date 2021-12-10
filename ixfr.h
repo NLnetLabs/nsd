@@ -27,8 +27,6 @@ struct zone_ixfr {
 	/* total size stored at this time, in bytes,
 	 * sum of sizes of the ixfr data elements */
 	size_t total_size;
-	/* total number of ixfr files on disk */
-	int num_files;
 	/* the oldest serial number in the tree, searchable by old_serial */
 	uint32_t oldest_serial;
 	/* the newest serial number in the tree, that is searchable in the
