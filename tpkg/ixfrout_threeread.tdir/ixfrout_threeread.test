@@ -1,0 +1,201 @@
+# #-- ixfrout_threeread.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../../.."
+DIG=dig
+
+# check 'current version' response
+echo ""
+echo "IXFR=7"
+$DIG @127.0.0.1 -p $TPKG_PORT example.com IXFR=7 > cur
+cat cur
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+nrsoa=`grep SOA cur.cmp | wc | awk '{print $1;}'`
+echo "nrsoa $nrsoa"
+if test "$nrsoa" -ne "1"; then
+	echo "nr of SOA records in current version response wrong"
+	cat nsd.log
+	exit 1
+else
+	echo "nr SOA records OK"
+fi
+if grep SOA cur.cmp | grep "root.example.com. 7 3600"; then
+	echo "current version response has correct SOA"
+else
+	echo "current version response has incorrect SOA"
+	exit 1
+fi
+if grep "^a.example.com" cur.cmp; then
+	echo "a.example.com is present, but should not be in diff"
+	exit 1
+fi
+cat >good.diff <<EOF
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
+EOF
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if diff -Naur good.diff cur.cmp; then
+	echo "diff is OK"
+else
+	echo "differences in output, failed"
+	cat nsd.log
+	exit 1
+fi
+
+# check last version diff
+echo ""
+echo "IXFR=5"
+$DIG @127.0.0.1 -p $TPKG_PORT example.com IXFR=5 > cur
+cat cur
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if grep "^d.example.com" cur.cmp; then
+	echo "d.example.com. present OK"
+else
+	echo "d.example.com. not present, not OK"
+	exit 1
+fi
+if grep "^e.example.com" cur.cmp; then
+	echo "e.example.com. present OK"
+else
+	echo "e.example.com. not present, not OK"
+	exit 1
+fi
+if grep "^a.example.com" cur.cmp; then
+	echo "a.example.com is present, but should not be in diff"
+	exit 1
+fi
+cat >good.diff <<EOF
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+d.example.com.		3600	IN	A	10.0.0.4
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
+e.example.com.		3600	IN	A	10.0.0.5
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
+EOF
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if diff -Naur good.diff cur.cmp; then
+	echo "diff is OK"
+else
+	echo "differences in output, failed"
+	cat nsd.log
+	exit 1
+fi
+
+# check last two versions diff
+echo ""
+echo "IXFR=3"
+$DIG @127.0.0.1 -p $TPKG_PORT example.com IXFR=3 > cur
+cat cur
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if grep "^c.example.com" cur.cmp; then
+	echo "c.example.com. present OK"
+else
+	echo "c.example.com. not present, not OK"
+	exit 1
+fi
+# actually d.example.com is present twice, added and deleted.
+if grep "^d.example.com" cur.cmp; then
+	echo "d.example.com. present OK"
+else
+	echo "d.example.com. not present, not OK"
+	exit 1
+fi
+if grep "^e.example.com" cur.cmp; then
+	echo "e.example.com. present OK"
+else
+	echo "e.example.com. not present, not OK"
+	exit 1
+fi
+if grep "^a.example.com" cur.cmp; then
+	echo "a.example.com is present, but should not be in diff"
+	exit 1
+fi
+cat >good.diff <<EOF
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+c.example.com.		3600	IN	A	10.0.0.3
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+d.example.com.		3600	IN	A	10.0.0.4
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+d.example.com.		3600	IN	A	10.0.0.4
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
+e.example.com.		3600	IN	A	10.0.0.5
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
+EOF
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if diff -Naur good.diff cur.cmp; then
+	echo "diff is OK"
+else
+	echo "differences in output, failed"
+	cat nsd.log
+	exit 1
+fi
+
+# check last three versions diff
+echo ""
+echo "IXFR=1"
+$DIG @127.0.0.1 -p $TPKG_PORT example.com IXFR=1 > cur
+cat cur
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if grep "^b.example.com" cur.cmp; then
+	echo "b.example.com. present OK"
+else
+	echo "b.example.com. not present, not OK"
+	exit 1
+fi
+# actually c.example.com is present twice, added and deleted.
+if grep "^c.example.com" cur.cmp; then
+	echo "c.example.com. present OK"
+else
+	echo "c.example.com. not present, not OK"
+	exit 1
+fi
+# actually d.example.com is present twice, added and deleted.
+if grep "^d.example.com" cur.cmp; then
+	echo "d.example.com. present OK"
+else
+	echo "d.example.com. not present, not OK"
+	exit 1
+fi
+if grep "^e.example.com" cur.cmp; then
+	echo "e.example.com. present OK"
+else
+	echo "e.example.com. not present, not OK"
+	exit 1
+fi
+if grep "^a.example.com" cur.cmp; then
+	echo "a.example.com is present, but should not be in diff"
+	exit 1
+fi
+cat >good.diff <<EOF
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 1 3600 28800 2419200 3600
+b.example.com.		3600	IN	A	10.0.0.1
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+c.example.com.		3600	IN	A	10.0.0.3
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+c.example.com.		3600	IN	A	10.0.0.3
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+d.example.com.		3600	IN	A	10.0.0.4
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+d.example.com.		3600	IN	A	10.0.0.4
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
+e.example.com.		3600	IN	A	10.0.0.5
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
+EOF
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if diff -Naur good.diff cur.cmp; then
+	echo "diff is OK"
+else
+	echo "differences in output, failed"
+	cat nsd.log
+	exit 1
+fi
+
+cat nsd.log
+
+echo "OK"
+exit 0
