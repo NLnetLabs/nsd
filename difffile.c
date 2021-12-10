@@ -1164,8 +1164,10 @@ apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
 			/* add everything else (incl end SOA) */
 			*delete_mode = 0;
 			*is_axfr = 1;
-			if(ixfr_store)
+			if(ixfr_store) {
 				ixfr_store_cancel(ixfr_store);
+				ixfr_store_delixfrs(zone_db);
+			}
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s sawAXFR count %d, ax %d, delmode %d",
 				dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
 		}

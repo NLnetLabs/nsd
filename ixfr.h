@@ -189,6 +189,10 @@ void ixfr_store_addrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
 	uint16_t rrlen, struct region* temp_region);
 
+/* an AXFR has been received, the IXFRs do not connect in version number.
+ * Delete the unconnected IXFRs from memory */
+void ixfr_store_delixfrs(struct zone* zone);
+
 /* return if the zone has ixfr storage enabled for it */
 int zone_is_ixfr_enabled(struct zone* zone);
 

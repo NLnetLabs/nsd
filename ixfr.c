@@ -1000,6 +1000,10 @@ static void zone_ixfr_clear(struct zone_ixfr* ixfr)
 		ixfr->data->count = 0;
 	}
 	ixfr->total_size = 0;
+	ixfr->num_files = 0;
+	ixfr->oldest_serial = 0;
+	ixfr->newest_serial = 0;
+	ixfr->newest_newserial = 0;
 }
 
 void zone_ixfr_free(struct zone_ixfr* ixfr)
@@ -1011,6 +1015,13 @@ void zone_ixfr_free(struct zone_ixfr* ixfr)
 		ixfr->data = NULL;
 	}
 	free(ixfr);
+}
+
+void ixfr_store_delixfrs(struct zone* zone)
+{
+	if(!zone)
+		return;
+	zone_ixfr_clear(zone->ixfr);
 }
 
 /* remove the oldest data entry from the ixfr versions */
