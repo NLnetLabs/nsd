@@ -1,0 +1,6 @@
+$ORIGIN com.
+example	345600	IN	SOA	ns0.example.org. root.example.com. (
+		3 3600 28800 2419200 3600 )
+$ORIGIN example.com.
+a	3600	IN	A	10.0.0.1
+c	3600	IN	A	10.0.0.3

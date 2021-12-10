@@ -1305,11 +1305,13 @@ static int ixfr_rename_files(struct zone* zone, const char* zfile,
 	while(data && data->file_num != 0) {
 		/* if existing file at temporary name, delete that */
 		if(ixfr_file_exists_temp(zfile, data->file_num)) {
-			(void)ixfr_unlink_it_temp(zone, zfile, data->file_num, 0);
+			(void)ixfr_unlink_it_temp(zone, zfile,
+				data->file_num, 0);
 		}
 
 		/* rename to temporary name */
-		if(!ixfr_rename_it(zone, zfile, data->file_num, 0, destnum, 1)) {
+		if(!ixfr_rename_it(zone, zfile, data->file_num, 0,
+			data->file_num, 1)) {
 			/* failure, we cannot store files */
 			/* delete the renamed files */
 			ixfr_delete_rest_files(zone, data, zfile, 1);

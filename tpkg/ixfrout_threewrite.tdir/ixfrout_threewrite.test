@@ -1,0 +1,152 @@
+# #-- ixfrout_threewrite.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+DIG=dig
+
+wait_logfile nsd.log "zone example.com. serial 1 is updated to 3" 10
+
+# write the zonefiles to disk
+echo ""
+echo "Write IXFR 1"
+$PRE/nsd-control -c edit.conf write example.com
+if test $? -ne 0; then
+	echo "nsd-control failed"
+	exit 1
+fi
+if test ! -f ixfrout_threewrite.zone.ixfr; then sleep 1; fi
+if test ! -f ixfrout_threewrite.zone.ixfr; then sleep 1; fi
+if test ! -f ixfrout_threewrite.zone.ixfr; then sleep 5; fi
+if test ! -f ixfrout_threewrite.zone.ixfr; then sleep 10; fi
+echo "> cat ixfrout_threewrite.zone"
+cat ixfrout_threewrite.zone
+echo "> cat ixfrout_threewrite.zone.ixfr"
+cat ixfrout_threewrite.zone.ixfr
+grep -v -e '^\;' -e '^$' ixfrout_threewrite.zone > cur.cmp
+if diff -Naur ixfrout_threewrite.check_zone_v3 cur.cmp; then
+	echo "zonefile ok"
+else
+	echo "differences in zonefile"
+	exit 1
+fi
+grep -v -e '^\;' -e '^$' ixfrout_threewrite.zone.ixfr > cur.cmp
+if diff -Naur ixfrout_threewrite.check_ixfr_v3 cur.cmp; then
+	echo "ixfr data ok"
+else
+	echo "differences in ixfr data file"
+	exit 1
+fi
+
+echo ""
+ldns-notify -z example.com 127.0.0.1 -p $TPKG_PORT || $DIG @127.0.0.1 -p $TPKG_PORT +opcode=NOTIFY example.com.
+wait_logfile nsd.log "zone example.com. serial 3 is updated to 5" 10
+echo "Write IXFR 2"
+$PRE/nsd-control -c edit.conf write example.com
+if test $? -ne 0; then
+	echo "nsd-control failed"
+	exit 1
+fi
+if test ! -f ixfrout_threewrite.zone.ixfr.2; then sleep 1; fi
+if test ! -f ixfrout_threewrite.zone.ixfr.2; then sleep 1; fi
+if test ! -f ixfrout_threewrite.zone.ixfr.2; then sleep 5; fi
+if test ! -f ixfrout_threewrite.zone.ixfr.2; then sleep 10; fi
+echo "> cat ixfrout_threewrite.zone"
+cat ixfrout_threewrite.zone
+echo "> cat ixfrout_threewrite.zone.ixfr"
+cat ixfrout_threewrite.zone.ixfr
+echo "> cat ixfrout_threewrite.zone.ixfr.2"
+cat ixfrout_threewrite.zone.ixfr.2
+grep -v -e '^\;' -e '^$' ixfrout_threewrite.zone > cur.cmp
+if diff -Naur ixfrout_threewrite.check_zone_v5 cur.cmp; then
+	echo "zonefile ok"
+else
+	echo "differences in zonefile"
+	exit 1
+fi
+grep -v -e '^\;' -e '^$' ixfrout_threewrite.zone.ixfr > cur.cmp
+if diff -Naur ixfrout_threewrite.check_ixfr_v5 cur.cmp; then
+	echo "ixfr data ok"
+else
+	echo "differences in ixfr data file"
+	exit 1
+fi
+grep -v -e '^\;' -e '^$' ixfrout_threewrite.zone.ixfr.2 > cur.cmp
+if diff -Naur ixfrout_threewrite.check_ixfr_v3 cur.cmp; then
+	echo "ixfr.2 data ok"
+else
+	echo "differences in ixfr.2 data file"
+	exit 1
+fi
+
+echo ""
+ldns-notify -z example.com 127.0.0.1 -p $TPKG_PORT || $DIG @127.0.0.1 -p $TPKG_PORT +opcode=NOTIFY example.com.
+wait_logfile nsd.log "zone example.com. serial 5 is updated to 7" 10
+echo "Write IXFR 3"
+$PRE/nsd-control -c edit.conf write example.com
+if test $? -ne 0; then
+	echo "nsd-control failed"
+	exit 1
+fi
+if test ! -f ixfrout_threewrite.zone.ixfr.3; then sleep 1; fi
+if test ! -f ixfrout_threewrite.zone.ixfr.3; then sleep 1; fi
+if test ! -f ixfrout_threewrite.zone.ixfr.3; then sleep 5; fi
+if test ! -f ixfrout_threewrite.zone.ixfr.3; then sleep 10; fi
+echo "> cat ixfrout_threewrite.zone"
+cat ixfrout_threewrite.zone
+echo "> cat ixfrout_threewrite.zone.ixfr"
+cat ixfrout_threewrite.zone.ixfr
+echo "> cat ixfrout_threewrite.zone.ixfr.2"
+cat ixfrout_threewrite.zone.ixfr.2
+echo "> cat ixfrout_threewrite.zone.ixfr.3"
+cat ixfrout_threewrite.zone.ixfr.3
+grep -v -e '^\;' -e '^$' ixfrout_threewrite.zone > cur.cmp
+if diff -Naur ixfrout_threewrite.check_zone_v7 cur.cmp; then
+	echo "zonefile ok"
+else
+	echo "differences in zonefile"
+	exit 1
+fi
+grep -v -e '^\;' -e '^$' ixfrout_threewrite.zone.ixfr > cur.cmp
+if diff -Naur ixfrout_threewrite.check_ixfr_v7 cur.cmp; then
+	echo "ixfr data ok"
+else
+	echo "differences in ixfr data file"
+	exit 1
+fi
+grep -v -e '^\;' -e '^$' ixfrout_threewrite.zone.ixfr.2 > cur.cmp
+if diff -Naur ixfrout_threewrite.check_ixfr_v5 cur.cmp; then
+	echo "ixfr.2 data ok"
+else
+	echo "differences in ixfr.2 data file"
+	exit 1
+fi
+grep -v -e '^\;' -e '^$' ixfrout_threewrite.zone.ixfr.3 > cur.cmp
+if diff -Naur ixfrout_threewrite.check_ixfr_v3 cur.cmp; then
+	echo "ixfr.3 data ok"
+else
+	echo "differences in ixfr.3 data file"
+	exit 1
+fi
+
+# check 'current version' response
+# to see if the server is up and responsive.
+echo ""
+echo "IXFR=7"
+$DIG @127.0.0.1 -p $TPKG_PORT example.com IXFR=7 > cur
+cat cur
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if grep SOA cur.cmp | grep "root.example.com. 7 3600"; then
+	echo "current version response has correct SOA"
+else
+	echo "current version response has incorrect SOA"
+	exit 1
+fi
+
+cat nsd.log
+
+echo "OK"
+exit 0
