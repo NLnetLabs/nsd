@@ -39,6 +39,365 @@
 /* initial space in rrs data for storing records */
 #define IXFR_STORE_INITIAL_SIZE 4096
 
+/* store compression for one name */
+struct rrcompress_entry {
+	/* rbtree node, key is this struct */
+	struct rbnode node;
+	/* the uncompressed domain name */
+	uint8_t* dname;
+	/* the length of the dname, includes terminating 0 label */
+	uint16_t len;
+	/* the offset of the dname in the packet */
+	uint16_t offset;
+};
+
+/* structure to store compression data for the packet */
+struct pktcompression {
+	/* rbtree of rrcompress_entry. sorted by dname */
+	struct rbtree tree;
+	/* allocation information, how many bytes allocated now */
+	size_t alloc_now;
+	/* allocation information, total size in block */
+	size_t alloc_max;
+	/* region to use if block full, this is NULL if unused */
+	struct region* region;
+	/* block of temp data for allocation */
+	uint8_t block[sizeof(struct rrcompress_entry)*1024];
+};
+
+/* compare two elements in the compression tree. Returns -1, 0, or 1. */
+static int compression_cmp(const void* a, const void* b)
+{
+	struct rrcompress_entry* rra = (struct rrcompress_entry*)a;
+	struct rrcompress_entry* rrb = (struct rrcompress_entry*)b;
+	if(rra->len != rrb->len) {
+		if(rra->len < rrb->len)
+			return -1;
+		return 1;
+	}
+	return memcmp(rra->dname, rrb->dname, rra->len);
+}
+
+/* init the pktcompression to a new packet */
+static void pktcompression_init(struct pktcompression* pcomp)
+{
+	pcomp->alloc_now = 0;
+	pcomp->alloc_max = sizeof(pcomp->block);
+	pcomp->region = NULL;
+	pcomp->tree.root = RBTREE_NULL;
+	pcomp->tree.count = 0;
+	pcomp->tree.region = NULL;
+	pcomp->tree.cmp = &compression_cmp;
+}
+
+/* freeup the pktcompression data */
+static void pktcompression_freeup(struct pktcompression* pcomp)
+{
+	if(pcomp->region) {
+		region_destroy(pcomp->region);
+		pcomp->region = NULL;
+	}
+	pcomp->alloc_now = 0;
+	pcomp->tree.root = RBTREE_NULL;
+	pcomp->tree.count = 0;
+}
+
+/* alloc data in pktcompression */
+static void* pktcompression_alloc(struct pktcompression* pcomp, size_t s)
+{
+	/* first attempt to allocate in the fixed block,
+	 * that is very fast and on the stack in the pcomp struct */
+	if(pcomp->alloc_now + s <= pcomp->alloc_max) {
+		void* ret = pcomp->block + pcomp->alloc_now;
+		pcomp->alloc_now += s;
+		return ret;
+	}
+
+	/* if that fails, create a region to allocate in,
+	 * it is freed in the freeup */
+	if(!pcomp->region) {
+		pcomp->region = region_create(xalloc, free);
+		if(!pcomp->region)
+			return NULL;
+	}
+	return region_alloc(pcomp->region, s);
+}
+
+/* find a pktcompression name, return offset if found */
+static uint16_t pktcompression_find(struct pktcompression* pcomp,
+	uint8_t* dname, size_t len)
+{
+	struct rrcompress_entry key, *found;
+	key.node.key = &key;
+	key.dname = dname;
+	key.len = len;
+	found = (struct rrcompress_entry*)rbtree_search(&pcomp->tree, &key);
+	if(found) return found->offset;
+	return 0;
+}
+
+/* insert a new domain name into the compression tree.
+ * it fails silently, no need to compress then. */
+static void pktcompression_insert(struct pktcompression* pcomp, uint8_t* dname,
+	size_t len, uint16_t offset)
+{
+	struct rrcompress_entry* entry = pktcompression_alloc(pcomp,
+		sizeof(*entry));
+	if(!entry)
+		return;
+	if(len > 65535)
+		return;
+	if(offset > 16384)
+		return; /* too far for a compression pointer */
+	memset(&entry->node, 0, sizeof(entry->node));
+	entry->node.key = entry;
+	entry->dname = dname;
+	entry->len = len;
+	entry->offset = offset;
+	(void)rbtree_insert(&pcomp->tree, &entry->node);
+}
+
+/* insert all the labels of a domain name */
+static void pktcompression_insert_with_labels(struct pktcompression* pcomp,
+	uint8_t* dname, size_t len, uint16_t offset)
+{
+	if(!dname)
+		return;
+
+	/* while we have not seen the end root label */
+	while(len > 0 && dname[0] != 0) {
+		size_t lablen;
+		pktcompression_insert(pcomp, dname, len, offset);
+		lablen = (size_t)(dname[0]);
+		if( (lablen&0xc0) )
+			return; /* the dname should be uncompressed */
+		if(lablen+1 > len)
+			return; /* len should be uncompressed wireformat len */
+		/* skip label */
+		len -= lablen+1;
+		dname += lablen+1;
+		offset += lablen+1;
+	}
+}
+
+/* calculate length of dname in uncompressed wireformat in buffer */
+static size_t dname_length(uint8_t* buf, size_t len)
+{
+	size_t l = 0;
+	if(!buf || len == 0)
+		return l;
+	while(len > 0 && buf[0] != 0) {
+		size_t lablen = (size_t)(buf[0]);
+		if( (lablen&0xc0) )
+			return 0; /* the name should be uncompressed */
+		if(lablen+1 > len)
+			return 0; /* should fit in the buffer */
+		l += lablen+1;
+		len -= lablen+1;
+		buf += lablen+1;
+	}
+	if(len == 0)
+		return 0; /* end label should fit in buffer */
+	if(buf[0] != 0)
+		return 0; /* must end in root label */
+	l += 1; /* for the end root label */
+	return l;
+}
+
+/* write a compressed domain name into the packet,
+ * returns uncompressed wireformat length */
+static size_t pktcompression_write_dname(struct buffer* packet,
+	struct pktcompression* pcomp, uint8_t* rr, size_t rrlen)
+{
+	size_t wirelen = 0;
+	size_t dname_len = dname_length(rr, rrlen);
+	if(!rr || rrlen == 0 || dname_len == 0)
+		return 0;
+	while(rrlen > 0 && rr[0] != 0) {
+		size_t lablen = (size_t)(rr[0]);
+		uint16_t offset;
+		if( (lablen&0xc0) )
+			break; /* name should be uncompressed */
+		if(lablen+1 > rrlen)
+			break; /* name should fit */
+
+		/* see if the domain name has a compression pointer */
+		if((offset=pktcompression_find(pcomp, rr, dname_len))!=0) {
+			if(!buffer_available(packet, 2))
+				return 0;
+			buffer_write_u16(packet, (uint16_t)(0xc000 | offset));
+			wirelen += dname_len;
+			return wirelen;
+		} else {
+			if(!buffer_available(packet, lablen+1))
+				return 0;
+			/* insert the domain name at this position */
+			pktcompression_insert(pcomp, rr, dname_len,
+				buffer_position(packet));
+			/* write it */
+			buffer_write(packet, rr, lablen+1);
+		}
+
+		wirelen += lablen+1;
+		rr += lablen+1;
+		rrlen -= lablen+1;
+		dname_len -= lablen+1;
+	}
+	if(rrlen > 0 && rr[0] == 0) {
+		/* write end root label */
+		if(!buffer_available(packet, 1))
+			return 0;
+		buffer_write_u8(packet, 0);
+		wirelen += 1;
+	}
+	return wirelen;
+}
+
+/* write an RR into the packet with compression for domain names,
+ * return 0 and resets position if it does not fit in the packet. */
+static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
+	struct pktcompression* pcomp, uint8_t* rr, size_t rrlen)
+{
+	size_t oldpos = buffer_position(packet);
+	size_t rdpos;
+	uint16_t tp;
+	size_t dname_len;
+	size_t rdlen;
+	size_t i;
+	rrtype_descriptor_type* descriptor;
+
+	if(query_overflow(query)) {
+		/* we are past the maximum length */
+		return 0;
+	}
+
+	/* write owner */
+	dname_len = pktcompression_write_dname(packet, pcomp, rr, rrlen);
+	if(dname_len == 0) {
+		buffer_set_position(packet, oldpos);
+		return 0;
+	}
+	rr += dname_len;
+	rrlen -= dname_len;
+
+	/* type, class, ttl, rdatalen */
+	if(!buffer_available(packet, 10)) {
+		buffer_set_position(packet, oldpos);
+		return 0;
+	}
+	if(10 > rrlen)
+		return 1; /* attempt to skip this malformed rr, could assert */
+	tp = read_uint16(rr);
+	buffer_write(packet, rr, 8);
+	rr += 8;
+	rrlen -= 8;
+	rdlen = read_uint16(rr);
+	rr += 2;
+	rrlen -= 2;
+	rdpos = buffer_position(packet);
+	buffer_write_u16(packet, 0);
+	if(rdlen > rrlen)
+		return 1; /* attempt to skip this malformed rr, could assert */
+
+	/* rdata */
+	descriptor = rrtype_descriptor_by_type(tp);
+	for(i=0; i<descriptor->maximum; i++) {
+		size_t atom_len = 0;
+		if(rdlen == 0)
+			break;
+
+		switch(rdata_atom_wireformat_type(tp, i)) {
+		case RDATA_WF_COMPRESSED_DNAME:
+			dname_len = pktcompression_write_dname(packet, pcomp,
+				rr, rdlen);
+			if(dname_len == 0) {
+				buffer_set_position(packet, oldpos);
+				return 0;
+			}
+			rr += dname_len;
+			rdlen -= dname_len;
+			break;
+		case RDATA_WF_UNCOMPRESSED_DNAME:
+		case RDATA_WF_LITERAL_DNAME:
+			atom_len = dname_length(rr, rdlen);
+			if(atom_len == 0) {
+				return 1; /* assert, or skip malformed */
+			}
+			break;
+		case RDATA_WF_BYTE:
+			atom_len = 1;
+			break;
+		case RDATA_WF_SHORT:
+			atom_len = 2;
+			break;
+		case RDATA_WF_LONG:
+			atom_len = 4;
+			break;
+		case RDATA_WF_TEXTS:
+		case RDATA_WF_LONG_TEXT:
+			atom_len = rdlen;
+			break;
+		case RDATA_WF_TEXT:
+		case RDATA_WF_BINARYWITHLENGTH:
+			atom_len = 1;
+			if(rdlen > atom_len)
+				atom_len += rr[0];
+			break;
+		case RDATA_WF_A:
+			atom_len = 4;
+			break;
+		case RDATA_WF_AAAA:
+			atom_len = 16;
+			break;
+		case RDATA_WF_ILNP64:
+			atom_len = 8;
+			break;
+		case RDATA_WF_EUI48:
+			atom_len = EUI48ADDRLEN;
+			break;
+		case RDATA_WF_EUI64:
+			atom_len = EUI64ADDRLEN;
+			break;
+		case RDATA_WF_BINARY:
+			atom_len = rdlen;
+			break;
+		case RDATA_WF_APL:
+			atom_len = (sizeof(uint16_t)    /* address family */
+                                  + sizeof(uint8_t)   /* prefix */
+                                  + sizeof(uint8_t)); /* length */
+			if(atom_len <= rdlen)
+				atom_len += (rr[atom_len-1]&APL_LENGTH_MASK);
+			break;
+		case RDATA_WF_IPSECGATEWAY:
+			atom_len = rdlen;
+			break;
+		case RDATA_WF_SVCPARAM:
+			atom_len = 4;
+			if(atom_len <= rdlen)
+				atom_len += read_uint16(rr+2);
+			break;
+		}
+		if(atom_len) {
+			if(!buffer_available(packet, atom_len)) {
+				buffer_set_position(packet, oldpos);
+				return 0;
+			}
+			if(atom_len > rdlen)
+				return 1; /* assert of skip malformed */
+			buffer_write(packet, rr, atom_len);
+			rr += atom_len;
+			rdlen -= atom_len;
+		}
+	}
+	/* write compressed rdata length */
+	buffer_write_u16_at(packet, rdpos, buffer_position(packet)-rdpos-2);
+	if(query_overflow(query)) {
+		/* we are past the maximum length */
+		return 0;
+	}
+	return 1;
+}
+
 /* parse the serial number from the IXFR query */
 static int parse_qserial(struct buffer* packet, uint32_t* qserial,
 	size_t* snip_pos)
@@ -273,7 +632,8 @@ static size_t count_rr_length(uint8_t* data, size_t data_len, size_t current)
 }
 
 /* Copy RRs into packet until packet full, return number RRs added */
-static uint16_t ixfr_copy_rrs_into_packet(struct query* query)
+static uint16_t ixfr_copy_rrs_into_packet(struct query* query,
+	struct pktcompression* pcomp)
 {
 	uint16_t total_added = 0;
 
@@ -284,11 +644,9 @@ static uint16_t ixfr_copy_rrs_into_packet(struct query* query)
 	if(query->ixfr_count_newsoa < query->ixfr_end_data->newsoa_len) {
 		/* the new SOA is added from the end_data segment, it is
 		 * the final SOA of the result of the IXFR */
-		if(buffer_position(query->packet) < query->maxlen &&
-			buffer_position(query->packet) +
-			query->ixfr_end_data->newsoa_len < query->maxlen) {
-			buffer_write(query->packet, query->ixfr_end_data->newsoa,
-				query->ixfr_end_data->newsoa_len);
+		if(ixfr_write_rr_pkt(query, query->packet, pcomp,
+			query->ixfr_end_data->newsoa,
+			query->ixfr_end_data->newsoa_len)) {
 			query->ixfr_count_newsoa = query->ixfr_end_data->newsoa_len;
 			total_added++;
 			query->ixfr_pos_of_newsoa = buffer_position(query->packet);
@@ -300,11 +658,9 @@ static uint16_t ixfr_copy_rrs_into_packet(struct query* query)
 
 	/* Add second SOA */
 	if(query->ixfr_count_oldsoa < query->ixfr_data->oldsoa_len) {
-		if(buffer_position(query->packet) < query->maxlen &&
-			buffer_position(query->packet) +
-			query->ixfr_data->oldsoa_len < query->maxlen) {
-			buffer_write(query->packet, query->ixfr_data->oldsoa,
-				query->ixfr_data->oldsoa_len);
+		if(ixfr_write_rr_pkt(query, query->packet, pcomp,
+			query->ixfr_data->oldsoa,
+			query->ixfr_data->oldsoa_len)) {
 			query->ixfr_count_oldsoa = query->ixfr_data->oldsoa_len;
 			total_added++;
 		} else {
@@ -317,11 +673,9 @@ static uint16_t ixfr_copy_rrs_into_packet(struct query* query)
 	while(query->ixfr_count_del < query->ixfr_data->del_len) {
 		size_t rrlen = count_rr_length(query->ixfr_data->del,
 			query->ixfr_data->del_len, query->ixfr_count_del);
-		if(rrlen && buffer_position(query->packet) < query->maxlen &&
-			buffer_position(query->packet) + rrlen <
-			query->maxlen) {
-			buffer_write(query->packet, query->ixfr_data->del +
-				query->ixfr_count_del, rrlen);
+		if(rrlen && ixfr_write_rr_pkt(query, query->packet, pcomp,
+			query->ixfr_data->del + query->ixfr_count_del,
+			rrlen)) {
 			query->ixfr_count_del += rrlen;
 			total_added++;
 		} else {
@@ -335,11 +689,9 @@ static uint16_t ixfr_copy_rrs_into_packet(struct query* query)
 	while(query->ixfr_count_add < query->ixfr_data->add_len) {
 		size_t rrlen = count_rr_length(query->ixfr_data->add,
 			query->ixfr_data->add_len, query->ixfr_count_add);
-		if(rrlen && buffer_position(query->packet) < query->maxlen &&
-			buffer_position(query->packet) + rrlen <
-			query->maxlen) {
-			buffer_write(query->packet, query->ixfr_data->add +
-				query->ixfr_count_add, rrlen);
+		if(rrlen && ixfr_write_rr_pkt(query, query->packet, pcomp,
+			query->ixfr_data->add + query->ixfr_count_add,
+			rrlen)) {
 			query->ixfr_count_add += rrlen;
 			total_added++;
 		} else {
@@ -354,10 +706,12 @@ static uint16_t ixfr_copy_rrs_into_packet(struct query* query)
 query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 {
 	uint16_t total_added = 0;
+	struct pktcompression pcomp;
 
 	if (query->ixfr_is_done)
 		return QUERY_PROCESSED;
 
+	pktcompression_init(&pcomp);
 	if (query->maxlen > IXFR_MAX_MESSAGE_LEN)
 		query->maxlen = IXFR_MAX_MESSAGE_LEN;
 
@@ -449,6 +803,10 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		query->ixfr_count_del = 0;
 		query->ixfr_count_add = 0;
 		query->ixfr_pos_of_newsoa = 0;
+		/* the query name can be compressed to */
+		pktcompression_insert_with_labels(&pcomp,
+			buffer_at(query->packet, QHEADERSZ),
+			query->qname->name_size, QHEADERSZ);
 		if(query->tsig.status == TSIG_OK) {
 			query->tsig_sign_it = 1; /* sign first packet in stream */
 		}
@@ -462,7 +820,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		query_prepare_response(query);
 	}
 
-	total_added = ixfr_copy_rrs_into_packet(query);
+	total_added = ixfr_copy_rrs_into_packet(query, &pcomp);
 
 	while(query->ixfr_count_add >= query->ixfr_data->add_len) {
 		struct ixfr_data* next = ixfr_data_next(query->zone->ixfr,
@@ -477,7 +835,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 			/* and then set up to copy the del and add sections */
 			query->ixfr_count_del = 0;
 			query->ixfr_count_add = 0;
-			total_added += ixfr_copy_rrs_into_packet(query);
+			total_added += ixfr_copy_rrs_into_packet(query, &pcomp);
 		} else {
 			/* we finished the IXFR */
 			/* sign the last packet */
@@ -515,6 +873,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		}
 #endif
 	}
+	pktcompression_freeup(&pcomp);
 	return QUERY_IN_IXFR;
 }
 
