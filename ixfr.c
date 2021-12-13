@@ -141,14 +141,14 @@ static uint16_t pktcompression_find(struct pktcompression* pcomp,
 static void pktcompression_insert(struct pktcompression* pcomp, uint8_t* dname,
 	size_t len, uint16_t offset)
 {
-	struct rrcompress_entry* entry = pktcompression_alloc(pcomp,
-		sizeof(*entry));
-	if(!entry)
-		return;
+	struct rrcompress_entry* entry;
 	if(len > 65535)
 		return;
 	if(offset > 16384)
 		return; /* too far for a compression pointer */
+	entry = pktcompression_alloc(pcomp, sizeof(*entry));
+	if(!entry)
+		return;
 	memset(&entry->node, 0, sizeof(entry->node));
 	entry->node.key = entry;
 	entry->dname = dname;
