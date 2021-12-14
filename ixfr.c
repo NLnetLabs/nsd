@@ -144,7 +144,7 @@ static void pktcompression_insert(struct pktcompression* pcomp, uint8_t* dname,
 	struct rrcompress_entry* entry;
 	if(len > 65535)
 		return;
-	if(offset > 16384)
+	if(offset > MAX_COMPRESSION_OFFSET)
 		return; /* too far for a compression pointer */
 	entry = pktcompression_alloc(pcomp, sizeof(*entry));
 	if(!entry)
@@ -162,6 +162,8 @@ static void pktcompression_insert_with_labels(struct pktcompression* pcomp,
 	uint8_t* dname, size_t len, uint16_t offset)
 {
 	if(!dname)
+		return;
+	if(offset > MAX_COMPRESSION_OFFSET)
 		return;
 
 	/* while we have not seen the end root label */
@@ -266,7 +268,8 @@ static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
 	size_t i;
 	rrtype_descriptor_type* descriptor;
 
-	if(query_overflow(query)) {
+	if(buffer_position(packet) > MAX_COMPRESSION_OFFSET
+		|| query_overflow(query)) {
 		/* we are past the maximum length */
 		return 0;
 	}
