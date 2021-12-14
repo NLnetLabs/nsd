@@ -305,7 +305,7 @@ static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
 	/* rdata */
 	descriptor = rrtype_descriptor_by_type(tp);
 	for(i=0; i<descriptor->maximum; i++) {
-		size_t atom_len = 0;
+		size_t copy_len = 0;
 		if(rdlen == 0)
 			break;
 
@@ -322,74 +322,74 @@ static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
 			break;
 		case RDATA_WF_UNCOMPRESSED_DNAME:
 		case RDATA_WF_LITERAL_DNAME:
-			atom_len = dname_length(rr, rdlen);
-			if(atom_len == 0) {
+			copy_len = dname_length(rr, rdlen);
+			if(copy_len == 0) {
 				return 1; /* assert, or skip malformed */
 			}
 			break;
 		case RDATA_WF_BYTE:
-			atom_len = 1;
+			copy_len = 1;
 			break;
 		case RDATA_WF_SHORT:
-			atom_len = 2;
+			copy_len = 2;
 			break;
 		case RDATA_WF_LONG:
-			atom_len = 4;
+			copy_len = 4;
 			break;
 		case RDATA_WF_TEXTS:
 		case RDATA_WF_LONG_TEXT:
-			atom_len = rdlen;
+			copy_len = rdlen;
 			break;
 		case RDATA_WF_TEXT:
 		case RDATA_WF_BINARYWITHLENGTH:
-			atom_len = 1;
-			if(rdlen > atom_len)
-				atom_len += rr[0];
+			copy_len = 1;
+			if(rdlen > copy_len)
+				copy_len += rr[0];
 			break;
 		case RDATA_WF_A:
-			atom_len = 4;
+			copy_len = 4;
 			break;
 		case RDATA_WF_AAAA:
-			atom_len = 16;
+			copy_len = 16;
 			break;
 		case RDATA_WF_ILNP64:
-			atom_len = 8;
+			copy_len = 8;
 			break;
 		case RDATA_WF_EUI48:
-			atom_len = EUI48ADDRLEN;
+			copy_len = EUI48ADDRLEN;
 			break;
 		case RDATA_WF_EUI64:
-			atom_len = EUI64ADDRLEN;
+			copy_len = EUI64ADDRLEN;
 			break;
 		case RDATA_WF_BINARY:
-			atom_len = rdlen;
+			copy_len = rdlen;
 			break;
 		case RDATA_WF_APL:
-			atom_len = (sizeof(uint16_t)    /* address family */
+			copy_len = (sizeof(uint16_t)    /* address family */
                                   + sizeof(uint8_t)   /* prefix */
                                   + sizeof(uint8_t)); /* length */
-			if(atom_len <= rdlen)
-				atom_len += (rr[atom_len-1]&APL_LENGTH_MASK);
+			if(copy_len <= rdlen)
+				copy_len += (rr[copy_len-1]&APL_LENGTH_MASK);
 			break;
 		case RDATA_WF_IPSECGATEWAY:
-			atom_len = rdlen;
+			copy_len = rdlen;
 			break;
 		case RDATA_WF_SVCPARAM:
-			atom_len = 4;
-			if(atom_len <= rdlen)
-				atom_len += read_uint16(rr+2);
+			copy_len = 4;
+			if(copy_len <= rdlen)
+				copy_len += read_uint16(rr+2);
 			break;
 		}
-		if(atom_len) {
-			if(!buffer_available(packet, atom_len)) {
+		if(copy_len) {
+			if(!buffer_available(packet, copy_len)) {
 				buffer_set_position(packet, oldpos);
 				return 0;
 			}
-			if(atom_len > rdlen)
+			if(copy_len > rdlen)
 				return 1; /* assert of skip malformed */
-			buffer_write(packet, rr, atom_len);
-			rr += atom_len;
-			rdlen -= atom_len;
+			buffer_write(packet, rr, copy_len);
+			rr += copy_len;
+			rdlen -= copy_len;
 		}
 	}
 	/* write compressed rdata length */
