@@ -322,10 +322,7 @@ static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
 			break;
 		case RDATA_WF_UNCOMPRESSED_DNAME:
 		case RDATA_WF_LITERAL_DNAME:
-			copy_len = dname_length(rr, rdlen);
-			if(copy_len == 0) {
-				return 1; /* assert, or skip malformed */
-			}
+			copy_len = rdlen;
 			break;
 		case RDATA_WF_BYTE:
 			copy_len = 1;
@@ -378,6 +375,9 @@ static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
 			copy_len = 4;
 			if(copy_len <= rdlen)
 				copy_len += read_uint16(rr+2);
+			break;
+		default:
+			copy_len = rdlen;
 			break;
 		}
 		if(copy_len) {
