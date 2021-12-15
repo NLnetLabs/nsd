@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix #200: nsd-checkzone succeeds even with incorrect serial in SOA
+	  record.
 
 4.3.9
 ================

@@ -1,3 +1,7 @@
+15 December 2021: Wouter
+	- Fix #200: nsd-checkzone succeeds even with incorrect serial in SOA
+	  record.
+
 2 December 2021: Wouter
 	- Fix socket_partitioning unit test for FreeBSD.
 	- Fix SVCB test to work around older dig with drill.
