@@ -458,7 +458,7 @@ static uint32_t soa_rr_get_serial(struct rr* rr)
 }
 
 /* get the current serial from the zone */
-static uint32_t zone_get_current_serial(struct zone* zone)
+uint32_t zone_get_current_serial(struct zone* zone)
 {
 	if(!zone || !zone->soa_rrset)
 		return 0;

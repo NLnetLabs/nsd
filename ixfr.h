@@ -220,4 +220,7 @@ void ixfr_write_to_file(struct zone* zone, const char* zfile);
 /* read ixfr contents from file for the zone */
 void ixfr_read_from_file(struct nsd* nsd, struct zone* zone, const char* zfile);
 
+/* get the current serial from the zone */
+uint32_t zone_get_current_serial(struct zone* zone);
+
 #endif /* _IXFR_H_ */
