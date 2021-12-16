@@ -24,6 +24,7 @@
 #include "nsd.h"
 #include "rrl.h"
 #include "ixfr.h"
+#include "zonec.h"
 
 static int
 write_64(FILE *out, uint64_t val)

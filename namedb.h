@@ -392,8 +392,6 @@ void namedb_check_zonefile(struct nsd* nsd, struct udb_base* taskudb,
 /** zone one zonefile into memory and revert on parse error, write to udb */
 void namedb_read_zonefile(struct nsd* nsd, struct zone* zone,
 	struct udb_base* taskudb, struct udb_ptr* last_task);
-void apex_rrset_checks(struct namedb* db, rrset_type* rrset,
-	domain_type* domain);
 zone_type* namedb_zone_create(namedb_type* db, const dname_type* dname,
         struct zone_options* zopt);
 void namedb_zone_delete(namedb_type* db, zone_type* zone);
