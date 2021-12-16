@@ -267,8 +267,10 @@ static int read_spool_dname(FILE* spool, uint8_t* buf, size_t buflen,
 		log_msg(LOG_ERR, "dname too long");
 		return 0;
 	}
-	if(!fread(buf, len, 1, spool))
-		return 0;
+	if(len > 0) {
+		if(!fread(buf, len, 1, spool))
+			return 0;
+	}
 	*dname_len = len;
 	return 1;
 }
@@ -335,15 +337,24 @@ static int process_spool_delrrset(FILE* spool, struct ixfr_create* ixfrcr,
 }
 
 /* add the rrset to the added list */
-static int process_add_rrset(struct ixfr_create* ixfrcr, struct rrset* rrset)
+static int process_add_rrset(struct ixfr_store* ixfr_store,
+	struct domain* domain, struct rrset* rrset)
 {
-	(void)ixfrcr;
-	(void)rrset;
+	int i;
+	for(i=0; i<rrset->rr_count; i++) {
+		if(!ixfr_store_addrr_rdatas(ixfr_store, domain_dname(domain),
+			rrset->rrs[i].type, rrset->rrs[i].klass,
+			rrset->rrs[i].ttl, rrset->rrs[i].rdatas,
+			rrset->rrs[i].rdata_count)) {
+			log_msg(LOG_ERR, "out of memory");
+			return 0;
+		}
+	}
 	return 1;
 }
 
 /* add the RR types that are not in the marktypes list from the new zone */
-static int process_marktypes(struct ixfr_create* ixfrcr, struct zone* zone,
+static int process_marktypes(struct ixfr_store* store, struct zone* zone,
 	struct domain* domain, uint16_t* marktypes, size_t marktypes_used)
 {
 	/* walk through the rrsets in the zone, if it is not in the
@@ -364,7 +375,7 @@ static int process_marktypes(struct ixfr_create* ixfrcr, struct zone* zone,
 		}
 		if(found)
 			continue;
-		if(!process_add_rrset(ixfrcr, s))
+		if(!process_add_rrset(store, domain, s))
 			return 0;
 	}
 	return 1;
@@ -372,7 +383,7 @@ static int process_marktypes(struct ixfr_create* ixfrcr, struct zone* zone,
 
 /* check the difference between the domain and RRs from spool */
 static int process_diff_domain(FILE* spool, struct ixfr_create* ixfrcr,
-	struct zone* zone, struct domain* domain)
+	struct ixfr_store* store, struct zone* zone, struct domain* domain)
 {
 	/* Read the RR types from spool. Mark off the ones seen,
 	 * later, the notseen ones from the new zone are added RRsets.
@@ -414,60 +425,137 @@ static int process_diff_domain(FILE* spool, struct ixfr_create* ixfrcr,
 	}
 	/* process markoff to see if new zone has RRsets not in spool,
 	 * those are added RRsets. */
-	if(!process_marktypes(ixfrcr, zone, domain, marktypes, marktypes_used))
+	if(!process_marktypes(store, zone, domain, marktypes, marktypes_used))
 		return 0;
 	return 1;
 }
 
 /* add the RRs for the domain in new zone */
-static int process_domain_add_RRs(struct ixfr_create* ixfrcr,
-	struct zone* zone, struct domain* domain)
+static int process_domain_add_RRs(struct ixfr_store* store, struct zone* zone,
+	struct domain* domain)
 {
 	rrset_type* s;
 	for(s=domain->rrsets; s; s=s->next) {
 		if(s->zone != zone)
 			continue;
-		if(!process_add_rrset(ixfrcr, s))
+		if(!process_add_rrset(store, domain, s))
 			return 0;
 	}
 	return 1;
 }
 
+/*
+ * Structure to keep track of spool domain name iterator.
+ * This reads from the spool file and steps over the domain name
+ * elements one by one. It keeps track of: is the first one read yet,
+ * are we at end nothing more, is the element processed yet that is
+ * current read into the buffer?
+ */
+struct spool_dname_iterator {
+	/* the domain name that has recently been read, but can be none
+	 * if before first or after last. */
+	uint8_t dname[MAXDOMAINLEN+1];
+	/* length of the dname, if one is read, otherwise 0 */
+	size_t dname_len;
+	/* if we are before the first element, hence nothing is read yet */
+	int read_first;
+	/* if we are after the last element, nothing to read, end of file */
+	int eof;
+	/* is the element processed that is currently in dname? */
+	int is_processed;
+	/* the file to read from */
+	FILE* spool;
+	/* filename for error printout */
+	char* file_name;
+};
+
+/* init the spool dname iterator */
+static void spool_dname_iter_init(struct spool_dname_iterator* iter,
+	FILE* spool, char* file_name)
+{
+	memset(iter, 0, sizeof(*iter));
+	iter->spool = spool;
+	iter->file_name = file_name;
+}
+
+/* read the dname element into the buffer for the spool dname iterator */
+static int spool_dname_iter_read(struct spool_dname_iterator* iter)
+{
+	if(!read_spool_dname(iter->spool, iter->dname, sizeof(iter->dname),
+		&iter->dname_len)) {
+		log_msg(LOG_ERR, "error reading file %s: %s",
+			iter->file_name, strerror(errno));
+		return 0;
+	}
+	return 1;
+}
+
+/* get the next name to operate on, that is not processed yet, 0 on failure
+ * returns okay on endoffile, check with eof for that.
+ * when done, set iter->is_processed on the element. */
+static int spool_dname_iter_next(struct spool_dname_iterator* iter)
+{
+	if(!iter->read_first) {
+		/* read the first one */
+		if(!spool_dname_iter_read(iter))
+			return 0;
+		if(iter->dname_len == 0)
+			iter->eof = 1;
+		iter->read_first = 1;
+		iter->is_processed = 0;
+	}
+	if(!iter->is_processed) {
+		/* the current one needs processing */
+		return 1;
+	}
+	/* read the next one */
+	if(!spool_dname_iter_read(iter))
+		return 0;
+	if(iter->dname_len == 0)
+		iter->eof = 1;
+	iter->is_processed = 0;
+	return 1;
+}
+
 /* process the spool input before the domain */
 static int process_spool_before_domain(FILE* spool, struct ixfr_create* ixfrcr,
-	struct domain* domain, uint8_t* spool_dname, size_t* spool_dname_len,
-	int* spool_read_first)
+	struct domain* domain, struct spool_dname_iterator* iter)
 {
 	/* read the domains and rrsets before the domain and those are from
 	 * the old zone. If the domain is equal, return to have that processed
 	 * if we bypass, that means the domain does not exist, do that */
+	while(!iter->eof) {
+		if(!spool_dname_iter_next(iter))
+			return 0;
+		if(iter->eof)
+			break;
+		/* see if we are at, before or after the domain */
+	}
 	(void)domain;
 	(void)spool;
 	(void)ixfrcr;
-	(void)spool_dname;
-	(void)spool_dname_len;
-	(void)spool_read_first;
 	return 1;
 }
 
 /* process the spool input for the domain */
 static int process_spool_for_domain(FILE* spool, struct ixfr_create* ixfrcr,
-	struct zone* zone, struct domain* domain, uint8_t* spool_dname,
-	size_t* spool_dname_len, int* spool_read_first)
+	struct ixfr_store* store, struct zone* zone, struct domain* domain,
+	struct spool_dname_iterator* iter)
 {
 	/* process all the spool that is not the domain, that is before the
 	 * domain in the new zone */
-	if(!process_spool_before_domain(spool, ixfrcr, domain, spool_dname,
-		spool_dname_len, spool_read_first))
+	if(!process_spool_before_domain(spool, ixfrcr, domain, iter))
 		return 0;
 	
 	/* are we at the correct domain now? */
-	if(*spool_dname_len != domain_dname(domain)->name_size ||
-		memcmp(spool_dname, dname_name(domain_dname(domain)),
-			*spool_dname_len) != 0) {
+	if(iter->eof)
+		return 1;
+	if(iter->dname_len != domain_dname(domain)->name_size ||
+		memcmp(iter->dname, dname_name(domain_dname(domain)),
+			iter->dname_len) != 0) {
 		/* the domain from the new zone is not present in the old zone,
 		 * the content is in the added RRs set */
-		if(!process_domain_add_RRs(ixfrcr, zone, domain))
+		if(!process_domain_add_RRs(store, zone, domain))
 			return 0;
 		return 1;
 	}
@@ -475,7 +563,7 @@ static int process_spool_for_domain(FILE* spool, struct ixfr_create* ixfrcr,
 	/* process the domain */
 	/* the domain exists both in the old and new zone,
 	 * check for RR differences */
-	if(!process_diff_domain(spool, ixfrcr, zone, domain))
+	if(!process_diff_domain(spool, ixfrcr, store, zone, domain))
 		return 0;
 
 	return 1;
@@ -483,26 +571,23 @@ static int process_spool_for_domain(FILE* spool, struct ixfr_create* ixfrcr,
 
 /* process remaining spool items */
 static int process_spool_remaining(FILE* spool, struct ixfr_create* ixfrcr,
-	uint8_t* spool_dname, size_t* spool_dname_len, int* spool_read_first)
+	struct spool_dname_iterator* iter)
 {
 	/* the remaining domain names in the spool file, that is after
 	 * the last domain in the new zone. */
 	(void)spool;
 	(void)ixfrcr;
-	(void)spool_dname;
-	(void)spool_dname_len;
-	(void)spool_read_first;
+	(void)iter;
 	return 1;
 }
 
 /* walk through the zone and find the differences */
 static int ixfr_create_walk_zone(FILE* spool, struct ixfr_create* ixfrcr,
-	struct zone* zone)
+	struct ixfr_store* store, struct zone* zone)
 {
 	struct domain* domain;
-	uint8_t spool_dname[MAXDOMAINLEN+1];
-	size_t spool_dname_len = 0; /* start with no spool_dname */
-	int spool_read_first = 0;
+	struct spool_dname_iterator iter;
+	spool_dname_iter_init(&iter, spool, ixfrcr->file_name);
 	for(domain = zone->apex; domain && domain_is_subdomain(domain,
 		zone->apex); domain = domain_next(domain)) {
 		uint32_t count = domain_count_rrsets(domain, zone);
@@ -510,12 +595,11 @@ static int ixfr_create_walk_zone(FILE* spool, struct ixfr_create* ixfrcr,
 			continue;
 
 		/* the domain is a domain in the new zone */
-		if(!process_spool_for_domain(spool, ixfrcr, zone, domain,
-			spool_dname, &spool_dname_len, &spool_read_first))
+		if(!process_spool_for_domain(spool, ixfrcr, store, zone,
+			domain, &iter))
 			return 0;
 	}
-	if(!process_spool_remaining(spool, ixfrcr,
-		spool_dname, &spool_dname_len, &spool_read_first))
+	if(!process_spool_remaining(spool, ixfrcr, &iter))
 		return 0;
 	return 1;
 }
@@ -538,7 +622,7 @@ int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone)
 	store = ixfr_store_start(zone, &store_mem, ixfrcr->old_serial,
 		ixfrcr->new_serial);
 
-	if(!ixfr_create_walk_zone(spool, ixfrcr, zone)) {
+	if(!ixfr_create_walk_zone(spool, ixfrcr, store, zone)) {
 		fclose(spool);
 		ixfr_store_free(store);
 		return 0;

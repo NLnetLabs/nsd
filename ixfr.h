@@ -186,6 +186,12 @@ void ixfr_store_delrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 void ixfr_store_addrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
 	uint16_t rrlen, struct region* temp_region);
+int ixfr_store_addrr_rdatas(struct ixfr_store* ixfr_store,
+	const struct dname* dname, uint16_t type, uint16_t klass,
+	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num);
+int ixfr_store_delrr_rdatas(struct ixfr_store* ixfr_store,
+	const struct dname* dname, uint16_t type, uint16_t klass,
+	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num);
 
 /* an AXFR has been received, the IXFRs do not connect in version number.
  * Delete the unconnected IXFRs from memory */

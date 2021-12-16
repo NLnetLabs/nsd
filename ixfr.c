@@ -1317,6 +1317,24 @@ void ixfr_store_addrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 		&ixfr_store->data->add_len, &ixfr_store->add_capacity);
 }
 
+int ixfr_store_addrr_rdatas(struct ixfr_store* ixfr_store,
+	const struct dname* dname, uint16_t type, uint16_t klass,
+	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num)
+{
+	return ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
+		&ixfr_store->data->add, &ixfr_store->data->add_len,
+		&ixfr_store->add_capacity);
+}
+
+int ixfr_store_delrr_rdatas(struct ixfr_store* ixfr_store,
+	const struct dname* dname, uint16_t type, uint16_t klass,
+	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num)
+{
+	return ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
+		&ixfr_store->data->del, &ixfr_store->data->del_len,
+		&ixfr_store->del_capacity);
+}
+
 int zone_is_ixfr_enabled(struct zone* zone)
 {
 	return zone->opts->pattern->store_ixfr;
