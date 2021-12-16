@@ -1326,13 +1326,47 @@ int ixfr_store_addrr_rdatas(struct ixfr_store* ixfr_store,
 		&ixfr_store->add_capacity);
 }
 
-int ixfr_store_delrr_rdatas(struct ixfr_store* ixfr_store,
-	const struct dname* dname, uint16_t type, uint16_t klass,
-	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num)
+/* store rr uncompressed */
+int ixfr_storerr_uncompressed(uint8_t* dname, size_t dname_len, uint16_t type,
+	uint16_t klass, uint32_t ttl, uint8_t* rdata, size_t rdata_len,
+	uint8_t** rrs, size_t* rrs_len, size_t* rrs_capacity)
 {
-	return ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
-		&ixfr_store->data->del, &ixfr_store->data->del_len,
-		&ixfr_store->del_capacity);
+	size_t sz;
+	uint8_t* sp;
+
+	/* find rdatalen */
+	sz = dname_len + 2 /*type*/ + 2 /*class*/ + 4 /*ttl*/ +
+		2 /*rdlen*/ + rdata_len;
+
+	/* store RR in IXFR data */
+	ixfr_rrs_make_space(rrs, rrs_len, rrs_capacity, sz);
+	if(!*rrs || *rrs_len + sz > *rrs_capacity) {
+		return 0;
+	}
+	/* copy data into add */
+	sp = *rrs + *rrs_len;
+	*rrs_len += sz;
+	memmove(sp, dname, dname_len);
+	sp += dname_len;
+	write_uint16(sp, type);
+	sp += 2;
+	write_uint16(sp, klass);
+	sp += 2;
+	write_uint32(sp, ttl);
+	sp += 4;
+	write_uint16(sp, rdata_len);
+	sp += 2;
+	memmove(sp, rdata, rdata_len);
+	return 1;
+}
+
+int ixfr_store_delrr_uncompressed(struct ixfr_store* ixfr_store,
+	uint8_t* dname, size_t dname_len, uint16_t type, uint16_t klass,
+	uint32_t ttl, uint8_t* rdata, size_t rdata_len)
+{
+	return ixfr_storerr_uncompressed(dname, dname_len, type, klass,
+		ttl, rdata, rdata_len, &ixfr_store->data->del,
+		&ixfr_store->data->del_len, &ixfr_store->del_capacity);
 }
 
 int zone_is_ixfr_enabled(struct zone* zone)
