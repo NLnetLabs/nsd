@@ -14,6 +14,7 @@
 #include "ixfrcreate.h"
 #include "namedb.h"
 #include "ixfr.h"
+#include "options.h"
 
 /* spool a uint16_t to file */
 static int spool_u16(FILE* out, uint16_t val)
@@ -187,7 +188,8 @@ static int spool_zone_to_file(struct zone* zone, char* file_name,
 }
 
 /* create ixfr spool file name */
-static int create_ixfr_spool_name(struct ixfr_create* ixfrcr, char* zfile)
+static int create_ixfr_spool_name(struct ixfr_create* ixfrcr,
+	const char* zfile)
 {
 	char buf[1024];
 	snprintf(buf, sizeof(buf), "%s.spoolzone.%u", zfile,
@@ -199,7 +201,7 @@ static int create_ixfr_spool_name(struct ixfr_create* ixfrcr, char* zfile)
 }
 
 /* start ixfr creation */
-struct ixfr_create* ixfr_create_start(struct zone* zone, char* zfile)
+struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile)
 {
 	struct ixfr_create* ixfrcr = (struct ixfr_create*)calloc(1,
 		sizeof(*ixfrcr));
@@ -227,6 +229,7 @@ struct ixfr_create* ixfr_create_start(struct zone* zone, char* zfile)
 		ixfr_create_free(ixfrcr);
 		return NULL;
 	}
+	ixfrcr->max_size = zone->opts->pattern->ixfr_size;
 	return ixfrcr;
 }
 
@@ -304,6 +307,23 @@ static int read_spool_header(FILE* spool, struct ixfr_create* ixfrcr)
 	if(ixfrcr->old_serial != serial) {
 		log_msg(LOG_ERR, "error file %s does not contain the correct zone serial",
 			ixfrcr->file_name);
+		return 0;
+	}
+	return 1;
+}
+
+/* store the old soa record when we encounter it on the spool */
+static int process_store_oldsoa(struct ixfr_store* store, uint8_t* dname,
+	size_t dname_len, uint16_t tp, uint16_t kl, uint32_t ttl, uint8_t* buf,
+	uint16_t rdlen)
+{
+	if(store->data->oldsoa) {
+		log_msg(LOG_ERR, "error spool contains multiple SOA records");
+		return 0;
+	}
+	if(!ixfr_store_oldsoa_uncompressed(store, dname, dname_len, tp, kl,
+		ttl, buf, rdlen)) {
+		log_msg(LOG_ERR, "out of memory");
 		return 0;
 	}
 	return 1;
@@ -392,6 +412,13 @@ static int process_diff_rrset(FILE* spool, struct ixfr_create* ixfrcr,
 				ixfrcr->file_name, strerror(errno));
 			return 0;
 		}
+		if(tp == TYPE_SOA) {
+			if(!process_store_oldsoa(store,
+				(void*)dname_name(domain_dname(domain)),
+				domain_dname(domain)->name_size, tp, kl, ttl,
+				buf, rdlen))
+				return 0;
+		}
 		/* see if the rr is in the RRset */
 		if(rrset_find_rdata(rrset, ttl, buf, rdlen, &index)) {
 			/* it is in both, mark it */
@@ -452,6 +479,11 @@ static int process_spool_delrrset(FILE* spool, struct ixfr_create* ixfrcr,
 			log_msg(LOG_ERR, "error reading file %s: %s",
 				ixfrcr->file_name, strerror(errno));
 			return 0;
+		}
+		if(tp == TYPE_SOA) {
+			if(!process_store_oldsoa(store, dname, dname_len,
+				tp, kl, ttl, buf, rdlen))
+				return 0;
 		}
 		if(!ixfr_store_delrr_uncompressed(store, dname, dname_len, tp,
 			kl, ttl, buf, rdlen)) {
@@ -646,12 +678,30 @@ static int spool_dname_iter_next(struct spool_dname_iterator* iter)
 	return 1;
 }
 
+/* check if the ixfr is too large */
+static int ixfr_create_too_large(struct ixfr_create* ixfrcr,
+	struct ixfr_store* store)
+{
+	if(store->cancelled)
+		return 1;
+	if(ixfr_data_size(store->data) > ixfrcr->max_size) {
+		VERBOSITY(2, (LOG_INFO, "the ixfr for %s has exceeds size %u, it is not created",
+			wiredname2str(ixfrcr->zone_name),
+			(unsigned)ixfrcr->max_size));
+		ixfr_store_cancel(store);
+		return 1;
+	}
+	return 0;
+}
+
 /* process the spool input before the domain */
 static int process_spool_before_domain(FILE* spool, struct ixfr_create* ixfrcr,
 	struct ixfr_store* store, struct domain* domain,
 	struct spool_dname_iterator* iter, struct region* tmp_region)
 {
 	const dname_type* dname;
+	if(ixfr_create_too_large(ixfrcr, store))
+		return 0;
 	/* read the domains and rrsets before the domain and those are from
 	 * the old zone. If the domain is equal, return to have that processed
 	 * if we bypass, that means the domain does not exist, do that */
@@ -679,6 +729,8 @@ static int process_spool_before_domain(FILE* spool, struct ixfr_create* ixfrcr,
 			 * done here */
 			return 1;
 		}
+		if(ixfr_create_too_large(ixfrcr, store))
+			return 0;
 	}
 	/* no more domains on spool, done here */
 	return 1;
@@ -695,6 +747,8 @@ static int process_spool_for_domain(FILE* spool, struct ixfr_create* ixfrcr,
 		tmp_region))
 		return 0;
 	
+	if(ixfr_create_too_large(ixfrcr, store))
+		return 0;
 	/* are we at the correct domain now? */
 	if(iter->eof)
 		return 1;
@@ -724,6 +778,8 @@ static int process_spool_remaining(FILE* spool, struct ixfr_create* ixfrcr,
 {
 	/* the remaining domain names in the spool file, that is after
 	 * the last domain in the new zone. */
+	if(ixfr_create_too_large(ixfrcr, store))
+		return 0;
 	while(!iter->eof) {
 		if(!spool_dname_iter_next(iter))
 			return 0;
@@ -737,6 +793,8 @@ static int process_spool_remaining(FILE* spool, struct ixfr_create* ixfrcr,
 			iter->dname_len))
 			return 0;
 		iter->is_processed = 1;
+		if(ixfr_create_too_large(ixfrcr, store))
+			return 0;
 	}
 	return 1;
 }
@@ -763,6 +821,8 @@ static int ixfr_create_walk_zone(FILE* spool, struct ixfr_create* ixfrcr,
 			return 0;
 		}
 		region_free_all(tmp_region);
+		if(ixfr_create_too_large(ixfrcr, store))
+			return 0;
 	}
 	if(!process_spool_remaining(spool, ixfrcr, store, &iter)) {
 		region_destroy(tmp_region);
@@ -772,31 +832,131 @@ static int ixfr_create_walk_zone(FILE* spool, struct ixfr_create* ixfrcr,
 	return 1;
 }
 
-int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone)
+/* store the new soa record for the ixfr */
+static int ixfr_create_store_newsoa(struct ixfr_store* store,
+	struct zone* zone)
 {
-	struct ixfr_store store_mem, *store;
-	FILE* spool;
-	spool = fopen(ixfrcr->file_name, "r");
-	if(!spool) {
+	if(!zone || !zone->soa_rrset) {
+		log_msg(LOG_ERR, "error no SOA rrset");
+		return 0;
+	}
+	if(zone->soa_rrset->rr_count == 0) {
+		log_msg(LOG_ERR, "error empty SOA rrset");
+		return 0;
+	}
+	if(!ixfr_store_add_newsoa_rdatas(store, domain_dname(zone->apex),
+		zone->soa_rrset->rrs[0].type, zone->soa_rrset->rrs[0].klass,
+		zone->soa_rrset->rrs[0].ttl, zone->soa_rrset->rrs[0].rdatas,
+		zone->soa_rrset->rrs[0].rdata_count)) {
+		log_msg(LOG_ERR, "out of memory");
+		return 0;
+	}
+	return 1;
+}
+
+/* initialise ixfr_create perform, open spool, read header, get serial */
+static int ixfr_perform_init(struct ixfr_create* ixfrcr, struct zone* zone,
+	struct ixfr_store* store_mem, struct ixfr_store** store, FILE** spool)
+{
+	*spool = fopen(ixfrcr->file_name, "r");
+	if(!*spool) {
 		log_msg(LOG_ERR, "could not open %s for reading: %s",
 			ixfrcr->file_name, strerror(errno));
 		return 0;
 	}
-	if(!read_spool_header(spool, ixfrcr)) {
-		fclose(spool);
+	if(!read_spool_header(*spool, ixfrcr)) {
+		fclose(*spool);
 		return 0;
 	}
 	ixfrcr->new_serial = zone_get_current_serial(zone);
-	store = ixfr_store_start(zone, &store_mem, ixfrcr->old_serial,
+	*store = ixfr_store_start(zone, store_mem, ixfrcr->old_serial,
 		ixfrcr->new_serial);
+	if(!ixfr_create_store_newsoa(*store, zone)) {
+		fclose(*spool);
+		ixfr_store_free(*store);
+		return 0;
+	}
+	return 1;
+}
+
+/* rename the other ixfr files */
+static int ixfr_create_rename_files(const char* zname, const char* zfile)
+{
+	int num = 1;
+	while(ixfr_file_exists(zfile, num)) {
+		if(!ixfr_rename_it(zname, zfile, num, 0, num+1, 0))
+			return 0;
+	}
+	return 1;
+}
+
+/* finish up ixfr create processing */
+static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
+	struct ixfr_store* store, struct zone* zone, int append_mem,
+	struct nsd* nsd, const char* zfile)
+{
+	char log_buf[1024], nowstr[128];
+	/* create the log message */
+	time_t now = time(NULL);
+	snprintf(nowstr, sizeof(nowstr), "%s", ctime(&now));
+	if(strchr(nowstr, '\n'))
+		*strchr(nowstr, '\n') = 0;
+	snprintf(log_buf, sizeof(log_buf),
+		"IXFR created by NSD %s for %s %u to %u at time %s",
+		PACKAGE_VERSION, wiredname2str(ixfrcr->zone_name),
+		(unsigned)ixfrcr->old_serial, (unsigned)ixfrcr->new_serial,
+		nowstr);
+	if(append_mem) {
+		ixfr_store_finish(store, nsd, log_buf, 0, 0, 0, 0);
+	} else {
+		store->data->log_str = strdup(log_buf);
+		if(!store->data->log_str) {
+			log_msg(LOG_ERR, "out of memory");
+			ixfr_store_free(store);
+			return;
+		}
+		if(!ixfr_create_rename_files(wiredname2str(ixfrcr->zone_name),
+			zfile)) {
+			log_msg(LOG_ERR, "could not rename other ixfr files");
+			ixfr_store_free(store);
+			return;
+		}
+		if(!ixfr_write_file(zone, store->data, zfile, 1)) {
+			log_msg(LOG_ERR, "could not write to file");
+			ixfr_store_free(store);
+			return;
+		}
+		ixfr_store_free(store);
+	}
+}
+
+int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
+	int append_mem, struct nsd* nsd, const char* zfile)
+{
+	struct ixfr_store store_mem, *store;
+	FILE* spool;
+	if(!ixfr_perform_init(ixfrcr, zone, &store_mem, &store, &spool)) {
+		(void)unlink(ixfrcr->file_name);
+		return 0;
+	}
 
 	if(!ixfr_create_walk_zone(spool, ixfrcr, store, zone)) {
 		fclose(spool);
 		ixfr_store_free(store);
+		(void)unlink(ixfrcr->file_name);
 		return 0;
 	}
-
-	ixfr_store_free(store);
+	if(!store->data->oldsoa) {
+		log_msg(LOG_ERR, "error spool file did not contain a SOA record");
+		fclose(spool);
+		ixfr_store_free(store);
+		(void)unlink(ixfrcr->file_name);
+		return 0;
+	}
+	ixfr_store_finish_data(store);
 	fclose(spool);
+	(void)unlink(ixfrcr->file_name);
+
+	ixfr_create_finishup(ixfrcr, store, zone, append_mem, nsd, zfile);
 	return 1;
 }

@@ -11,6 +11,7 @@
 #define _IXFRCREATE_H_
 #include "dns.h"
 struct zone;
+struct nsd;
 
 /* the ixfr create data structure while the ixfr difference from zone files
  * is created. */
@@ -23,17 +24,20 @@ struct ixfr_create {
 	uint8_t* zone_name;
 	/* length of zone name */
 	size_t zone_name_len;
+	/* max size of ixfr in bytes */
+	size_t max_size;
 };
 
 /* start ixfr creation */
-struct ixfr_create* ixfr_create_start(struct zone* zone, char* zfile);
+struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile);
 
 /* free ixfr create */
 void ixfr_create_free(struct ixfr_create* ixfrcr);
 
 /* create the IXFR from differences. The old zone is spooled to file
  * and the new zone is in memory now. */
-int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone);
+int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
+	int append_mem, struct nsd* nsd, const char* zfile);
 
 /*
  * Structure to keep track of spool domain name iterator.

@@ -103,6 +103,8 @@ struct ixfr_store {
 	/* are we cancelled, it is not an IXFR, no need to store information
 	 * any more. */
 	int cancelled;
+	/* data has been trimmed and newsoa added */
+	int data_trimmed;
 	/* the ixfr data that we are storing into */
 	struct ixfr_data* data;
 	/* capacity for the delrrs storage, size of ixfr del allocation */
@@ -157,6 +159,9 @@ void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
 	char* log_buf, uint64_t time_start_0, uint32_t time_start_1,
 	uint64_t time_end_0, uint32_t time_end_1);
 
+/* finish just the data activities, trim up the storage and append newsoa */
+void ixfr_store_finish_data(struct ixfr_store* ixfr_store);
+
 /*
  * Add the new SOA record to the ixfr store.
  * ixfr_store: stores ixfr data that is collected.
@@ -192,6 +197,12 @@ int ixfr_store_addrr_rdatas(struct ixfr_store* ixfr_store,
 int ixfr_store_delrr_uncompressed(struct ixfr_store* ixfr_store,
 	uint8_t* dname, size_t dname_len, uint16_t type, uint16_t klass,
 	uint32_t ttl, uint8_t* rdata, size_t rdata_len);
+int ixfr_store_add_newsoa_rdatas(struct ixfr_store* ixfr_store,
+	const struct dname* dname, uint16_t type, uint16_t klass,
+	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num);
+int ixfr_store_oldsoa_uncompressed(struct ixfr_store* ixfr_store,
+	uint8_t* dname, size_t dname_len, uint16_t type, uint16_t klass,
+	uint32_t ttl, uint8_t* rdata, size_t rdata_len);
 
 /* an AXFR has been received, the IXFRs do not connect in version number.
  * Delete the unconnected IXFRs from memory */
@@ -220,6 +231,9 @@ void zone_ixfr_add(struct zone_ixfr* ixfr, struct ixfr_data* data, int isnew);
 struct ixfr_data* zone_ixfr_find_serial(struct zone_ixfr* ixfr,
 	uint32_t qserial);
 
+/* size of the ixfr data */
+size_t ixfr_data_size(struct ixfr_data* data);
+
 /* write ixfr contents to file for the zone */
 void ixfr_write_to_file(struct zone* zone, const char* zfile);
 
@@ -228,5 +242,16 @@ void ixfr_read_from_file(struct nsd* nsd, struct zone* zone, const char* zfile);
 
 /* get the current serial from the zone */
 uint32_t zone_get_current_serial(struct zone* zone);
+
+/* write the ixfr data to file */
+int ixfr_write_file(struct zone* zone, struct ixfr_data* data,
+	const char* zfile, int file_num);
+
+/* see if ixfr file exists */
+int ixfr_file_exists(const char* zfile, int file_num);
+
+/* rename the ixfr file */
+int ixfr_rename_it(const char* zname, const char* zfile, int oldnum,
+	int oldtemp, int newnum, int newtemp);
 
 #endif /* _IXFR_H_ */

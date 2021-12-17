@@ -893,8 +893,7 @@ static void ixfr_data_free(struct ixfr_data* data)
 	free(data);
 }
 
-/* size of the ixfr data */
-static size_t ixfr_data_size(struct ixfr_data* data)
+size_t ixfr_data_size(struct ixfr_data* data)
 {
 	return sizeof(struct ixfr_data) + data->newsoa_len + data->oldsoa_len
 		+ data->del_len + data->add_len;
@@ -976,14 +975,11 @@ static void ixfr_trim_capacity(uint8_t** rrs, size_t* len, size_t* capacity)
 	*capacity = *len;
 }
 
-void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
-	char* log_buf, uint64_t time_start_0, uint32_t time_start_1,
-	uint64_t time_end_0, uint32_t time_end_1)
+void ixfr_store_finish_data(struct ixfr_store* ixfr_store)
 {
-	if(ixfr_store->cancelled) {
-		ixfr_store_free(ixfr_store);
+	if(ixfr_store->data_trimmed)
 		return;
-	}
+	ixfr_store->data_trimmed = 1;
 
 	/* put new serial SOA record after delrrs and addrrs */
 	ixfr_put_newsoa(ixfr_store, &ixfr_store->data->del,
@@ -997,6 +993,18 @@ void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
 		&ixfr_store->data->del_len, &ixfr_store->del_capacity);
 	ixfr_trim_capacity(&ixfr_store->data->add,
 		&ixfr_store->data->add_len, &ixfr_store->add_capacity);
+}
+
+void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
+	char* log_buf, uint64_t time_start_0, uint32_t time_start_1,
+	uint64_t time_end_0, uint32_t time_end_1)
+{
+	if(ixfr_store->cancelled) {
+		ixfr_store_free(ixfr_store);
+		return;
+	}
+
+	ixfr_store_finish_data(ixfr_store);
 
 	if(ixfr_store->cancelled) {
 		ixfr_store_free(ixfr_store);
@@ -1321,9 +1329,29 @@ int ixfr_store_addrr_rdatas(struct ixfr_store* ixfr_store,
 	const struct dname* dname, uint16_t type, uint16_t klass,
 	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num)
 {
+	if(ixfr_store->cancelled)
+		return 1;
+	if(type == TYPE_SOA)
+		return 1;
 	return ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
 		&ixfr_store->data->add, &ixfr_store->data->add_len,
 		&ixfr_store->add_capacity);
+}
+
+int ixfr_store_add_newsoa_rdatas(struct ixfr_store* ixfr_store,
+	const struct dname* dname, uint16_t type, uint16_t klass,
+	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num)
+{
+	size_t capacity = 0;
+	if(ixfr_store->cancelled)
+		return 1;
+	if(!ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
+		&ixfr_store->data->newsoa, &ixfr_store->data->newsoa_len,
+		&ixfr_store->add_capacity))
+		return 0;
+	ixfr_trim_capacity(&ixfr_store->data->newsoa,
+		&ixfr_store->data->newsoa_len, &capacity);
+	return 1;
 }
 
 /* store rr uncompressed */
@@ -1364,9 +1392,29 @@ int ixfr_store_delrr_uncompressed(struct ixfr_store* ixfr_store,
 	uint8_t* dname, size_t dname_len, uint16_t type, uint16_t klass,
 	uint32_t ttl, uint8_t* rdata, size_t rdata_len)
 {
+	if(ixfr_store->cancelled)
+		return 1;
+	if(type == TYPE_SOA)
+		return 1;
 	return ixfr_storerr_uncompressed(dname, dname_len, type, klass,
 		ttl, rdata, rdata_len, &ixfr_store->data->del,
 		&ixfr_store->data->del_len, &ixfr_store->del_capacity);
+}
+
+int ixfr_store_oldsoa_uncompressed(struct ixfr_store* ixfr_store,
+	uint8_t* dname, size_t dname_len, uint16_t type, uint16_t klass,
+	uint32_t ttl, uint8_t* rdata, size_t rdata_len)
+{
+	size_t capacity = 0;
+	if(ixfr_store->cancelled)
+		return 1;
+	if(!ixfr_storerr_uncompressed(dname, dname_len, type, klass,
+		ttl, rdata, rdata_len, &ixfr_store->data->oldsoa,
+		&ixfr_store->data->oldsoa_len, &capacity))
+		return 0;
+	ixfr_trim_capacity(&ixfr_store->data->oldsoa,
+		&ixfr_store->data->oldsoa_len, &capacity);
+	return 1;
 }
 
 int zone_is_ixfr_enabled(struct zone* zone)
@@ -1592,8 +1640,7 @@ static int ixfr_file_exists_ctmp(const char* zfile, int file_num, int temp)
 	return 1;
 }
 
-/* see if ixfr file exists */
-static int ixfr_file_exists(const char* zfile, int file_num)
+int ixfr_file_exists(const char* zfile, int file_num)
 {
 	return ixfr_file_exists_ctmp(zfile, file_num, 0);
 }
@@ -1664,8 +1711,7 @@ static void ixfr_delete_superfluous_files(struct zone* zone, const char* zfile,
 	}
 }
 
-/* rename the file */
-static int ixfr_rename_it(struct zone* zone, const char* zfile, int oldnum,
+int ixfr_rename_it(const char* zname, const char* zfile, int oldnum,
 	int oldtemp, int newnum, int newtemp)
 {
 	char ixfrfile_old[1024+24];
@@ -1675,7 +1721,7 @@ static int ixfr_rename_it(struct zone* zone, const char* zfile, int oldnum,
 	make_ixfr_name_temp(ixfrfile_new, sizeof(ixfrfile_new), zfile, newnum,
 		newtemp);
 	VERBOSITY(3, (LOG_INFO, "rename zone %s IXFR data file %s to %s",
-		zone->opts->name, ixfrfile_old, ixfrfile_new));
+		zname, ixfrfile_old, ixfrfile_new));
 	if(rename(ixfrfile_old, ixfrfile_new) < 0) {
 		log_msg(LOG_ERR, "error to rename file %s: %s", ixfrfile_old,
 			strerror(errno));
@@ -1734,7 +1780,7 @@ static int ixfr_rename_files(struct zone* zone, const char* zfile,
 		}
 
 		/* rename to temporary name */
-		if(!ixfr_rename_it(zone, zfile, data->file_num, 0,
+		if(!ixfr_rename_it(zone->opts->name, zfile, data->file_num, 0,
 			data->file_num, 1)) {
 			/* failure, we cannot store files */
 			/* delete the renamed files */
@@ -1759,7 +1805,7 @@ static int ixfr_rename_files(struct zone* zone, const char* zfile,
 			(void)ixfr_unlink_it(zone, zfile, destnum, 0);
 		}
 
-		if(!ixfr_rename_it(zone, zfile, data->file_num, 1, destnum, 0)) {
+		if(!ixfr_rename_it(zone->opts->name, zfile, data->file_num, 1, destnum, 0)) {
 			/* failure, we cannot store files */
 			ixfr_delete_rest_files(zone, data, zfile, 1);
 			/* delete the previously renamed files, so in
@@ -1974,8 +2020,7 @@ static int ixfr_write_file_data(struct zone* zone, struct ixfr_data* data,
 	return 1;
 }
 
-/* write the ixfr data to file */
-static int ixfr_write_file(struct zone* zone, struct ixfr_data* data,
+int ixfr_write_file(struct zone* zone, struct ixfr_data* data,
 	const char* zfile, int file_num)
 {
 	char ixfrfile[1024+24];
