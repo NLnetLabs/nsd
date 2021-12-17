@@ -9,6 +9,7 @@
 
 #ifndef _IXFRCREATE_H_
 #define _IXFRCREATE_H_
+#include "dns.h"
 struct zone;
 
 /* the ixfr create data structure while the ixfr difference from zone files
@@ -33,5 +34,30 @@ void ixfr_create_free(struct ixfr_create* ixfrcr);
 /* create the IXFR from differences. The old zone is spooled to file
  * and the new zone is in memory now. */
 int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone);
+
+/*
+ * Structure to keep track of spool domain name iterator.
+ * This reads from the spool file and steps over the domain name
+ * elements one by one. It keeps track of: is the first one read yet,
+ * are we at end nothing more, is the element processed yet that is
+ * current read into the buffer?
+ */
+struct spool_dname_iterator {
+	/* the domain name that has recently been read, but can be none
+	 * if before first or after last. */
+	uint8_t dname[MAXDOMAINLEN+1];
+	/* length of the dname, if one is read, otherwise 0 */
+	size_t dname_len;
+	/* if we are before the first element, hence nothing is read yet */
+	int read_first;
+	/* if we are after the last element, nothing to read, end of file */
+	int eof;
+	/* is the element processed that is currently in dname? */
+	int is_processed;
+	/* the file to read from */
+	FILE* spool;
+	/* filename for error printout */
+	char* file_name;
+};
 
 #endif /* _IXFRCREATE_H_ */

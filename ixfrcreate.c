@@ -355,6 +355,18 @@ static int rrset_find_rdata(struct rrset* rrset, uint32_t ttl, uint8_t* rdata,
 	return 0;
 }
 
+/* sort comparison for uint16 elements */
+static int sort_uint16(const void* x, const void* y)
+{
+	const uint16_t* ax = (const uint16_t*)x;
+	const uint16_t* ay = (const uint16_t*)y;
+	if(*ax < *ay)
+		return -1;
+	if(*ax > *ay)
+		return 1;
+	return 0;
+}
+
 /* spool read an rrset, it is a deleted RRset */
 static int process_diff_rrset(FILE* spool, struct ixfr_create* ixfrcr,
 	struct ixfr_store* store, struct domain* domain,
@@ -363,7 +375,7 @@ static int process_diff_rrset(FILE* spool, struct ixfr_create* ixfrcr,
 	/* read RRs from file and see if they are added, deleted or in both */
 	uint8_t buf[MAX_RDLENGTH];
 	uint16_t marked[65536];
-	size_t marked_num = 0;
+	size_t marked_num = 0, atmarked;
 	int i;
 	for(i=0; i<rrcount; i++) {
 		uint16_t rdlen, index;
@@ -398,17 +410,14 @@ static int process_diff_rrset(FILE* spool, struct ixfr_create* ixfrcr,
 	}
 	/* now that we are done, see if RRs in the rrset are not marked,
 	 * and thus are new rrs that are added */
+	qsort(marked, marked_num, sizeof(marked[0]), &sort_uint16);
+	atmarked = 0;
 	for(i=0; i<rrset->rr_count; i++) {
-		int found = 0;
-		size_t j;
-		for(j=0; j<marked_num; j++) {
-			if(marked[j] == i) {
-				found = 1;
-				break;
-			}
-		}
-		if(found)
+		if(atmarked < marked_num && marked[atmarked] == i) {
+			/* the item is in the marked list, skip it */
+			atmarked++;
 			continue;
+		}
 		/* not in the marked list, the RR is added */
 		if(!ixfr_store_addrr_rdatas(store, domain_dname(domain),
 			rrset->rrs[i].type, rrset->rrs[i].klass,
@@ -477,21 +486,18 @@ static int process_marktypes(struct ixfr_store* store, struct zone* zone,
 	/* walk through the rrsets in the zone, if it is not in the
 	 * marktypes list, then it is new and an added RRset */
 	rrset_type* s;
-	size_t i;
+	size_t atmarktype = 0;
+	qsort(marktypes, marktypes_used, sizeof(marktypes[0]), &sort_uint16);
 	for(s=domain->rrsets; s; s=s->next) {
 		uint16_t tp;
-		int found = 0;
 		if(s->zone != zone)
 			continue;
 		tp = rrset_rrtype(s);
-		for(i=0; i<marktypes_used; i++) {
-			if(marktypes[i] == tp) {
-				found = 1;
-				break;
-			}
-		}
-		if(found)
+		if(atmarktype < marktypes_used && marktypes[atmarktype]==tp) {
+			/* the item is in the marked list, skip it */
+			atmarktype++;
 			continue;
+		}
 		if(!process_add_rrset(store, domain, s))
 			return 0;
 	}
@@ -589,31 +595,6 @@ static int process_domain_del_RRs(struct ixfr_create* ixfrcr,
 	}
 	return 1;
 }
-
-/*
- * Structure to keep track of spool domain name iterator.
- * This reads from the spool file and steps over the domain name
- * elements one by one. It keeps track of: is the first one read yet,
- * are we at end nothing more, is the element processed yet that is
- * current read into the buffer?
- */
-struct spool_dname_iterator {
-	/* the domain name that has recently been read, but can be none
-	 * if before first or after last. */
-	uint8_t dname[MAXDOMAINLEN+1];
-	/* length of the dname, if one is read, otherwise 0 */
-	size_t dname_len;
-	/* if we are before the first element, hence nothing is read yet */
-	int read_first;
-	/* if we are after the last element, nothing to read, end of file */
-	int eof;
-	/* is the element processed that is currently in dname? */
-	int is_processed;
-	/* the file to read from */
-	FILE* spool;
-	/* filename for error printout */
-	char* file_name;
-};
 
 /* init the spool dname iterator */
 static void spool_dname_iter_init(struct spool_dname_iterator* iter,
