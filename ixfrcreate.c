@@ -884,9 +884,13 @@ static int ixfr_create_rename_files(const char* zname, const char* zfile)
 {
 	int num = 1;
 	while(ixfr_file_exists(zfile, num)) {
+		num++;
+	}
+	num--;
+	while(num > 0) {
 		if(!ixfr_rename_it(zname, zfile, num, 0, num+1, 0))
 			return 0;
-		num++;
+		num--;
 	}
 	return 1;
 }
