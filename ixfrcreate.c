@@ -229,7 +229,8 @@ struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile)
 		ixfr_create_free(ixfrcr);
 		return NULL;
 	}
-	ixfrcr->max_size = zone->opts->pattern->ixfr_size;
+	if(zone->opts && zone->opts->pattern)
+		ixfrcr->max_size = zone->opts->pattern->ixfr_size;
 	return ixfrcr;
 }
 
@@ -684,7 +685,8 @@ static int ixfr_create_too_large(struct ixfr_create* ixfrcr,
 {
 	if(store->cancelled)
 		return 1;
-	if(ixfr_data_size(store->data) > ixfrcr->max_size) {
+	if(ixfrcr->max_size != 0 &&
+		ixfr_data_size(store->data) > ixfrcr->max_size) {
 		VERBOSITY(2, (LOG_INFO, "the ixfr for %s has exceeds size %u, it is not created",
 			wiredname2str(ixfrcr->zone_name),
 			(unsigned)ixfrcr->max_size));

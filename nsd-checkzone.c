@@ -90,7 +90,7 @@ check_zone(struct nsd* nsd, const char* name, const char* fname, FILE *out,
 		if(!ixfr_create_perform(ixfrcr, zone, 0, nsd, fname)) {
 			error("could not create IXFR");
 		}
-		printf("zone %s created ixfr %s.ixfr\n", name, fname);
+		printf("zone %s created IXFR %s.ixfr\n", name, fname);
 		ixfr_create_free(ixfrcr);
 	}
 	if (out) {
