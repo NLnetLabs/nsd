@@ -752,9 +752,7 @@ static int process_spool_for_domain(FILE* spool, struct ixfr_create* ixfrcr,
 	if(ixfr_create_too_large(ixfrcr, store))
 		return 0;
 	/* are we at the correct domain now? */
-	if(iter->eof)
-		return 1;
-	if(iter->dname_len != domain_dname(domain)->name_size ||
+	if(iter->eof || iter->dname_len != domain_dname(domain)->name_size ||
 		memcmp(iter->dname, dname_name(domain_dname(domain)),
 			iter->dname_len) != 0) {
 		/* the domain from the new zone is not present in the old zone,
