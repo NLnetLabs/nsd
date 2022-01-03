@@ -364,7 +364,7 @@ void xfrd_deactivate_zone(xfrd_zone_type* z);
 /*
  * Make a new request to next master server.
  * uses next_master if set (and a fresh set of rounds).
- * otherwised, starts new round of requests if none started already.
+ * otherwise, starts new round of requests if none started already.
  * starts next round of requests if at last master.
  * if too many rounds of requests, sets timer for next retry.
  */
