@@ -1,3 +1,6 @@
+3 January 2022: Wouter
+	- Merge #204 from jonathangray: correct some spelling mistakes.
+
 15 December 2021: Wouter
 	- Fix #200: nsd-checkzone succeeds even with incorrect serial in SOA
 	  record.
