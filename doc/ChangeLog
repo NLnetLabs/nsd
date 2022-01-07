@@ -1,3 +1,7 @@
+7 January 2022: Wouter
+	- Fix to change file mode before changing file owner for the
+	  nsd-control unix socket file.
+
 3 January 2022: Wouter
 	- Merge #204 from jonathangray: correct some spelling mistakes.
 
