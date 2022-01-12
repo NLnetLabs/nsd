@@ -903,6 +903,8 @@ static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 	char log_buf[1024], nowstr[128];
 	/* create the log message */
 	time_t now = time(NULL);
+	if(store->cancelled)
+		return;
 	snprintf(nowstr, sizeof(nowstr), "%s", ctime(&now));
 	if(strchr(nowstr, '\n'))
 		*strchr(nowstr, '\n') = 0;
@@ -951,14 +953,15 @@ int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
 		(void)unlink(ixfrcr->file_name);
 		return 0;
 	}
-	if(!store->data->oldsoa) {
+	if(store->data && !store->data->oldsoa) {
 		log_msg(LOG_ERR, "error spool file did not contain a SOA record");
 		fclose(spool);
 		ixfr_store_free(store);
 		(void)unlink(ixfrcr->file_name);
 		return 0;
 	}
-	ixfr_store_finish_data(store);
+	if(!store->cancelled)
+		ixfr_store_finish_data(store);
 	fclose(spool);
 	(void)unlink(ixfrcr->file_name);
 
