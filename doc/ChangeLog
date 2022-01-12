@@ -1,3 +1,6 @@
+12 January 2022: Wouter
+	- Fix to document nsd-checkzone -p in the man page for nsd-checkzone.
+
 7 January 2022: Wouter
 	- Fix to change file mode before changing file owner for the
 	  nsd-control unix socket file.
