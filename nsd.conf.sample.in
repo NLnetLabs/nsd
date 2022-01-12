@@ -384,7 +384,7 @@ remote-control:
 	#request-xfr: 192.0.2.2 the_tsig_key_name
 	#request-xfr: 192.0.2.2 the_tsig_key_name the_tls_auth_name
 	# Attention: You cannot use UDP and AXFR together. AXFR is always over
-	# TCP. If you use UDP, we higly recommend you to deploy TSIG.
+	# TCP. If you use UDP, we highly recommend you to deploy TSIG.
 	# Allow AXFR fallback if the master does not support IXFR. Default
 	# is yes.
 	#allow-axfr-fallback: yes

@@ -1,3 +1,14 @@
+7 January 2022: Wouter
+	- Fix to change file mode before changing file owner for the
+	  nsd-control unix socket file.
+
+3 January 2022: Wouter
+	- Merge #204 from jonathangray: correct some spelling mistakes.
+
+15 December 2021: Wouter
+	- Fix #200: nsd-checkzone succeeds even with incorrect serial in SOA
+	  record.
+
 2 December 2021: Wouter
 	- Fix socket_partitioning unit test for FreeBSD.
 	- Fix SVCB test to work around older dig with drill.

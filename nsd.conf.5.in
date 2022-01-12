@@ -298,7 +298,7 @@ negotiation between server and client.
 .TP
 .B outgoing\-tcp\-mss:\fR <number>
 Maximum segment size (MSS) of TCP socket for outgoing XFR request
-to other namesevers. Value lower than
+to other nameservers. Value lower than
 common MSS on Ethernet (1220 for example) will
 address path MTU problem.
 Note that not all platform supports socket option to set MSS (TCP_MAXSEG).
@@ -493,7 +493,7 @@ With the value 0 the rate is unlimited.
 .\" rrlend
 .TP
 .B answer\-cookie:\fR <yes or no>
-Enable to answer to requests containig DNS Cookies as specified in RFC7873.
+Enable to answer to requests containing DNS Cookies as specified in RFC7873.
 Default is no.
 .TP
 .B cookie\-secret:\fR <128 bit hex string>
