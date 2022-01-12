@@ -907,10 +907,10 @@ static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 	if(strchr(nowstr, '\n'))
 		*strchr(nowstr, '\n') = 0;
 	snprintf(log_buf, sizeof(log_buf),
-		"IXFR created by NSD %s for %s %u to %u at time %s",
+		"IXFR created by NSD %s for %s %u to %u of %u bytes at time %s",
 		PACKAGE_VERSION, wiredname2str(ixfrcr->zone_name),
 		(unsigned)ixfrcr->old_serial, (unsigned)ixfrcr->new_serial,
-		nowstr);
+		(unsigned)ixfr_data_size(store->data), nowstr);
 	if(append_mem) {
 		ixfr_store_finish(store, nsd, log_buf, 0, 0, 0, 0);
 	} else {
