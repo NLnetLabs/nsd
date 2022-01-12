@@ -35,7 +35,7 @@ usage (void)
 {
 	fprintf(stderr, "Usage: nsd-checkzone [-p] <zone name> <zone file>\n");
 	fprintf(stderr, "\t-p\tprint the zone if the zone is ok\n");
-	fprintf(stderr, "\t-i <old zone file>\tcreate an IXFR from the differenes between the\n\t\told zone file and the new zone file. Writes to \n\t\tzone file '.ixfr' and renames other .ixfr files to .num+1.\n");
+	fprintf(stderr, "\t-i <old zone file>\tcreate an IXFR from the differences between the\n\t\told zone file and the new zone file. Writes to \n\t\t<zonefile>.ixfr and renames other <zonefile>.ixfr files to\n\t\t<zonefile>.ixfr.num+1.\n");
 	fprintf(stderr, "Version %s. Report bugs to <%s>.\n",
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 }
