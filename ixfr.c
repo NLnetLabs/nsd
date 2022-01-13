@@ -1703,6 +1703,7 @@ int ixfr_read_file_header(struct zone* zone, const char* zfile,
 	/* read about 10 lines, this is where the header is */
 	while(!(got_old && got_new) && num_lines < 10) {
 		buf[0]=0;
+		buf[sizeof(buf)-1]=0;
 		if(!fgets(buf, sizeof(buf), in)) {
 			log_msg(LOG_ERR, "could not read %s: %s", ixfrfile,
 				strerror(errno));
