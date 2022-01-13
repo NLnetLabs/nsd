@@ -933,8 +933,6 @@ static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 		PACKAGE_VERSION, wiredname2str(ixfrcr->zone_name),
 		(unsigned)ixfrcr->old_serial, (unsigned)ixfrcr->new_serial,
 		(unsigned)ixfr_data_size(store->data), nowstr);
-	log_msg(LOG_ERR, "done %s", log_buf);
-	exit(1);
 	if(append_mem) {
 		ixfr_store_finish(store, nsd, log_buf, 0, 0, 0, 0);
 	} else {
