@@ -1683,6 +1683,58 @@ static int ixfr_unlink_it_temp(struct zone* zone, const char* zfile,
 	return ixfr_unlink_it_ctmp(zone, zfile, file_num, silent_enoent, 1);
 }
 
+/* read ixfr file header */
+int ixfr_read_file_header(struct zone* zone, const char* zfile,
+	int file_num, uint32_t* oldserial, uint32_t* newserial,
+	int enoent_is_err)
+{
+	char ixfrfile[1024+24];
+	char buf[1024];
+	FILE* in;
+	int num_lines = 0, got_old = 0, got_new = 0;
+	make_ixfr_name(ixfrfile, sizeof(ixfrfile), zfile, file_num);
+	in = fopen(ixfrfile, "r");
+	if(!in) {
+		if((errno == ENOENT && enoent_is_err) || (errno != ENOENT))
+			log_msg(LOG_ERR, "could not open %s: %s", ixfrfile,
+				strerror(errno));
+		return 0;
+	}
+	/* read about 10 lines, this is where the header is */
+	while(!(got_old && got_new) && num_lines < 10) {
+		buf[0]=0;
+		if(!fgets(buf, sizeof(buf), in)) {
+			log_msg(LOG_ERR, "could not read %s: %s", ixfrfile,
+				strerror(errno));
+			fclose(in);
+			return 0;
+		}
+		num_lines++;
+		if(buf[0]!=0 && buf[strlen(buf)-1]=='\n')
+			buf[strlen(buf)-1]=0;
+		if(strncmp(buf, "; zone ", 7) == 0) {
+			if(strcmp(buf+7, zone->opts->name) != 0) {
+				log_msg(LOG_ERR, "file has wrong zone, expected zone %s, but found %s in file %s",
+					zone->opts->name, buf+7, ixfrfile);
+				fclose(in);
+				return 0;
+			}
+		} else if(strncmp(buf, "; from_serial ", 14) == 0) {
+			*oldserial = atoi(buf+14);
+			got_old = 1;
+		} else if(strncmp(buf, "; to_serial ", 12) == 0) {
+			*newserial = atoi(buf+12);
+			got_new = 1;
+		}
+	}
+	fclose(in);
+	if(!got_old)
+		return 0;
+	if(!got_new)
+		return 0;
+	return 1;
+}
+
 /* delete rest ixfr files, that are after the current item */
 static void ixfr_delete_rest_files(struct zone* zone, struct ixfr_data* from,
 	const char* zfile, int temp)

@@ -88,6 +88,11 @@ check_zone(struct nsd* nsd, const char* name, const char* fname, FILE *out,
 	}
 	if(ixfrcr) {
 		if(!ixfr_create_perform(ixfrcr, zone, 0, nsd, fname)) {
+#ifdef MEMCLEAN /* otherwise, the OS collects memory pages */
+			namedb_close(nsd->db);
+			region_destroy(nsd->options->region);
+			ixfr_create_free(ixfrcr);
+#endif
 			error("could not create IXFR");
 		}
 		printf("zone %s created IXFR %s.ixfr\n", name, fname);

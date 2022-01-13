@@ -832,6 +832,26 @@ static int ixfr_create_walk_zone(FILE* spool, struct ixfr_create* ixfrcr,
 	return 1;
 }
 
+/* see if the ixfr has already been created by reading the file header
+ * of the to-be-created file, if that file already exists */
+static int ixfr_create_already_done(struct ixfr_create* ixfrcr,
+	struct zone* zone, const char* zfile)
+{
+	uint32_t file_oldserial = 0, file_newserial = 0;
+	if(!ixfr_read_file_header(zone, zfile, 1, &file_oldserial,
+		&file_newserial, 0)) {
+		/* could not read, so it was not done */
+		return 0;
+	}
+	if(file_oldserial == ixfrcr->old_serial &&
+		file_newserial == ixfrcr->new_serial) {
+		log_msg(LOG_INFO, "IXFR already exists in file %s, nothing to do",
+			zfile);
+		return 1;
+	}
+	return 0;
+}
+
 /* store the new soa record for the ixfr */
 static int ixfr_create_store_newsoa(struct ixfr_store* store,
 	struct zone* zone)
@@ -913,6 +933,8 @@ static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 		PACKAGE_VERSION, wiredname2str(ixfrcr->zone_name),
 		(unsigned)ixfrcr->old_serial, (unsigned)ixfrcr->new_serial,
 		(unsigned)ixfr_data_size(store->data), nowstr);
+	log_msg(LOG_ERR, "done %s", log_buf);
+	exit(1);
 	if(append_mem) {
 		ixfr_store_finish(store, nsd, log_buf, 0, 0, 0, 0);
 	} else {
@@ -943,6 +965,13 @@ int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
 	struct ixfr_store store_mem, *store;
 	FILE* spool;
 	if(!ixfr_perform_init(ixfrcr, zone, &store_mem, &store, &spool)) {
+		(void)unlink(ixfrcr->file_name);
+		return 0;
+	}
+	if(ixfr_create_already_done(ixfrcr, zone, zfile)) {
+		ixfr_store_cancel(store);
+		fclose(spool);
+		ixfr_store_free(store);
 		(void)unlink(ixfrcr->file_name);
 		return 0;
 	}

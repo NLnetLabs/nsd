@@ -254,4 +254,9 @@ int ixfr_file_exists(const char* zfile, int file_num);
 int ixfr_rename_it(const char* zname, const char* zfile, int oldnum,
 	int oldtemp, int newnum, int newtemp);
 
+/* read the file header of an ixfr file and return serial numbers. */
+int ixfr_read_file_header(struct zone* zone, const char* zfile,
+	int file_num, uint32_t* oldserial, uint32_t* newserial,
+	int enoent_is_err);
+
 #endif /* _IXFR_H_ */
