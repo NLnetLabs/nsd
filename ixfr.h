@@ -150,14 +150,9 @@ void ixfr_store_free(struct ixfr_store* ixfr_store);
  * ixfr_store: Data is linked into the zone struct. The ixfr_store is freed.
  * nsd: nsd structure for allocation region and global options.
  * log_buf: log string for the update.
- * time_start_0: time when download initiated, sec.
- * time_start_1: time when download initiated, nsec.
- * time_end_0: time when download finished, sec.
- * time_end_1: time when download finished, nsec.
  */
 void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
-	char* log_buf, uint64_t time_start_0, uint32_t time_start_1,
-	uint64_t time_end_0, uint32_t time_end_1);
+	char* log_buf);
 
 /* finish just the data activities, trim up the storage and append newsoa */
 void ixfr_store_finish_data(struct ixfr_store* ixfr_store);

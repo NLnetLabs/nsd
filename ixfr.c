@@ -996,8 +996,7 @@ void ixfr_store_finish_data(struct ixfr_store* ixfr_store)
 }
 
 void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
-	char* log_buf, uint64_t time_start_0, uint32_t time_start_1,
-	uint64_t time_end_0, uint32_t time_end_1)
+	char* log_buf)
 {
 	if(ixfr_store->cancelled) {
 		ixfr_store_free(ixfr_store);
@@ -1025,11 +1024,6 @@ void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
 	}
 	zone_ixfr_add(ixfr_store->zone->ixfr, ixfr_store->data, 1);
 	ixfr_store->data = NULL;
-
-	(void)time_start_0;
-	(void)time_start_1;
-	(void)time_end_0;
-	(void)time_end_1;
 
 	/* free structure */
 	ixfr_store_free(ixfr_store);

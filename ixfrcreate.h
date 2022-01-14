@@ -35,7 +35,9 @@ struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile);
 void ixfr_create_free(struct ixfr_create* ixfrcr);
 
 /* create the IXFR from differences. The old zone is spooled to file
- * and the new zone is in memory now. */
+ * and the new zone is in memory now.
+ * With append_mem it does not only write to file but sticks it into the
+ * memory lookup structure for IXFRs used by the server. */
 int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
 	int append_mem, struct nsd* nsd, const char* zfile);
 

@@ -934,7 +934,7 @@ static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 		(unsigned)ixfrcr->old_serial, (unsigned)ixfrcr->new_serial,
 		(unsigned)ixfr_data_size(store->data), nowstr);
 	if(append_mem) {
-		ixfr_store_finish(store, nsd, log_buf, 0, 0, 0, 0);
+		ixfr_store_finish(store, nsd, log_buf);
 	} else {
 		store->data->log_str = strdup(log_buf);
 		if(!store->data->log_str) {
@@ -957,6 +957,23 @@ static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 	}
 }
 
+/* readup existing file if it already exists */
+static void ixfr_readup_exist(struct zone* zone, struct nsd* nsd,
+	const char* zfile)
+{
+	/* the .ixfr file already exists with the correct serial numbers
+	 * on the disk. Read up the ixfr files from the drive and put them
+	 * in memory. To match the zone that has just been read.
+	 * We can skip ixfr creation, and read up the files from the drive.
+	 * If the files on the drive are consistent, we end up with exactly
+	 * those ixfrs and that zone in memory.
+	 * Presumably, the user has used nsd-checkzone to create an IXFR
+	 * file and has put a new zone file, so we read up the data that
+	 * we should have now.
+	 * This also takes into account the config on number and size. */
+	ixfr_read_from_file(nsd, zone, zfile);
+}
+
 int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
 	int append_mem, struct nsd* nsd, const char* zfile)
 {
@@ -971,6 +988,9 @@ int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
 		fclose(spool);
 		ixfr_store_free(store);
 		(void)unlink(ixfrcr->file_name);
+		if(append_mem) {
+			ixfr_readup_exist(zone, nsd, zfile);
+		}
 		return 0;
 	}
 

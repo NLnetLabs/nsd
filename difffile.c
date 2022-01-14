@@ -1450,9 +1450,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 				task_new_soainfo(taskudb, last_task, zonedb, 0);
 		}
 		if(ixfr_store)
-			ixfr_store_finish(ixfr_store, nsd, log_buf,
-				time_start_0, time_start_1, time_end_0,
-				time_end_1);
+			ixfr_store_finish(ixfr_store, nsd, log_buf);
 
 		if(1 <= verbosity) {
 			double elapsed = (double)(time_end_0 - time_start_0)+
