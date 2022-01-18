@@ -7,8 +7,8 @@ Category:
 Component:
 Depends:
 Help:
-Pre: ixfrout_checkzone.pre
-Post: ixfrout_checkzone.post
+Pre:
+Post:
 Test: ixfrout_checkzone.test
 AuxFiles: ixfrout_checkzone.conf, ixfrout_checkzone.zone, ixfrout_checkzone.zone.old
 Passed:
