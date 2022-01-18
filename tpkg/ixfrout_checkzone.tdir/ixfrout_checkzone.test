@@ -1,0 +1,60 @@
+# #-- ixfrout_checkzone.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+echo "$PRE/nsd-checkzone -i"
+$PRE/nsd-checkzone -i ixfrout_checkzone.zone.old example.com ixfrout_checkzone.zone
+if test $? -ne 0; then
+	echo "did not exit successfully"
+	exit 1
+fi
+
+echo "output ixfr"
+cat ixfrout_checkzone.zone.ixfr
+
+if grep "; zone example.com" ixfrout_checkzone.zone.ixfr; then
+	echo "header line OK"
+else
+	echo "header line wrong"
+	exit 1
+fi
+
+if grep "; from_serial 1" ixfrout_checkzone.zone.ixfr; then
+	echo "header line OK"
+else
+	echo "header line wrong"
+	exit 1
+fi
+
+if grep "; to_serial 3" ixfrout_checkzone.zone.ixfr; then
+	echo "header line OK"
+else
+	echo "header line wrong"
+	exit 1
+fi
+
+# remove the comments with the variable timestamp and variable version number
+grep -v "^;" ixfrout_checkzone.zone.ixfr > output.ixfr
+# create good output to compare with
+cat >original <<EOF
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 1 3600 28800 2419200 3600
+b.example.com.	3600	IN	A	10.0.0.1
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+c.example.com.	3600	IN	A	10.0.0.3
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+EOF
+
+if diff original output.ixfr; then
+	echo "output same"
+else
+	echo "different output"
+	exit 1
+fi
+
+exit 0
