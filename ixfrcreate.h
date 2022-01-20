@@ -41,6 +41,10 @@ void ixfr_create_free(struct ixfr_create* ixfrcr);
 int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
 	int append_mem, struct nsd* nsd, const char* zfile);
 
+/* cancel ixfrcreation, that was started, but not performed yet.
+ * It removes the temporary file. */
+void ixfr_create_cancel(struct ixfr_create* ixfrcr);
+
 /*
  * Structure to keep track of spool domain name iterator.
  * This reads from the spool file and steps over the domain name

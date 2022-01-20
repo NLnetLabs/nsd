@@ -80,6 +80,7 @@ check_zone(struct nsd* nsd, const char* name, const char* fname, FILE *out,
 	errors = zonec_read(name, fname, zone);
 	if(errors > 0) {
 		printf("zone %s file %s has %u errors\n", name, fname, errors);
+		ixfr_create_cancel(ixfrcr);
 #ifdef MEMCLEAN /* otherwise, the OS collects memory pages */
 		namedb_close(nsd->db);
 		region_destroy(nsd->options->region);

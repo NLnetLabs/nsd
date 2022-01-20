@@ -1015,3 +1015,11 @@ int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
 	ixfr_create_finishup(ixfrcr, store, zone, append_mem, nsd, zfile);
 	return 1;
 }
+
+void ixfr_create_cancel(struct ixfr_create* ixfrcr)
+{
+	if(!ixfrcr)
+		return;
+	(void)unlink(ixfrcr->file_name);
+	ixfr_create_free(ixfrcr);
+}
