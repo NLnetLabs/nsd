@@ -240,7 +240,7 @@ enum xfrd_packet_result {
    Note that also some sockets are used for writing the ixfr.db, xfrd.state
    files and for the pipes to the main parent process.
 
-   For xfrd_tcp_max 128 can be the number of TCP AXFR/IXFR concurrent
+   For xfrd_tcp_max, 128 is the default number of TCP AXFR/IXFR concurrent
    connections. Each entry has 64Kb buffer preallocated.
 */
 #define XFRD_MAX_UDP 128 /* max number of UDP sockets at a time for IXFR */

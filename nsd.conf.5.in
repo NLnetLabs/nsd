@@ -306,8 +306,8 @@ Default is system default MSS determined by interface MTU and
 negotiation between NSD and other servers.
 .TP
 .B xfrd\-tcp\-max:\fR <number>
-Number of sockets for xfrd to use for outgoing zone transfers. Default 32.
-Increase it to allow more zone transfer sockets, like to 128.
+Number of sockets for xfrd to use for outgoing zone transfers. Default 128.
+Increase it to allow more zone transfer sockets, like to 256.
 To save memory, this can be lowered, set it lower together with some other
 settings to have reduced memory footprint for NSD. xfrd\-tcp\-max: 32
 and xfrd\-tcp\-pipeline: 128 and rrl\-size: 1000
