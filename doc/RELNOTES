@@ -3,6 +3,13 @@ NSD RELEASE NOTES
 4.3.10 (upcoming)
 ================
 FEATURES:
+	- Merge #193: Lower memory usage of the XFRD process by default.
+	  Instead of preallocating all elements, they are allocated when used.
+	  There are options for managing the memory usage, defaults are the
+	  same as before. xfrd-tcp-max sets the number of sockets for tcp
+	  connections that xfrd can make to download zone contents. And
+	  xfrd-tcp-pipeline the number of simultaneous transfers over the
+	  same connection.
 BUG FIXES:
 	- Fix #200: nsd-checkzone succeeds even with incorrect serial in SOA
 	  record.
