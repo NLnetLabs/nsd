@@ -4,6 +4,12 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix #200: nsd-checkzone succeeds even with incorrect serial in SOA
+	  record.
+	- Merge #204 from jonathangray: correct some spelling mistakes.
+	- Fix to change file mode before changing file owner for the
+	  nsd-control unix socket file.
+	- Fix to document nsd-checkzone -p in the man page for nsd-checkzone.
 
 4.3.9
 ================
