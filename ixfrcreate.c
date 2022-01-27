@@ -846,7 +846,7 @@ static int ixfr_create_already_done_serial(struct zone* zone,
 	}
 	if(file_oldserial == old_serial &&
 		(!checknew || file_newserial == new_serial)) {
-		log_msg(LOG_INFO, "IXFR already exists in file %s, nothing to do",
+		log_msg(LOG_INFO, "IXFR already exists in file %s.ixfr, nothing to do",
 			zfile);
 		return 1;
 	}
