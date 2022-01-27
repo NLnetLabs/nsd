@@ -1010,7 +1010,7 @@ void ixfr_store_finish(struct ixfr_store* ixfr_store, struct nsd* nsd,
 		return;
 	}
 
-	if(log_buf)
+	if(log_buf && !ixfr_store->data->log_str)
 		ixfr_store->data->log_str = strdup(log_buf);
 
 	/* store the data in the zone */

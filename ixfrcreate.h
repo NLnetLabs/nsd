@@ -45,6 +45,14 @@ int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
  * It removes the temporary file. */
 void ixfr_create_cancel(struct ixfr_create* ixfrcr);
 
+/* returns true if ixfr should be created by taking difference between
+ * zone file contents. Also checks if ixfr is enabled for the zone. */
+int ixfr_create_from_difference(struct zone* zone, const char* zfile,
+	int* ixfr_create_already_done_flag);
+
+/* readup existing file if it already exists */
+void ixfr_readup_exist(struct zone* zone, struct nsd* nsd, const char* zfile);
+
 /*
  * Structure to keep track of spool domain name iterator.
  * This reads from the spool file and steps over the domain name

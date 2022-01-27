@@ -31,6 +31,7 @@
 #include "difffile.h"
 #include "nsd.h"
 #include "ixfr.h"
+#include "ixfrcreate.h"
 
 static time_t udb_time = 0;
 static unsigned long udb_rrsets = 0;
@@ -493,6 +494,8 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 	int nonexist = 0;
 	unsigned int errors;
 	const char* fname;
+	struct ixfr_create* ixfrcr = NULL;
+	int ixfr_create_already_done = 0;
 	if(!nsd->db || !zone || !zone->opts || !zone->opts->pattern->zonefile)
 		return;
 	mtime.tv_sec = 0;
@@ -547,6 +550,14 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 			return;
 		}
 	}
+	if(ixfr_create_from_difference(zone, fname,
+		&ixfr_create_already_done)) {
+		ixfrcr = ixfr_create_start(zone, fname);
+		if(!ixfrcr) {
+			/* leaves the ixfrcr at NULL, so it is not created */
+			log_msg(LOG_ERR, "out of memory starting ixfr create");
+		}
+	}
 
 	assert(parser);
 	/* wipe zone from memory */
@@ -574,6 +585,7 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 				zone->apex)), domain_dname(zone->apex)->name_size)) {
 				/* tell that zone contents has been lost */
 				if(taskudb) task_new_soainfo(taskudb, last_task, zone, 0);
+				ixfr_create_cancel(ixfrcr);
 				return;
 			}
 			/* read from udb */
@@ -619,8 +631,19 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 					strlen(zone->logstr)+1);
 			zone->logstr = NULL;
 		}
-		if(zone_is_ixfr_enabled(zone))
+		if(ixfr_create_already_done) {
+			ixfr_readup_exist(zone, nsd, fname);
+		} else if(ixfrcr) {
+			if(!ixfr_create_perform(ixfrcr, zone, 1, nsd, fname)) {
+				log_msg(LOG_ERR, "failed to create IXFR");
+			} else {
+				VERBOSITY(2, (LOG_INFO, "zone %s created IXFR %s.ixfr",
+					zone->opts->name, fname));
+			}
+			ixfr_create_free(ixfrcr);
+		} else if(zone_is_ixfr_enabled(zone)) {
 			ixfr_read_from_file(nsd, zone, fname);
+		}
 	}
 	if(taskudb) task_new_soainfo(taskudb, last_task, zone, 0);
 #ifdef NSEC3

@@ -834,8 +834,9 @@ static int ixfr_create_walk_zone(FILE* spool, struct ixfr_create* ixfrcr,
 
 /* see if the ixfr has already been created by reading the file header
  * of the to-be-created file, if that file already exists */
-static int ixfr_create_already_done(struct ixfr_create* ixfrcr,
-	struct zone* zone, const char* zfile)
+static int ixfr_create_already_done_serial(struct zone* zone,
+	const char* zfile, int checknew, uint32_t old_serial,
+	uint32_t new_serial)
 {
 	uint32_t file_oldserial = 0, file_newserial = 0;
 	if(!ixfr_read_file_header(zone, zfile, 1, &file_oldserial,
@@ -843,13 +844,22 @@ static int ixfr_create_already_done(struct ixfr_create* ixfrcr,
 		/* could not read, so it was not done */
 		return 0;
 	}
-	if(file_oldserial == ixfrcr->old_serial &&
-		file_newserial == ixfrcr->new_serial) {
+	if(file_oldserial == old_serial &&
+		(!checknew || file_newserial == new_serial)) {
 		log_msg(LOG_INFO, "IXFR already exists in file %s, nothing to do",
 			zfile);
 		return 1;
 	}
 	return 0;
+}
+
+/* see if the ixfr has already been created by reading the file header
+ * of the to-be-created file, if that file already exists */
+static int ixfr_create_already_done(struct ixfr_create* ixfrcr,
+	struct zone* zone, const char* zfile, int checknew)
+{
+	return ixfr_create_already_done_serial(zone, zfile, checknew,
+		ixfrcr->old_serial, ixfrcr->new_serial);
 }
 
 /* store the new soa record for the ixfr */
@@ -933,32 +943,29 @@ static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 		PACKAGE_VERSION, wiredname2str(ixfrcr->zone_name),
 		(unsigned)ixfrcr->old_serial, (unsigned)ixfrcr->new_serial,
 		(unsigned)ixfr_data_size(store->data), nowstr);
+	store->data->log_str = strdup(log_buf);
+	if(!store->data->log_str) {
+		log_msg(LOG_ERR, "out of memory");
+		ixfr_store_free(store);
+		return;
+	}
+	if(!ixfr_create_rename_files(wiredname2str(ixfrcr->zone_name),
+		zfile)) {
+		log_msg(LOG_ERR, "could not rename other ixfr files");
+		ixfr_store_free(store);
+		return;
+	}
+	if(!ixfr_write_file(zone, store->data, zfile, 1)) {
+		log_msg(LOG_ERR, "could not write to file");
+		ixfr_store_free(store);
+		return;
+	}
 	if(append_mem) {
 		ixfr_store_finish(store, nsd, log_buf);
-	} else {
-		store->data->log_str = strdup(log_buf);
-		if(!store->data->log_str) {
-			log_msg(LOG_ERR, "out of memory");
-			ixfr_store_free(store);
-			return;
-		}
-		if(!ixfr_create_rename_files(wiredname2str(ixfrcr->zone_name),
-			zfile)) {
-			log_msg(LOG_ERR, "could not rename other ixfr files");
-			ixfr_store_free(store);
-			return;
-		}
-		if(!ixfr_write_file(zone, store->data, zfile, 1)) {
-			log_msg(LOG_ERR, "could not write to file");
-			ixfr_store_free(store);
-			return;
-		}
-		ixfr_store_free(store);
 	}
 }
 
-/* readup existing file if it already exists */
-static void ixfr_readup_exist(struct zone* zone, struct nsd* nsd,
+void ixfr_readup_exist(struct zone* zone, struct nsd* nsd,
 	const char* zfile)
 {
 	/* the .ixfr file already exists with the correct serial numbers
@@ -983,7 +990,7 @@ int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
 		(void)unlink(ixfrcr->file_name);
 		return 0;
 	}
-	if(ixfr_create_already_done(ixfrcr, zone, zfile)) {
+	if(ixfr_create_already_done(ixfrcr, zone, zfile, 1)) {
 		ixfr_store_cancel(store);
 		fclose(spool);
 		ixfr_store_free(store);
@@ -1022,4 +1029,20 @@ void ixfr_create_cancel(struct ixfr_create* ixfrcr)
 		return;
 	(void)unlink(ixfrcr->file_name);
 	ixfr_create_free(ixfrcr);
+}
+
+int ixfr_create_from_difference(struct zone* zone, const char* zfile,
+	int* ixfr_create_already_done_flag)
+{
+	uint32_t old_serial;
+	*ixfr_create_already_done_flag = 0;
+	if(!zone_is_ixfr_enabled(zone))
+		return 0;
+	old_serial = zone_get_current_serial(zone);
+	if(ixfr_create_already_done_serial(zone, zfile, 0, old_serial, 0)) {
+		*ixfr_create_already_done_flag = 1;
+		return 0;
+	}
+
+	return 1;
 }
