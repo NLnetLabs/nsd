@@ -1,3 +1,7 @@
+27 January 2022: Wouter
+	- current code branch continues as version 4.4.0, because of added
+	  feature.
+
 26 January 2022: Wouter
 	- Merge #193: Lower memory usage of the XFRD process by default.
 	  Instead of preallocating all elements, they are allocated when used.
