@@ -1,3 +1,6 @@
+28 January 2022: Wouter
+	- Fix #206: build with --without-ssl fails.
+
 27 January 2022: Wouter
 	- current code branch continues as version 4.4.0, because of added
 	  feature.
