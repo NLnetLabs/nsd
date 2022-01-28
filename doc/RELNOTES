@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.3.10 (upcoming)
+4.4.0 (upcoming)
 ================
 FEATURES:
 	- Merge #193: Lower memory usage of the XFRD process by default.
@@ -17,6 +17,7 @@ BUG FIXES:
 	- Fix to change file mode before changing file owner for the
 	  nsd-control unix socket file.
 	- Fix to document nsd-checkzone -p in the man page for nsd-checkzone.
+	- Fix #206: build with --without-ssl fails.
 
 4.3.9
 ================
