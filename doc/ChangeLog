@@ -1,3 +1,7 @@
+7 February 2022: Wouter
+	- Merge #207 Sync nsd-control-setup with unbound-control-setup to
+	  generate certificates with SANs.
+
 28 January 2022: Wouter
 	- Fix #206: build with --without-ssl fails.
 
