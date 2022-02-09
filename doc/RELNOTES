@@ -20,6 +20,8 @@ BUG FIXES:
 	- Fix #206: build with --without-ssl fails.
 	- Merge #207 Sync nsd-control-setup with unbound-control-setup to
 	  generate certificates with SANs.
+	- Fix unit tests for nds-control-setup exit code and the
+	  xfrd-tcp-max default.
 
 4.3.9
 ================

@@ -26,7 +26,7 @@ server:
 	tcp-timeout: 120
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
-	xfrd-tcp-max: 32
+	xfrd-tcp-max: 128
 	xfrd-tcp-pipeline: 128
 	ipv4-edns-size: 1232
 	ipv6-edns-size: 1220
@@ -152,7 +152,7 @@ server:
 	tcp-timeout: 120
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
-	xfrd-tcp-max: 32
+	xfrd-tcp-max: 128
 	xfrd-tcp-pipeline: 128
 	ipv4-edns-size: 1232
 	ipv6-edns-size: 1232
@@ -219,7 +219,7 @@ server:
 	tcp-timeout: 120
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
-	xfrd-tcp-max: 32
+	xfrd-tcp-max: 128
 	xfrd-tcp-pipeline: 128
 	ipv4-edns-size: 1232
 	ipv6-edns-size: 1232
@@ -295,7 +295,7 @@ server:
 	tcp-timeout: 120
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
-	xfrd-tcp-max: 32
+	xfrd-tcp-max: 128
 	xfrd-tcp-pipeline: 128
 	ipv4-edns-size: 1232
 	ipv6-edns-size: 1232
@@ -415,7 +415,7 @@ server:
 	tcp-timeout: 120
 	tcp-mss: 0
 	outgoing-tcp-mss: 0
-	xfrd-tcp-max: 32
+	xfrd-tcp-max: 128
 	xfrd-tcp-pipeline: 128
 	ipv4-edns-size: 1232
 	ipv6-edns-size: 1232

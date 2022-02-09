@@ -1,3 +1,7 @@
+9 February 2022: Wouter
+	- Fix unit tests for nds-control-setup exit code and the
+	  xfrd-tcp-max default.
+
 7 February 2022: Wouter
 	- Merge #207 Sync nsd-control-setup with unbound-control-setup to
 	  generate certificates with SANs.
