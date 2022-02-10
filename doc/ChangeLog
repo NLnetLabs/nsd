@@ -1,3 +1,6 @@
+10 February 2022: Wouter
+	- Tag for 4.4.0rc1 release.
+
 9 February 2022: Wouter
 	- Fix unit tests for nds-control-setup exit code and the
 	  xfrd-tcp-max default.
