@@ -1,5 +1,6 @@
 10 February 2022: Wouter
-	- Tag for 4.4.0rc1 release.
+	- Tag for 4.4.0rc1 release. This became 4.4.0 release on 17 Feb 2022,
+	  the code repository continues with version 4.4.1.
 
 9 February 2022: Wouter
 	- Fix unit tests for nds-control-setup exit code and the
