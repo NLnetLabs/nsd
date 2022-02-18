@@ -1,6 +1,11 @@
 NSD RELEASE NOTES
 
-4.4.0 (upcoming)
+4.4.1 (Upcoming)
+================
+FEATURES:
+BUG FIXES:
+
+4.4.0
 ================
 FEATURES:
 	- Merge #193: Lower memory usage of the XFRD process by default.
@@ -18,6 +23,10 @@ BUG FIXES:
 	  nsd-control unix socket file.
 	- Fix to document nsd-checkzone -p in the man page for nsd-checkzone.
 	- Fix #206: build with --without-ssl fails.
+	- Merge #207 Sync nsd-control-setup with unbound-control-setup to
+	  generate certificates with SANs.
+	- Fix unit tests for nds-control-setup exit code and the
+	  xfrd-tcp-max default.
 
 4.3.9
 ================
