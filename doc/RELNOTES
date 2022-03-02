@@ -6,6 +6,7 @@ FEATURES:
 BUG FIXES:
 	- Fix code analyzer zero divide warning.
 	- Fix code analyzer large value with assertion.
+	- Fix another code analyzer zero divide warning.
 
 4.4.0
 ================
