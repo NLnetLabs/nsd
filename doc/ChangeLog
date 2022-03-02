@@ -2,6 +2,7 @@
 	- Fix code analyzer zero divide warning.
 	- Fix code analyzer large value with assertion.
 	- Fix another code analyzer zero divide warning.
+	- Fix code analyzer warning about uninitialized temp storage in loop.
 
 10 February 2022: Wouter
 	- Tag for 4.4.0rc1 release. This became 4.4.0 release on 17 Feb 2022,
