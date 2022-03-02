@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix code analyzer zero divide warning.
 
 4.4.0
 ================
