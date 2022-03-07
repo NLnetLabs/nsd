@@ -9,7 +9,7 @@
 PRE="../.."
 TPKG_NSD="$PRE/nsd"
 
-$TPKG_NSD -c no_cpu_affinity.conf -L 5 -F 0xFFFF -p $NSD_PORT
+$TPKG_NSD -c no_cpu_affinity.conf -p $NSD_PORT
 wait_nsd_up nsd.log
 cat nsd.log
 
