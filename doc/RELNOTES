@@ -4,6 +4,10 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix code analyzer zero divide warning.
+	- Fix code analyzer large value with assertion.
+	- Fix another code analyzer zero divide warning.
+	- Fix code analyzer warning about uninitialized temp storage in loop.
 
 4.4.0
 ================
