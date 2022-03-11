@@ -920,8 +920,7 @@ static int ixfr_create_rename_and_delete_files(const char* zname,
 	num--;
 	while(num > 0) {
 		if(num+1 >= (int)ixfr_number) {
-			if(!ixfr_unlink_it(zname, zfile, num, 0))
-				return 0;
+			(void)ixfr_unlink_it(zname, zfile, num, 0);
 		} else {
 			if(!ixfr_rename_it(zname, zfile, num, 0, num+1, 0))
 				return 0;
