@@ -654,6 +654,7 @@ The zone options such as
 .BR store\-ixfr ,
 .BR ixfr\-number ,
 .BR ixfr\-size ,
+.BR create\-ixfr ,
 .BR zonestats ,
 and
 .B outgoing\-interface 
@@ -826,6 +827,14 @@ The number of IXFR versions to store for this zone, at most. Default is 5.
 The max storage to use for IXFR versions for this zone, in bytes.
 Default is 1048576. A value of 0 means unlimited, if you want to turn off
 IXFR storage, use the store\-ixfr option.
+.TP
+.B create\-ixfr:\fR <yes or no>
+If enabled, IXFR data is created when a zonefile is read by the server.
+Also set store\-ixfr enabled, so that the contents are stored, when you use
+this. Default is off. If the server is not running, the nsd\-checkzone \-i
+option can be used to create an IXFR file. When an IXFR is created, the server
+spools a version of the zone to a temporary file, at the location where the
+ixfr files are stored.
 .TP
 .B max\-refresh\-time:\fR <seconds>
 Limit refresh time for secondary zones.  This is the timer which checks to see

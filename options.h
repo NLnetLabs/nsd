@@ -264,6 +264,8 @@ struct pattern_options {
 	uint8_t ixfr_size_is_default;
 	uint32_t ixfr_number;
 	uint8_t ixfr_number_is_default;
+	uint8_t create_ixfr;
+	uint8_t create_ixfr_is_default;
 } ATTR_PACKED;
 
 #define PATTERN_IMPLICIT_MARKER "_implicit_"

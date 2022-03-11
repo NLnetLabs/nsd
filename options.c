@@ -888,6 +888,8 @@ pattern_options_create(region_type* region)
 	p->ixfr_size_is_default = 1;
 	p->ixfr_number = 5;
 	p->ixfr_number_is_default = 1;
+	p->create_ixfr = 0;
+	p->create_ixfr_is_default = 1;
 	return p;
 }
 
@@ -1038,6 +1040,8 @@ copy_pat_fixed(region_type* region, struct pattern_options* orig,
 	orig->ixfr_size_is_default = p->ixfr_size_is_default;
 	orig->ixfr_number = p->ixfr_number;
 	orig->ixfr_number_is_default = p->ixfr_number_is_default;
+	orig->create_ixfr = p->create_ixfr;
+	orig->create_ixfr_is_default = p->create_ixfr_is_default;
 }
 
 void
@@ -1137,6 +1141,8 @@ pattern_options_equal(struct pattern_options* p, struct pattern_options* q)
 	if(!booleq(p->ixfr_size_is_default,q->ixfr_size_is_default)) return 0;
 	if(p->ixfr_number != q->ixfr_number) return 0;
 	if(!booleq(p->ixfr_number_is_default,q->ixfr_number_is_default)) return 0;
+	if(!booleq(p->create_ixfr,q->create_ixfr)) return 0;
+	if(!booleq(p->create_ixfr_is_default,q->create_ixfr_is_default)) return 0;
 	return 1;
 }
 
@@ -1309,6 +1315,8 @@ pattern_options_marshal(struct buffer* b, struct pattern_options* p)
 	marshal_u8(b, p->ixfr_size_is_default);
 	marshal_u32(b, p->ixfr_number);
 	marshal_u8(b, p->ixfr_number_is_default);
+	marshal_u8(b, p->create_ixfr);
+	marshal_u8(b, p->create_ixfr_is_default);
 }
 
 struct pattern_options*
@@ -1350,6 +1358,8 @@ pattern_options_unmarshal(region_type* r, struct buffer* b)
 	p->ixfr_size_is_default = unmarshal_u8(b);
 	p->ixfr_number = unmarshal_u32(b);
 	p->ixfr_number_is_default = unmarshal_u8(b);
+	p->create_ixfr = unmarshal_u8(b);
+	p->create_ixfr_is_default = unmarshal_u8(b);
 	return p;
 }
 
@@ -2158,6 +2168,10 @@ config_apply_pattern(struct pattern_options *dest, const char* name)
 	if(!pat->ixfr_number_is_default) {
 		dest->ixfr_number = pat->ixfr_number;
 		dest->ixfr_number_is_default = 0;
+	}
+	if(!pat->create_ixfr_is_default) {
+		dest->create_ixfr = pat->create_ixfr;
+		dest->create_ixfr_is_default = 0;
 	}
 	dest->size_limit_xfr = pat->size_limit_xfr;
 #ifdef RATELIMIT

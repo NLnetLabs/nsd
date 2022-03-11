@@ -358,6 +358,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		ZONE_GET_BIN(store_ixfr, o, zone->pattern);
 		ZONE_GET_INT(ixfr_size, o, zone->pattern);
 		ZONE_GET_INT(ixfr_number, o, zone->pattern);
+		ZONE_GET_BIN(create_ixfr, o, zone->pattern);
 		printf("Zone option not handled: %s %s\n", z, o);
 		exit(1);
 	} else if(pat) {
@@ -394,6 +395,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		ZONE_GET_BIN(store_ixfr, o, p);
 		ZONE_GET_INT(ixfr_size, o, p);
 		ZONE_GET_INT(ixfr_number, o, p);
+		ZONE_GET_BIN(create_ixfr, o, p);
 		printf("Pattern option not handled: %s %s\n", pat, o);
 		exit(1);
 	} else {
@@ -544,6 +546,8 @@ static void print_zone_content_elems(pattern_options_type* pat)
 		printf("\tixfr-number: %u\n", (unsigned)pat->ixfr_number);
 	if(!pat->ixfr_size_is_default)
 		printf("\tixfr-size: %u\n", (unsigned)pat->ixfr_size);
+	if(!pat->create_ixfr_is_default)
+		printf("\tcreate-ixfr: %s\n", pat->create_ixfr?"yes":"no");
 }
 
 void
