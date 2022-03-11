@@ -910,7 +910,8 @@ static int ixfr_perform_init(struct ixfr_create* ixfrcr, struct zone* zone,
 }
 
 /* rename the other ixfr files */
-static int ixfr_create_rename_files(const char* zname, const char* zfile)
+static int ixfr_create_rename_and_delete_files(const char* zname,
+	const char* zfile, uint32_t ixfr_number)
 {
 	int num = 1;
 	while(ixfr_file_exists(zfile, num)) {
@@ -918,8 +919,13 @@ static int ixfr_create_rename_files(const char* zname, const char* zfile)
 	}
 	num--;
 	while(num > 0) {
-		if(!ixfr_rename_it(zname, zfile, num, 0, num+1, 0))
-			return 0;
+		if(num+1 >= (int)ixfr_number) {
+			if(!ixfr_unlink_it(zname, zfile, num, 0))
+				return 0;
+		} else {
+			if(!ixfr_rename_it(zname, zfile, num, 0, num+1, 0))
+				return 0;
+		}
 		num--;
 	}
 	return 1;
@@ -928,7 +934,7 @@ static int ixfr_create_rename_files(const char* zname, const char* zfile)
 /* finish up ixfr create processing */
 static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 	struct ixfr_store* store, struct zone* zone, int append_mem,
-	struct nsd* nsd, const char* zfile)
+	struct nsd* nsd, const char* zfile, uint32_t ixfr_number)
 {
 	char log_buf[1024], nowstr[128];
 	/* create the log message */
@@ -949,8 +955,8 @@ static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 		ixfr_store_free(store);
 		return;
 	}
-	if(!ixfr_create_rename_files(wiredname2str(ixfrcr->zone_name),
-		zfile)) {
+	if(!ixfr_create_rename_and_delete_files(
+		wiredname2str(ixfrcr->zone_name), zfile, ixfr_number)) {
 		log_msg(LOG_ERR, "could not rename other ixfr files");
 		ixfr_store_free(store);
 		return;
@@ -982,7 +988,8 @@ void ixfr_readup_exist(struct zone* zone, struct nsd* nsd,
 }
 
 int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
-	int append_mem, struct nsd* nsd, const char* zfile)
+	int append_mem, struct nsd* nsd, const char* zfile,
+	uint32_t ixfr_number)
 {
 	struct ixfr_store store_mem, *store;
 	FILE* spool;
@@ -1019,7 +1026,8 @@ int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
 	fclose(spool);
 	(void)unlink(ixfrcr->file_name);
 
-	ixfr_create_finishup(ixfrcr, store, zone, append_mem, nsd, zfile);
+	ixfr_create_finishup(ixfrcr, store, zone, append_mem, nsd, zfile,
+		ixfr_number);
 	return 1;
 }
 

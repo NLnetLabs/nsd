@@ -634,7 +634,8 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 		if(ixfr_create_already_done) {
 			ixfr_readup_exist(zone, nsd, fname);
 		} else if(ixfrcr) {
-			if(!ixfr_create_perform(ixfrcr, zone, 1, nsd, fname)) {
+			if(!ixfr_create_perform(ixfrcr, zone, 1, nsd, fname,
+				zone->opts->pattern->ixfr_number)) {
 				log_msg(LOG_ERR, "failed to create IXFR");
 			} else {
 				VERBOSITY(2, (LOG_INFO, "zone %s created IXFR %s.ixfr",

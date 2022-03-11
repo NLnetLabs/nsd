@@ -36,13 +36,14 @@ usage (void)
 	fprintf(stderr, "Usage: nsd-checkzone [-p] <zone name> <zone file>\n");
 	fprintf(stderr, "\t-p\tprint the zone if the zone is ok\n");
 	fprintf(stderr, "\t-i <old zone file>\tcreate an IXFR from the differences between the\n\t\told zone file and the new zone file. Writes to \n\t\t<zonefile>.ixfr and renames other <zonefile>.ixfr files to\n\t\t<zonefile>.ixfr.num+1.\n");
+	fprintf(stderr, "\t-n <ixfr number>\tnumber of IXFR versions to store, at most.\n\t\tdefault 5.\n");
 	fprintf(stderr, "Version %s. Report bugs to <%s>.\n",
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 }
 
 static void
 check_zone(struct nsd* nsd, const char* name, const char* fname, FILE *out,
-	const char* oldzone)
+	const char* oldzone, uint32_t ixfr_number)
 {
 	const dname_type* dname;
 	zone_options_type* zo;
@@ -88,7 +89,8 @@ check_zone(struct nsd* nsd, const char* name, const char* fname, FILE *out,
 		exit(1);
 	}
 	if(ixfrcr) {
-		if(!ixfr_create_perform(ixfrcr, zone, 0, nsd, fname)) {
+		if(!ixfr_create_perform(ixfrcr, zone, 0, nsd, fname,
+			ixfr_number)) {
 #ifdef MEMCLEAN /* otherwise, the OS collects memory pages */
 			namedb_close(nsd->db);
 			region_destroy(nsd->options->region);
@@ -132,6 +134,7 @@ main(int argc, char *argv[])
 	/* Scratch variables... */
 	int c;
 	int print_zone = 0;
+	uint32_t ixfr_number = 5;
 	char* oldzone = NULL;
 	struct nsd nsd;
 	memset(&nsd, 0, sizeof(nsd));
@@ -139,13 +142,16 @@ main(int argc, char *argv[])
 	log_init("nsd-checkzone");
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "hi:p")) != -1) {
+	while ((c = getopt(argc, argv, "hi:n:p")) != -1) {
 		switch (c) {
 		case 'h':
 			usage();
 			exit(0);
 		case 'i':
 			oldzone = optarg;
+			break;
+		case 'n':
+			ixfr_number = (uint32_t)atoi(optarg);
 			break;
 		case 'p':
 			print_zone = 1;
@@ -173,7 +179,7 @@ main(int argc, char *argv[])
 		verbosity = nsd.options->verbosity;
 
 	check_zone(&nsd, argv[0], argv[1], print_zone ? stdout : NULL,
-		oldzone);
+		oldzone, ixfr_number);
 	region_destroy(nsd.options->region);
 	/* yylex_destroy(); but, not available in all versions of flex */
 

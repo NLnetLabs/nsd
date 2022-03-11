@@ -254,4 +254,8 @@ int ixfr_read_file_header(struct zone* zone, const char* zfile,
 	int file_num, uint32_t* oldserial, uint32_t* newserial,
 	int enoent_is_err);
 
+/* unlink an ixfr file */
+int ixfr_unlink_it(const char* zname, const char* zfile, int file_num,
+	int silent_enoent);
+
 #endif /* _IXFR_H_ */

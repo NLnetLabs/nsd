@@ -48,6 +48,11 @@ The other existing ixfr files are renamed to become older IXFR contents
 for the zone, if any such files exist.  If the output file already exists
 with the correct contents, no new file is created. The contents of the
 header of the output file are checked for that, if it already exists.
+.TP
+.B \-n \fI<ixfr number>
+The number of IXFR versions to store, at most. Default 5. This is the number
+of files that is created with ixfr contents for the zone. Older stored IXFR
+versions are deleted when the number is exceeded.
 .SH "SEE ALSO"
 \fInsd\fR(8), \fInsd-checkconf\fR(8)
 .SH "AUTHORS"

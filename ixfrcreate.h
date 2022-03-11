@@ -39,7 +39,8 @@ void ixfr_create_free(struct ixfr_create* ixfrcr);
  * With append_mem it does not only write to file but sticks it into the
  * memory lookup structure for IXFRs used by the server. */
 int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
-	int append_mem, struct nsd* nsd, const char* zfile);
+	int append_mem, struct nsd* nsd, const char* zfile,
+	uint32_t ixfr_number);
 
 /* cancel ixfrcreation, that was started, but not performed yet.
  * It removes the temporary file. */

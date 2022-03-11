@@ -1646,13 +1646,13 @@ static int ixfr_file_exists_temp(const char* zfile, int file_num)
 }
 
 /* unlink an ixfr file */
-static int ixfr_unlink_it_ctmp(struct zone* zone, const char* zfile,
+static int ixfr_unlink_it_ctmp(const char* zname, const char* zfile,
 	int file_num, int silent_enoent, int temp)
 {
 	char ixfrfile[1024+24];
 	make_ixfr_name_temp(ixfrfile, sizeof(ixfrfile), zfile, file_num, temp);
 	VERBOSITY(3, (LOG_INFO, "delete zone %s IXFR data file %s",
-		zone->opts->name, ixfrfile));
+		zname, ixfrfile));
 	if(unlink(ixfrfile) < 0) {
 		if(silent_enoent && errno == ENOENT)
 			return 0;
@@ -1663,18 +1663,17 @@ static int ixfr_unlink_it_ctmp(struct zone* zone, const char* zfile,
 	return 1;
 }
 
-/* unlink an ixfr file */
-static int ixfr_unlink_it(struct zone* zone, const char* zfile, int file_num,
+int ixfr_unlink_it(const char* zname, const char* zfile, int file_num,
 	int silent_enoent)
 {
-	return ixfr_unlink_it_ctmp(zone, zfile, file_num, silent_enoent, 0);
+	return ixfr_unlink_it_ctmp(zname, zfile, file_num, silent_enoent, 0);
 }
 
 /* unlink an ixfr file */
-static int ixfr_unlink_it_temp(struct zone* zone, const char* zfile,
+static int ixfr_unlink_it_temp(const char* zname, const char* zfile,
 	int file_num, int silent_enoent)
 {
-	return ixfr_unlink_it_ctmp(zone, zfile, file_num, silent_enoent, 1);
+	return ixfr_unlink_it_ctmp(zname, zfile, file_num, silent_enoent, 1);
 }
 
 /* read ixfr file header */
@@ -1738,8 +1737,8 @@ static void ixfr_delete_rest_files(struct zone* zone, struct ixfr_data* from,
 	struct ixfr_data* data = from;
 	while(data) {
 		if(data->file_num != 0) {
-			(void)ixfr_unlink_it_ctmp(zone, zfile, data->file_num,
-				0, temp);
+			(void)ixfr_unlink_it_ctmp(zone->opts->name, zfile,
+				data->file_num, 0, temp);
 			data->file_num = 0;
 		}
 		data = ixfr_data_prev(zone->ixfr, data, &prevcount);
@@ -1753,7 +1752,7 @@ static void ixfr_delete_superfluous_files(struct zone* zone, const char* zfile,
 	int i = dest_num_files + 1;
 	if(!ixfr_file_exists(zfile, i))
 		return;
-	while(ixfr_unlink_it(zone, zfile, i, 1)) {
+	while(ixfr_unlink_it(zone->opts->name, zfile, i, 1)) {
 		i++;
 	}
 }
@@ -1822,7 +1821,7 @@ static int ixfr_rename_files(struct zone* zone, const char* zfile,
 	while(data && data->file_num != 0) {
 		/* if existing file at temporary name, delete that */
 		if(ixfr_file_exists_temp(zfile, data->file_num)) {
-			(void)ixfr_unlink_it_temp(zone, zfile,
+			(void)ixfr_unlink_it_temp(zone->opts->name, zfile,
 				data->file_num, 0);
 		}
 
@@ -1849,7 +1848,8 @@ static int ixfr_rename_files(struct zone* zone, const char* zfile,
 
 		/* if there is an existing file, delete it */
 		if(ixfr_file_exists(zfile, destnum)) {
-			(void)ixfr_unlink_it(zone, zfile, destnum, 0);
+			(void)ixfr_unlink_it(zone->opts->name, zfile,
+				destnum, 0);
 		}
 
 		if(!ixfr_rename_it(zone->opts->name, zfile, data->file_num, 1, destnum, 0)) {
