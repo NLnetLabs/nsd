@@ -29,7 +29,8 @@ struct ixfr_create {
 };
 
 /* start ixfr creation */
-struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile);
+struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile,
+	uint64_t ixfr_size);
 
 /* free ixfr create */
 void ixfr_create_free(struct ixfr_create* ixfrcr);

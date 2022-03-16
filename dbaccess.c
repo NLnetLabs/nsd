@@ -552,7 +552,8 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 	}
 	if(ixfr_create_from_difference(zone, fname,
 		&ixfr_create_already_done)) {
-		ixfrcr = ixfr_create_start(zone, fname);
+		ixfrcr = ixfr_create_start(zone, fname,
+			zone->opts->pattern->ixfr_size);
 		if(!ixfrcr) {
 			/* leaves the ixfrcr at NULL, so it is not created */
 			log_msg(LOG_ERR, "out of memory starting ixfr create");

@@ -884,9 +884,9 @@ pattern_options_create(region_type* region)
 	p->multi_master_check = 0;
 	p->store_ixfr = 0;
 	p->store_ixfr_is_default = 1;
-	p->ixfr_size = 1024*1024; /* 1 Mb */
+	p->ixfr_size = IXFR_SIZE_DEFAULT;
 	p->ixfr_size_is_default = 1;
-	p->ixfr_number = 5;
+	p->ixfr_number = IXFR_NUMBER_DEFAULT;
 	p->ixfr_number_is_default = 1;
 	p->create_ixfr = 0;
 	p->create_ixfr_is_default = 1;

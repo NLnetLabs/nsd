@@ -36,14 +36,15 @@ usage (void)
 	fprintf(stderr, "Usage: nsd-checkzone [-p] <zone name> <zone file>\n");
 	fprintf(stderr, "\t-p\tprint the zone if the zone is ok\n");
 	fprintf(stderr, "\t-i <old zone file>\tcreate an IXFR from the differences between the\n\t\told zone file and the new zone file. Writes to \n\t\t<zonefile>.ixfr and renames other <zonefile>.ixfr files to\n\t\t<zonefile>.ixfr.num+1.\n");
-	fprintf(stderr, "\t-n <ixfr number>\tnumber of IXFR versions to store, at most.\n\t\tdefault 5.\n");
+	fprintf(stderr, "\t-n <ixfr number>\tnumber of IXFR versions to store, at most.\n\t\tdefault %d.\n", (int)IXFR_NUMBER_DEFAULT);
+	fprintf(stderr, "\t-s <ixfr size>\tsize of IXFR to store, at most. default %d.\n", (int)IXFR_SIZE_DEFAULT);
 	fprintf(stderr, "Version %s. Report bugs to <%s>.\n",
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 }
 
 static void
 check_zone(struct nsd* nsd, const char* name, const char* fname, FILE *out,
-	const char* oldzone, uint32_t ixfr_number)
+	const char* oldzone, uint32_t ixfr_number, uint64_t ixfr_size)
 {
 	const dname_type* dname;
 	zone_options_type* zo;
@@ -70,7 +71,7 @@ check_zone(struct nsd* nsd, const char* name, const char* fname, FILE *out,
 			printf("zone %s file %s has %u errors\n", name, oldzone, errors);
 			exit(1);
 		}
-		ixfrcr = ixfr_create_start(zone, fname);
+		ixfrcr = ixfr_create_start(zone, fname, ixfr_size);
 		if(!ixfrcr) {
 			error("out of memory");
 		}
@@ -134,7 +135,8 @@ main(int argc, char *argv[])
 	/* Scratch variables... */
 	int c;
 	int print_zone = 0;
-	uint32_t ixfr_number = 5;
+	uint32_t ixfr_number = IXFR_NUMBER_DEFAULT;
+	uint64_t ixfr_size = IXFR_SIZE_DEFAULT;
 	char* oldzone = NULL;
 	struct nsd nsd;
 	memset(&nsd, 0, sizeof(nsd));
@@ -142,7 +144,7 @@ main(int argc, char *argv[])
 	log_init("nsd-checkzone");
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "hi:n:p")) != -1) {
+	while ((c = getopt(argc, argv, "hi:n:ps:")) != -1) {
 		switch (c) {
 		case 'h':
 			usage();
@@ -155,6 +157,9 @@ main(int argc, char *argv[])
 			break;
 		case 'p':
 			print_zone = 1;
+			break;
+		case 's':
+			ixfr_size = (uint64_t)atoi(optarg);
 			break;
 		case '?':
 		default:
@@ -179,7 +184,7 @@ main(int argc, char *argv[])
 		verbosity = nsd.options->verbosity;
 
 	check_zone(&nsd, argv[0], argv[1], print_zone ? stdout : NULL,
-		oldzone, ixfr_number);
+		oldzone, ixfr_number, ixfr_size);
 	region_destroy(nsd.options->region);
 	/* yylex_destroy(); but, not available in all versions of flex */
 

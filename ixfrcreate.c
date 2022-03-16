@@ -201,7 +201,8 @@ static int create_ixfr_spool_name(struct ixfr_create* ixfrcr,
 }
 
 /* start ixfr creation */
-struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile)
+struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile,
+	uint64_t ixfr_size)
 {
 	struct ixfr_create* ixfrcr = (struct ixfr_create*)calloc(1,
 		sizeof(*ixfrcr));
@@ -230,7 +231,8 @@ struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile)
 		return NULL;
 	}
 	if(zone->opts && zone->opts->pattern)
-		ixfrcr->max_size = zone->opts->pattern->ixfr_size;
+		ixfrcr->max_size = (size_t)zone->opts->pattern->ixfr_size;
+	else	ixfrcr->max_size = (size_t)ixfr_size;
 	return ixfrcr;
 }
 
