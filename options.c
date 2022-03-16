@@ -17,6 +17,7 @@
 #include "options.h"
 #include "query.h"
 #include "tsig.h"
+#include "ixfr.h"
 #include "difffile.h"
 #include "rrl.h"
 #include "bitset.h"

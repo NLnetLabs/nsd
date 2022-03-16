@@ -21,6 +21,7 @@
 #include "options.h"
 #include "util.h"
 #include "zonec.h"
+#include "ixfr.h"
 #include "ixfrcreate.h"
 #include "difffile.h"
 

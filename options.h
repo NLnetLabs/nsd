@@ -217,10 +217,6 @@ struct cpu_map_option {
 #define REFRESHPLUSRETRYPLUS1_STR "refresh+retry+1"
 #define expire_time_is_default(x) (!(  (x) == REFRESHPLUSRETRYPLUS1 \
                                     || (x) == EXPIRE_TIME_HAS_VALUE ))
-/* default for number of ixfr versions in files */
-#define IXFR_NUMBER_DEFAULT 5 /* number of versions */
-/* default for IXFR storage */
-#define IXFR_SIZE_DEFAULT 1048576 /* in bytes, 1M */
 
 
 /*

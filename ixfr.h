@@ -17,6 +17,11 @@ struct zone;
 struct buffer;
 struct region;
 
+/* default for number of ixfr versions in files */
+#define IXFR_NUMBER_DEFAULT 5 /* number of versions */
+/* default for IXFR storage */
+#define IXFR_SIZE_DEFAULT 1048576 /* in bytes, 1M */
+
 /* data structure that stores IXFR contents for a zone. */
 struct zone_ixfr {
 	/* Items are of type ixfr_data. The key is old_serial.
