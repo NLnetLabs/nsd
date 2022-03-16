@@ -53,6 +53,11 @@ header of the output file are checked for that, if it already exists.
 The number of IXFR versions to store, at most. Default 5. This is the number
 of files that is created with ixfr contents for the zone. Older stored IXFR
 versions are deleted when the number is exceeded.
+.TP
+.B \-s \fI<ixfr size>
+The number of bytes of storage to use for IXFRs. Default is 1048576. If an
+IXFR is bigger it is not created, and if the sum of IXFR storage exceeds it,
+older IXFRs versions are deleted.
 .SH "SEE ALSO"
 \fInsd\fR(8), \fInsd-checkconf\fR(8)
 .SH "AUTHORS"
