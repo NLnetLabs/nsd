@@ -1046,6 +1046,9 @@ int ixfr_create_from_difference(struct zone* zone, const char* zfile,
 	/* only if the zone is ixfr enabled */
 	if(!zone_is_ixfr_enabled(zone))
 		return 0;
+	/* only if ixfr create is enabled */
+	if(!zone->opts->pattern->create_ixfr)
+		return 0;
 	/* only if there is a zone in memory to compare with */
 	if(!zone || !zone->soa_rrset || !zone->apex)
 		return 0;
