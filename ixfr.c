@@ -735,6 +735,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		struct ixfr_data* ixfr_data;
 		size_t oldpos;
 
+		STATUP(nsd, rixfr);
 		/* parse the serial number from the IXFR request */
 		oldpos = QHEADERSZ;
 		if(!parse_qserial(query->packet, &qserial, &oldpos)) {
@@ -757,6 +758,7 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 			RCODE_SET(query->packet, RCODE_NOTAUTH);
 			return QUERY_PROCESSED;
 		}
+		ZTATUP(nsd, zone, rixfr);
 
 		/* if the query is for same or newer serial than our current
 		 * serial, then serve a single SOA with our current serial */
