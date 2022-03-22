@@ -981,6 +981,8 @@ void ixfr_store_finish_data(struct ixfr_store* ixfr_store)
 {
 	if(ixfr_store->data_trimmed)
 		return;
+	if(!ixfr_store->data)
+		return; /* data should be nonNULL, we are not cancelled */
 	ixfr_store->data_trimmed = 1;
 
 	/* put new serial SOA record after delrrs and addrrs */
