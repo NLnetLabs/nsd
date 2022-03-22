@@ -954,8 +954,12 @@ static void ixfr_rrs_make_space(uint8_t** rrs, size_t* len, size_t* capacity,
 static void ixfr_put_newsoa(struct ixfr_store* ixfr_store, uint8_t** rrs,
 	size_t* len, size_t* capacity)
 {
-	uint8_t* soa = ixfr_store->data->newsoa;
-	size_t soa_len = ixfr_store->data->newsoa_len;
+	uint8_t* soa;
+	size_t soa_len;
+	if(!ixfr_store->data)
+		return; /* data should be nonNULL, we are not cancelled */
+	soa = ixfr_store->data->newsoa;
+	soa_len= ixfr_store->data->newsoa_len;
 	ixfr_rrs_make_space(rrs, len, capacity, soa_len);
 	if(!*rrs || *len + soa_len > *capacity) {
 		log_msg(LOG_ERR, "ixfr_store addrr: cannot allocate space");
@@ -981,8 +985,6 @@ void ixfr_store_finish_data(struct ixfr_store* ixfr_store)
 {
 	if(ixfr_store->data_trimmed)
 		return;
-	if(!ixfr_store->data)
-		return; /* data should be nonNULL, we are not cancelled */
 	ixfr_store->data_trimmed = 1;
 
 	/* put new serial SOA record after delrrs and addrrs */
@@ -993,6 +995,8 @@ void ixfr_store_finish_data(struct ixfr_store* ixfr_store)
 
 	/* trim the data in the store, the overhead from capacity is
 	 * removed */
+	if(!ixfr_store->data)
+		return; /* data should be nonNULL, we are not cancelled */
 	ixfr_trim_capacity(&ixfr_store->data->del,
 		&ixfr_store->data->del_len, &ixfr_store->del_capacity);
 	ixfr_trim_capacity(&ixfr_store->data->add,
