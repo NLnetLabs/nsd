@@ -119,26 +119,46 @@ typedef	unsigned long stc_type;
 #define	ZTATUP2(nsd, zone, stc, i) /* Nothing */
 #endif /* USE_ZONE_STATS */
 
-#define NSD_SOCKET_IS_OPTIONAL (1<<0)
+#define NSD_OPTIONAL_SOCKET (1<<0)
 #define NSD_BIND_DEVICE (1<<1)
-
-struct nsd_addrinfo
-{
-	int ai_flags;
-	int ai_family;
-	int ai_socktype;
-	socklen_t ai_addrlen;
-	struct sockaddr_storage ai_addr;
-};
 
 struct nsd_socket
 {
-	struct nsd_addrinfo addr;
-	int s;
-	int flags;
-	struct nsd_bitset *servers;
+	int socket;
+	int family; /* address family, i.e. AF_INET, AF_INET6 or AF_XDP */
+	int type; /* socket type, i.e. SOCK_DGRAM, SOCK_STREAM or SOCK_RAW */
+	int flags; /* flags to instruct server, not interface flags */
 	char device[IFNAMSIZ];
 	int fib;
+	struct nsd_bitset *servers;
+	union {
+		struct sockaddr_storage inet;
+#if 0
+		struct {
+			unsigned int index;
+			unsigned int queue;
+			// xdp sockets bind to a netdev/queue combination as opposed to an ip
+			// address. if a network interface is specified, there is no need to
+			// distinguish between ip addresses. if an ip address is specified,
+			// filters apply.
+			//
+			// address to filter on are communicated to the ebpf program via a
+			// separate map (or not) based on the configuration
+			struct {
+				size_t count;
+				struct sockaddr_storage *addresses;
+			} filter;
+		} xdp;
+#endif
+	} address;
+};
+
+struct nsd_socket_set
+{
+	/* number of interfaces */
+	size_t count;
+	/* array increased for udp and tcp if so_reuseport is in use */
+	struct nsd_socket *sockets;
 };
 
 struct nsd_child
@@ -256,16 +276,14 @@ struct	nsd
 	cpuset_t*		xfrd_cpuset;
 #endif
 
-	/* number of interfaces */
-	size_t	ifs;
 	/* non0 if so_reuseport is in use, if so, tcp, udp array increased */
 	int reuseport;
 
-	/* TCP specific configuration (array size ifs) */
-	struct nsd_socket* tcp;
+	/* TCP specific configuration */
+	struct nsd_socket_set tcp;
 
-	/* UDP specific configuration (array size ifs) */
-	struct nsd_socket* udp;
+	/* UDP specific configuration */
+	struct nsd_socket_set udp;
 
 	edns_data_type edns_ipv4;
 #if defined(INET6)
@@ -361,7 +379,7 @@ int server_prepare(struct nsd *nsd);
 void server_main(struct nsd *nsd);
 void server_child(struct nsd *nsd);
 void server_shutdown(struct nsd *nsd) ATTR_NORETURN;
-void server_close_all_sockets(struct nsd_socket sockets[], size_t n);
+void server_close_all_sockets(struct nsd_socket_set *set);
 const char* nsd_event_vs(void);
 const char* nsd_event_method(void);
 struct event_base* nsd_child_event_base(void);

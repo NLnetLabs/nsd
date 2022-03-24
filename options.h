@@ -195,6 +195,8 @@ struct ip_address_option {
 	struct range_option* servers;
 	int dev;
 	int fib;
+	int udp;
+	int tcp;
 };
 
 struct cpu_option {

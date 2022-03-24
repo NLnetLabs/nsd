@@ -40,6 +40,14 @@ server:
 	# ip-address: 1.2.3.4@5678
 	# ip-address: 12fe::8ef0
 	#
+	# IP addresses can be configured for a particular protocol if desired
+	# (default is to accept UDP and TCP). Specify what protocol types to
+	# to accept by specifying the protocol with the IP address.
+	#
+	# ip-address: 1.2.3.4       tcp
+	# ip-address: 1.2.3.4@5678  udp
+	# ip-address: 12fe::8ef0    tcp udp
+	#
 	# IP addresses can be configured per-server to avoid waking up more
 	# than one server when a packet comes in (thundering herd problem) or
 	# to partition sockets across servers to improve select/poll

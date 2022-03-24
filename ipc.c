@@ -86,8 +86,8 @@ child_handle_parent_command(int fd, short event, void* arg)
 		break;
 	case NSD_QUIT_CHILD:
 		/* close our listening sockets and ack */
-		server_close_all_sockets(data->nsd->udp, data->nsd->ifs);
-		server_close_all_sockets(data->nsd->tcp, data->nsd->ifs);
+		server_close_all_sockets(&data->nsd->udp);
+		server_close_all_sockets(&data->nsd->tcp);
 		/* mode == NSD_QUIT_CHILD */
 		if(write(fd, &mode, sizeof(mode)) == -1) {
 			VERBOSITY(3, (LOG_INFO, "quit child write: %s",
