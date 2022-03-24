@@ -689,7 +689,7 @@ static int ixfr_create_too_large(struct ixfr_create* ixfrcr,
 		return 1;
 	if(ixfrcr->max_size != 0 &&
 		ixfr_data_size(store->data) > ixfrcr->max_size) {
-		VERBOSITY(2, (LOG_INFO, "the ixfr for %s has exceeds size %u, it is not created",
+		VERBOSITY(2, (LOG_INFO, "the ixfr for %s exceeds size %u, it is not created",
 			wiredname2str(ixfrcr->zone_name),
 			(unsigned)ixfrcr->max_size));
 		ixfr_store_cancel(store);
@@ -942,6 +942,8 @@ static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 	/* create the log message */
 	time_t now = time(NULL);
 	if(store->cancelled)
+		return;
+	if(ixfr_create_too_large(ixfrcr, store))
 		return;
 	snprintf(nowstr, sizeof(nowstr), "%s", ctime(&now));
 	if(strchr(nowstr, '\n'))
