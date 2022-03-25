@@ -8,6 +8,7 @@ BUG FIXES:
 	- Fix code analyzer large value with assertion.
 	- Fix another code analyzer zero divide warning.
 	- Fix code analyzer warning about uninitialized temp storage in loop.
+	- Fix spelling error in comment in svcbparam_lookup_key.
 
 4.4.0
 ================
