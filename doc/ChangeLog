@@ -1,3 +1,6 @@
+25 March 2022: Wouter
+	- Fix spelling error in comment in svcbparam_lookup_key.
+
 2 March 2022: Wouter
 	- Fix code analyzer zero divide warning.
 	- Fix code analyzer large value with assertion.

@@ -776,7 +776,7 @@ svcbparam_lookup_key(const char *key, size_t key_len)
 		if (!strncmp(key, "mandatory", sizeof("mandatory")-1))
 			return SVCB_KEY_MANDATORY;
 		if (!strncmp(key, "echconfig", sizeof("echconfig")-1))
-			return SVCB_KEY_ECH; /* allow "echconfig as well as "ech" */
+			return SVCB_KEY_ECH; /* allow "echconfig" as well as "ech" */
 		break;
 
 	case sizeof("alpn")-1:
