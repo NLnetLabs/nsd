@@ -870,7 +870,7 @@ static int ixfr_read_header_data_size(const char* zname,
 	uint32_t file_oldserial = 0, file_newserial = 0;
 	if(!ixfr_read_file_header(zname, zfile, file_num, &file_oldserial,
 		&file_newserial, data_size, 0)) {
-		/* could not read, so it was not done */
+		/* could not read */
 		return 0;
 	}
 	return 1;
