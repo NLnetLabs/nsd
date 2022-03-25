@@ -26,7 +26,8 @@ struct ixfr_create {
 	size_t zone_name_len;
 	/* max size of ixfr in bytes */
 	size_t max_size;
-	/* we are in checkzone, errors should go console, not serverlog */
+	/* we are in checkzone, errors should go to the console, not to the
+	 * serverlog */
 	int errorcmdline;
 };
 
