@@ -72,7 +72,7 @@ check_zone(struct nsd* nsd, const char* name, const char* fname, FILE *out,
 			printf("zone %s file %s has %u errors\n", name, oldzone, errors);
 			exit(1);
 		}
-		ixfrcr = ixfr_create_start(zone, fname, ixfr_size);
+		ixfrcr = ixfr_create_start(zone, fname, ixfr_size, 1);
 		if(!ixfrcr) {
 			error("out of memory");
 		}

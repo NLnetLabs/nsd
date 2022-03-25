@@ -255,12 +255,16 @@ int ixfr_rename_it(const char* zname, const char* zfile, int oldnum,
 	int oldtemp, int newnum, int newtemp);
 
 /* read the file header of an ixfr file and return serial numbers. */
-int ixfr_read_file_header(struct zone* zone, const char* zfile,
+int ixfr_read_file_header(const char* zname, const char* zfile,
 	int file_num, uint32_t* oldserial, uint32_t* newserial,
-	int enoent_is_err);
+	size_t* data_size, int enoent_is_err);
 
 /* unlink an ixfr file */
 int ixfr_unlink_it(const char* zname, const char* zfile, int file_num,
 	int silent_enoent);
+
+/* delete the ixfr files that are too many */
+void ixfr_delete_superfluous_files(struct zone* zone, const char* zfile,
+	int dest_num_files);
 
 #endif /* _IXFR_H_ */

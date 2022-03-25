@@ -26,11 +26,13 @@ struct ixfr_create {
 	size_t zone_name_len;
 	/* max size of ixfr in bytes */
 	size_t max_size;
+	/* we are in checkzone, errors should go console, not serverlog */
+	int errorcmdline;
 };
 
 /* start ixfr creation */
 struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile,
-	uint64_t ixfr_size);
+	uint64_t ixfr_size, int errorcmdline);
 
 /* free ixfr create */
 void ixfr_create_free(struct ixfr_create* ixfrcr);

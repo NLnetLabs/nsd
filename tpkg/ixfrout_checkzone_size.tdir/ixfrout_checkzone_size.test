@@ -98,7 +98,7 @@ EOF
 	echo "IXFR sizes add to sizes=$sizes"
 	if test "$sizes" -gt 10240; then
 		echo "IXFR stored size too large"
-		#DEBUG exit 1
+		exit 1
 	fi
 
 	mv current.zone old.zone
@@ -108,6 +108,7 @@ done
 
 # check very small size
 cp ixfrout_checkzone_size.zone old.zone
+i=20
 cat >smallstore.zone <<EOF
 example.com.	345600	IN	SOA	ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
 a.example.com. 3600 IN A 10.0.0.1
@@ -119,6 +120,27 @@ f.example.com. 3600 IN A 10.46.0.$i
 t.example.com. 3600 IN TXT i=$i
 EOF
 if test 1 -eq 1; then
+	# create an old file.
+	echo "$PRE/nsd-checkzone -n 100 -s 20000 -i"
+	$PRE/nsd-checkzone -n 100 -s 20000 -i old.zone example.com smallstore.zone
+	if test $? -ne 0; then
+		echo "exit code wrong"
+		exit 1
+	fi
+	mv smallstore.zone old.zone
+	i=21
+	cat >smallstore.zone <<EOF
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
+a.example.com. 3600 IN A 10.0.0.1
+b.example.com. 3600 IN A 10.0.0.$i
+c.example.com. 3600 IN A 10.0.0.3
+d.example.com. 3600 IN A 10.44.0.$i
+e.example.com. 3600 IN A 10.45.0.$i
+f.example.com. 3600 IN A 10.46.0.$i
+t.example.com. 3600 IN TXT i=$i
+EOF
+
+	# create an ixfr that does not fit
 	echo "$PRE/nsd-checkzone -n 100 -s 20 -i"
 	$PRE/nsd-checkzone -n 100 -s 20 -i old.zone example.com smallstore.zone
 	if test $? -ne 1; then
@@ -135,6 +157,12 @@ if test 1 -eq 1; then
 		exit 1
 	else
 		echo "> smallstore.zone.ixfr: the ixfr file is not created"
+	fi
+
+	# also the old file must be gone
+	if test -f smallstore.zone.ixfr.2; then
+		echo "smallstore.zone.ixfr.2 exists, it should be gone"
+		exit 1
 	fi
 	echo
 fi

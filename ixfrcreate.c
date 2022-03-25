@@ -202,7 +202,7 @@ static int create_ixfr_spool_name(struct ixfr_create* ixfrcr,
 
 /* start ixfr creation */
 struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile,
-	uint64_t ixfr_size)
+	uint64_t ixfr_size, int errorcmdline)
 {
 	struct ixfr_create* ixfrcr = (struct ixfr_create*)calloc(1,
 		sizeof(*ixfrcr));
@@ -233,6 +233,7 @@ struct ixfr_create* ixfr_create_start(struct zone* zone, const char* zfile,
 	if(zone->opts && zone->opts->pattern)
 		ixfrcr->max_size = (size_t)zone->opts->pattern->ixfr_size;
 	else	ixfrcr->max_size = (size_t)ixfr_size;
+	ixfrcr->errorcmdline = errorcmdline;
 	return ixfrcr;
 }
 
@@ -689,9 +690,15 @@ static int ixfr_create_too_large(struct ixfr_create* ixfrcr,
 		return 1;
 	if(ixfrcr->max_size != 0 &&
 		ixfr_data_size(store->data) > ixfrcr->max_size) {
-		VERBOSITY(2, (LOG_INFO, "the ixfr for %s exceeds size %u, it is not created",
-			wiredname2str(ixfrcr->zone_name),
-			(unsigned)ixfrcr->max_size));
+		if(ixfrcr->errorcmdline) {
+			log_msg(LOG_ERR, "the ixfr for %s exceeds size %u, it is not created",
+				wiredname2str(ixfrcr->zone_name),
+				(unsigned)ixfrcr->max_size);
+		} else {
+			VERBOSITY(2, (LOG_INFO, "the ixfr for %s exceeds size %u, it is not created",
+				wiredname2str(ixfrcr->zone_name),
+				(unsigned)ixfrcr->max_size));
+		}
 		ixfr_store_cancel(store);
 		return 1;
 	}
@@ -841,8 +848,9 @@ static int ixfr_create_already_done_serial(struct zone* zone,
 	uint32_t new_serial)
 {
 	uint32_t file_oldserial = 0, file_newserial = 0;
-	if(!ixfr_read_file_header(zone, zfile, 1, &file_oldserial,
-		&file_newserial, 0)) {
+	size_t data_size = 0;
+	if(!ixfr_read_file_header(zone->opts->name, zfile, 1, &file_oldserial,
+		&file_newserial, &data_size, 0)) {
 		/* could not read, so it was not done */
 		return 0;
 	}
@@ -853,6 +861,19 @@ static int ixfr_create_already_done_serial(struct zone* zone,
 		return 1;
 	}
 	return 0;
+}
+
+/* See the data size of the ixfr by reading the file header of the ixfr file */
+static int ixfr_read_header_data_size(const char* zname,
+	const char* zfile, int file_num, size_t* data_size)
+{
+	uint32_t file_oldserial = 0, file_newserial = 0;
+	if(!ixfr_read_file_header(zname, zfile, file_num, &file_oldserial,
+		&file_newserial, data_size, 0)) {
+		/* could not read, so it was not done */
+		return 0;
+	}
+	return 1;
 }
 
 /* see if the ixfr has already been created by reading the file header
@@ -913,16 +934,29 @@ static int ixfr_perform_init(struct ixfr_create* ixfrcr, struct zone* zone,
 
 /* rename the other ixfr files */
 static int ixfr_create_rename_and_delete_files(const char* zname,
-	const char* zfile, uint32_t ixfr_number)
+	const char* zoptsname, const char* zfile, uint32_t ixfr_number,
+	size_t ixfr_size, size_t cur_data_size)
 {
+	size_t size_in_use = cur_data_size;
+	int dest_nr_files = (int)ixfr_number, maxsizehit = 0;
 	int num = 1;
 	while(ixfr_file_exists(zfile, num)) {
+		size_t fsize = 0;
+		if(!maxsizehit) {
+			if(!ixfr_read_header_data_size(zoptsname, zfile, num,
+				&fsize) || size_in_use + fsize > ixfr_size) {
+				/* no more than this because of storage size */
+				dest_nr_files = num;
+				maxsizehit = 1;
+			}
+			size_in_use += fsize;
+		}
 		num++;
 	}
 	num--;
 	/* num is now the number of ixfr files that exist */
 	while(num > 0) {
-		if(num+1 > (int)ixfr_number) {
+		if(num+1 > dest_nr_files) {
 			(void)ixfr_unlink_it(zname, zfile, num, 0);
 		} else {
 			if(!ixfr_rename_it(zname, zfile, num, 0, num+1, 0))
@@ -941,10 +975,12 @@ static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 	char log_buf[1024], nowstr[128];
 	/* create the log message */
 	time_t now = time(NULL);
-	if(store->cancelled)
+	if(store->cancelled || ixfr_create_too_large(ixfrcr, store)) {
+		/* remove unneeded files.
+		 * since this ixfr cannot be created the others are useless. */
+		ixfr_delete_superfluous_files(zone, zfile, 0);
 		return;
-	if(ixfr_create_too_large(ixfrcr, store))
-		return;
+	}
 	snprintf(nowstr, sizeof(nowstr), "%s", ctime(&now));
 	if(strchr(nowstr, '\n'))
 		*strchr(nowstr, '\n') = 0;
@@ -960,7 +996,8 @@ static void ixfr_create_finishup(struct ixfr_create* ixfrcr,
 		return;
 	}
 	if(!ixfr_create_rename_and_delete_files(
-		wiredname2str(ixfrcr->zone_name), zfile, ixfr_number)) {
+		wiredname2str(ixfrcr->zone_name), zone->opts->name, zfile,
+		ixfr_number, ixfrcr->max_size, ixfr_data_size(store->data))) {
 		log_msg(LOG_ERR, "could not rename other ixfr files");
 		ixfr_store_free(store);
 		return;
@@ -1016,6 +1053,7 @@ int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
 		fclose(spool);
 		ixfr_store_free(store);
 		(void)unlink(ixfrcr->file_name);
+		ixfr_delete_superfluous_files(zone, zfile, 0);
 		return 0;
 	}
 	if(store->data && !store->data->oldsoa) {
