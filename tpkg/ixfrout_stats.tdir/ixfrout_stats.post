@@ -1,0 +1,16 @@
+# #-- ixfrout_stats.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+
+# do your teardown here
+if [ -z nsd.pid ]; then
+        exit 0
+fi
+
+# kill NSD
+NSD_PID=`cat nsd.pid`
+kill_pid $NSD_PID

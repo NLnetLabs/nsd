@@ -318,6 +318,7 @@ stats_subtract(struct nsdst* total, struct nsdst* s)
 	total->ednserr -= s->ednserr;
 	total->raxfr -= s->raxfr;
 	total->nona -= s->nona;
+	total->rixfr -= s->rixfr;
 }
 
 #define FINAL_STATS_TIMEOUT 10 /* seconds */

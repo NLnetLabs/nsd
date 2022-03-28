@@ -3987,7 +3987,7 @@ handle_tcp_writing(int fd, short event, void* arg)
 		/* Continue processing AXFR and writing back results.  */
 		buffer_clear(q->packet);
 		if(data->query_state == QUERY_IN_AXFR)
-			data->query_state = query_axfr(data->nsd, q);
+			data->query_state = query_axfr(data->nsd, q, 0);
 		else data->query_state = query_ixfr(data->nsd, q);
 		if (data->query_state != QUERY_PROCESSED) {
 			query_add_optional(data->query, data->nsd, &now);
@@ -4454,7 +4454,7 @@ handle_tls_writing(int fd, short event, void* arg)
 		/* Continue processing AXFR and writing back results.  */
 		buffer_clear(q->packet);
 		if(data->query_state == QUERY_IN_AXFR)
-			data->query_state = query_axfr(data->nsd, q);
+			data->query_state = query_axfr(data->nsd, q, 0);
 		else data->query_state = query_ixfr(data->nsd, q);
 		if (data->query_state != QUERY_PROCESSED) {
 			query_add_optional(data->query, data->nsd, &now);

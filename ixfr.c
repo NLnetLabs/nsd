@@ -784,18 +784,18 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 
 		if(!zone->ixfr) {
 			/* we have no ixfr information for the zone, make an AXFR */
-			return query_axfr(nsd, query);
+			return query_axfr(nsd, query, 0);
 		}
 		ixfr_data = zone_ixfr_find_serial(zone->ixfr, qserial);
 		if(!ixfr_data) {
 			/* the specific version is not available, make an AXFR */
-			return query_axfr(nsd, query);
+			return query_axfr(nsd, query, 0);
 		}
 		/* see if the IXFRs connect to the next IXFR, and if it ends
 		 * at the current served zone, if not, AXFR */
 		if(!connect_ixfrs(zone->ixfr, ixfr_data, &end_serial) ||
 			end_serial != current_serial) {
-			return query_axfr(nsd, query);
+			return query_axfr(nsd, query, 0);
 		}
 
 		query->zone = zone;

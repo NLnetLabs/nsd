@@ -1,0 +1,115 @@
+# #-- ixfrout_stats.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+DIG=dig
+
+if grep "^#define USE_ZONE_STATS" $PRE/config.h; then
+	echo "USE_ZONE_STATS defined"
+	use_zone_stats=1
+else
+	echo "USE_ZONE_STATS not defined"
+	use_zone_stats=0
+fi
+
+# zero stats
+#
+echo ""
+echo "Zero Stats output"
+$PRE/nsd-control -c edit.conf stats >statoutput
+if test $? -ne 0; then
+	echo "nsd-control failed"
+	exit 1
+fi
+cat statoutput
+if grep "^num.rixfr=0" statoutput; then
+	echo "statistics correct"
+else
+	echo "statistics failed"
+	exit 1
+fi
+if test $use_zone_stats = "1"; then
+	if grep "example.com.num.rixfr=0" statoutput; then
+		echo "statistics correct"
+	else
+		echo "statistics failed"
+		exit 1
+	fi
+fi
+
+# fetch an IXFR
+$DIG @127.0.0.1 -p $TPKG_PORT example.com. IXFR=5
+
+# updated stats
+echo ""
+echo "Updated Stats output"
+$PRE/nsd-control -c edit.conf stats >statoutput
+if test $? -ne 0; then
+	echo "nsd-control failed"
+	exit 1
+fi
+cat statoutput
+if grep "^num.rixfr=1" statoutput; then
+	echo "statistics correct"
+else
+	echo "statistics failed"
+	exit 1
+fi
+if test $use_zone_stats = "1"; then
+	if grep "example.com.num.rixfr=1" statoutput; then
+		echo "statistics correct"
+	else
+		echo "statistics failed"
+		exit 1
+	fi
+fi
+
+# fetch an AXFR inside an IXFR
+$DIG @127.0.0.1 -p $TPKG_PORT example.com. IXFR=1
+# updated stats
+echo ""
+echo "Updated Stats output"
+$PRE/nsd-control -c edit.conf stats >statoutput
+if test $? -ne 0; then
+	echo "nsd-control failed"
+	exit 1
+fi
+cat statoutput
+if grep "^num.raxfr=0" statoutput; then
+	echo "statistics correct"
+else
+	echo "statistics failed"
+	exit 1
+fi
+if test $use_zone_stats = "1"; then
+	if grep "example.com.num.raxfr=0" statoutput; then
+		echo "statistics correct"
+	else
+		echo "statistics failed"
+		exit 1
+	fi
+fi
+
+if grep "^num.rixfr=1" statoutput; then
+	echo "statistics correct"
+else
+	echo "statistics failed"
+	exit 1
+fi
+if test $use_zone_stats = "1"; then
+	if grep "example.com.num.rixfr=1" statoutput; then
+		echo "statistics correct"
+	else
+		echo "statistics failed"
+		exit 1
+	fi
+fi
+
+cat nsd.log
+
+echo "OK"
+exit 0

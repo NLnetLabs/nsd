@@ -19,7 +19,7 @@
 #define AXFR_TSIG_SIGN_EVERY_NTH	0	/* tsig sign every N packets. */
 
 query_state_type
-query_axfr(struct nsd *nsd, struct query *query)
+query_axfr(struct nsd *nsd, struct query *query, int wstats)
 {
 	domain_type *closest_match;
 	domain_type *closest_encloser;
@@ -46,7 +46,9 @@ query_axfr(struct nsd *nsd, struct query *query)
 	if (query->axfr_zone == NULL) {
 		domain_type* qdomain;
 		/* Start AXFR.  */
-		STATUP(nsd, raxfr);
+		if(wstats) {
+			STATUP(nsd, raxfr);
+		}
 		exact = namedb_lookup(nsd->db,
 				      query->qname,
 				      &closest_match,
@@ -64,7 +66,9 @@ query_axfr(struct nsd *nsd, struct query *query)
 			RCODE_SET(query->packet, RCODE_NOTAUTH);
 			return QUERY_PROCESSED;
 		}
-		ZTATUP(nsd, query->axfr_zone, raxfr);
+		if(wstats) {
+			ZTATUP(nsd, query->axfr_zone, raxfr);
+		}
 
 		query->axfr_current_domain = qdomain;
 		query->axfr_current_rrset = NULL;
@@ -218,7 +222,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 		if (q->tcp) {
 			if(!axfr_ixfr_can_admit_query(nsd, q))
 				return QUERY_PROCESSED;
-			return query_axfr(nsd, q);
+			return query_axfr(nsd, q, 1);
 		}
 		/* AXFR over UDP queries are discarded. */
 		RCODE_SET(q->packet, RCODE_IMPL);
