@@ -116,6 +116,31 @@ else
 	exit 1
 fi
 
+# read a zonefile, but create-ixfr is not enabled.
+echo ""
+echo "# test for example4.com"
+mv ixfrout_create.4.zone old.4.zone
+cp ixfrout_create.4.zone.new ixfrout_create.4.zone
+$PRE/nsd-control -c edit.conf reload example4.com
+sleep 3
+
+$DIG @127.0.0.1 -p $TPKG_PORT example4.com IXFR=1 > cur
+cat cur
+cat >good.4.diff <<EOF
+example4.com.		345600	IN	SOA	ns0.example4.org. root.example4.com. 3 3600 28800 2419200 3600
+a.example4.com.		3600	IN	A	10.0.0.1
+c.example4.com.		3600	IN	A	10.0.0.3
+example4.com.		345600	IN	SOA	ns0.example4.org. root.example4.com. 3 3600 28800 2419200 3600
+EOF
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if diff -Naur good.4.diff cur.cmp; then
+	echo "diff is OK"
+else
+	echo "differences in output, failed"
+	cat nsd.log
+	exit 1
+fi
+
 echo ""
 
 cat nsd.log
