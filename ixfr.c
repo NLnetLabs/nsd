@@ -1494,7 +1494,11 @@ static void zone_ixfr_remove_oldest(struct zone_ixfr* ixfr)
 		struct ixfr_data* oldest = ixfr_data_first(ixfr);
 		if(ixfr->oldest_serial == oldest->oldserial) {
 			if(ixfr->data->count > 1) {
-				ixfr->oldest_serial = oldest->newserial;
+				struct ixfr_data* next = ixfr_data_next(ixfr, oldest);
+				assert(next);
+				if(next)
+					ixfr->oldest_serial = next->oldserial;
+				else 	ixfr->oldest_serial = oldest->newserial;
 			} else {
 				ixfr->oldest_serial = 0;
 			}
@@ -1549,7 +1553,7 @@ void zone_ixfr_make_space(struct zone_ixfr* ixfr, struct zone* zone,
 
 void zone_ixfr_remove(struct zone_ixfr* ixfr, struct ixfr_data* data)
 {
-	rbtree_delete(ixfr->data, &data->node.key);
+	rbtree_delete(ixfr->data, data->node.key);
 	ixfr->total_size -= ixfr_data_size(data);
 	ixfr_data_free(data);
 }
