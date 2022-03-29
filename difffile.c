@@ -452,7 +452,7 @@ find_rr_num(rrset_type* rrset, uint16_t type, uint16_t klass,
 			return i;
 		}
 	}
-        /* this is odd. Log why rr cannot be found. */
+	/* this is odd. Log why rr cannot be found. */
 	if (!add) {
 		debug_find_rr_num(rrset, type, klass, rdatas, rdata_num);
 	}
@@ -1515,7 +1515,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 
 struct udb_base* task_file_create(const char* file)
 {
-        return udb_base_create_new(file, &namedb_walkfunc, NULL);
+	return udb_base_create_new(file, &namedb_walkfunc, NULL);
 }
 
 static int
