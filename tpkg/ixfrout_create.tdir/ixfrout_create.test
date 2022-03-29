@@ -92,6 +92,32 @@ else
 	exit 1
 fi
 
+# read a zonefile, but there is nothing to create IXFR with.
+echo ""
+echo "# test for example3.com"
+cp ixfrout_create.3.zone.new ixfrout_create.3.zone
+$PRE/nsd-control -c edit.conf reload example3.com
+sleep 3
+
+$DIG @127.0.0.1 -p $TPKG_PORT example3.com IXFR=1 > cur
+cat cur
+cat >good.3.diff <<EOF
+example3.com.		345600	IN	SOA	ns0.example3.org. root.example3.com. 3 3600 28800 2419200 3600
+a.example3.com.		3600	IN	A	10.0.0.1
+c.example3.com.		3600	IN	A	10.0.0.3
+example3.com.		345600	IN	SOA	ns0.example3.org. root.example3.com. 3 3600 28800 2419200 3600
+EOF
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if diff -Naur good.3.diff cur.cmp; then
+	echo "diff is OK"
+else
+	echo "differences in output, failed"
+	cat nsd.log
+	exit 1
+fi
+
+echo ""
+
 cat nsd.log
 
 echo "OK"
