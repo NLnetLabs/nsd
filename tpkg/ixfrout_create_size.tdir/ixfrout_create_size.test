@@ -1,0 +1,253 @@
+# #-- ixfrout_create_size.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+DIG=dig
+
+# reload a zone and create the ixfr from zone file differences
+
+echo ""
+echo "# test for example1.com"
+i=0;
+while test $i -ne 20; do
+	echo ""
+	echo "i=$i"
+	serial=`expr $i + 4`
+	if test -f ixfrout_create_size.1.zone; then
+		mv ixfrout_create_size.1.zone old.1.zone
+	fi
+cat >ixfrout_create_size.1.zone <<EOF
+example1.com.    345600  IN      SOA     ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
+a.example1.com. 3600 IN A 10.0.0.1
+b.example1.com. 3600 IN A 10.0.0.$i
+c.example1.com. 3600 IN A 10.0.0.3
+d.example1.com. 3600 IN A 10.44.0.$i
+e.example1.com. 3600 IN A 10.45.0.$i
+f.example1.com. 3600 IN A 10.46.0.$i
+t.example1.com. 3600 IN TXT i=$i
+EOF
+	echo "nsd-control reload"
+	$PRE/nsd-control -c edit.conf reload example1.com
+	sleep 3
+
+	# test zone reloaded okay
+	ls -l ixfrout_create_size.1.zone*
+	$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $i + 3` > cur
+	cat cur
+
+	if test $i -eq 0; then
+		i=`expr $i + 1`
+		continue;
+	fi
+	
+cat >good.diff <<EOF
+example1.com.		345600	IN	SOA	ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
+example1.com.		345600	IN	SOA	ns0.example.org. root.example.com. `expr $serial - 1` 3600 28800 2419200 3600
+b.example1.com.		3600	IN	A	10.0.0.`expr $i - 1`
+d.example1.com.		3600	IN	A	10.44.0.`expr $i - 1`
+e.example1.com.		3600	IN	A	10.45.0.`expr $i - 1`
+f.example1.com.		3600	IN	A	10.46.0.`expr $i - 1`
+t.example1.com.		3600	IN	TXT	"i=`expr $i - 1`"
+example1.com.		345600	IN	SOA	ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
+b.example1.com.		3600	IN	A	10.0.0.`echo $i`
+d.example1.com.		3600	IN	A	10.44.0.`echo $i`
+e.example1.com.		3600	IN	A	10.45.0.`echo $i`
+f.example1.com.		3600	IN	A	10.46.0.`echo $i`
+t.example1.com.		3600	IN	TXT	"i=`echo $i`"
+example1.com.		345600	IN	SOA	ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
+EOF
+	grep -v -e '^\;' -e '^$' cur > cur.cmp
+	if diff -Naur good.diff cur.cmp; then
+		echo "diff is OK"
+	else
+		echo "differences in output, failed"
+		cat nsd.log
+		exit 1
+	fi
+
+	echo "cat ixfrout_create_size.1.zone.ixfr"
+	cat ixfrout_create_size.1.zone.ixfr
+# same diff as above but one tab less after domain name and before TTL.
+cat >good.diff <<EOF
+example1.com.	345600	IN	SOA	ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
+example1.com.	345600	IN	SOA	ns0.example.org. root.example.com. `expr $serial - 1` 3600 28800 2419200 3600
+b.example1.com.	3600	IN	A	10.0.0.`expr $i - 1`
+d.example1.com.	3600	IN	A	10.44.0.`expr $i - 1`
+e.example1.com.	3600	IN	A	10.45.0.`expr $i - 1`
+f.example1.com.	3600	IN	A	10.46.0.`expr $i - 1`
+t.example1.com.	3600	IN	TXT	"i=`expr $i - 1`"
+example1.com.	345600	IN	SOA	ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
+b.example1.com.	3600	IN	A	10.0.0.`echo $i`
+d.example1.com.	3600	IN	A	10.44.0.`echo $i`
+e.example1.com.	3600	IN	A	10.45.0.`echo $i`
+f.example1.com.	3600	IN	A	10.46.0.`echo $i`
+t.example1.com.	3600	IN	TXT	"i=`echo $i`"
+example1.com.	345600	IN	SOA	ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
+EOF
+	grep -v -e '^\;' -e '^$' ixfrout_create_size.1.zone.ixfr > cur.cmp
+	if diff -Naur good.diff cur.cmp; then
+		echo "ixfr data ok"
+	else
+		echo "differences in ixfr data file"
+		exit 1
+	fi
+
+	# count number of zone files
+	count=`ls ixfrout_create_size.1.zone.ixfr* | wc -l`
+	echo "number of ixfr files count=$count"
+
+	# check serial in ixfr files.
+	# check ixfrout_create_size.1.zone.ixfr
+        if grep "; to_serial $serial" ixfrout_create_size.1.zone.ixfr >/dev/null; then
+                echo "ixfrout_create_size.1.zone.ixfr has to_serial $serial"
+        else
+                echo "ixfrout_create_size.1.zone.ixfr has wrong to_serial"
+                exit 1
+        fi
+
+	# check ixfrout_create_size.1.zone.ixfr.2
+	if test "$i" -ge 2; then
+		checkserial=`expr $serial - 1`
+		if grep "; to_serial $checkserial" ixfrout_create_size.1.zone.ixfr.2 >/dev/null; then
+			echo "ixfrout_create_size.1.zone.ixfr.2 has to_serial $checkserial"
+		else
+			echo "ixfrout_create_size.1.zone.ixfr.2 has wrong to_serial"
+			exit 1
+		fi
+
+	fi
+
+	# check ixfrout_create_size.1.zone.ixfr.3
+	if test "$i" -ge 3; then
+		checkserial=`expr $serial - 2`
+		if grep "; to_serial $checkserial" ixfrout_create_size.1.zone.ixfr.3 >/dev/null; then
+			echo "ixfrout_create_size.1.zone.ixfr.3 has to_serial $checkserial"
+		else
+			echo "ixfrout_create_size.1.zone.ixfr.3 has wrong to_serial"
+			exit 1
+		fi
+
+	fi
+
+	# check ixfrout_create_size.1.zone.ixfr.4
+	if test "$i" -ge 4; then
+		checkserial=`expr $serial - 3`
+		if grep "; to_serial $checkserial" ixfrout_create_size.1.zone.ixfr.4 >/dev/null; then
+			echo "ixfrout_create_size.1.zone.ixfr.4 has to_serial $checkserial"
+		else
+			echo "ixfrout_create_size.1.zone.ixfr.4 has wrong to_serial"
+			exit 1
+		fi
+
+	fi
+
+	# check ixfrout_create_size.1.zone.ixfr.5
+	if test "$i" -ge 5; then
+		checkserial=`expr $serial - 4`
+		if grep "; to_serial $checkserial" ixfrout_create_size.1.zone.ixfr.5 >/dev/null; then
+			echo "ixfrout_create_size.1.zone.ixfr.5 has to_serial $checkserial"
+		else
+			echo "ixfrout_create_size.1.zone.ixfr.5 has wrong to_serial"
+			exit 1
+		fi
+
+	fi
+
+	# also check the individual IXFRs.
+	if test "$i" -ge 1; then
+		$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $serial - 1` > cur
+		s=`grep "SOA" cur | head -1 | awk '{print $7};'`
+		echo "IXFR=`expr $serial - 1` got serial $s"
+		echo "SOAcount=`grep SOA cur | wc -l`"
+		if test `grep SOA cur | wc -l` -ne 4; then
+			echo "expected IXFR in this transfer"
+			cat cur
+			exit 1
+		fi
+	fi
+
+	if test "$i" -ge 2; then
+		$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $serial - 2` > cur
+		s=`grep "SOA" cur | head -1 | awk '{print $7};'`
+		echo "IXFR=`expr $serial - 2` got serial $s"
+		echo "SOAcount=`grep SOA cur | wc -l`"
+		if test `grep SOA cur | wc -l` -ne 6; then
+			echo "expected IXFR in this transfer"
+			cat cur
+			exit 1
+		fi
+	fi
+
+	if test "$i" -ge 3; then
+		$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $serial - 3` > cur
+		s=`grep "SOA" cur | head -1 | awk '{print $7};'`
+		echo "IXFR=`expr $serial - 3` got serial $s"
+		echo "SOAcount=`grep SOA cur | wc -l`"
+		if test `grep SOA cur | wc -l` -ne 8; then
+			echo "expected IXFR in this transfer"
+			cat cur
+			exit 1
+		fi
+	fi
+
+	if test "$i" -ge 4; then
+		$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $serial - 4` > cur
+		s=`grep "SOA" cur | head -1 | awk '{print $7};'`
+		echo "IXFR=`expr $serial - 4` got serial $s"
+		echo "SOAcount=`grep SOA cur | wc -l`"
+		if test `grep SOA cur | wc -l` -ne 10; then
+			echo "expected IXFR in this transfer"
+			cat cur
+			exit 1
+		fi
+	fi
+
+	if test "$i" -ge 5; then
+		$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $serial - 5` > cur
+		s=`grep "SOA" cur | head -1 | awk '{print $7};'`
+		echo "IXFR=`expr $serial - 5` got serial $s"
+		echo "SOAcount=`grep SOA cur | wc -l`"
+		if test `grep SOA cur | wc -l` -ne 12; then
+			echo "expected IXFR in this transfer"
+			cat cur
+			exit 1
+		fi
+	fi
+
+	# DEBUG: this test not needed.
+	if test "$i" -ge 3000; then
+		$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $serial - 6` > cur
+		s=`grep "SOA" cur | head -1 | awk '{print $7};'`
+		echo "IXFR=`expr $serial - 6` got serial $s"
+		echo "SOAcount=`grep SOA cur | wc -l`"
+		if test `grep SOA cur | wc -l` -ne 2; then
+			echo "expected AXFR in this transfer"
+			cat cur
+			exit 1
+		fi
+	fi
+
+	# count number of bytes in output files
+	sizes=0
+	for x in `grep "; IXFR created" ixfrout_create_size.1.zone.ixfr* | sed -e 's/^.*of \([0-9]*\) bytes.*$/\1/' `; do sizes=`expr $sizes + $x`; done
+	echo "IXFR sizes add to sizes=$sizes"
+	if test "$sizes" -gt 10240; then
+		echo "IXFR stored size too large"
+		exit 1
+	fi
+
+
+	# to the next item.
+	i=`expr $i + 1`
+done
+
+echo ""
+
+cat nsd.log
+
+echo "OK"
+exit 0
