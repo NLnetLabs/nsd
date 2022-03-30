@@ -1,0 +1,62 @@
+# #-- ixfrout_large.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+TESTNS_PORT=`expr $RND_PORT + 1`
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+sed -e "s/TESTNS_PORT/"$TESTNS_PORT"/" < ixfrout_large.conf > edit.conf
+
+# make a large IXFR in testns.
+cp ixfrout_large.testns edit.testns
+i=0
+while test $i -le 100; do
+	cat >>edit.testns <<EOF
+EXTRA_PACKET
+REPLY QR AA NOERROR
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+EOF
+	j=0
+	while test $j -le 10; do
+		cat >>edit.testns <<EOF
+host$i-$j-1	A 1.2.3.4
+host$i-$j-2	A 1.2.3.4
+host$i-$j-3	A 1.2.3.4
+host$i-$j-4	A 1.2.3.4
+host$i-$j-5	A 1.2.3.4
+host$i-$j-6	A 1.2.3.4
+host$i-$j-7	A 1.2.3.4
+host$i-$j-8	A 1.2.3.4
+host$i-$j-9	A 1.2.3.4
+host$i-$j-10	A 1.2.3.4
+EOF
+		j=`expr $j + 1`
+	done
+	i=`expr $i + 1`
+done
+cat >>edit.testns <<EOF
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+ENTRY_END
+EOF
+
+ldns-testns -p $TESTNS_PORT edit.testns &
+TESTNS_PID=$!
+sleep 1
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TESTNS_PORT=$TESTNS_PORT" >> .tpkg.var.test
+echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
+
+$TPKG_NSD -c edit.conf -u "" -V 5 -p $TPKG_PORT
+wait_nsd_up nsd.log

@@ -1,0 +1,28 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply IXFR request
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1
+REPLY QR AA NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+b	3600	IN	A	10.0.0.1
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+c	3600	IN	A	10.0.0.3
+# the rest is filled in by script, with large contents.
+#@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+#EXTRA_PACKET
+#REPLY QR AA NOERROR
+#SECTION QUESTION
+#@ IN IXFR
+#SECTION ANSWER
+#
+#ENTRY_END
