@@ -35,6 +35,7 @@ NEED_i386="xfr_1 xfr_2"
 NEED_NC="tcp_underrun"
 NEED_PCAT="query_diff_root"
 NEED_CPU_AFFINITY="bad_cpu_affinity no_cpu_affinity cpu_affinity"
+NEED_FAKETIME="dnscookies"
 
 # do we have dig9?
 DIG9=no
@@ -51,6 +52,8 @@ HAVE_PCAT=no
 if test -f "`which pcat-diff 2>&1`"; then HAVE_PCAT=yes; fi
 CPU_AFFINITY=no
 if [ -n "$(cpu_count)" ] && [ "$(cpu_count)" -gt 1 ]; then CPU_AFFINITY=yes; fi
+HAVE_FAKETIME=no
+if test -f "`which faketime 2>&1`"; then HAVE_FAKETIME=yes; fi
 
 # run the tests
 tdir -a ../../ $tdirarg fake 0000_nsd-compile.tdir
@@ -84,7 +87,11 @@ for i in *.tdir; do
 	if [ $CPU_AFFINITY = no ] && echo $NEED_CPU_AFFINITY | grep `basename $i .tdir` >/dev/null; then
 		echo ">>> skipped $i: test needs cpu affinity and more than one cpu"
 		skip=yes
-        fi
+	fi
+	if [ $HAVE_FAKETIME = no ] && echo $NEED_FAKETIME | grep `basename $i .tdir` >/dev/null; then
+		echo ">>> skipped $i: test needs faketime"
+		skip=yes
+	fi
 	if [ $skip = no ]; then
 		if test "$quiet" = "1"; then echo $i; else
 			echo ">>> next test $i at "`date`; fi
