@@ -1455,7 +1455,7 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 #endif
 		ret = conn_read(tcp);
 	if(ret == -1) {
-		log_msg(LOG_ERR, "xfrd: failed writing tcp %s", strerror(errno));
+		log_msg(LOG_ERR, "xfrd: failed reading tcp %s", strerror(errno));
 		xfrd_tcp_pipe_stop(tp);
 		return;
 	}
