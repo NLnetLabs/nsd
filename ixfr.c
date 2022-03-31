@@ -779,22 +779,30 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 			}
 			AA_SET(query->packet);
 			query_clear_compression_tables(query);
+			if(query->tsig.status == TSIG_OK)
+				query->tsig_sign_it = 1;
 			return QUERY_PROCESSED;
 		}
 
 		if(!zone->ixfr) {
 			/* we have no ixfr information for the zone, make an AXFR */
+			if(query->tsig_prepare_it)
+				query->tsig_sign_it = 1;
 			return query_axfr(nsd, query, 0);
 		}
 		ixfr_data = zone_ixfr_find_serial(zone->ixfr, qserial);
 		if(!ixfr_data) {
 			/* the specific version is not available, make an AXFR */
+			if(query->tsig_prepare_it)
+				query->tsig_sign_it = 1;
 			return query_axfr(nsd, query, 0);
 		}
 		/* see if the IXFRs connect to the next IXFR, and if it ends
 		 * at the current served zone, if not, AXFR */
 		if(!connect_ixfrs(zone->ixfr, ixfr_data, &end_serial) ||
 			end_serial != current_serial) {
+			if(query->tsig_prepare_it)
+				query->tsig_sign_it = 1;
 			return query_axfr(nsd, query, 0);
 		}
 
