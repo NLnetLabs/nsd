@@ -37,3 +37,18 @@ txt2    345600  IN      TXT     "text record 2"
 txt3    345600  IN      TXT     "text record 3"
 @ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
 ENTRY_END
+
+# reply to AXFR after inconsistent IXFR above
+ENTRY_BEGIN
+MATCH opcode qtype qname TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN AXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+txt1    345600  IN      TXT     "text record 1"
+txt2    345600  IN      TXT     "text record 2"
+txt3    345600  IN      TXT     "text record 3"
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+ENTRY_END
