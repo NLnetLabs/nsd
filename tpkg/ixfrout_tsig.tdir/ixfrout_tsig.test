@@ -241,30 +241,6 @@ if grep "^a.example.com" cur.cmp; then
 	echo "a.example.com is present, but should not be in diff"
 	exit 1
 fi
-cat >good.diff <<EOF
-example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
-example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 1 3600 28800 2419200 3600
-b.example.com.		3600	IN	A	10.0.0.1
-example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
-c.example.com.		3600	IN	A	10.0.0.3
-example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
-c.example.com.		3600	IN	A	10.0.0.3
-example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
-d.example.com.		3600	IN	A	10.0.0.4
-example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
-d.example.com.		3600	IN	A	10.0.0.4
-example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
-e.example.com.		3600	IN	A	10.0.0.5
-example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 7 3600 28800 2419200 3600
-EOF
-grep -v -e '^\;' -e '^$' -e TSIG cur > cur.cmp
-if diff -Naur good.diff cur.cmp; then
-	echo "diff is OK"
-else
-	echo "differences in output, failed"
-	cat nsd.log
-	exit 1
-fi
 
 # check full AXFR response to IXFR query
 echo ""

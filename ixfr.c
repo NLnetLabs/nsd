@@ -396,6 +396,7 @@ static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
 	buffer_write_u16_at(packet, rdpos, buffer_position(packet)-rdpos-2);
 	if(query_overflow(query)) {
 		/* we are past the maximum length */
+		buffer_set_position(packet, oldpos);
 		return 0;
 	}
 	return 1;
