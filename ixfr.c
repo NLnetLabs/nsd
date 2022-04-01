@@ -175,6 +175,8 @@ static void pktcompression_insert_with_labels(struct pktcompression* pcomp,
 			return; /* the dname should be uncompressed */
 		if(lablen+1 > len)
 			return; /* len should be uncompressed wireformat len */
+		if(offset > MAX_COMPRESSION_OFFSET - lablen - 1)
+			return; /* offset moves too far for compression */
 		/* skip label */
 		len -= lablen+1;
 		dname += lablen+1;
