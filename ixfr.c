@@ -602,7 +602,8 @@ static int connect_ixfrs(struct zone_ixfr* ixfr, struct ixfr_data* data,
 }
 
 /* Count length of next record in data */
-static size_t count_rr_length(uint8_t* data, size_t data_len, size_t current)
+static size_t count_rr_length(const uint8_t* data, size_t data_len,
+	size_t current)
 {
 	uint8_t label_size;
 	uint16_t rdlen;
