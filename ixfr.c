@@ -44,7 +44,7 @@ struct rrcompress_entry {
 	/* rbtree node, key is this struct */
 	struct rbnode node;
 	/* the uncompressed domain name */
-	uint8_t* dname;
+	const uint8_t* dname;
 	/* the length of the dname, includes terminating 0 label */
 	uint16_t len;
 	/* the offset of the dname in the packet */
@@ -125,7 +125,7 @@ static void* pktcompression_alloc(struct pktcompression* pcomp, size_t s)
 
 /* find a pktcompression name, return offset if found */
 static uint16_t pktcompression_find(struct pktcompression* pcomp,
-	uint8_t* dname, size_t len)
+	const uint8_t* dname, size_t len)
 {
 	struct rrcompress_entry key, *found;
 	key.node.key = &key;
@@ -138,8 +138,8 @@ static uint16_t pktcompression_find(struct pktcompression* pcomp,
 
 /* insert a new domain name into the compression tree.
  * it fails silently, no need to compress then. */
-static void pktcompression_insert(struct pktcompression* pcomp, uint8_t* dname,
-	size_t len, uint16_t offset)
+static void pktcompression_insert(struct pktcompression* pcomp,
+	const uint8_t* dname, size_t len, uint16_t offset)
 {
 	struct rrcompress_entry* entry;
 	if(len > 65535)
@@ -185,7 +185,7 @@ static void pktcompression_insert_with_labels(struct pktcompression* pcomp,
 }
 
 /* calculate length of dname in uncompressed wireformat in buffer */
-static size_t dname_length(uint8_t* buf, size_t len)
+static size_t dname_length(const uint8_t* buf, size_t len)
 {
 	size_t l = 0;
 	if(!buf || len == 0)
@@ -211,7 +211,7 @@ static size_t dname_length(uint8_t* buf, size_t len)
 /* write a compressed domain name into the packet,
  * returns uncompressed wireformat length */
 static size_t pktcompression_write_dname(struct buffer* packet,
-	struct pktcompression* pcomp, uint8_t* rr, size_t rrlen)
+	struct pktcompression* pcomp, const uint8_t* rr, size_t rrlen)
 {
 	size_t wirelen = 0;
 	size_t dname_len = dname_length(rr, rrlen);
@@ -260,7 +260,7 @@ static size_t pktcompression_write_dname(struct buffer* packet,
 /* write an RR into the packet with compression for domain names,
  * return 0 and resets position if it does not fit in the packet. */
 static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
-	struct pktcompression* pcomp, uint8_t* rr, size_t rrlen)
+	struct pktcompression* pcomp, const uint8_t* rr, size_t rrlen)
 {
 	size_t oldpos = buffer_position(packet);
 	size_t rdpos;
