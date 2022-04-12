@@ -141,6 +141,42 @@ else
 	exit 1
 fi
 
+# read a zonefile, but the serial did not increase
+
+echo ""
+echo "# test for example5.com"
+mv ixfrout_create.5.zone old.5.zone
+cp ixfrout_create.5.zone.new ixfrout_create.5.zone
+$PRE/nsd-control -c edit.conf reload example5.com
+sleep 3
+
+$DIG @127.0.0.1 -p $TPKG_PORT example5.com IXFR=1 > cur
+cat cur
+cat >good.5.diff <<EOF
+example5.com.		345600	IN	SOA	ns0.example5.org. root.example5.com. 3 3600 28800 2419200 3600
+a.example5.com.		3600	IN	A	10.0.0.1
+c.example5.com.		3600	IN	A	10.0.0.3
+example5.com.		345600	IN	SOA	ns0.example5.org. root.example5.com. 3 3600 28800 2419200 3600
+EOF
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if diff -Naur good.5.diff cur.cmp; then
+	echo "diff is OK"
+else
+	echo "differences in output, failed"
+	cat nsd.log
+	exit 1
+fi
+
+$DIG @127.0.0.1 -p $TPKG_PORT example5.com IXFR=3 > cur
+cat cur
+if test `grep SOA cur | wc -l` -eq 1; then
+	echo "OK current response"
+else
+	echo "failed response"
+	cat nsd.log
+	exit 1
+fi
+
 echo ""
 
 cat nsd.log
