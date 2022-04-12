@@ -1038,6 +1038,21 @@ int ixfr_create_perform(struct ixfr_create* ixfrcr, struct zone* zone,
 		(void)unlink(ixfrcr->file_name);
 		return 0;
 	}
+	if(ixfrcr->new_serial == ixfrcr->old_serial ||
+		compare_serial(ixfrcr->new_serial, ixfrcr->old_serial)<0) {
+		log_msg(LOG_ERR, "zone %s ixfr could not be created because the serial is the same or moves backwards, from %u to %u",
+			wiredname2str(ixfrcr->zone_name),
+			(unsigned)ixfrcr->old_serial,
+			(unsigned)ixfrcr->new_serial);
+		ixfr_store_cancel(store);
+		fclose(spool);
+		ixfr_store_free(store);
+		(void)unlink(ixfrcr->file_name);
+		ixfr_delete_superfluous_files(zone, zfile, 0);
+		if(append_mem)
+			ixfr_store_delixfrs(zone);
+		return 0;
+	}
 	if(ixfr_create_already_done(ixfrcr, zone, zfile, 1)) {
 		ixfr_store_cancel(store);
 		fclose(spool);

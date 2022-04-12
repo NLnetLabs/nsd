@@ -123,4 +123,21 @@ else
 	exit 1
 fi
 
+# checkzone for difference where the SOA serial did not increase.
+# so the zonefile is changed, but the serial did not increase.
+# same serial
+$PRE/nsd-checkzone -i ixfrout_checkzone.zone3.old example.com ixfrout_checkzone.zone3
+if test $? -ne 1; then
+	echo "it did make the ixfr"
+	exit 1
+else
+	echo "did not exit successfully, as expected."
+fi
+ls -l ixfrout_checkzone.zone3*
+if test -f ixfrout_checkzone.zone3.ixfr; then
+	cat ixfrout_checkzone.zone3.ixfr
+	echo "ixfr should not be created"
+	exit 1
+fi
+
 exit 0
