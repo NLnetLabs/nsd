@@ -2279,29 +2279,62 @@ static void ixfr_temp_deldomain(struct domain_table* temptable,
 	if(!can_del_temp_domain(domain))
 		return;
 	p = domain->parent;
+	/* see if this domain is someones wildcard-child-closest-match,
+	 * which can only be the parent, and then it should use the
+	 * one-smaller than this domain as closest-match. */
+	if(domain->parent->wildcard_child_closest_match == domain)
+		domain->parent->wildcard_child_closest_match =
+			domain_previous_existing_child(domain);
 	domain_table_delete(temptable, domain);
 	while(p) {
 		struct domain* up = p->parent;
 		if(!can_del_temp_domain(p))
 			break;
+		if(p->parent->wildcard_child_closest_match == p)
+			p->parent->wildcard_child_closest_match =
+				domain_previous_existing_child(p);
 		domain_table_delete(temptable, p);
 		p = up;
 	}
-}
-
-/* domain has child domains */
-static int domain_has_child_domains(domain_type* domain)
-{
-	domain_type* n = domain_next(domain);
-	if(n && domain_is_subdomain(n, domain))
-		return 1;
-	return 0;
 }
 
 /* clear out the just read RR from the temp table */
 static void clear_temp_table_of_rr(struct domain_table* temptable,
 	struct zone* tempzone, struct rr* rr)
 {
+#if 0 /* clear out by removing everything, alternate for the cleanout code */
+	/* clear domains from the tempzone,
+	 * the only domain left is the zone apex and its parents */
+	domain_type* domain;
+#ifdef USE_RADIX_TREE
+	struct radnode* first = radix_first(temptable->nametree);
+	domain = first?(domain_type*)first->elem:NULL;
+#else
+	domain = (domain_type*)rbtree_first(temptable->names_to_domains);
+#endif
+	while(domain != (domain_type*)RBTREE_NULL && domain) {
+		domain_type* next = domain_next(domain);
+		if(domain != tempzone->apex &&
+			!domain_is_subdomain(tempzone->apex, domain)) {
+			domain_table_delete(temptable, domain);
+		} else {
+			if(!domain->parent /* is the root */ ||
+				domain == tempzone->apex)
+				domain->usage = 1;
+			else	domain->usage = 0;
+		}
+		domain = next;
+	}
+
+	if(rr->owner == tempzone->apex) {
+		tempzone->apex->rrsets = NULL;
+		tempzone->soa_rrset = NULL;
+		tempzone->soa_nx_rrset = NULL;
+		tempzone->ns_rrset = NULL;
+	}
+	return;
+#endif
+
 	/* clear domains in the rdata */
 	unsigned i;
 	for(i=0; i<rr->rdata_count; i++) {
@@ -2310,8 +2343,7 @@ static void clear_temp_table_of_rr(struct domain_table* temptable,
 			struct domain* domain =
 				rdata_atom_domain(rr->rdatas[i]);
 			domain->usage --;
-			if(domain != tempzone->apex && domain->usage == 0
-				&& !domain_has_child_domains(domain))
+			if(domain != tempzone->apex && domain->usage == 0)
 				ixfr_temp_deldomain(temptable, domain);
 		}
 	}
@@ -2324,8 +2356,7 @@ static void clear_temp_table_of_rr(struct domain_table* temptable,
 		tempzone->ns_rrset = NULL;
 	} else {
 		rr->owner->usage --;
-		if(rr->owner->usage == 0 &&
-			!domain_has_child_domains(rr->owner)) {
+		if(rr->owner->usage == 0) {
 			ixfr_temp_deldomain(temptable, rr->owner);
 		}
 	}
