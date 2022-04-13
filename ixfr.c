@@ -2282,7 +2282,8 @@ static void ixfr_temp_deldomain(struct domain_table* temptable,
 	/* see if this domain is someones wildcard-child-closest-match,
 	 * which can only be the parent, and then it should use the
 	 * one-smaller than this domain as closest-match. */
-	if(domain->parent->wildcard_child_closest_match == domain)
+	if(domain->parent &&
+		domain->parent->wildcard_child_closest_match == domain)
 		domain->parent->wildcard_child_closest_match =
 			domain_previous_existing_child(domain);
 	domain_table_delete(temptable, domain);
@@ -2290,7 +2291,7 @@ static void ixfr_temp_deldomain(struct domain_table* temptable,
 		struct domain* up = p->parent;
 		if(!can_del_temp_domain(p))
 			break;
-		if(p->parent->wildcard_child_closest_match == p)
+		if(p->parent && p->parent->wildcard_child_closest_match == p)
 			p->parent->wildcard_child_closest_match =
 				domain_previous_existing_child(p);
 		domain_table_delete(temptable, p);
