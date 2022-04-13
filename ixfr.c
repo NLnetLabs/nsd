@@ -2309,6 +2309,9 @@ static void clear_temp_table_of_rr(struct domain_table* temptable,
 	/* clear domain_parsed */
 	if(rr->owner == tempzone->apex) {
 		tempzone->apex->rrsets = NULL;
+		tempzone->soa_rrset = NULL;
+		tempzone->soa_nx_rrset = NULL;
+		tempzone->ns_rrset = NULL;
 	} else {
 		rr->owner->usage --;
 		if(rr->owner->usage == 0) {
