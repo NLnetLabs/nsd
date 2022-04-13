@@ -2289,6 +2289,15 @@ static void ixfr_temp_deldomain(struct domain_table* temptable,
 	}
 }
 
+/* domain has child domains */
+static int domain_has_child_domains(domain_type* domain)
+{
+	domain_type* n = domain_next(domain);
+	if(n && domain_is_subdomain(n, domain))
+		return 1;
+	return 0;
+}
+
 /* clear out the just read RR from the temp table */
 static void clear_temp_table_of_rr(struct domain_table* temptable,
 	struct zone* tempzone, struct rr* rr)
@@ -2301,7 +2310,8 @@ static void clear_temp_table_of_rr(struct domain_table* temptable,
 			struct domain* domain =
 				rdata_atom_domain(rr->rdatas[i]);
 			domain->usage --;
-			if(domain != tempzone->apex && domain->usage == 0)
+			if(domain != tempzone->apex && domain->usage == 0
+				&& !domain_has_child_domains(domain))
 				ixfr_temp_deldomain(temptable, domain);
 		}
 	}
@@ -2314,7 +2324,8 @@ static void clear_temp_table_of_rr(struct domain_table* temptable,
 		tempzone->ns_rrset = NULL;
 	} else {
 		rr->owner->usage --;
-		if(rr->owner->usage == 0) {
+		if(rr->owner->usage == 0 &&
+			!domain_has_child_domains(rr->owner)) {
 			ixfr_temp_deldomain(temptable, rr->owner);
 		}
 	}
