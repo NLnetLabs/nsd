@@ -2357,7 +2357,6 @@ static void clear_temp_table_of_rr(struct domain_table* temptable,
 		tempzone->ns_rrset = NULL;
 	} else {
 		rr->owner->rrsets = NULL;
-		rr->owner->usage = 0;
 		if(rr->owner->usage == 0) {
 			ixfr_temp_deldomain(temptable, rr->owner);
 		}
