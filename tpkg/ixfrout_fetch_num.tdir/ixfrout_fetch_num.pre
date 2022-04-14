@@ -21,5 +21,5 @@ echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_CTRL_PORT=$TPKG_CTRL_PORT" >> .tpkg.var.test
 echo "export TPKG_TESTNS_PORT=$TPKG_TESTNS_PORT" >> .tpkg.var.test
 
-$TPKG_NSD -c edit.conf -u "" -p $TPKG_PORT -V 5 -L 2 -F -1
+$TPKG_NSD -c edit.conf -u "" -p $TPKG_PORT -V 5
 wait_nsd_up nsd.log

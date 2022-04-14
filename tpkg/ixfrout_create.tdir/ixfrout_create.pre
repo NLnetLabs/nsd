@@ -19,5 +19,5 @@ sed -e "s/TPKG_CTRL_PORT/"$TPKG_CTRL_PORT"/" < ixfrout_create.conf > edit.conf
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_CTRL_PORT=$TPKG_CTRL_PORT" >> .tpkg.var.test
 
-$TPKG_NSD -c edit.conf -u "" -p $TPKG_PORT -V 5 -L 2 -F -1
+$TPKG_NSD -c edit.conf -u "" -p $TPKG_PORT -V 5
 wait_nsd_up nsd.log
