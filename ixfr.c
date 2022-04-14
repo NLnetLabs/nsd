@@ -2356,7 +2356,8 @@ static void clear_temp_table_of_rr(struct domain_table* temptable,
 		tempzone->soa_nx_rrset = NULL;
 		tempzone->ns_rrset = NULL;
 	} else {
-		rr->owner->usage --;
+		rr->owner->rrsets = NULL;
+		rr->owner->usage = 0;
 		if(rr->owner->usage == 0) {
 			ixfr_temp_deldomain(temptable, rr->owner);
 		}
@@ -2406,9 +2407,9 @@ static int ixfr_data_readnewsoa(struct ixfr_data* data, struct zone* zone,
 			zone->opts->name, ixfrfile);
 		return 0;
 	}
-	ixfr_trim_capacity(&data->newsoa, &data->newsoa_len, &capacity);
 	clear_temp_table_of_rr(temptable, tempzone, rr);
 	region_free_all(tempregion);
+	ixfr_trim_capacity(&data->newsoa, &data->newsoa_len, &capacity);
 	return 1;
 }
 
@@ -2449,9 +2450,9 @@ static int ixfr_data_readoldsoa(struct ixfr_data* data, struct zone* zone,
 			zone->opts->name, ixfrfile);
 		return 0;
 	}
-	ixfr_trim_capacity(&data->oldsoa, &data->oldsoa_len, &capacity);
 	clear_temp_table_of_rr(temptable, tempzone, rr);
 	region_free_all(tempregion);
+	ixfr_trim_capacity(&data->oldsoa, &data->oldsoa_len, &capacity);
 	*dest_serial = data->oldserial;
 	return 1;
 }
@@ -2555,6 +2556,8 @@ static int ixfr_data_read(struct nsd* nsd, struct zone* zone, FILE* in,
 	}
 	tempzone->apex = domain_table_insert(temptable,
 		domain_dname(zone->apex));
+	temptable->root->usage++;
+	tempzone->apex->usage++;
 	tempzone->opts = zone->opts;
 	/* switch to per RR region for new allocations in temp domain table */
 	temptable->region = tempregion;
