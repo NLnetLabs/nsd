@@ -9,6 +9,7 @@ BUG FIXES:
 	- Fix another code analyzer zero divide warning.
 	- Fix code analyzer warning about uninitialized temp storage in loop.
 	- Fix spelling error in comment in svcbparam_lookup_key.
+	- Update cirrus script FreeBSD version.
 
 4.4.0
 ================

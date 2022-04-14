@@ -38,9 +38,9 @@ ubuntu_2104_clang12: &ubuntu_2104_clang12
     - apt-get install -y autoconf automake make clang-${CLANG_VERSION} libc-dev libevent-dev libssl-dev flex bison
     - update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_VERSION} 10
 
-freebsd_12_2: &freebsd_12_2
+freebsd_12_3: &freebsd_12_3
   freebsd_instance:
-    image_family: freebsd-12-2
+    image_family: freebsd-12-3
   env:
     CC: clang
   install_script:
@@ -107,8 +107,8 @@ task:
       <<: *ubuntu_2104_clang12
       env:
         CFLAGS: "-g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all"
-    - name: "Build and test on FreeBSD 12.2 (ASan+UBSan)"
-      <<: *freebsd_12_2
+    - name: "Build and test on FreeBSD 12.3 (ASan+UBSan)"
+      <<: *freebsd_12_3
       env:
         CFLAGS: "-g2 -O0 -fsanitize=address,undefined -fno-sanitize-recover=all"
     - name: "Build and test on macOS 10.15 with Xcode 11.3.1 (ASan+UBSan)"
