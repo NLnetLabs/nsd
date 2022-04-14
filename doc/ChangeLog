@@ -1,3 +1,6 @@
+14 April 2022: Wouter
+	- Update cirrus script FreeBSD version.
+
 25 March 2022: Wouter
 	- Fix spelling error in comment in svcbparam_lookup_key.
 
