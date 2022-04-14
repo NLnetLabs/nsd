@@ -1,0 +1,330 @@
+# #-- ixfrout_fetch_size.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+DIG=dig
+
+# fetch the zone contents in IXFRs.
+echo ""
+echo "check example1.com SOA"
+$DIG @127.0.0.1 -p $TPKG_PORT example1.com SOA | tee cur
+if grep SOA cur | grep "root.example1.com. 1" ; then
+	echo "zone serial 1 okay"
+else
+	echo "zone example1.com not at version 1"
+	exit 1
+fi
+
+i=0;
+while test $i -ne 20; do
+	echo ""
+	echo "i=$i"
+	prevserial=`expr $i + 1`
+	serial=`expr $i + 2`
+cat >data.testns <<EOF
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=$prevserial
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+example1.com. IN IXFR
+SECTION ANSWER
+example1.com. 345600  IN      SOA     ns0.example1.org. root.example1.com. $serial 3600 28800 2419200 3600
+example1.com. 345600  IN      SOA     ns0.example1.org. root.example1.com. $prevserial 3600 28800 2419200 3600
+b.example1.com. 3600 IN A 10.0.0.$prevserial
+d.example1.com. 3600 IN A 10.44.0.$prevserial
+e.example1.com. 3600 IN A 10.45.0.$prevserial
+f.example1.com. 3600 IN A 10.46.0.$prevserial
+t.example1.com. 3600 IN TXT i=$prevserial
+example1.com. 345600  IN      SOA     ns0.example1.org. root.example1.com. $serial 3600 28800 2419200 3600
+b.example1.com. 3600 IN A 10.0.0.$serial
+d.example1.com. 3600 IN A 10.44.0.$serial
+e.example1.com. 3600 IN A 10.45.0.$serial
+f.example1.com. 3600 IN A 10.46.0.$serial
+t.example1.com. 3600 IN TXT i=$serial
+example1.com. 345600  IN      SOA     ns0.example1.org. root.example1.com. $serial 3600 28800 2419200 3600
+ENTRY_END
+EOF
+	ldns-testns -p $TPKG_TESTNS_PORT data.testns >testns.log 2>&1 &
+	TESTNS_PID=$!
+	echo $TESTNS_PID >testns.pid
+	echo "TESTNS_PID=$TESTNS_PID"
+	wait_ldns_testns_up testns.log
+	ldns-notify -p $TPKG_PORT -s $serial -z example1.com. 127.0.0.1
+	if test $? -ne 0; then
+		echo "ldns-notify failed"
+		exit 1
+	fi
+	wait_logfile nsd.log "zone example1.com. serial $prevserial is updated to $serial" 10
+	kill_pid $TESTNS_PID
+	rm -f testns.pid
+	cat testns.log
+	rm -f testns.log
+
+	# check update gave the correct serial
+	$DIG @127.0.0.1 -p $TPKG_PORT example1.com SOA | tee cur
+	if grep SOA cur | grep "root.example1.com. $serial" ; then
+		echo "zone serial $serial okay"
+	else
+		echo "zone example1.com not at version $serial"
+		exit 1
+	fi
+
+	# check IXFR contents.
+	$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $serial + 1` | tee cur
+	if test `grep "SOA" cur | wc -l` -ne 1; then
+		echo "expected SOA for serial+1"
+		exit 1
+	fi
+
+	$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $serial` | tee cur
+	if test `grep "SOA" cur | wc -l` -ne 1; then
+		echo "expected SOA for serial"
+		exit 1
+	fi
+
+	$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $serial - 1` | tee cur
+	if test `grep "SOA" cur | wc -l` -ne 4; then
+		echo "expected IXFR for serial-1"
+		exit 1
+	fi
+
+	# check some of the IXFRs returned
+	if test $serial -ge 13; then
+		$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $serial - 13` | tee cur
+		if test $serial -gt 13; then want=28; else want=2; fi
+		if test `grep "SOA" cur | wc -l` -ne $want; then
+			echo "expected SOAcount=$want for serial-13"
+			exit 1
+		fi
+	fi
+
+	# it turns out the ixfr-size and ixfr contents produce a limit
+	# on the number of IXFRs, so this IXFR should not be stored in
+	# memory any more, because it exceeded the limits. The reply to
+	# an IXFR request has to be an AXFR.
+	if test $serial -ge 14; then
+		$DIG @127.0.0.1 -p $TPKG_PORT example1.com IXFR=`expr $serial - 14` | tee cur
+		want=2
+		if test `grep "SOA" cur | wc -l` -ne $want; then
+			echo "expected SOAcount=$want for serial-14"
+			exit 1
+		fi
+	fi
+
+	# write with nsd-control.
+	echo "nsd-control write example1.com"
+	$PRE/nsd-control -c edit.conf write example1.com
+	sleep 3
+
+	# check output written files.
+	ls -l ixfrout_fetch_size.1.zone*
+	echo "cat ixfrout_fetch_size.1.zone.ixfr"
+	cat ixfrout_fetch_size.1.zone.ixfr
+
+	# count number of ixfr files
+	count=`ls ixfrout_fetch_size.1.zone.ixfr* | wc -l`
+	echo "number of ixfr files count=$count"
+	if test "$count" -gt 20; then
+		echo "too many ixfr files"
+		exit 1
+	fi
+
+	# check if the zonefile was written okay
+	if grep "received update" ixfrout_fetch_size.1.zone | grep "serial $serial" ; then
+		echo "zonefile is okay for $serial"
+	else
+		echo "zonefile is not okay for $serial"
+		exit 1
+	fi
+
+	# check serial in ixfr files.
+	# check ixfrout_fetch_size.1.zone.ixfr
+        if grep "; to_serial $serial" ixfrout_fetch_size.1.zone.ixfr >/dev/null; then
+                echo "ixfrout_fetch_size.1.zone.ixfr has to_serial $serial"
+        else
+                echo "ixfrout_fetch_size.1.zone.ixfr has wrong to_serial"
+                exit 1
+        fi
+
+	# check ixfrout_fetch_size.1.zone.ixfr.2
+	if test "$i" -ge 1; then
+		checkserial=`expr $serial - 1`
+		if grep "; to_serial $checkserial" ixfrout_fetch_size.1.zone.ixfr.2 >/dev/null; then
+			echo "ixfrout_fetch_size.1.zone.ixfr.2 has to_serial $checkserial"
+		else
+			echo "ixfrout_fetch_size.1.zone.ixfr.2 has wrong to_serial"
+			exit 1
+		fi
+
+	fi
+
+	# check ixfrout_fetch_size.1.zone.ixfr.3
+	if test "$i" -ge 2; then
+		checkserial=`expr $serial - 2`
+		if grep "; to_serial $checkserial" ixfrout_fetch_size.1.zone.ixfr.3 >/dev/null; then
+			echo "ixfrout_fetch_size.1.zone.ixfr.3 has to_serial $checkserial"
+		else
+			echo "ixfrout_fetch_size.1.zone.ixfr.3 has wrong to_serial"
+			exit 1
+		fi
+
+	fi
+
+	# check ixfrout_fetch_size.1.zone.ixfr.4
+	if test "$i" -ge 3; then
+		checkserial=`expr $serial - 3`
+		if grep "; to_serial $checkserial" ixfrout_fetch_size.1.zone.ixfr.4 >/dev/null; then
+			echo "ixfrout_fetch_size.1.zone.ixfr.4 has to_serial $checkserial"
+		else
+			echo "ixfrout_fetch_size.1.zone.ixfr.4 has wrong to_serial"
+			exit 1
+		fi
+
+	fi
+
+	# check ixfrout_fetch_size.1.zone.ixfr.5
+	if test "$i" -ge 4; then
+		checkserial=`expr $serial - 4`
+		if grep "; to_serial $checkserial" ixfrout_fetch_size.1.zone.ixfr.5 >/dev/null; then
+			echo "ixfrout_fetch_size.1.zone.ixfr.5 has to_serial $checkserial"
+		else
+			echo "ixfrout_fetch_size.1.zone.ixfr.5 has wrong to_serial"
+			exit 1
+		fi
+
+	fi
+
+	# count number of bytes in output files
+	sizes=0
+	for x in `grep "; data_size" ixfrout_fetch_size.1.zone.ixfr* | sed -e 's/^.*; data_size //' `; do sizes=`expr $sizes + $x`; done
+	echo "IXFR sizes add to sizes=$sizes"
+	if test "$sizes" -gt 10240; then
+		echo "IXFR stored size too large"
+		exit 1
+	fi
+
+	# to the next item.
+	i=`expr $i + 1`
+done
+
+# one single transfer is very large and wipes out all other content.
+echo ""
+echo "single large transfer"
+prevserial=`expr $i + 1`
+serial=`expr $i + 2`
+cat >data.testns <<EOF
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=$prevserial
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+example1.com. IN IXFR
+SECTION ANSWER
+example1.com. 345600  IN      SOA     ns0.example1.org. root.example1.com. $serial 3600 28800 2419200 3600
+example1.com. 345600  IN      SOA     ns0.example1.org. root.example1.com. $prevserial 3600 28800 2419200 3600
+b.example1.com. 3600 IN A 10.0.0.$prevserial
+d.example1.com. 3600 IN A 10.44.0.$prevserial
+e.example1.com. 3600 IN A 10.45.0.$prevserial
+f.example1.com. 3600 IN A 10.46.0.$prevserial
+t.example1.com. 3600 IN TXT i=$prevserial
+example1.com. 345600  IN      SOA     ns0.example1.org. root.example1.com. $serial 3600 28800 2419200 3600
+b.example1.com. 3600 IN A 10.0.0.$serial
+d.example1.com. 3600 IN A 10.44.0.$serial
+e.example1.com. 3600 IN A 10.45.0.$serial
+f.example1.com. 3600 IN A 10.46.0.$serial
+t.example1.com. 3600 IN TXT i=$serial
+EOF
+x=0
+while test $x -lt 100; do
+cat >>data.testns <<EOF
+moredata$x-1.example1.com. 3600 IN A 10.1.2.3
+moredata$x-2.example1.com. 3600 IN A 10.1.2.3
+moredata$x-3.example1.com. 3600 IN A 10.1.2.3
+moredata$x-4.example1.com. 3600 IN A 10.1.2.3
+moredata$x-5.example1.com. 3600 IN A 10.1.2.3
+moredata$x-6.example1.com. 3600 IN A 10.1.2.3
+moredata$x-7.example1.com. 3600 IN A 10.1.2.3
+moredata$x-8.example1.com. 3600 IN A 10.1.2.3
+moredata$x-9.example1.com. 3600 IN A 10.1.2.3
+moredata$x-10.example1.com. 3600 IN A 10.1.2.3
+EOF
+	x=`expr $x + 1`
+done
+cat >>data.testns <<EOF
+example1.com. 345600  IN      SOA     ns0.example1.org. root.example1.com. $serial 3600 28800 2419200 3600
+ENTRY_END
+EOF
+ldns-testns -p $TPKG_TESTNS_PORT data.testns >testns.log 2>&1 &
+TESTNS_PID=$!
+echo $TESTNS_PID >testns.pid
+echo "TESTNS_PID=$TESTNS_PID"
+wait_ldns_testns_up testns.log
+ldns-notify -p $TPKG_PORT -s $serial -z example1.com. 127.0.0.1
+if test $? -ne 0; then
+	echo "ldns-notify failed"
+	exit 1
+fi
+wait_logfile nsd.log "zone example1.com. serial $prevserial is updated to $serial" 10
+kill_pid $TESTNS_PID
+rm -f testns.pid
+cat testns.log
+rm -f testns.log
+
+# check update gave the correct serial
+$DIG @127.0.0.1 -p $TPKG_PORT example1.com SOA | tee cur
+if grep SOA cur | grep "root.example1.com. $serial" ; then
+	echo "zone serial $serial okay"
+else
+	echo "zone example1.com not at version $serial"
+	exit 1
+fi
+
+# write with nsd-control.
+echo "nsd-control write example1.com"
+$PRE/nsd-control -c edit.conf write example1.com
+sleep 3
+
+# check output written files.
+ls -l ixfrout_fetch_size.1.zone*
+echo "cat ixfrout_fetch_size.1.zone.ixfr"
+cat ixfrout_fetch_size.1.zone.ixfr
+
+# count number of ixfr files
+count=`ls ixfrout_fetch_size.1.zone.ixfr* | wc -l`
+echo "number of ixfr files count=$count"
+if test "$count" -ge 1; then
+	echo "too many ixfr files"
+	exit 1
+fi
+
+# count number of bytes in output files
+sizes=0
+for x in `grep "; data_size" ixfrout_fetch_size.1.zone.ixfr* | sed -e 's/^.*; data_size //' `; do sizes=`expr $sizes + $x`; done
+echo "IXFR sizes add to sizes=$sizes"
+if test "$sizes" -gt 10240; then
+	echo "IXFR stored size too large"
+	exit 1
+fi
+
+# check if the zonefile was written okay
+if grep "received update" ixfrout_fetch_size.1.zone | grep "serial $serial" ; then
+	echo "zonefile is okay for $serial"
+else
+	echo "zonefile is not okay for $serial"
+	exit 1
+fi
+
+if test -f ixfrout_fetch_size.1.zone.ixfr; then
+	echo "ixfrout_fetch_size.1.zone.ixfr exists"
+	exit 1
+fi
+
+cat nsd.log
+
+echo "OK"
+exit 0
