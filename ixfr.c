@@ -209,8 +209,9 @@ static size_t dname_length(const uint8_t* buf, size_t len)
 }
 
 /* write a compressed domain name into the packet,
- * returns uncompressed wireformat length */
-static size_t pktcompression_write_dname(struct buffer* packet,
+ * returns uncompressed wireformat length,
+ * 0 if it does not fit and -1 on failure, bad dname. */
+static int pktcompression_write_dname(struct buffer* packet,
 	struct pktcompression* pcomp, const uint8_t* rr, size_t rrlen)
 {
 	size_t wirelen = 0;
@@ -221,9 +222,9 @@ static size_t pktcompression_write_dname(struct buffer* packet,
 		size_t lablen = (size_t)(rr[0]);
 		uint16_t offset;
 		if( (lablen&0xc0) )
-			return 0; /* name should be uncompressed */
+			return -1; /* name should be uncompressed */
 		if(lablen+1 > rrlen)
-			return 0; /* name should fit */
+			return -1; /* name should fit */
 
 		/* see if the domain name has a compression pointer */
 		if((offset=pktcompression_find(pcomp, rr, dname_len))!=0) {
@@ -265,7 +266,7 @@ static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
 	size_t oldpos = buffer_position(packet);
 	size_t rdpos;
 	uint16_t tp;
-	size_t dname_len;
+	int dname_len;
 	size_t rdlen;
 	size_t i;
 	rrtype_descriptor_type* descriptor;
@@ -278,6 +279,8 @@ static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
 
 	/* write owner */
 	dname_len = pktcompression_write_dname(packet, pcomp, rr, rrlen);
+	if(dname_len == -1)
+		return 1; /* attempt to skip this malformed rr, could assert */
 	if(dname_len == 0) {
 		buffer_set_position(packet, oldpos);
 		return 0;
@@ -315,6 +318,8 @@ static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
 		case RDATA_WF_COMPRESSED_DNAME:
 			dname_len = pktcompression_write_dname(packet, pcomp,
 				rr, rdlen);
+			if(dname_len == -1)
+				return 1; /* attempt to skip malformed rr */
 			if(dname_len == 0) {
 				buffer_set_position(packet, oldpos);
 				return 0;
