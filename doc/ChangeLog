@@ -19,6 +19,7 @@
 	  that do not have IXFR enabled. The clients gets a full zone reply
 	  or a status reply if the serial is up to date.
 	- set version to 4.5.0 for feature change.
+	- Tag for 4.5.0rc1 release.
 
 14 April 2022: Wouter
 	- Update cirrus script FreeBSD version.
