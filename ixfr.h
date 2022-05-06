@@ -38,8 +38,6 @@ struct zone_ixfr {
 	 * tree, so it is the old_serial of the newest data entry, that
 	 * has an even newer new_serial of that entry */
 	uint32_t newest_serial;
-	/* the newserial number of the newest ixfr data element */
-	uint32_t newest_newserial;
 };
 
 /* Data structure that stores one IXFR.

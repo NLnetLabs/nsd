@@ -1483,7 +1483,6 @@ static void zone_ixfr_clear(struct zone_ixfr* ixfr)
 	ixfr->total_size = 0;
 	ixfr->oldest_serial = 0;
 	ixfr->newest_serial = 0;
-	ixfr->newest_newserial = 0;
 }
 
 void zone_ixfr_free(struct zone_ixfr* ixfr)
@@ -1522,7 +1521,6 @@ static void zone_ixfr_remove_oldest(struct zone_ixfr* ixfr)
 		}
 		if(ixfr->newest_serial == oldest->oldserial) {
 			ixfr->newest_serial = 0;
-			ixfr->newest_newserial = 0;
 		}
 		zone_ixfr_remove(ixfr, oldest);
 	}
@@ -1581,11 +1579,9 @@ void zone_ixfr_add(struct zone_ixfr* ixfr, struct ixfr_data* data, int isnew)
 	if(ixfr->data->count == 0) {
 		ixfr->oldest_serial = data->oldserial;
 		ixfr->newest_serial = data->oldserial;
-		ixfr->newest_newserial = data->newserial;
 	} else if(isnew) {
 		/* newest entry is last there is */
 		ixfr->newest_serial = data->oldserial;
-		ixfr->newest_newserial = data->newserial;
 	} else {
 		/* added older entry, before the others */
 		ixfr->oldest_serial = data->oldserial;
