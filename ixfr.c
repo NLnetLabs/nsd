@@ -221,9 +221,9 @@ static size_t pktcompression_write_dname(struct buffer* packet,
 		size_t lablen = (size_t)(rr[0]);
 		uint16_t offset;
 		if( (lablen&0xc0) )
-			break; /* name should be uncompressed */
+			return 0; /* name should be uncompressed */
 		if(lablen+1 > rrlen)
-			break; /* name should fit */
+			return 0; /* name should fit */
 
 		/* see if the domain name has a compression pointer */
 		if((offset=pktcompression_find(pcomp, rr, dname_len))!=0) {
