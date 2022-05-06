@@ -1,0 +1,12 @@
+; IXFR data file
+; zone example2.com.
+; from_serial 1
+; to_serial 3
+; data_size 512
+; IXFR created by NSD 4.3.10 for example2.com. 1 to 3 of 512 bytes at time Thu Jan 27 10:46:54 2022
+example2.com.	345600	IN	SOA	ns0.example2.org. root.example2.com. 3 3600 28800 2419200 3600
+example2.com.	345600	IN	SOA	ns0.example2.org. root.example2.com. 1 3600 28800 2419200 3600
+b.example2.com.	3600	IN	A	10.0.0.1
+example2.com.	345600	IN	SOA	ns0.example2.org. root.example2.com. 3 3600 28800 2419200 3600
+c.example2.com.	3600	IN	A	10.0.0.3
+example2.com.	345600	IN	SOA	ns0.example2.org. root.example2.com. 3 3600 28800 2419200 3600

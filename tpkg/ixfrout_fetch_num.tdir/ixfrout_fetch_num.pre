@@ -1,0 +1,25 @@
+# #-- ixfrout_fetch_num.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 3
+TPKG_PORT=$RND_PORT
+TPKG_CTRL_PORT=`expr $RND_PORT + 1`
+TPKG_TESTNS_PORT=`expr $RND_PORT + 2`
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+sed -e "s/TPKG_CTRL_PORT/"$TPKG_CTRL_PORT"/" -e "s/TPKG_TESTNS_PORT/"$TPKG_TESTNS_PORT"/" < ixfrout_fetch_num.conf > edit.conf
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_CTRL_PORT=$TPKG_CTRL_PORT" >> .tpkg.var.test
+echo "export TPKG_TESTNS_PORT=$TPKG_TESTNS_PORT" >> .tpkg.var.test
+
+$TPKG_NSD -c edit.conf -u "" -p $TPKG_PORT -V 5
+wait_nsd_up nsd.log

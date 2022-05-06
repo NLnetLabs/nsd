@@ -1,0 +1,170 @@
+# #-- ixfrout_checkzone_size.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+cp ixfrout_checkzone_size.zone old.zone
+i=0
+while test $i -ne 20; do
+	echo "i=$i"
+	serial=`expr $i + 4`
+cat >current.zone <<EOF
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
+a.example.com. 3600 IN A 10.0.0.1
+b.example.com. 3600 IN A 10.0.0.$i
+c.example.com. 3600 IN A 10.0.0.3
+d.example.com. 3600 IN A 10.44.0.$i
+e.example.com. 3600 IN A 10.45.0.$i
+f.example.com. 3600 IN A 10.46.0.$i
+t.example.com. 3600 IN TXT i=$i
+EOF
+	echo "$PRE/nsd-checkzone -n 100 -s 10240 -i"
+	$PRE/nsd-checkzone -n 100 -s 10240 -i old.zone example.com current.zone
+	if test $? -ne 0; then
+		echo "exit code wrong"
+		exit 1
+	fi
+	ls -l current.zone*
+	echo "> current.zone.ixfr"
+	cat current.zone.ixfr
+
+	# count number of zone files
+	count=`ls current.zone.ixfr* | wc -l`
+	echo "number of ixfr files count=$count"
+	if test "$count" -gt 20; then
+		echo "too many ixfr files"
+		exit 1
+	fi
+
+	# check serial in current.zone.ixfr
+	if grep "; to_serial $serial" current.zone.ixfr >/dev/null; then
+		echo "current.zone.ixfr has to_serial $serial"
+	else
+		echo "current.zone.ixfr has wrong to_serial"
+		exit 1
+	fi
+
+	# check serial in current.zone.ixfr.2
+	if test "$count" -ge 2; then
+		checkserial=`expr $serial - 1`
+		if grep "; to_serial $checkserial" current.zone.ixfr.2 >/dev/null; then
+			echo "current.zone.ixfr.2 has to_serial $checkserial"
+		else
+			echo "current.zone.ixfr.2 has wrong to_serial"
+			exit 1
+		fi
+	fi
+
+	# check serial in current.zone.ixfr.3
+	if test "$count" -ge 3; then
+		checkserial=`expr $serial - 2`
+		if grep "; to_serial $checkserial" current.zone.ixfr.3 >/dev/null; then
+			echo "current.zone.ixfr.3 has to_serial $checkserial"
+		else
+			echo "current.zone.ixfr.3 has wrong to_serial"
+			exit 1
+		fi
+	fi
+
+	# check serial in current.zone.ixfr.4
+	if test "$count" -ge 4; then
+		checkserial=`expr $serial - 3`
+		if grep "; to_serial $checkserial" current.zone.ixfr.4 >/dev/null; then
+			echo "current.zone.ixfr.4 has to_serial $checkserial"
+		else
+			echo "current.zone.ixfr.4 has wrong to_serial"
+			exit 1
+		fi
+	fi
+
+	# check serial in current.zone.ixfr.5
+	if test "$count" -ge 5; then
+		checkserial=`expr $serial - 4`
+		if grep "; to_serial $checkserial" current.zone.ixfr.5 >/dev/null; then
+			echo "current.zone.ixfr.5 has to_serial $checkserial"
+		else
+			echo "current.zone.ixfr.5 has wrong to_serial"
+			exit 1
+		fi
+	fi
+
+	# count number of bytes in output files
+	sizes=0
+	for x in `grep "; IXFR created" current.zone.ixfr* | sed -e 's/^.*of \([0-9]*\) bytes.*$/\1/' `; do sizes=`expr $sizes + $x`; done
+	echo "IXFR sizes add to sizes=$sizes"
+	if test "$sizes" -gt 10240; then
+		echo "IXFR stored size too large"
+		exit 1
+	fi
+
+	mv current.zone old.zone
+	i=`expr $i + 1`
+	echo
+done
+
+# check very small size
+cp ixfrout_checkzone_size.zone old.zone
+i=20
+cat >smallstore.zone <<EOF
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
+a.example.com. 3600 IN A 10.0.0.1
+b.example.com. 3600 IN A 10.0.0.$i
+c.example.com. 3600 IN A 10.0.0.3
+d.example.com. 3600 IN A 10.44.0.$i
+e.example.com. 3600 IN A 10.45.0.$i
+f.example.com. 3600 IN A 10.46.0.$i
+t.example.com. 3600 IN TXT i=$i
+EOF
+if test 1 -eq 1; then
+	# create an old file.
+	echo "$PRE/nsd-checkzone -n 100 -s 20000 -i"
+	$PRE/nsd-checkzone -n 100 -s 20000 -i old.zone example.com smallstore.zone
+	if test $? -ne 0; then
+		echo "exit code wrong"
+		exit 1
+	fi
+	mv smallstore.zone old.zone
+	i=21
+	cat >smallstore.zone <<EOF
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. $serial 3600 28800 2419200 3600
+a.example.com. 3600 IN A 10.0.0.1
+b.example.com. 3600 IN A 10.0.0.$i
+c.example.com. 3600 IN A 10.0.0.3
+d.example.com. 3600 IN A 10.44.0.$i
+e.example.com. 3600 IN A 10.45.0.$i
+f.example.com. 3600 IN A 10.46.0.$i
+t.example.com. 3600 IN TXT i=$i
+EOF
+
+	# create an ixfr that does not fit
+	echo "$PRE/nsd-checkzone -n 100 -s 20 -i"
+	$PRE/nsd-checkzone -n 100 -s 20 -i old.zone example.com smallstore.zone
+	if test $? -ne 1; then
+		echo "exit code wrong, it should be failed"
+		exit 1
+	else
+		echo "exit code: $?: the ixfr should not have been created"
+	fi
+	ls -l smallstore.zone*
+	if test -f smallstore.zone.ixfr; then
+		echo "> smallstore.zone.ixfr"
+		cat smallstore.zone.ixfr
+		echo "ixfr created but it should not fit in size"
+		exit 1
+	else
+		echo "> smallstore.zone.ixfr: the ixfr file is not created"
+	fi
+
+	# also the old file must be gone
+	if test -f smallstore.zone.ixfr.2; then
+		echo "smallstore.zone.ixfr.2 exists, it should be gone"
+		exit 1
+	fi
+	echo
+fi
+
+exit 0

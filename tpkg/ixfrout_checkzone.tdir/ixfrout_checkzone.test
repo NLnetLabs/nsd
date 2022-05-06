@@ -1,0 +1,143 @@
+# #-- ixfrout_checkzone.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+echo "$PRE/nsd-checkzone -i"
+$PRE/nsd-checkzone -i ixfrout_checkzone.zone.old example.com ixfrout_checkzone.zone
+if test $? -ne 0; then
+	echo "did not exit successfully"
+	exit 1
+fi
+
+echo "output ixfr"
+cat ixfrout_checkzone.zone.ixfr
+
+if grep "; zone example.com" ixfrout_checkzone.zone.ixfr; then
+	echo "header line OK"
+else
+	echo "header line wrong"
+	exit 1
+fi
+
+if grep "; from_serial 1" ixfrout_checkzone.zone.ixfr; then
+	echo "header line OK"
+else
+	echo "header line wrong"
+	exit 1
+fi
+
+if grep "; to_serial 3" ixfrout_checkzone.zone.ixfr; then
+	echo "header line OK"
+else
+	echo "header line wrong"
+	exit 1
+fi
+
+# remove the comments with the variable timestamp and variable version number
+grep -v "^;" ixfrout_checkzone.zone.ixfr > output.ixfr
+# create good output to compare with
+cat >original <<EOF
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 1 3600 28800 2419200 3600
+b.example.com.	3600	IN	A	10.0.0.1
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+c.example.com.	3600	IN	A	10.0.0.3
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+EOF
+
+if diff original output.ixfr; then
+	echo "output same"
+else
+	echo "different output"
+	exit 1
+fi
+
+echo "$PRE/nsd-checkzone -i for zone2"
+$PRE/nsd-checkzone -i ixfrout_checkzone.zone2.old example.com ixfrout_checkzone.zone2
+if test $? -ne 0; then
+	echo "did not exit successfully"
+	exit 1
+fi
+
+echo "output ixfr"
+cat ixfrout_checkzone.zone2.ixfr
+
+if grep "; zone example.com" ixfrout_checkzone.zone2.ixfr; then
+	echo "header line OK"
+else
+	echo "header line wrong"
+	exit 1
+fi
+
+if grep "; from_serial 1" ixfrout_checkzone.zone2.ixfr; then
+	echo "header line OK"
+else
+	echo "header line wrong"
+	exit 1
+fi
+
+if grep "; to_serial 3" ixfrout_checkzone.zone2.ixfr; then
+	echo "header line OK"
+else
+	echo "header line wrong"
+	exit 1
+fi
+
+# remove the comments with the variable timestamp and variable version number
+grep -v "^;" ixfrout_checkzone.zone2.ixfr > output.ixfr
+# create good output to compare with
+cat >original <<EOF
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+example.com.	345600	IN	SOA	ns0-old.example.org. root-old.example.com. 1 3600 28800 2419200 3600
+a.example.com.	3600	IN	A	10.0.0.1
+a.example.com.	1800	IN	TXT	"a txt"
+c.example.com.	3600	IN	TXT	"c txt 1"
+c.example.com.	3600	IN	TXT	"c txt 2"
+c.example.com.	3600	IN	TXT	"c txt 3"
+f.example.com.	3600	IN	A	11.0.0.2
+f.example.com.	3600	IN	A	11.0.0.4
+g.example.com.	3600	IN	A	11.0.0.2
+g.example.com.	3600	IN	A	11.0.0.4
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+b.example.com.	3600	IN	A	10.0.0.2
+b.example.com.	1800	IN	TXT	"b txt"
+d.example.com.	3600	IN	AAAA	10::4
+d.example.com.	3600	IN	AAAA	10::5:4
+d.example.com.	3600	IN	AAAA	10::6:4
+e.example.com.	3600	IN	A	11.0.0.2
+e.example.com.	3600	IN	A	11.0.0.4
+g.example.com.	3600	IN	A	11.11.11.2
+g.example.com.	3600	IN	A	11.11.11.4
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+EOF
+
+if diff original output.ixfr; then
+	echo "output same"
+else
+	echo "different output"
+	exit 1
+fi
+
+# checkzone for difference where the SOA serial did not increase.
+# so the zonefile is changed, but the serial did not increase.
+# same serial
+$PRE/nsd-checkzone -i ixfrout_checkzone.zone3.old example.com ixfrout_checkzone.zone3
+if test $? -ne 1; then
+	echo "it did make the ixfr"
+	exit 1
+else
+	echo "did not exit successfully, as expected."
+fi
+ls -l ixfrout_checkzone.zone3*
+if test -f ixfrout_checkzone.zone3.ixfr; then
+	cat ixfrout_checkzone.zone3.ixfr
+	echo "ixfr should not be created"
+	exit 1
+fi
+
+exit 0

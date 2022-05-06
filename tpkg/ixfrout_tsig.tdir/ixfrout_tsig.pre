@@ -1,0 +1,43 @@
+# #-- ixfrout_tsig.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+TESTNS_PORT=`expr $RND_PORT + 1`
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+sed -e "s/TESTNS_PORT/"$TESTNS_PORT"/" < ixfrout_tsig.conf > edit.conf
+
+ldns-testns -p $TESTNS_PORT ixfrout_tsig.testns &
+TESTNS_PID=$!
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TESTNS_PORT=$TESTNS_PORT" >> .tpkg.var.test
+echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
+
+# test large response for IXFR=1 response, adding lots of RRs to it.
+i=0
+while test $i -lt 1000; do
+	cat >>ixfrout_tsig.zone.ixfr.3 <<EOF
+hosta$i.example.com.	3600	IN	A	1.2.3.4
+hostb$i.example.com.	3600	IN	A	1.2.3.4
+hostc$i.example.com.	3600	IN	A	1.2.3.4
+hostd$i.example.com.	3600	IN	A	1.2.3.4
+hoste$i.example.com.	3600	IN	A	1.2.3.4
+EOF
+	i=`expr $i + 1`
+done
+cat >>ixfrout_tsig.zone.ixfr.3 <<EOF
+example.com.	345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+EOF
+
+$TPKG_NSD -V 5 -c edit.conf -u "" -p $TPKG_PORT
+wait_nsd_up nsd.log

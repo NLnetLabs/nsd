@@ -1,0 +1,44 @@
+# #-- ixfrout.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../../.."
+DIG=dig
+
+wait_logfile nsd.log "zone example.com. serial 1 is updated to 3" 10
+
+$DIG @127.0.0.1 -p $TPKG_PORT example.com IXFR=1 > cur
+cat cur
+
+if grep "b.example.com." cur; then
+	echo "deleted element b.example.com is OK"
+else
+	echo "deleted element b.example.com is not in the IXFR, failed"
+	cat nsd.log
+	exit 1
+fi
+
+cat >good.diff <<EOF
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 1 3600 28800 2419200 3600
+b.example.com.		3600	IN	A	10.0.0.1
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+c.example.com.		3600	IN	A	10.0.0.3
+example.com.		345600	IN	SOA	ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+EOF
+grep -v -e '^\;' -e '^$' cur > cur.cmp
+if diff -Naur good.diff cur.cmp; then
+	echo "diff is OK"
+else
+	echo "differences in output, failed"
+	cat nsd.log
+	exit 1
+fi
+
+cat nsd.log
+
+echo "OK"
+exit 0

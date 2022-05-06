@@ -311,6 +311,9 @@ number of answers for which the transmit failed.
 .I num.raxfr
 number of AXFR requests from clients (that got served with reply).
 .TP
+.I num.rixfr
+number of IXFR requests from clients (that got served with reply).
+.TP
 .I num.truncated
 number of answers with TC flag set.
 .TP

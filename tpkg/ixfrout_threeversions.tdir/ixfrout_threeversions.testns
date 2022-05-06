@@ -1,0 +1,54 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply IXFR request
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+b	3600	IN	A	10.0.0.1
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+c	3600	IN	A	10.0.0.3
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=3
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+c	3600	IN	A	10.0.0.3
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+d	3600	IN	A	10.0.0.4
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=5
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 7 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+d	3600	IN	A	10.0.0.4
+@ 345600 IN SOA ns0.example.org. root 7 3600 28800 2419200 3600
+e	3600	IN	A	10.0.0.5
+@ 345600 IN SOA ns0.example.org. root 7 3600 28800 2419200 3600
+ENTRY_END
+

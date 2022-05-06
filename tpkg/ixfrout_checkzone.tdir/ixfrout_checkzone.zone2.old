@@ -1,0 +1,37 @@
+example.com. 345600  IN      SOA     ns0-old.example.org. root-old.example.com. 1 3600 28800 2419200 3600
+; delname a.example.com
+a.example.com. 3600 IN A 10.0.0.1
+a.example.com. 1800 IN TXT "a txt"
+
+; addname b.example.com
+
+; delRRset
+c.example.com. 3600 IN A 10.0.0.3
+c.example.com. 3600 IN TXT "c txt 1"
+c.example.com. 3600 IN TXT "c txt 2"
+c.example.com. 3600 IN TXT "c txt 3"
+
+; addRRset
+d.example.com. 3600 IN A 10.0.0.4
+
+; changeRRset: addRRs
+e.example.com. 3600 IN A 11.0.0.1
+e.example.com. 3600 IN A 11.0.0.3
+
+; changeRRset: delRRs
+f.example.com. 3600 IN A 11.0.0.1
+f.example.com. 3600 IN A 11.0.0.2
+f.example.com. 3600 IN A 11.0.0.3
+f.example.com. 3600 IN A 11.0.0.4
+
+; changeRRset: changeRRs
+g.example.com. 3600 IN A 11.0.0.1
+g.example.com. 3600 IN A 11.0.0.2
+g.example.com. 3600 IN A 11.0.0.3
+g.example.com. 3600 IN A 11.0.0.4
+
+; unchanged RRset
+h.example.com. 3600 IN A 11.0.0.1
+h.example.com. 3600 IN A 11.0.0.2
+h.example.com. 3600 IN A 11.0.0.3
+h.example.com. 3600 IN A 11.0.0.4

@@ -1,0 +1,17 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply SOA request
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN SOA
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 7 3600 28800 2419200 3600
+ENTRY_END
+

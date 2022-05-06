@@ -1,0 +1,27 @@
+# #-- ixfrout_threeread.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+TESTNS_PORT=`expr $RND_PORT + 1`
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+sed -e "s/TESTNS_PORT/"$TESTNS_PORT"/" < ixfrout_threeread.conf > edit.conf
+
+ldns-testns -p $TESTNS_PORT ixfrout_threeread.testns &
+TESTNS_PID=$!
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TESTNS_PORT=$TESTNS_PORT" >> .tpkg.var.test
+echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
+
+$TPKG_NSD -V 5 -c edit.conf -u "" -p $TPKG_PORT
+wait_nsd_up nsd.log
