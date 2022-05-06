@@ -3,7 +3,7 @@ NSD RELEASE NOTES
 4.4.1 (Upcoming)
 ================
 FEATURES:
-	- Merge PR #203: IXFR out
+	- Merge PR #209: IXFR out
 	  This adds IXFR out functionality to NSD. NSD can copy IXFRs from
 	  upstream to downstream clients, or create IXFRs from zonefiles.
 	  The options store-ixfr: yes and create-ixfr: yes can be used to
