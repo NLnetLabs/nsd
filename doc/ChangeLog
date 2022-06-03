@@ -1,3 +1,6 @@
+3 June 2022: Wouter
+	- Fix static analyzer reports on ixfrcreate temp file.
+
 13 May 2022: Wouter
 	- The code repo continues with version 4.5.1.
 
