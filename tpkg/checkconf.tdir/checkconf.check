@@ -516,3 +516,78 @@ checkconf.nsd09.conf:9: error: expected yes or no
 read checkconf.nsd09.conf failed: 1 errors in configuration file
 checkconf.nsd10.conf:10: error: expected a number
 read checkconf.nsd10.conf failed: 1 errors in configuration file
+# Read file checkconf.nsd11.conf: 0 patterns, 0 fixed-zones, 0 keys, 0 tls-auth.
+# Config settings.
+server:
+	debug-mode: no
+	ip-transparent: no
+	ip-freebind: no
+	reuseport: no
+	do-ip4: yes
+	do-ip6: yes
+	send-buffer-size: 0
+	receive-buffer-size: 0
+	hide-version: no
+	hide-identity: no
+	drop-updates: no
+	tcp-reject-overflow: no
+	database: "/var/db/nsd/nsd.db"
+	#identity:
+	#version:
+	#nsid:
+	#logfile:
+	log-only-syslog: no
+	server-count: 1
+	tcp-count: 100
+	tcp-query-count: 0
+	tcp-timeout: 120
+	tcp-mss: 0
+	outgoing-tcp-mss: 0
+	xfrd-tcp-max: 128
+	xfrd-tcp-pipeline: 128
+	ipv4-edns-size: 1232
+	ipv6-edns-size: 1232
+	pidfile: "/var/run/nsd.pid"
+	port: "53"
+	statistics: 0
+	#chroot:
+	username: "nsd"
+	zonesdir: "/etc/nsd"
+	xfrdfile: "/var/db/nsd/xfrd.state"
+	zonelistfile: "/var/db/nsd/zone.list"
+	xfrdir: "/tmp"
+	xfrd-reload-timeout: 1
+	log-time-ascii: yes
+	round-robin: no
+	minimal-responses: no
+	confine-to-zone: no
+	refuse-any: no
+	verbosity: 0
+	ip-address: 127.0.0.1@53053
+	ip-address: 127.0.0.1@53153 udp
+	ip-address: 127.0.0.1@53253 tcp
+	ip-address: 127.0.0.1@53453 udp tcp
+	ip-address: 127.0.0.1@53553 udp tcp
+	zonefiles-check: yes
+	zonefiles-write: 0
+	#tls-service-key:
+	#tls-service-pem:
+	#tls-service-ocsp:
+	tls-port: "853"
+	#tls-cert-bundle:
+	answer-cookie: no
+	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
+
+remote-control:
+	control-enable: no
+	control-port: 8952
+	server-key-file: "/etc/nsd/nsd_server.key"
+	server-cert-file: "/etc/nsd/nsd_server.pem"
+	control-key-file: "/etc/nsd/nsd_control.key"
+	control-cert-file: "/etc/nsd/nsd_control.pem"
+checkconf.nsd11.invalid.conf:4: at 'foo': error: syntax error
+read checkconf.nsd11.invalid.conf failed: 1 errors in configuration file
+checkconf.nsd11.tcp2x.conf:4: at 'tcp': error: syntax error
+read checkconf.nsd11.tcp2x.conf failed: 1 errors in configuration file
+checkconf.nsd11.udp2x.conf:4: at 'udp': error: syntax error
+read checkconf.nsd11.udp2x.conf failed: 1 errors in configuration file

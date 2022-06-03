@@ -630,6 +630,10 @@ config_test_print_server(nsd_options_type* opt)
 	for(ip = opt->ip_addresses; ip; ip=ip->next)
 	{
 		printf("\tip-address: %s", ip->address);
+		if(ip->udp == 1)
+			printf(" udp");
+		if(ip->tcp == 1)
+			printf(" tcp");
 		if(ip->servers) {
 			const char *sep;
 			struct range_option *n;

@@ -178,6 +178,7 @@ COMMENT \#
 COLON 	\:
 ANY     [^\"\n\r\\]|\\.
 
+%s	ip_address
 %x	quotedstring include include_quoted
 
 %%
@@ -185,7 +186,6 @@ ANY     [^\"\n\r\\]|\\.
 {SPACE}*{COMMENT}.* 	{ LEXOUT(("comment(%s) ", yytext)); /* ignore */ }
 server{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_SERVER;}
 name{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_NAME;}
-ip-address{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_IP_ADDRESS;}
 interface{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_IP_ADDRESS;}
 ip-transparent{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_IP_TRANSPARENT;}
 ip-freebind{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_IP_FREEBIND;}
@@ -303,22 +303,40 @@ cookie-secret{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_COOKIE_SECRET;}
 cookie-secret-file{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_COOKIE_SECRET_FILE;}
 xfrd-tcp-max{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_XFRD_TCP_MAX;}
 xfrd-tcp-pipeline{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_XFRD_TCP_PIPELINE;}
-{NEWLINE}		{ LEXOUT(("NL\n")); cfg_parser->line++;}
 
-servers={UNQUOTEDLETTER}*	{
+ip-address{COLON} {
+	BEGIN(ip_address);
+	LEXOUT(("v(%s) ", yytext));
+	return VAR_IP_ADDRESS;
+}
+<ip_address>tcp {
+	LEXOUT(("v(%s) ", yytext));
+	return VAR_TCP;
+}
+<ip_address>udp {
+	LEXOUT(("v(%s) ", yytext));
+	return VAR_UDP;
+}
+<ip_address>servers={UNQUOTEDLETTER}* {
 	yyless(yyleng - (yyleng - 8));
 	LEXOUT(("v(%s) ", yytext));
 	return VAR_SERVERS;
 }
-bindtodevice={UNQUOTEDLETTER}*	{
+<ip_address>bindtodevice={UNQUOTEDLETTER}* {
 	yyless(yyleng - (yyleng - 13));
 	LEXOUT(("v(%s) ", yytext));
 	return VAR_BINDTODEVICE;
 }
-setfib={UNQUOTEDLETTER}*	{
+<ip_address>setfib={UNQUOTEDLETTER}* {
 	yyless(yyleng - (yyleng - 7));
 	LEXOUT(("v(%s) ", yytext));
 	return VAR_SETFIB;
+}
+
+{NEWLINE}	{
+	BEGIN(INITIAL);
+	LEXOUT(("NL\n"));
+	cfg_parser->line++;
 }
 
 cpu-affinity{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_CPU_AFFINITY; }
@@ -337,24 +355,24 @@ server-[1-9][0-9]*-cpu-affinity{COLON}	{
 	/* Quoted strings. Strip leading and ending quotes */
 \"			{ BEGIN(quotedstring); LEXOUT(("QS ")); }
 <quotedstring><<EOF>>   {
-        c_error("EOF inside quoted string");
-        BEGIN(INITIAL);
+	c_error("EOF inside quoted string");
+	BEGIN(INITIAL);
 }
 <quotedstring>{ANY}*    { LEXOUT(("STR(%s) ", yytext)); yymore(); }
 <quotedstring>\n        { cfg_parser->line++; yymore(); }
 <quotedstring>\" {
-        LEXOUT(("QE "));
-        BEGIN(INITIAL);
-        yytext[yyleng - 1] = '\0';
+	LEXOUT(("QE "));
+	BEGIN(INITIAL);
+	yytext[yyleng - 1] = '\0';
 	c_lval.str = region_strdup(cfg_parser->opt->region, yytext);
-        return STRING;
+	return STRING;
 }
 
 	/* include: directive */
 include{COLON}		{ LEXOUT(("v(%s) ", yytext)); BEGIN(include); }
 <include><<EOF>>	{
-        c_error("EOF inside include directive");
-        BEGIN(INITIAL);
+	c_error("EOF inside include directive");
+	BEGIN(INITIAL);
 }
 <include>{SPACE}*	{ LEXOUT(("ISP ")); /* ignore */ }
 <include>{NEWLINE}	{ LEXOUT(("NL\n")); cfg_parser->line++;}
@@ -365,8 +383,8 @@ include{COLON}		{ LEXOUT(("v(%s) ", yytext)); BEGIN(include); }
 	BEGIN(INITIAL);
 }
 <include_quoted><<EOF>>	{
-        c_error("EOF inside quoted string");
-        BEGIN(INITIAL);
+	c_error("EOF inside quoted string");
+	BEGIN(INITIAL);
 }
 <include_quoted>{ANY}*	{ LEXOUT(("ISTR(%s) ", yytext)); yymore(); }
 <include_quoted>{NEWLINE}	{ cfg_parser->line++; yymore(); }
@@ -386,7 +404,10 @@ include{COLON}		{ LEXOUT(("v(%s) ", yytext)); BEGIN(include); }
 	}
 }
 
-{UNQUOTEDLETTER}*	{ LEXOUT(("unquotedstr(%s) ", yytext)); 
-			c_lval.str = region_strdup(cfg_parser->opt->region, yytext); return STRING; }
+{UNQUOTEDLETTER}*	{
+	LEXOUT(("unquotedstr(%s) ", yytext));
+	c_lval.str = region_strdup(cfg_parser->opt->region, yytext);
+	return STRING;
+}
 
 %%

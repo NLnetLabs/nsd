@@ -722,9 +722,8 @@ set_cloexec(struct nsd_socket *sock)
 {
 	assert(sock != NULL);
 
-	if(fcntl(sock->s, F_SETFD, FD_CLOEXEC) == -1) {
-		const char *socktype =
-			sock->addr.ai_family == SOCK_DGRAM ? "udp" : "tcp";
+	if(fcntl(sock->socket, F_SETFD, FD_CLOEXEC) == -1) {
+		const char *socktype = sock->type == SOCK_DGRAM ? "udp" : "tcp";
 		log_msg(LOG_ERR, "fcntl(..., O_CLOEXEC) failed for %s: %s",
 			socktype, strerror(errno));
 		return -1;
@@ -752,7 +751,7 @@ set_reuseport(struct nsd_socket *sock)
 	static const char optname[] = "SO_REUSEPORT";
 #endif /* SO_REUSEPORT_LB */
 
-	if (0 == setsockopt(sock->s, SOL_SOCKET, opt, &on, sizeof(on))) {
+	if (0 == setsockopt(sock->socket, SOL_SOCKET, opt, &on, sizeof(on))) {
 		return 1;
 	} else if(verbosity >= 3 || errno != ENOPROTOOPT) {
 		log_msg(LOG_ERR, "setsockopt(..., %s, ...) failed: %s",
@@ -771,7 +770,7 @@ set_reuseaddr(struct nsd_socket *sock)
 {
 #ifdef SO_REUSEADDR
 	int on = 1;
-	if(setsockopt(sock->s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) == 0) {
+	if(setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) == 0) {
 		return 1;
 	}
 	log_msg(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %s",
@@ -787,7 +786,7 @@ set_rcvbuf(struct nsd_socket *sock, int rcv)
 #ifdef SO_RCVBUF
 #ifdef SO_RCVBUFFORCE
 	if(0 == setsockopt(
-		sock->s, SOL_SOCKET, SO_RCVBUFFORCE, &rcv, sizeof(rcv)))
+		sock->socket, SOL_SOCKET, SO_RCVBUFFORCE, &rcv, sizeof(rcv)))
 	{
 		return 1;
 	}
@@ -799,7 +798,7 @@ set_rcvbuf(struct nsd_socket *sock, int rcv)
 	return -1;
 #else /* !SO_RCVBUFFORCE */
 	if (0 == setsockopt(
-		sock->s, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv)))
+		sock->socket, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv)))
 	{
 		return 1;
 	}
@@ -821,7 +820,7 @@ set_sndbuf(struct nsd_socket *sock, int snd)
 #ifdef SO_SNDBUF
 #ifdef SO_SNDBUFFORCE
 	if(0 == setsockopt(
-		sock->s, SOL_SOCKET, SO_SNDBUFFORCE, &snd, sizeof(snd)))
+		sock->socket, SOL_SOCKET, SO_SNDBUFFORCE, &snd, sizeof(snd)))
 	{
 		return 1;
 	}
@@ -833,7 +832,7 @@ set_sndbuf(struct nsd_socket *sock, int snd)
 	return -1;
 #else /* !SO_SNDBUFFORCE */
 	if(0 == setsockopt(
-		sock->s, SOL_SOCKET, SO_SNDBUF, &snd, sizeof(snd)))
+		sock->socket, SOL_SOCKET, SO_SNDBUF, &snd, sizeof(snd)))
 	{
 		return 1;
 	}
@@ -852,10 +851,9 @@ set_sndbuf(struct nsd_socket *sock, int snd)
 static int
 set_nonblock(struct nsd_socket *sock)
 {
-	const char *socktype =
-		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
+	const char *socktype = sock->type == SOCK_DGRAM ? "udp" : "tcp";
 
-	if(fcntl(sock->s, F_SETFL, O_NONBLOCK) == -1) {
+	if(fcntl(sock->socket, F_SETFL, O_NONBLOCK) == -1) {
 		log_msg(LOG_ERR, "fctnl(..., O_NONBLOCK) failed for %s: %s",
 			socktype, strerror(errno));
 		return -1;
@@ -870,11 +868,10 @@ set_ipv6_v6only(struct nsd_socket *sock)
 {
 #ifdef IPV6_V6ONLY
 	int on = 1;
-	const char *socktype =
-		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
+	const char *socktype = sock->type == SOCK_DGRAM ? "udp" : "tcp";
 
 	if(0 == setsockopt(
-		sock->s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)))
+		sock->socket, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)))
 	{
 		return 1;
 	}
@@ -913,7 +910,7 @@ set_ipv6_use_min_mtu(struct nsd_socket *sock)
 	static const char optname[] = "IPV6_MTU";
 #endif
 	if(0 == setsockopt(
-		sock->s, IPPROTO_IPV6, opt, &optval, sizeof(optval)))
+		sock->socket, IPPROTO_IPV6, opt, &optval, sizeof(optval)))
 	{
 		return 1;
 	}
@@ -947,7 +944,7 @@ set_ipv4_no_pmtu_disc(struct nsd_socket *sock)
 	 */
 	optval = IP_PMTUDISC_OMIT;
 	if(0 == setsockopt(
-		sock->s, IPPROTO_IP, opt, &optval, sizeof(optval)))
+		sock->socket, IPPROTO_IP, opt, &optval, sizeof(optval)))
 	{
 		return 1;
 	}
@@ -959,7 +956,7 @@ set_ipv4_no_pmtu_disc(struct nsd_socket *sock)
 	/* Use IP_PMTUDISC_DONT if IP_PMTUDISC_OMIT failed / undefined. */
 	optval = IP_PMTUDISC_DONT;
 	if(0 == setsockopt(
-		sock->s, IPPROTO_IP, opt, &optval, sizeof(optval)))
+		sock->socket, IPPROTO_IP, opt, &optval, sizeof(optval)))
 	{
 		return 1;
 	}
@@ -971,7 +968,7 @@ set_ipv4_no_pmtu_disc(struct nsd_socket *sock)
 #elif defined(IP_DONTFRAG)
 	int off = 0;
 	if (0 == setsockopt(
-		sock->s, IPPROTO_IP, IP_DONTFRAG, &off, sizeof(off)))
+		sock->socket, IPPROTO_IP, IP_DONTFRAG, &off, sizeof(off)))
 	{
 		return 1;
 	}
@@ -991,9 +988,8 @@ set_ip_freebind(struct nsd_socket *sock)
 {
 #ifdef IP_FREEBIND
 	int on = 1;
-	const char *socktype =
-		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
-	if(setsockopt(sock->s, IPPROTO_IP, IP_FREEBIND, &on, sizeof(on)) == 0)
+	const char *socktype = sock->type == SOCK_DGRAM ? "udp" : "tcp";
+	if(setsockopt(sock->socket, IPPROTO_IP, IP_FREEBIND, &on, sizeof(on)) == 0)
 	{
 		return 1;
 	}
@@ -1052,12 +1048,11 @@ set_ip_transparent(struct nsd_socket *sock)
 #	endif
 
 	int on = 1;
-	const char *socktype =
-		sock->addr.ai_socktype == SOCK_DGRAM ? "udp" : "tcp";
-	const int is_ip6 = (sock->addr.ai_family == AF_INET6);
+	const char *socktype = sock->type == SOCK_DGRAM ? "udp" : "tcp";
+	const int is_ip6 = (sock->family == AF_INET6);
 
 	if(0 == setsockopt(
-		sock->s,
+		sock->socket,
 		is_ip6 ? NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL6 : NSD_SOCKET_OPTION_TRANSPARENT_OPTLEVEL,
 		is_ip6 ? NSD_SOCKET_OPTION_TRANSPARENT6 : NSD_SOCKET_OPTION_TRANSPARENT,
 		&on, sizeof(on)))
@@ -1077,7 +1072,7 @@ static int
 set_tcp_maxseg(struct nsd_socket *sock, int mss)
 {
 #if defined(IPPROTO_TCP) && defined(TCP_MAXSEG)
-	if(setsockopt(sock->s, IPPROTO_TCP, TCP_MAXSEG, &mss, sizeof(mss)) == 0) {
+	if(setsockopt(sock->socket, IPPROTO_TCP, TCP_MAXSEG, &mss, sizeof(mss)) == 0) {
 		return 1;
 	}
 	log_msg(LOG_ERR, "setsockopt(..., TCP_MAXSEG, ...) failed for tcp: %s",
@@ -1109,7 +1104,7 @@ set_tcp_fastopen(struct nsd_socket *sock)
 	qlen = 5;
 #endif
 	if (0 == setsockopt(
-		sock->s, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)))
+		sock->socket, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)))
 	{
 		return 1;
 	}
@@ -1137,7 +1132,7 @@ static int
 set_bindtodevice(struct nsd_socket *sock)
 {
 #if defined(SO_BINDTODEVICE)
-	if(setsockopt(sock->s, SOL_SOCKET, SO_BINDTODEVICE,
+	if(setsockopt(sock->socket, SOL_SOCKET, SO_BINDTODEVICE,
 		sock->device, strlen(sock->device)) == -1)
 	{
 		log_msg(LOG_ERR, "setsockopt(..., %s, %s, ...) failed: %s",
@@ -1156,7 +1151,7 @@ static int
 set_setfib(struct nsd_socket *sock)
 {
 #if defined(SO_SETFIB)
-	if(setsockopt(sock->s, SOL_SOCKET, SO_SETFIB,
+	if(setsockopt(sock->socket, SOL_SOCKET, SO_SETFIB,
 	              (const void *)&sock->fib, sizeof(sock->fib)) == -1)
 	{
 		log_msg(LOG_ERR, "setsockopt(..., %s, %d, ...) failed: %s",
@@ -1175,13 +1170,12 @@ static int
 open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 {
 	int rcv = 1*1024*1024, snd = 1*1024*1024;
+	socklen_t addrlen = 0;
 
-	if(-1 == (sock->s = socket(
-		sock->addr.ai_family, sock->addr.ai_socktype, 0)))
-	{
+	if(-1 == (sock->socket = socket(sock->family, sock->type, 0))) {
 #ifdef INET6
-		if((sock->flags & NSD_SOCKET_IS_OPTIONAL) &&
-		   (sock->addr.ai_family == AF_INET6) &&
+		if((sock->flags & NSD_OPTIONAL_SOCKET) &&
+		   (sock->family == AF_INET6) &&
 		   (errno == EAFNOSUPPORT))
 		{
 			log_msg(LOG_WARNING, "fallback to UDP4, no IPv6: "
@@ -1208,13 +1202,16 @@ open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 	if(set_sndbuf(sock, snd) == -1)
 		return -1;
 #ifdef INET6
-	if(sock->addr.ai_family == AF_INET6) {
+	if(sock->family == AF_INET6) {
+		addrlen = sizeof(struct sockaddr_in6);
 		if(set_ipv6_v6only(sock) == -1 ||
 		   set_ipv6_use_min_mtu(sock) == -1)
 			return -1;
 	} else
 #endif /* INET6 */
-	if(sock->addr.ai_family == AF_INET) {
+	{
+		addrlen = sizeof(struct sockaddr_in);
+		assert(sock->family == AF_INET);
 		if(set_ipv4_no_pmtu_disc(sock) == -1)
 			return -1;
 	}
@@ -1234,9 +1231,9 @@ open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 	if(sock->fib != -1 && set_setfib(sock) == -1)
 		return -1;
 
-	if(bind(sock->s, (struct sockaddr *)&sock->addr.ai_addr, sock->addr.ai_addrlen) == -1) {
+	if(bind(sock->socket, (struct sockaddr *)&sock->address.inet, addrlen) == -1) {
 		char buf[256];
-		addrport2str((void*)&sock->addr.ai_addr, buf, sizeof(buf));
+		addrport2str((void*)&sock->address.inet, buf, sizeof(buf));
 		log_msg(LOG_ERR, "can't bind udp socket %s: %s",
 			buf, strerror(errno));
 		return -1;
@@ -1248,18 +1245,17 @@ open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 static int
 open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 {
+	socklen_t addrlen = 0;
 #ifdef USE_TCP_FASTOPEN
 	report_tcp_fastopen_config();
 #endif
 
 	(void)reuseport_works;
 
-	if(-1 == (sock->s = socket(
-		sock->addr.ai_family, sock->addr.ai_socktype, 0)))
-	{
+	if(-1 == (sock->socket = socket(sock->family, sock->type, 0))) {
 #ifdef INET6
-		if((sock->flags & NSD_SOCKET_IS_OPTIONAL) &&
-		   (sock->addr.ai_family == AF_INET6) &&
+		if((sock->flags & NSD_OPTIONAL_SOCKET) &&
+		   (sock->family == AF_INET6) &&
 		   (errno == EAFNOSUPPORT))
 		{
 			log_msg(LOG_WARNING, "fallback to TCP4, no IPv6: "
@@ -1279,12 +1275,17 @@ open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 	(void)set_reuseaddr(sock);
 
 #ifdef INET6
-	if(sock->addr.ai_family == AF_INET6) {
+	if(sock->family == AF_INET6) {
+		addrlen = sizeof(struct sockaddr_in6);
 		if (set_ipv6_v6only(sock) == -1 ||
 		    set_ipv6_use_min_mtu(sock) == -1)
 			return -1;
-	}
+	} else
 #endif
+	{
+		assert(sock->family == AF_INET);
+		addrlen = sizeof(struct sockaddr_in);
+	}
 
 	if(nsd->tcp_mss > 0)
 		set_tcp_maxseg(sock, nsd->tcp_mss);
@@ -1300,9 +1301,9 @@ open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 	if(sock->fib != -1 && set_setfib(sock) == -1)
 		return -1;
 
-	if(bind(sock->s, (struct sockaddr *)&sock->addr.ai_addr, sock->addr.ai_addrlen) == -1) {
+	if(bind(sock->socket, (struct sockaddr *)&sock->address.inet, addrlen) == -1) {
 		char buf[256];
-		addrport2str((void*)&sock->addr.ai_addr, buf, sizeof(buf));
+		addrport2str((void*)&sock->address.inet, buf, sizeof(buf));
 		log_msg(LOG_ERR, "can't bind tcp socket %s: %s",
 			buf, strerror(errno));
 		return -1;
@@ -1312,7 +1313,7 @@ open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 	(void)set_tcp_fastopen(sock);
 #endif
 
-	if(listen(sock->s, TCP_BACKLOG) == -1) {
+	if(listen(sock->socket, TCP_BACKLOG) == -1) {
 		log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
 		return -1;
 	}
@@ -1329,51 +1330,42 @@ server_init(struct nsd *nsd)
 	size_t i;
 	int reuseport = 1; /* Determine if REUSEPORT works. */
 
-	/* open server interface ports */
-	for(i = 0; i < nsd->ifs; i++) {
-		if(open_udp_socket(nsd, &nsd->udp[i], &reuseport) == -1 ||
-		   open_tcp_socket(nsd, &nsd->tcp[i], &reuseport) == -1)
-		{
+	/* open server udp interface ports */
+	for (i = 0; i < nsd->udp.count; i++) {
+		if (open_udp_socket(nsd, &nsd->udp.sockets[i], &reuseport) == -1)
 			return -1;
-		}
 	}
 
-	if(nsd->reuseport && reuseport) {
-		size_t ifs = nsd->ifs * nsd->reuseport;
+	/* open server tcp interface ports */
+	for (i = 0; i < nsd->tcp.count; i++) {
+		if (open_tcp_socket(nsd, &nsd->tcp.sockets[i], &reuseport) == -1)
+			return -1;
+	}
 
-		/* increase the size of the interface arrays, there are going
+	if (nsd->reuseport && reuseport) {
+		size_t ifs = nsd->udp.count * nsd->reuseport;
+
+		/* increase the size of the udp interface array, there are going
 		 * to be separate interface file descriptors for every server
 		 * instance */
-		region_remove_cleanup(nsd->region, free, nsd->udp);
-		region_remove_cleanup(nsd->region, free, nsd->tcp);
+		region_remove_cleanup(nsd->region, free, nsd->udp.sockets);
 
-		nsd->udp = xrealloc(nsd->udp, ifs * sizeof(*nsd->udp));
-		nsd->tcp = xrealloc(nsd->tcp, ifs * sizeof(*nsd->tcp));
-		region_add_cleanup(nsd->region, free, nsd->udp);
-		region_add_cleanup(nsd->region, free, nsd->tcp);
-		if(ifs > nsd->ifs) {
-			memset(&nsd->udp[nsd->ifs], 0,
-				(ifs-nsd->ifs)*sizeof(*nsd->udp));
-			memset(&nsd->tcp[nsd->ifs], 0,
-				(ifs-nsd->ifs)*sizeof(*nsd->tcp));
+		nsd->udp.sockets = xrealloc(nsd->udp.sockets, ifs * sizeof(*nsd->udp.sockets));
+		region_add_cleanup(nsd->region, free, nsd->udp.sockets);
+
+		if (ifs > nsd->udp.count) {
+			memset(&nsd->udp.sockets[nsd->udp.count], 0,
+				(ifs - nsd->udp.count) * sizeof(*nsd->udp.sockets));
 		}
 
-		for(i = nsd->ifs; i < ifs; i++) {
-			nsd->udp[i] = nsd->udp[i%nsd->ifs];
-			nsd->udp[i].s = -1;
-			if(open_udp_socket(nsd, &nsd->udp[i], &reuseport) == -1) {
+		for (i = nsd->udp.count; i < ifs; i++) {
+			nsd->udp.sockets[i] = nsd->udp.sockets[i%nsd->udp.count];
+			nsd->udp.sockets[i].socket = -1;
+			if (open_udp_socket(nsd, &nsd->udp.sockets[i], &reuseport) == -1)
 				return -1;
-			}
-			/* Turn off REUSEPORT for TCP by copying the socket
-			 * file descriptor.
-			 * This means we should not close TCP used by
-			 * other servers in reuseport enabled mode, in
-			 * server_child().
-			 */
-			nsd->tcp[i] = nsd->tcp[i%nsd->ifs];
 		}
 
-		nsd->ifs = ifs;
+		nsd->udp.count = ifs;
 	} else {
 		nsd->reuseport = 0;
 	}
@@ -1470,20 +1462,20 @@ server_start_children(struct nsd *nsd, region_type* region, netio_type* netio,
 static void
 server_close_socket(struct nsd_socket *sock)
 {
-	if(sock->s != -1) {
-		close(sock->s);
-		sock->s = -1;
+	if(sock->socket != -1) {
+		close(sock->socket);
+		sock->socket = -1;
 	}
 }
 
 void
-server_close_all_sockets(struct nsd_socket sockets[], size_t n)
+server_close_all_sockets(struct nsd_socket_set *set)
 {
 	size_t i;
 
 	/* Close all the sockets... */
-	for (i = 0; i < n; ++i) {
-		server_close_socket(&sockets[i]);
+	for (i = 0; i < set->count; ++i) {
+		server_close_socket(&set->sockets[i]);
 	}
 }
 
@@ -1496,8 +1488,8 @@ server_shutdown(struct nsd *nsd)
 {
 	size_t i;
 
-	server_close_all_sockets(nsd->udp, nsd->ifs);
-	server_close_all_sockets(nsd->tcp, nsd->ifs);
+	server_close_all_sockets(&nsd->udp);
+	server_close_all_sockets(&nsd->tcp);
 	/* CHILD: close command channel to parent */
 	if(nsd->this_child && nsd->this_child->parent_fd != -1)
 	{
@@ -1691,8 +1683,8 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 		if(nsd->signal_hint_shutdown) {
 		shutdown:
 			log_msg(LOG_WARNING, "signal received, shutting down...");
-			server_close_all_sockets(nsd->udp, nsd->ifs);
-			server_close_all_sockets(nsd->tcp, nsd->ifs);
+			server_close_all_sockets(&nsd->udp);
+			server_close_all_sockets(&nsd->tcp);
 #ifdef HAVE_SSL
 			daemon_remote_close(nsd->rc);
 #endif
@@ -2739,8 +2731,8 @@ server_main(struct nsd *nsd)
 	log_msg(LOG_WARNING, "signal received, shutting down...");
 
 	/* close opened ports to avoid race with restart of nsd */
-	server_close_all_sockets(nsd->udp, nsd->ifs);
-	server_close_all_sockets(nsd->tcp, nsd->ifs);
+	server_close_all_sockets(&nsd->udp);
+	server_close_all_sockets(&nsd->tcp);
 #ifdef HAVE_SSL
 	daemon_remote_close(nsd->rc);
 #endif
@@ -2906,7 +2898,7 @@ add_udp_handler(
 	data->socket = sock;
 
 	memset(handler, 0, sizeof(*handler));
-	event_set(handler, sock->s, EV_PERSIST|EV_READ, handle_udp, data);
+	event_set(handler, sock->socket, EV_PERSIST|EV_READ, handle_udp, data);
 	if(event_base_set(nsd->event_base, handler) != 0)
 		log_msg(LOG_ERR, "nsd udp: event_base_set failed");
 	if(event_add(handler, NULL) != 0)
@@ -2927,12 +2919,12 @@ add_tcp_handler(
 #ifdef HAVE_SSL
 	if (nsd->tls_ctx &&
 	    nsd->options->tls_port &&
-	    using_tls_port((struct sockaddr *)&sock->addr.ai_addr, nsd->options->tls_port))
+	    using_tls_port((struct sockaddr *)&sock->address.inet, nsd->options->tls_port))
 	{
 		data->tls_accept = 1;
 		if(verbosity >= 2) {
 			char buf[48];
-			addrport2str((void*)(struct sockaddr_storage*)&sock->addr.ai_addr, buf, sizeof(buf));
+			addrport2str((void*)(struct sockaddr_storage*)&sock->address.inet, buf, sizeof(buf));
 			VERBOSITY(4, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
 		}
 	} else {
@@ -2941,7 +2933,7 @@ add_tcp_handler(
 #endif
 
 	memset(handler, 0, sizeof(*handler));
-	event_set(handler, sock->s, EV_PERSIST|EV_READ,	handle_tcp_accept, data);
+	event_set(handler, sock->socket, EV_PERSIST|EV_READ, handle_tcp_accept, data);
 	if(event_base_set(nsd->event_base, handler) != 0)
 		log_msg(LOG_ERR, "nsd tcp: event_base_set failed");
 	if(event_add(handler, NULL) != 0)
@@ -2984,10 +2976,10 @@ server_child(struct nsd *nsd)
 #endif
 
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
-		server_close_all_sockets(nsd->tcp, nsd->ifs);
+		server_close_all_sockets(&nsd->tcp);
 	}
 	if (!(nsd->server_kind & NSD_SERVER_UDP)) {
-		server_close_all_sockets(nsd->udp, nsd->ifs);
+		server_close_all_sockets(&nsd->udp);
 	}
 
 	if (nsd->this_child->parent_fd != -1) {
@@ -3010,15 +3002,15 @@ server_child(struct nsd *nsd)
 	}
 
 	if(nsd->reuseport) {
-		numifs = nsd->ifs / nsd->reuseport;
+		numifs = nsd->udp.count / nsd->reuseport;
 		from = numifs * nsd->this_child->child_num;
-		if(from+numifs > nsd->ifs) { /* should not happen */
+		if(from+numifs > nsd->udp.count) { /* should not happen */
 			from = 0;
-			numifs = nsd->ifs;
+			numifs = nsd->udp.count;
 		}
 	} else {
 		from = 0;
-		numifs = nsd->ifs;
+		numifs = nsd->udp.count;
 	}
 
 	if (nsd->server_kind & NSD_SERVER_UDP) {
@@ -3037,19 +3029,19 @@ server_child(struct nsd *nsd)
 			msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
 		}
 
-		for (i = 0; i < nsd->ifs; i++) {
+		for (i = 0; i < nsd->udp.count; i++) {
 			int listen;
 			struct udp_handler_data *data;
 
-			listen = nsd_bitset_isset(nsd->udp[i].servers, child);
+			listen = nsd_bitset_isset(nsd->udp.sockets[i].servers, child);
 
 			if(i >= from && i < (from + numifs) && listen) {
 				data = region_alloc_zero(
 					nsd->server_region, sizeof(*data));
-				add_udp_handler(nsd, &nsd->udp[i], data);
+				add_udp_handler(nsd, &nsd->udp.sockets[i], data);
 			} else {
 				/* close sockets intended for other servers */
-				server_close_socket(&nsd->udp[i]);
+				server_close_socket(&nsd->udp.sockets[i]);
 			}
 		}
 	}
@@ -3065,27 +3057,19 @@ server_child(struct nsd *nsd)
 		tcp_accept_handlers = region_alloc_array(server_region,
 			numifs, sizeof(*tcp_accept_handlers));
 
-		for (i = 0; i < nsd->ifs; i++) {
+		for (i = 0; i < nsd->tcp.count; i++) {
 			int listen;
 			struct tcp_accept_handler_data *data;
 
-			listen = nsd_bitset_isset(nsd->tcp[i].servers, child);
+			listen = nsd_bitset_isset(nsd->tcp.sockets[i].servers, child);
 
-			if(i >= from && i < (from + numifs) && listen) {
-				data = &tcp_accept_handlers[i-from];
+			if (listen) {
+				data = &tcp_accept_handlers[i];
 				memset(data, 0, sizeof(*data));
-				add_tcp_handler(nsd, &nsd->tcp[i], data);
+				add_tcp_handler(nsd, &nsd->tcp.sockets[i], data);
 			} else {
-				/* close sockets intended for other servers */
-				/*
-				 * uncomment this once tcp servers are no
-				 * longer copied in the tcp fd copy line
-				 * in server_init().
-				server_close_socket(&nsd->tcp[i]);
-				*/
-				/* close sockets not meant for this server*/
-				if(!listen)
-					server_close_socket(&nsd->tcp[i]);
+				/* close sockets not meant for this server */
+				server_close_socket(&nsd->tcp.sockets[i]);
 			}
 		}
 	} else {
@@ -3425,9 +3409,9 @@ handle_udp(int fd, short event, void* arg)
 
 		/* Account... */
 #ifdef BIND8_STATS
-		if (data->socket->addr.ai_family == AF_INET) {
+		if (data->socket->family == AF_INET) {
 			STATUP(data->nsd, qudp);
-		} else if (data->socket->addr.ai_family == AF_INET6) {
+		} else if (data->socket->family == AF_INET6) {
 			STATUP(data->nsd, qudp6);
 		}
 #endif

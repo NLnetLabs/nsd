@@ -1,0 +1,50 @@
+# #-- socket_types.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+$TPKG_NSD -c nsd.conf -p $NSD_PORT -V 5
+wait_nsd_up nsd.log
+wait_logfile nsd.log "nsd started"
+
+cat nsd.log
+
+# ensure server is listening on tcp sockets
+for PORT in $NSD_PORT $NSD_TCP_PORT $NSD_TCP_UDP_PORT; do
+  if dig @127.0.0.1 -p $PORT +tcp +timeout=1 ns1.example.com; then
+    echo "server is correctly accepting TCP queries on 127.0.0.1@$PORT"
+  else
+    echo "server is incorrectly not accepting TCP queries on 127.0.0.1@$PORT"
+    exit 1
+  fi
+done
+
+# ensure server is listening on udp sockets
+for PORT in $NSD_PORT $NSD_UDP_PORT $NSD_TCP_UDP_PORT; do
+  if dig @127.0.0.1 -p $PORT +notcp +timeout=1 ns1.example.com; then
+    echo "server is correctly accepting UDP queries on 127.0.0.1@$PORT"
+  else
+    echo "server is incorrectly not accepting UDP queries on 127.0.0.1@$PORT"
+    exit 1
+  fi
+done
+
+if dig @127.0.0.1 -p $NSD_UDP_PORT +tcp +timeout=1 ns1.example.com; then
+  echo "server is incorrectly accepting TCP queries on 127.0.0.1@$NSD_UDP_PORT"
+  exit 1
+else
+  echo "server is correctly not accepting TCP queries on 127.0.0.1@$NSD_UDP_PORT"
+fi
+
+if dig @127.0.0.1 -p $NSD_TCP_PORT +notcp +timeout=1 ns1.example.com; then
+  echo "server is incorrectly accepting UDP queries on 127.0.0.1@$NSD_TCP_PORT"
+  exit 1
+else
+  echo "server is correctly not accepting UDP queries on 127.0.0.1@$NSD_TCP_PORT"
+fi

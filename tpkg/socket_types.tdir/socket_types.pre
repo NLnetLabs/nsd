@@ -1,0 +1,32 @@
+# #-- socket_types.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+get_random_port 4
+NSD_PORT=$RND_PORT
+NSD_TCP_PORT=$(($RND_PORT + 1))
+NSD_UDP_PORT=$(($RND_PORT + 2))
+NSD_TCP_UDP_PORT=$(($RND_PORT + 3))
+NSD_PID="nsd.pid"
+
+echo port: $NSD_PORT
+echo tcp port: $NSD_TCP_PORT
+echo udp port: $NSD_UDP_PORT
+echo tcp+udp port: $NSD_TCP_UDP_PORT
+
+# share the vars
+echo "export NSD_PORT=$NSD_PORT" >> .tpkg.var.test
+echo "export NSD_TCP_PORT=$NSD_TCP_PORT" >> .tpkg.var.test
+echo "export NSD_UDP_PORT=$NSD_UDP_PORT" >> .tpkg.var.test
+echo "export NSD_TCP_UDP_PORT=$NSD_TCP_UDP_PORT" >> .tpkg.var.test
+echo "export NSD_PID=$NSD_PID" >> .tpkg.var.test
+
+sed -e "s/NSD_PORT/$NSD_PORT/" \
+    -e "s/NSD_TCP_PORT/$NSD_TCP_PORT/" \
+    -e "s/NSD_UDP_PORT/$NSD_UDP_PORT/" \
+    -e "s/NSD_TCP_UDP_PORT/$NSD_TCP_UDP_PORT/" \
+    -e "s/NSD_PID/$NSD_PID/" \
+    < socket_types.conf > nsd.conf
