@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix static analyzer reports on ixfrcreate temp file.
+	- Fixup wrong ixfrcreate fread return check.
 
 4.5.0
 ================

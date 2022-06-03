@@ -253,7 +253,7 @@ void ixfr_create_free(struct ixfr_create* ixfrcr)
 /* read uint16_t from spool */
 static int read_spool_u16(FILE* spool, uint16_t* val)
 {
-	if(fread(val, sizeof(*val), 1, spool) < sizeof(*val))
+	if(fread(val, sizeof(*val), 1, spool) < 1)
 		return 0;
 	return 1;
 }
@@ -261,7 +261,7 @@ static int read_spool_u16(FILE* spool, uint16_t* val)
 /* read uint32_t from spool */
 static int read_spool_u32(FILE* spool, uint32_t* val)
 {
-	if(fread(val, sizeof(*val), 1, spool) < sizeof(*val))
+	if(fread(val, sizeof(*val), 1, spool) < 1)
 		return 0;
 	return 1;
 }
@@ -271,14 +271,14 @@ static int read_spool_dname(FILE* spool, uint8_t* buf, size_t buflen,
 	size_t* dname_len)
 {
 	uint16_t len;
-	if(fread(&len, sizeof(len), 1, spool) < sizeof(len))
+	if(fread(&len, sizeof(len), 1, spool) < 1)
 		return 0;
 	if(len > buflen) {
 		log_msg(LOG_ERR, "dname too long");
 		return 0;
 	}
 	if(len > 0) {
-		if(fread(buf, len, 1, spool) < len)
+		if(fread(buf, len, 1, spool) < 1)
 			return 0;
 	}
 	*dname_len = len;
@@ -418,7 +418,7 @@ static int process_diff_rrset(FILE* spool, struct ixfr_create* ixfrcr,
 #pragma GCC diagnostic ignored "-Wtype-limits"
 		assert(rdlen <= sizeof(buf));
 #pragma GCC diagnostic pop
-		if(fread(buf, rdlen, 1, spool) < (size_t)rdlen) {
+		if(fread(buf, rdlen, 1, spool) < 1) {
 			log_msg(LOG_ERR, "error reading file %s: %s",
 				ixfrcr->file_name, strerror(errno));
 			return 0;
@@ -490,7 +490,7 @@ static int process_spool_delrrset(FILE* spool, struct ixfr_create* ixfrcr,
 #pragma GCC diagnostic ignored "-Wtype-limits"
 		assert(rdlen <= sizeof(buf));
 #pragma GCC diagnostic pop
-		if(fread(buf, rdlen, 1, spool) < (size_t)rdlen) {
+		if(fread(buf, rdlen, 1, spool) < 1) {
 			log_msg(LOG_ERR, "error reading file %s: %s",
 				ixfrcr->file_name, strerror(errno));
 			return 0;
