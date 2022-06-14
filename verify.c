@@ -323,7 +323,11 @@ verify_handle_command(int fd, short event, void *arg)
 	sig_atomic_t mode;
 
 	assert(nsd != NULL);
-	assert(event & (EV_READ | EV_CLOSED));
+	assert(event & (EV_READ
+#ifdef EV_CLOSED
+	| EV_CLOSED
+#endif
+	));
 
 	if((len = read(fd, &mode, sizeof(mode))) == -1) {
 		log_msg(LOG_ERR, "verify: verify_handle_command: read: %s",
