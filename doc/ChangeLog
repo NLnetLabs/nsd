@@ -1,5 +1,7 @@
 14 June 2022: Wouter
 	- Fix compilation without libevent and compilation of nsd-mem.
+	- Fix verify handler add of sigchld event for compilation without
+	  libevent.
 
 3 June 2022: Wouter
 	- Fix static analyzer reports on ixfrcreate temp file.

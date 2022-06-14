@@ -3046,7 +3046,7 @@ void server_verify(struct nsd *nsd, int cmdsocket)
 
 	event_set(&sigchld_event, SIGCHLD, EV_SIGNAL|EV_PERSIST, verify_handle_exit, nsd);
 	if(event_base_set(nsd->event_base, &sigchld_event) != 0 ||
-	   event_add(&sigchld_event, NULL) != 0)
+	   signal_add(&sigchld_event, NULL) != 0)
 	{
 		log_msg(LOG_ERR, "verify: could not add SIGCHLD event");
 		goto fail;
