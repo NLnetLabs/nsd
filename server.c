@@ -2316,8 +2316,18 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #endif
 
 	if(nsd->options->verify_enable) {
+#ifdef RATELIMIT
+		/* allocate resources for rate limiting. use a slot that is guaranteed
+		   not mapped to a file so no persistent data is overwritten */
+		rrl_init(nsd->child_count + 1);
+#endif
+
 		/* spin-up server and execute verifiers for each zone */
 		server_verify(nsd, cmdsocket);
+#ifdef RATELIMIT
+		/* deallocate rate limiting resources */
+		rrl_deinit(nsd->child_count + 1);
+#endif
 	}
 
 	for(node = radix_first(nsd->db->zonetree);
