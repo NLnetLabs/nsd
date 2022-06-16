@@ -3109,8 +3109,8 @@ void server_verify(struct nsd *nsd, int cmdsocket)
 	event_del(&sigchld_event);
 	event_del(&cmd_event);
 
-	assert(nsd->next_zone_to_verify == NULL);
-	assert(nsd->verifier_count == 0);
+	assert(nsd->next_zone_to_verify == NULL || nsd->mode == NSD_QUIT);
+	assert(nsd->verifier_count == 0 || nsd->mode == NSD_QUIT);
 fail:
 	event_base_free(nsd->event_base);
 	region_destroy(nsd->server_region);
