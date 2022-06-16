@@ -134,7 +134,7 @@ static void verify_handle_stream(int fd, short event, void *arg)
 		}
 	} while(cnt > 0);
 
-	if(cnt <= 0 && !(errno == EAGAIN || errno == EINTR)) {
+	if(cnt == 0 || (cnt < 0 && !(errno == EAGAIN || errno == EINTR))) {
 		event_del(&stream->event);
 		close(stream->fd);
 		stream->fd = -1;
@@ -174,13 +174,11 @@ static void close_verifier(struct verifier *verifier)
 	if (verifier->output_stream.fd != -1) {
 		verify_handle_stream(
 			verifier->output_stream.fd, EV_READ, verifier);
-		verifier->output_stream.fd = -1;
 	}
 
 	if (verifier->error_stream.fd != -1) {
 		verify_handle_stream(
 			verifier->error_stream.fd, EV_READ, verifier);
-		verifier->error_stream.fd = -1;
 	}
 
 	verifier->zone->is_ok = verifier->was_ok;
