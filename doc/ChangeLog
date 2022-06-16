@@ -1,5 +1,7 @@
 16 June 2022: Wouter
 	- Fix that the unit test verify_repat cleans up nsd on exit.
+	- Fix to remove ixfrcreate.c asserts about uint16 within limits
+	  because of warnings from analyzers.
 
 14 June 2022: Wouter
 	- Fix compilation without libevent and compilation of nsd-mem.

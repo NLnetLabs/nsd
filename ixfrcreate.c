@@ -582,10 +582,8 @@ static int process_diff_domain(FILE* spool, struct ixfr_create* ixfrcr,
 				ixfrcr->file_name, strerror(errno));
 			return 0;
 		}
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtype-limits"
-		assert(rrcount <= 65536);
-#pragma GCC diagnostic pop
+		/* The rrcount is within limits of sizeof(marktypes), because
+		 * the uint16_t < 65536 */
 		rrset = domain_find_rrset(domain, zone, tp);
 		if(!rrset) {
 			/* rrset in spool but not in new zone, deleted RRset */
@@ -650,10 +648,8 @@ static int process_domain_del_RRs(struct ixfr_create* ixfrcr,
 				ixfrcr->file_name, strerror(errno));
 			return 0;
 		}
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtype-limits"
-		assert(rrcount <= 65536);
-#pragma GCC diagnostic pop
+		/* The rrcount is within reasonable limits, because
+		 * the uint16_t < 65536 */
 		if(!process_spool_delrrset(spool, ixfrcr, store, dname,
 			dname_len, tp, kl, rrcount))
 			return 0;
