@@ -1,3 +1,6 @@
+16 June 2022: Wouter
+	- Fix that the unit test verify_repat cleans up nsd on exit.
+
 14 June 2022: Wouter
 	- Fix compilation without libevent and compilation of nsd-mem.
 	- Fix verify handler add of sigchld event for compilation without
