@@ -302,7 +302,7 @@ void verify_handle_exit(int sig, short event, void *arg)
 	}
 
 	if(nsd->next_zone_to_verify == NULL && nsd->verifier_count == 0) {
-		event_base_loopbreak(nsd->event_base);
+		event_base_loopexit(nsd->event_base, NULL);
 		return;
 	}
 }
@@ -342,7 +342,7 @@ verify_handle_command(int fd, short event, void *arg)
 	nsd->mode = mode;
 
 	if(nsd->verifier_count == 0) {
-		event_base_loopbreak(nsd->event_base);
+		event_base_loopexit(nsd->event_base, NULL);
 		return; /* exit early if no verifiers are executing */
 	}
 
