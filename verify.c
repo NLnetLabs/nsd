@@ -57,16 +57,83 @@ struct zone *verify_next_zone(struct nsd *nsd, struct zone *zone)
 	return NULL;
 }
 
+static inline ssize_t fill_buffer(struct verifier_stream *stream)
+{
+	ssize_t cnt = 0;
+
+	assert(stream);
+	assert(stream->fd != -1);
+	assert(stream->cnt <= LOGBUFSIZE);
+	assert(stream->off <= stream->cnt);
+
+	// move data to start of buffer assuming all complete lines are printed
+	if (stream->off) {
+		size_t len = stream->cnt - stream->off;
+		memmove(stream->buf, stream->buf + stream->off, len);
+		stream->off = 0;
+		stream->cnt = len;
+		stream->buf[stream->cnt] = '\0'; // always null-terminate
+	}
+
+	// read data if space is available
+	cnt = read(stream->fd, stream->buf + stream->cnt, LOGBUFSIZE - stream->cnt);
+	if (cnt > 0)
+		stream->cnt += (size_t)cnt;
+	assert(stream->cnt <= LOGBUFSIZE);
+	assert(stream->off <= stream->cnt);
+	stream->buf[stream->cnt] = '\0'; // always null-terminate
+
+	return cnt;
+}
+
+static inline size_t print_line(struct verifier_stream *stream, int eof)
+{
+	char *eol = NULL;
+	size_t len;
+	const char *fmt;
+
+	if (stream->cnt == 0)
+		return 0;
+	assert(stream->off <= stream->cnt);
+	if (stream->off == stream->cnt)
+		return 0;
+
+	// try to locate natural line break
+	assert(stream->buf[stream->cnt] == '\0');
+	if ((eol = strchr(stream->buf + stream->off, '\n'))) {
+		len = eol - (stream->buf + stream->off);
+	} else {
+		len = stream->cnt - stream->off;
+	}
+
+	assert(len <= (stream->cnt - stream->off));
+	// wait for buffer to contain a full line except on eof
+	if (len < LOGLINELEN && !eol && !eof)
+		return 0;
+
+	if (len > LOGLINELEN) {
+		fmt = stream->cut ? ".. %.*s .." : "%.*s ..";
+		len = LOGLINELEN; // remainder printed next iteration
+		stream->cut = 1;
+	} else {
+		fmt = stream->cut ? ".. %.*s" : "%.*s";
+		stream->cut = 0;
+	}
+	log_msg(stream->priority, fmt, len, stream->buf + stream->off);
+
+	stream->off += len + (eol != NULL);
+	assert(stream->off <= stream->cnt);
+	return len;
+}
+
 /*
  * Log verifier output on STDOUT and STDERR. Lines longer than LOGLINELEN are
  * split over multiple lines. Line-breaks are indicated in the log with "...".
  */
 static void verify_handle_stream(int fd, short event, void *arg)
 {
-	size_t len;
+	int eof = 0;
 	ssize_t cnt;
-	char *end, *ptr;
-	const char *fmt;
 	struct verifier *verifier;
 	struct verifier_stream *stream;
 
@@ -81,60 +148,16 @@ static void verify_handle_stream(int fd, short event, void *arg)
 		stream = &verifier->error_stream;
 	}
 
+	assert(stream);
 	assert(stream->fd != -1);
 
 	do {
-		/* (re)fill buffer */
-		errno = 0;
-		end = NULL;
-		cnt = read(stream->fd,
-		           stream->buf + stream->cnt,
-		           LOGBUFSIZE - stream->cnt);
-		if(cnt > 0) {
-			stream->buf[stream->cnt + (size_t)cnt] = '\0';
-			end = strchr(stream->buf + stream->cnt, '\n');
-			stream->cnt += (size_t)cnt;
-			if(end == NULL && stream->cnt == LOGBUFSIZE) {
-				end = stream->buf + stream->cnt;
-			}
-		} else if((cnt ==  0) ||
-		          (cnt == -1 && !(errno == EAGAIN || errno == EINTR)))
-		{
-			/* flush what is available */
-			end = stream->cnt > 0 ? stream->buf + stream->cnt : NULL;
-		}
-		while(end != NULL) {
-			ptr = stream->buf;
-			len = end - ptr;
-			while(len > LOGLINELEN) {
-				fmt = stream->cut ? ".. %.*s .." : "%.*s ..";
-				stream->cut = 1; /* split line */
-				log_msg(stream->priority, fmt, LOGLINELEN, ptr);
-				ptr += LOGLINELEN;
-				len -= LOGLINELEN;
-			}
-			assert(len <= LOGLINELEN);
-			fmt = stream->cut ? ".. %.*s" : "%.*s";
-			if(*end == '\n' || cnt <= 0) {
-				stream->cut = 0;
-				/* flush buffer unless more data is expected */
-				*end = '\0';
-				log_msg(stream->priority, fmt, len, ptr);
-				ptr += len;
-			}
-			if(cnt <= 0) {
-				break;
-			}
-			/* move data to head of buffer */
-			len = (ptr - stream->buf);
-			memmove(stream->buf, ptr + 1, (stream->cnt - len) - 1);
-			stream->cnt -= len + 1;
-			stream->buf[stream->cnt] = '\0';
-			end = stream->cnt > 0 ? strchr(stream->buf, '\n') : NULL;
-		}
-	} while(cnt > 0);
+		cnt = fill_buffer(stream);
+		eof = !cnt || (cnt < 0 && errno != EAGAIN && errno != EINTR);
+		while (print_line(stream, eof)) ;
+	} while (cnt > 0);
 
-	if(cnt == 0 || (cnt < 0 && !(errno == EAGAIN || errno == EINTR))) {
+	if(eof) {
 		event_del(&stream->event);
 		close(stream->fd);
 		stream->fd = -1;
@@ -155,6 +178,18 @@ static void kill_verifier(struct verifier *verifier)
 	}
 }
 
+static void close_stream(struct verifier *verifier, struct verifier_stream *stream)
+{
+	if (stream->fd == -1)
+		return;
+	verify_handle_stream(stream->fd, EV_READ, verifier);
+	if (stream->fd == -1)
+		return;
+	event_del(&stream->event);
+	close(stream->fd);
+	stream->fd = -1;
+}
+
 static void close_verifier(struct verifier *verifier)
 {
 	/* unregister events and close streams (in that order) */
@@ -171,15 +206,8 @@ static void close_verifier(struct verifier *verifier)
 		region_destroy(verifier->zone_feed.region);
 	}
 
-	if (verifier->output_stream.fd != -1) {
-		verify_handle_stream(
-			verifier->output_stream.fd, EV_READ, verifier);
-	}
-
-	if (verifier->error_stream.fd != -1) {
-		verify_handle_stream(
-			verifier->error_stream.fd, EV_READ, verifier);
-	}
+	close_stream(verifier, &verifier->error_stream);
+	close_stream(verifier, &verifier->output_stream);
 
 	verifier->zone->is_ok = verifier->was_ok;
 	verifier->pid = -1;
@@ -455,6 +483,7 @@ void verify_zone(struct nsd *nsd, struct zone *zone)
 
 	verifier->error_stream.fd = fderr;
 	verifier->error_stream.cnt = 0;
+	verifier->error_stream.off = 0;
 	verifier->error_stream.buf[0] = '\0';
 	event_set(&verifier->error_stream.event,
 	          verifier->error_stream.fd,
@@ -470,6 +499,7 @@ void verify_zone(struct nsd *nsd, struct zone *zone)
 
 	verifier->output_stream.fd = fdout;
 	verifier->output_stream.cnt = 0;
+	verifier->output_stream.off = 0;
 	verifier->output_stream.buf[0] = '\0';
 	event_set(&verifier->output_stream.event,
 	          verifier->output_stream.fd,

@@ -52,6 +52,7 @@ struct verifier_stream {
 	int cut;
 	char buf[LOGBUFSIZE+1];
 	size_t cnt;
+	size_t off;
 };
 
 struct verifier {
