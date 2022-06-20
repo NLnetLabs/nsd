@@ -3018,7 +3018,7 @@ add_tcp_handler(
 void server_verify(struct nsd *nsd, int cmdsocket)
 {
 	size_t size = 0;
-	struct event cmd_event, sigchld_event;
+	struct event cmd_event, signal_event, exit_event;
 	struct zone *zone;
 
 	assert(nsd != NULL);
@@ -3034,6 +3034,9 @@ void server_verify(struct nsd *nsd, int cmdsocket)
 	nsd->verifier_count = 0;
 	nsd->verifier_limit = nsd->options->verifier_count;
 	size = sizeof(struct verifier) * nsd->verifier_limit;
+	pipe(nsd->verifier_pipe);
+	fcntl(nsd->verifier_pipe[0], F_SETFD, FD_CLOEXEC);
+	fcntl(nsd->verifier_pipe[1], F_SETFD, FD_CLOEXEC);
 	nsd->verifiers = region_alloc_zero(nsd->server_region, size);
 
 	for(size_t i = 0; i < nsd->verifier_limit; i++) {
@@ -3054,11 +3057,19 @@ void server_verify(struct nsd *nsd, int cmdsocket)
 		goto fail;
 	}
 
-	event_set(&sigchld_event, SIGCHLD, EV_SIGNAL|EV_PERSIST, verify_handle_exit, nsd);
-	if(event_base_set(nsd->event_base, &sigchld_event) != 0 ||
-	   signal_add(&sigchld_event, NULL) != 0)
+	event_set(&signal_event, SIGCHLD, EV_SIGNAL|EV_PERSIST, verify_handle_signal, nsd);
+	if(event_base_set(nsd->event_base, &signal_event) != 0 ||
+	   signal_add(&signal_event, NULL) != 0)
 	{
-		log_msg(LOG_ERR, "verify: could not add SIGCHLD event");
+		log_msg(LOG_ERR, "verify: could not add signal event");
+		goto fail;
+	}
+
+	event_set(&exit_event, nsd->verifier_pipe[0], EV_READ|EV_PERSIST, verify_handle_exit, nsd);
+	if(event_base_set(nsd->event_base, &exit_event) != 0 ||
+	   event_add(&exit_event, NULL) != 0)
+  {
+		log_msg(LOG_ERR, "verify: could not add exit event");
 		goto fail;
 	}
 
@@ -3106,18 +3117,23 @@ void server_verify(struct nsd *nsd, int cmdsocket)
 	event_base_dispatch(nsd->event_base);
 
 	/* remove command and exit event handlers */
-	event_del(&sigchld_event);
+	event_del(&exit_event);
+	event_del(&signal_event);
 	event_del(&cmd_event);
 
 	assert(nsd->next_zone_to_verify == NULL || nsd->mode == NSD_QUIT);
 	assert(nsd->verifier_count == 0 || nsd->mode == NSD_QUIT);
 fail:
 	event_base_free(nsd->event_base);
+	close(nsd->verifier_pipe[0]);
+	close(nsd->verifier_pipe[1]);
 	region_destroy(nsd->server_region);
 
 	nsd->event_base = NULL;
 	nsd->server_region = NULL;
 	nsd->verifier_limit = 0;
+	nsd->verifier_pipe[0] = -1;
+	nsd->verifier_pipe[1] = -1;
 	nsd->verifiers = NULL;
 }
 

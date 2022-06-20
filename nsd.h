@@ -282,6 +282,7 @@ struct	nsd
 	struct zone *next_zone_to_verify;
 	size_t verifier_count; /* Number of active verifiers */
 	size_t verifier_limit; /* Maximum number of active verifiers */
+	int verifier_pipe[2]; /* Pipe to trigger verifier exit handler */
 	struct verifier *verifiers;
 
 	edns_data_type edns_ipv4;

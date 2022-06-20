@@ -264,17 +264,9 @@ void verify_handle_timeout(int fd, short event, void *arg)
 	kill_verifier(verifier);
 }
 
-/*
- * Reap process and update status of respective zone based on the exit code
- * of a verifier. Everything from STDOUT and STDERR still available is read and
- * written to the log as it might contain valuable information.
- *
- * NOTE: A timeout might have caused the verifier to be terminated.
- */
-void verify_handle_exit(int sig, short event, void *arg)
+void verify_handle_signal(int sig, short event, void *arg)
 {
-	int wstatus;
-	pid_t pid;
+	char buf[1] = { '\0' };
 	struct nsd *nsd;
 
 	assert(sig == SIGCHLD);
@@ -282,6 +274,29 @@ void verify_handle_exit(int sig, short event, void *arg)
 	assert(arg != NULL);
 
 	nsd = (struct nsd *)arg;
+	(void)write(nsd->verifier_pipe[1], buf, sizeof(buf));
+}
+
+/*
+ * Reap process and update status of respective zone based on the exit code
+ * of a verifier. Everything from STDOUT and STDERR still available is read and
+ * written to the log as it might contain valuable information.
+ *
+ * NOTE: A timeout might have caused the verifier to be terminated.
+ */
+void verify_handle_exit(int fd, short event, void *arg)
+{
+	int wstatus;
+	pid_t pid;
+	struct nsd *nsd;
+	char buf[1];
+
+	assert(event & EV_READ);
+	assert(arg != NULL);
+
+	nsd = (struct nsd *)arg;
+
+	(void)read(fd, buf, sizeof(buf));
 
 	while(((pid = waitpid(-1, &wstatus, WNOHANG)) == -1 && errno == EINTR)
 	    || (pid > 0))

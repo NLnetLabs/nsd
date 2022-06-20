@@ -71,7 +71,9 @@ struct zone *verify_next_zone(struct nsd *nsd, struct zone *zone);
 
 void verify_zone(struct nsd *nsd, struct zone *zone);
 
-void verify_handle_exit(int sig, short event, void *arg);
+void verify_handle_signal(int sig, short event, void *arg);
+
+void verify_handle_exit(int fd, short event, void *arg);
 
 void verify_handle_command(int fd, short event, void *arg);
 
