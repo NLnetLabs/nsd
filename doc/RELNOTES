@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.6.0 (upcoming)
+4.6.0
 ================
 FEATURES:
 	- Port zone-verification from CreDNS to NSD4.
