@@ -1,5 +1,6 @@
 23 June 2022: Wouter
-	- Tag for 4.6.0rc1.
+	- Tag for 4.6.0rc1. It became 4.6.0 on 30 June 2022, and it continues
+	  with version 4.6.1.
 
 17 June 2022: Wouter
 	- Fix compilation with libev, without event_base_loopbreak.
