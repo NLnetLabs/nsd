@@ -4,6 +4,9 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix static analyzer reports, fix wrong log print when skipping xfr,
+	  fix to print error on pipe read fail, and assert an xfr is in
+	  progress during packet checks.
 
 4.6.0
 ================
