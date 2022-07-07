@@ -1,3 +1,6 @@
+7 July 2022L Tom
+	- Fix #212: Change commandline control actions to always log.
+
 1 July 2022: Wouter
 	- Fix static analyzer reports, fix wrong log print when skipping xfr,
 	  fix to print error on pipe read fail, and assert an xfr is in
