@@ -174,7 +174,7 @@ AC_ARG_WITH([user],
 AC_SUBST(user)
 AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop privileges to])
 
-AC_PROG_CC
+m4_version_prereq([2.70], [AC_PROG_CC], [AC_PROG_CC_STDC])
 AC_PROG_SED
 AC_PROG_AWK
 AC_PROG_GREP
