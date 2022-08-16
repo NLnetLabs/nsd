@@ -5,4 +5,4 @@ $TTL 3600
 
 ; The "no-default-alpn" SvcParamKey value MUST be empty
 
-f07	HTTPS   1 foo.example.com. no-default-alpn=abc
+f17	HTTPS   1 foo.example.com. no-default-alpn=abc

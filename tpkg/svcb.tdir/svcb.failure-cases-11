@@ -5,6 +5,6 @@ $TTL 3600
 
 ; This example has multiple instances of the same SvcParamKey
 
-f01	HTTPS   1 foo.example.com. (
+f11	HTTPS   1 foo.example.com. (
                        key123=abc key123=def
                        )
