@@ -68,7 +68,7 @@ lookup_table_type dns_algorithms[] = {
 
 const char *svcparamkey_strs[] = {
 		"mandatory", "alpn", "no-default-alpn", "port",
-		"ipv4hint", "ech", "ipv6hint"
+		"ipv4hint", "ech", "ipv6hint", "dohpath"
 	};
 
 typedef int (*rdata_to_string_type)(buffer_type *output,
@@ -799,6 +799,22 @@ rdata_svcparam_alpn_to_string(buffer_type *output, uint16_t val_len,
 }
 
 static int
+rdata_svcparam_dohpath_to_string(buffer_type *output, uint16_t val_len,
+	uint16_t *data)
+{
+	uint8_t *dp = (void *)data;
+
+	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
+
+	buffer_write_u8(output, '=');
+	buffer_write_u8(output, '"');
+	buffer_printf(output, "%s", dp);
+	buffer_write_u8(output, '"');
+
+	return 1;
+}
+
+static int
 rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -824,6 +840,7 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		case SVCB_KEY_IPV4HINT:
 		case SVCB_KEY_IPV6HINT:
 		case SVCB_KEY_MANDATORY:
+		case SVCB_KEY_DOHPATH:
 			return 0;
 		default:
 			return 1;
@@ -844,6 +861,8 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		return rdata_svcparam_alpn_to_string(output, val_len, data+2);
 	case SVCB_KEY_ECH:
 		return rdata_svcparam_ech_to_string(output, val_len, data+2);
+	case SVCB_KEY_DOHPATH:
+		return rdata_svcparam_dohpath_to_string(output, val_len, data+2);
 	default:
 		buffer_write(output, "=\"", 2);
 		dp = (void*) (data + 2);
