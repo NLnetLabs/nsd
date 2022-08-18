@@ -984,7 +984,7 @@ xfrd_tcp_setup_write_packet(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 			zone->query_id);
 		xfrd_prepare_zone_xfr(zone, TYPE_IXFR);
 		NSCOUNT_SET(tcp->packet, 1);
-		xfrd_write_soa_buffer(tcp->packet, zone->apex, &zone->soa_disk);
+		xfrd_write_soa_buffer(tcp->packet, zone->apex, &zone->soa_nsd);
 	}
 	if(zone->master->key_options && zone->master->key_options->tsig_key) {
 		xfrd_tsig_sign_request(
