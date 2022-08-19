@@ -118,7 +118,7 @@ task:
 
   build_script:
     - autoconf && autoheader
-    - libtoolize -c -i
+    - libtoolize -c -i || glibtoolize -c -i
     - ./configure --enable-checking --disable-flto --with-ssl=yes --with-libevent=yes
     - make -j 2
     - make cutest
