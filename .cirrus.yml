@@ -23,11 +23,11 @@ ubuntu_2004_gcc11: &ubuntu_2004_gcc11
   install_script:
     - apt-get install -y autoconf automake make gcc-11 clang libc-dev libevent-dev libssl-dev flex bison
 
-ubuntu_2104_clang12: &ubuntu_2104_clang12
+ubuntu_2204_clang12: &ubuntu_2204_clang12
   container:
-    image: ubuntu:hirsute
+    image: ubuntu:jammy
   env:
-    UBUNTU_CODENAME: hirsute
+    UBUNTU_CODENAME: jammy
     CC: clang-12
     CLANG_VERSION: 12
   bootstrap_script:
@@ -103,8 +103,8 @@ task:
   matrix:
     - name: "Build and test on Ubuntu 20.04 LTS with GCC 11"
       <<: *ubuntu_2004_gcc11
-    - name: "Build and test on Ubuntu 21.04 LTS with Clang 12 (ASan+UBSan+LSan)"
-      <<: *ubuntu_2104_clang12
+    - name: "Build and test on Ubuntu 22.04 LTS with Clang 12 (ASan+UBSan+LSan)"
+      <<: *ubuntu_2204_clang12
       env:
         CFLAGS: "-g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all"
     - name: "Build and test on FreeBSD 12.3 (ASan+UBSan)"
@@ -117,7 +117,7 @@ task:
         CFLAGS: "-g2 -O0 -fsanitize=address,undefined -fno-sanitize-recover=all"
 
   build_script:
-    - autoconf && autoheader
+    - autoconf && autoheader && libtoolize -c -i
     - ./configure --enable-checking --disable-flto --with-ssl=yes --with-libevent=yes
     - make -j 2
     - make cutest

@@ -1,3 +1,7 @@
+19 August 2022: Wouter
+	- Update cirrus build script for newer Ubuntu image, and FreeBSD
+	  build with libtoolize to install auxiliary files.
+
 7 July 2022L Tom
 	- Fix #212: Change commandline control actions to always log.
 
