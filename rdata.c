@@ -803,12 +803,19 @@ rdata_svcparam_dohpath_to_string(buffer_type *output, uint16_t val_len,
 	uint16_t *data)
 {
 	uint8_t *dp = (void *)data;
+	size_t i;
 
 	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
 
 	buffer_write_u8(output, '=');
 	buffer_write_u8(output, '"');
-	buffer_printf(output, "%s", dp);
+	for (i = 0; i < val_len; i++) {
+		if (!isprint(dp[i])) {
+			buffer_printf(output, "\\%03u", (unsigned) dp[i]);
+		} else {
+			buffer_printf(output, "%c", dp[i]);
+		}
+	}
 	buffer_write_u8(output, '"');
 
 	return 1;
