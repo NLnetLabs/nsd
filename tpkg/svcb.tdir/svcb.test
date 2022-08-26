@@ -180,7 +180,7 @@ then
 
 elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-23
 then
-	echo "Failure case 23: dohpath is missing a value
+	echo "Failure case 23: dohpath is missing a value"
 	echo "Incorrectly succeeded"
 	exit 1
 
