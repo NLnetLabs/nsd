@@ -1,3 +1,7 @@
+1 September 2022: Wouter
+	- Merge #231 from moritzbuhl: Fix checking if nonblocking sockets work
+	  on OpenBSD.
+
 19 August 2022: Wouter
 	- Update cirrus build script for newer Ubuntu image, and FreeBSD
 	  build with libtoolize to install auxiliary files.

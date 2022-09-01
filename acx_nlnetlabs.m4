@@ -2,7 +2,8 @@
 # Copyright 2009, Wouter Wijngaards, NLnet Labs.   
 # BSD licensed.
 #
-# Version 43
+# Version 44
+# 2022-09-01 fix checking if nonblocking sockets work on OpenBSD.
 # 2021-08-17 fix sed script in ssldir split handling.
 # 2021-08-17 fix for openssl to detect split version, with ssldir_include
 # 	     and ssldir_lib output directories.
