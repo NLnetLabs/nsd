@@ -223,6 +223,10 @@ ANY     [^\"\n\\]|\\.
 
 	parser->error_occurred = error_occurred;
 }
+<<EOF>> { 
+	static int once = 1;
+	return (once = !once) ? 0 : NL;
+}
 <INITIAL><<EOF>>	{
 	yy_set_bol(1); /* Set beginning of line, so "^" rules match.  */
 	if (include_stack_ptr == 0) {
