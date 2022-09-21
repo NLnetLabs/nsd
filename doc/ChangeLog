@@ -1,3 +1,6 @@
+21 September 2022: Tom
+	- Change zone parsing to accept non-trailing newline.
+
 1 September 2022: Wouter
 	- Merge #231 from moritzbuhl: Fix checking if nonblocking sockets work
 	  on OpenBSD.
