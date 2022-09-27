@@ -51,6 +51,15 @@ create_ssl_context()
 		log_msg(LOG_ERR, "xfrd tls: Unable to set minimum TLS version 1.3");
 		return NULL;
 	}
+
+	unsigned char protos[] = {
+		3, 'd', 'o', 't'
+	};
+	if (SSL_CTX_set_alpn_protos(ctx, protos, sizeof(protos)) != 0) {
+		SSL_CTX_free(ctx);
+		log_msg(LOG_ERR, "xfrd tls: Unable to set ALPN protocols");
+		return NULL;
+	}
 	return ctx;
 }
 
