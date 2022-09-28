@@ -36,6 +36,7 @@ static SSL_CTX*
 create_ssl_context()
 {
 	SSL_CTX *ctx;
+	unsigned char protos[] = { 3, 'd', 'o', 't' };
 	ctx = SSL_CTX_new(TLS_client_method());
 	if (!ctx) {
 		log_msg(LOG_ERR, "xfrd tls: Unable to create SSL ctxt");
@@ -52,9 +53,6 @@ create_ssl_context()
 		return NULL;
 	}
 
-	unsigned char protos[] = {
-		3, 'd', 'o', 't'
-	};
 	if (SSL_CTX_set_alpn_protos(ctx, protos, sizeof(protos)) != 0) {
 		SSL_CTX_free(ctx);
 		log_msg(LOG_ERR, "xfrd tls: Unable to set ALPN protocols");
