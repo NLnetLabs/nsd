@@ -1,4 +1,4 @@
-FROM debian:stable
+FROM debian:stable-slim
 
 ENV BUILD_PKGS \
     build-essential \
@@ -26,7 +26,7 @@ RUN aclocal && \
 RUN tar cvzfC /nsd.tar.gz /tmp/nsd-install usr/local config storage
 
 
-FROM debian:stable
+FROM debian:stable-slim
 
 # Environment
 ENV RUNTIME_PKGS \
