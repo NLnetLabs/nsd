@@ -7,4 +7,4 @@ This directory contains files to build NSD as a container.
 
 ## Building
 
-    docker build -f docker/Dockerfile -t nsd:latest
+    docker build -f docker/Dockerfile -t nsd:latest .
