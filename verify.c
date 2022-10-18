@@ -296,7 +296,11 @@ void verify_handle_exit(int fd, short event, void *arg)
 
 	nsd = (struct nsd *)arg;
 
-	(void)read(fd, buf, sizeof(buf));
+	if(read(fd, buf, sizeof(buf)) == -1) {
+		if(errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
+			log_msg(LOG_ERR, "verify_handle_exit: read failed: %s",
+				strerror(errno));
+	}
 
 	while(((pid = waitpid(-1, &wstatus, WNOHANG)) == -1 && errno == EINTR)
 	    || (pid > 0))
