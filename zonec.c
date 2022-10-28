@@ -1137,6 +1137,7 @@ zparser_conv_svcbparam_key_value(region_type *region,
 	case SVCB_KEY_ALPN:
 		return zparser_conv_svcbparam_alpn_value(region, val, val_len);
 	case SVCB_KEY_DOHPATH:
+		/* fallthrough */
 	default:
 		break;
 	}
