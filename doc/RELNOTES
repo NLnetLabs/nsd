@@ -9,6 +9,8 @@ BUG FIXES:
 	  progress during packet checks.
 	- Use AC_PROG_CC_STDC with autoconf versions prior to 2.70.
 	- Add missing documentation for zone verification.
+	- Merge #231 from moritzbuhl: Fix checking if nonblocking sockets work
+	  on OpenBSD.
 
 4.6.0
 ================

@@ -21,21 +21,21 @@ ubuntu_2004_gcc11: &ubuntu_2004_gcc11
     - add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - apt-get update
   install_script:
-    - apt-get install -y autoconf automake make gcc-11 clang libc-dev libevent-dev libssl-dev flex bison
+    - apt-get install -y autoconf automake libtool make gcc-11 clang libc-dev libevent-dev libssl-dev flex bison
 
-ubuntu_2104_clang12: &ubuntu_2104_clang12
+ubuntu_2204_clang14: &ubuntu_2204_clang14
   container:
-    image: ubuntu:hirsute
+    image: ubuntu:jammy
   env:
-    UBUNTU_CODENAME: hirsute
-    CC: clang-12
-    CLANG_VERSION: 12
+    UBUNTU_CODENAME: jammy
+    CC: clang-14
+    CLANG_VERSION: 14
   bootstrap_script:
     - apt-get update
     - apt-get install -y gnupg2 ca-certificates wget curl software-properties-common
     - apt-get update
   install_script:
-    - apt-get install -y autoconf automake make clang-${CLANG_VERSION} libc-dev libevent-dev libssl-dev flex bison
+    - apt-get install -y autoconf automake libtool make clang-${CLANG_VERSION} libc-dev libevent-dev libssl-dev flex bison
     - update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_VERSION} 10
 
 freebsd_12_3: &freebsd_12_3
@@ -45,7 +45,7 @@ freebsd_12_3: &freebsd_12_3
     CC: clang
   install_script:
     - pkg update -f
-    - pkg install -y bash gmake autoconf automake libevent
+    - pkg install -y bash gmake autoconf automake libtool libevent
 
 macos_1015_xcode11: &macos_1015_xcode11
   osx_instance:
@@ -103,8 +103,8 @@ task:
   matrix:
     - name: "Build and test on Ubuntu 20.04 LTS with GCC 11"
       <<: *ubuntu_2004_gcc11
-    - name: "Build and test on Ubuntu 21.04 LTS with Clang 12 (ASan+UBSan+LSan)"
-      <<: *ubuntu_2104_clang12
+    - name: "Build and test on Ubuntu 22.04 LTS with Clang 14 (ASan+UBSan+LSan)"
+      <<: *ubuntu_2204_clang14
       env:
         CFLAGS: "-g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all"
     - name: "Build and test on FreeBSD 12.3 (ASan+UBSan)"
@@ -118,6 +118,7 @@ task:
 
   build_script:
     - autoconf && autoheader
+    - libtoolize -c -i || glibtoolize -c -i
     - ./configure --enable-checking --disable-flto --with-ssl=yes --with-libevent=yes
     - make -j 2
     - make cutest

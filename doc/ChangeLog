@@ -1,4 +1,20 @@
-7 July 2022L Tom
+28 September 2022: Jeroen
+	- Set ALPN "dot" token during connection establishment as per RFC9103
+	  section 7.1 (Thanks Cesar Kuroiwa).
+
+21 September 2022: Tom
+	- Change zone parsing to accept non-trailing newline.
+
+1 September 2022: Wouter
+	- Merge #231 from moritzbuhl: Fix checking if nonblocking sockets work
+	  on OpenBSD.
+
+19 August 2022: Wouter
+	- Update cirrus build script for newer Ubuntu image, and FreeBSD
+	  build with libtoolize to install auxiliary files.
+	- Update to clang 14 in cirrus build test on Ubuntu Jammy 22.04.
+
+7 July 2022: Tom
 	- Fix #212: Change commandline control actions to always log.
 
 1 July 2022: Wouter
