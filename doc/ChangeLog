@@ -1,3 +1,6 @@
+1 November 2022: Tom
+	- Add SVCB dohpath support
+
 28 September 2022: Jeroen
 	- Set ALPN "dot" token during connection establishment as per RFC9103
 	  section 7.1 (Thanks Cesar Kuroiwa).
