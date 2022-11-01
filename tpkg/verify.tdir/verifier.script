@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 # Echo environment variables to ensure basic environment is correct
 
