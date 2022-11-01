@@ -1,3 +1,6 @@
+1 November 2022: Wouter
+	- Fixup for non-trailing newline lexer change warnings.
+
 1 November 2022: Tom
 	- Add SVCB dohpath support
 
