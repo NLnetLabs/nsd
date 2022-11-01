@@ -177,9 +177,17 @@ then
 	echo "Failure case 22: port value needs to be a positive integer < 65536"
 	echo "Incorrectly succeeded"
 	exit 1
+
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-23
+then
+	echo "Failure case 23: dohpath is missing a value"
+	echo "Incorrectly succeeded"
+	exit 1
+
 else
 	echo "All failure cases test successfully"
 fi
+
 
 if ! $PRE/nsd-checkzone -p success-cases svcb.success-cases.zone > svcb.success-cases.zone.out
 then

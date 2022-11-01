@@ -5,4 +5,4 @@ $TTL 3600
 
 ; In this record a mandatory SvcParam is missing
 
-f08	HTTPS   1 foo.example.com. mandatory=key123
+f18	HTTPS   1 foo.example.com. mandatory=key123

@@ -9,4 +9,6 @@ s04	3600	IN	HTTPS	0 . no-default-alpn
 s05	3600	IN	HTTPS	0 . mandatory=port alpn="dot" no-default-alpn port=853
 s06	3600	IN	HTTPS	0 . ech=aGVsbG93b3JsZCE=
 s07	3600	IN	HTTPS	0 . ech=aGVsbG93b3JsZCE=
+s08	3600	IN	HTTPS	0 . alpn="h2" dohpath="/dns-query{?dns}"
+s09	3600	IN	HTTPS	0 . alpn="h2" dohpath="/dns-query{\195\169?dns}"
 ; zone success-cases is ok

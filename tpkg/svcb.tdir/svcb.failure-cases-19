@@ -5,5 +5,5 @@ $TTL 3600
 
 ; The "mandatory" SvcParamKey MUST not be included in mandatory list
 
-f09	HTTPS   1 foo.example.com. mandatory=mandatory
+f19	HTTPS   1 foo.example.com. mandatory=mandatory
 

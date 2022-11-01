@@ -38,3 +38,7 @@ s06     HTTPS   0 . ech="aGVsbG93b3JsZCE="
 ; echconfig is an alias for ech
 s07     HTTPS   0 . echconfig="aGVsbG93b3JsZCE="
 
+; dohpath can be (non-)quoted
+
+s08     HTTPS   0 . alpn=h2 dohpath="/dns-query{?dns}"
+s09     HTTPS   0 . alpn=h2 dohpath=/dns-query{é?dns}
