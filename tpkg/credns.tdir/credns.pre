@@ -12,6 +12,7 @@ export SLAVE_PORT=$((${RND_PORT} + 2))
 export PROXY_PORT=$((${RND_PORT} + 3))
 export NZONES=1
 export VERIFIER_COUNT=1
+export DEFAULT_IP="127.0.0.1"
 
 cat << EOF >> .tpkg.var.test
 export VERIFY_PORT=${VERIFY_PORT}
@@ -20,6 +21,7 @@ export SLAVE_PORT=${SLAVE_PORT}
 export PROXY_PORT=${PROXY_PORT}
 export NZONES=${NZONES}
 export VERIFIER_COUNT=${VERIFIER_COUNT}
+export DEFAULT_IP=${DEFAULT_IP}
 EOF
 
 ../credns-setup/configure VERIFIER="bash credns.verifier"
