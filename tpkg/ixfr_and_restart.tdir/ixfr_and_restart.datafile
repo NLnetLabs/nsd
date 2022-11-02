@@ -1,0 +1,51 @@
+$ORIGIN example.net
+$TTL 7200
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+ADJUST copy_id
+SECTION QUESTION
+example.net. IN AXFR
+SECTION ANSWER
+example.net. IN SOA ns.example.net. hostmaster.example.net. 1 3600 600 3600 3600
+foo          IN A   1.2.3.4
+example.net. IN SOA ns.example.net. hostmaster.example.net. 1 3600 600 3600 3600
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1
+REPLY QUERY
+REPLY NOERROR
+REPLY AA
+ADJUST copy_id
+SECTION QUESTION
+example.net. IN IXFR
+SECTION ANSWER
+example.net. IN SOA ns.example.net. hostmaster.example.net. 2 3600 600 3600 3600
+example.net. IN SOA ns.example.net. hostmaster.example.net. 1 3600 600 3600 3600
+foo          IN A   1.2.3.4
+example.net. IN SOA ns.example.net. hostmaster.example.net. 2 3600 600 3600 3600
+bar          IN A   1.2.3.4
+example.net. IN SOA ns.example.net. hostmaster.example.net. 2 3600 600 3600 3600
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=2
+REPLY QUERY
+REPLY NOERROR
+REPLY AA
+ADJUST copy_id
+SECTION QUESTION
+example.net. IN IXFR
+SECTION ANSWER
+example.net. IN SOA ns.example.net. hostmaster.example.net. 3 3600 600 3600 3600
+example.net. IN SOA ns.example.net. hostmaster.example.net. 2 3600 600 3600 3600
+bar          IN A   1.2.3.4
+example.net. IN SOA ns.example.net. hostmaster.example.net. 3 3600 600 3600 3600
+baz          IN A   1.2.3.4
+example.net. IN SOA ns.example.net. hostmaster.example.net. 3 3600 600 3600 3600
+ENTRY_END
+

@@ -1,0 +1,23 @@
+# #-- ixfr_and_restart.pre --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+get_random_port 2
+TESTNS_PORT=$RND_PORT
+NSD_PORT=$(($TESTNS_PORT + 1))
+
+NSD_CTRL_PATH=$(realpath $(dirname ${0}))/nsd-control.pipe
+
+# generate configuration file
+sed -e "s#TESTNS_PORT#${TESTNS_PORT}#" \
+    -e "s#NSD_PORT#${NSD_PORT}#" \
+    -e "s#NSD_CTRL_PATH#${NSD_CTRL_PATH}#" \
+    ixfr_and_restart.conf > nsd.conf
+
+# share the vars
+echo "TESTNS_PORT=${TESTNS_PORT}" >> .tpkg.var.test
+echo "NSD_PORT=${NSD_PORT}" >> .tpkg.var.test
+echo "NSD_CTRL_PATH=${NSD_CTRL_PATH}" >> .tpkg.var.test

@@ -1,0 +1,101 @@
+# #-- ixfr_and_restart.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# Test to verify the right serial is used for secondary zone after restart.
+# See https://github.com/NLnetLabs/nsd/issues/227 for initial analysis.
+
+PRE="../.."
+NSD="${PRE}/nsd"
+NSD_CTRL="${PRE}/nsd-control"
+export NSD_PATH="$(realpath ${NSD})"
+
+check_zonestatus () {
+  ${NSD_CTRL} -c $(pwd)/nsd.conf zonestatus example.net > check.zonestatus
+  cat check.zonestatus
+  local served_serial=$(sed -n -e "s#^\s\+served-serial: \"\([0-9]\+\).*#\\1#p" check.zonestatus)
+  local commit_serial=$(sed -n -e "s#^\s\+commit-serial: \"\([0-9]\+\).*#\\1#p" check.zonestatus)
+  rm -f check.zonestatus
+  [[ "${commit_serial}" = "${1}" && "${served_serial}" = "${2}" ]] || return 1
+  return 0
+}
+
+ldns-testns -v -p ${TESTNS_PORT} ixfr_and_restart.datafile > testns.log 2>&1 &
+TESTNS_PID=${!}
+echo "TESTNS_PID=${TESTNS_PID}" >> .tpkg.var.test
+wait_ldns_testns_up testns.log
+
+${NSD} -c $(pwd)/nsd.conf -V 5 -L 5 -F 0xFFFF
+wait_nsd_up nsd.log
+
+# wait until zone serial=1 is served and verify zonestatus
+wait_for_soa_serial example.net 1 127.0.0.1 ${NSD_PORT} 2
+check_zonestatus 1 1
+if [ "${?}" -ne 0 ]; then
+  echo "commit-serial and/or served-serial did not match expectations" >&2
+  exit 1
+fi
+
+# write zone file
+${NSD_CTRL} -c $(pwd)/nsd.conf write
+
+# initiate transfer for zone serial=2
+ldns-notify -z example.net -p ${NSD_PORT} -s 2 127.0.0.1
+
+# wait until zone serial=2 is served and verify zonestatus
+wait_for_soa_serial example.net 2 127.0.0.1 ${NSD_PORT} 2
+check_zonestatus 2 2
+if [ "${?}" -ne 0 ]; then
+  echo "commit-serial and/or served-serial did not match expectations" >&2
+  exit 1
+fi
+
+# stop
+${NSD_CTRL} -c $(pwd)/nsd.conf stop
+kill ${TESTNS_PID}
+# rotate log files for convenience
+mv nsd.log nsd.log.1
+mv testns.log testns.log.1
+
+# (re)start
+ldns-testns -v -p ${TESTNS_PORT} ixfr_and_restart.datafile > testns.log 2>&1 &
+TESTNS_PID=${!}
+echo "TESTNS_PID=${TESTNS_PID}" >> .tpkg.var.test
+wait_ldns_testns_up testns.log
+
+${NSD} -c $(pwd)/nsd.conf -V 5 -L 5 -F 0xFFFF
+wait_nsd_up nsd.log
+
+# verify zone served and verify zonestatus
+serial=$(dig -p ${NSD_PORT} @127.0.0.1 example.net SOA +short | awk '{ print $3 }')
+# nsd-control cannot be used as the zone is invalidated to quick
+served_serial=$(sed -n -e 's#.*zone example.net serial [0-9]\+ is updated to \([0-9]\+\)#\1#p' nsd.log | head -n 1)
+commit_serial=$(sed -n -e 's#.*zone example.net serial \([0-9]\+\) is updated to .*#\1#p' nsd.log | head -n 1)
+
+if [ "${served_serial}" -ne "${serial}" ]; then
+  cat testns.log.1 testns.log
+  cat nsd.log.1 nsd.log
+  echo "served-serial did not match serial returned in query" >&2
+  exit 1
+elif [ "${served_serial}" -gt "${commit_serial}" ]; then
+  cat testns.log.1 testns.log
+  cat nsd.log.1 nsd.log
+  echo "served-serial was greater than commit-serial" >&2
+  exit 1
+fi
+
+wait_logfile nsd.log "received update to serial" 10
+
+# check commit-serial is used in ixfr query
+request_serial=$(sed -n -e 's#^comparepkt: found serial \([0-9]\+\) in msg.*#\1#p' testns.log | head -n 1)
+if [ "${request_serial}" -ne "${served_serial}" ]; then
+  cat testns.log.1 testns.log
+  cat nsd.log.1 nsd.log
+  echo "serial in ixfr query (${request_serial}) did not match served-serial (${served_serial})"
+  exit 1
+fi
+
+echo "serial in ixfr query (${request_serial}) matches served-serial (${served_serial})"
