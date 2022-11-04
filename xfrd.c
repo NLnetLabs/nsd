@@ -1317,9 +1317,17 @@ xfrd_handle_incoming_soa(xfrd_zone_type* zone,
 		}
 
 		/* soa in disk has been loaded in memory */
-		log_msg(LOG_INFO, "zone %s serial %u is updated to %u",
-			zone->apex_str, (unsigned)ntohl(zone->soa_nsd.serial),
-			(unsigned)ntohl(soa->serial));
+		{
+			uint32_t soa_serial, soa_nsd_serial;
+			soa_serial = ntohl(soa->serial);
+			soa_nsd_serial = ntohl(zone->soa_nsd.serial);
+			if (compare_serial(soa_serial, soa_nsd_serial) > 0)
+				log_msg(LOG_INFO, "zone %s serial %"PRIu32" is updated to %"PRIu32,
+					zone->apex_str, soa_nsd_serial, soa_serial);
+			else
+				log_msg(LOG_INFO, "zone %s serial is updated to %"PRIu32,
+					zone->apex_str, soa_serial);
+		}
 		zone->soa_nsd = *soa;
 		zone->soa_nsd_acquired = acquired;
 		xfrd->write_zonefile_needed = 1;
