@@ -1300,7 +1300,7 @@ xfrd_handle_incoming_soa(xfrd_zone_type* zone,
 		return;
 
 	if(zone->soa_disk_acquired) {
-		int cmp = compare_serial(soa->serial, zone->soa_disk.serial);
+		int cmp = compare_serial(ntohl(soa->serial), ntohl(zone->soa_disk.serial));
 
 		/* soa is from an update if serial equals soa_disk.serial or
 		   serial is less than soa_disk.serial and the acquired time is
@@ -2356,8 +2356,8 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 	zone->soa_disk = soa;
 	if(zone->soa_notified_acquired && (
 		zone->soa_notified.serial == 0 ||
-		compare_serial(htonl(zone->soa_disk.serial),
-		htonl(zone->soa_notified.serial)) >= 0))
+		compare_serial(ntohl(zone->soa_disk.serial),
+		ntohl(zone->soa_notified.serial)) >= 0))
 	{
 		zone->soa_notified_acquired = 0;
 	}
