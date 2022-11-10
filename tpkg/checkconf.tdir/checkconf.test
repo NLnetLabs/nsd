@@ -1,6 +1,18 @@
 # source the var file when it's there
 [ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 
+. ../common.sh
+PRE="../.."
+
+if grep "define BIND8_STATS" $PRE/config.h; then
+	echo "BIND8_STATS enabled, do test"
+else
+	echo "BIND8_STATS not enabled, skip test"
+	# it gives an error on one of the sample configs, that then does not
+	# print out the config output.
+	exit 0
+fi
+
 # run nsd-checkconf on all files
 checkcmd="../../nsd-checkconf -vv"
 echo "start of check" > outfile.tmp

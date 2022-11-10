@@ -8,6 +8,13 @@
 PRE="../.."
 DIG=dig
 
+if grep "define BIND8_STATS" $PRE/config.h; then
+	echo "BIND8_STATS enabled, do test"
+else
+	echo "BIND8_STATS not enabled, skip test"
+	exit 0
+fi
+
 if grep "^#define USE_ZONE_STATS" $PRE/config.h; then
 	echo "USE_ZONE_STATS defined"
 	use_zone_stats=1

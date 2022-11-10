@@ -1,6 +1,7 @@
 10 November 2022: Wouter
 	- Tag for NSD 4.6.1, the repository continues with version 4.6.2.
 	- Fix #239: -Wincompatible-pointer-types warning in remote.c.
+	- Fix unit tests to succeed with --disable-bind8-stats.
 
 1 November 2022: Wouter
 	- Fixup for non-trailing newline lexer change warnings.

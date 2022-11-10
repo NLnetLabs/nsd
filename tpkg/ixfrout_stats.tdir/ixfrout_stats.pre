@@ -4,13 +4,20 @@
 # use .tpkg.var.test for in test variable passing
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 . ../common.sh
+PRE="../.."
+
+if grep "define BIND8_STATS" $PRE/config.h; then
+	echo "BIND8_STATS enabled, do test"
+else
+	echo "BIND8_STATS not enabled, skip test"
+	exit 0
+fi
 
 # start NSD
 get_random_port 2
 TPKG_PORT=$RND_PORT
 TPKG_CTRL_PORT=`expr $RND_PORT + 1`
 
-PRE="../.."
 TPKG_NSD="$PRE/nsd"
 
 sed -e "s/TPKG_CTRL_PORT/"$TPKG_CTRL_PORT"/" < ixfrout_stats.conf > edit.conf

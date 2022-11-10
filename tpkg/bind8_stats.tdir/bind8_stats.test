@@ -4,6 +4,14 @@
 # use .tpkg.var.test for in test variable passing
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 . ../common.sh
+PRE="../.."
+
+if grep "define BIND8_STATS" $PRE/config.h; then
+	echo "BIND8_STATS enabled, do test"
+else
+	echo "BIND8_STATS not enabled, skip test"
+	exit 0
+fi
 
 echo "NSD PORT: $TPKG_PORT"
 
