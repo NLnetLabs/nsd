@@ -1212,8 +1212,11 @@ do_stats(struct daemon_remote* rc, int peek, struct rc_state* rs)
 	/* force a reload */
 	xfrd_set_reload_now(xfrd);
 #else
+	RES res;
+	res.ssl = rs->ssl;
+	res.fd = rs->fd;
 	(void)rc; (void)peek;
-	(void)ssl_printf(rs->ssl, "error no stats enabled at compile time\n");
+	(void)ssl_printf(&res, "error no stats enabled at compile time\n");
 #endif /* BIND8_STATS */
 }
 

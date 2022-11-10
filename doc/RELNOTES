@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix #239: -Wincompatible-pointer-types warning in remote.c.
 
 4.6.1
 ================
