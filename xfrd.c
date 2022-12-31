@@ -1322,10 +1322,10 @@ xfrd_handle_incoming_soa(xfrd_zone_type* zone,
 			soa_serial = ntohl(soa->serial);
 			soa_nsd_serial = ntohl(zone->soa_nsd.serial);
 			if (compare_serial(soa_serial, soa_nsd_serial) > 0)
-				log_msg(LOG_INFO, "zone %s serial %"PRIu32" is updated to %"PRIu32,
+				log_msg(LOG_INFO, "zone %s serial %u is updated to %u",
 					zone->apex_str, soa_nsd_serial, soa_serial);
 			else
-				log_msg(LOG_INFO, "zone %s serial is updated to %"PRIu32,
+				log_msg(LOG_INFO, "zone %s serial is updated to %u",
 					zone->apex_str, soa_serial);
 		}
 		zone->soa_nsd = *soa;
