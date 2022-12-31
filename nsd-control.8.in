@@ -1,4 +1,4 @@
-.TH "nsd\-control" "8" "@date@" "NLnet Labs" "nsd @version@"
+.TH "nsd\-control" "8"
 .\" Copyright (c) 2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"

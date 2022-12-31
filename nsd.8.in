@@ -1,9 +1,9 @@
-.TH "NSD" "8" "@date@" "NLnet Labs" "NSD @version@"
+.TH "NSD" "8"
 .\" Copyright (c) 2001\-2008, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .B nsd
-\- Name Server Daemon (NSD) version @version@.
+\- Name Server Daemon
 .SH "SYNOPSIS"
 .B nsd
 .RB [ \-4 ] 
