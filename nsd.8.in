@@ -3,7 +3,7 @@
 .\" See LICENSE for the license.
 .SH "NAME"
 .B nsd
-\- Name Server Daemon (NSD) version @version@.
+\- Name Server Daemon
 .SH "SYNOPSIS"
 .B nsd
 .RB [ \-4 ] 
