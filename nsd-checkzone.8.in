@@ -1,4 +1,4 @@
-.TH "nsd\-checkzone" "8" "@date@" "NLnet Labs" "nsd @version@"
+.TH "nsd\-checkzone" "8"
 .\" Copyright (c) 2014, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
