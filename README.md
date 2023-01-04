@@ -4,7 +4,7 @@
 [![Cirrus Build Status](https://api.cirrus-ci.com/github/NLnetLabs/nsd.svg)](https://cirrus-ci.com/github/NLnetLabs/nsd)
 [![Packaging status](https://repology.org/badge/tiny-repos/nsd.svg)](https://repology.org/project/nsd/versions)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1462/badge)](https://bestpractices.coreinfrastructure.org/projects/1462)
-![Mastodon Follow](https://img.shields.io/mastodon/follow/109262826617293067?domain=https%3A%2F%2Ffosstodon.org&style=social)
+[![Mastodon Follow](https://img.shields.io/mastodon/follow/109262826617293067?domain=https%3A%2F%2Ffosstodon.org&style=social)](https://fosstodon.org/@nlnetlabs)
 
 The NLnet Labs Name Server Daemon (NSD) is an authoritative DNS name server.
 It has been developed for operations in environments where speed,
