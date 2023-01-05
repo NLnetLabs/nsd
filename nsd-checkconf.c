@@ -576,11 +576,11 @@ static void print_zone_content_elems(pattern_options_type* pat)
 	}
 
 	if(pat->catalog) {
-		printf("\tcatalog: %s\n", pat->catalog);
+		print_string_var("catalog:", pat->catalog);
 	}
 
 	if(pat->catalog_from) {
-		printf("\tcatalog-from: %s\n", pat->catalog_from);
+		print_string_var("catalog-from:", pat->catalog_from);
 	}
 }
 
