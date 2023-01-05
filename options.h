@@ -293,6 +293,8 @@ struct pattern_options {
 	uint8_t verifier_feed_zone_is_default;
 	int32_t verifier_timeout;
 	uint8_t verifier_timeout_is_default;
+	const char* catalog;
+	const char* catalog_from;
 } ATTR_PACKED;
 
 #define PATTERN_IMPLICIT_MARKER "_implicit_"

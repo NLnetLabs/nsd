@@ -574,6 +574,14 @@ static void print_zone_content_elems(pattern_options_type* pat)
 	if(pat->verifier_timeout != VERIFIER_TIMEOUT_INHERIT) {
 		printf("\tverifier-timeout: %d\n", pat->verifier_timeout);
 	}
+
+	if(pat->catalog) {
+		printf("\tcatalog: %s\n", pat->catalog);
+	}
+
+	if(pat->catalog_from) {
+		printf("\tcatalog-from: %s\n", pat->catalog_from);
+	}
 }
 
 void
