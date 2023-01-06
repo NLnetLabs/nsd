@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <inttypes.h>
 #include "xfrd.h"
 #include "xfrd-tcp.h"
 #include "xfrd-disk.h"
