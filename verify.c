@@ -274,7 +274,10 @@ void verify_handle_signal(int sig, short event, void *arg)
 	assert(arg != NULL);
 
 	nsd = (struct nsd *)arg;
-	(void)write(nsd->verifier_pipe[1], buf, sizeof(buf));
+	if(write(nsd->verifier_pipe[1], buf, sizeof(buf)) == -1) {
+		log_msg(LOG_ERR, "verify_handle_signal: write failed: %s",
+				strerror(errno));
+	}
 }
 
 /*
