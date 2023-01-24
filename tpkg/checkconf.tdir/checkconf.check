@@ -632,3 +632,5 @@ verify:
 pattern:
 	name: "myzones"
 	catalog: "mycatalog2"
+checkconf.nsd12.conf:490: error: expected only a catalog or catalog-from, both specified
+read checkconf.nsd12.conf failed: 1 errors in configuration file

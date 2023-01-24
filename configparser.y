@@ -1021,9 +1021,21 @@ pattern_or_zone_option:
   | VAR_VERIFIER_TIMEOUT number
     { cfg_parser->pattern->verifier_timeout = $2; } 
   | VAR_CATALOG STRING
-    { cfg_parser->pattern->catalog = region_strdup(cfg_parser->opt->region, $2); }
+    { 
+      if (cfg_parser->pattern->catalog_from) {
+        yyerror("expected only a catalog or catalog-from, both specified");
+        YYABORT;
+      }
+      cfg_parser->pattern->catalog = region_strdup(cfg_parser->opt->region, $2); 
+    }
   | VAR_CATALOG_FROM STRING
-    { cfg_parser->pattern->catalog_from = region_strdup(cfg_parser->opt->region, $2); };
+    { 
+      if (cfg_parser->pattern->catalog) {
+        yyerror("expected only a catalog or catalog-from, both specified");
+        YYABORT;
+      }
+      cfg_parser->pattern->catalog_from = region_strdup(cfg_parser->opt->region, $2); 
+    };
 
 verify:
     VAR_VERIFY verify_block ;
