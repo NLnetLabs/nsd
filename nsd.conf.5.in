@@ -1002,11 +1002,11 @@ to not use a specific timeout. Default is verifier\-timeout from
 .B verify:\fR.
 .TP
 .B catalog:\fR <pattern>
-Pattern for the catalog producer that generates the contents of the catalog 
+Pattern for the catalog consumer that extracts information from the catalog 
 zone.
 .TP
 .B catalog-from:\fR <pattern>
-Pattern for the catalog consumer that extracts information from the catalog 
+Pattern for the catalog producer that generates the contents of the catalog 
 zone.
 .SS "Key Declarations"
 The 
