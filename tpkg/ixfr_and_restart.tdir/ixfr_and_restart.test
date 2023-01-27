@@ -61,6 +61,7 @@ mv nsd.log nsd.log.1
 mv testns.log testns.log.1
 
 # (re)start
+sleep 3
 ldns-testns -v -p ${TESTNS_PORT} ixfr_and_restart.datafile > testns.log 2>&1 &
 TESTNS_PID=${!}
 echo "TESTNS_PID=${TESTNS_PID}" >> .tpkg.var.test
