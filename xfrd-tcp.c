@@ -1268,7 +1268,7 @@ conn_read_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 			}
 			if(err == SSL_ERROR_ZERO_RETURN) {
 				/* EOF */
-				return 0;
+				return -1;
 			}
 			log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received);
 		}
@@ -1317,7 +1317,7 @@ conn_read_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 		int err = SSL_get_error(ssl, received);
 		if(err == SSL_ERROR_ZERO_RETURN) {
 			/* EOF */
-			return 0;
+			return -1;
 		}
 		log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received);
 	}

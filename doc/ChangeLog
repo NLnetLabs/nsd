@@ -1,3 +1,6 @@
+27 January 2022: Wouter
+	- Fix #262: Zone(s) not synchronizing properly via TLS.
+
 26 January 2022: Wouter
 	- Fix configure for -Wstrict-prototypes.
 

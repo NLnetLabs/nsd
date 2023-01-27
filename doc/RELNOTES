@@ -6,6 +6,7 @@ FEATURES:
 BUG FIXES:
 	- Fix #239: -Wincompatible-pointer-types warning in remote.c.
 	- Fix configure for -Wstrict-prototypes.
+	- Fix #262: Zone(s) not synchronizing properly via TLS.
 
 4.6.1
 ================
