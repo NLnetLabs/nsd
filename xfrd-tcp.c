@@ -1270,7 +1270,10 @@ conn_read_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 				/* EOF */
 				return -1;
 			}
-			log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received);
+			if(err == SSL_ERROR_SYSCALL)
+				log_msg(LOG_ERR, "ssl_read returned error SSL_ERROR_SYSCALL with received %zd: %s", received, strerror(errno));
+			else
+				log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received);
 		}
 		if(received == -1) {
 			if(errno == EAGAIN || errno == EINTR) {
@@ -1319,7 +1322,10 @@ conn_read_ssl(struct xfrd_tcp* tcp, SSL* ssl)
 			/* EOF */
 			return -1;
 		}
-		log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received);
+		if(err == SSL_ERROR_SYSCALL)
+			log_msg(LOG_ERR, "ssl_read returned error SSL_ERROR_SYSCALL with received %zd: %s", received, strerror(errno));
+		else
+			log_msg(LOG_ERR, "ssl_read returned error %d with received %zd", err, received);
 	}
 	if(received == -1) {
 		if(errno == EAGAIN || errno == EINTR) {
@@ -1462,7 +1468,10 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 #endif
 		ret = conn_read(tcp);
 	if(ret == -1) {
-		log_msg(LOG_ERR, "xfrd: failed reading tcp %s", strerror(errno));
+		if(errno != 0)
+			log_msg(LOG_ERR, "xfrd: failed reading tcp %s", strerror(errno));
+		else
+			log_msg(LOG_ERR, "xfrd: failed reading tcp: closed");
 		xfrd_tcp_pipe_stop(tp);
 		return;
 	}
