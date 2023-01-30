@@ -3034,7 +3034,11 @@ void server_verify(struct nsd *nsd, int cmdsocket)
 	nsd->verifier_count = 0;
 	nsd->verifier_limit = nsd->options->verifier_count;
 	size = sizeof(struct verifier) * nsd->verifier_limit;
-	pipe(nsd->verifier_pipe);
+	if(pipe(nsd->verifier_pipe) == -1) {
+		log_msg(LOG_ERR, "verify: could not create pipe: %s",
+				strerror(errno));
+		goto fail_pipe;
+	}
 	fcntl(nsd->verifier_pipe[0], F_SETFD, FD_CLOEXEC);
 	fcntl(nsd->verifier_pipe[1], F_SETFD, FD_CLOEXEC);
 	nsd->verifiers = region_alloc_zero(nsd->server_region, size);
@@ -3124,9 +3128,10 @@ void server_verify(struct nsd *nsd, int cmdsocket)
 	assert(nsd->next_zone_to_verify == NULL || nsd->mode == NSD_QUIT);
 	assert(nsd->verifier_count == 0 || nsd->mode == NSD_QUIT);
 fail:
-	event_base_free(nsd->event_base);
 	close(nsd->verifier_pipe[0]);
 	close(nsd->verifier_pipe[1]);
+fail_pipe:
+	event_base_free(nsd->event_base);
 	region_destroy(nsd->server_region);
 
 	nsd->event_base = NULL;

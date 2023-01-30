@@ -34,3 +34,7 @@ USE AT YOUR OWN RISK.
 * patch_for_s6_startup_and_other_service_supervisors.diff : patch to
   use -r option for nsd to signal readiness with READY_FD, from Cameron Nemo.
   Apply with patch -p0 < contrib/patch_for_s6_startup_and_other_service_supervisors.diff
+
+* autocomplete_nsd-control.bash : It completes options, all commands and zone
+  arguments for commands. From Christian Weiske. To use it, call:
+  source contrib/autocomplete_nsd-control.bash

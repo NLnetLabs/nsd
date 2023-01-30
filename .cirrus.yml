@@ -7,18 +7,15 @@
 # For now builds are limited to Linux, FreeBSD and macOS builds on AMD64, more
 # may be added in the future.
 
-ubuntu_2004_gcc11: &ubuntu_2004_gcc11
+ubuntu_2204_gcc11: &ubuntu_2204_gcc11
   container:
-    image: ubuntu:focal
+    image: ubuntu:jammy
   env:
-    UBUNTU_CODENAME: focal
+    UBUNTU_CODENAME: jammy
     COV_COMPTYPE: gcc
     COV_PLATFORM: linux64
     CC: gcc-11
   bootstrap_script:
-    - apt-get update
-    - apt-get install -y gnupg2 ca-certificates wget curl software-properties-common
-    - add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - apt-get update
   install_script:
     - apt-get install -y autoconf automake libtool make gcc-11 clang libc-dev libevent-dev libssl-dev flex bison
@@ -32,30 +29,27 @@ ubuntu_2204_clang14: &ubuntu_2204_clang14
     CLANG_VERSION: 14
   bootstrap_script:
     - apt-get update
-    - apt-get install -y gnupg2 ca-certificates wget curl software-properties-common
-    - apt-get update
   install_script:
     - apt-get install -y autoconf automake libtool make clang-${CLANG_VERSION} libc-dev libevent-dev libssl-dev flex bison
     - update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_VERSION} 10
 
-freebsd_12_3: &freebsd_12_3
+freebsd_12_3: &freebsd_13_0
   freebsd_instance:
-    image_family: freebsd-12-3
+    image_family: freebsd-13-0
   env:
     CC: clang
   install_script:
-    - pkg update -f
-    - pkg install -y bash gmake autoconf automake libtool libevent
+    - pkg install --yes --quiet bash gmake autoconf automake libtool libevent
 
-macos_1015_xcode11: &macos_1015_xcode11
-  osx_instance:
-    image: catalina-xcode-11.3.1
+macos_13_1_xcode14_2: &macos_13_1_xcode14_2
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-ventura-xcode:latest
   env:
     CC: clang
     COV_COMPTYPE: clang
     COV_COMPTYPE: macOSX
   install_script:
-    - brew install bash autoconf automake libtool libevent openssl flex bison
+    - brew install bash autoconf automake libtool openssl libevent flex bison
 
 install_coverity: &install_coverity
   env:
@@ -89,8 +83,8 @@ env:
 
 task:
   only_if: $CIRRUS_CRON != ''
-  name: "Build on Ubuntu 20.04 LTS with GCC 11 (Coverity Scan)"
-  <<: *ubuntu_2004_gcc11
+  name: "Build on Ubuntu 22.04 LTS with GCC 11 (Coverity Scan)"
+  <<: *ubuntu_2204_gcc11
   <<: *install_coverity
   build_script:
     - autoconf && autoheader
@@ -101,25 +95,27 @@ task:
 
 task:
   matrix:
-    - name: "Build and test on Ubuntu 20.04 LTS with GCC 11"
-      <<: *ubuntu_2004_gcc11
+    - name: "Build and test on Ubuntu 22.04 LTS with GCC 11"
+      <<: *ubuntu_2204_gcc11
     - name: "Build and test on Ubuntu 22.04 LTS with Clang 14 (ASan+UBSan+LSan)"
       <<: *ubuntu_2204_clang14
       env:
         CFLAGS: "-g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all"
-    - name: "Build and test on FreeBSD 12.3 (ASan+UBSan)"
-      <<: *freebsd_12_3
+    - name: "Build and test on FreeBSD 13.0 (ASan+UBSan)"
+      <<: *freebsd_13_0
       env:
         CFLAGS: "-g2 -O0 -fsanitize=address,undefined -fno-sanitize-recover=all"
-    - name: "Build and test on macOS 10.15 with Xcode 11.3.1 (ASan+UBSan)"
-      <<: *macos_1015_xcode11
+    - name: "Build and test on macOS 13.1 with Xcode 14.2 (ASan+UBSan)"
+      <<: *macos_13_1_xcode14_2
       env:
         CFLAGS: "-g2 -O0 -fsanitize=address,undefined -fno-sanitize-recover=all"
+        OPENSSL: "/opt/homebrew/opt/openssl@3"
+        LIBEVENT: "/opt/homebrew/opt/libevent"
 
   build_script:
     - autoconf && autoheader
     - libtoolize -c -i || glibtoolize -c -i
-    - ./configure --enable-checking --disable-flto --with-ssl=yes --with-libevent=yes
+    - ./configure --enable-checking --disable-flto --with-ssl=${OPENSSL:-yes} --with-libevent=${LIBEVENT:-yes}
     - make -j 2
     - make cutest
     - ./cutest

@@ -1,3 +1,13 @@
+30 January 2022: Wouter
+	- Merge #263: Add bash autocompletion script for nsd-control.
+
+27 January 2022: Wouter
+	- Fix #262: Zone(s) not synchronizing properly via TLS.
+	- Fix ixfr_and_restart test to wait for processes to come to a stop.
+
+26 January 2022: Wouter
+	- Fix configure for -Wstrict-prototypes.
+
 10 November 2022: Wouter
 	- Tag for NSD 4.6.1, the repository continues with version 4.6.2.
 	- Fix #239: -Wincompatible-pointer-types warning in remote.c.
