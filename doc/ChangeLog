@@ -1,3 +1,6 @@
+30 January 2022: Wouter
+	- Merge #263: Add bash autocompletion script for nsd-control.
+
 27 January 2022: Wouter
 	- Fix #262: Zone(s) not synchronizing properly via TLS.
 	- Fix ixfr_and_restart test to wait for processes to come to a stop.
