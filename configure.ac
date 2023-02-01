@@ -698,6 +698,9 @@ case "$enable_recvmmsg" in
         yes)
 		AC_CHECK_FUNC([recvmmsg], [
 AC_RUN_IFELSE([AC_LANG_SOURCE([[
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #include <sys/socket.h>
 #include <errno.h>
 int main(void)
@@ -714,6 +717,9 @@ AC_DEFINE([HAVE_RECVMMSG], [1], [Define if recvmmsg exists])]
 )])
 		AC_CHECK_FUNC([sendmmsg], [
 AC_RUN_IFELSE([AC_LANG_SOURCE([[
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #include <sys/socket.h>
 #include <errno.h>
 int main(void)
