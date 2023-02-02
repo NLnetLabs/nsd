@@ -1,3 +1,6 @@
+2 February 2022: Wouter
+	- Merge #265: Fix C99 compatibility issue.
+
 30 January 2022: Wouter
 	- Merge #263: Add bash autocompletion script for nsd-control.
 	- Fix for #262: More error logging for SSL read failures for zone

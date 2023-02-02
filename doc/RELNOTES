@@ -10,6 +10,7 @@ BUG FIXES:
 	- Fix #262: Zone(s) not synchronizing properly via TLS.
 	- Fix for #262: More error logging for SSL read failures for zone
 	  transfers.
+	- Merge #265: Fix C99 compatibility issue.
 
 4.6.1
 ================
