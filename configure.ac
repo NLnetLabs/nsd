@@ -1021,6 +1021,7 @@ AC_SUBST(ratelimit_default)
 # we need SSL for TSIG (and maybe also for NSEC3).
 CHECK_SSL
 if test x$HAVE_SSL = x"yes"; then
+	AC_SUBST(NSD_CONTROL_COMMON_OBJ,'$(COMMON_OBJ)')
 	ACX_LIB_SSL
 	# remove space after -ldl if there.
 	LIBS=`echo "$LIBS" | sed -e 's/ $//'`
@@ -1097,6 +1098,7 @@ AC_INCLUDES_DEFAULT
 else
 	AC_MSG_WARN([No SSL, therefore remote-control is disabled])
 	AC_MSG_WARN([No SSL, therefore TLS is disabled])
+	AC_SUBST(NSD_CONTROL_COMMON_OBJ,)
 fi
 
 AC_ARG_ENABLE(nsec3, AS_HELP_STRING([--disable-nsec3],[Disable NSEC3 support]))
