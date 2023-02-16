@@ -16,7 +16,8 @@
 .B nsd\-control
 performs remote administration on the \fInsd\fR(8) DNS server.  It reads
 the configuration file, contacts the nsd server over SSL, sends the
-command and displays the result.
+command and displays the result.  Commands that require a reload are queued
+and the result indicates the command was accepted.
 .P
 The available options are:
 .TP
