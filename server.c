@@ -1526,8 +1526,8 @@ server_shutdown(struct nsd *nsd)
 	}
 
 	tsig_finalize();
-#ifdef HAVE_SSL
 	daemon_remote_delete(nsd->rc); /* ssl-delete secret keys */
+#ifdef HAVE_SSL
 	if (nsd->tls_ctx)
 		SSL_CTX_free(nsd->tls_ctx);
 #endif
@@ -1703,9 +1703,7 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 			log_msg(LOG_WARNING, "signal received, shutting down...");
 			server_close_all_sockets(nsd->udp, nsd->ifs);
 			server_close_all_sockets(nsd->tcp, nsd->ifs);
-#ifdef HAVE_SSL
 			daemon_remote_close(nsd->rc);
-#endif
 			/* Unlink it if possible... */
 			unlinkpid(nsd->pidfile);
 			unlink(nsd->task[0]->fname);
@@ -2804,9 +2802,7 @@ server_main(struct nsd *nsd)
 	/* close opened ports to avoid race with restart of nsd */
 	server_close_all_sockets(nsd->udp, nsd->ifs);
 	server_close_all_sockets(nsd->tcp, nsd->ifs);
-#ifdef HAVE_SSL
 	daemon_remote_close(nsd->rc);
-#endif
 	send_children_quit_and_wait(nsd);
 
 	/* Unlink it if possible... */

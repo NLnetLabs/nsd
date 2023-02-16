@@ -197,9 +197,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	xfrd->notify_waiting_last = NULL;
 	xfrd->notify_udp_num = 0;
 
-#ifdef HAVE_SSL
 	daemon_remote_attach(xfrd->nsd->rc, xfrd);
-#endif
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region, nsd->options->tls_cert_bundle, nsd->options->xfrd_tcp_max, nsd->options->xfrd_tcp_pipeline);
 	xfrd->tcp_set->tcp_timeout = nsd->tcp_timeout;
@@ -358,9 +356,7 @@ xfrd_shutdown()
 	if(xfrd->nsd->options->zonefiles_write) {
 		event_del(&xfrd->write_timer);
 	}
-#ifdef HAVE_SSL
 	daemon_remote_close(xfrd->nsd->rc); /* close sockets of rc */
-#endif
 	/* close sockets */
 	RBTREE_FOR(zone, xfrd_zone_type*, xfrd->zones)
 	{
@@ -407,8 +403,8 @@ xfrd_shutdown()
 	/* unlink xfr files in not-yet-done task file */
 	xfrd_clean_pending_tasks(xfrd->nsd, xfrd->nsd->task[xfrd->nsd->mytask]);
 	xfrd_del_tempdir(xfrd->nsd);
-#ifdef HAVE_SSL
 	daemon_remote_delete(xfrd->nsd->rc); /* ssl-delete secret keys */
+#ifdef HAVE_SSL
 	if (xfrd->nsd->tls_ctx)
 		SSL_CTX_free(xfrd->nsd->tls_ctx);
 #  ifdef HAVE_TLS_1_3
@@ -2700,9 +2696,7 @@ xfrd_process_stat_info_task(xfrd_state_type* xfrd, struct task_list_d* task)
 		xfrd->nsd->children[i].query_count += *p++;
 	}
 	/* got total, now see if users are interested in these statistics */
-#ifdef HAVE_SSL
 	daemon_remote_process_stats(xfrd->nsd->rc);
-#endif
 }
 #endif /* BIND8_STATS */
 

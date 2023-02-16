@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- Merge #263: Add bash autocompletion script for nsd-control.
+	- Fix #267: Allow unencrypted local operation of nsd-control.
 BUG FIXES:
 	- Fix #239: -Wincompatible-pointer-types warning in remote.c.
 	- Fix configure for -Wstrict-prototypes.
