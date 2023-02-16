@@ -11,6 +11,7 @@ BUG FIXES:
 	- Fix for #262: More error logging for SSL read failures for zone
 	  transfers.
 	- Merge #265: Fix C99 compatibility issue.
+	- Fix #266: Fix build with --without-ssl.
 
 4.6.1
 ================

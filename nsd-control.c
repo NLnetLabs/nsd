@@ -44,6 +44,19 @@
 #include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+struct region;
+struct domain_table;
+struct zone;
+struct domain;
+int zonec_parse_string(struct region* ATTR_UNUSED(region),
+	struct domain_table* ATTR_UNUSED(domains),
+	struct zone* ATTR_UNUSED(zone), char* ATTR_UNUSED(str),
+	struct domain** ATTR_UNUSED(parsed), int* ATTR_UNUSED(num_rrs))
+{
+	return 0;
+}
+
 #ifdef HAVE_SSL
 #include <sys/types.h>
 #include <unistd.h>
@@ -75,14 +88,6 @@ static void ssl_path_err(const char* s, const char *path) ATTR_NORETURN;
 
 /** timeout to wait for connection over stream, in msec */
 #define NSD_CONTROL_CONNECT_TIMEOUT 5000
-
-int zonec_parse_string(region_type* ATTR_UNUSED(region),
-	domain_table_type* ATTR_UNUSED(domains), zone_type* ATTR_UNUSED(zone),
-	char* ATTR_UNUSED(str), domain_type** ATTR_UNUSED(parsed),
-	int* ATTR_UNUSED(num_rrs))
-{
-	return 0;
-}
 
 /** Give nsd-control usage, and exit (1). */
 static void
