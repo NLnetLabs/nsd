@@ -753,13 +753,11 @@ clean_point(struct daemon_remote* rc, struct rc_state* s)
 static int
 ssl_print_text(RES* res, const char* text)
 {
-#ifdef HAVE_SSL
-	int r;
-#endif
 	if(!res) 
 		return 0;
 #ifdef HAVE_SSL
 	if(res->ssl) {
+		int r;
 		ERR_clear_error();
 		if((r=SSL_write(res->ssl, text, (int)strlen(text))) <= 0) {
 			if(SSL_get_error(res->ssl, r) == SSL_ERROR_ZERO_RETURN) {
@@ -807,9 +805,6 @@ ssl_printf(RES* ssl, const char* format, ...)
 static int
 ssl_read_line(RES* res, char* buf, size_t max)
 {
-#ifdef HAVE_SSL
-	int r;
-#endif
 	size_t len = 0;
 	if(!res)
 		return 0;
@@ -818,6 +813,7 @@ ssl_read_line(RES* res, char* buf, size_t max)
 		/* this byte is written if we read a byte from the input */
 #ifdef HAVE_SSL
 		if(res->ssl) {
+			int r;
 			ERR_clear_error();
 			if((r=SSL_read(res->ssl, buf+len, 1)) <= 0) {
 				if(SSL_get_error(res->ssl, r) == SSL_ERROR_ZERO_RETURN) {
@@ -2545,9 +2541,6 @@ remote_control_callback(int fd, short event, void* arg)
 	RES res;
 	struct rc_state* s = (struct rc_state*)arg;
 	struct daemon_remote* rc = s->rc;
-#ifdef HAVE_SSL
-	int r;
-#endif
 	if( (event&EV_TIMEOUT) ) {
 		log_msg(LOG_ERR, "remote control timed out");
 		clean_point(rc, s);
@@ -2556,6 +2549,7 @@ remote_control_callback(int fd, short event, void* arg)
 #ifdef HAVE_SSL
 	if(s->ssl) {
 		/* (continue to) setup the SSL connection */
+		int r;
 		ERR_clear_error();
 		r = SSL_do_handshake(s->ssl);
 		if(r != 1) {
