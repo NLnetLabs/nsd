@@ -1,0 +1,13 @@
+[Unit]
+Description=NSD DNS Server
+After=syslog.target network-online.target
+
+[Service]
+Type=notify
+ExecStart=/usr/sbin/nsd -d -c /etc/nsd/nsd.conf $NSD_EXTRA_OPTS
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=mixed
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
