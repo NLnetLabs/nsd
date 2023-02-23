@@ -1,3 +1,6 @@
+23 February 2022: Wouter
+	- Fix #270: reserved identifier violation.
+
 20 February 2022: Wouter
 	- Merge #269 from Fale: Add systemd service unit.
 
