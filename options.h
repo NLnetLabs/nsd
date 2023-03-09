@@ -164,6 +164,8 @@ struct nsd_options {
 	int dnstap_enable;
 	/** dnstap socket path */
 	char* dnstap_socket_path;
+	/** dnstap IP, if "", it uses socket path. */
+	char* dnstap_ip;
 	/** true to send "identity" via dnstap */
 	int dnstap_send_identity;
 	/** true to send "version" via dnstap */

@@ -279,7 +279,7 @@ static void dt_init_dnstap(struct dt_collector* dt_col, struct nsd* nsd)
 			nsd->options->dnstap_socket_path += l;
 	}
 #endif
-	dt_col->dt_env = dt_create(nsd->options->dnstap_socket_path, num_workers);
+	dt_col->dt_env = dt_create(nsd->options->dnstap_socket_path, nsd->options->dnstap_ip, num_workers);
 	if(!dt_col->dt_env) {
 		log_msg(LOG_ERR, "could not create dnstap env");
 		return;

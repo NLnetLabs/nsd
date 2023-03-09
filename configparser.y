@@ -136,6 +136,7 @@ struct component {
 %token VAR_DNSTAP
 %token VAR_DNSTAP_ENABLE
 %token VAR_DNSTAP_SOCKET_PATH
+%token VAR_DNSTAP_IP
 %token VAR_DNSTAP_SEND_IDENTITY
 %token VAR_DNSTAP_SEND_VERSION
 %token VAR_DNSTAP_IDENTITY
@@ -615,6 +616,8 @@ dnstap_option:
     { cfg_parser->opt->dnstap_enable = $2; }
   | VAR_DNSTAP_SOCKET_PATH STRING
     { cfg_parser->opt->dnstap_socket_path = region_strdup(cfg_parser->opt->region, $2); }
+  | VAR_DNSTAP_IP STRING
+    { cfg_parser->opt->dnstap_ip = region_strdup(cfg_parser->opt->region, $2); }
   | VAR_DNSTAP_SEND_IDENTITY boolean
     { cfg_parser->opt->dnstap_send_identity = $2; }
   | VAR_DNSTAP_SEND_VERSION boolean

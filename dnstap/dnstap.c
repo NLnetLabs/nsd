@@ -133,14 +133,15 @@ check_socket_file(const char* socket_path)
 }
 
 struct dt_env *
-dt_create(const char *socket_path, unsigned num_workers)
+dt_create(const char *socket_path, char* ip, unsigned num_workers)
 {
 #ifndef NDEBUG
 	fstrm_res res;
 #endif
 	struct dt_env *env;
 	struct fstrm_iothr_options *fopt;
-	struct fstrm_unix_writer_options *fuwopt;
+	struct fstrm_unix_writer_options *fuwopt = NULL;
+	struct fstrm_tcp_writer_options *ftwopt = NULL;
 	struct fstrm_writer *fw;
 	struct fstrm_writer_options *fwopt;
 
@@ -164,10 +165,25 @@ dt_create(const char *socket_path, unsigned num_workers)
 		DNSTAP_CONTENT_TYPE, sizeof(DNSTAP_CONTENT_TYPE) - 1);
 	assert(res == fstrm_res_success);
 
-	fuwopt = fstrm_unix_writer_options_init();
-	fstrm_unix_writer_options_set_socket_path(fuwopt, socket_path);
-
-	fw = fstrm_unix_writer_init(fuwopt, fwopt);
+	if(ip == NULL || ip[0] == 0) {
+		fuwopt = fstrm_unix_writer_options_init();
+		fstrm_unix_writer_options_set_socket_path(fuwopt, socket_path);
+	} else {
+		char* at = strchr(ip, '@');
+		ftwopt = fstrm_tcp_writer_options_init();
+		if(at == NULL) {
+			fstrm_tcp_writer_options_set_socket_address(ftwopt, ip);
+			fstrm_tcp_writer_options_set_socket_port(ftwopt, "3333");
+		} else {
+			*at = 0;
+			fstrm_tcp_writer_options_set_socket_address(ftwopt, ip);
+			fstrm_tcp_writer_options_set_socket_port(ftwopt, at+1);
+			*at = '@';
+		}
+	}
+	if(ip == NULL || ip[0] == 0)
+		fw = fstrm_unix_writer_init(fuwopt, fwopt);
+	else	fw = fstrm_tcp_writer_init(ftwopt, fwopt);
 	assert(fw != NULL);
 
 	fopt = fstrm_iothr_options_init();
@@ -180,7 +196,10 @@ dt_create(const char *socket_path, unsigned num_workers)
 		env = NULL;
 	}
 	fstrm_iothr_options_destroy(&fopt);
-	fstrm_unix_writer_options_destroy(&fuwopt);
+
+	if(ip == NULL || ip[0] == 0)
+		fstrm_unix_writer_options_destroy(&fuwopt);
+	else	fstrm_tcp_writer_options_destroy(&ftwopt);
 	fstrm_writer_options_destroy(&fwopt);
 
 	return env;

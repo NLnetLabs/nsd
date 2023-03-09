@@ -468,6 +468,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 #ifdef USE_DNSTAP
 		SERV_GET_BIN(dnstap_enable, o);
 		SERV_GET_STR(dnstap_socket_path, o);
+		SERV_GET_STR(dnstap_ip, o);
 		SERV_GET_BIN(dnstap_send_identity, o);
 		SERV_GET_BIN(dnstap_send_version, o);
 		SERV_GET_STR(dnstap_identity, o);
@@ -699,6 +700,7 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\ndnstap:\n");
 	printf("\tdnstap-enable: %s\n", opt->dnstap_enable?"yes":"no");
 	print_string_var("dnstap-socket-path:", opt->dnstap_socket_path);
+	print_string_var("dnstap-ip:", opt->dnstap_ip);
 	printf("\tdnstap-send-identity: %s\n", opt->dnstap_send_identity?"yes":"no");
 	printf("\tdnstap-send-version: %s\n", opt->dnstap_send_version?"yes":"no");
 	print_string_var("dnstap-identity:", opt->dnstap_identity);

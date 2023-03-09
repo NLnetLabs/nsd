@@ -1071,6 +1071,10 @@ for those messages to the server.
 Sets the unix socket file name for connecting to the server that is
 listening on that socket.  Default is "@dnstap_socket_path@".
 .TP
+.B dnstap-ip:\fR <"" or addr[@port]>
+If disabled with "", the socket path is used. With a value, like address or
+address@port, like "127.0.0.1@3333" TCP is used. Default is "".
+.TP
 .B dnstap-send-identity:\fR <yes or no>
 If enabled, the server identity is included in the log messages.
 Default is no.

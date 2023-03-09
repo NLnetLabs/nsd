@@ -1,3 +1,6 @@
+9 March 2023: Wouter
+	- Fix #271: DNSTAP over TCP, with dnstap-ip: "127.0.0.1@3333".
+
 23 February 2022: Wouter
 	- Fix #270: reserved identifier violation.
 

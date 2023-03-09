@@ -272,6 +272,7 @@ zonefiles-write{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ZONEFILES_WRITE;
 dnstap{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP;}
 dnstap-enable{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_ENABLE;}
 dnstap-socket-path{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_SOCKET_PATH; }
+dnstap-ip{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_IP; }
 dnstap-send-identity{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_SEND_IDENTITY; }
 dnstap-send-version{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_SEND_VERSION; }
 dnstap-identity{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_IDENTITY; }
