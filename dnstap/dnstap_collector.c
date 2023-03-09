@@ -32,6 +32,7 @@
 #include "buffer.h"
 #include "namedb.h"
 #include "options.h"
+#include "remote.h"
 
 #include "udb.h"
 #include "rrl.h"
@@ -308,6 +309,9 @@ static void dt_collector_cleanup(struct dt_collector* dt_col, struct nsd* nsd)
 		free(dt_col->inputs);
 	}
 	dt_collector_destroy(dt_col, nsd);
+	daemon_remote_delete(nsd->rc); /* ssl-delete secret keys */
+	nsd_options_destroy(nsd->options);
+	region_destroy(nsd->region);
 #endif
 }
 

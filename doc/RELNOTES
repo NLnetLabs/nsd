@@ -17,6 +17,7 @@ BUG FIXES:
 	- Fix #266: Fix build with --without-ssl.
 	- Fix for #267: neater variable definitions.
 	- Fix #270: reserved identifier violation.
+	- Fix to clean more memory on exit of dnstap collector.
 
 4.6.1
 ================
