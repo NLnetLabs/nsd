@@ -129,6 +129,7 @@ dt_msg_init(const struct dt_env *env,
 	}
 }
 
+#ifdef HAVE_SSL
 /** TLS writer object for fstrm. */
 struct dt_tls_writer {
 	/* ip address */
@@ -498,6 +499,7 @@ dt_tls_make_writer(struct fstrm_writer_options* fwopt,
 	fstrm_rdwr_set_write(rdwr, dt_tls_writer_write);
 	return fstrm_writer_init(fwopt, &rdwr);
 }
+#endif /* HAVE_SSL */
 
 /* check that the socket file can be opened and exists, print error if not */
 static void
@@ -568,9 +570,17 @@ dt_create(const char *socket_path, char* ip, unsigned num_workers,
 				*at = '@';
 			}
 		} else {
+#ifdef HAVE_SSL
 			env->tls_writer = tls_writer_init(ip, tls_server_name,
 				tls_cert_bundle, tls_client_key_file,
 				tls_client_cert_file);
+#else
+			(void)tls_server_name;
+			(void)tls_cert_bundle;
+			(void)tls_client_key_file;
+			(void)tls_client_cert_file;
+			log_msg(LOG_ERR, "dnstap: tls enabled but compiled without ssl.");
+#endif
 			if(!env->tls_writer) {
 				log_msg(LOG_ERR, "dt_create: tls_writer_init() failed");
 				fstrm_writer_options_destroy(&fwopt);
@@ -583,8 +593,10 @@ dt_create(const char *socket_path, char* ip, unsigned num_workers,
 		fw = fstrm_unix_writer_init(fuwopt, fwopt);
 	else if(!tls)
 		fw = fstrm_tcp_writer_init(ftwopt, fwopt);
+#ifdef HAVE_SSL
 	else
 		fw = dt_tls_make_writer(fwopt, env->tls_writer);
+#endif
 	assert(fw != NULL);
 
 	fopt = fstrm_iothr_options_init();

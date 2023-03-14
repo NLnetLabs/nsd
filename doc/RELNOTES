@@ -22,6 +22,7 @@ BUG FIXES:
 	- Fix #270: reserved identifier violation.
 	- Fix to clean more memory on exit of dnstap collector.
 	- Fix dnstap to not check socket path when using IP address.
+	- Fix to compile without ssl with dnstap-tls code.
 
 4.6.1
 ================
