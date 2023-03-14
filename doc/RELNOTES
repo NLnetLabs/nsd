@@ -18,6 +18,7 @@ BUG FIXES:
 	- Fix for #267: neater variable definitions.
 	- Fix #270: reserved identifier violation.
 	- Fix to clean more memory on exit of dnstap collector.
+	- Fix dnstap to not check socket path when using IP address.
 
 4.6.1
 ================

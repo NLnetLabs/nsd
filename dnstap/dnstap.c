@@ -145,11 +145,16 @@ dt_create(const char *socket_path, char* ip, unsigned num_workers)
 	struct fstrm_writer *fw;
 	struct fstrm_writer_options *fwopt;
 
-	VERBOSITY(1, (LOG_INFO, "attempting to connect to dnstap socket %s",
-		socket_path));
-	assert(socket_path != NULL);
 	assert(num_workers > 0);
-	check_socket_file(socket_path);
+	if(ip == NULL || ip[0] == 0) {
+		VERBOSITY(1, (LOG_INFO, "attempting to connect to dnstap socket %s",
+			socket_path));
+		assert(socket_path != NULL);
+		check_socket_file(socket_path);
+	} else {
+		VERBOSITY(1, (LOG_INFO, "attempting to connect to dnstap socket %s",
+			ip));
+	}
 
 	env = (struct dt_env *) calloc(1, sizeof(struct dt_env));
 	if (!env)

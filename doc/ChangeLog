@@ -1,3 +1,6 @@
+14 March 2023: Wouter
+	- Fix dnstap to not check socket path when using IP address.
+
 9 March 2023: Wouter
 	- Fix #271: DNSTAP over TCP, with dnstap-ip: "127.0.0.1@3333".
 	- Fix to clean more memory on exit of dnstap collector.
