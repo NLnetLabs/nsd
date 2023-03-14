@@ -1073,7 +1073,20 @@ listening on that socket.  Default is "@dnstap_socket_path@".
 .TP
 .B dnstap-ip:\fR <"" or addr[@port]>
 If disabled with "", the socket path is used. With a value, like address or
-address@port, like "127.0.0.1@3333" TCP is used. Default is "".
+address@port, like "127.0.0.1@3333" TCP or TLS is used. Default is "".
+.TP
+.B dnstap-tls:\fR <yes or no>
+If enabled, TLS is used to the address specified in \fBdnstap-ip\fR. Otherwise,
+TCP is used. Default is yes.
+.TP
+.B dnstap-tls-server-name:\fR <string>
+The name for authenticating the upstream server. With "" disabled.
+.TP
+.B dnstap-tls-client-key-file:\fR <file name>
+The key file for client authentication, or "" disabled.
+.TP
+.B dnstap-tls-client-cert-file:\fR <file name>
+The cert file for client authentication, or "" disabled.
 .TP
 .B dnstap-send-identity:\fR <yes or no>
 If enabled, the server identity is included in the log messages.

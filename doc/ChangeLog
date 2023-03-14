@@ -1,5 +1,8 @@
 14 March 2023: Wouter
 	- Fix dnstap to not check socket path when using IP address.
+	- dnstap over TLS, default enabled. Configured with the
+	  options dnstap-tls, dnstap-tls-server-name, dnstap-tls-cert-bundle,
+	  dnstap-tls-client-key-file and dnstap-tls-client-cert-file.
 
 9 March 2023: Wouter
 	- Fix #271: DNSTAP over TCP, with dnstap-ip: "127.0.0.1@3333".

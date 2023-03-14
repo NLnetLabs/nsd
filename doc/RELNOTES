@@ -7,6 +7,9 @@ FEATURES:
 	- Fix #267: Allow unencrypted local operation of nsd-control.
 	- Merge #269 from Fale: Add systemd service unit.
 	- Fix #271: DNSTAP over TCP, with dnstap-ip: "127.0.0.1@3333".
+	- dnstap over TLS, default enabled. Configured with the
+	  options dnstap-tls, dnstap-tls-server-name, dnstap-tls-cert-bundle,
+	  dnstap-tls-client-key-file and dnstap-tls-client-cert-file.
 BUG FIXES:
 	- Fix #239: -Wincompatible-pointer-types warning in remote.c.
 	- Fix configure for -Wstrict-prototypes.
