@@ -23,6 +23,7 @@ BUG FIXES:
 	- Fix to clean more memory on exit of dnstap collector.
 	- Fix dnstap to not check socket path when using IP address.
 	- Fix to compile without ssl with dnstap-tls code.
+	- Dnstap tls code fixes.
 
 4.6.1
 ================

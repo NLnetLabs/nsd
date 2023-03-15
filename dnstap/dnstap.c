@@ -279,7 +279,7 @@ dt_tls_writer_destroy(void* obj)
 {
 	struct dt_tls_writer* dtw = (struct dt_tls_writer*)obj;
 	tls_writer_delete(dtw);
-	return fstrm_res_failure;
+	return fstrm_res_success;
 }
 
 /* The fstrm writer open callback for TLS */
@@ -317,6 +317,8 @@ dt_tls_writer_open(void* obj)
 		sa.sin6_port = (in_port_t)htons((uint16_t)port);
 		if(inet_pton((int)sa.sin6_family, svr, &sa.sin6_addr) <= 0) {
 			log_msg(LOG_ERR, "dnstap: could not parse IP: %s", svr);
+			if(at != NULL)
+				*at = '@';
 			return fstrm_res_failure;
 		}
 		memcpy(&addr, &sa, addrlen);
@@ -349,12 +351,6 @@ dt_tls_writer_open(void* obj)
 		log_msg(LOG_ERR, "dnstap: socket failed: %s", strerror(errno));
 		return fstrm_res_failure;
 	}
-#ifdef SO_NOSIGPIPE
-	if(setsockopt, dtw->fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on) != 0) {
-		log_warn(LOG_ERR, "dnstap: setsockopt SO_NOSIGPIPE failed: %s",
-			strerror(errno));
-	}
-#endif /* SO_NOSIGPIPE */
 	if(connect(dtw->fd, (struct sockaddr*)&addr, addrlen) < 0) {
 		log_msg(LOG_ERR, "dnstap: connect failed: %s", strerror(errno));
 		return fstrm_res_failure;
@@ -373,7 +369,7 @@ dt_tls_writer_open(void* obj)
 		log_msg(LOG_ERR, "dnstap: SSL_set_fd failed");
 		return fstrm_res_failure;
 	}
-	if(dtw->tls_server_name) {
+	if(dtw->tls_server_name && dtw->tls_server_name[0]) {
 		if(!SSL_set1_host(dtw->ssl, dtw->tls_server_name)) {
 			log_msg(LOG_ERR, "dnstap: TLS setting of hostname %s failed to %s",
 				dtw->tls_server_name, dtw->ip);
@@ -389,12 +385,12 @@ dt_tls_writer_open(void* obj)
 			break;
 		r = SSL_get_error(dtw->ssl, r);
 		if(r != SSL_ERROR_WANT_READ && r != SSL_ERROR_WANT_WRITE) {
-			if(r == 0) {
-				log_msg(LOG_ERR, "dnstap: EOF on SSL_do_hanshake");
+			if(r == SSL_ERROR_ZERO_RETURN) {
+				log_msg(LOG_ERR, "dnstap: EOF on SSL_do_handshake");
 				return fstrm_res_failure;
 			}
 			if(r == SSL_ERROR_SYSCALL) {
-				log_msg(LOG_ERR, "dnstap: SSL_do_hanshake failed: %s", strerror(errno));
+				log_msg(LOG_ERR, "dnstap: SSL_do_handshake failed: %s", strerror(errno));
 				return fstrm_res_failure;
 			}
 			log_crypto_err("dnstap: SSL_do_handshake failed");
@@ -404,11 +400,15 @@ dt_tls_writer_open(void* obj)
 	}
 
 	/* check authenticity of server */
-	if(SSL_get_verify_result(dtw->ssl) != X509_V_OK)
+	if(SSL_get_verify_result(dtw->ssl) != X509_V_OK) {
 		log_crypto_err("SSL verification failed");
+		return fstrm_res_failure;
+	}
 	x = SSL_get_peer_certificate(dtw->ssl);
-	if(!x)
+	if(!x) {
 		log_crypto_err("Server presented no peer certificate");
+		return fstrm_res_failure;
+	}
 	X509_free(x);
 
 	return fstrm_res_success;
@@ -425,8 +425,10 @@ dt_tls_writer_close(void* obj)
 			SSL_shutdown(dtw->ssl);
 		SSL_free(dtw->ssl);
 		dtw->ssl = NULL;
-		close(dtw->fd);
-		dtw->fd = -1;
+		if(dtw->fd != -1) {
+			close(dtw->fd);
+			dtw->fd = -1;
+		}
 		return fstrm_res_success;
 	}
 	return fstrm_res_failure;
@@ -535,8 +537,8 @@ dt_create(const char *socket_path, char* ip, unsigned num_workers,
 		assert(socket_path != NULL);
 		check_socket_file(socket_path);
 	} else {
-		VERBOSITY(1, (LOG_INFO, "attempting to connect to dnstap %s socket %s",
-			(tls?"tls":""), ip));
+		VERBOSITY(1, (LOG_INFO, "attempting to connect to dnstap %ssocket %s",
+			(tls?"tls ":""), ip));
 	}
 
 	env = (struct dt_env *) calloc(1, sizeof(struct dt_env));
