@@ -2916,11 +2916,13 @@ nsd_event_method(void)
 	return "select";
 #else
 	struct event_base* b = nsd_child_event_base();
-	const char* m = "?";
+	const char* m;
 #  ifdef EV_FEATURE_BACKENDS
 	m = ub_ev_backend2str(ev_backend((struct ev_loop*)b));
 #  elif defined(HAVE_EVENT_BASE_GET_METHOD)
 	m = event_base_get_method(b);
+#  else
+	m = "?";
 #  endif
 #  ifdef MEMCLEAN
 	event_base_free(b);

@@ -25,6 +25,7 @@ BUG FIXES:
 	- Fix to compile without ssl with dnstap-tls code.
 	- Dnstap tls code fixes.
 	- Fix include brackets for ssl.h include statements, instead of quotes.
+	- Fix static analyzer warning about nsd_event_method initialization.
 
 4.6.1
 ================
