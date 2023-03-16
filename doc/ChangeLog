@@ -16,30 +16,30 @@
 	- Fix #271: DNSTAP over TCP, with dnstap-ip: "127.0.0.1@3333".
 	- Fix to clean more memory on exit of dnstap collector.
 
-23 February 2022: Wouter
+23 February 2023: Wouter
 	- Fix #270: reserved identifier violation.
 
-20 February 2022: Wouter
+20 February 2023: Wouter
 	- Merge #269 from Fale: Add systemd service unit.
 
-16 February 2022: Wouter
+16 February 2023: Wouter
 	- Fix #266: Fix build with --without-ssl.
 	- Fix #267: Allow unencrypted local operation of nsd-control.
 	- Fix for #267: neater variable definitions.
 
-2 February 2022: Wouter
+2 February 2023: Wouter
 	- Merge #265: Fix C99 compatibility issue.
 
-30 January 2022: Wouter
+30 January 2023: Wouter
 	- Merge #263: Add bash autocompletion script for nsd-control.
 	- Fix for #262: More error logging for SSL read failures for zone
 	  transfers.
 
-27 January 2022: Wouter
+27 January 2023: Wouter
 	- Fix #262: Zone(s) not synchronizing properly via TLS.
 	- Fix ixfr_and_restart test to wait for processes to come to a stop.
 
-26 January 2022: Wouter
+26 January 2023: Wouter
 	- Fix configure for -Wstrict-prototypes.
 
 10 November 2022: Wouter
