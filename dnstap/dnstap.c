@@ -55,7 +55,7 @@
 
 #ifdef HAVE_SSL
 #ifdef HAVE_OPENSSL_SSL_H
-#include "openssl/ssl.h"
+#include <openssl/ssl.h>
 #endif
 #ifdef HAVE_OPENSSL_ERR_H
 #include <openssl/err.h>

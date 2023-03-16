@@ -24,6 +24,7 @@ BUG FIXES:
 	- Fix dnstap to not check socket path when using IP address.
 	- Fix to compile without ssl with dnstap-tls code.
 	- Dnstap tls code fixes.
+	- Fix include brackets for ssl.h include statements, instead of quotes.
 
 4.6.1
 ================
