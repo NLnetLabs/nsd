@@ -53,6 +53,10 @@ int diff_read_32(FILE *in, uint32_t* result);
 int diff_read_8(FILE *in, uint8_t* result);
 int diff_read_str(FILE* in, char* buf, size_t len);
 
+
+zone_type* find_or_create_zone(namedb_type* db, 
+	const dname_type* zone_name,
+	struct nsd_options* opt, const char* zstr, const char* patname);
 /* delete the RRs for a zone from memory */
 void delete_zone_rrs(namedb_type* db, zone_type* zone);
 /* delete an RR */

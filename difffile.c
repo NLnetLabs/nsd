@@ -902,7 +902,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	return 1;
 }
 
-static zone_type*
+zone_type*
 find_or_create_zone(namedb_type* db, const dname_type* zone_name,
 	struct nsd_options* opt, const char* zstr, const char* patname)
 {
