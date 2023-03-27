@@ -68,3 +68,16 @@ catz_remove_zone(const catz_dname *member_zone_name,
 	return CATZ_SUCCESS;
 }
 
+void nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
+{
+	struct zone_rr_iter rr_iter;
+	struct rr *rr;
+
+	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Catalog zone processing"));
+	zone_rr_iter_init(&rr_iter, zone);
+	for ( rr = zone_rr_iter_next(&rr_iter)
+	    ; rr != NULL
+	    ; rr = zone_rr_iter_next(&rr_iter)) {
+		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Process RR"));
+	}
+}

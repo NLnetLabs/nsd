@@ -33,6 +33,9 @@
 #include "ixfr.h"
 #include "ixfrcreate.h"
 
+/* TODO: Maybe eventually include "cat-zones.h" */
+#include "cat-zones-nsd.h"
+
 static time_t udb_time = 0;
 static unsigned long udb_rrsets = 0;
 static unsigned long udb_rrset_count = 0;
@@ -617,6 +620,9 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 			zone->opts->name));
 		zone->is_ok = 1;
 		zone->is_changed = 0;
+		if (zone->opts->pattern->catalog) {
+			nsd_catalog_consumer_process(nsd, zone);
+		}
 		/* store zone into udb */
 		if(nsd->db->udb) {
 			if(!write_zone_to_udb(nsd->db->udb, zone, &mtime,
