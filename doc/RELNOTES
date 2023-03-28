@@ -26,6 +26,7 @@ BUG FIXES:
 	- Dnstap tls code fixes.
 	- Fix include brackets for ssl.h include statements, instead of quotes.
 	- Fix static analyzer warning about nsd_event_method initialization.
+	- Fix #273: Large TXT record breaks AXFR.
 
 4.6.1
 ================
