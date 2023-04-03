@@ -938,14 +938,7 @@ AC_DEFINE_UNQUOTED([TCP_TIMEOUT], $tcp_timeout, [Define to the default tcp timeo
 dnl
 dnl Features
 dnl
-AC_ARG_ENABLE(root-server, AS_HELP_STRING([--enable-root-server],[Configure NSD as a root server]))
-case "$enable_root_server" in
-        yes)
-		AC_DEFINE_UNQUOTED([ROOT_SERVER], [], [Define this to configure as a root server.])
-		;;
-        no|*)
-                ;;
-esac
+AC_ARG_ENABLE(root-server, AS_HELP_STRING([--enable-root-server],[Configure NSD as a root server (obsolete)]))
 
 AC_ARG_ENABLE(ipv6, AS_HELP_STRING([--disable-ipv6],[Disables IPv6 support]))
 case "$enable_ipv6" in
