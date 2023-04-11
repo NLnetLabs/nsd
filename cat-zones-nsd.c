@@ -81,10 +81,6 @@ void nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 
 	uint8_t has_version_txt = 0;
 	
-	dname_type* previous_ptrs = (dname_type*)malloc(0 * sizeof(dname_type));
-	uint32_t previous_ptrs_no = 0;
-	
-
 	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Catalog zone processing"));
 	zone_rr_iter_init(&rr_iter, zone);
 	for ( rr = zone_rr_iter_next(&rr_iter)
@@ -93,9 +89,11 @@ void nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 			if (
 				rr->type == TYPE_TXT && 
 				rr->klass == CLASS_IN && 
-				strcasecmp(
-					dname_to_string(rr->owner->dname, zone->apex->dname),
-					 "version"
+				rr->owner->dname->label_count == zone->apex->dname->label_count + 1 &&
+				dname_name(rr->owner->dname)[0] == 7 &&
+				strncasecmp(
+					 (const char *)dname_name(rr->owner->dname) + 1,
+					 "version", 7
 				) == 0
 			) {
 				DEBUG(DEBUG_CATZ, 1, 
@@ -105,12 +103,13 @@ void nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 					(LOG_INFO, "Catz has more than one version TXT defined"));
 				} else if (
 					rr->rdata_count != 1 || 
-					strcmp((char*)rr->rdatas[0].data, "\"2\"") != 0
+					rdata_atom_size(rr->rdatas[0]) != 2 ||
+					rdata_atom_data(rr->rdatas[0])[0] != 1 ||
+					rdata_atom_data(rr->rdatas[0])[1] != '2'
 				) {
 					// TODO: Fix check for 2
 					DEBUG(DEBUG_CATZ, 1, 
 					(LOG_INFO, "Catz has a version different than 2"));
-					DEBUG(DEBUG_CATZ, 1, (LOG_INFO, rr->rdatas[1].data));
 				} else {
 					has_version_txt = 2;
 				}
@@ -118,31 +117,11 @@ void nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 			// Maybe also check whether an NS record is present, although it is 
 			// not really breaking anything when it fails.
 			if (rr->type == TYPE_PTR && rr->klass == CLASS_IN) {
-				char* label = dname_to_string(
+				const char* label = dname_to_string(
 					rr->owner->dname, 
 					zone->apex->dname
 				);
-				DEBUG(DEBUG_CATZ, 1, 
-				(LOG_INFO, label));
-
-				dname_type* ptrs[previous_ptrs_no + 1];
-				for (uint32_t i = 0; i < previous_ptrs_no; i++) {
-					if (dname_compare(
-						rr->owner->dname, 
-						&previous_ptrs[i]
-					) == 0) {
-						DEBUG(DEBUG_CATZ, 1, 
-						(LOG_INFO, "Catz more than one PTR record for this label"));
-					}
-					ptrs[i] = &previous_ptrs[i];
-				}
-				ptrs[previous_ptrs_no] = rr->owner->dname;
-				free(previous_ptrs);
-				previous_ptrs = 
-					(dname_type*)malloc(previous_ptrs_no + 1 * sizeof(dname_type));
-
-				previous_ptrs = &ptrs;
-				previous_ptrs_no++;
+				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, label));
 			}
 		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Process RR"));
 	}
