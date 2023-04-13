@@ -30,6 +30,7 @@ BUG FIXES:
 	- Fix ixfr create from adding too many record types.
 	- Fix cirrus script for submit to coverity scan to libtoolize
 	  the configure script components config.guess and config.sub.
+	- Fix readme status badge links.
 
 4.6.1
 ================
