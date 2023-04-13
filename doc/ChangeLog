@@ -1,3 +1,7 @@
+13 April 2023: Wouter
+	- Fix cirrus script for submit to coverity scan to libtoolize
+	  the configure script components config.guess and config.sub.
+
 28 March 2023: Wouter
 	- Fix #273: Large TXT record breaks AXFR.
 	- Fix ixfr create from adding too many record types.

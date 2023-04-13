@@ -88,6 +88,7 @@ task:
   <<: *install_coverity
   build_script:
     - autoconf && autoheader
+    - libtoolize -c -i || glibtoolize -c -i
     - ./configure --enable-checking --disable-flto
     - cov-configure --comptype ${COV_COMPTYPE} --compiler ${CC} --template
     - cov-build --dir cov-int make

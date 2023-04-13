@@ -28,6 +28,8 @@ BUG FIXES:
 	- Fix static analyzer warning about nsd_event_method initialization.
 	- Fix #273: Large TXT record breaks AXFR.
 	- Fix ixfr create from adding too many record types.
+	- Fix cirrus script for submit to coverity scan to libtoolize
+	  the configure script components config.guess and config.sub.
 
 4.6.1
 ================
