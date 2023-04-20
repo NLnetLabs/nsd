@@ -127,7 +127,7 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 			)));
 			if (dname->label_count == zone->apex->dname->label_count + 2
 			&& label_compare( dname_label(dname, dname->label_count - 2)
-			                , (const uint8_t*)"\x05zones")) {
+			                , (const uint8_t*)"\x05zones") == 0) {
 				// For the time being we ignore all other PTR records
 				const catz_dname* member_zone = dname2catz_dname(domain_dname(rdata_atom_domain(rr->rdatas[0])));
 
