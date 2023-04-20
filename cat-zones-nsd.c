@@ -9,6 +9,7 @@
 #include "cat-zones-nsd.h"
 #include "difffile.h"
 #include "nsd.h"
+#include "radtree.h"
 
 int
 catz_dname_equal(const catz_dname *a, const catz_dname *b)
@@ -46,7 +47,7 @@ catz_add_zone(const catz_dname *member_zone_name,
 {
 	nsd_type* nsd = (nsd_type*)arg;
 	const char* zname = dname_to_string(&member_zone_name->dname, NULL);
-	const char* pname = zname;
+	const char* pname = PATTERN_IMPLICIT_MARKER;
 	zone_type* t;
 	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Zone name: %s", zname));
 	t = find_or_create_zone(
@@ -58,6 +59,7 @@ catz_add_zone(const catz_dname *member_zone_name,
 	);
 
 	if (t) {
+		t->is_from_catalog = 1;
 		return CATZ_SUCCESS;
 	} else {
 		// This should never happen
@@ -72,8 +74,12 @@ catz_remove_zone(const catz_dname *member_zone_name,
 	nsd_type* nsd = (nsd_type*) arg;
 	zone_type* zone = namedb_find_zone(nsd->db, &member_zone_name->dname);
 
-	delete_zone_rrs(nsd->db, zone);
-	return CATZ_SUCCESS;
+	if (zone->is_from_catalog) {
+		namedb_zone_delete(nsd->db, zone);
+		return CATZ_SUCCESS;
+	} else {
+		return -1;
+	}
 }
 
 int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
@@ -82,6 +88,18 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 	struct rr *rr;
 
 	uint8_t has_version_txt = 0;
+
+	// Current MVP implementation: remove all zones coming from a catalog
+	// Readd all zones coming from a catalog
+	// Very inefficient
+
+	for (struct radnode* n = radix_first(nsd->db->zonetree); n; n = radix_next(n)) {
+		zone_type* z = (zone_type*)n->elem;
+		if (z->is_from_catalog) {
+			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Deleted zone %s", dname_to_string(z->apex->dname, NULL)));
+			namedb_zone_delete(nsd->db, z);
+		}
+	}
 	
 	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Catalog zone processing"));
 	zone_rr_iter_init(&rr_iter, zone);
@@ -144,5 +162,6 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 		}
 		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Process RR"));
 	}
+
 	return -1;
 }
