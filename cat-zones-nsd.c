@@ -46,6 +46,7 @@ catz_add_zone(const catz_dname *member_zone_name,
 {
 	nsd_type* nsd = (nsd_type*)arg;
 	const char* zname = dname_to_string(&member_zone_name->dname, NULL);
+	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Zone name: %s", zname));
 	const char* pname = zname;
 	zone_type* t = find_or_create_zone(
 		nsd->db, 
@@ -74,7 +75,7 @@ catz_remove_zone(const catz_dname *member_zone_name,
 	return CATZ_SUCCESS;
 }
 
-void nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
+int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 {
 	struct zone_rr_iter rr_iter;
 	struct rr *rr;
@@ -86,43 +87,62 @@ void nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 	for ( rr = zone_rr_iter_next(&rr_iter)
 	    ; rr != NULL
 	    ; rr = zone_rr_iter_next(&rr_iter)) {
-			if (
-				rr->type == TYPE_TXT && 
-				rr->klass == CLASS_IN && 
-				rr->owner->dname->label_count == zone->apex->dname->label_count + 1 &&
-				dname_name(rr->owner->dname)[0] == 7 &&
-				strncasecmp(
-					 (const char *)dname_name(rr->owner->dname) + 1,
-					 "version", 7
-				) == 0
+		if (rr->klass != CLASS_IN) {
+			continue;
+		}
+		if (
+			rr->type == TYPE_TXT && 
+			rr->owner->dname->label_count == zone->apex->dname->label_count + 1 &&
+			dname_name(rr->owner->dname)[0] == 7 &&
+			strncasecmp(
+				(const char *)dname_name(rr->owner->dname) + 1,
+				"version", 7
+			) == 0
+		) {
+			DEBUG(DEBUG_CATZ, 1, 
+			(LOG_INFO, "Catz version TXT"));
+			if (has_version_txt) {
+				DEBUG(DEBUG_CATZ, 1, 
+				(LOG_INFO, "Catz has more than one version TXT defined"));
+			} else if (
+				rr->rdata_count != 1 || 
+				rdata_atom_size(rr->rdatas[0]) != 2 ||
+				rdata_atom_data(rr->rdatas[0])[0] != 1 ||
+				rdata_atom_data(rr->rdatas[0])[1] != '2'
 			) {
 				DEBUG(DEBUG_CATZ, 1, 
-				(LOG_INFO, "Catz version TXT"));
-				if (has_version_txt) {
-					DEBUG(DEBUG_CATZ, 1, 
-					(LOG_INFO, "Catz has more than one version TXT defined"));
-				} else if (
-					rr->rdata_count != 1 || 
-					rdata_atom_size(rr->rdatas[0]) != 2 ||
-					rdata_atom_data(rr->rdatas[0])[0] != 1 ||
-					rdata_atom_data(rr->rdatas[0])[1] != '2'
-				) {
-					// TODO: Fix check for 2
-					DEBUG(DEBUG_CATZ, 1, 
-					(LOG_INFO, "Catz has a version different than 2"));
-				} else {
-					has_version_txt = 2;
+				(LOG_INFO, "Catz has a version different than 2"));
+			} else {
+				DEBUG(DEBUG_CATZ, 1, 
+				(LOG_INFO, "Catz version is 2"));
+				has_version_txt = 2;
+			}
+		}
+		// Maybe also check whether an NS record is present, although it is 
+		// not really breaking anything when it fails.
+		if (rr->type == TYPE_PTR) {
+			const char* label = dname_to_string(
+				rr->owner->dname, 
+				zone->apex->dname
+			);
+			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, label));
+
+			if (rr->owner->dname->label_count > 2) {
+				const uint8_t* label = dname_label(rr->owner->dname, rr->owner->dname->label_count - 2);
+				if (label[0] == 5 && strncasecmp(label + 1, "zones", 5) == 0) {
+					// For the time being we ignore all other PTR records
+					catz_dname* member_zone = domain_dname(rdata_atom_domain(rr->rdatas[0]));
+
+					catz_dname* member_id = rr->owner->dname;
+
+					catz_catalog_zone* cat_zone = zone;
+
+					DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "PTR parsed"));
+
+					catz_add_zone(member_zone, member_id, cat_zone, nsd);
 				}
 			}
-			// Maybe also check whether an NS record is present, although it is 
-			// not really breaking anything when it fails.
-			if (rr->type == TYPE_PTR && rr->klass == CLASS_IN) {
-				const char* label = dname_to_string(
-					rr->owner->dname, 
-					zone->apex->dname
-				);
-				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, label));
-			}
+		}
 		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Process RR"));
 	}
 }

@@ -26,6 +26,6 @@ struct catz_catalog_zone {
 	struct zone zone;
 };
 
-void nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone);
+int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone);
 
 #endif
