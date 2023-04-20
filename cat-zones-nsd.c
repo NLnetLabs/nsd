@@ -88,61 +88,59 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 	for ( rr = zone_rr_iter_next(&rr_iter)
 	    ; rr != NULL
 	    ; rr = zone_rr_iter_next(&rr_iter)) {
+		const dname_type *dname = rr->owner->dname;
+
 		if (rr->klass != CLASS_IN) {
 			continue;
 		}
-		if (
-			rr->type == TYPE_TXT && 
-			rr->owner->dname->label_count == zone->apex->dname->label_count + 1 &&
-			dname_name(rr->owner->dname)[0] == 7 &&
-			strncasecmp(
-				(const char *)dname_name(rr->owner->dname) + 1,
-				"version", 7
-			) == 0
-		) {
-			DEBUG(DEBUG_CATZ, 1, 
-			(LOG_INFO, "Catz version TXT"));
-			if (has_version_txt) {
-				DEBUG(DEBUG_CATZ, 1, 
-				(LOG_INFO, "Catz has more than one version TXT defined"));
-			} else if (
-				rr->rdata_count != 1 || 
-				rdata_atom_size(rr->rdatas[0]) != 2 ||
-				rdata_atom_data(rr->rdatas[0])[0] != 1 ||
-				rdata_atom_data(rr->rdatas[0])[1] != '2'
-			) {
-				DEBUG(DEBUG_CATZ, 1, 
-				(LOG_INFO, "Catz has a version different than 2"));
-			} else {
-				DEBUG(DEBUG_CATZ, 1, 
-				(LOG_INFO, "Catz version is 2"));
-				has_version_txt = 2;
-			}
-		}
 		// Maybe also check whether an NS record is present, although it is 
 		// not really breaking anything when it fails.
-		if (rr->type == TYPE_PTR) {
-			const char* label = dname_to_string(
-				rr->owner->dname, 
-				zone->apex->dname
-			);
-			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "%s", label));
-
-			if (rr->owner->dname->label_count > 2) {
-				const uint8_t* label = dname_label(rr->owner->dname, rr->owner->dname->label_count - 2);
-				if (label[0] == 5 && strncasecmp((const char *)label + 1, "zones", 5) == 0) {
-					// For the time being we ignore all other PTR records
-					const catz_dname* member_zone = dname2catz_dname(domain_dname(rdata_atom_domain(rr->rdatas[0])));
-
-					const catz_dname* member_id = dname2catz_dname(rr->owner->dname);
-
-					catz_catalog_zone* cat_zone = zone2catz_catalog_zone(zone);
-
-					DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "PTR parsed"));
-
-					catz_add_zone(member_zone, member_id, cat_zone, nsd);
+		switch (rr->type) {
+		case TYPE_TXT:
+			if (dname->label_count == zone->apex->dname->label_count + 1
+			&&  label_compare( dname_name(dname)
+			                 , (const uint8_t *)"\x07version") == 0) {
+				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Catz version TXT"));
+				if (has_version_txt) {
+					DEBUG(DEBUG_CATZ, 1, 
+					(LOG_INFO, "Catz has more than one version TXT defined"));
+				} else if (
+					rr->rdata_count != 1 || 
+					rdata_atom_size(rr->rdatas[0]) != 2 ||
+					rdata_atom_data(rr->rdatas[0])[0] != 1 ||
+					rdata_atom_data(rr->rdatas[0])[1] != '2'
+				) {
+					DEBUG(DEBUG_CATZ, 1, 
+					(LOG_INFO, "Catz has a version different than 2"));
+				} else {
+					DEBUG(DEBUG_CATZ, 1, 
+					(LOG_INFO, "Catz version is 2"));
+					has_version_txt = 2;
 				}
+				break;
 			}
+			break;
+		case TYPE_PTR:
+			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "%s", dname_to_string(
+				dname, 
+				zone->apex->dname
+			)));
+			if (dname->label_count == zone->apex->dname->label_count + 2
+			&& label_compare( dname_label(dname, dname->label_count - 2)
+			                , (const uint8_t*)"\x05zones")) {
+				// For the time being we ignore all other PTR records
+				const catz_dname* member_zone = dname2catz_dname(domain_dname(rdata_atom_domain(rr->rdatas[0])));
+
+				const catz_dname* member_id = dname2catz_dname(rr->owner->dname);
+
+				catz_catalog_zone* cat_zone = zone2catz_catalog_zone(zone);
+
+				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "PTR parsed"));
+
+				catz_add_zone(member_zone, member_id, cat_zone, nsd);
+				break;
+			}
+			break;
 		}
 		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Process RR"));
 	}
