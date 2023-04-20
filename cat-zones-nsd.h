@@ -18,6 +18,8 @@
 struct catz_dname {
 	dname_type dname;
 };
+static inline const struct catz_dname *dname2catz_dname(const struct dname* d)
+{ return (struct catz_dname*)d; }
 
 /**
  * Implementation of catz_catalog_zone
@@ -25,6 +27,8 @@ struct catz_dname {
 struct catz_catalog_zone {
 	struct zone zone;
 };
+static inline struct catz_catalog_zone *zone2catz_catalog_zone(struct zone* z)
+{ return (struct catz_catalog_zone*)z; }
 
 int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone);
 

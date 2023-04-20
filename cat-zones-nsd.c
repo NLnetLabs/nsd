@@ -46,9 +46,10 @@ catz_add_zone(const catz_dname *member_zone_name,
 {
 	nsd_type* nsd = (nsd_type*)arg;
 	const char* zname = dname_to_string(&member_zone_name->dname, NULL);
-	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Zone name: %s", zname));
 	const char* pname = zname;
-	zone_type* t = find_or_create_zone(
+	zone_type* t;
+	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Zone name: %s", zname));
+	t = find_or_create_zone(
 		nsd->db, 
 		&member_zone_name->dname, 
 		nsd->options, 
@@ -125,17 +126,17 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 				rr->owner->dname, 
 				zone->apex->dname
 			);
-			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, label));
+			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "%s", label));
 
 			if (rr->owner->dname->label_count > 2) {
 				const uint8_t* label = dname_label(rr->owner->dname, rr->owner->dname->label_count - 2);
-				if (label[0] == 5 && strncasecmp(label + 1, "zones", 5) == 0) {
+				if (label[0] == 5 && strncasecmp((const char *)label + 1, "zones", 5) == 0) {
 					// For the time being we ignore all other PTR records
-					catz_dname* member_zone = domain_dname(rdata_atom_domain(rr->rdatas[0]));
+					const catz_dname* member_zone = dname2catz_dname(domain_dname(rdata_atom_domain(rr->rdatas[0])));
 
-					catz_dname* member_id = rr->owner->dname;
+					const catz_dname* member_id = dname2catz_dname(rr->owner->dname);
 
-					catz_catalog_zone* cat_zone = zone;
+					catz_catalog_zone* cat_zone = zone2catz_catalog_zone(zone);
 
 					DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "PTR parsed"));
 
@@ -145,4 +146,5 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 		}
 		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Process RR"));
 	}
+	return -1;
 }
