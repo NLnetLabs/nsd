@@ -1235,6 +1235,7 @@ AH_BOTTOM([
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <string.h>
 
 #ifdef HAVE_TIME_H
 #include <time.h>
