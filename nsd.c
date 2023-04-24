@@ -56,6 +56,7 @@
 #ifdef USE_DNSTAP
 #include "dnstap/dnstap_collector.h"
 #endif
+#include "util/proxy_protocol.h"
 
 /* The server handler... */
 struct nsd nsd;
@@ -1128,6 +1129,7 @@ main(int argc, char *argv[])
 	}
 	if(!tsig_init(nsd.region))
 		error("init tsig failed");
+	pp_init(&write_uint16, &write_uint32);
 
 	/* Read options */
 	if(!parse_options_file(nsd.options, configfile, NULL, NULL)) {
