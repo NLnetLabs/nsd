@@ -3085,8 +3085,8 @@ void server_verify(struct nsd *nsd, int cmdsocket)
 		iovecs[i].iov_len = buffer_remaining(queries[i]->packet);
 		msgs[i].msg_hdr.msg_iov = &iovecs[i];
 		msgs[i].msg_hdr.msg_iovlen = 1;
-		msgs[i].msg_hdr.msg_name = &queries[i]->addr;
-		msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
+		msgs[i].msg_hdr.msg_name = &queries[i]->remote_addr;
+		msgs[i].msg_hdr.msg_namelen = queries[i]->remote_addrlen;
 	}
 
 	for (size_t i = 0; i < nsd->verify_ifs; i++) {
@@ -3224,8 +3224,8 @@ server_child(struct nsd *nsd)
 			iovecs[i].iov_len           = buffer_remaining(queries[i]->packet);
 			msgs[i].msg_hdr.msg_iov     = &iovecs[i];
 			msgs[i].msg_hdr.msg_iovlen  = 1;
-			msgs[i].msg_hdr.msg_name    = &queries[i]->addr;
-			msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
+			msgs[i].msg_hdr.msg_name    = &queries[i]->remote_addr;
+			msgs[i].msg_hdr.msg_namelen = queries[i]->remote_addrlen;
 		}
 
 		for (i = 0; i < nsd->ifs; i++) {
@@ -3596,7 +3596,7 @@ handle_udp(int fd, short event, void* arg)
 	for (i = 0; i < recvcount; i++) {
 	loopstart:
 		received = msgs[i].msg_len;
-		queries[i]->addrlen = msgs[i].msg_hdr.msg_namelen;
+		queries[i]->remote_addrlen = msgs[i].msg_hdr.msg_namelen;
 		q = queries[i];
 		if (received == -1) {
 			log_msg(LOG_ERR, "recvmmsg %d failed %s", i, strerror(
@@ -3610,7 +3610,7 @@ handle_udp(int fd, short event, void* arg)
 			/* No zone statup */
 			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
 			iovecs[i].iov_len = buffer_remaining(q->packet);
-			msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
+			msgs[i].msg_hdr.msg_namelen = queries[i]->remote_addrlen;
 			goto swap_drop;
 		}
 
@@ -3629,9 +3629,9 @@ handle_udp(int fd, short event, void* arg)
 		/*
 		 * sending UDP-query with server address (local) and client address to dnstap process
 		 */
-		log_addr("query from client", &q->addr);
+		log_addr("query from client", &q->remote_addr);
 		log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
-		dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &q->addr, q->addrlen,
+		dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &q->remote_addr, q->remote_addrlen,
 			q->tcp, q->packet);
 #endif /* USE_DNSTAP */
 
@@ -3669,15 +3669,15 @@ handle_udp(int fd, short event, void* arg)
 			 * sending UDP-response with server address (local) and client address to dnstap process
 			 */
 			log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
-			log_addr("response to client", &q->addr);
+			log_addr("response to client", &q->remote_addr);
 			dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr,
-				&q->addr, q->addrlen, q->tcp, q->packet,
+				&q->remote_addr, q->remote_addrlen, q->tcp, q->packet,
 				q->zone);
 #endif /* USE_DNSTAP */
 		} else {
 			query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
 			iovecs[i].iov_len = buffer_remaining(q->packet);
-			msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
+			msgs[i].msg_hdr.msg_namelen = queries[i]->remote_addrlen;
 		swap_drop:
 			STATUP(data->nsd, dropped);
 			ZTATUP(data->nsd, q->zone, dropped);
@@ -3732,11 +3732,11 @@ handle_udp(int fd, short event, void* arg)
 			if(errno == EINVAL) {
 				/* skip the invalid argument entry,
 				 * send the remaining packets in the list */
-				if(!(port_is_zero((void*)&queries[i]->addr) &&
+				if(!(port_is_zero((void*)&queries[i]->remote_addr) &&
 					verbosity < 3)) {
 					const char* es = strerror(errno);
 					char a[64];
-					addrport2str((void*)&queries[i]->addr, a, sizeof(a));
+					addrport2str((void*)&queries[i]->remote_addr, a, sizeof(a));
 					log_msg(LOG_ERR, "sendmmsg skip invalid argument [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
 				}
 				i += 1;
@@ -3751,7 +3751,7 @@ handle_udp(int fd, short event, void* arg)
 			   errno != EAGAIN) {
 				const char* es = strerror(errno);
 				char a[64];
-				addrport2str((void*)&queries[i]->addr, a, sizeof(a));
+				addrport2str((void*)&queries[i]->remote_addr, a, sizeof(a));
 				log_msg(LOG_ERR, "sendmmsg [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
 			}
 #ifdef BIND8_STATS
@@ -3764,7 +3764,7 @@ handle_udp(int fd, short event, void* arg)
 	for(i=0; i<recvcount; i++) {
 		query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
 		iovecs[i].iov_len = buffer_remaining(queries[i]->packet);
-		msgs[i].msg_hdr.msg_namelen = queries[i]->addrlen;
+		msgs[i].msg_hdr.msg_namelen = queries[i]->remote_addrlen;
 	}
 }
 
@@ -3875,7 +3875,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 				return;
 			} else {
 				char buf[48];
-				addr2str(&data->query->addr, buf, sizeof(buf));
+				addr2str(&data->query->remote_addr, buf, sizeof(buf));
 #ifdef ECONNRESET
 				if (verbosity >= 2 || errno != ECONNRESET)
 #endif /* ECONNRESET */
@@ -3940,7 +3940,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 			return;
 		} else {
 			char buf[48];
-			addr2str(&data->query->addr, buf, sizeof(buf));
+			addr2str(&data->query->remote_addr, buf, sizeof(buf));
 #ifdef ECONNRESET
 			if (verbosity >= 2 || errno != ECONNRESET)
 #endif /* ECONNRESET */
@@ -3971,9 +3971,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 #ifndef INET6
 	STATUP(data->nsd, ctcp);
 #else
-	if (data->query->addr.ss_family == AF_INET) {
+	if (data->query->remote_addr.ss_family == AF_INET) {
 		STATUP(data->nsd, ctcp);
-	} else if (data->query->addr.ss_family == AF_INET6) {
+	} else if (data->query->remote_addr.ss_family == AF_INET6) {
 		STATUP(data->nsd, ctcp6);
 	}
 #endif
@@ -3989,10 +3989,10 @@ handle_tcp_reading(int fd, short event, void* arg)
 	/*
 	 * and send TCP-query with found address (local) and client address to dnstap process
 	 */
-	log_addr("query from client", &data->query->addr);
+	log_addr("query from client", &data->query->remote_addr);
 	log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
-	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->addr,
-		data->query->addrlen, data->query->tcp, data->query->packet);
+	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->remote_addr,
+		data->query->remote_addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
 	data->query_state = server_process_query(data->nsd, data->query, &now);
 	if (data->query_state == QUERY_DISCARDED) {
@@ -4016,9 +4016,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 #ifndef INET6
 	ZTATUP(data->nsd, data->query->zone, ctcp);
 #else
-	if (data->query->addr.ss_family == AF_INET) {
+	if (data->query->remote_addr.ss_family == AF_INET) {
 		ZTATUP(data->nsd, data->query->zone, ctcp);
-	} else if (data->query->addr.ss_family == AF_INET6) {
+	} else if (data->query->remote_addr.ss_family == AF_INET6) {
 		ZTATUP(data->nsd, data->query->zone, ctcp6);
 	}
 #endif
@@ -4043,9 +4043,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 	 * sending TCP-response with found (earlier) address (local) and client address to dnstap process
 	 */
 	log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
-	log_addr("response to client", &data->query->addr);
-	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->addr,
-		data->query->addrlen, data->query->tcp, data->query->packet,
+	log_addr("response to client", &data->query->remote_addr);
+	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->remote_addr,
+		data->query->remote_addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
 #endif /* USE_DNSTAP */
 	data->bytes_transmitted = 0;
@@ -4303,7 +4303,7 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 				unsigned long err = ERR_get_error();
 				if(!squelch_err_ssl_handshake(err)) {
 					char a[64], s[256];
-					addr2str(&data->query->addr, a, sizeof(a));
+					addr2str(&data->query->remote_addr, a, sizeof(a));
 					snprintf(s, sizeof(s), "TLS handshake failed from %s", a);
 					log_crypto_from_err(s, err);
 				}
@@ -4465,9 +4465,9 @@ handle_tls_reading(int fd, short event, void* arg)
 #ifndef INET6
 	STATUP(data->nsd, ctls);
 #else
-	if (data->query->addr.ss_family == AF_INET) {
+	if (data->query->remote_addr.ss_family == AF_INET) {
 		STATUP(data->nsd, ctls);
-	} else if (data->query->addr.ss_family == AF_INET6) {
+	} else if (data->query->remote_addr.ss_family == AF_INET6) {
 		STATUP(data->nsd, ctls6);
 	}
 #endif
@@ -4482,10 +4482,10 @@ handle_tls_reading(int fd, short event, void* arg)
 	/*
 	 * and send TCP-query with found address (local) and client address to dnstap process
 	 */
-	log_addr("query from client", &data->query->addr);
+	log_addr("query from client", &data->query->remote_addr);
 	log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
-	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->addr,
-		data->query->addrlen, data->query->tcp, data->query->packet);
+	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->remote_addr,
+		data->query->remote_addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
 	data->query_state = server_process_query(data->nsd, data->query, &now);
 	if (data->query_state == QUERY_DISCARDED) {
@@ -4509,9 +4509,9 @@ handle_tls_reading(int fd, short event, void* arg)
 #ifndef INET6
 	ZTATUP(data->nsd, data->query->zone, ctls);
 #else
-	if (data->query->addr.ss_family == AF_INET) {
+	if (data->query->remote_addr.ss_family == AF_INET) {
 		ZTATUP(data->nsd, data->query->zone, ctls);
-	} else if (data->query->addr.ss_family == AF_INET6) {
+	} else if (data->query->remote_addr.ss_family == AF_INET6) {
 		ZTATUP(data->nsd, data->query->zone, ctls6);
 	}
 #endif
@@ -4536,9 +4536,9 @@ handle_tls_reading(int fd, short event, void* arg)
 	 * sending TCP-response with found (earlier) address (local) and client address to dnstap process
 	 */
 	log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
-	log_addr("response to client", &data->query->addr);
-	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->addr,
-		data->query->addrlen, data->query->tcp, data->query->packet,
+	log_addr("response to client", &data->query->remote_addr);
+	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->remote_addr,
+		data->query->remote_addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
 #endif /* USE_DNSTAP */
 	data->bytes_transmitted = 0;
@@ -4813,8 +4813,8 @@ handle_tcp_accept(int fd, short event, void* arg)
 
 	tcp_data->query_state = QUERY_PROCESSED;
 	tcp_data->bytes_transmitted = 0;
-	memcpy(&tcp_data->query->addr, &addr, addrlen);
-	tcp_data->query->addrlen = addrlen;
+	memcpy(&tcp_data->query->remote_addr, &addr, addrlen);
+	tcp_data->query->remote_addrlen = addrlen;
 
 	tcp_data->tcp_no_more_queries = 0;
 	tcp_data->tcp_timeout = data->nsd->tcp_timeout * 1000;
