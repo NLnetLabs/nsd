@@ -1681,6 +1681,32 @@ key_options_add_modify(struct nsd_options* opt, struct key_options* key)
 }
 
 int
+acl_check_incoming_block_proxy(struct acl_options* acl, struct query* q,
+	struct acl_options** reason)
+{
+	/* check each acl element.
+	 * if it is blocked, return -1.
+	 * return false if no matches for blocked elements. */
+	if(reason)
+		*reason = NULL;
+
+	while(acl)
+	{
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "proxy testing acl %s %s",
+			acl->ip_address_spec, acl->nokey?"NOKEY":
+			(acl->blocked?"BLOCKED":acl->key_name)));
+		if(acl_addr_matches_proxy(acl, q) && acl->blocked) {
+			if(reason)
+				*reason = acl;
+			return -1;
+		}
+		acl = acl->next;
+	}
+
+	return 0;
+}
+
+int
 acl_check_incoming(struct acl_options* acl, struct query* q,
 	struct acl_options** reason)
 {
@@ -1818,6 +1844,31 @@ acl_addr_matches(struct acl_options* acl, struct query* q)
 	else
 	{
 		struct sockaddr_in* addr = (struct sockaddr_in*)&q->client_addr;
+		if(addr->sin_family != AF_INET)
+			return 0;
+		return acl_addr_matches_ipv4host(acl, addr, ntohs(addr->sin_port));
+	}
+	/* ENOTREACH */
+	return 0;
+}
+
+int
+acl_addr_matches_proxy(struct acl_options* acl, struct query* q)
+{
+	if(acl->is_ipv6)
+	{
+#ifdef INET6
+		struct sockaddr_storage* addr = (struct sockaddr_storage*)&q->remote_addr;
+		if(addr->ss_family != AF_INET6)
+			return 0;
+		return acl_addr_matches_ipv6host(acl, addr, ntohs(((struct sockaddr_in6*)addr)->sin6_port));
+#else
+		return 0; /* no inet6, no match */
+#endif
+	}
+	else
+	{
+		struct sockaddr_in* addr = (struct sockaddr_in*)&q->remote_addr;
 		if(addr->sin_family != AF_INET)
 			return 0;
 		return acl_addr_matches_ipv4host(acl, addr, ntohs(addr->sin_port));

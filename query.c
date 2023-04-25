@@ -444,6 +444,24 @@ answer_notify(struct nsd* nsd, struct query *query)
 		return query_error(query, rc);
 
 	/* check if it passes acl */
+	if(query->is_proxied && acl_check_incoming_block_proxy(
+		zone_opt->pattern->allow_notify, query, &why) == -1) {
+		/* the proxy address is blocked */
+		if (verbosity >= 2) {
+			char address[128], proxy[128];
+			addr2str(&query->client_addr, address, sizeof(address));
+			addr2str(&query->remote_addr, proxy, sizeof(proxy));
+			VERBOSITY(2, (LOG_INFO, "notify for %s from %s via proxy %s refused because of proxy, %s %s",
+				dname_to_string(query->qname, NULL),
+				address, proxy,
+				(why ? ( why->nokey    ? "NOKEY"
+				      : why->blocked  ? "BLOCKED"
+				      : why->key_name ) 
+				    : "no acl matches"),
+				why?why->ip_address_spec:"."));
+		}
+		return query_error(query, NSD_RC_REFUSE);
+	}
 	if((acl_num = acl_check_incoming(zone_opt->pattern->allow_notify, query,
 		&why)) != -1)
 	{
@@ -1311,6 +1329,31 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 		struct acl_options *why = NULL;
 
 		/* check if it passes acl */
+		if(q->is_proxied && acl_check_incoming_block_proxy(
+			q->zone->opts->pattern->allow_query, q, &why) == -1) {
+			/* the proxy address is blocked */
+			if (verbosity >= 2) {
+				char address[128], proxy[128];
+				addr2str(&q->client_addr, address, sizeof(address));
+				addr2str(&q->remote_addr, proxy, sizeof(proxy));
+				VERBOSITY(2, (LOG_INFO, "query %s from %s via proxy %s refused because of proxy, %s %s",
+					dname_to_string(q->qname, NULL),
+					address, proxy,
+					(why ? ( why->nokey    ? "NOKEY"
+					      : why->blocked  ? "BLOCKED"
+					      : why->key_name ) 
+					    : "no acl matches"),
+					why?why->ip_address_spec:"."));
+			}
+			/* no zone for this */
+			if(q->cname_count == 0) {
+				RCODE_SET(q->packet, RCODE_REFUSE);
+				/* RFC8914 - Extended DNS Errors
+				 * 4.19. Extended DNS Error Code 18 - Prohibited */
+				q->edns.ede = EDE_PROHIBITED;
+			}
+			return;
+		}
 		if(acl_check_incoming(
 		   q->zone->opts->pattern->allow_query, q, &why) != -1) {
 			assert(why);

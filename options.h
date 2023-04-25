@@ -513,10 +513,15 @@ int acl_check_incoming(struct acl_options* acl, struct query* q,
 	struct acl_options** reason);
 int acl_addr_matches_host(struct acl_options* acl, struct acl_options* host);
 int acl_addr_matches(struct acl_options* acl, struct query* q);
+int acl_addr_matches_proxy(struct acl_options* acl, struct query* q);
 int acl_key_matches(struct acl_options* acl, struct query* q);
 int acl_addr_match_mask(uint32_t* a, uint32_t* b, uint32_t* mask, size_t sz);
 int acl_addr_match_range_v6(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz);
 int acl_addr_match_range_v4(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz);
+
+/* check acl list for blocks on address, return 0 if none, -1 if blocked. */
+int acl_check_incoming_block_proxy(struct acl_options* acl, struct query* q,
+	struct acl_options** reason);
 
 /* returns true if acls are both from the same host */
 int acl_same_host(struct acl_options* a, struct acl_options* b);

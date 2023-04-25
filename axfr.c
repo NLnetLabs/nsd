@@ -188,6 +188,29 @@ static int axfr_ixfr_can_admit_query(struct nsd* nsd, struct query* q)
 	struct acl_options *acl = NULL;
 	struct zone_options* zone_opt;
 	zone_opt = zone_options_find(nsd->options, q->qname);
+	if(zone_opt && q->is_proxied && acl_check_incoming_block_proxy(
+		zone_opt->pattern->provide_xfr, q, &acl) == -1) {
+		/* the proxy address is blocked */
+		if (verbosity >= 2) {
+			char address[128], proxy[128];
+			addr2str(&q->client_addr, address, sizeof(address));
+			addr2str(&q->remote_addr, proxy, sizeof(proxy));
+			VERBOSITY(2, (LOG_INFO, "%s for %s from %s via proxy %s refused because of proxy, %s %s",
+				(q->qtype==TYPE_AXFR?"axfr":"ixfr"),
+				dname_to_string(q->qname, NULL),
+				address, proxy,
+				(acl ? ( acl->nokey    ? "NOKEY"
+				      : acl->blocked  ? "BLOCKED"
+				      : acl->key_name ) 
+				    : "no acl matches"),
+				acl?acl->ip_address_spec:"."));
+		}
+		RCODE_SET(q->packet, RCODE_REFUSE);
+		/* RFC8914 - Extended DNS Errors
+		 * 4.19.  Extended DNS Error Code 18 - Prohibited */
+		q->edns.ede = EDE_PROHIBITED;
+		return 0;
+	}
 	if(!zone_opt ||
 	   acl_check_incoming(zone_opt->pattern->provide_xfr, q, &acl)==-1)
 	{
