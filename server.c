@@ -3591,6 +3591,8 @@ consume_pp2_header(struct buffer* buf, struct query* q, int stream)
 		return 0;
 	header = (struct pp2_header*)buffer_begin(buf);
 	size = PP2_HEADER_SIZE + ntohs(header->len);
+	if(size > buffer_limit(buf))
+		return 0;
 	if((header->ver_cmd & 0xF) == PP2_CMD_LOCAL) {
 		/* A connection from the proxy itself.
 		 * No need to do anything with addresses. */
