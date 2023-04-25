@@ -3590,7 +3590,7 @@ consume_pp2_header(struct buffer* buf, struct query* q, int stream)
 	if(err)
 		return 0;
 	header = (struct pp2_header*)buffer_begin(buf);
-	size = PP2_HEADER_SIZE + ntohs(header->len);
+	size = PP2_HEADER_SIZE + read_uint16(&header->len);
 	if(size > buffer_limit(buf))
 		return 0;
 	if((header->ver_cmd & 0xF) == PP2_CMD_LOCAL) {
@@ -3612,8 +3612,10 @@ consume_pp2_header(struct buffer* buf, struct query* q, int stream)
 			struct sockaddr_in* addr =
 				(struct sockaddr_in*)&q->client_addr;
 			addr->sin_family = AF_INET;
-			addr->sin_addr.s_addr = header->addr.addr4.src_addr;
-			addr->sin_port = header->addr.addr4.src_port;
+			memmove(&addr->sin_addr.s_addr,
+				&header->addr.addr4.src_addr, 4);
+			memmove(&addr->sin_port, &header->addr.addr4.src_port,
+				2);
 			q->client_addrlen = (socklen_t)sizeof(struct sockaddr_in);
 			}
 			/* Ignore the destination address; it should be us. */
@@ -3626,9 +3628,10 @@ consume_pp2_header(struct buffer* buf, struct query* q, int stream)
 				(struct sockaddr_in6*)&q->client_addr;
 			memset(addr, 0, sizeof(*addr));
 			addr->sin6_family = AF_INET6;
-			memcpy(&addr->sin6_addr,
+			memmove(&addr->sin6_addr,
 				header->addr.addr6.src_addr, 16);
-			addr->sin6_port = header->addr.addr6.src_port;
+			memmove(&addr->sin6_port, &header->addr.addr6.src_port,
+				2);
 			q->client_addrlen = (socklen_t)sizeof(struct sockaddr_in6);
 			}
 			/* Ignore the destination address; it should be us. */
