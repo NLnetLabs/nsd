@@ -3587,12 +3587,18 @@ consume_pp2_header(struct buffer* buf, struct query* q, int stream)
 	size_t size;
 	struct pp2_header* header;
 	int err = pp2_read_header(buffer_begin(buf), buffer_remaining(buf));
-	if(err)
+	if(err) {
+		VERBOSITY(4, (LOG_ERR, "proxy-protocol: could not parse "
+			"PROXYv2 header: %s", pp_lookup_error(err)));
 		return 0;
+	}
 	header = (struct pp2_header*)buffer_begin(buf);
 	size = PP2_HEADER_SIZE + read_uint16(&header->len);
-	if(size > buffer_limit(buf))
+	if(size > buffer_limit(buf)) {
+		VERBOSITY(4, (LOG_ERR, "proxy-protocol: not enough buffer "
+			"size to read PROXYv2 header"));
 		return 0;
+	}
 	if((header->ver_cmd & 0xF) == PP2_CMD_LOCAL) {
 		/* A connection from the proxy itself.
 		 * No need to do anything with addresses. */
