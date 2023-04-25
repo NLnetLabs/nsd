@@ -201,7 +201,7 @@ static int axfr_ixfr_can_admit_query(struct nsd* nsd, struct query* q)
 				address, proxy,
 				(acl ? ( acl->nokey    ? "NOKEY"
 				      : acl->blocked  ? "BLOCKED"
-				      : acl->key_name ) 
+				      : acl->key_name )
 				    : "no acl matches"),
 				acl?acl->ip_address_spec:"."));
 		}

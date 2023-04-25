@@ -456,7 +456,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 				address, proxy,
 				(why ? ( why->nokey    ? "NOKEY"
 				      : why->blocked  ? "BLOCKED"
-				      : why->key_name ) 
+				      : why->key_name )
 				    : "no acl matches"),
 				why?why->ip_address_spec:"."));
 		}
@@ -1341,7 +1341,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 					address, proxy,
 					(why ? ( why->nokey    ? "NOKEY"
 					      : why->blocked  ? "BLOCKED"
-					      : why->key_name ) 
+					      : why->key_name )
 					    : "no acl matches"),
 					why?why->ip_address_spec:"."));
 			}
@@ -1362,7 +1362,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 				why->ip_address_spec,
 				why->nokey?"NOKEY":
 				(why->blocked?"BLOCKED":why->key_name)));
-		} else { 
+		} else {
 			if (verbosity >= 2) {
 				char address[128];
 				addr2str(&q->client_addr, address, sizeof(address));
@@ -1371,7 +1371,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 					address,
 					why ? ( why->nokey    ? "NOKEY"
 					      : why->blocked  ? "BLOCKED"
-					      : why->key_name ) 
+					      : why->key_name )
 					    : "no acl matches",
 					why?why->ip_address_spec:"."));
 			}
