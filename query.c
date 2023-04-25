@@ -454,11 +454,11 @@ answer_notify(struct nsd* nsd, struct query *query)
 			VERBOSITY(2, (LOG_INFO, "notify for %s from %s via proxy %s refused because of proxy, %s %s",
 				dname_to_string(query->qname, NULL),
 				address, proxy,
+				(why?why->ip_address_spec:"."),
 				(why ? ( why->nokey    ? "NOKEY"
 				      : why->blocked  ? "BLOCKED"
 				      : why->key_name )
-				    : "no acl matches"),
-				why?why->ip_address_spec:"."));
+				    : "no acl matches")));
 		}
 		return query_error(query, NSD_RC_REFUSE);
 	}
@@ -1339,11 +1339,11 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 				VERBOSITY(2, (LOG_INFO, "query %s from %s via proxy %s refused because of proxy, %s %s",
 					dname_to_string(q->qname, NULL),
 					address, proxy,
+					(why?why->ip_address_spec:"."),
 					(why ? ( why->nokey    ? "NOKEY"
 					      : why->blocked  ? "BLOCKED"
 					      : why->key_name )
-					    : "no acl matches"),
-					why?why->ip_address_spec:"."));
+					    : "no acl matches")));
 			}
 			/* no zone for this */
 			if(q->cname_count == 0) {

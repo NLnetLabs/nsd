@@ -199,11 +199,11 @@ static int axfr_ixfr_can_admit_query(struct nsd* nsd, struct query* q)
 				(q->qtype==TYPE_AXFR?"axfr":"ixfr"),
 				dname_to_string(q->qname, NULL),
 				address, proxy,
+				(acl?acl->ip_address_spec:"."),
 				(acl ? ( acl->nokey    ? "NOKEY"
 				      : acl->blocked  ? "BLOCKED"
 				      : acl->key_name )
-				    : "no acl matches"),
-				acl?acl->ip_address_spec:"."));
+				    : "no acl matches")));
 		}
 		RCODE_SET(q->packet, RCODE_REFUSE);
 		/* RFC8914 - Extended DNS Errors
