@@ -1,0 +1,23 @@
+# #-- proxy_protocol.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+
+. ../common.sh
+
+# Is streamtcp available?
+if test -f "`which streamtcp 2>&1`"; then
+	echo "streamtcp available, do test"
+else
+	echo "streamtcp not available, skip test"
+	exit 0
+fi
+
+cat nsd.log
+# do your teardown here
+if test -f nsd.pid; then
+	kill_pid `cat nsd.pid`
+fi

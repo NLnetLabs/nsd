@@ -1,0 +1,27 @@
+# #-- proxy_protocol.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+# Is streamtcp available?
+if test -f "`which streamtcp 2>&1`"; then
+	echo "streamtcp available, do test"
+else
+	echo "streamtcp not available, skip test"
+	exit 0
+fi
+
+# use proxy protocol to query server
+echo ""
+echo "> UDP test"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -u www.example.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+exit 0
