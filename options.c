@@ -1807,7 +1807,7 @@ acl_addr_matches(struct acl_options* acl, struct query* q)
 	if(acl->is_ipv6)
 	{
 #ifdef INET6
-		struct sockaddr_storage* addr = (struct sockaddr_storage*)&q->remote_addr;
+		struct sockaddr_storage* addr = (struct sockaddr_storage*)&q->client_addr;
 		if(addr->ss_family != AF_INET6)
 			return 0;
 		return acl_addr_matches_ipv6host(acl, addr, ntohs(((struct sockaddr_in6*)addr)->sin6_port));
@@ -1817,7 +1817,7 @@ acl_addr_matches(struct acl_options* acl, struct query* q)
 	}
 	else
 	{
-		struct sockaddr_in* addr = (struct sockaddr_in*)&q->remote_addr;
+		struct sockaddr_in* addr = (struct sockaddr_in*)&q->client_addr;
 		if(addr->sin_family != AF_INET)
 			return 0;
 		return acl_addr_matches_ipv4host(acl, addr, ntohs(addr->sin_port));

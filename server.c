@@ -86,6 +86,7 @@
 #include "dnstap/dnstap_collector.h"
 #endif
 #include "verify.h"
+#include "util/proxy_protocol.h"
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 
@@ -139,6 +140,8 @@ struct udp_handler_data
 	struct nsd        *nsd;
 	struct nsd_socket *socket;
 	struct event       event;
+	/* if set, PROXYv2 is expected on this connection */
+	int pp2_enabled;
 };
 
 struct tcp_accept_handler_data {
@@ -2966,6 +2969,12 @@ add_udp_handler(
 	data->nsd = nsd;
 	data->socket = sock;
 
+	/* TODO: check if sock->addr.ai_addr uses a proxy_protocol_port */
+	/* if(nsd->options->proxy_protocol_port && using_proxy_protocol_port((struct sockaddr *)&sock->addr.ai_addr, nsd->options->proxy_protocol_port)) */
+	if(1) {
+		data->pp2_enabled = 1;
+	}
+
 	memset(handler, 0, sizeof(*handler));
 	event_set(handler, sock->s, EV_PERSIST|EV_READ, handle_udp, data);
 	if(event_base_set(nsd->event_base, handler) != 0)
@@ -3570,6 +3579,77 @@ port_is_zero(
 #endif
 }
 
+/* Parses the PROXYv2 header from buf and updates the struct.
+ * Returns 1 on success, 0 on failure. */
+static int
+consume_pp2_header(struct buffer* buf, struct query* q, int stream)
+{
+	size_t size;
+	struct pp2_header* header;
+	int err = pp2_read_header(buffer_begin(buf), buffer_remaining(buf));
+	if(err)
+		return 0;
+	header = (struct pp2_header*)buffer_begin(buf);
+	size = PP2_HEADER_SIZE + ntohs(header->len);
+	if((header->ver_cmd & 0xF) == PP2_CMD_LOCAL) {
+		/* A connection from the proxy itself.
+		 * No need to do anything with addresses. */
+		goto done;
+	}
+	if(header->fam_prot == 0x00) {
+		/* Unspecified family and protocol. This could be used for
+		 * health checks by proxies.
+		 * No need to do anything with addresses. */
+		goto done;
+	}
+	/* Read the proxied address */
+	switch(header->fam_prot) {
+		case 0x11: /* AF_INET|STREAM */
+		case 0x12: /* AF_INET|DGRAM */
+			{
+			struct sockaddr_in* addr =
+				(struct sockaddr_in*)&q->client_addr;
+			addr->sin_family = AF_INET;
+			addr->sin_addr.s_addr = header->addr.addr4.src_addr;
+			addr->sin_port = header->addr.addr4.src_port;
+			q->client_addrlen = (socklen_t)sizeof(struct sockaddr_in);
+			}
+			/* Ignore the destination address; it should be us. */
+			break;
+#ifdef INET6
+		case 0x21: /* AF_INET6|STREAM */
+		case 0x22: /* AF_INET6|DGRAM */
+			{
+			struct sockaddr_in6* addr =
+				(struct sockaddr_in6*)&q->client_addr;
+			memset(addr, 0, sizeof(*addr));
+			addr->sin6_family = AF_INET6;
+			memcpy(&addr->sin6_addr,
+				header->addr.addr6.src_addr, 16);
+			addr->sin6_port = header->addr.addr6.src_port;
+			q->client_addrlen = (socklen_t)sizeof(struct sockaddr_in6);
+			}
+			/* Ignore the destination address; it should be us. */
+			break;
+#endif /* INET6 */
+		default:
+			VERBOSITY(2, (LOG_ERR, "proxy-protocol: unsupported "
+				"family and protocol 0x%x",
+				(int)header->fam_prot));
+			return 0;
+	}
+	q->is_proxied = 1;
+done:
+	if(!stream) {
+		/* We are reading a whole packet;
+		 * Move the rest of the data to overwrite the PROXYv2 header */
+		/* XXX can we do better to avoid memmove? */
+		memmove(header, ((char*)header)+size, buffer_limit(buf)-size);
+		buffer_set_limit(buf, buffer_limit(buf)-size);
+	}
+	return 1;
+}
+
 static void
 handle_udp(int fd, short event, void* arg)
 {
@@ -3597,6 +3677,8 @@ handle_udp(int fd, short event, void* arg)
 	loopstart:
 		received = msgs[i].msg_len;
 		queries[i]->remote_addrlen = msgs[i].msg_hdr.msg_namelen;
+		queries[i]->client_addrlen = (socklen_t)sizeof(queries[i]->client_addr);
+		queries[i]->is_proxied = 0;
 		q = queries[i];
 		if (received == -1) {
 			log_msg(LOG_ERR, "recvmmsg %d failed %s", i, strerror(
@@ -3625,13 +3707,24 @@ handle_udp(int fd, short event, void* arg)
 
 		buffer_skip(q->packet, received);
 		buffer_flip(q->packet);
+		if(data->pp2_enabled && !consume_pp2_header(q->packet, q, 0)) {
+			VERBOSITY(2, (LOG_ERR, "proxy-protocol: could not "
+				"consume PROXYv2 header"));
+			goto swap_drop;
+		}
+		if(!q->is_proxied) {
+			q->client_addrlen = q->remote_addrlen;
+			memmove(&q->client_addr, &q->remote_addr,
+				q->remote_addrlen);
+		}
 #ifdef USE_DNSTAP
 		/*
 		 * sending UDP-query with server address (local) and client address to dnstap process
 		 */
-		log_addr("query from client", &q->remote_addr);
+		log_addr("query from client", &q->client_addr);
 		log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
-		dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &q->remote_addr, q->remote_addrlen,
+		log_addr((q->is_proxied?"query via proxy":"query not via proxy"), &q->remote_addr);
+		dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &q->client_addr, q->client_addrlen,
 			q->tcp, q->packet);
 #endif /* USE_DNSTAP */
 
@@ -3669,9 +3762,10 @@ handle_udp(int fd, short event, void* arg)
 			 * sending UDP-response with server address (local) and client address to dnstap process
 			 */
 			log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
-			log_addr("response to client", &q->remote_addr);
+			log_addr("response to client", &q->client_addr);
+			log_addr((q->is_proxied?"response via proxy":"response not via proxy"), &q->remote_addr);
 			dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr,
-				&q->remote_addr, q->remote_addrlen, q->tcp, q->packet,
+				&q->client_addr, q->client_addrlen, q->tcp, q->packet,
 				q->zone);
 #endif /* USE_DNSTAP */
 		} else {
@@ -3989,10 +4083,10 @@ handle_tcp_reading(int fd, short event, void* arg)
 	/*
 	 * and send TCP-query with found address (local) and client address to dnstap process
 	 */
-	log_addr("query from client", &data->query->remote_addr);
+	log_addr("query from client", &data->query->client_addr);
 	log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
-	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->remote_addr,
-		data->query->remote_addrlen, data->query->tcp, data->query->packet);
+	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
+		data->query->client_addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
 	data->query_state = server_process_query(data->nsd, data->query, &now);
 	if (data->query_state == QUERY_DISCARDED) {
@@ -4043,9 +4137,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 	 * sending TCP-response with found (earlier) address (local) and client address to dnstap process
 	 */
 	log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
-	log_addr("response to client", &data->query->remote_addr);
-	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->remote_addr,
-		data->query->remote_addrlen, data->query->tcp, data->query->packet,
+	log_addr("response to client", &data->query->client_addr);
+	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
+		data->query->client_addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
 #endif /* USE_DNSTAP */
 	data->bytes_transmitted = 0;
@@ -4482,10 +4576,10 @@ handle_tls_reading(int fd, short event, void* arg)
 	/*
 	 * and send TCP-query with found address (local) and client address to dnstap process
 	 */
-	log_addr("query from client", &data->query->remote_addr);
+	log_addr("query from client", &data->query->client_addr);
 	log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
-	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->remote_addr,
-		data->query->remote_addrlen, data->query->tcp, data->query->packet);
+	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
+		data->query->client_addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
 	data->query_state = server_process_query(data->nsd, data->query, &now);
 	if (data->query_state == QUERY_DISCARDED) {
@@ -4536,9 +4630,9 @@ handle_tls_reading(int fd, short event, void* arg)
 	 * sending TCP-response with found (earlier) address (local) and client address to dnstap process
 	 */
 	log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
-	log_addr("response to client", &data->query->remote_addr);
-	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->remote_addr,
-		data->query->remote_addrlen, data->query->tcp, data->query->packet,
+	log_addr("response to client", &data->query->client_addr);
+	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
+		data->query->client_addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
 #endif /* USE_DNSTAP */
 	data->bytes_transmitted = 0;

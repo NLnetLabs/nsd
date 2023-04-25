@@ -218,8 +218,8 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	 *     one proof per wildcard and for nx domain).
 	 */
 	region_free_all(q->region);
-	q->remote_addrlen = sizeof(q->remote_addr);
-	q->client_addrlen = sizeof(q->client_addr);
+	q->remote_addrlen = (socklen_t)sizeof(q->remote_addr);
+	q->client_addrlen = (socklen_t)sizeof(q->client_addr);
 	q->is_proxied = 0;
 	q->maxlen = maxlen;
 	q->reserved_space = 0;
@@ -344,7 +344,7 @@ process_edns(nsd_type* nsd, struct query *q)
 		if (!q->tcp && q->edns.maxlen > UDP_MAX_MESSAGE_LEN) {
 			size_t edns_size;
 #if defined(INET6)
-			if (q->remote_addr.ss_family == AF_INET6) {
+			if (q->client_addr.ss_family == AF_INET6) {
 				edns_size = nsd->ipv6_edns_size;
 			} else
 #endif
@@ -363,7 +363,7 @@ process_edns(nsd_type* nsd, struct query *q)
 			 * IPv6 will not automatically fragment in
 			 * this case (unlike IPv4).
 			 */
-			if (q->remote_addr.ss_family == AF_INET6
+			if (q->client_addr.ss_family == AF_INET6
 			    && q->maxlen > IPV6_MIN_MTU)
 			{
 				q->maxlen = IPV6_MIN_MTU;
@@ -391,7 +391,7 @@ process_tsig(struct query* q)
 	if(q->tsig.status == TSIG_OK) {
 		if(!tsig_from_query(&q->tsig)) {
 			char a[128];
-			addr2str(&q->remote_addr, a, sizeof(a));
+			addr2str(&q->client_addr, a, sizeof(a));
 			log_msg(LOG_ERR, "query: bad tsig (%s) for key %s from %s",
 				tsig_error(q->tsig.error_code),
 				dname_to_string(q->tsig.key_name, NULL), a);
@@ -403,7 +403,7 @@ process_tsig(struct query* q)
 		tsig_update(&q->tsig, q->packet, buffer_limit(q->packet));
 		if(!tsig_verify(&q->tsig)) {
 			char a[128];
-			addr2str(&q->remote_addr, a, sizeof(a));
+			addr2str(&q->client_addr, a, sizeof(a));
 			log_msg(LOG_ERR, "query: bad tsig signature for key %s from %s",
 				dname_to_string(q->tsig.key->name, NULL), a);
 			return NSD_RC_NOTAUTH;
@@ -485,7 +485,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 		if(verbosity >= 1) {
 			uint32_t serial = 0;
 			char address[128];
-			addr2str(&query->remote_addr, address, sizeof(address));
+			addr2str(&query->client_addr, address, sizeof(address));
 			if(packet_find_notify_serial(query->packet, &serial))
 			  VERBOSITY(1, (LOG_INFO, "notify for %s from %s serial %u",
 				dname_to_string(query->qname, NULL), address,
@@ -512,7 +512,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 
 	if (verbosity >= 2) {
 		char address[128];
-		addr2str(&query->remote_addr, address, sizeof(address));
+		addr2str(&query->client_addr, address, sizeof(address));
 		VERBOSITY(2, (LOG_INFO, "notify for %s from %s refused, %s%s",
 			dname_to_string(query->qname, NULL),
 			address,
@@ -747,7 +747,7 @@ add_rrset(struct query   *query,
 #if defined(INET6)
 		/* if query over IPv6, swap A and AAAA; put AAAA first */
 		add_additional_rrsets(query, answer, rrset, 0, 1,
-			(query->remote_addr.ss_family == AF_INET6)?
+			(query->client_addr.ss_family == AF_INET6)?
 			swap_aaaa_additional_rr_types:
 			default_additional_rr_types);
 #else
@@ -1322,7 +1322,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 		} else { 
 			if (verbosity >= 2) {
 				char address[128];
-				addr2str(&q->remote_addr, address, sizeof(address));
+				addr2str(&q->client_addr, address, sizeof(address));
 				VERBOSITY(2, (LOG_INFO, "query %s from %s refused, %s %s",
 					dname_to_string(q->qname, NULL),
 					address,
@@ -1697,7 +1697,7 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 {
 	struct edns_data *edns = &nsd->edns_ipv4;
 #if defined(INET6)
-	if (q->remote_addr.ss_family == AF_INET6) {
+	if (q->client_addr.ss_family == AF_INET6) {
 		edns = &nsd->edns_ipv6;
 	}
 #endif

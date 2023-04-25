@@ -193,7 +193,7 @@ static int axfr_ixfr_can_admit_query(struct nsd* nsd, struct query* q)
 	{
 		if (verbosity >= 2) {
 			char a[128];
-			addr2str(&q->remote_addr, a, sizeof(a));
+			addr2str(&q->client_addr, a, sizeof(a));
 			VERBOSITY(2, (LOG_INFO, "%s for %s from %s refused, %s",
 				(q->qtype==TYPE_AXFR?"axfr":"ixfr"),
 				dname_to_string(q->qname, NULL), a, acl?"blocked":"no acl matches"));
@@ -216,7 +216,7 @@ static int axfr_ixfr_can_admit_query(struct nsd* nsd, struct query* q)
 		acl->ip_address_spec, acl->key_name?acl->key_name:"NOKEY"));
 	if (verbosity >= 1) {
 		char a[128];
-		addr2str(&q->remote_addr, a, sizeof(a));
+		addr2str(&q->client_addr, a, sizeof(a));
 		VERBOSITY(1, (LOG_INFO, "%s for %s from %s",
 			(q->qtype==TYPE_AXFR?"axfr":"ixfr"),
 			dname_to_string(q->qname, NULL), a));
