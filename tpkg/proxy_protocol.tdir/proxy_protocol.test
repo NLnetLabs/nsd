@@ -45,6 +45,7 @@ else
 	echo "not OK"
 	exit 1
 fi
+wait_logfile nsd.log "query www.ex2.com. from 10.20.31.15 refused, BLOCKED 10.20.31.0/24" 5
 if grep "query www.ex2.com. from 10.20.31.15 refused, BLOCKED 10.20.31.0/24" nsd.log; then
 	echo "nsd.log OK"
 else
@@ -62,6 +63,7 @@ else
 	echo "not OK"
 	exit 1
 fi
+wait_logfile nsd.log "query www.ex5.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" 5
 if grep "query www.ex5.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" nsd.log; then
 	echo "nsd.log OK"
 else
@@ -79,6 +81,7 @@ else
 	echo "not OK"
 	exit 1
 fi
+wait_logfile nsd.log "ixfr for ex3.com. from 10.20.30.40" 5
 if grep "ixfr for ex3.com. from 10.20.30.40" nsd.log; then
 	echo "nsd.log OK"
 else
@@ -96,6 +99,7 @@ else
 	echo "not OK"
 	exit 1
 fi
+wait_logfile nsd.log "ixfr for ex3.com. from 10.20.31.15 refused, blocked" 5
 if grep "ixfr for ex3.com. from 10.20.31.15 refused, blocked" nsd.log; then
 	echo "nsd.log OK"
 else
@@ -113,6 +117,7 @@ else
 	echo "not OK"
 	exit 1
 fi
+wait_logfile nsd.log "ixfr for ex6.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" 5
 if grep "ixfr for ex6.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" nsd.log; then
 	echo "nsd.log OK"
 else
@@ -120,28 +125,57 @@ else
 	exit 1
 fi
 
-# DEBUG, no tool
-exit 0
-
 echo ""
 echo "> UDP allow-notify test"
-streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -u ex4.com. A IN &> out2
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -u ex4.com. NOTIFY=5 IN &> out2
 cat out2
-if grep "192.0.2.10" out2; then
+if grep "NOERROR" out2; then
 	echo "OK"
 else
 	echo "not OK"
 	exit 1
 fi
+wait_logfile nsd.log "notify for ex4.com. from 10.20.30.40 serial 5" 5
+if grep "notify for ex4.com. from 10.20.30.40 serial 5" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
 
 echo ""
 echo "> UDP allow-notify test for block client"
-streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.31.15@1234 -u ex4.com. A IN &> out2
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.31.15@1234 -u ex4.com. NOTIFY=5 IN &> out2
 cat out2
 if grep "REFUSED" out2; then
 	echo "OK"
 else
 	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "notify for ex4.com. from 10.20.31.15 refused, 10.20.31.0/24 BLOCKED" 5
+if grep "notify for ex4.com. from 10.20.31.15 refused, 10.20.31.0/24 BLOCKED" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> UDP allow-notify test for block proxy"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -u ex7.com. NOTIFY=5 IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "notify for ex7.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" 5
+if grep "notify for ex7.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
 	exit 1
 fi
 

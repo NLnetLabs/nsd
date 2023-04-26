@@ -456,9 +456,9 @@ answer_notify(struct nsd* nsd, struct query *query)
 				address, proxy,
 				(why?why->ip_address_spec:"."),
 				(why ? ( why->nokey    ? "NOKEY"
-				      : why->blocked  ? "BLOCKED"
-				      : why->key_name )
-				    : "no acl matches")));
+				       : why->blocked  ? "BLOCKED"
+				       : why->key_name )
+				     : "no acl matches")));
 		}
 		return query_error(query, NSD_RC_REFUSE);
 	}
@@ -531,11 +531,14 @@ answer_notify(struct nsd* nsd, struct query *query)
 	if (verbosity >= 2) {
 		char address[128];
 		addr2str(&query->client_addr, address, sizeof(address));
-		VERBOSITY(2, (LOG_INFO, "notify for %s from %s refused, %s%s",
+		VERBOSITY(2, (LOG_INFO, "notify for %s from %s refused, %s %s",
 			dname_to_string(query->qname, NULL),
 			address,
-			why?why->key_name:"no acl matches",
-			why?why->ip_address_spec:"."));
+			(why?why->ip_address_spec:"."),
+			(why ? ( why->nokey    ? "NOKEY"
+			       : why->blocked  ? "BLOCKED"
+			       : why->key_name )
+			     : "no acl matches")));
 	}
 
 	return query_error(query, NSD_RC_REFUSE);
