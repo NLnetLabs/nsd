@@ -1,3 +1,6 @@
+1 May 2023: Wouter
+	- make depend.
+
 13 April 2023: Wouter
 	- Fix cirrus script for submit to coverity scan to libtoolize
 	  the configure script components config.guess and config.sub.
