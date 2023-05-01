@@ -354,6 +354,15 @@ configlexer.c:	$(srcdir)/configlexer.lex
 configparser.c configparser.h:	$(srcdir)/configparser.y
 	$(YACC) -d -p c_ -o configparser.c $(srcdir)/configparser.y
 
+# for build to run flex and bison before compiling code that needs the headers
+configlexer.o: configlexer.c config.h configparser.h
+configparser.o: configparser.c config.h configparser.h
+options.o: $(srcdir)/options.c config.h configparser.h
+zlexer.o: zlexer.c config.h zparser.h
+zparser.o: zparser.c config.h zparser.h
+dns.o: $(srcdir)/dns.c config.h zparser.h
+zonec.o: $(srcdir)/zonec.c config.h zparser.h
+
 # dnstap
 dnstap.o:	$(srcdir)/dnstap/dnstap.c config.h dnstap/dnstap_config.h \
 	dnstap/dnstap.pb-c.c dnstap/dnstap.pb-c.h $(srcdir)/dnstap/dnstap.h \

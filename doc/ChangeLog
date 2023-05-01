@@ -1,5 +1,7 @@
 1 May 2023: Wouter
 	- make depend.
+	- Fix for build to run flex and bison before compiling code that needs
+	  the headers.
 
 13 April 2023: Wouter
 	- Fix cirrus script for submit to coverity scan to libtoolize

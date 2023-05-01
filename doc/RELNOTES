@@ -32,6 +32,8 @@ BUG FIXES:
 	  the configure script components config.guess and config.sub.
 	- Fix readme status badge links.
 	- make depend.
+	- Fix for build to run flex and bison before compiling code that needs
+	  the headers.
 
 4.6.1
 ================
