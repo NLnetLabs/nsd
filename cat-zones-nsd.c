@@ -46,20 +46,24 @@ catz_add_zone(const catz_dname *member_zone_name,
 	catz_catalog_zone *catalog_zone, void *arg)
 {
 	nsd_type* nsd = (nsd_type*)arg;
-	const char* zname = dname_to_string(&member_zone_name->dname, NULL);
-	const char* pname = PATTERN_IMPLICIT_MARKER;
+	const char* zname = strdup(dname_to_string(&member_zone_name->dname, NULL));
+	const char* pname = zname + strlen(zname)+1;
+	const char* catname = strdup(dname_to_string(catalog_zone->zone.apex->dname, NULL));
 	zone_type* t;
-	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Zone name: %s", zname));
-	t = find_or_create_zone(
-		nsd->db, 
-		&member_zone_name->dname, 
-		nsd->options, 
-		zname, 
-		pname
-	);
+	struct zone_options* zopt;
+	struct pattern_options* patopt = pattern_options_find(nsd->options, pname);
+	if (!patopt) {
+		patopt = pattern_options_create(nsd->region);
+		patopt->pname = pname;
+	}
+
+	pattern_options_add_modify(nsd->options, patopt);
+	zopt = zone_list_zone_insert(nsd->options, zname, pname, 0, 0);
+	t = namedb_zone_create(nsd->db, &member_zone_name->dname, zopt);
 
 	if (t) {
-		t->is_from_catalog = 1;
+		t->from_catalog = catname;
+		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Zone added for catalog %s: %s", catname, zname));
 		return CATZ_SUCCESS;
 	} else {
 		// This should never happen
@@ -73,13 +77,12 @@ catz_remove_zone(const catz_dname *member_zone_name,
 {
 	nsd_type* nsd = (nsd_type*) arg;
 	zone_type* zone = namedb_find_zone(nsd->db, &member_zone_name->dname);
+	struct zone_options* zopt = zone->opts;
 
-	if (zone->is_from_catalog) {
-		namedb_zone_delete(nsd->db, zone);
-		return CATZ_SUCCESS;
-	} else {
-		return -1;
-	}
+	delete_zone_rrs(nsd->db, zone);
+	namedb_zone_delete(nsd->db, zone);
+	zone_options_delete(nsd->options, zopt);
+	return CATZ_SUCCESS;
 }
 
 int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
@@ -90,14 +93,20 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 	uint8_t has_version_txt = 0;
 
 	// Current MVP implementation: remove all zones coming from a catalog
-	// Readd all zones coming from a catalog
+	// Re-add all zones coming from a catalog
 	// Very inefficient
+
+	const char* catname = strdup(dname_to_string(zone->apex->dname, NULL));
 
 	for (struct radnode* n = radix_first(nsd->db->zonetree); n; n = radix_next(n)) {
 		zone_type* z = (zone_type*)n->elem;
-		if (z->is_from_catalog) {
+		struct zone_options* zopt = z->opts;
+		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "From catalog %s", z->from_catalog));
+		if (z->from_catalog && strcmp(z->from_catalog, catname) == 0) {
 			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Deleted zone %s", dname_to_string(z->apex->dname, NULL)));
+			delete_zone_rrs(nsd->db, z);
 			namedb_zone_delete(nsd->db, z);
+			zone_options_delete(nsd->options, zopt);
 		}
 	}
 	
@@ -155,7 +164,7 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 
 				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "PTR parsed"));
 
-				catz_add_zone(member_zone, member_id, cat_zone, nsd);
+				int res = catz_add_zone(member_zone, member_id, cat_zone, nsd);
 				break;
 			}
 			break;

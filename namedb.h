@@ -150,7 +150,7 @@ struct zone
 	unsigned     is_skipped : 1; /* subsequent zone updates are skipped */
 	unsigned     is_checked : 1; /* zone already verified */
 	unsigned     is_bad : 1; /* zone failed verification */
-	unsigned     is_from_catalog : 1; /* zone originates from catalog zone */
+	char*        from_catalog; /* zone originates from catalog zone */
 } ATTR_PACKED;
 
 /* a RR in DNS */

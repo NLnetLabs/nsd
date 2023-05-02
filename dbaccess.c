@@ -255,7 +255,7 @@ namedb_zone_create(namedb_type* db, const dname_type* dname,
 	zone->is_checked = 0;
 	zone->is_bad = 0;
 	zone->is_ok = 1;
-	zone->is_from_catalog = 0;
+	zone->from_catalog = NULL;
 	return zone;
 }
 
