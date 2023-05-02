@@ -132,6 +132,16 @@ log_addr(const char* descr,
   #define TCP_FASTOPEN_SERVER_BIT_MASK 0x2
 #endif
 
+/* header state for the PROXYv2 header (for TCP) */
+enum pp2_header_state_type {
+	/* no header encounter yet */
+	pp2_header_none = 0,
+	/* read the static part of the header */
+	pp2_header_init,
+	/* read the full header */
+	pp2_header_done
+};
+
 /*
  * Data for the UDP handlers.
  */
@@ -153,6 +163,8 @@ struct tcp_accept_handler_data {
 	/* handler accepts TLS connections on the dedicated port */
 	int                tls_accept;
 #endif
+	/* if set, PROXYv2 is expected on this connection */
+	int pp2_enabled;
 };
 
 /*
@@ -261,6 +273,12 @@ struct tcp_handler_data
 	/* the socket of the accept socket to find proper service (local) address the socket is bound to. */
 	struct nsd_socket *socket;
 #endif /* USE_DNSTAP */
+
+	/* if set, PROXYv2 is expected on this connection */
+	int pp2_enabled;
+
+	/* header state for the PROXYv2 header (for TCP) */
+	enum pp2_header_state_type pp2_header_state;
 
 #ifdef HAVE_SSL
 	/*
@@ -2994,6 +3012,11 @@ add_tcp_handler(
 	data->nsd = nsd;
 	data->socket = sock;
 
+	/* TODO: check if sock->addr.ai_addr uses a proxy_protocol_port */
+	if(1) {
+		data->pp2_enabled = 1;
+	}
+
 #ifdef HAVE_SSL
 	if (nsd->tls_ctx &&
 	    nsd->options->tls_port &&
@@ -3909,6 +3932,7 @@ cleanup_tcp_handler(struct tcp_handler_data* data)
 		data->tls = NULL;
 	}
 #endif
+	data->pp2_header_state = pp2_header_none;
 	close(data->event.ev_fd);
 	if(data->prev)
 		data->prev->next = data->next;
@@ -3959,8 +3983,135 @@ handle_tcp_reading(int fd, short event, void* arg)
 
 	assert((event & EV_READ));
 
-	if (data->bytes_transmitted == 0) {
+	if (data->bytes_transmitted == 0 &&
+		data->pp2_header_state == pp2_header_none) {
 		query_reset(data->query, TCP_MAX_MESSAGE_LEN, 1);
+	}
+
+	if(data->pp2_enabled && data->pp2_header_state != pp2_header_done) {
+		struct pp2_header* header = NULL;
+		size_t want_read_size = 0;
+		size_t current_read_size = 0;
+		if(data->pp2_header_state == pp2_header_none) {
+			want_read_size = PP2_HEADER_SIZE;
+			if(buffer_remaining(data->query->packet) <
+				want_read_size) {
+				VERBOSITY(6, (LOG_ERR, "proxy-protocol: not enough buffer size to read PROXYv2 header"));
+				cleanup_tcp_handler(data);
+				return;
+			}
+			VERBOSITY(6, (LOG_INFO, "proxy-protocol: reading fixed part of PROXYv2 header (len %lu)", (unsigned long)want_read_size));
+			current_read_size = want_read_size;
+			if(data->bytes_transmitted < current_read_size) {
+				received = read(fd,
+					(void*)buffer_at(data->query->packet,
+						data->bytes_transmitted),
+						current_read_size - data->bytes_transmitted);
+				if (received == -1) {
+					if (errno == EAGAIN || errno == EINTR) {
+						/*
+						 * Read would block, wait until more
+						 * data is available.
+						 */
+						return;
+					} else {
+						char buf[48];
+						addr2str(&data->query->remote_addr, buf, sizeof(buf));
+#ifdef ECONNRESET
+						if (verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
+						log_msg(LOG_ERR, "failed reading from %s tcp: %s", buf, strerror(errno));
+						cleanup_tcp_handler(data);
+						return;
+					}
+				} else if (received == 0) {
+					/* EOF */
+					cleanup_tcp_handler(data);
+					return;
+				}
+
+				data->bytes_transmitted += received;
+				buffer_skip(data->query->packet, received);
+				if(data->bytes_transmitted != current_read_size)
+					return;
+				data->pp2_header_state = pp2_header_init;
+			}
+		}
+		if(data->pp2_header_state == pp2_header_init) {
+			int err;
+			err = pp2_read_header(buffer_begin(data->query->packet),
+				buffer_limit(data->query->packet));
+			if(err) {
+				VERBOSITY(6, (LOG_ERR, "proxy-protocol: could not parse PROXYv2 header: %s", pp_lookup_error(err)));
+				cleanup_tcp_handler(data);
+				return;
+			}
+			header = (struct pp2_header*)buffer_begin(data->query->packet);
+			want_read_size = ntohs(header->len);
+			if(buffer_limit(data->query->packet) <
+				PP2_HEADER_SIZE + want_read_size) {
+				VERBOSITY(6, (LOG_ERR, "proxy-protocol: not enough buffer size to read PROXYv2 header"));
+				cleanup_tcp_handler(data);
+				return;
+			}
+			VERBOSITY(6, (LOG_INFO, "proxy-protocol: reading variable part of PROXYv2 header (len %lu)", (unsigned long)want_read_size));
+			current_read_size = PP2_HEADER_SIZE + want_read_size;
+			if(want_read_size == 0) {
+				/* nothing more to read; header is complete */
+				data->pp2_header_state = pp2_header_done;
+			} else if(data->bytes_transmitted < current_read_size) {
+				received = read(fd,
+					(void*)buffer_at(data->query->packet,
+						data->bytes_transmitted),
+						current_read_size - data->bytes_transmitted);
+				if (received == -1) {
+					if (errno == EAGAIN || errno == EINTR) {
+						/*
+						 * Read would block, wait until more
+						 * data is available.
+						 */
+						return;
+					} else {
+						char buf[48];
+						addr2str(&data->query->remote_addr, buf, sizeof(buf));
+#ifdef ECONNRESET
+						if (verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
+						log_msg(LOG_ERR, "failed reading from %s tcp: %s", buf, strerror(errno));
+						cleanup_tcp_handler(data);
+						return;
+					}
+				} else if (received == 0) {
+					/* EOF */
+					cleanup_tcp_handler(data);
+					return;
+				}
+
+				data->bytes_transmitted += received;
+				buffer_skip(data->query->packet, received);
+				if(data->bytes_transmitted != current_read_size)
+					return;
+				data->pp2_header_state = pp2_header_done;
+			}
+		}
+		if(data->pp2_header_state != pp2_header_done || !header) {
+			VERBOSITY(6, (LOG_ERR, "proxy-protocol: wrong state for the PROXYv2 header"));
+
+			cleanup_tcp_handler(data);
+			return;
+		}
+		buffer_flip(data->query->packet);
+		if(!consume_pp2_header(data->query->packet, data->query, 1)) {
+			VERBOSITY(6, (LOG_ERR, "proxy-protocol: could not consume PROXYv2 header"));
+
+			cleanup_tcp_handler(data);
+			return;
+		}
+		VERBOSITY(6, (LOG_ERR, "proxy-protocol: successful read of PROXYv2 header"));
+		/* Clear and reset the buffer to read the following
+		 * DNS packet(s). */
+		buffer_clear(data->query->packet);
+		data->bytes_transmitted = 0;
 	}
 
 	/*
@@ -4096,6 +4247,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 	 */
 	log_addr("query from client", &data->query->client_addr);
 	log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
+	log_addr((data->query->is_proxied?"query via proxy":"query not via proxy"), &data->query->remote_addr);
 	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
 		data->query->client_addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
@@ -4149,6 +4301,7 @@ handle_tcp_reading(int fd, short event, void* arg)
 	 */
 	log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
 	log_addr("response to client", &data->query->client_addr);
+	log_addr((data->query->is_proxied?"response via proxy":"response not via proxy"), &data->query->remote_addr);
 	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
 		data->query->client_addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
@@ -4913,6 +5066,8 @@ handle_tcp_accept(int fd, short event, void* arg)
 	tcp_data->shake_state = tls_hs_none;
 	tcp_data->tls = NULL;
 #endif
+	tcp_data->pp2_enabled = data->pp2_enabled;
+	tcp_data->pp2_header_state = pp2_header_none;
 	tcp_data->prev = NULL;
 	tcp_data->next = NULL;
 
@@ -4920,6 +5075,11 @@ handle_tcp_accept(int fd, short event, void* arg)
 	tcp_data->bytes_transmitted = 0;
 	memcpy(&tcp_data->query->remote_addr, &addr, addrlen);
 	tcp_data->query->remote_addrlen = addrlen;
+	/* Copy remote_address to client_address.
+	 * Simplest way/time for streams to do that. */
+	memcpy(&tcp_data->query->client_addr, &addr, addrlen);
+	tcp_data->query->client_addrlen = addrlen;
+	tcp_data->query->is_proxied = 0;
 
 	tcp_data->tcp_no_more_queries = 0;
 	tcp_data->tcp_timeout = data->nsd->tcp_timeout * 1000;
