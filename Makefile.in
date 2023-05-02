@@ -420,6 +420,8 @@ depend:
 	fi
 	rm -f $(DEPEND_TMP) $(DEPEND_TMP2)
 
+proxy_protocol.o: $(srcdir)/util/proxy_protocol.c config.h $(srcdir)/util/proxy_protocol.h
+
 # Dependencies
 answer.o: $(srcdir)/answer.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h \
  $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/rbtree.h $(srcdir)/packet.h \
