@@ -4107,7 +4107,6 @@ handle_tcp_reading(int fd, short event, void* arg)
 			cleanup_tcp_handler(data);
 			return;
 		}
-		VERBOSITY(6, (LOG_ERR, "proxy-protocol: successful read of PROXYv2 header"));
 		/* Clear and reset the buffer to read the following
 		 * DNS packet(s). */
 		buffer_clear(data->query->packet);
