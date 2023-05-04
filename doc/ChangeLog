@@ -1,3 +1,6 @@
+4 May 2023: Wouter
+	- Fix to remove unused whitespace from acx_nlnetlabs.m4 and config.h.
+
 1 May 2023: Wouter
 	- make depend.
 	- Fix for build to run flex and bison before compiling code that needs
