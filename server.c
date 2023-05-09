@@ -4606,7 +4606,8 @@ handle_tls_reading(int fd, short event, void* arg)
 
 	assert((event & EV_READ));
 
-	if (data->bytes_transmitted == 0) {
+	if (data->bytes_transmitted == 0 &&
+		data->pp2_header_state == pp2_header_none) {
 		query_reset(data->query, TCP_MAX_MESSAGE_LEN, 1);
 	}
 
@@ -4617,6 +4618,120 @@ handle_tls_reading(int fd, short event, void* arg)
 			return;
 	}
 
+	if(data->pp2_enabled && data->pp2_header_state != pp2_header_done) {
+		struct pp2_header* header = NULL;
+		size_t want_read_size = 0;
+		size_t current_read_size = 0;
+		if(data->pp2_header_state == pp2_header_none) {
+			want_read_size = PP2_HEADER_SIZE;
+			if(buffer_remaining(data->query->packet) <
+				want_read_size) {
+				VERBOSITY(6, (LOG_ERR, "proxy-protocol: not enough buffer size to read PROXYv2 header"));
+				cleanup_tcp_handler(data);
+				return;
+			}
+			VERBOSITY(6, (LOG_INFO, "proxy-protocol: reading fixed part of PROXYv2 header (len %lu)", (unsigned long)want_read_size));
+			current_read_size = want_read_size;
+			if(data->bytes_transmitted < current_read_size) {
+				ERR_clear_error();
+				if((received=SSL_read(data->tls,
+					(void*)buffer_at(data->query->packet,
+						data->bytes_transmitted),
+					current_read_size - data->bytes_transmitted)) <= 0) {
+					int want = SSL_get_error(data->tls, received);
+					if(want == SSL_ERROR_ZERO_RETURN) {
+						cleanup_tcp_handler(data);
+						return; /* shutdown, closed */
+					} else if(want == SSL_ERROR_WANT_READ) {
+						/* wants to be called again */
+						return;
+					}
+					else if(want == SSL_ERROR_WANT_WRITE) {
+						/* switch to writing */
+						data->shake_state = tls_hs_write_event;
+						tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT);
+						return;
+					}
+					cleanup_tcp_handler(data);
+					log_crypto_err("could not SSL_read");
+					return;
+				}
+				data->bytes_transmitted += received;
+				buffer_skip(data->query->packet, received);
+				if(data->bytes_transmitted != current_read_size)
+					return;
+				data->pp2_header_state = pp2_header_init;
+			}
+		}
+		if(data->pp2_header_state == pp2_header_init) {
+			int err;
+			err = pp2_read_header(buffer_begin(data->query->packet),
+				buffer_limit(data->query->packet));
+			if(err) {
+				VERBOSITY(6, (LOG_ERR, "proxy-protocol: could not parse PROXYv2 header: %s", pp_lookup_error(err)));
+				cleanup_tcp_handler(data);
+				return;
+			}
+			header = (struct pp2_header*)buffer_begin(data->query->packet);
+			want_read_size = ntohs(header->len);
+			if(buffer_limit(data->query->packet) <
+				PP2_HEADER_SIZE + want_read_size) {
+				VERBOSITY(6, (LOG_ERR, "proxy-protocol: not enough buffer size to read PROXYv2 header"));
+				cleanup_tcp_handler(data);
+				return;
+			}
+			VERBOSITY(6, (LOG_INFO, "proxy-protocol: reading variable part of PROXYv2 header (len %lu)", (unsigned long)want_read_size));
+			current_read_size = PP2_HEADER_SIZE + want_read_size;
+			if(want_read_size == 0) {
+				/* nothing more to read; header is complete */
+				data->pp2_header_state = pp2_header_done;
+			} else if(data->bytes_transmitted < current_read_size) {
+				ERR_clear_error();
+				if((received=SSL_read(data->tls,
+					(void*)buffer_at(data->query->packet,
+						data->bytes_transmitted),
+					current_read_size - data->bytes_transmitted)) <= 0) {
+					int want = SSL_get_error(data->tls, received);
+					if(want == SSL_ERROR_ZERO_RETURN) {
+						cleanup_tcp_handler(data);
+						return; /* shutdown, closed */
+					} else if(want == SSL_ERROR_WANT_READ) {
+						/* wants to be called again */
+						return;
+					}
+					else if(want == SSL_ERROR_WANT_WRITE) {
+						/* switch to writing */
+						data->shake_state = tls_hs_write_event;
+						tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT);
+						return;
+					}
+					cleanup_tcp_handler(data);
+					log_crypto_err("could not SSL_read");
+					return;
+				}
+				data->bytes_transmitted += received;
+				buffer_skip(data->query->packet, received);
+				if(data->bytes_transmitted != current_read_size)
+					return;
+				data->pp2_header_state = pp2_header_done;
+			}
+		}
+		if(data->pp2_header_state != pp2_header_done || !header) {
+			VERBOSITY(6, (LOG_ERR, "proxy-protocol: wrong state for the PROXYv2 header"));
+			cleanup_tcp_handler(data);
+			return;
+		}
+		buffer_flip(data->query->packet);
+		if(!consume_pp2_header(data->query->packet, data->query, 1)) {
+			VERBOSITY(6, (LOG_ERR, "proxy-protocol: could not consume PROXYv2 header"));
+			cleanup_tcp_handler(data);
+			return;
+		}
+		/* Clear and reset the buffer to read the following
+		 * DNS packet(s). */
+		buffer_clear(data->query->packet);
+		data->bytes_transmitted = 0;
+	}
 	/*
 	 * Check if we received the leading packet length bytes yet.
 	 */
@@ -4741,6 +4856,7 @@ handle_tls_reading(int fd, short event, void* arg)
 	 */
 	log_addr("query from client", &data->query->client_addr);
 	log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
+	log_addr((data->query->is_proxied?"query via proxy":"query not via proxy"), &data->query->remote_addr);
 	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
 		data->query->client_addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
@@ -4794,6 +4910,7 @@ handle_tls_reading(int fd, short event, void* arg)
 	 */
 	log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
 	log_addr("response to client", &data->query->client_addr);
+	log_addr((data->query->is_proxied?"response via proxy":"response not via proxy"), &data->query->remote_addr);
 	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
 		data->query->client_addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);

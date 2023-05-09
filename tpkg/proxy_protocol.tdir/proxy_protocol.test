@@ -287,8 +287,7 @@ fi
 
 echo ""
 echo "> TLS test"
-# DEBUG: add -s for SSL
-streamtcp -f 127.0.0.1@$TPKG_PORT2 -p 10.20.30.40@1234 www.example.com. A IN &> out2
+streamtcp -f 127.0.0.1@$TPKG_PORT2 -p 10.20.30.40@1234 -s www.example.com. A IN &> out2
 cat out2
 if grep "192.0.2.10" out2; then
 	echo "OK"
