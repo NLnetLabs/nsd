@@ -3757,7 +3757,8 @@ handle_udp(int fd, short event, void* arg)
 		 */
 		log_addr("query from client", &q->client_addr);
 		log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
-		log_addr((q->is_proxied?"query via proxy":"query not via proxy"), &q->remote_addr);
+		if(verbosity >= 6 && q->is_proxied)
+			log_addr("query via proxy", &q->remote_addr);
 		dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &q->client_addr, q->client_addrlen,
 			q->tcp, q->packet);
 #endif /* USE_DNSTAP */
@@ -3797,7 +3798,8 @@ handle_udp(int fd, short event, void* arg)
 			 */
 			log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
 			log_addr("response to client", &q->client_addr);
-			log_addr((q->is_proxied?"response via proxy":"response not via proxy"), &q->remote_addr);
+			if(verbosity >= 6 && q->is_proxied)
+				log_addr("response via proxy", &q->remote_addr);
 			dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr,
 				&q->client_addr, q->client_addrlen, q->tcp, q->packet,
 				q->zone);
@@ -4246,7 +4248,8 @@ handle_tcp_reading(int fd, short event, void* arg)
 	 */
 	log_addr("query from client", &data->query->client_addr);
 	log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
-	log_addr((data->query->is_proxied?"query via proxy":"query not via proxy"), &data->query->remote_addr);
+	if(verbosity >= 6 && data->query->is_proxied)
+		log_addr("query via proxy", &data->query->remote_addr);
 	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
 		data->query->client_addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
@@ -4300,7 +4303,8 @@ handle_tcp_reading(int fd, short event, void* arg)
 	 */
 	log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
 	log_addr("response to client", &data->query->client_addr);
-	log_addr((data->query->is_proxied?"response via proxy":"response not via proxy"), &data->query->remote_addr);
+	if(verbosity >= 6 && data->query->is_proxied)
+		log_addr("response via proxy", &data->query->remote_addr);
 	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
 		data->query->client_addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
@@ -4856,7 +4860,8 @@ handle_tls_reading(int fd, short event, void* arg)
 	 */
 	log_addr("query from client", &data->query->client_addr);
 	log_addr("to server (local)", (void*)&data->socket->addr.ai_addr);
-	log_addr((data->query->is_proxied?"query via proxy":"query not via proxy"), &data->query->remote_addr);
+	if(verbosity >= 6 && data->query->is_proxied)
+		log_addr("query via proxy", &data->query->remote_addr);
 	dt_collector_submit_auth_query(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
 		data->query->client_addrlen, data->query->tcp, data->query->packet);
 #endif /* USE_DNSTAP */
@@ -4910,7 +4915,8 @@ handle_tls_reading(int fd, short event, void* arg)
 	 */
 	log_addr("from server (local)", (void*)&data->socket->addr.ai_addr);
 	log_addr("response to client", &data->query->client_addr);
-	log_addr((data->query->is_proxied?"response via proxy":"response not via proxy"), &data->query->remote_addr);
+	if(verbosity >= 6 && data->query->is_proxied)
+		log_addr("response via proxy", &data->query->remote_addr);
 	dt_collector_submit_auth_response(data->nsd, (void*)&data->socket->addr.ai_addr, &data->query->client_addr,
 		data->query->client_addrlen, data->query->tcp, data->query->packet,
 		data->query->zone);
