@@ -34,6 +34,7 @@ BUG FIXES:
 	- make depend.
 	- Fix for build to run flex and bison before compiling code that needs
 	  the headers.
+	- Fix to remove unused whitespace from acx_nlnetlabs.m4 and config.h.
 
 4.6.1
 ================
