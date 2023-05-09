@@ -23,9 +23,7 @@ catz_member_by_dname(const catz_dname *member_zone_name,
 {
 	nsd_type* nsd = (nsd_type*)arg;
 	zone_type* zone = namedb_find_zone(nsd->db, &member_zone_name->dname);
-	catz_member_zone* catz_zone = malloc(sizeof(catz_member_zone));
-	catz_zone->member_id->dname = *zone->apex->dname;
-	return catz_zone;
+	return (catz_member_zone*)zone;
 }
 
 catz_catalog_zone *
@@ -46,10 +44,45 @@ catz_add_zone(const catz_dname *member_zone_name,
 	catz_catalog_zone *catalog_zone, void *arg)
 {
 	nsd_type* nsd = (nsd_type*)arg;
+
 	const char* zname = strdup(dname_to_string(&member_zone_name->dname, NULL));
 	const char* pname = zname + strlen(zname)+1;
 	const char* catname = strdup(dname_to_string(catalog_zone->zone.apex->dname, NULL));
-	zone_type* t;
+	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
+
+	if (t) {
+		if (!t->from_catalog) {
+			return -1;
+		}
+		zone_type* cz = namedb_find_zone(nsd->db, dname_parse(nsd->region, strlen(t->from_catalog) + t->from_catalog));
+		struct zone_rr_iter rr_iter;
+		struct rr *rr;
+
+		int coo_correct = 0;
+
+		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Found existing zone belong to a catalog zone %s", dname_to_string(cz->apex->dname, NULL)));
+
+		// Check if COO property exists and refers to this catzone
+
+		zone_rr_iter_init(&rr_iter, cz);
+		for ( rr = zone_rr_iter_next(&rr_iter)
+		; rr != NULL
+		; rr = zone_rr_iter_next(&rr_iter)) {
+			if (rr->klass != CLASS_IN) {
+				continue;
+			}
+			
+		}
+
+		if (coo_correct) {
+			t->from_catalog = catname;
+			t->catalog_member_id = member_id;
+			return CATZ_SUCCESS;
+		} else {
+			return -1;
+		}
+	}
+
 	struct zone_options* zopt;
 	struct pattern_options* patopt = pattern_options_find(nsd->options, pname);
 	if (!patopt) {
@@ -63,6 +96,7 @@ catz_add_zone(const catz_dname *member_zone_name,
 
 	if (t) {
 		t->from_catalog = catname;
+		t->catalog_member_id = member_id;
 		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Zone added for catalog %s: %s", catname, zname));
 		return CATZ_SUCCESS;
 	} else {
@@ -110,7 +144,7 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 		}
 	}
 	
-	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Catalog zone processing"));
+	// DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Catalog zone processing"));
 	zone_rr_iter_init(&rr_iter, zone);
 	for ( rr = zone_rr_iter_next(&rr_iter)
 	    ; rr != NULL
@@ -166,11 +200,28 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 
 				int res = catz_add_zone(member_zone, member_id, cat_zone, nsd);
 				break;
-			}
+			// } else if (dname->label_count == zone->apex->dname->label_count + 3 && 
+			// 	label_compare(dname_label(dname, dname->label_count - 3), (const uint8_t*)"\x05zones") == 0 && 
+			// 	label_compare(dname_label(dname, dname->label_count - 1), (const uint8_t*)"\x03coo") == 0) {
+				
+			// 	const dname_type* member_id = dname_partial_copy(nsd->region, dname, dname->label_count - 1);
+
+			// 	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "COO property %s", dname_to_string(member_id, NULL)));
+			// 	// Expects zone to already exist
+			// 	for (struct radnode* n = radix_first(nsd->db->zonetree); n; n = radix_next(n)) {
+			// 		zone_type* z = (zone_type*)n->elem;
+			// 		if (z->from_catalog && strcmp(z->from_catalog, catname) == 0 && z->catalog_member_id && dname_compare(z->catalog_member_id, member_id) == 0) {
+			// 			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "COO for zone %s", dname_to_string(z->apex->dname, NULL)));
+			// 		}
+			// 	}
+				
+			} 
 			break;
 		}
-		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Process RR"));
+		// DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Process RR"));
 	}
+
+	free((void*)catname);
 
 	return -1;
 }

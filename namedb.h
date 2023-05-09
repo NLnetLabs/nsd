@@ -151,6 +151,7 @@ struct zone
 	unsigned     is_checked : 1; /* zone already verified */
 	unsigned     is_bad : 1; /* zone failed verification */
 	char*        from_catalog; /* zone originates from catalog zone */
+	dname_type*  catalog_member_id; /* member id in the catalog zone */
 } ATTR_PACKED;
 
 /* a RR in DNS */
