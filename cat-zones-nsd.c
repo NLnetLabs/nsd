@@ -50,6 +50,9 @@ catz_add_zone(const catz_dname *member_zone_name,
 	const char* catname = strdup(dname_to_string(catalog_zone->zone.apex->dname, NULL));
 	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
 
+	struct zone_options* zopt;
+	struct pattern_options* patopt = pattern_options_find(nsd->options, pname);
+
 	if (t) {
 		if (!t->from_catalog) {
 			return -1;
@@ -71,7 +74,21 @@ catz_add_zone(const catz_dname *member_zone_name,
 			if (rr->klass != CLASS_IN) {
 				continue;
 			}
-			
+			if (rr->type != TYPE_PTR) {
+				continue;
+			}
+			dname_type* dname = rr->owner->dname;
+			if (dname->label_count == cz->apex->dname->label_count + 3 && 
+			label_compare(dname_label(dname, dname->label_count - 3), (const uint8_t*)"\x05zones") == 0 && 
+			label_compare(dname_label(dname, dname->label_count - 1), (const uint8_t*)"\x03coo") == 0) {
+				dname_type* parent = dname_copy(nsd->region, rr->owner->dname);
+				parent->label_count -= 1;
+				const char* parent_str = dname_to_string(parent, NULL);
+				if (strcmp(cz->from_catalog, parent) == 0) {
+					coo_correct = 1;
+					break;
+				}
+			}
 		}
 
 		if (coo_correct) {
@@ -83,8 +100,6 @@ catz_add_zone(const catz_dname *member_zone_name,
 		}
 	}
 
-	struct zone_options* zopt;
-	struct pattern_options* patopt = pattern_options_find(nsd->options, pname);
 	if (!patopt) {
 		patopt = pattern_options_create(nsd->region);
 		patopt->pname = pname;
@@ -95,8 +110,8 @@ catz_add_zone(const catz_dname *member_zone_name,
 	t = namedb_zone_create(nsd->db, &member_zone_name->dname, zopt);
 
 	if (t) {
-		t->from_catalog = catname;
-		t->catalog_member_id = member_id;
+		t->from_catalog = (char*)catname;
+		t->catalog_member_id = (dname_type*)member_id;
 		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Zone added for catalog %s: %s", catname, zname));
 		return CATZ_SUCCESS;
 	} else {
