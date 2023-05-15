@@ -45,25 +45,36 @@ catz_add_zone(const catz_dname *member_zone_name,
 {
 	nsd_type* nsd = (nsd_type*)arg;
 
-	const char* zname = strdup(dname_to_string(&member_zone_name->dname, NULL));
+	const char* zname = 
+		strdup(dname_to_string(&member_zone_name->dname, NULL));
 	const char* pname = zname + strlen(zname)+1;
-	const char* catname = strdup(dname_to_string(catalog_zone->zone.apex->dname, NULL));
+	const char* catname = 
+		strdup(dname_to_string(catalog_zone->zone.apex->dname, NULL));
 	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
 
 	struct zone_options* zopt;
-	struct pattern_options* patopt = pattern_options_find(nsd->options, pname);
+	struct pattern_options* patopt = 
+	pattern_options_find(nsd->options, pname);
 
 	if (t) {
 		if (!t->from_catalog) {
 			return -1;
 		}
-		zone_type* cz = namedb_find_zone(nsd->db, dname_parse(nsd->region, strlen(t->from_catalog) + t->from_catalog));
+		zone_type* cz = namedb_find_zone(
+			nsd->db, 
+			dname_parse(
+				nsd->region, 
+				strlen(t->from_catalog) + t->from_catalog)
+			);
 		struct zone_rr_iter rr_iter;
 		struct rr *rr;
 
 		int coo_correct = 0;
 
-		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Found existing zone belong to a catalog zone %s", dname_to_string(cz->apex->dname, NULL)));
+		DEBUG(DEBUG_CATZ, 1, 
+			(LOG_INFO, 
+			"Found existing zone belong to a catalog zone %s", 
+			dname_to_string(cz->apex->dname, NULL)));
 
 		// Check if COO property exists and refers to this catzone
 
@@ -78,16 +89,25 @@ catz_add_zone(const catz_dname *member_zone_name,
 				continue;
 			}
 			dname_type* dname = rr->owner->dname;
-			if (dname->label_count == cz->apex->dname->label_count + 3 && 
-			label_compare(dname_label(dname, dname->label_count - 3), (const uint8_t*)"\x05zones") == 0 && 
-			label_compare(dname_label(dname, dname->label_count - 1), (const uint8_t*)"\x03coo") == 0) {
-				dname_type* parent = dname_copy(nsd->region, rr->owner->dname);
+			if (
+				dname->label_count == 
+				cz->apex->dname->label_count + 3 && 
+				label_compare(
+					dname_label(dname, dname->label_count - 3),
+					(const uint8_t*)"\x05zones") == 0 && 
+				label_compare(
+					dname_label(dname, dname->label_count - 1), 
+					(const uint8_t*)"\x03coo") == 0) {
+				dname_type* parent = 
+					dname_copy(nsd->region, rr->owner->dname);
 				parent->label_count -= 1;
-				const char* parent_str = dname_to_string(parent, NULL);
+				const char* parent_str = 
+					dname_to_string(parent, NULL);
 				if (strcmp(cz->from_catalog, parent) == 0) {
 					coo_correct = 1;
 					break;
 				}
+				
 			}
 		}
 
@@ -112,7 +132,8 @@ catz_add_zone(const catz_dname *member_zone_name,
 	if (t) {
 		t->from_catalog = (char*)catname;
 		t->catalog_member_id = (dname_type*)member_id;
-		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Zone added for catalog %s: %s", catname, zname));
+		DEBUG(DEBUG_CATZ, 1, 
+		(LOG_INFO, "Zone added for catalog %s: %s", catname, zname));
 		return CATZ_SUCCESS;
 	} else {
 		// This should never happen
@@ -147,12 +168,16 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 
 	const char* catname = strdup(dname_to_string(zone->apex->dname, NULL));
 
-	for (struct radnode* n = radix_first(nsd->db->zonetree); n; n = radix_next(n)) {
+	for (struct radnode* n = radix_first(nsd->db->zonetree);
+	n;
+	n = radix_next(n)) {
 		zone_type* z = (zone_type*)n->elem;
 		struct zone_options* zopt = z->opts;
-		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "From catalog %s", z->from_catalog));
+		DEBUG(DEBUG_CATZ, 1, 
+		(LOG_INFO, "From catalog %s", z->from_catalog));
 		if (z->from_catalog && strcmp(z->from_catalog, catname) == 0) {
-			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Deleted zone %s", dname_to_string(z->apex->dname, NULL)));
+			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Deleted zone %s", 
+				dname_to_string(z->apex->dname, NULL)));
 			delete_zone_rrs(nsd->db, z);
 			namedb_zone_delete(nsd->db, z);
 			zone_options_delete(nsd->options, zopt);
@@ -169,8 +194,8 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 		if (rr->klass != CLASS_IN) {
 			continue;
 		}
-		// Maybe also check whether an NS record is present, although it is 
-		// not really breaking anything when it fails.
+		// Maybe also check whether an NS record is present, although it 
+		// is not really breaking anything when it fails.
 		switch (rr->type) {
 		case TYPE_TXT:
 			if (dname->label_count == zone->apex->dname->label_count + 1
@@ -205,7 +230,8 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 			&& label_compare( dname_label(dname, dname->label_count - 2)
 			                , (const uint8_t*)"\x05zones") == 0) {
 				// For the time being we ignore all other PTR records
-				const catz_dname* member_zone = dname2catz_dname(domain_dname(rdata_atom_domain(rr->rdatas[0])));
+				const catz_dname* member_zone = 
+					dname2catz_dname(domain_dname(rdata_atom_domain(rr->rdatas[0])));
 
 				const catz_dname* member_id = dname2catz_dname(rr->owner->dname);
 
@@ -214,22 +240,7 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "PTR parsed"));
 
 				int res = catz_add_zone(member_zone, member_id, cat_zone, nsd);
-				break;
-			// } else if (dname->label_count == zone->apex->dname->label_count + 3 && 
-			// 	label_compare(dname_label(dname, dname->label_count - 3), (const uint8_t*)"\x05zones") == 0 && 
-			// 	label_compare(dname_label(dname, dname->label_count - 1), (const uint8_t*)"\x03coo") == 0) {
-				
-			// 	const dname_type* member_id = dname_partial_copy(nsd->region, dname, dname->label_count - 1);
-
-			// 	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "COO property %s", dname_to_string(member_id, NULL)));
-			// 	// Expects zone to already exist
-			// 	for (struct radnode* n = radix_first(nsd->db->zonetree); n; n = radix_next(n)) {
-			// 		zone_type* z = (zone_type*)n->elem;
-			// 		if (z->from_catalog && strcmp(z->from_catalog, catname) == 0 && z->catalog_member_id && dname_compare(z->catalog_member_id, member_id) == 0) {
-			// 			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "COO for zone %s", dname_to_string(z->apex->dname, NULL)));
-			// 		}
-			// 	}
-				
+				break;				
 			} 
 			break;
 		}
