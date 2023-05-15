@@ -682,9 +682,37 @@ void namedb_check_zonefiles(struct nsd* nsd, struct nsd_options* opt,
 	udb_base* taskudb, udb_ptr* last_task)
 {
 	struct zone_options* zo;
+
+	typedef struct zone_linkedlist {
+		zone_type* me;
+		struct zone_linkedlist* prev;
+	} zone_linkedlist;
+
+	zone_linkedlist* zl = NULL;
 	/* check all zones in opt, create if not exist in main db */
 	RBTREE_FOR(zo, struct zone_options*, opt->zone_options) {
-		namedb_check_zonefile(nsd, taskudb, last_task, zo);
-		if(nsd->signal_hint_shutdown) break;
+			zone_type* zone;
+		const dname_type* dname = (const dname_type*)zo->node.key;
+		/* find zone to go with it, or create it */
+		zone = namedb_find_zone(nsd->db, dname);
+		if(!zone) {
+			zone = namedb_zone_create(nsd->db, dname, zo);
+		}
+		if (zone->catalog_member_id || zo->pattern->catalog_from) {
+			zone_linkedlist* zl2 = malloc(sizeof(zone_linkedlist));
+			zl2->me = zone;
+			zl2->prev = zl;
+			zl = zl2;
+		} else {
+			namedb_read_zonefile(nsd, zone, taskudb, last_task);
+			if(nsd->signal_hint_shutdown) break;
+		}
+	}
+	while (zl)
+	{
+		namedb_read_zonefile(nsd, zl->me, taskudb, last_task);
+		zone_linkedlist* old_zl = zl;
+		zl = zl->prev;
+		free(old_zl);
 	}
 }
