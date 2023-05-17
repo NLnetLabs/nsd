@@ -570,6 +570,12 @@ interfaces configured with that port number as @number get DNS over TLS service.
 If null or "", the default verify locations are used. Set it to the certificate
 bundle file, for example "/etc/pki/tls/certs/ca-bundle.crt". These certificates
 are used for authenticating Transfer over TLS (XoT) connections.
+.TP
+.B proxy\-protocol\-port:\fR <number>
+The port number for proxy protocol service. If the statement is given multiple
+times, additional port numbers can be used for proxy protocol service. The
+interface definitions that use this port number expect PROXYv2 proxy protocol
+traffic, for UDP, TCP and for TLS service.
 .SS "Remote Control"
 The
 .B remote\-control:

@@ -2987,9 +2987,9 @@ add_udp_handler(
 	data->nsd = nsd;
 	data->socket = sock;
 
-	/* TODO: check if sock->addr.ai_addr uses a proxy_protocol_port */
-	/* if(nsd->options->proxy_protocol_port && using_proxy_protocol_port((struct sockaddr *)&sock->addr.ai_addr, nsd->options->proxy_protocol_port)) */
-	if(1) {
+	if(nsd->options->proxy_protocol_port &&
+		sockaddr_uses_proxy_protocol_port(nsd->options,
+		(struct sockaddr *)&sock->addr.ai_addr)) {
 		data->pp2_enabled = 1;
 	}
 
@@ -3012,8 +3012,9 @@ add_tcp_handler(
 	data->nsd = nsd;
 	data->socket = sock;
 
-	/* TODO: check if sock->addr.ai_addr uses a proxy_protocol_port */
-	if(1) {
+	if(nsd->options->proxy_protocol_port &&
+		sockaddr_uses_proxy_protocol_port(nsd->options,
+		(struct sockaddr *)&sock->addr.ai_addr)) {
 		data->pp2_enabled = 1;
 	}
 

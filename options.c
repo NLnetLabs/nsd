@@ -140,6 +140,7 @@ nsd_options_create(region_type* region)
 	opt->tls_service_pem = NULL;
 	opt->tls_port = TLS_PORT;
 	opt->tls_cert_bundle = NULL;
+	opt->proxy_protocol_port = NULL;
 	opt->answer_cookie = 0;
 	opt->cookie_secret = NULL;
 	opt->cookie_secret_file = CONFIGDIR"/nsd_cookiesecrets.txt";
@@ -2628,4 +2629,33 @@ resolve_interface_names(struct nsd_options* options)
 #else
 	(void)options;
 #endif /* HAVE_GETIFADDRS */
+}
+
+int
+sockaddr_uses_proxy_protocol_port(struct nsd_options* options,
+	struct sockaddr* addr)
+{
+	struct proxy_protocol_port_list* p;
+	int port;
+#ifdef INET6
+	struct sockaddr_storage* ss = (struct sockaddr_storage*)addr;
+	if(ss->ss_family == AF_INET6) {
+		struct sockaddr_in6* a6 = (struct sockaddr_in6*)addr;
+		port = ntohs(a6->sin6_port);
+	} else if(ss->ss_family == AF_INET) {
+#endif
+		struct sockaddr_in* a = (struct sockaddr_in*)addr;
+		port = ntohs(a->sin_port);
+#ifdef INET6
+	} else {
+		return 0; /* unknown family */
+	}
+#endif
+	p = options->proxy_protocol_port;
+	while(p) {
+		if(p->port == port)
+			return 1;
+		p = p->next;
+	}
+	return 0;
 }

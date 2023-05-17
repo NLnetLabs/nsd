@@ -503,6 +503,12 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 				quote(p->pname);
 			return;
 		}
+		if(strcasecmp(o, "proxy_protocol_port") == 0) {
+			struct proxy_protocol_port_list* p;
+			for(p = opt->proxy_protocol_port; p; p = p->next)
+				printf("%d\n", p->port);
+			return;
+		}
 		printf("Server option not handled: %s\n", o);
 		exit(1);
 	}
@@ -700,6 +706,11 @@ config_test_print_server(nsd_options_type* opt)
 		print_string_var("cookie-secret:", opt->cookie_secret);
 	if (opt->cookie_secret_file)
 		print_string_var("cookie-secret-file:", opt->cookie_secret_file);
+	if(opt->proxy_protocol_port) {
+		struct proxy_protocol_port_list* p;
+		for(p = opt->proxy_protocol_port; p; p = p->next)
+			printf("\tproxy-protocol-port: %d\n", p->port);
+	}
 
 #ifdef USE_DNSTAP
 	printf("\ndnstap:\n");

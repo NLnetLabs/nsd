@@ -125,6 +125,7 @@ struct component {
 %token VAR_TLS_SERVICE_OCSP
 %token VAR_TLS_PORT
 %token VAR_TLS_CERT_BUNDLE
+%token VAR_PROXY_PROTOCOL_PORT
 %token VAR_CPU_AFFINITY
 %token VAR_XFRD_CPU_AFFINITY
 %token <llng> VAR_SERVER_CPU_AFFINITY
@@ -481,6 +482,14 @@ server_option:
     }
   | VAR_TLS_CERT_BUNDLE STRING
     { cfg_parser->opt->tls_cert_bundle = region_strdup(cfg_parser->opt->region, $2); }
+  | VAR_PROXY_PROTOCOL_PORT number
+    {
+      struct proxy_protocol_port_list* elem = region_alloc_zero(
+	cfg_parser->opt->region, sizeof(*elem));
+      elem->port = $2;
+      elem->next = cfg_parser->opt->proxy_protocol_port;
+      cfg_parser->opt->proxy_protocol_port = elem;
+    }
   | VAR_ANSWER_COOKIE boolean
     { cfg_parser->opt->answer_cookie = $2; }
   | VAR_COOKIE_SECRET STRING
