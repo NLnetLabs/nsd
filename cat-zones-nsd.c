@@ -64,7 +64,7 @@ catz_add_zone(const catz_dname *member_zone_name,
 			nsd->db, 
 			dname_parse(
 				nsd->region, 
-				strlen(t->from_catalog) + t->from_catalog)
+				t->from_catalog)
 			);
 		struct zone_rr_iter rr_iter;
 		struct rr *rr;
@@ -75,8 +75,6 @@ catz_add_zone(const catz_dname *member_zone_name,
 			(LOG_INFO, 
 			"Found existing zone belong to a catalog zone %s", 
 			dname_to_string(cz->apex->dname, NULL)));
-
-		// Check if COO property exists and refers to this catzone
 
 		zone_rr_iter_init(&rr_iter, cz);
 		for ( rr = zone_rr_iter_next(&rr_iter)
@@ -89,21 +87,36 @@ catz_add_zone(const catz_dname *member_zone_name,
 				continue;
 			}
 			dname_type* dname = rr->owner->dname;
-			if (
-				dname->label_count == 
-				cz->apex->dname->label_count + 3 && 
-				label_compare(
-					dname_label(dname, dname->label_count - 3),
-					(const uint8_t*)"\x05zones") == 0 && 
-				label_compare(
-					dname_label(dname, dname->label_count - 1), 
-					(const uint8_t*)"\x03coo") == 0) {
-				dname_type* parent = 
-					dname_copy(nsd->region, rr->owner->dname);
-				parent->label_count -= 1;
-				const char* parent_str = 
-					dname_to_string(parent, NULL);
-				if (strcmp(cz->from_catalog, parent) == 0) {
+
+			DEBUG(DEBUG_CATZ, 1, 
+			(LOG_INFO, 
+			"Checking %s", 
+			dname_to_string(dname, NULL)));
+
+			if (dname->label_count == 
+			cz->apex->dname->label_count + 3 && 
+			label_compare(
+				dname_label(dname, dname->label_count - 3),
+				(const uint8_t*)"\005zones") == 0 && 
+			label_compare(
+				dname_label(dname, dname->label_count - 1), 
+				(const uint8_t*)"\003coo") == 0) {
+				// `dname` is now the RR for the coo property
+
+				const dname_type* coo_property = 
+					domain_dname(rdata_atom_domain(rr->rdatas[0]));
+
+			// 	DEBUG(DEBUG_CATZ, 1, 
+			// (LOG_INFO, 
+			// "%d %d %s %s", 
+			// dname_label_match_count(t->catalog_member_id, dname), t->catalog_member_id->label_count, strdup(dname_to_string(coo_property, NULL)), strdup(dname_to_string(catalog_zone->zone.apex->dname, NULL))));
+
+				if (dname_label_match_count(t->catalog_member_id, dname) == t->catalog_member_id->label_count && 
+				dname_compare(coo_property, catalog_zone->zone.apex->dname) == 0) {
+					DEBUG(DEBUG_CATZ, 1, 
+					(LOG_INFO, 
+					"COO correct, transferring from %s to %s", 
+					t->from_catalog, catname));
 					coo_correct = 1;
 					break;
 				}
