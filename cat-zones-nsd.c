@@ -106,12 +106,8 @@ catz_add_zone(const catz_dname *member_zone_name,
 				const dname_type* coo_property = 
 					domain_dname(rdata_atom_domain(rr->rdatas[0]));
 
-			// 	DEBUG(DEBUG_CATZ, 1, 
-			// (LOG_INFO, 
-			// "%d %d %s %s", 
-			// dname_label_match_count(t->catalog_member_id, dname), t->catalog_member_id->label_count, strdup(dname_to_string(coo_property, NULL)), strdup(dname_to_string(catalog_zone->zone.apex->dname, NULL))));
-
-				if (dname_label_match_count(t->catalog_member_id, dname) == t->catalog_member_id->label_count && 
+				if (dname_label_match_count(t->catalog_member_id, dname)
+				 == t->catalog_member_id->label_count && 
 				dname_compare(coo_property, catalog_zone->zone.apex->dname) == 0) {
 					DEBUG(DEBUG_CATZ, 1, 
 					(LOG_INFO, 
