@@ -145,7 +145,6 @@ catz_add_zone(const catz_dname *member_zone_name,
 		(LOG_INFO, "Zone added for catalog %s: %s", catname, zname));
 		return CATZ_SUCCESS;
 	} else {
-		// This should never happen
 		return -1;
 	}
 }

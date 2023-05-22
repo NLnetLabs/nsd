@@ -699,6 +699,7 @@ void namedb_check_zonefiles(struct nsd* nsd, struct nsd_options* opt,
 			zone = namedb_zone_create(nsd->db, dname, zo);
 		}
 		if (zone->catalog_member_id || zo->pattern->catalog_from) {
+			/* Ensure catalog zone members are loaded last */
 			zone_linkedlist* zl2 = malloc(sizeof(zone_linkedlist));
 			zl2->me = zone;
 			zl2->prev = zl;
