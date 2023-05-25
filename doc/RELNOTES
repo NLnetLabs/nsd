@@ -35,6 +35,8 @@ BUG FIXES:
 	- Fix for build to run flex and bison before compiling code that needs
 	  the headers.
 	- Fix to remove unused whitespace from acx_nlnetlabs.m4 and config.h.
+	- For #279: Note that autoreconf -fi creates the configure script
+	  and also the needed auxiliary files, for autoconf 2.69 and 2.71.
 
 4.6.1
 ================

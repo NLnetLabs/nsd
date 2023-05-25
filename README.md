@@ -28,7 +28,7 @@ The repository does not contain `./configure`, but you can generate it like
 this (note that the `./configure` is included in release tarballs so they do not have to be generated):
 
 ```
-aclocal && autoconf && autoheader
+autoreconf -fi
 ```
 
 NSD can be compiled and installed using:
