@@ -1,0 +1,59 @@
+# #-- proxy_dnstap.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+if grep "define USE_DNSTAP " $PRE/config.h; then
+	echo "USE_DNSTAP enabled"
+else
+	echo "USE_DNSTAP not enabled, skip test"
+	exit 0
+fi
+# Is streamtcp available?
+if test -f "`which streamtcp 2>&1`"; then
+	echo "streamtcp available, do test"
+else
+	echo "streamtcp not available, skip test"
+	exit 0
+fi
+# Is unbound-dnstap-socket available?
+if test -f "`which unbound-dnstap-socket 2>&1`"; then
+	echo "unbound-dnstap-socket available, do test"
+else
+	echo "unbound-dnstap-socket not available, skip test"
+	exit 0
+fi
+
+# use proxy protocol to query server
+echo ""
+echo "> TCP test"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 www.example.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# check dnstap logs
+wait_logfile dnstap.log "AUTH_QUERY 10.20.30.40 www.example.com." 10
+if grep "AUTH_QUERY 10.20.30.40 www.example.com." dnstap.log; then
+	echo "OK AUTH_QUERY"
+else
+	echo "not OK AUTH_QUERY"
+	exit 1
+fi
+wait_logfile dnstap.log "AUTH_RESPONSE 10.20.30.40 www.example.com." 10
+if grep "AUTH_RESPONSE 10.20.30.40 www.example.com." dnstap.log; then
+	echo "OK AUTH_RESPONSE"
+else
+	echo "not OK AUTH_RESPONSE"
+	exit 1
+fi
+
+exit 0
