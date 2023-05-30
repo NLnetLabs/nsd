@@ -1,6 +1,7 @@
 30 May 2023: Wouter
 	- Next version is 4.7.0, instead of 4.6.2, because of the added
 	  features, like TLS for DNSTAP.
+	- Fix unused variable warning in unit test, from clang compile.
 
 24 May 2023: Wouter
 	- For #279: Note that autoreconf -fi creates the configure script
