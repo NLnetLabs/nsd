@@ -1,3 +1,7 @@
+30 May 2023: Wouter
+	- Next version is 4.7.0, instead of 4.6.2, because of the added
+	  features, like TLS for DNSTAP.
+
 24 May 2023: Wouter
 	- For #279: Note that autoreconf -fi creates the configure script
 	  and also the needed auxiliary files, for autoconf 2.69 and 2.71.
