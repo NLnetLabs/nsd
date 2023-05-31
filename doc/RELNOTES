@@ -38,6 +38,8 @@ BUG FIXES:
 	- For #279: Note that autoreconf -fi creates the configure script
 	  and also the needed auxiliary files, for autoconf 2.69 and 2.71.
 	- Fix unused variable warning in unit test, from clang compile.
+	- Fix #240: Prefix messages originating from verifier.
+	- Fix #275: Drop unnecessary root server checks.
 
 4.6.1
 ================
