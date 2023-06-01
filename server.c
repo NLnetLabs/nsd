@@ -133,7 +133,7 @@ log_addr(const char* descr,
 #endif
 
 /* header state for the PROXYv2 header (for TCP) */
-enum pp2_header_state_type {
+enum pp2_header_state {
 	/* no header encounter yet */
 	pp2_header_none = 0,
 	/* read the static part of the header */
@@ -278,7 +278,7 @@ struct tcp_handler_data
 	int pp2_enabled;
 
 	/* header state for the PROXYv2 header (for TCP) */
-	enum pp2_header_state_type pp2_header_state;
+	enum pp2_header_state pp2_header_state;
 
 #ifdef HAVE_SSL
 	/*
