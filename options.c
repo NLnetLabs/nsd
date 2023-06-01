@@ -2645,6 +2645,10 @@ sockaddr_uses_proxy_protocol_port(struct nsd_options* options,
 	} else if(ss->ss_family == AF_INET) {
 #endif
 		struct sockaddr_in* a = (struct sockaddr_in*)addr;
+#ifndef INET6
+		if(a->sin_family != AF_INET)
+			return 0; /* unknown family */
+#endif
 		port = ntohs(a->sin_port);
 #ifdef INET6
 	} else {
