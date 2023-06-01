@@ -3961,6 +3961,39 @@ cleanup_tcp_handler(struct tcp_handler_data* data)
 	region_destroy(data->region);
 }
 
+/* Read more data into the buffer for tcp read. Pass the amount of additional
+ * data required. Returns false if nothing needs to be done this event, or
+ * true if the additional data is in the buffer. */
+static int
+more_read_buf_tcp(int fd, struct tcp_handler_data* data, void* bufpos,
+	size_t add_amount, ssize_t* received)
+{
+	*received = read(fd, bufpos, add_amount);
+	if (*received == -1) {
+		if (errno == EAGAIN || errno == EINTR) {
+			/*
+			 * Read would block, wait until more
+			 * data is available.
+			 */
+			return 0;
+		} else {
+			char buf[48];
+			addr2str(&data->query->remote_addr, buf, sizeof(buf));
+#ifdef ECONNRESET
+			if (verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
+			log_msg(LOG_ERR, "failed reading from %s tcp: %s", buf, strerror(errno));
+			cleanup_tcp_handler(data);
+			return 0;
+		}
+	} else if (*received == 0) {
+		/* EOF */
+		cleanup_tcp_handler(data);
+		return 0;
+	}
+	return 1;
+}
+
 static void
 handle_tcp_reading(int fd, short event, void* arg)
 {
@@ -4006,33 +4039,12 @@ handle_tcp_reading(int fd, short event, void* arg)
 			VERBOSITY(6, (LOG_INFO, "proxy-protocol: reading fixed part of PROXYv2 header (len %lu)", (unsigned long)want_read_size));
 			current_read_size = want_read_size;
 			if(data->bytes_transmitted < current_read_size) {
-				received = read(fd,
+				if(!more_read_buf_tcp(fd, data,
 					(void*)buffer_at(data->query->packet,
 						data->bytes_transmitted),
-						current_read_size - data->bytes_transmitted);
-				if (received == -1) {
-					if (errno == EAGAIN || errno == EINTR) {
-						/*
-						 * Read would block, wait until more
-						 * data is available.
-						 */
-						return;
-					} else {
-						char buf[48];
-						addr2str(&data->query->remote_addr, buf, sizeof(buf));
-#ifdef ECONNRESET
-						if (verbosity >= 2 || errno != ECONNRESET)
-#endif /* ECONNRESET */
-						log_msg(LOG_ERR, "failed reading from %s tcp: %s", buf, strerror(errno));
-						cleanup_tcp_handler(data);
-						return;
-					}
-				} else if (received == 0) {
-					/* EOF */
-					cleanup_tcp_handler(data);
+					current_read_size - data->bytes_transmitted,
+					&received))
 					return;
-				}
-
 				data->bytes_transmitted += received;
 				buffer_skip(data->query->packet, received);
 				if(data->bytes_transmitted != current_read_size)
@@ -4063,33 +4075,12 @@ handle_tcp_reading(int fd, short event, void* arg)
 				/* nothing more to read; header is complete */
 				data->pp2_header_state = pp2_header_done;
 			} else if(data->bytes_transmitted < current_read_size) {
-				received = read(fd,
+				if(!more_read_buf_tcp(fd, data,
 					(void*)buffer_at(data->query->packet,
 						data->bytes_transmitted),
-						current_read_size - data->bytes_transmitted);
-				if (received == -1) {
-					if (errno == EAGAIN || errno == EINTR) {
-						/*
-						 * Read would block, wait until more
-						 * data is available.
-						 */
-						return;
-					} else {
-						char buf[48];
-						addr2str(&data->query->remote_addr, buf, sizeof(buf));
-#ifdef ECONNRESET
-						if (verbosity >= 2 || errno != ECONNRESET)
-#endif /* ECONNRESET */
-						log_msg(LOG_ERR, "failed reading from %s tcp: %s", buf, strerror(errno));
-						cleanup_tcp_handler(data);
-						return;
-					}
-				} else if (received == 0) {
-					/* EOF */
-					cleanup_tcp_handler(data);
+					current_read_size - data->bytes_transmitted,
+					&received))
 					return;
-				}
-
 				data->bytes_transmitted += received;
 				buffer_skip(data->query->packet, received);
 				if(data->bytes_transmitted != current_read_size)
@@ -4120,33 +4111,10 @@ handle_tcp_reading(int fd, short event, void* arg)
 	 * Check if we received the leading packet length bytes yet.
 	 */
 	if (data->bytes_transmitted < sizeof(uint16_t)) {
-		received = read(fd,
-				(char *) &data->query->tcplen
-				+ data->bytes_transmitted,
-				sizeof(uint16_t) - data->bytes_transmitted);
-		if (received == -1) {
-			if (errno == EAGAIN || errno == EINTR) {
-				/*
-				 * Read would block, wait until more
-				 * data is available.
-				 */
-				return;
-			} else {
-				char buf[48];
-				addr2str(&data->query->remote_addr, buf, sizeof(buf));
-#ifdef ECONNRESET
-				if (verbosity >= 2 || errno != ECONNRESET)
-#endif /* ECONNRESET */
-				log_msg(LOG_ERR, "failed reading from %s tcp: %s", buf, strerror(errno));
-				cleanup_tcp_handler(data);
-				return;
-			}
-		} else if (received == 0) {
-			/* EOF */
-			cleanup_tcp_handler(data);
+		if(!more_read_buf_tcp(fd, data,
+			(char*) &data->query->tcplen + data->bytes_transmitted,
+			sizeof(uint16_t) - data->bytes_transmitted, &received))
 			return;
-		}
-
 		data->bytes_transmitted += received;
 		if (data->bytes_transmitted < sizeof(uint16_t)) {
 			/*
@@ -4155,7 +4123,6 @@ handle_tcp_reading(int fd, short event, void* arg)
 			 */
 			return;
 		}
-
 		assert(data->bytes_transmitted == sizeof(uint16_t));
 
 		data->query->tcplen = ntohs(data->query->tcplen);
@@ -4186,32 +4153,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 	assert(buffer_remaining(data->query->packet) > 0);
 
 	/* Read the (remaining) query data.  */
-	received = read(fd,
-			buffer_current(data->query->packet),
-			buffer_remaining(data->query->packet));
-	if (received == -1) {
-		if (errno == EAGAIN || errno == EINTR) {
-			/*
-			 * Read would block, wait until more data is
-			 * available.
-			 */
-			return;
-		} else {
-			char buf[48];
-			addr2str(&data->query->remote_addr, buf, sizeof(buf));
-#ifdef ECONNRESET
-			if (verbosity >= 2 || errno != ECONNRESET)
-#endif /* ECONNRESET */
-			log_msg(LOG_ERR, "failed reading from %s tcp: %s", buf, strerror(errno));
-			cleanup_tcp_handler(data);
-			return;
-		}
-	} else if (received == 0) {
-		/* EOF */
-		cleanup_tcp_handler(data);
+	if(!more_read_buf_tcp(fd, data, buffer_current(data->query->packet),
+		buffer_remaining(data->query->packet), &received))
 		return;
-	}
-
 	data->bytes_transmitted += received;
 	buffer_skip(data->query->packet, received);
 	if (buffer_remaining(data->query->packet) > 0) {
@@ -4587,6 +4531,36 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 	return 1;
 }
 
+/* Read more data into the buffer for tls read. Pass the amount of additional
+ * data required. Returns false if nothing needs to be done this event, or
+ * true if the additional data is in the buffer. */
+static int
+more_read_buf_tls(int fd, struct tcp_handler_data* data, void* bufpos,
+	size_t add_amount, ssize_t* received)
+{
+	ERR_clear_error();
+	if((*received=SSL_read(data->tls, bufpos, add_amount)) <= 0) {
+		int want = SSL_get_error(data->tls, *received);
+		if(want == SSL_ERROR_ZERO_RETURN) {
+			cleanup_tcp_handler(data);
+			return 0; /* shutdown, closed */
+		} else if(want == SSL_ERROR_WANT_READ) {
+			/* wants to be called again */
+			return 0;
+		}
+		else if(want == SSL_ERROR_WANT_WRITE) {
+			/* switch to writing */
+			data->shake_state = tls_hs_write_event;
+			tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT);
+			return 0;
+		}
+		cleanup_tcp_handler(data);
+		log_crypto_err("could not SSL_read");
+		return 0;
+	}
+	return 1;
+}
+
 /** handle TLS reading of incoming query */
 static void
 handle_tls_reading(int fd, short event, void* arg)
@@ -4638,29 +4612,12 @@ handle_tls_reading(int fd, short event, void* arg)
 			VERBOSITY(6, (LOG_INFO, "proxy-protocol: reading fixed part of PROXYv2 header (len %lu)", (unsigned long)want_read_size));
 			current_read_size = want_read_size;
 			if(data->bytes_transmitted < current_read_size) {
-				ERR_clear_error();
-				if((received=SSL_read(data->tls,
-					(void*)buffer_at(data->query->packet,
+				if(!more_read_buf_tls(fd, data,
+					buffer_at(data->query->packet,
 						data->bytes_transmitted),
-					current_read_size - data->bytes_transmitted)) <= 0) {
-					int want = SSL_get_error(data->tls, received);
-					if(want == SSL_ERROR_ZERO_RETURN) {
-						cleanup_tcp_handler(data);
-						return; /* shutdown, closed */
-					} else if(want == SSL_ERROR_WANT_READ) {
-						/* wants to be called again */
-						return;
-					}
-					else if(want == SSL_ERROR_WANT_WRITE) {
-						/* switch to writing */
-						data->shake_state = tls_hs_write_event;
-						tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT);
-						return;
-					}
-					cleanup_tcp_handler(data);
-					log_crypto_err("could not SSL_read");
+					current_read_size - data->bytes_transmitted,
+					&received))
 					return;
-				}
 				data->bytes_transmitted += received;
 				buffer_skip(data->query->packet, received);
 				if(data->bytes_transmitted != current_read_size)
@@ -4691,29 +4648,12 @@ handle_tls_reading(int fd, short event, void* arg)
 				/* nothing more to read; header is complete */
 				data->pp2_header_state = pp2_header_done;
 			} else if(data->bytes_transmitted < current_read_size) {
-				ERR_clear_error();
-				if((received=SSL_read(data->tls,
-					(void*)buffer_at(data->query->packet,
+				if(!more_read_buf_tls(fd, data,
+					buffer_at(data->query->packet,
 						data->bytes_transmitted),
-					current_read_size - data->bytes_transmitted)) <= 0) {
-					int want = SSL_get_error(data->tls, received);
-					if(want == SSL_ERROR_ZERO_RETURN) {
-						cleanup_tcp_handler(data);
-						return; /* shutdown, closed */
-					} else if(want == SSL_ERROR_WANT_READ) {
-						/* wants to be called again */
-						return;
-					}
-					else if(want == SSL_ERROR_WANT_WRITE) {
-						/* switch to writing */
-						data->shake_state = tls_hs_write_event;
-						tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT);
-						return;
-					}
-					cleanup_tcp_handler(data);
-					log_crypto_err("could not SSL_read");
+					current_read_size - data->bytes_transmitted,
+					&received))
 					return;
-				}
 				data->bytes_transmitted += received;
 				buffer_skip(data->query->packet, received);
 				if(data->bytes_transmitted != current_read_size)
@@ -4741,29 +4681,10 @@ handle_tls_reading(int fd, short event, void* arg)
 	 * Check if we received the leading packet length bytes yet.
 	 */
 	if(data->bytes_transmitted < sizeof(uint16_t)) {
-		ERR_clear_error();
-		if((received=SSL_read(data->tls, (char *) &data->query->tcplen
-		    + data->bytes_transmitted,
-		    sizeof(uint16_t) - data->bytes_transmitted)) <= 0) {
-			int want = SSL_get_error(data->tls, received);
-			if(want == SSL_ERROR_ZERO_RETURN) {
-				cleanup_tcp_handler(data);
-				return; /* shutdown, closed */
-			} else if(want == SSL_ERROR_WANT_READ) {
-				/* wants to be called again */
-				return;
-			}
-			else if(want == SSL_ERROR_WANT_WRITE) {
-				/* switch to writing */
-				data->shake_state = tls_hs_write_event;
-				tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT);
-				return;
-			}
-			cleanup_tcp_handler(data);
-			log_crypto_err("could not SSL_read");
+		if(!more_read_buf_tls(fd, data,
+		    (char *) &data->query->tcplen + data->bytes_transmitted,
+		    sizeof(uint16_t) - data->bytes_transmitted, &received))
 			return;
-		}
-
 		data->bytes_transmitted += received;
 		if (data->bytes_transmitted < sizeof(uint16_t)) {
 			/*
@@ -4803,29 +4724,9 @@ handle_tls_reading(int fd, short event, void* arg)
 	assert(buffer_remaining(data->query->packet) > 0);
 
 	/* Read the (remaining) query data.  */
-	ERR_clear_error();
-	received = SSL_read(data->tls, (void*)buffer_current(data->query->packet),
-			    (int)buffer_remaining(data->query->packet));
-	if(received <= 0) {
-		int want = SSL_get_error(data->tls, received);
-		if(want == SSL_ERROR_ZERO_RETURN) {
-			cleanup_tcp_handler(data);
-			return; /* shutdown, closed */
-		} else if(want == SSL_ERROR_WANT_READ) {
-			/* wants to be called again */
-			return;
-		}
-		else if(want == SSL_ERROR_WANT_WRITE) {
-			/* switch back writing */
-			data->shake_state = tls_hs_write_event;
-			tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT);
-			return;
-		}
-		cleanup_tcp_handler(data);
-		log_crypto_err("could not SSL_read");
+	if(!more_read_buf_tls(fd, data, buffer_current(data->query->packet),
+		buffer_remaining(data->query->packet), &received))
 		return;
-	}
-
 	data->bytes_transmitted += received;
 	buffer_skip(data->query->packet, received);
 	if (buffer_remaining(data->query->packet) > 0) {
