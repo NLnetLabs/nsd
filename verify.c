@@ -112,11 +112,11 @@ static inline size_t print_line(struct verifier_stream *stream, int eof)
 		return 0;
 
 	if (len > LOGLINELEN) {
-		fmt = stream->cut ? ".. %.*s .." : "%.*s ..";
+		fmt = stream->cut ? "verifier: .. %.*s .." : "verifier: %.*s ..";
 		len = LOGLINELEN; // remainder printed next iteration
 		stream->cut = 1;
 	} else {
-		fmt = stream->cut ? ".. %.*s" : "%.*s";
+		fmt = stream->cut ? "verifier: .. %.*s" : "verifier: %.*s";
 		stream->cut = 0;
 	}
 	log_msg(stream->priority, fmt, len, stream->buf + stream->off);

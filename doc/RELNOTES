@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.6.2 (upcoming)
+4.7.0
 ================
 FEATURES:
 	- Merge #263: Add bash autocompletion script for nsd-control.
@@ -37,6 +37,9 @@ BUG FIXES:
 	- Fix to remove unused whitespace from acx_nlnetlabs.m4 and config.h.
 	- For #279: Note that autoreconf -fi creates the configure script
 	  and also the needed auxiliary files, for autoconf 2.69 and 2.71.
+	- Fix unused variable warning in unit test, from clang compile.
+	- Fix #240: Prefix messages originating from verifier.
+	- Fix #275: Drop unnecessary root server checks.
 
 4.6.1
 ================
