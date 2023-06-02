@@ -116,8 +116,7 @@ catz_add_zone(const catz_dname *member_zone_name,
 					coo_correct = 1;
 					break;
 				}
-				
-			}
+			} 
 		}
 
 		if (coo_correct) {
@@ -208,7 +207,7 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 		case TYPE_TXT:
 			if (dname->label_count == zone->apex->dname->label_count + 1
 			&&  label_compare( dname_name(dname)
-			                 , (const uint8_t *)"\x07version") == 0) {
+			                 , (const uint8_t *)"\007version") == 0) {
 				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Catz version TXT"));
 				if (has_version_txt) {
 					DEBUG(DEBUG_CATZ, 1, 
@@ -228,6 +227,44 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 				}
 				break;
 			}
+
+			if (dname->label_count == 
+			zone->apex->dname->label_count + 3 && 
+			label_compare(
+				dname_label(dname, dname->label_count - 3),
+				(const uint8_t*)"\005zones") == 0 && 
+			label_compare(
+				dname_label(dname, dname->label_count - 1), 
+				(const uint8_t*)"\005group") == 0) {
+				
+				DEBUG(DEBUG_CATZ, 1, 
+				(LOG_INFO, "Group property discovered"));
+
+				zone_type* gz = NULL;
+				struct zone_options* zo;
+				RBTREE_FOR(zo, struct zone_options*, 
+				nsd->options->zone_options) {
+					const dname_type* gd = 
+						(const dname_type*)zo->node.key;
+					gz = namedb_find_zone(nsd->db, gd);
+
+					if (gz && gz->catalog_member_id && 
+					dname_label_match_count(gz->catalog_member_id, dname)
+					== gz->catalog_member_id->label_count) {
+						break;
+					} else {
+						gz = NULL;
+					}
+				}
+
+				if (gz) {
+					const char* group_prop = 
+						rdata_atom_data(rr->rdatas[0]) + 1;
+					DEBUG(DEBUG_CATZ, 1, 
+					(LOG_INFO, "Apply configuration %s", group_prop));
+					config_apply_pattern(zo->pattern, group_prop);
+				}
+			}
 			break;
 		case TYPE_PTR:
 			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "%s", dname_to_string(
@@ -236,7 +273,7 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 			)));
 			if (dname->label_count == zone->apex->dname->label_count + 2
 			&& label_compare( dname_label(dname, dname->label_count - 2)
-			                , (const uint8_t*)"\x05zones") == 0) {
+			                , (const uint8_t*)"\005zones") == 0) {
 				// For the time being we ignore all other PTR records
 				const catz_dname* member_zone = 
 					dname2catz_dname(domain_dname(rdata_atom_domain(rr->rdatas[0])));
