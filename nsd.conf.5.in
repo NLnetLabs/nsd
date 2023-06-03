@@ -99,7 +99,7 @@ There must be whitespace between keywords. Attribute keywords end
 with a colon ':'. An attribute is followed by its containing 
 attributes, or a value. 
 .P
-At the top level only, 
+At the top level, only 
 .BR server: ,
 .BR verify: ,
 .BR key: ,
