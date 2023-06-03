@@ -99,7 +99,7 @@ There must be whitespace between keywords. Attribute keywords end
 with a colon ':'. An attribute is followed by its containing 
 attributes, or a value. 
 .P
-At the top level only 
+At the top level only, 
 .BR server: ,
 .BR verify: ,
 .BR key: ,
@@ -129,7 +129,7 @@ Files can be included using the
 .B include:
 directive. It can appear anywhere, and takes a single filename as an
 argument. Processing continues as if the text from the included file
-was copied into the config file at that point.  If a chroot is used
+were copied into the config file at that point.  If a chroot is used,
 an absolute filename is needed (with the chroot prepended), so that
 the include can be parsed before and after application of the chroot (and
 the knowledge of what that chroot is).  You can use '*' to include a
@@ -209,7 +209,7 @@ If yes, NSD listens to IPv6 connections.  Default yes.
 .TP
 .B database:\fR <filename>
 By default 
-.I '@dbfile@'
+.I @dbfile@
 is used. The specified file is used to store the compiled 
 zone information. Same as commandline option 
 .BR \-f.
@@ -652,7 +652,7 @@ Verify zones by default.
 .TP
 .B verifier:\fR <command>
 When an update is received for the zone (by IXFR or AXFR) this program will be
-run to assess the zone with the update. When the program exists with a status
+run to assess the zone with the update. If the program exits with a status
 code of 0, the zone is considered good and will be served. Any other status
 code will designate the zone bad and the received update will be discarded.
 The zone will continue to be served but without the update.
