@@ -570,7 +570,10 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 	xfrd_xfr_type* xfr;
 	xfrd_xfr_type* prev_xfr;
 	enum soainfo_hint hint;
-	time_t before, acquired = 0;
+#ifndef NDEBUG
+	time_t before;
+#endif
+	time_t acquired = 0;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: process SOAINFO %s",
 		dname_to_string(task->zname, 0)));
 	zone = (xfrd_zone_type*)rbtree_search(xfrd->zones, task->zname);
@@ -582,7 +585,9 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 			hint == soainfo_bad ? "kept" : "lost"));
 		soa_ptr = NULL;
 		/* discard all updates */
+#ifndef NDEBUG
 		before = xfrd_time();
+#endif
 	} else {
 		uint8_t* p = (uint8_t*)task->zname + dname_total_size(
 			task->zname);
@@ -617,7 +622,9 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 			(unsigned)ntohl(soa.serial)));
 		/* discard all updates received before initial reload unless
 		   reload was successful */
+#ifndef NDEBUG
 		before = xfrd->reload_cmd_first_sent;
+#endif
 	}
 
 	if(!zone) {

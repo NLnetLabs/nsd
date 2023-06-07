@@ -1,5 +1,6 @@
 7 June 2023: Wouter
 	- Merge #282: Improve nsd.conf man page.
+	- Fix unused but set variable warning.
 
 31 May 2023: Wouter
 	- Add missing items to doc/RELNOTES.
