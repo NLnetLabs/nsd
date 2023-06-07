@@ -1,6 +1,7 @@
 31 May 2023: Wouter
 	- Add missing items to doc/RELNOTES.
-	- Tag for 4.7.0rc1.
+	- Tag for 4.7.0rc1. It became release 4.7.0 on 7 june 2023. The code
+	  repository continues with 4.7.1.
 
 30 May 2023: Jeroen
 	- Fix #240: Prefix messages originating from verifier.
