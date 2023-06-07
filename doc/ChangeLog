@@ -1,6 +1,8 @@
 7 June 2023: Wouter
 	- Merge #282: Improve nsd.conf man page.
 	- Fix unused but set variable warning.
+	- Fix #283: Compile failure in remote.c when --disable-bind8-stats
+	  and --without-ssl are specified.
 
 31 May 2023: Wouter
 	- Add missing items to doc/RELNOTES.

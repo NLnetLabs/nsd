@@ -1246,7 +1246,9 @@ do_stats(struct daemon_remote* rc, int peek, struct rc_state* rs)
 	xfrd_set_reload_now(xfrd);
 #else
 	RES res;
+#ifdef HAVE_SSL
 	res.ssl = rs->ssl;
+#endif
 	res.fd = rs->fd;
 	(void)rc; (void)peek;
 	(void)ssl_printf(&res, "error no stats enabled at compile time\n");

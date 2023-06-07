@@ -6,6 +6,8 @@ FEATURES:
 BUG FIXES:
 	- Merge #282: Improve nsd.conf man page.
 	- Fix unused but set variable warning.
+	- Fix #283: Compile failure in remote.c when --disable-bind8-stats
+	  and --without-ssl are specified.
 
 4.7.0
 ================
