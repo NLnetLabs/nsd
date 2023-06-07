@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Merge #282: Improve nsd.conf man page.
 
 4.7.0
 ================
