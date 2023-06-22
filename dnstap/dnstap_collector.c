@@ -65,10 +65,24 @@ struct dt_collector* dt_collector_create(struct nsd* nsd)
 		int bufsz = buffer_capacity(dt_col->send_buffer);
 		sv[0] = -1; /* For receiving by parent (dnstap-collector) */
 		sv[1] = -1; /* For sending   by child  (server childs) */
-		if(socketpair(AF_UNIX, SOCK_DGRAM | SOCK_NONBLOCK, 0, sv) < 0) {
+		if(socketpair(AF_UNIX, SOCK_DGRAM
+#ifdef SOCK_NONBLOCK
+			| SOCK_NONBLOCK
+#endif
+			, 0, sv) < 0) {
 			error("dnstap_collector: cannot create communication channel: %s",
 				strerror(errno));
 		}
+#ifndef SOCK_NONBLOCK
+		if (fcntl(sv[0], F_SETFL, O_NONBLOCK) == -1) {
+			log_msg(LOG_ERR, "dnstap_collector receive fd fcntl "
+				"failed: %s", strerror(errno));
+		}
+		if (fcntl(sv[1], F_SETFL, O_NONBLOCK) == -1) {
+			log_msg(LOG_ERR, "dnstap_collector send fd fcntl "
+				"failed: %s", strerror(errno));
+		}
+#endif
 		if(setsockopt(sv[0], SOL_SOCKET, SO_RCVBUF, &bufsz, sizeof(bufsz))) {
 			log_msg(LOG_ERR, "setting dnstap_collector "
 				"receive buffer size failed: %s", strerror(errno));

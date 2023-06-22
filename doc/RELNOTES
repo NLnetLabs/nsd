@@ -8,6 +8,8 @@ BUG FIXES:
 	- Fix unused but set variable warning.
 	- Fix #283: Compile failure in remote.c when --disable-bind8-stats
 	  and --without-ssl are specified.
+	- Fix #284: dnstap_collector.c: SOCK_NONBLOCK is not available on
+	  Mac/Darwin.
 
 4.7.0
 ================
