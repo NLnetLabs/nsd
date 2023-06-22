@@ -2739,6 +2739,53 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		xfrd_process_zonestat_inc_task(xfrd, task);
 		break;
 #endif
+	case task_add_zone:
+		char* dname;
+		xfrd_zone_type* zone;
+		struct zone_options* zopt = NULL;
+
+		log_msg(LOG_WARNING, "task_add_zone 1 %x", xfrd->nsd->db);
+		if (!task->zname) {
+			break;
+		}
+		// log_msg(LOG_WARNING, "task_add_zone 2 %s", (char*)task->zname);
+		// dname = dname_parse(xfrd->nsd->region, (char*)task->zname);
+		// log_msg(LOG_WARNING, "task_add_zone 2a %x %x", xfrd->nsd->db, dname);
+		
+		// namedb_find_zone is unavailable as xfrd->nsd->db is null
+		RBTREE_FOR(zone, xfrd_zone_type*, xfrd->zones)
+		{
+			log_msg(LOG_WARNING, "Compare zone %s %s", zone->apex_str, task->zname);
+			if (zone->apex_str == (char*)task->zname) {
+				log_msg(LOG_WARNING, "Found zone %s", zone->apex_str);
+				zopt = zone->zone_options;
+				break;
+			}
+		}
+
+		// zone_type* z = namedb_find_zone(xfrd->nsd->db, dname);
+		if (!zopt) {
+			log_msg(LOG_WARNING, "task_add_zone 3a");
+			zopt = zone_list_zone_insert(xfrd->nsd->options, (char*)task->zname, PATTERN_IMPLICIT_MARKER, 0, 0);
+		}
+		log_msg(LOG_WARNING, "task_add_zone 3b");
+		task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
+			xfrd->last_task, (char*)task->zname, PATTERN_IMPLICIT_MARKER,
+			getzonestatid(xfrd->nsd->options, zopt));
+		// zonestat_inc_ifneeded(xfrd);
+		log_msg(LOG_WARNING, "task_add_zone 4a");
+		xfrd_set_reload_now(xfrd);
+		log_msg(LOG_WARNING, "task_add_zone 4b");
+		/* add to xfrd - notify (for master and slaves) */
+		init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
+		log_msg(LOG_WARNING, "task_add_zone 4c");
+		/* add to xfrd - slave */
+		if(zone_is_slave(zopt)) {
+			log_msg(LOG_WARNING, "task_add_zone 5a");
+			xfrd_init_slave_zone(xfrd, zopt);
+		}
+		log_msg(LOG_WARNING, "task_add_zone 5b");
+		break;
 	default:
 		log_msg(LOG_WARNING, "unhandled task result in xfrd from "
 			"reload type %d", (int)task->task_type);

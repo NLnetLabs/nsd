@@ -2354,8 +2354,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			                 zone, soainfo_gone);
 		} 
 		
-		if(zone->opts->pattern->catalog) {
-			nsd_catalog_consumer_process(nsd, zone);
+		if(zone->opts->pattern->catalog && zone->is_updated) {
+			nsd_catalog_consumer_process(nsd, zone, 
+				nsd->task[nsd->mytask], &last_task);
 		}
 		zone->is_updated = 0;
 		zone->is_skipped = 0;

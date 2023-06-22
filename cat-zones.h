@@ -5,6 +5,9 @@
  *
  * See LICENSE for the license.
  */
+
+// #include "udb.h"
+
 #ifndef _CAT_ZONES_H_
 #define _CAT_ZONES_H_
 
@@ -107,9 +110,9 @@ catz_catalog_zone *catz_catalog_from_member(
  * @param  arg               Implementation specific context (for lookups etc.)
  * @return                   CATZ_SUCCESS on succes.
  */
-int catz_add_zone(const catz_dname *member_zone_name,
-	const catz_dname *member_id, catz_catalog_zone *catalog_zone,
-	void *arg);
+// int catz_add_zone(const catz_dname *member_zone_name,
+// 	const catz_dname *member_id, catz_catalog_zone *catalog_zone,
+// 	void *arg, udb_base* udb, udb_ptr* last_task);
 
 /**
  * Remove a zone from the authoritative.

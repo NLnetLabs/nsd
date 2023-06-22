@@ -622,7 +622,7 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 		zone->is_ok = 1;
 		zone->is_changed = 0;
 		if (zone->opts->pattern->catalog) {
-			nsd_catalog_consumer_process(nsd, zone);
+			nsd_catalog_consumer_process(nsd, zone, taskudb, last_task);
 		}
 		/* store zone into udb */
 		if(nsd->db->udb) {

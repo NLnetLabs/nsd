@@ -11,6 +11,7 @@
 #include "config.h"
 #include "dname.h"
 #include "namedb.h"
+#include "udb.h"
 
 /**
  * Implementation of struct catz_dname
@@ -30,6 +31,11 @@ struct catz_catalog_zone {
 static inline struct catz_catalog_zone *zone2catz_catalog_zone(struct zone* z)
 { return (struct catz_catalog_zone*)z; }
 
-int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone);
+int nsd_catalog_consumer_process(
+	struct nsd *nsd, 
+	struct zone *zone,
+	udb_base* udb,
+	udb_ptr* last_task
+);
 
 #endif

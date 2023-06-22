@@ -41,13 +41,15 @@ catz_catalog_from_member(const catz_member_zone *member_zone,
 int
 catz_add_zone(const catz_dname *member_zone_name,
 	const catz_dname *member_id,
-	catz_catalog_zone *catalog_zone, void *arg)
+	catz_catalog_zone *catalog_zone, void *arg,
+	udb_base* udb,
+	udb_ptr* last_task)
 {
 	nsd_type* nsd = (nsd_type*)arg;
 
 	const char* zname = 
 		strdup(dname_to_string(&member_zone_name->dname, NULL));
-	const char* pname = zname + strlen(zname)+1;
+	const char* pname = PATTERN_IMPLICIT_MARKER; //zname + strlen(zname)+1;
 	const char* catname = 
 		strdup(dname_to_string(catalog_zone->zone.apex->dname, NULL));
 	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
@@ -135,11 +137,17 @@ catz_add_zone(const catz_dname *member_zone_name,
 
 	pattern_options_add_modify(nsd->options, patopt);
 	zopt = zone_list_zone_insert(nsd->options, zname, pname, 0, 0);
-	t = namedb_zone_create(nsd->db, &member_zone_name->dname, zopt);
+	t = namedb_zone_create(nsd->db, dname_copy(nsd->region, &member_zone_name->dname), zopt);
+	namedb_read_zonefile(nsd, t, udb, last_task);
+	task_new_add_zone(udb, last_task, zname, pname, getzonestatid(nsd->options, zopt));
 
 	if (t) {
 		t->from_catalog = (char*)catname;
 		t->catalog_member_id = (dname_type*)member_id;
+		t->is_updated = 1;
+		// namedb_read_zonefile(nsd, t, udb, last_task);
+		// Generate dummy SOA, check xfrd
+		task_new_soainfo(udb, last_task, t, soainfo_ok);
 		DEBUG(DEBUG_CATZ, 1, 
 		(LOG_INFO, "Zone added for catalog %s: %s", catname, zname));
 		return CATZ_SUCCESS;
@@ -162,7 +170,12 @@ catz_remove_zone(const catz_dname *member_zone_name,
 	return CATZ_SUCCESS;
 }
 
-int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
+int nsd_catalog_consumer_process(
+	struct nsd *nsd, 
+	struct zone *zone,
+	udb_base* udb,
+	udb_ptr* last_task
+)
 {
 	struct zone_rr_iter rr_iter;
 	struct rr *rr;
@@ -284,7 +297,14 @@ int nsd_catalog_consumer_process(struct nsd *nsd, struct zone *zone)
 
 				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "PTR parsed"));
 
-				int res = catz_add_zone(member_zone, member_id, cat_zone, nsd);
+				int res = catz_add_zone(
+					member_zone, 
+					member_id, 
+					cat_zone, 
+					nsd,
+					udb,
+					last_task
+				);
 				break;				
 			} 
 			break;
