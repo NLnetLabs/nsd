@@ -137,9 +137,10 @@ catz_add_zone(const catz_dname *member_zone_name,
 
 	pattern_options_add_modify(nsd->options, patopt);
 	zopt = zone_list_zone_insert(nsd->options, zname, pname, 0, 0);
-	t = namedb_zone_create(nsd->db, dname_copy(nsd->region, &member_zone_name->dname), zopt);
-	namedb_read_zonefile(nsd, t, udb, last_task);
-	task_new_add_zone(udb, last_task, zname, pname, getzonestatid(nsd->options, zopt));
+	// t = namedb_zone_create(nsd->db, dname_copy(nsd->region, &member_zone_name->dname), zopt);
+	// namedb_read_zonefile(nsd, t, udb, last_task);
+	task_new_add_catzone(udb, last_task, zname, pname, catname, dname_to_string(member_id, NULL), getzonestatid(nsd->options, zopt));
+	t = namedb_find_zone(nsd->db, dname_parse(nsd->region, zname));
 
 	if (t) {
 		t->from_catalog = (char*)catname;
@@ -152,6 +153,8 @@ catz_add_zone(const catz_dname *member_zone_name,
 		(LOG_INFO, "Zone added for catalog %s: %s", catname, zname));
 		return CATZ_SUCCESS;
 	} else {
+		DEBUG(DEBUG_CATZ, 1, 
+		(LOG_INFO, "Zone not found for catalog %s: %s", catname, zname));
 		return -1;
 	}
 }

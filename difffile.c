@@ -1746,6 +1746,35 @@ task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
 }
 
 void
+task_new_add_catzone(udb_base* udb, udb_ptr* last, const char* zone,
+	const char* pattern, const char* from_catalog, const char* member_id, 
+	unsigned zonestatid)
+{
+	size_t zlen = strlen(zone);
+	size_t plen = strlen(pattern);
+	size_t clen = strlen(from_catalog);
+	size_t mlen = strlen(member_id);
+
+	void *p;
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task addcatzone %s %s", zone, pattern));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
+		zlen + 1 + plen + 1 + clen + 1 + mlen + 1, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add addcatz");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_add_catzone;
+	TASKLIST(&e)->yesno = zonestatid;
+	p = TASKLIST(&e)->zname;
+	memcpy(p, zone, zlen+1);
+	memmove((char*)p+zlen+1, pattern, plen+1);
+	memmove((char*)p+zlen+1+plen+1, from_catalog, clen+1);
+	memmove((char*)p+zlen+1+plen+1+clen+1, member_id, mlen+1);
+
+	udb_ptr_unlink(&e, udb);
+}
+
+void
 task_new_del_zone(udb_base* udb, udb_ptr* last, const dname_type* dname)
 {
 	udb_ptr e;
@@ -2026,6 +2055,41 @@ task_process_add_zone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 }
 
 static void
+task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
+	struct task_list_d* task)
+{
+	zone_type* z;
+	const dname_type* zdname;
+	const char* zname = (const char*)task->zname;
+	const char* pname = zname + strlen(zname)+1;
+	const char* catname = pname + strlen(pname)+1;
+	const char* member_id = catname + strlen(catname)+1;
+
+	log_msg(LOG_WARNING, "addcatzone task %s %s %s %s", zname, pname, catname, member_id);
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "addcatzone task %s %s %s %s", zname, pname, catname, member_id));
+	zdname = dname_parse(nsd->db->region, zname);
+	if(!zdname) {
+		log_msg(LOG_ERR, "can not parse zone name %s", zname);
+		return;
+	}
+	/* create zone */
+	z = find_or_create_zone(nsd->db, zdname, nsd->options, zname, pname);
+	if(!z) {
+		region_recycle(nsd->db->region, (void*)zdname,
+			dname_total_size(zdname));
+		log_msg(LOG_ERR, "can not add zone %s %s", zname, pname);
+		return;
+	}
+	z->zonestatid = (unsigned)task->yesno;
+	z->from_catalog = catname;
+	z->catalog_member_id = dname_parse(nsd->db->region, member_id);
+	/* if zone is empty, attempt to read the zonefile from disk (if any) */
+	if(!z->soa_rrset && z->opts->pattern->zonefile) {
+		namedb_read_zonefile(nsd, z, udb, last_task);
+	}
+}
+
+static void
 task_process_del_zone(struct nsd* nsd, struct task_list_d* task)
 {
 	zone_type* zone;
@@ -2233,6 +2297,9 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_add_zone:
 		task_process_add_zone(nsd, udb, last_task, TASKLIST(task));
+		break;
+	case task_add_catzone:
+		task_process_add_catzone(nsd, udb, last_task, TASKLIST(task));
 		break;
 	case task_del_zone:
 		task_process_del_zone(nsd, TASKLIST(task));

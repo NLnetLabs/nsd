@@ -2739,12 +2739,16 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		xfrd_process_zonestat_inc_task(xfrd, task);
 		break;
 #endif
-	case task_add_zone:
+	case task_add_catzone:
+		char* zname = task->zname;
+		char* pattern = zname + strlen(zname) + 1;
+		char* catname = pattern + strlen(pattern) + 1;
+		char* member_id = catname + strlen(catname) + 1;
+
 		char* dname;
 		xfrd_zone_type* zone;
 		struct zone_options* zopt = NULL;
 
-		log_msg(LOG_WARNING, "task_add_zone 1 %x", xfrd->nsd->db);
 		if (!task->zname) {
 			break;
 		}
@@ -2762,29 +2766,22 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 				break;
 			}
 		}
-
 		// zone_type* z = namedb_find_zone(xfrd->nsd->db, dname);
 		if (!zopt) {
-			log_msg(LOG_WARNING, "task_add_zone 3a");
-			zopt = zone_list_zone_insert(xfrd->nsd->options, (char*)task->zname, PATTERN_IMPLICIT_MARKER, 0, 0);
+			zopt = zone_list_zone_insert(xfrd->nsd->options, zname, pattern, 0, 0);
 		}
-		log_msg(LOG_WARNING, "task_add_zone 3b");
-		task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
-			xfrd->last_task, (char*)task->zname, PATTERN_IMPLICIT_MARKER,
+		log_msg(LOG_WARNING, "now adding catzone %s %s %s %s", zname, pattern, catname, member_id);
+		task_new_add_catzone(xfrd->nsd->task[xfrd->nsd->mytask],
+			xfrd->last_task, zname, pattern, catname, member_id,
 			getzonestatid(xfrd->nsd->options, zopt));
 		// zonestat_inc_ifneeded(xfrd);
-		log_msg(LOG_WARNING, "task_add_zone 4a");
 		xfrd_set_reload_now(xfrd);
-		log_msg(LOG_WARNING, "task_add_zone 4b");
 		/* add to xfrd - notify (for master and slaves) */
 		init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
-		log_msg(LOG_WARNING, "task_add_zone 4c");
 		/* add to xfrd - slave */
 		if(zone_is_slave(zopt)) {
-			log_msg(LOG_WARNING, "task_add_zone 5a");
 			xfrd_init_slave_zone(xfrd, zopt);
 		}
-		log_msg(LOG_WARNING, "task_add_zone 5b");
 		break;
 	default:
 		log_msg(LOG_WARNING, "unhandled task result in xfrd from "

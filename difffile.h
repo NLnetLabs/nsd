@@ -118,6 +118,8 @@ struct task_list_d {
 		task_drop_cookie_secret,
 		/** make staging cookie secret active */
 		task_activate_cookie_secret,
+		/** add catalog zone */
+		task_add_catzone,
 	} task_type;
 	uint32_t size; /* size of this struct */
 
@@ -147,6 +149,8 @@ void task_new_write_zonefiles(udb_base* udb, udb_ptr* last,
 void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v);
 void task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
 	const char* pattern, unsigned zonestatid);
+void task_new_add_catzone(udb_base* udb, udb_ptr* last, const char* zone,
+	const char* pattern, const char* catname, const char* member_id, unsigned zonestatid);
 void task_new_del_zone(udb_base* udb, udb_ptr* last, const dname_type* dname);
 void task_new_add_key(udb_base* udb, udb_ptr* last, struct key_options* key);
 void task_new_del_key(udb_base* udb, udb_ptr* last, const char* name);
