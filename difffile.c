@@ -1757,7 +1757,7 @@ task_new_add_catzone(udb_base* udb, udb_ptr* last, const char* zone,
 
 	void *p;
 	udb_ptr e;
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task addcatzone %s %s", zone, pattern));
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task addcatzone %s %s %s %s", zone, pattern, from_catalog, member_id));
 	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
 		zlen + 1 + plen + 1 + clen + 1 + mlen + 1, NULL)) {
 		log_msg(LOG_ERR, "tasklist: out of space, cannot add addcatz");
@@ -2065,7 +2065,7 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 	const char* catname = pname + strlen(pname)+1;
 	const char* member_id = catname + strlen(catname)+1;
 
-	log_msg(LOG_WARNING, "addcatzone task %s %s %s %s", zname, pname, catname, member_id);
+	log_msg(LOG_INFO, "addcatzone task %s %s %s %s", zname, pname, catname, member_id);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "addcatzone task %s %s %s %s", zname, pname, catname, member_id));
 	zdname = dname_parse(nsd->db->region, zname);
 	if(!zdname) {
@@ -2073,6 +2073,14 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		return;
 	}
 	/* create zone */
+
+	pattern_options_type* patopt = pattern_options_find(nsd->options, pname);
+	if (!patopt) {
+		patopt = pattern_options_create(nsd->region);
+		patopt->pname = pname;
+		pattern_options_add_modify(nsd->options, patopt);
+	} 
+
 	z = find_or_create_zone(nsd->db, zdname, nsd->options, zname, pname);
 	if(!z) {
 		region_recycle(nsd->db->region, (void*)zdname,

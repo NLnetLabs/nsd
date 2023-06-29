@@ -2749,6 +2749,8 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		xfrd_zone_type* zone;
 		struct zone_options* zopt = NULL;
 
+		log_msg(LOG_INFO, "now adding catzone %s %s %s %s", zname, pattern, catname, member_id);
+
 		if (!task->zname) {
 			break;
 		}
@@ -2759,18 +2761,23 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		// namedb_find_zone is unavailable as xfrd->nsd->db is null
 		RBTREE_FOR(zone, xfrd_zone_type*, xfrd->zones)
 		{
-			log_msg(LOG_WARNING, "Compare zone %s %s", zone->apex_str, task->zname);
+			// log_msg(LOG_WARNING, "Compare zone %s %s", zone->apex_str, task->zname);
 			if (zone->apex_str == (char*)task->zname) {
-				log_msg(LOG_WARNING, "Found zone %s", zone->apex_str);
+				// log_msg(LOG_WARNING, "Found zone %s", zone->apex_str);
 				zopt = zone->zone_options;
 				break;
 			}
 		}
-		// zone_type* z = namedb_find_zone(xfrd->nsd->db, dname);
+		pattern_options_type* patopt = pattern_options_find(xfrd->nsd->options, pattern);
+		if (!patopt) {
+			patopt = pattern_options_create(xfrd->region);
+			patopt->pname = pattern;
+			pattern_options_add_modify(xfrd->nsd->options, patopt);
+		} 
+
 		if (!zopt) {
 			zopt = zone_list_zone_insert(xfrd->nsd->options, zname, pattern, 0, 0);
 		}
-		log_msg(LOG_WARNING, "now adding catzone %s %s %s %s", zname, pattern, catname, member_id);
 		task_new_add_catzone(xfrd->nsd->task[xfrd->nsd->mytask],
 			xfrd->last_task, zname, pattern, catname, member_id,
 			getzonestatid(xfrd->nsd->options, zopt));

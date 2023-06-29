@@ -49,9 +49,9 @@ catz_add_zone(const catz_dname *member_zone_name,
 
 	const char* zname = 
 		strdup(dname_to_string(&member_zone_name->dname, NULL));
-	const char* pname = PATTERN_IMPLICIT_MARKER; //zname + strlen(zname)+1;
 	const char* catname = 
 		strdup(dname_to_string(catalog_zone->zone.apex->dname, NULL));
+	const char* pname = catname; 
 	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
 
 	struct zone_options* zopt;
@@ -130,15 +130,19 @@ catz_add_zone(const catz_dname *member_zone_name,
 		}
 	}
 
-	if (!patopt) {
+	if (!patopt || !patopt->pname) {
 		patopt = pattern_options_create(nsd->region);
 		patopt->pname = pname;
+		pattern_options_add_modify(nsd->options, patopt);
 	}
 
-	pattern_options_add_modify(nsd->options, patopt);
+	// pattern_options_add_modify(nsd->options, patopt);
 	zopt = zone_list_zone_insert(nsd->options, zname, pname, 0, 0);
+	DEBUG(DEBUG_CATZ, 1, 
+	(LOG_INFO, "Task created for catalog %s: %s", catname, zname));
 	// t = namedb_zone_create(nsd->db, dname_copy(nsd->region, &member_zone_name->dname), zopt);
 	// namedb_read_zonefile(nsd, t, udb, last_task);
+	// task_new_add_pattern(udb, last_task, patopt);
 	task_new_add_catzone(udb, last_task, zname, pname, catname, dname_to_string(member_id, NULL), getzonestatid(nsd->options, zopt));
 	t = namedb_find_zone(nsd->db, dname_parse(nsd->region, zname));
 
@@ -201,9 +205,10 @@ int nsd_catalog_consumer_process(
 		if (z->from_catalog && strcmp(z->from_catalog, catname) == 0) {
 			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Deleted zone %s", 
 				dname_to_string(z->apex->dname, NULL)));
-			delete_zone_rrs(nsd->db, z);
-			namedb_zone_delete(nsd->db, z);
-			zone_options_delete(nsd->options, zopt);
+			// delete_zone_rrs(nsd->db, z);
+			// namedb_zone_delete(nsd->db, z);
+			// zone_options_delete(nsd->options, zopt);
+			task_new_del_zone(udb, last_task, z->apex);
 		}
 	}
 	
@@ -308,6 +313,7 @@ int nsd_catalog_consumer_process(
 					udb,
 					last_task
 				);
+				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Task added"));
 				break;				
 			} 
 			break;
