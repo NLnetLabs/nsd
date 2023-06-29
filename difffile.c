@@ -1775,6 +1775,29 @@ task_new_add_catzone(udb_base* udb, udb_ptr* last, const char* zone,
 }
 
 void
+task_new_apply_pattern(udb_base* udb, udb_ptr* last, const char* member_id, const char* pattern)
+{
+	size_t mlen = strlen(member_id);
+	size_t plen = strlen(pattern);
+
+	void *p;
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task applypattern %s %s", member_id, pattern));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
+		mlen + 1 + plen + 1, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add addcatz");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_apply_pattern;
+	TASKLIST(&e)->yesno = 0;
+	p = TASKLIST(&e)->zname;
+	memcpy(p, member_id, mlen+1);
+	memmove((char*)p+mlen+1, pattern, plen+1);
+
+	udb_ptr_unlink(&e, udb);
+}
+
+void
 task_new_del_zone(udb_base* udb, udb_ptr* last, const dname_type* dname)
 {
 	udb_ptr e;
@@ -2098,6 +2121,44 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 }
 
 static void
+task_process_apply_pattern(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
+	struct task_list_d* task)
+{
+	const dname_type* zdname;
+	const char* member_id = (const char*)task->zname;
+	const char* pname = member_id + strlen(member_id)+1;
+
+	zone_type* gz = NULL;
+	struct zone_options* zo;
+
+	zdname = dname_parse(nsd->region, member_id);
+
+	log_msg(LOG_INFO, "applypattern task %s %s", member_id, pname);
+
+	RBTREE_FOR(zo, struct zone_options*, 
+	nsd->options->zone_options) {
+		const dname_type* gd = 
+			(const dname_type*)zo->node.key;
+		gz = namedb_find_zone(nsd->db, gd);
+
+		if (gz && gz->catalog_member_id && 
+		dname_label_match_count(gz->catalog_member_id, zdname)
+		== gz->catalog_member_id->label_count) {
+			break;
+		} else {
+			gz = NULL;
+		}
+	}
+
+	if (gz) {
+		log_msg(LOG_INFO, "config apply %s with pattern %s", dname_to_string(gz->apex->dname, NULL), pname);
+		if (pattern_options_find(nsd->options, pname)) {
+			config_apply_pattern(gz->opts, pname);
+		}
+	}
+}
+
+static void
 task_process_del_zone(struct nsd* nsd, struct task_list_d* task)
 {
 	zone_type* zone;
@@ -2308,6 +2369,9 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_add_catzone:
 		task_process_add_catzone(nsd, udb, last_task, TASKLIST(task));
+		break;
+	case task_apply_pattern:
+		task_process_apply_pattern(nsd, udb, last_task, TASKLIST(task));
 		break;
 	case task_del_zone:
 		task_process_del_zone(nsd, TASKLIST(task));

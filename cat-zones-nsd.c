@@ -41,7 +41,9 @@ catz_catalog_from_member(const catz_member_zone *member_zone,
 int
 catz_add_zone(const catz_dname *member_zone_name,
 	const catz_dname *member_id,
-	catz_catalog_zone *catalog_zone, void *arg,
+	catz_catalog_zone *catalog_zone, 
+	const char* pname,
+	void *arg,
 	udb_base* udb,
 	udb_ptr* last_task)
 {
@@ -51,12 +53,15 @@ catz_add_zone(const catz_dname *member_zone_name,
 		strdup(dname_to_string(&member_zone_name->dname, NULL));
 	const char* catname = 
 		strdup(dname_to_string(catalog_zone->zone.apex->dname, NULL));
-	const char* pname = catname; 
 	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
 
 	struct zone_options* zopt;
-	struct pattern_options* patopt = 
-	pattern_options_find(nsd->options, pname);
+	struct pattern_options* patopt;
+
+	if (!pname) {
+		pname = catname;
+	} 
+	patopt = pattern_options_find(nsd->options, pname);
 
 	if (t) {
 		if (!t->from_catalog) {
@@ -165,15 +170,15 @@ catz_add_zone(const catz_dname *member_zone_name,
 
 int
 catz_remove_zone(const catz_dname *member_zone_name,
-	void *arg)
+	void *arg,
+	udb_base* udb,
+	udb_ptr* last_task)
 {
 	nsd_type* nsd = (nsd_type*) arg;
-	zone_type* zone = namedb_find_zone(nsd->db, &member_zone_name->dname);
-	struct zone_options* zopt = zone->opts;
+	// zone_type* zone = namedb_find_zone(nsd->db, &member_zone_name->dname);
+	// struct zone_options* zopt = zone->opts;
 
-	delete_zone_rrs(nsd->db, zone);
-	namedb_zone_delete(nsd->db, zone);
-	zone_options_delete(nsd->options, zopt);
+	task_new_del_zone(udb, last_task, member_zone_name);
 	return CATZ_SUCCESS;
 }
 
@@ -261,30 +266,7 @@ int nsd_catalog_consumer_process(
 				DEBUG(DEBUG_CATZ, 1, 
 				(LOG_INFO, "Group property discovered"));
 
-				zone_type* gz = NULL;
-				struct zone_options* zo;
-				RBTREE_FOR(zo, struct zone_options*, 
-				nsd->options->zone_options) {
-					const dname_type* gd = 
-						(const dname_type*)zo->node.key;
-					gz = namedb_find_zone(nsd->db, gd);
-
-					if (gz && gz->catalog_member_id && 
-					dname_label_match_count(gz->catalog_member_id, dname)
-					== gz->catalog_member_id->label_count) {
-						break;
-					} else {
-						gz = NULL;
-					}
-				}
-
-				if (gz) {
-					const char* group_prop = 
-						rdata_atom_data(rr->rdatas[0]) + 1;
-					DEBUG(DEBUG_CATZ, 1, 
-					(LOG_INFO, "Apply configuration %s", group_prop));
-					config_apply_pattern(zo->pattern, group_prop);
-				}
+				task_new_apply_pattern(udb, last_task, dname_to_string(dname, NULL), rdata_atom_data(rr->rdatas[0]) + 1);
 			}
 			break;
 		case TYPE_PTR:
@@ -308,7 +290,8 @@ int nsd_catalog_consumer_process(
 				int res = catz_add_zone(
 					member_zone, 
 					member_id, 
-					cat_zone, 
+					cat_zone,
+					NULL,
 					nsd,
 					udb,
 					last_task

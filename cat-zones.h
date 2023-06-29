@@ -122,7 +122,7 @@ catz_catalog_zone *catz_catalog_from_member(
  * @param  arg               Implementation specific context (for lookups etc.)
  * @return                   CATZ_SUCCESS on succes.
  */
-int catz_remove_zone(const catz_dname *member_zone_name, void *arg);
+// int catz_remove_zone(const catz_dname *member_zone_name, void *arg);
 
 
 #endif

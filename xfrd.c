@@ -2739,7 +2739,7 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		xfrd_process_zonestat_inc_task(xfrd, task);
 		break;
 #endif
-	case task_add_catzone:
+	case task_add_catzone: {
 		char* zname = task->zname;
 		char* pattern = zname + strlen(zname) + 1;
 		char* catname = pattern + strlen(pattern) + 1;
@@ -2790,6 +2790,17 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 			xfrd_init_slave_zone(xfrd, zopt);
 		}
 		break;
+	}
+	case task_apply_pattern: {
+		char* member_id = task->zname;
+		char* pattern = member_id + strlen(member_id) + 1;
+
+		log_msg(LOG_WARNING, "TASK APPLY %s %s", member_id, pattern);
+
+		task_new_apply_pattern(xfrd->nsd->task[xfrd->nsd->mytask],
+			xfrd->last_task, member_id, pattern);
+		break;
+	}
 	default:
 		log_msg(LOG_WARNING, "unhandled task result in xfrd from "
 			"reload type %d", (int)task->task_type);
