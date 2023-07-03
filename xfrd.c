@@ -2776,6 +2776,8 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		} 
 
 		if (!zopt) {
+			zopt = zone_options_find(xfrd->nsd->options, dname_parse(xfrd->region, zname));
+			if (zopt) zone_options_delete(xfrd->nsd->options, zopt);
 			zopt = zone_list_zone_insert(xfrd->nsd->options, zname, pattern, 0, 0);
 		}
 		task_new_add_catzone(xfrd->nsd->task[xfrd->nsd->mytask],
@@ -2799,6 +2801,11 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 
 		task_new_apply_pattern(xfrd->nsd->task[xfrd->nsd->mytask],
 			xfrd->last_task, member_id, pattern);
+		break;
+	}
+	case task_del_zone: {
+		task_new_del_zone(xfrd->nsd->task[xfrd->nsd->mytask],
+			xfrd->last_task, task->zname);
 		break;
 	}
 	default:

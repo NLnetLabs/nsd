@@ -50,9 +50,9 @@ catz_add_zone(const catz_dname *member_zone_name,
 	nsd_type* nsd = (nsd_type*)arg;
 
 	const char* zname = 
-		strdup(dname_to_string(&member_zone_name->dname, NULL));
+		region_strdup(nsd->region, dname_to_string(&member_zone_name->dname, NULL));
 	const char* catname = 
-		strdup(dname_to_string(catalog_zone->zone.apex->dname, NULL));
+		region_strdup(nsd->region, dname_to_string(catalog_zone->zone.apex->dname, NULL));
 	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
 
 	struct zone_options* zopt;
@@ -148,7 +148,7 @@ catz_add_zone(const catz_dname *member_zone_name,
 	// t = namedb_zone_create(nsd->db, dname_copy(nsd->region, &member_zone_name->dname), zopt);
 	// namedb_read_zonefile(nsd, t, udb, last_task);
 	// task_new_add_pattern(udb, last_task, patopt);
-	task_new_add_catzone(udb, last_task, zname, pname, catname, dname_to_string(member_id, NULL), getzonestatid(nsd->options, zopt));
+	task_new_add_catzone(udb, last_task, zname, pname, catname, dname_to_string(member_id, NULL), 0);
 	t = namedb_find_zone(nsd->db, dname_parse(nsd->region, zname));
 
 	if (t) {

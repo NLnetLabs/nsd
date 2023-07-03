@@ -2140,6 +2140,8 @@ task_process_apply_pattern(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		const dname_type* gd = 
 			(const dname_type*)zo->node.key;
 		gz = namedb_find_zone(nsd->db, gd);
+		log_msg(LOG_INFO, "consider zone %s %s", member_id, dname_to_string(gz->apex->dname, NULL));
+
 
 		if (gz && gz->catalog_member_id && 
 		dname_label_match_count(gz->catalog_member_id, zdname)
@@ -2151,9 +2153,27 @@ task_process_apply_pattern(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 	}
 
 	if (gz) {
+		struct pattern_options* patopt = pattern_options_find(nsd->options, pname);
+
 		log_msg(LOG_INFO, "config apply %s with pattern %s", dname_to_string(gz->apex->dname, NULL), pname);
-		if (pattern_options_find(nsd->options, pname)) {
-			config_apply_pattern(gz->opts, pname);
+		if (patopt && !pattern_options_equal(patopt, gz->opts)) {
+			const char* nzname = region_strdup(nsd->region, dname_to_string(gz->apex->dname, NULL));
+			const char* npname = pname;
+			const char* nfrom_catalog = region_strdup(nsd->region, gz->from_catalog);
+			const char* ncatalog_member_id = region_strdup(nsd->region, dname_to_string(gz->catalog_member_id, NULL));
+
+			log_msg(LOG_ERR, "surprise!");
+			// pattern_options_add_modify(gz->opts->pattern, patopt);
+			task_new_del_zone(udb, last_task, gz->apex->dname);
+			task_new_add_catzone(
+				udb, 
+				last_task, 
+				nzname,
+				npname,
+				nfrom_catalog,
+				ncatalog_member_id, 
+				0
+			);
 		}
 	}
 }
