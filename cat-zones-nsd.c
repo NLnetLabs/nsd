@@ -73,7 +73,8 @@ int nsd_catalog_consumer_process(
 	// Remove all zones coming from a catalog
 	// Re-add all zones coming from a catalog
 
-	const char* catname = strdup(dname_to_string(zone->apex->dname, NULL));
+	const char* catname = region_strdup(nsd->region, 
+		dname_to_string(zone->apex->dname, NULL));
 
 	for (struct radnode* n = radix_first(nsd->db->zonetree);
 	n;
