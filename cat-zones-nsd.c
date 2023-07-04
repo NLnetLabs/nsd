@@ -37,77 +37,15 @@ catz_add_zone(const dname_type *member_zone_name,
 	} 
 	patopt = pattern_options_find(nsd->options, pname);
 
-	// if (t) {
-	// 	if (!t->from_catalog) {
-	// 		return -1;
-	// 	}
-	// 	zone_type* cz = namedb_find_zone(
-	// 		nsd->db, 
-	// 		dname_parse(
-	// 			nsd->region, 
-	// 			t->from_catalog)
-	// 		);
-	// 	struct zone_rr_iter rr_iter;
-	// 	struct rr *rr;
-
-	// 	int coo_correct = 0;
-
-	// 	DEBUG(DEBUG_CATZ, 1, 
-	// 		(LOG_INFO, 
-	// 		"Found existing zone belong to a catalog zone %s", 
-	// 		dname_to_string(cz->apex->dname, NULL)));
-
-	// 	zone_rr_iter_init(&rr_iter, cz);
-	// 	for ( rr = zone_rr_iter_next(&rr_iter)
-	// 	; rr != NULL
-	// 	; rr = zone_rr_iter_next(&rr_iter)) {
-	// 		if (rr->klass != CLASS_IN) {
-	// 			continue;
-	// 		}
-	// 		if (rr->type != TYPE_PTR) {
-	// 			continue;
-	// 		}
-	// 		dname_type* dname = rr->owner->dname;
-
-	// 		DEBUG(DEBUG_CATZ, 1, 
-	// 		(LOG_INFO, 
-	// 		"Checking %s", 
-	// 		dname_to_string(dname, NULL)));
-
-	// 		if (dname->label_count == 
-	// 		cz->apex->dname->label_count + 3 && 
-	// 		label_compare(
-	// 			dname_label(dname, dname->label_count - 3),
-	// 			(const uint8_t*)"\005zones") == 0 && 
-	// 		label_compare(
-	// 			dname_label(dname, dname->label_count - 1), 
-	// 			(const uint8_t*)"\003coo") == 0) {
-	// 			// `dname` is now the RR for the coo property
-
-	// 			const dname_type* coo_property = 
-	// 				domain_dname(rdata_atom_domain(rr->rdatas[0]));
-
-	// 			if (dname_label_match_count(t->catalog_member_id, dname)
-	// 			 == t->catalog_member_id->label_count && 
-	// 			dname_compare(coo_property, catalog_zone->apex->dname) == 0) {
-	// 				DEBUG(DEBUG_CATZ, 1, 
-	// 				(LOG_INFO, 
-	// 				"COO correct, transferring from %s to %s", 
-	// 				t->from_catalog, catname));
-	// 				coo_correct = 1;
-	// 				break;
-	// 			}
-	// 		} 
-	// 	}
-
-	// 	if (coo_correct) {
-	// 		t->from_catalog = catname;
-	// 		t->catalog_member_id = member_id;
-	// 		return 0;
-	// 	} else {
-	// 		return -1;
-	// 	}
-	// }
+	if (t) {
+		task_new_check_coo(
+			udb, 
+			last_task, 
+			zname, 
+			catname, 
+			dname_to_string(member_id, NULL)
+		);
+	}
 
 	if (!patopt || !patopt->pname) {
 		patopt = pattern_options_create(nsd->region);
@@ -115,45 +53,9 @@ catz_add_zone(const dname_type *member_zone_name,
 		pattern_options_add_modify(nsd->options, patopt);
 	}
 
-	// pattern_options_add_modify(nsd->options, patopt);
-	// zopt = zone_list_zone_insert(nsd->options, zname, pname, 0, 0);
 	DEBUG(DEBUG_CATZ, 1, 
 	(LOG_INFO, "Task created for catalog %s: %s", catname, zname));
-	// t = namedb_zone_create(nsd->db, dname_copy(nsd->region, &member_zone_name->dname), zopt);
-	// namedb_read_zonefile(nsd, t, udb, last_task);
-	// task_new_add_pattern(udb, last_task, patopt);
 	task_new_add_catzone(udb, last_task, zname, pname, catname, dname_to_string(member_id, NULL), 0);
-	t = namedb_find_zone(nsd->db, dname_parse(nsd->region, zname));
-
-	if (t) {
-		t->from_catalog = (char*)catname;
-		t->catalog_member_id = (dname_type*)member_id;
-		t->is_updated = 1;
-		// namedb_read_zonefile(nsd, t, udb, last_task);
-		// Generate dummy SOA, check xfrd
-		task_new_soainfo(udb, last_task, t, soainfo_ok);
-		DEBUG(DEBUG_CATZ, 1, 
-		(LOG_INFO, "Zone added for catalog %s: %s", catname, zname));
-		return 0;
-	} else {
-		DEBUG(DEBUG_CATZ, 1, 
-		(LOG_INFO, "Zone not found for catalog %s: %s", catname, zname));
-		return -1;
-	}
-}
-
-int
-catz_remove_zone(const dname_type *member_zone_name,
-	void *arg,
-	udb_base* udb,
-	udb_ptr* last_task)
-{
-	nsd_type* nsd = (nsd_type*) arg;
-	// zone_type* zone = namedb_find_zone(nsd->db, &member_zone_name->dname);
-	// struct zone_options* zopt = zone->opts;
-
-	task_new_del_zone(udb, last_task, member_zone_name);
-	return 0;
 }
 
 int nsd_catalog_consumer_process(
@@ -168,9 +70,8 @@ int nsd_catalog_consumer_process(
 
 	uint8_t has_version_txt = 0;
 
-	// Current MVP implementation: remove all zones coming from a catalog
+	// Remove all zones coming from a catalog
 	// Re-add all zones coming from a catalog
-	// Very inefficient
 
 	const char* catname = strdup(dname_to_string(zone->apex->dname, NULL));
 
@@ -184,14 +85,10 @@ int nsd_catalog_consumer_process(
 		if (z->from_catalog && strcmp(z->from_catalog, catname) == 0) {
 			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Deleted zone %s", 
 				dname_to_string(z->apex->dname, NULL)));
-			// delete_zone_rrs(nsd->db, z);
-			// namedb_zone_delete(nsd->db, z);
-			// zone_options_delete(nsd->options, zopt);
 			task_new_del_zone(udb, last_task, z->apex);
 		}
 	}
 	
-	// DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Catalog zone processing"));
 	zone_rr_iter_init(&rr_iter, zone);
 	for ( rr = zone_rr_iter_next(&rr_iter)
 	    ; rr != NULL
@@ -255,11 +152,9 @@ int nsd_catalog_consumer_process(
 				const dname_type* member_zone = 
 					domain_dname(rdata_atom_domain(rr->rdatas[0]));
 
-				const dname_type* member_id = dname2catz_dname(rr->owner->dname);
+				const dname_type* member_id = rr->owner->dname;
 
-				zone_type* cat_zone = zone2catz_catalog_zone(zone);
-
-				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "PTR parsed"));
+				zone_type* cat_zone = zone;
 
 				int res = catz_add_zone(
 					member_zone, 
@@ -270,12 +165,10 @@ int nsd_catalog_consumer_process(
 					udb,
 					last_task
 				);
-				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Task added"));
 				break;				
 			} 
 			break;
 		}
-		// DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "TODO: Process RR"));
 	}
 
 	free((void*)catname);

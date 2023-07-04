@@ -1775,6 +1775,32 @@ task_new_add_catzone(udb_base* udb, udb_ptr* last, const char* zone,
 }
 
 void
+task_new_check_coo(udb_base* udb, udb_ptr* last, const char* zone,
+	const char* catname, const char* member_id)
+{
+	size_t zlen = strlen(zone);
+	size_t catlen = strlen(catname);
+	size_t mlen = strlen(member_id);
+
+	void *p;
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task checkcoo %s %s %s", zone, catname, member_id));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
+		zlen + 1 + catlen + 1 + mlen + 1, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add checkcoo");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_check_coo;
+	TASKLIST(&e)->yesno = 0;
+	p = TASKLIST(&e)->zname;
+	memcpy(p, zone, zlen+1);
+	memmove((char*)p+zlen+1, catname, catlen+1);
+	memmove((char*)p+zlen+1+catlen+1, member_id, mlen+1);
+
+	udb_ptr_unlink(&e, udb);
+}
+
+void
 task_new_apply_pattern(udb_base* udb, udb_ptr* last, const char* member_id, const char* pattern)
 {
 	size_t mlen = strlen(member_id);
@@ -2098,6 +2124,50 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		return;
 	}
 
+	/* create zone */
+
+	pattern_options_type* patopt = pattern_options_find(nsd->options, pname);
+	if (!patopt) {
+		patopt = pattern_options_create(nsd->region);
+		patopt->pname = pname;
+		pattern_options_add_modify(nsd->options, patopt);
+	} 
+
+	z = find_or_create_zone(nsd->db, zdname, nsd->options, zname, pname);
+	if(!z) {
+		region_recycle(nsd->db->region, (void*)zdname,
+			dname_total_size(zdname));
+		log_msg(LOG_ERR, "can not add zone %s %s", zname, pname);
+		return;
+	}
+	z->zonestatid = (unsigned)task->yesno;
+	z->from_catalog = catname;
+	z->catalog_member_id = dname_parse(nsd->db->region, member_id);
+	/* if zone is empty, attempt to read the zonefile from disk (if any) */
+	if(!z->soa_rrset && z->opts->pattern->zonefile) {
+		namedb_read_zonefile(nsd, z, udb, last_task);
+	}
+}
+
+static void
+task_process_check_coo(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
+	struct task_list_d* task)
+{
+	zone_type* z;
+	dname_type* zdname;
+	const char* zname = (const char*)task->zname;
+	const char* catname = zname + strlen(zname)+1;
+	const char* member_id = catname + strlen(catname)+1;
+
+	zone_type* t;
+
+	log_msg(LOG_INFO, "checkcoo task %s %s %s", zname, catname, member_id);
+	zdname = dname_parse(nsd->region, zname);
+	if(!zdname) {
+		log_msg(LOG_ERR, "can not parse zone name %s", zname);
+		return;
+	}
+
 	t = namedb_find_zone(nsd->db, zdname);
 
 	if (t) {
@@ -2171,30 +2241,6 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 			return;
 		}
 	}
-
-	/* create zone */
-
-	pattern_options_type* patopt = pattern_options_find(nsd->options, pname);
-	if (!patopt) {
-		patopt = pattern_options_create(nsd->region);
-		patopt->pname = pname;
-		pattern_options_add_modify(nsd->options, patopt);
-	} 
-
-	z = find_or_create_zone(nsd->db, zdname, nsd->options, zname, pname);
-	if(!z) {
-		region_recycle(nsd->db->region, (void*)zdname,
-			dname_total_size(zdname));
-		log_msg(LOG_ERR, "can not add zone %s %s", zname, pname);
-		return;
-	}
-	z->zonestatid = (unsigned)task->yesno;
-	z->from_catalog = catname;
-	z->catalog_member_id = dname_parse(nsd->db->region, member_id);
-	/* if zone is empty, attempt to read the zonefile from disk (if any) */
-	if(!z->soa_rrset && z->opts->pattern->zonefile) {
-		namedb_read_zonefile(nsd, z, udb, last_task);
-	}
 }
 
 static void
@@ -2239,8 +2285,6 @@ task_process_apply_pattern(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 			const char* nfrom_catalog = region_strdup(nsd->region, gz->from_catalog);
 			const char* ncatalog_member_id = region_strdup(nsd->region, dname_to_string(gz->catalog_member_id, NULL));
 
-			log_msg(LOG_ERR, "surprise!");
-			// pattern_options_add_modify(gz->opts->pattern, patopt);
 			task_new_del_zone(udb, last_task, gz->apex->dname);
 			task_new_add_catzone(
 				udb, 
@@ -2466,6 +2510,9 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_add_catzone:
 		task_process_add_catzone(nsd, udb, last_task, TASKLIST(task));
+		break;
+	case task_check_coo:
+		task_process_check_coo(nsd, udb, last_task, TASKLIST(task));
 		break;
 	case task_apply_pattern:
 		task_process_apply_pattern(nsd, udb, last_task, TASKLIST(task));

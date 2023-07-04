@@ -1082,6 +1082,8 @@ xfrd_make_request(xfrd_zone_type* zone)
 		}
 	}
 
+	if (!zone->master) return;
+
 	/* cache ixfr_disabled only for XFRD_NO_IXFR_CACHE time */
 	if (zone->master->ixfr_disabled &&
 	   (zone->master->ixfr_disabled + XFRD_NO_IXFR_CACHE) <= time(NULL)) {
@@ -2740,38 +2742,37 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		break;
 #endif
 	case task_add_catzone: {
-		char* zname = task->zname;
+		char* zname = (char*)task->zname;
 		char* pattern = zname + strlen(zname) + 1;
 		char* catname = pattern + strlen(pattern) + 1;
 		char* member_id = catname + strlen(catname) + 1;
 
-		char* dname;
-		xfrd_zone_type* zone;
+		// char* dname;
+		// xfrd_zone_type* zone;
 		struct zone_options* zopt = NULL;
+		pattern_options_type* patopt;
 
 		log_msg(LOG_INFO, "now adding catzone %s %s %s %s", zname, pattern, catname, member_id);
 
-		if (!task->zname) {
-			break;
-		}
 		// log_msg(LOG_WARNING, "task_add_zone 2 %s", (char*)task->zname);
 		// dname = dname_parse(xfrd->nsd->region, (char*)task->zname);
 		// log_msg(LOG_WARNING, "task_add_zone 2a %x %x", xfrd->nsd->db, dname);
 		
 		// namedb_find_zone is unavailable as xfrd->nsd->db is null
-		pattern_options_type* patopt = pattern_options_find(xfrd->nsd->options, pattern);
+		patopt = pattern_options_find(xfrd->nsd->options, pattern);
 		if (!patopt) {
 			patopt = pattern_options_create(xfrd->region);
 			patopt->pname = pattern;
 			pattern_options_add_modify(xfrd->nsd->options, patopt);
 		} 
 		zopt = zone_options_find(xfrd->nsd->options, dname_parse(xfrd->region, zname));
-		if (zopt) {
-			log_msg(LOG_INFO, "catzone already added %s", zname);
-			return;
-		}
 		if (!zopt) {
 			zopt = zone_list_zone_insert(xfrd->nsd->options, zname, pattern, 0, 0);
+		// } else {
+		// 	log_msg(LOG_INFO, "checking for potential coo property %s", zname);
+		} else {
+			log_msg(LOG_INFO, "catzone already added %s", zname);
+			return;
 		}
 		task_new_add_catzone(xfrd->nsd->task[xfrd->nsd->mytask],
 			xfrd->last_task, zname, pattern, catname, member_id,
@@ -2781,16 +2782,25 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		/* add to xfrd - notify (for master and slaves) */
 		init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
 		/* add to xfrd - slave */
-		if(zone_is_slave(zopt)) {
-			xfrd_init_slave_zone(xfrd, zopt);
-		}
+		xfrd_init_slave_zone(xfrd, zopt);
+		break;
+	}
+	case task_check_coo: {
+		char* zname = (char*)task->zname;
+		char* catname = zname + strlen(zname) + 1;
+		char* member_id = catname + strlen(catname) + 1;
+
+		log_msg(LOG_INFO, "check coo %s %s %s", zname, catname, member_id);
+
+		task_new_check_coo(xfrd->nsd->task[xfrd->nsd->mytask],
+			xfrd->last_task, zname, catname, member_id);
 		break;
 	}
 	case task_apply_pattern: {
-		char* member_id = task->zname;
+		char* member_id = (char*)task->zname;
 		char* pattern = member_id + strlen(member_id) + 1;
 
-		log_msg(LOG_WARNING, "apply to member_id %s pattern %s", member_id, pattern);
+		log_msg(LOG_INFO, "apply to member_id %s pattern %s", member_id, pattern);
 
 		task_new_apply_pattern(xfrd->nsd->task[xfrd->nsd->mytask],
 			xfrd->last_task, member_id, pattern);
