@@ -2088,6 +2088,8 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 	const char* catname = pname + strlen(pname)+1;
 	const char* member_id = catname + strlen(catname)+1;
 
+	zone_type* t;
+
 	log_msg(LOG_INFO, "addcatzone task %s %s %s %s", zname, pname, catname, member_id);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "addcatzone task %s %s %s %s", zname, pname, catname, member_id));
 	zdname = dname_parse(nsd->db->region, zname);
@@ -2095,6 +2097,81 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		log_msg(LOG_ERR, "can not parse zone name %s", zname);
 		return;
 	}
+
+	t = namedb_find_zone(nsd->db, zdname);
+
+	if (t) {
+		if (!t->from_catalog) {
+			return;
+		}
+		zone_type* cz = namedb_find_zone(
+			nsd->db, 
+			dname_parse(
+				nsd->region, 
+				t->from_catalog)
+			);
+		struct zone_rr_iter rr_iter;
+		struct rr *rr;
+
+		int coo_correct = 0;
+
+		DEBUG(DEBUG_CATZ, 1, 
+			(LOG_INFO, 
+			"Found existing zone belong to a catalog zone %s", 
+			dname_to_string(cz->apex->dname, NULL)));
+
+		zone_rr_iter_init(&rr_iter, cz);
+		for ( rr = zone_rr_iter_next(&rr_iter)
+		; rr != NULL
+		; rr = zone_rr_iter_next(&rr_iter)) {
+			if (rr->klass != CLASS_IN) {
+				continue;
+			}
+			if (rr->type != TYPE_PTR) {
+				continue;
+			}
+			dname_type* dname = rr->owner->dname;
+
+			DEBUG(DEBUG_CATZ, 1, 
+			(LOG_INFO, 
+			"Checking %s", 
+			dname_to_string(dname, NULL)));
+
+			if (dname->label_count == 
+			cz->apex->dname->label_count + 3 && 
+			label_compare(
+				dname_label(dname, dname->label_count - 3),
+				(const uint8_t*)"\005zones") == 0 && 
+			label_compare(
+				dname_label(dname, dname->label_count - 1), 
+				(const uint8_t*)"\003coo") == 0) {
+				// `dname` is now the RR for the coo property
+
+				const dname_type* coo_property = 
+					domain_dname(rdata_atom_domain(rr->rdatas[0]));
+
+				if (dname_label_match_count(t->catalog_member_id, dname)
+				 == t->catalog_member_id->label_count && 
+				dname_compare(coo_property, zdname) == 0) {
+					DEBUG(DEBUG_CATZ, 1, 
+					(LOG_INFO, 
+					"COO correct, transferring from %s to %s", 
+					t->from_catalog, catname));
+					coo_correct = 1;
+					break;
+				}
+			} 
+		}
+
+		if (coo_correct) {
+			t->from_catalog = catname;
+			t->catalog_member_id = member_id;
+			return;
+		} else {
+			return;
+		}
+	}
+
 	/* create zone */
 
 	pattern_options_type* patopt = pattern_options_find(nsd->options, pname);

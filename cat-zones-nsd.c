@@ -11,37 +11,11 @@
 #include "nsd.h"
 #include "radtree.h"
 
-int
-catz_dname_equal(const catz_dname *a, const catz_dname *b)
-{
-	return dname_compare(&a->dname, &b->dname);
-}
-
-catz_member_zone *
-catz_member_by_dname(const catz_dname *member_zone_name,
-		void *arg)
-{
-	nsd_type* nsd = (nsd_type*)arg;
-	zone_type* zone = namedb_find_zone(nsd->db, &member_zone_name->dname);
-	return (catz_member_zone*)zone;
-}
-
-catz_catalog_zone *
-catz_catalog_from_member(const catz_member_zone *member_zone,
-		void *arg)
-{
-	nsd_type* nsd = (nsd_type*)arg;
-
-	catz_catalog_zone* catz_zone = malloc(sizeof(catz_catalog_zone));
-	const dname_type* dname = &member_zone->member_id->dname;
-	catz_zone->zone = *namedb_find_zone(nsd->db, dname);
-	return catz_zone;
-}
 
 int
-catz_add_zone(const catz_dname *member_zone_name,
-	const catz_dname *member_id,
-	catz_catalog_zone *catalog_zone, 
+catz_add_zone(const dname_type *member_zone_name,
+	const dname_type *member_id,
+	zone_type *catalog_zone, 
 	const char* pname,
 	void *arg,
 	udb_base* udb,
@@ -50,9 +24,9 @@ catz_add_zone(const catz_dname *member_zone_name,
 	nsd_type* nsd = (nsd_type*)arg;
 
 	const char* zname = 
-		region_strdup(nsd->region, dname_to_string(&member_zone_name->dname, NULL));
+		region_strdup(nsd->region, dname_to_string(member_zone_name, NULL));
 	const char* catname = 
-		region_strdup(nsd->region, dname_to_string(catalog_zone->zone.apex->dname, NULL));
+		region_strdup(nsd->region, dname_to_string(catalog_zone->apex->dname, NULL));
 	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
 
 	struct zone_options* zopt;
@@ -63,77 +37,77 @@ catz_add_zone(const catz_dname *member_zone_name,
 	} 
 	patopt = pattern_options_find(nsd->options, pname);
 
-	if (t) {
-		if (!t->from_catalog) {
-			return -1;
-		}
-		zone_type* cz = namedb_find_zone(
-			nsd->db, 
-			dname_parse(
-				nsd->region, 
-				t->from_catalog)
-			);
-		struct zone_rr_iter rr_iter;
-		struct rr *rr;
+	// if (t) {
+	// 	if (!t->from_catalog) {
+	// 		return -1;
+	// 	}
+	// 	zone_type* cz = namedb_find_zone(
+	// 		nsd->db, 
+	// 		dname_parse(
+	// 			nsd->region, 
+	// 			t->from_catalog)
+	// 		);
+	// 	struct zone_rr_iter rr_iter;
+	// 	struct rr *rr;
 
-		int coo_correct = 0;
+	// 	int coo_correct = 0;
 
-		DEBUG(DEBUG_CATZ, 1, 
-			(LOG_INFO, 
-			"Found existing zone belong to a catalog zone %s", 
-			dname_to_string(cz->apex->dname, NULL)));
+	// 	DEBUG(DEBUG_CATZ, 1, 
+	// 		(LOG_INFO, 
+	// 		"Found existing zone belong to a catalog zone %s", 
+	// 		dname_to_string(cz->apex->dname, NULL)));
 
-		zone_rr_iter_init(&rr_iter, cz);
-		for ( rr = zone_rr_iter_next(&rr_iter)
-		; rr != NULL
-		; rr = zone_rr_iter_next(&rr_iter)) {
-			if (rr->klass != CLASS_IN) {
-				continue;
-			}
-			if (rr->type != TYPE_PTR) {
-				continue;
-			}
-			dname_type* dname = rr->owner->dname;
+	// 	zone_rr_iter_init(&rr_iter, cz);
+	// 	for ( rr = zone_rr_iter_next(&rr_iter)
+	// 	; rr != NULL
+	// 	; rr = zone_rr_iter_next(&rr_iter)) {
+	// 		if (rr->klass != CLASS_IN) {
+	// 			continue;
+	// 		}
+	// 		if (rr->type != TYPE_PTR) {
+	// 			continue;
+	// 		}
+	// 		dname_type* dname = rr->owner->dname;
 
-			DEBUG(DEBUG_CATZ, 1, 
-			(LOG_INFO, 
-			"Checking %s", 
-			dname_to_string(dname, NULL)));
+	// 		DEBUG(DEBUG_CATZ, 1, 
+	// 		(LOG_INFO, 
+	// 		"Checking %s", 
+	// 		dname_to_string(dname, NULL)));
 
-			if (dname->label_count == 
-			cz->apex->dname->label_count + 3 && 
-			label_compare(
-				dname_label(dname, dname->label_count - 3),
-				(const uint8_t*)"\005zones") == 0 && 
-			label_compare(
-				dname_label(dname, dname->label_count - 1), 
-				(const uint8_t*)"\003coo") == 0) {
-				// `dname` is now the RR for the coo property
+	// 		if (dname->label_count == 
+	// 		cz->apex->dname->label_count + 3 && 
+	// 		label_compare(
+	// 			dname_label(dname, dname->label_count - 3),
+	// 			(const uint8_t*)"\005zones") == 0 && 
+	// 		label_compare(
+	// 			dname_label(dname, dname->label_count - 1), 
+	// 			(const uint8_t*)"\003coo") == 0) {
+	// 			// `dname` is now the RR for the coo property
 
-				const dname_type* coo_property = 
-					domain_dname(rdata_atom_domain(rr->rdatas[0]));
+	// 			const dname_type* coo_property = 
+	// 				domain_dname(rdata_atom_domain(rr->rdatas[0]));
 
-				if (dname_label_match_count(t->catalog_member_id, dname)
-				 == t->catalog_member_id->label_count && 
-				dname_compare(coo_property, catalog_zone->zone.apex->dname) == 0) {
-					DEBUG(DEBUG_CATZ, 1, 
-					(LOG_INFO, 
-					"COO correct, transferring from %s to %s", 
-					t->from_catalog, catname));
-					coo_correct = 1;
-					break;
-				}
-			} 
-		}
+	// 			if (dname_label_match_count(t->catalog_member_id, dname)
+	// 			 == t->catalog_member_id->label_count && 
+	// 			dname_compare(coo_property, catalog_zone->apex->dname) == 0) {
+	// 				DEBUG(DEBUG_CATZ, 1, 
+	// 				(LOG_INFO, 
+	// 				"COO correct, transferring from %s to %s", 
+	// 				t->from_catalog, catname));
+	// 				coo_correct = 1;
+	// 				break;
+	// 			}
+	// 		} 
+	// 	}
 
-		if (coo_correct) {
-			t->from_catalog = catname;
-			t->catalog_member_id = member_id;
-			return CATZ_SUCCESS;
-		} else {
-			return -1;
-		}
-	}
+	// 	if (coo_correct) {
+	// 		t->from_catalog = catname;
+	// 		t->catalog_member_id = member_id;
+	// 		return 0;
+	// 	} else {
+	// 		return -1;
+	// 	}
+	// }
 
 	if (!patopt || !patopt->pname) {
 		patopt = pattern_options_create(nsd->region);
@@ -142,7 +116,7 @@ catz_add_zone(const catz_dname *member_zone_name,
 	}
 
 	// pattern_options_add_modify(nsd->options, patopt);
-	zopt = zone_list_zone_insert(nsd->options, zname, pname, 0, 0);
+	// zopt = zone_list_zone_insert(nsd->options, zname, pname, 0, 0);
 	DEBUG(DEBUG_CATZ, 1, 
 	(LOG_INFO, "Task created for catalog %s: %s", catname, zname));
 	// t = namedb_zone_create(nsd->db, dname_copy(nsd->region, &member_zone_name->dname), zopt);
@@ -160,7 +134,7 @@ catz_add_zone(const catz_dname *member_zone_name,
 		task_new_soainfo(udb, last_task, t, soainfo_ok);
 		DEBUG(DEBUG_CATZ, 1, 
 		(LOG_INFO, "Zone added for catalog %s: %s", catname, zname));
-		return CATZ_SUCCESS;
+		return 0;
 	} else {
 		DEBUG(DEBUG_CATZ, 1, 
 		(LOG_INFO, "Zone not found for catalog %s: %s", catname, zname));
@@ -169,7 +143,7 @@ catz_add_zone(const catz_dname *member_zone_name,
 }
 
 int
-catz_remove_zone(const catz_dname *member_zone_name,
+catz_remove_zone(const dname_type *member_zone_name,
 	void *arg,
 	udb_base* udb,
 	udb_ptr* last_task)
@@ -179,7 +153,7 @@ catz_remove_zone(const catz_dname *member_zone_name,
 	// struct zone_options* zopt = zone->opts;
 
 	task_new_del_zone(udb, last_task, member_zone_name);
-	return CATZ_SUCCESS;
+	return 0;
 }
 
 int nsd_catalog_consumer_process(
@@ -278,12 +252,12 @@ int nsd_catalog_consumer_process(
 			&& label_compare( dname_label(dname, dname->label_count - 2)
 			                , (const uint8_t*)"\005zones") == 0) {
 				// For the time being we ignore all other PTR records
-				const catz_dname* member_zone = 
-					dname2catz_dname(domain_dname(rdata_atom_domain(rr->rdatas[0])));
+				const dname_type* member_zone = 
+					domain_dname(rdata_atom_domain(rr->rdatas[0]));
 
-				const catz_dname* member_id = dname2catz_dname(rr->owner->dname);
+				const dname_type* member_id = dname2catz_dname(rr->owner->dname);
 
-				catz_catalog_zone* cat_zone = zone2catz_catalog_zone(zone);
+				zone_type* cat_zone = zone2catz_catalog_zone(zone);
 
 				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "PTR parsed"));
 
