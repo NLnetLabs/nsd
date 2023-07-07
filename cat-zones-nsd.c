@@ -55,6 +55,7 @@ catz_add_zone(const dname_type *member_zone_name,
 	DEBUG(DEBUG_CATZ, 1, 
 	(LOG_INFO, "Task created for catalog %s: %s", catname, zname));
 	task_new_add_catzone(udb, last_task, zname, pname, catname, dname_to_string(member_id, NULL), 0);
+	return 1;
 }
 
 int nsd_catalog_consumer_process(
@@ -79,8 +80,6 @@ int nsd_catalog_consumer_process(
 	n;
 	n = radix_next(n)) {
 		zone_type* z = (zone_type*)n->elem;
-		DEBUG(DEBUG_CATZ, 1, 
-		(LOG_INFO, "From catalog %s", z->from_catalog));
 		if (z->from_catalog && strcmp(z->from_catalog, catname) == 0) {
 			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Deleted zone %s", 
 				dname_to_string(z->apex->dname, NULL)));
@@ -153,12 +152,10 @@ int nsd_catalog_consumer_process(
 
 				const dname_type* member_id = rr->owner->dname;
 
-				zone_type* cat_zone = zone;
-
 				catz_add_zone(
 					member_zone, 
 					member_id, 
-					cat_zone,
+					zone,
 					NULL,
 					nsd,
 					udb,
@@ -169,8 +166,6 @@ int nsd_catalog_consumer_process(
 			break;
 		}
 	}
-
-	free((void*)catname);
 
 	return -1;
 }
