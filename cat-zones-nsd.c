@@ -29,7 +29,6 @@ catz_add_zone(const dname_type *member_zone_name,
 		region_strdup(nsd->region, dname_to_string(catalog_zone->apex->dname, NULL));
 	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
 
-	struct zone_options* zopt;
 	struct pattern_options* patopt;
 
 	if (!pname) {
@@ -80,13 +79,12 @@ int nsd_catalog_consumer_process(
 	n;
 	n = radix_next(n)) {
 		zone_type* z = (zone_type*)n->elem;
-		struct zone_options* zopt = z->opts;
 		DEBUG(DEBUG_CATZ, 1, 
 		(LOG_INFO, "From catalog %s", z->from_catalog));
 		if (z->from_catalog && strcmp(z->from_catalog, catname) == 0) {
 			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Deleted zone %s", 
 				dname_to_string(z->apex->dname, NULL)));
-			task_new_del_zone(udb, last_task, z->apex);
+			task_new_del_zone(udb, last_task, z->apex->dname);
 		}
 	}
 	
@@ -138,7 +136,7 @@ int nsd_catalog_consumer_process(
 				DEBUG(DEBUG_CATZ, 1, 
 				(LOG_INFO, "Group property discovered"));
 
-				task_new_apply_pattern(udb, last_task, dname_to_string(dname, NULL), rdata_atom_data(rr->rdatas[0]) + 1);
+				task_new_apply_pattern(udb, last_task, dname_to_string(dname, NULL), (const char*)(rdata_atom_data(rr->rdatas[0]) + 1));
 			}
 			break;
 		case TYPE_PTR:
@@ -157,7 +155,7 @@ int nsd_catalog_consumer_process(
 
 				zone_type* cat_zone = zone;
 
-				int res = catz_add_zone(
+				catz_add_zone(
 					member_zone, 
 					member_id, 
 					cat_zone,

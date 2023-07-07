@@ -2114,7 +2114,7 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 	const char* catname = pname + strlen(pname)+1;
 	const char* member_id = catname + strlen(catname)+1;
 
-	zone_type* t;
+	pattern_options_type* patopt;
 
 	log_msg(LOG_INFO, "addcatzone task %s %s %s %s", zname, pname, catname, member_id);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "addcatzone task %s %s %s %s", zname, pname, catname, member_id));
@@ -2126,7 +2126,7 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 
 	/* create zone */
 
-	pattern_options_type* patopt = pattern_options_find(nsd->options, pname);
+	patopt = pattern_options_find(nsd->options, pname);
 	if (!patopt) {
 		patopt = pattern_options_create(nsd->region);
 		patopt->pname = pname;
@@ -2141,8 +2141,8 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		return;
 	}
 	z->zonestatid = (unsigned)task->yesno;
-	z->from_catalog = catname;
-	z->catalog_member_id = dname_parse(nsd->db->region, member_id);
+	z->from_catalog = (char*)catname;
+	z->catalog_member_id = (dname_type*)dname_parse(nsd->db->region, member_id);
 	/* if zone is empty, attempt to read the zonefile from disk (if any) */
 	if(!z->soa_rrset && z->opts->pattern->zonefile) {
 		namedb_read_zonefile(nsd, z, udb, last_task);
@@ -2150,11 +2150,10 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 }
 
 static void
-task_process_check_coo(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
+task_process_check_coo(struct nsd* nsd, udb_base* ATTR_UNUSED(udb), udb_ptr* ATTR_UNUSED(last_task),
 	struct task_list_d* task)
 {
-	zone_type* z;
-	dname_type* zdname;
+	const dname_type* zdname;
 	const char* zname = (const char*)task->zname;
 	const char* catname = zname + strlen(zname)+1;
 	const char* member_id = catname + strlen(catname)+1;
@@ -2171,19 +2170,20 @@ task_process_check_coo(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 	t = namedb_find_zone(nsd->db, zdname);
 
 	if (t) {
+		zone_type* cz;
+		struct zone_rr_iter rr_iter;
+		struct rr *rr;
+		int coo_correct = 0;
+
 		if (!t->from_catalog) {
 			return;
 		}
-		zone_type* cz = namedb_find_zone(
+		cz = namedb_find_zone(
 			nsd->db, 
 			dname_parse(
 				nsd->region, 
 				t->from_catalog)
 			);
-		struct zone_rr_iter rr_iter;
-		struct rr *rr;
-
-		int coo_correct = 0;
 
 		DEBUG(DEBUG_CATZ, 1, 
 			(LOG_INFO, 
@@ -2194,13 +2194,15 @@ task_process_check_coo(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		for ( rr = zone_rr_iter_next(&rr_iter)
 		; rr != NULL
 		; rr = zone_rr_iter_next(&rr_iter)) {
+			const dname_type* dname;
+
 			if (rr->klass != CLASS_IN) {
 				continue;
 			}
 			if (rr->type != TYPE_PTR) {
 				continue;
 			}
-			dname_type* dname = rr->owner->dname;
+			dname = rr->owner->dname;
 
 			DEBUG(DEBUG_CATZ, 1, 
 			(LOG_INFO, 
@@ -2234,8 +2236,8 @@ task_process_check_coo(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		}
 
 		if (coo_correct) {
-			t->from_catalog = catname;
-			t->catalog_member_id = member_id;
+			t->from_catalog = (char*)catname;
+			t->catalog_member_id = (dname_type*)member_id;
 			return;
 		} else {
 			return;
@@ -2279,7 +2281,7 @@ task_process_apply_pattern(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		struct pattern_options* patopt = pattern_options_find(nsd->options, pname);
 
 		log_msg(LOG_INFO, "config apply %s with pattern %s", dname_to_string(gz->apex->dname, NULL), pname);
-		if (patopt && !pattern_options_equal(patopt, gz->opts)) {
+		if (patopt && !pattern_options_equal(patopt, gz->opts->pattern)) {
 			const char* nzname = region_strdup(nsd->region, dname_to_string(gz->apex->dname, NULL));
 			const char* npname = pname;
 			const char* nfrom_catalog = region_strdup(nsd->region, gz->from_catalog);
