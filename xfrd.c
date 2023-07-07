@@ -2747,18 +2747,11 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		char* catname = pattern + strlen(pattern) + 1;
 		char* member_id = catname + strlen(catname) + 1;
 
-		// char* dname;
-		// xfrd_zone_type* zone;
 		struct zone_options* zopt = NULL;
 		pattern_options_type* patopt;
 
 		log_msg(LOG_INFO, "now adding catzone %s %s %s %s", zname, pattern, catname, member_id);
 
-		// log_msg(LOG_WARNING, "task_add_zone 2 %s", (char*)task->zname);
-		// dname = dname_parse(xfrd->nsd->region, (char*)task->zname);
-		// log_msg(LOG_WARNING, "task_add_zone 2a %x %x", xfrd->nsd->db, dname);
-		
-		// namedb_find_zone is unavailable as xfrd->nsd->db is null
 		patopt = pattern_options_find(xfrd->nsd->options, pattern);
 		if (!patopt) {
 			patopt = pattern_options_create(xfrd->region);
@@ -2768,8 +2761,6 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		zopt = zone_options_find(xfrd->nsd->options, dname_parse(xfrd->region, zname));
 		if (!zopt) {
 			zopt = zone_list_zone_insert(xfrd->nsd->options, zname, pattern, 0, 0);
-		// } else {
-		// 	log_msg(LOG_INFO, "checking for potential coo property %s", zname);
 		} else {
 			log_msg(LOG_INFO, "catzone already added %s", zname);
 			return;
@@ -2777,7 +2768,6 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		task_new_add_catzone(xfrd->nsd->task[xfrd->nsd->mytask],
 			xfrd->last_task, zname, pattern, catname, member_id,
 			getzonestatid(xfrd->nsd->options, zopt));
-		// zonestat_inc_ifneeded(xfrd);
 		xfrd_set_reload_now(xfrd);
 		/* add to xfrd - notify (for master and slaves) */
 		init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
