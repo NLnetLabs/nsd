@@ -1003,11 +1003,11 @@ to not use a specific timeout. Default is verifier\-timeout from
 .TP
 .B catalog:\fR <pattern>
 Pattern for the catalog consumer that extracts information from the catalog 
-zone.
-.TP
-.B catalog-from:\fR <pattern>
-Pattern for the catalog producer that generates the contents of the catalog 
-zone.
+zone. This pattern can be used to configure which primary to use. Zones added 
+by this catalog zone will by default use a pattern with the same name as the 
+catalog zone apex including trailing dot, but this can be overwritten by 
+specifying a pattern name in the group property inside the catalog zone itself.
+
 .SS "Key Declarations"
 The 
 .B key: 

@@ -1027,6 +1027,7 @@ pattern_or_zone_option:
         YYABORT;
       }
       cfg_parser->pattern->catalog = region_strdup(cfg_parser->opt->region, $2); 
+      config_apply_pattern(cfg_parser->pattern, $2);
     }
   | VAR_CATALOG_FROM STRING
     { 
