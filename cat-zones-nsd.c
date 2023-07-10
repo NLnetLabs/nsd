@@ -10,6 +10,7 @@
 #include "difffile.h"
 #include "nsd.h"
 #include "radtree.h"
+#include "util.h"
 
 
 int

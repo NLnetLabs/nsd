@@ -86,6 +86,7 @@
 #include "dnstap/dnstap_collector.h"
 #endif
 #include "verify.h"
+#include "cat-zones-nsd.h"
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 

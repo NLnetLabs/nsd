@@ -7,7 +7,6 @@
  */
 #ifndef _CAT_ZONES_NSD_H_
 #define _CAT_ZONES_NSD_H_
-#include "cat-zones.h"
 #include "config.h"
 #include "dname.h"
 #include "namedb.h"
