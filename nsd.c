@@ -835,7 +835,7 @@ bind8_stats (struct nsd *nsd)
 
 	/* Current time... */
 	time_t now;
-	if(!nsd->st->period)
+	if(!nsd->st_period)
 		return;
 	time(&now);
 
@@ -1077,7 +1077,7 @@ main(int argc, char *argv[])
 			break;
 		case 's':
 #ifdef BIND8_STATS
-			nsd.st->period = atoi(optarg);
+			nsd.st_period = atoi(optarg);
 #else /* !BIND8_STATS */
 			error("BIND 8 statistics not enabled.");
 #endif /* BIND8_STATS */
@@ -1215,8 +1215,8 @@ main(int argc, char *argv[])
 		verify_port = VERIFY_PORT;
 	}
 #ifdef BIND8_STATS
-	if(nsd.st->period == 0) {
-		nsd.st->period = nsd.options->statistics;
+	if(nsd.st_period == 0) {
+		nsd.st_period = nsd.options->statistics;
 	}
 #endif /* BIND8_STATS */
 #ifdef HAVE_CHROOT
@@ -1730,6 +1730,9 @@ main(int argc, char *argv[])
 	options_zonestatnames_create(nsd.options);
 	server_zonestat_alloc(&nsd);
 #endif /* USE_ZONE_STATS */
+#ifdef BIND8_STATS
+	nsd.st = xalloc_zero(sizeof(struct nsdst));
+#endif /* BIND8_STATS */
 	if(nsd.server_kind == NSD_SERVER_MAIN) {
 		server_prepare_xfrd(&nsd);
 		/* xfrd forks this before reading database, so it does not get

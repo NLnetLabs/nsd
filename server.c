@@ -508,8 +508,8 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 static void set_bind8_alarm(struct nsd* nsd)
 {
 	/* resync so that the next alarm is on the next whole minute */
-	if(nsd->st->period > 0) /* % by 0 gives divbyzero error */
-		alarm(nsd->st->period - (time(NULL) % nsd->st->period));
+	if(nsd->st_period > 0) /* % by 0 gives divbyzero error */
+		alarm(nsd->st_period - (time(NULL) % nsd->st_period));
 }
 #endif
 
@@ -3290,11 +3290,11 @@ server_child(struct nsd *nsd)
 		/* Do we need to do the statistics... */
 		if (mode == NSD_STATS) {
 #ifdef BIND8_STATS
-			int p = nsd->st->period;
-			nsd->st->period = 1; /* force stats printout */
+			int p = nsd->st_period;
+			nsd->st_period = 1; /* force stats printout */
 			/* Dump the statistics */
 			bind8_stats(nsd);
-			nsd->st->period = p;
+			nsd->st_period = p;
 #else /* !BIND8_STATS */
 			log_msg(LOG_NOTICE, "Statistics support not enabled at compile time.");
 #endif /* BIND8_STATS */
