@@ -130,7 +130,6 @@ typedef	unsigned long stc_type;
 /* Data structure to keep track of statistics */
 struct nsdst {
 	time_t	boot;
-	int	period;		/* Produce statistics dump every st_period seconds */
 	stc_type qtype[257];	/* Counters per qtype */
 	stc_type qclass[4];	/* Class IN or Class CH or other */
 	stc_type qudp, qudp6;	/* Number of queries udp and udp6 */
@@ -319,6 +318,8 @@ struct	nsd
 #ifdef	BIND8_STATS
 	/* statistics for this server */
 	struct nsdst* st;
+	/* Produce statistics dump every st_period seconds */
+	int st_period;
 	/* per zone stats, each an array per zone-stat-idx, stats per zone is
 	 * add of [0][zoneidx] and [1][zoneidx]. */
 	struct nsdst* zonestat[2];
