@@ -99,11 +99,11 @@ typedef	unsigned long stc_type;
 
 #define	LASTELEM(arr)	(sizeof(arr) / sizeof(arr[0]) - 1)
 
-#define	STATUP(nsd, stc) nsd->st.stc++
-/* #define	STATUP2(nsd, stc, i)  ((i) <= (LASTELEM(nsd->st.stc) - 1)) ? nsd->st.stc[(i)]++ : \
-				nsd->st.stc[LASTELEM(nsd->st.stc)]++ */
+#define	STATUP(nsd, stc) nsd->st->stc++
+/* #define	STATUP2(nsd, stc, i)  ((i) <= (LASTELEM(nsd->st->stc) - 1)) ? nsd->st->stc[(i)]++ : \
+				nsd->st.stc[LASTELEM(nsd->st->stc)]++ */
 
-#define	STATUP2(nsd, stc, i) nsd->st.stc[(i) <= (LASTELEM(nsd->st.stc) - 1) ? i : LASTELEM(nsd->st.stc)]++
+#define	STATUP2(nsd, stc, i) nsd->st->stc[(i) <= (LASTELEM(nsd->st->stc) - 1) ? i : LASTELEM(nsd->st->stc)]++
 #else	/* BIND8_STATS */
 
 #define	STATUP(nsd, stc) /* Nothing */
@@ -319,7 +319,7 @@ struct	nsd
 
 #ifdef	BIND8_STATS
 	/* statistics for this server */
-	struct nsdst st;
+	struct nsdst* st;
 	/* per zone stats, each an array per zone-stat-idx, stats per zone is
 	 * add of [0][zoneidx] and [1][zoneidx]. */
 	struct nsdst* zonestat[2];

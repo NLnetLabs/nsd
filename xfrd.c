@@ -2698,7 +2698,7 @@ xfrd_process_stat_info_task(xfrd_state_type* xfrd, struct task_list_d* task)
 {
 	size_t i;
 	stc_type* p = (void*)((char*)task->zname + sizeof(struct nsdst));
-	stats_add(&xfrd->nsd->st, (struct nsdst*)task->zname);
+	stats_add(xfrd->nsd->st, (struct nsdst*)task->zname);
 	for(i=0; i<xfrd->nsd->child_count; i++) {
 		xfrd->nsd->children[i].query_count += *p++;
 	}

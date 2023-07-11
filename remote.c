@@ -2827,9 +2827,9 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear)
 		return;
 
 	/* mem info, database on disksize */
-	if(!print_longnum(ssl, "size.db.disk=", xfrd->nsd->st.db_disk))
+	if(!print_longnum(ssl, "size.db.disk=", xfrd->nsd->st->db_disk))
 		return;
-	if(!print_longnum(ssl, "size.db.mem=", xfrd->nsd->st.db_mem))
+	if(!print_longnum(ssl, "size.db.mem=", xfrd->nsd->st->db_mem))
 		return;
 	if(!print_longnum(ssl, "size.xfrd.mem=", region_get_mem(xfrd->region)))
 		return;
@@ -2839,7 +2839,7 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear)
 	if(!print_longnum(ssl, "size.config.mem=", region_get_mem(
 		xfrd->nsd->options->region)))
 		return;
-	print_stat_block(ssl, "", "", &xfrd->nsd->st);
+	print_stat_block(ssl, "", "", xfrd->nsd->st);
 
 	/* zone statistics */
 	if(!ssl_printf(ssl, "zone.master=%lu\n",
@@ -2858,17 +2858,17 @@ static void
 clear_stats(xfrd_state_type* xfrd)
 {
 	size_t i;
-	uint64_t dbd = xfrd->nsd->st.db_disk;
-	uint64_t dbm = xfrd->nsd->st.db_mem;
+	uint64_t dbd = xfrd->nsd->st->db_disk;
+	uint64_t dbm = xfrd->nsd->st->db_mem;
 	for(i=0; i<xfrd->nsd->child_count; i++) {
 		xfrd->nsd->children[i].query_count = 0;
 	}
-	memset(&xfrd->nsd->st, 0, sizeof(struct nsdst));
+	memset(xfrd->nsd->st, 0, sizeof(struct nsdst));
 	/* zonestats are cleared by storing the cumulative value that
 	 * was last printed in the zonestat_clear array, and subtracting
 	 * that before the next stats printout */
-	xfrd->nsd->st.db_disk = dbd;
-	xfrd->nsd->st.db_mem = dbm;
+	xfrd->nsd->st->db_disk = dbd;
+	xfrd->nsd->st->db_mem = dbm;
 }
 
 void
