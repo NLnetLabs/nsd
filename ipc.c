@@ -331,7 +331,7 @@ read_child_stats(struct nsd* nsd, struct nsd_child* child, int fd)
 		log_msg(LOG_ERR, "problems reading finalstats from server "
 			"%d: %s", (int)child->pid, strerror(errno));
 	} else {
-		stats_add(&nsd->st, &s);
+		stats_add(nsd->st, &s);
 		child->query_count = s.qudp + s.qudp6 + s.ctcp + s.ctcp6
 			+ s.ctls + s.ctls6;
 		/* we know that the child is going to close the connection

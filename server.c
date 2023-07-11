@@ -529,8 +529,8 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 static void set_bind8_alarm(struct nsd* nsd)
 {
 	/* resync so that the next alarm is on the next whole minute */
-	if(nsd->st.period > 0) /* % by 0 gives divbyzero error */
-		alarm(nsd->st.period - (time(NULL) % nsd->st.period));
+	if(nsd->st->period > 0) /* % by 0 gives divbyzero error */
+		alarm(nsd->st->period - (time(NULL) % nsd->st->period));
 }
 #endif
 
@@ -1471,7 +1471,7 @@ server_prepare(struct nsd *nsd)
 
 #ifdef	BIND8_STATS
 	/* Initialize times... */
-	time(&nsd->st.boot);
+	time(&nsd->st->boot);
 	set_bind8_alarm(nsd);
 #endif /* BIND8_STATS */
 
@@ -2230,7 +2230,7 @@ static void
 parent_send_stats(struct nsd* nsd, int cmdfd)
 {
 	size_t i;
-	if(!write_socket(cmdfd, &nsd->st, sizeof(nsd->st))) {
+	if(!write_socket(cmdfd, nsd->st, sizeof(*nsd->st))) {
 		log_msg(LOG_ERR, "could not write stats to reload");
 		return;
 	}
@@ -2311,7 +2311,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 #ifdef BIND8_STATS
 	/* Restart dumping stats if required.  */
-	time(&nsd->st.boot);
+	time(&nsd->st->boot);
 	set_bind8_alarm(nsd);
 #endif
 #ifdef USE_ZONE_STATS
@@ -3306,11 +3306,11 @@ server_child(struct nsd *nsd)
 		/* Do we need to do the statistics... */
 		if (mode == NSD_STATS) {
 #ifdef BIND8_STATS
-			int p = nsd->st.period;
-			nsd->st.period = 1; /* force stats printout */
+			int p = nsd->st->period;
+			nsd->st->period = 1; /* force stats printout */
 			/* Dump the statistics */
 			bind8_stats(nsd);
-			nsd->st.period = p;
+			nsd->st->period = p;
 #else /* !BIND8_STATS */
 			log_msg(LOG_NOTICE, "Statistics support not enabled at compile time.");
 #endif /* BIND8_STATS */
@@ -3869,7 +3869,7 @@ handle_udp(int fd, short event, void* arg)
 				log_msg(LOG_ERR, "sendmmsg [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
 			}
 #ifdef BIND8_STATS
-			data->nsd->st.txerr += recvcount-i;
+			data->nsd->st->txerr += recvcount-i;
 #endif /* BIND8_STATS */
 			break;
 		}
