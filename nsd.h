@@ -126,6 +126,24 @@ typedef	unsigned long stc_type;
 #define	ZTATUP2(nsd, zone, stc, i) /* Nothing */
 #endif /* USE_ZONE_STATS */
 
+#ifdef	BIND8_STATS
+/* Data structure to keep track of statistics */
+struct nsdst {
+	time_t	boot;
+	int	period;		/* Produce statistics dump every st_period seconds */
+	stc_type qtype[257];	/* Counters per qtype */
+	stc_type qclass[4];	/* Class IN or Class CH or other */
+	stc_type qudp, qudp6;	/* Number of queries udp and udp6 */
+	stc_type ctcp, ctcp6;	/* Number of tcp and tcp6 connections */
+	stc_type ctls, ctls6;	/* Number of tls and tls6 connections */
+	stc_type rcode[17], opcode[6]; /* Rcodes & opcodes */
+	/* Dropped, truncated, queries for nonconfigured zone, tx errors */
+	stc_type dropped, truncated, wrongzone, txerr, rxerr;
+	stc_type edns, ednserr, raxfr, nona, rixfr;
+	uint64_t db_disk, db_mem;
+};
+#endif /* BIND8_STATS */
+
 #define NSD_SOCKET_IS_OPTIONAL (1<<0)
 #define NSD_BIND_DEVICE (1<<1)
 
@@ -300,21 +318,8 @@ struct	nsd
 	size_t ipv6_edns_size;
 
 #ifdef	BIND8_STATS
-
-	struct nsdst {
-		time_t	boot;
-		int	period;		/* Produce statistics dump every st_period seconds */
-		stc_type qtype[257];	/* Counters per qtype */
-		stc_type qclass[4];	/* Class IN or Class CH or other */
-		stc_type qudp, qudp6;	/* Number of queries udp and udp6 */
-		stc_type ctcp, ctcp6;	/* Number of tcp and tcp6 connections */
-		stc_type ctls, ctls6;	/* Number of tls and tls6 connections */
-		stc_type rcode[17], opcode[6]; /* Rcodes & opcodes */
-		/* Dropped, truncated, queries for nonconfigured zone, tx errors */
-		stc_type dropped, truncated, wrongzone, txerr, rxerr;
-		stc_type edns, ednserr, raxfr, nona, rixfr;
-		uint64_t db_disk, db_mem;
-	} st;
+	/* statistics for this server */
+	struct nsdst st;
 	/* per zone stats, each an array per zone-stat-idx, stats per zone is
 	 * add of [0][zoneidx] and [1][zoneidx]. */
 	struct nsdst* zonestat[2];
