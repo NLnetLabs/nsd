@@ -1,3 +1,6 @@
+11 July 2023: Wouter
+	- Fix unused variable warning in unit test of udb.
+
 22 June 2023: Wouter
 	- Fix #284: dnstap_collector.c: SOCK_NONBLOCK is not available on
 	  Mac/Darwin.

@@ -109,6 +109,7 @@ assert_free_structure(udb_base* udb)
 	int e;
 	uint64_t num_e;
 	int verb = 0;
+	(void)num_free; /* avoid unused warning */
 
 	if(verb) printf("** current state ng=%llu\n",
 		(long long unsigned)udb->alloc->disk->nextgrow);
