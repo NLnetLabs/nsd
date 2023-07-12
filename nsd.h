@@ -332,6 +332,18 @@ struct	nsd
 	size_t zonestatsize[2], zonestatdesired, zonestatsizenow;
 	/* current zonestat array to use */
 	struct nsdst* zonestatnow;
+	/* filenames for stat file mappings */
+	char* statfname;
+	/* fd for stat mapping (otherwise mmaps cannot be shared between
+	 * processes and resized) */
+	int statfd;
+	/* statistics array, of size child_count*2, twice for old and new
+	 * server processes. */
+	struct nsdst* stat_map;
+	/* statistics array of size child_count, twice */
+	struct nsdst* stats_per_child[2];
+	/* current stats_per_child array that is in use for the child set */
+	int stat_current;
 #endif /* BIND8_STATS */
 #ifdef USE_DNSTAP
 	/* the dnstap collector process info */
@@ -399,6 +411,8 @@ void server_zonestat_alloc(struct nsd* nsd);
 /* remap the mmaps for zonestat isx, to bytesize sz.  Caller has to set
  * the zonestatsize */
 void zonestat_remap(struct nsd* nsd, int idx, size_t sz);
+/* allocate stat structures */
+void server_stat_alloc(struct nsd* nsd);
 /* allocate and init xfrd variables */
 void server_prepare_xfrd(struct nsd *nsd);
 /* start xfrdaemon (again) */

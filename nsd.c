@@ -1718,7 +1718,7 @@ main(int argc, char *argv[])
 	server_zonestat_alloc(&nsd);
 #endif /* USE_ZONE_STATS */
 #ifdef BIND8_STATS
-	nsd.st = xalloc_zero(sizeof(struct nsdst));
+	server_stat_alloc(&nsd);
 #endif /* BIND8_STATS */
 	if(nsd.server_kind == NSD_SERVER_MAIN) {
 		server_prepare_xfrd(&nsd);
