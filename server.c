@@ -687,6 +687,65 @@ server_zonestat_switch(struct nsd* nsd)
 }
 #endif /* USE_ZONE_STATS */
 
+#ifdef BIND8_STATS
+void
+server_stat_alloc(struct nsd* nsd)
+{
+	char tmpfile[256];
+	size_t sz = sizeof(struct nsdst) * nsd->child_count * 2;
+	uint8_t z = 0;
+
+	/* file name */
+	nsd->statfname = 0;
+	snprintf(tmpfile, sizeof(tmpfile), "%snsd-xfr-%d/nsd.%u.stat",
+		nsd->options->xfrdir, (int)getpid(), (unsigned)getpid());
+	nsd->statfname = region_strdup(nsd->region, tmpfile);
+
+	/* file descriptor */
+	nsd->statfd = open(nsd->statfname, O_CREAT|O_RDWR, 0600);
+	if(nsd->statfd == -1) {
+		log_msg(LOG_ERR, "cannot create %s: %s", nsd->statfname,
+			strerror(errno));
+		unlink(nsd->zonestatfname[0]);
+		unlink(nsd->zonestatfname[1]);
+		exit(1);
+	}
+
+#ifdef HAVE_MMAP
+	if(lseek(nsd->statfd, (off_t)sz-1, SEEK_SET) == -1) {
+		log_msg(LOG_ERR, "lseek %s: %s", nsd->statfname,
+			strerror(errno));
+		unlink(nsd->statfname);
+		unlink(nsd->zonestatfname[0]);
+		unlink(nsd->zonestatfname[1]);
+		exit(1);
+	}
+	if(write(nsd->statfd, &z, 1) == -1) {
+		log_msg(LOG_ERR, "cannot extend stat file %s (%s)",
+			nsd->statfname, strerror(errno));
+		unlink(nsd->statfname);
+		unlink(nsd->zonestatfname[0]);
+		unlink(nsd->zonestatfname[1]);
+		exit(1);
+	}
+	nsd->stat_map = (struct nsdst*)mmap(NULL, sz, PROT_READ|PROT_WRITE,
+		MAP_SHARED, nsd->statfd, 0);
+	if(nsd->stat_map == MAP_FAILED) {
+		log_msg(LOG_ERR, "mmap failed: %s", strerror(errno));
+		unlink(nsd->statfname);
+		unlink(nsd->zonestatfname[0]);
+		unlink(nsd->zonestatfname[1]);
+		exit(1);
+	}
+	memset(nsd->stat_map, 0, sz);
+	nsd->stats_per_child[0] = nsd->stat_map;
+	nsd->stats_per_child[1] = &nsd->stat_map[nsd->child_count];
+	nsd->stat_current = 0;
+	nsd->st = &nsd->stats_per_child[nsd->stat_current][0];
+#endif /* HAVE_MMAP */
+}
+#endif /* BIND8_STATS */
+
 static void
 cleanup_dname_compression_tables(void *ptr)
 {
@@ -1438,7 +1497,7 @@ server_prepare(struct nsd *nsd)
 		unlink(nsd->zonestatfname[1]);
 #endif
 #ifdef BIND8_STATS
-		free(nsd->st);
+		unlink(nsd->statfname);
 #endif
 		xfrd_del_tempdir(nsd);
 		return -1;
@@ -1569,7 +1628,7 @@ server_prepare_xfrd(struct nsd* nsd)
 		unlink(nsd->zonestatfname[1]);
 #endif
 #ifdef BIND8_STATS
-		free(nsd->st);
+		unlink(nsd->statfname);
 #endif
 		xfrd_del_tempdir(nsd);
 		exit(1);
@@ -1584,7 +1643,7 @@ server_prepare_xfrd(struct nsd* nsd)
 		unlink(nsd->zonestatfname[1]);
 #endif
 #ifdef BIND8_STATS
-		free(nsd->st);
+		unlink(nsd->statfname);
 #endif
 		xfrd_del_tempdir(nsd);
 		exit(1);
@@ -1722,7 +1781,7 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 			unlink(nsd->zonestatfname[1]);
 #endif
 #ifdef BIND8_STATS
-			free(nsd->st);
+			unlink(nsd->statfname);
 #endif
 			/* write the nsd.db to disk, wait for it to complete */
 			udb_base_sync(nsd->db->udb, 1);
@@ -2319,6 +2378,10 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* Restart dumping stats if required.  */
 	time(&nsd->st->boot);
 	set_bind8_alarm(nsd);
+	/* Switch to a different set of stat array for new server processes,
+	 * because they can briefly coexist with the old processes. They
+	 * have their own stat structure. */
+	nsd->stat_current = (nsd->stat_current==0?1:0);
 #endif
 #ifdef USE_ZONE_STATS
 	server_zonestat_realloc(nsd); /* realloc for new children */
@@ -2826,7 +2889,7 @@ server_main(struct nsd *nsd)
 	unlink(nsd->zonestatfname[1]);
 #endif
 #ifdef BIND8_STATS
-	free(nsd->st);
+	unlink(nsd->statfname);
 #endif
 #ifdef USE_DNSTAP
 	dt_collector_close(nsd->dt_collector, nsd);
@@ -3187,6 +3250,10 @@ server_child(struct nsd *nsd)
 	if(nsd->use_cpu_affinity) {
 		set_cpu_affinity(nsd->this_child->cpuset);
 	}
+#endif
+#ifdef BIND8_STATS
+	nsd->st = &nsd->stats_per_child[nsd->stat_current]
+		[nsd->this_child->child_num];
 #endif
 
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
