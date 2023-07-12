@@ -10,6 +10,7 @@ BUG FIXES:
 	  and --without-ssl are specified.
 	- Fix #284: dnstap_collector.c: SOCK_NONBLOCK is not available on
 	  Mac/Darwin.
+	- Fix unused variable warning in unit test of udb.
 
 4.7.0
 ================
