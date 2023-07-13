@@ -345,6 +345,8 @@ struct	nsd
 	struct nsdst* stats_per_child[2];
 	/* current stats_per_child array that is in use for the child set */
 	int stat_current;
+	/* start value for per process statistics printout, to clear it */
+	struct nsdst stat_proc;
 #endif /* BIND8_STATS */
 #ifdef USE_DNSTAP
 	/* the dnstap collector process info */

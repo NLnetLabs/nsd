@@ -3260,6 +3260,8 @@ server_child(struct nsd *nsd)
 #ifdef BIND8_STATS
 	nsd->st = &nsd->stats_per_child[nsd->stat_current]
 		[nsd->this_child->child_num];
+	nsd->st->boot = nsd->stat_map[0].boot;
+	memcpy(&nsd->stat_proc, nsd->st, sizeof(nsd->stat_proc));
 #endif
 
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {

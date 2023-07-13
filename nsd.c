@@ -841,16 +841,8 @@ bind8_stats (struct nsd *nsd)
 		return;
 	time(&now);
 
-	if(nsd->this_child) {
-		/* add stats from both array parts together */
-		memcpy(&st, &nsd->stats_per_child[0]
-			[nsd->this_child->child_num], sizeof(st));
-		stats_add(&st, &nsd->stats_per_child[1]
-			[nsd->this_child->child_num]);
-	} else {
-		memcpy(&st, nsd->st, sizeof(st));
-	}
-	st.boot = nsd->stat_map[0].boot;
+	memcpy(&st, nsd->st, sizeof(st));
+	stats_subtract(&st, &nsd->stat_proc);
 
 	/* NSTATS */
 	t = msg = buf + snprintf(buf, MAXSYSLOGMSGLEN, "NSTATS %lld %lu",
