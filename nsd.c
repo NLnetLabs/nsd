@@ -53,6 +53,7 @@
 #include "tsig.h"
 #include "remote.h"
 #include "xfrd-disk.h"
+#include "ipc.h"
 #ifdef USE_DNSTAP
 #include "dnstap/dnstap_collector.h"
 #endif
@@ -832,6 +833,7 @@ bind8_stats (struct nsd *nsd)
 	char buf[MAXSYSLOGMSGLEN];
 	char *msg, *t;
 	int i, len;
+	struct nsdst st;
 
 	/* Current time... */
 	time_t now;
@@ -839,9 +841,20 @@ bind8_stats (struct nsd *nsd)
 		return;
 	time(&now);
 
+	if(nsd->this_child) {
+		/* add stats from both array parts together */
+		memcpy(&st, &nsd->stats_per_child[0]
+			[nsd->this_child->child_num], sizeof(st));
+		stats_add(&st, &nsd->stats_per_child[1]
+			[nsd->this_child->child_num]);
+	} else {
+		memcpy(&st, nsd->st, sizeof(st));
+	}
+	st.boot = nsd->stat_map[0].boot;
+
 	/* NSTATS */
 	t = msg = buf + snprintf(buf, MAXSYSLOGMSGLEN, "NSTATS %lld %lu",
-				 (long long) now, (unsigned long) nsd->st->boot);
+				 (long long) now, (unsigned long) st.boot);
 	for (i = 0; i <= 255; i++) {
 		/* How much space left? */
 		if ((len = buf + MAXSYSLOGMSGLEN - t) < 32) {
@@ -850,8 +863,8 @@ bind8_stats (struct nsd *nsd)
 			len = buf + MAXSYSLOGMSGLEN - t;
 		}
 
-		if (nsd->st->qtype[i] != 0) {
-			t += snprintf(t, len, " %s=%lu", rrtype_to_string(i), nsd->st->qtype[i]);
+		if (st.qtype[i] != 0) {
+			t += snprintf(t, len, " %s=%lu", rrtype_to_string(i), st.qtype[i]);
 		}
 	}
 	if (t > msg)
@@ -860,27 +873,27 @@ bind8_stats (struct nsd *nsd)
 	/* XSTATS */
 	/* Only print it if we're in the main daemon or have anything to report... */
 	if (nsd->server_kind == NSD_SERVER_MAIN
-	    || nsd->st->dropped || nsd->st->raxfr || nsd->st->rixfr || (nsd->st->qudp + nsd->st->qudp6 - nsd->st->dropped)
-	    || nsd->st->txerr || nsd->st->opcode[OPCODE_QUERY] || nsd->st->opcode[OPCODE_IQUERY]
-	    || nsd->st->wrongzone || nsd->st->ctcp + nsd->st->ctcp6 || nsd->st->rcode[RCODE_SERVFAIL]
-	    || nsd->st->rcode[RCODE_FORMAT] || nsd->st->nona || nsd->st->rcode[RCODE_NXDOMAIN]
-	    || nsd->st->opcode[OPCODE_UPDATE]) {
+	    || st.dropped || st.raxfr || st.rixfr || (st.qudp + st.qudp6 - st.dropped)
+	    || st.txerr || st.opcode[OPCODE_QUERY] || st.opcode[OPCODE_IQUERY]
+	    || st.wrongzone || st.ctcp + st.ctcp6 || st.rcode[RCODE_SERVFAIL]
+	    || st.rcode[RCODE_FORMAT] || st.nona || st.rcode[RCODE_NXDOMAIN]
+	    || st.opcode[OPCODE_UPDATE]) {
 
 		log_msg(LOG_INFO, "XSTATS %lld %lu"
 			" RR=%lu RNXD=%lu RFwdR=%lu RDupR=%lu RFail=%lu RFErr=%lu RErr=%lu RAXFR=%lu RIXFR=%lu"
 			" RLame=%lu ROpts=%lu SSysQ=%lu SAns=%lu SFwdQ=%lu SDupQ=%lu SErr=%lu RQ=%lu"
 			" RIQ=%lu RFwdQ=%lu RDupQ=%lu RTCP=%lu SFwdR=%lu SFail=%lu SFErr=%lu SNaAns=%lu"
 			" SNXD=%lu RUQ=%lu RURQ=%lu RUXFR=%lu RUUpd=%lu",
-			(long long) now, (unsigned long) nsd->st->boot,
-			nsd->st->dropped, (unsigned long)0, (unsigned long)0, (unsigned long)0, (unsigned long)0,
-			(unsigned long)0, (unsigned long)0, nsd->st->raxfr, nsd->st->rixfr, (unsigned long)0, (unsigned long)0,
-			(unsigned long)0, nsd->st->qudp + nsd->st->qudp6 - nsd->st->dropped, (unsigned long)0,
-			(unsigned long)0, nsd->st->txerr,
-			nsd->st->opcode[OPCODE_QUERY], nsd->st->opcode[OPCODE_IQUERY], nsd->st->wrongzone,
-			(unsigned long)0, nsd->st->ctcp + nsd->st->ctcp6,
-			(unsigned long)0, nsd->st->rcode[RCODE_SERVFAIL], nsd->st->rcode[RCODE_FORMAT],
-			nsd->st->nona, nsd->st->rcode[RCODE_NXDOMAIN],
-			(unsigned long)0, (unsigned long)0, (unsigned long)0, nsd->st->opcode[OPCODE_UPDATE]);
+			(long long) now, (unsigned long) st.boot,
+			st.dropped, (unsigned long)0, (unsigned long)0, (unsigned long)0, (unsigned long)0,
+			(unsigned long)0, (unsigned long)0, st.raxfr, st.rixfr, (unsigned long)0, (unsigned long)0,
+			(unsigned long)0, st.qudp + st.qudp6 - st.dropped, (unsigned long)0,
+			(unsigned long)0, st.txerr,
+			st.opcode[OPCODE_QUERY], st.opcode[OPCODE_IQUERY], st.wrongzone,
+			(unsigned long)0, st.ctcp + st.ctcp6,
+			(unsigned long)0, st.rcode[RCODE_SERVFAIL], st.rcode[RCODE_FORMAT],
+			st.nona, st.rcode[RCODE_NXDOMAIN],
+			(unsigned long)0, (unsigned long)0, (unsigned long)0, st.opcode[OPCODE_UPDATE]);
 	}
 
 }
