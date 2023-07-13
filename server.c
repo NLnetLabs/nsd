@@ -2591,6 +2591,12 @@ server_main(struct nsd *nsd)
 	/* Add listener for the XFRD process */
 	netio_add_handler(netio, nsd->xfrd_listener);
 
+#ifdef BIND8_STATS
+	nsd->st = &nsd->stat_map[0];
+	nsd->st->db_disk = (nsd->db->udb?nsd->db->udb->base_size:0);
+	nsd->st->db_mem = region_get_mem(nsd->db->region);
+#endif
+
 	/* Start the child processes that handle incoming queries */
 	if (server_start_children(nsd, server_region, netio,
 		&nsd->xfrd_listener->fd) != 0) {

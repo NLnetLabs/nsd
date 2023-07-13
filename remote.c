@@ -223,6 +223,8 @@ remote_accept_callback(int fd, short event, void* arg);
 static void
 remote_control_callback(int fd, short event, void* arg);
 
+/* process the statistics and output them */
+static void process_stats(RES* ssl, xfrd_state_type* xfrd, int peek);
 
 /** ---- end of private defines ---- **/
 
@@ -1229,29 +1231,13 @@ do_status(RES* ssl, xfrd_state_type* xfrd)
 
 /** do the stats command */
 static void
-do_stats(struct daemon_remote* rc, int peek, struct rc_state* rs)
+do_stats(RES* ssl, xfrd_state_type* xfrd, int peek)
 {
 #ifdef BIND8_STATS
-	/* queue up to get stats after a reload is done (to gather statistics
-	 * from the servers) */
-	assert(!rs->in_stats_list);
-	if(peek) rs->in_stats_list = 2;
-	else	rs->in_stats_list = 1;
-	rs->stats_next = rc->stats_list;
-	rc->stats_list = rs;
-	/* block the tcp waiting for the reload */
-	event_del(&rs->c);
-	rs->event_added = 0;
-	/* force a reload */
-	xfrd_set_reload_now(xfrd);
+	process_stats(ssl, xfrd, peek);
 #else
-	RES res;
-#ifdef HAVE_SSL
-	res.ssl = rs->ssl;
-#endif
-	res.fd = rs->fd;
-	(void)rc; (void)peek;
-	(void)ssl_printf(&res, "error no stats enabled at compile time\n");
+	(void)xfrd; (void)peek;
+	(void)ssl_printf(ssl, "error no stats enabled at compile time\n");
 #endif /* BIND8_STATS */
 }
 
@@ -2361,7 +2347,7 @@ cmdcmp(char* p, const char* cmd, size_t len)
 
 /** execute a remote control command */
 static void
-execute_cmd(struct daemon_remote* rc, RES* ssl, char* cmd, struct rc_state* rs)
+execute_cmd(struct daemon_remote* rc, RES* ssl, char* cmd)
 {
 	char* p = skipwhite(cmd);
 	/* compare command */
@@ -2374,9 +2360,9 @@ execute_cmd(struct daemon_remote* rc, RES* ssl, char* cmd, struct rc_state* rs)
 	} else if(cmdcmp(p, "status", 6)) {
 		do_status(ssl, rc->xfrd);
 	} else if(cmdcmp(p, "stats_noreset", 13)) {
-		do_stats(rc, 1, rs);
+		do_stats(ssl, rc->xfrd, 1);
 	} else if(cmdcmp(p, "stats", 5)) {
-		do_stats(rc, 0, rs);
+		do_stats(ssl, rc->xfrd, 0);
 	} else if(cmdcmp(p, "log_reopen", 10)) {
 		do_log_reopen(ssl, rc->xfrd);
 	} else if(cmdcmp(p, "addzone", 7)) {
@@ -2489,7 +2475,7 @@ handle_req(struct daemon_remote* rc, struct rc_state* s, RES* res)
 	VERBOSITY(0, (LOG_INFO, "control cmd: %s", buf));
 
 	/* figure out what to do */
-	execute_cmd(rc, res, buf, s);
+	execute_cmd(rc, res, buf);
 }
 
 #ifdef HAVE_SSL
@@ -2748,7 +2734,8 @@ resize_zonestat(xfrd_state_type* xfrd, size_t num)
 }
 
 static void
-zonestat_print(RES* ssl, xfrd_state_type* xfrd, int clear)
+zonestat_print(RES* ssl, xfrd_state_type* xfrd, int clear,
+	struct nsdst** zonestats)
 {
 	struct zonestatname* n;
 	struct nsdst stat0, stat1;
@@ -2763,8 +2750,8 @@ zonestat_print(RES* ssl, xfrd_state_type* xfrd, int clear)
 		 * the newly forked processes get the other block to use,
 		 * these blocks are mmapped and are currently in use to
 		 * add statistics to */
-		memcpy(&stat0, &xfrd->nsd->zonestat[0][n->id], sizeof(stat0));
-		memcpy(&stat1, &xfrd->nsd->zonestat[1][n->id], sizeof(stat1));
+		memcpy(&stat0, &zonestats[0][n->id], sizeof(stat0));
+		memcpy(&stat1, &zonestats[1][n->id], sizeof(stat1));
 		stats_add(&stat0, &stat1);
 		
 		/* save a copy of current (cumulative) stats in stat1 */
@@ -2800,7 +2787,8 @@ zonestat_print(RES* ssl, xfrd_state_type* xfrd, int clear)
 #endif /* USE_ZONE_STATS */
 
 static void
-print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear)
+print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear,
+	struct nsdst* st, struct nsdst** zonestats)
 {
 	size_t i;
 	stc_type total = 0;
@@ -2827,9 +2815,9 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear)
 		return;
 
 	/* mem info, database on disksize */
-	if(!print_longnum(ssl, "size.db.disk=", xfrd->nsd->st->db_disk))
+	if(!print_longnum(ssl, "size.db.disk=", st->db_disk))
 		return;
-	if(!print_longnum(ssl, "size.db.mem=", xfrd->nsd->st->db_mem))
+	if(!print_longnum(ssl, "size.db.mem=", st->db_mem))
 		return;
 	if(!print_longnum(ssl, "size.xfrd.mem=", region_get_mem(xfrd->region)))
 		return;
@@ -2839,7 +2827,7 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear)
 	if(!print_longnum(ssl, "size.config.mem=", region_get_mem(
 		xfrd->nsd->options->region)))
 		return;
-	print_stat_block(ssl, "", "", xfrd->nsd->st);
+	print_stat_block(ssl, "", "", st);
 
 	/* zone statistics */
 	if(!ssl_printf(ssl, "zone.master=%lu\n",
@@ -2848,9 +2836,9 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear)
 	if(!ssl_printf(ssl, "zone.slave=%lu\n", (unsigned long)xfrd->zones->count))
 		return;
 #ifdef USE_ZONE_STATS
-	zonestat_print(ssl, xfrd, clear); /* per-zone statistics */
+	zonestat_print(ssl, xfrd, clear, zonestats); /* per-zone statistics */
 #else
-	(void)clear;
+	(void)clear; (void)zonestats;
 #endif
 }
 
@@ -2871,6 +2859,124 @@ clear_stats(xfrd_state_type* xfrd)
 	xfrd->nsd->st->db_mem = dbm;
 }
 
+/* allocate stats temp arrays, for taking a coherent snapshot of the
+ * statistics values at that time. */
+static void
+process_stats_alloc(xfrd_state_type* xfrd, struct nsdst** stats,
+	struct nsdst** zonestats)
+{
+	*stats = xmallocarray(xfrd->nsd->child_count*2, sizeof(struct nsdst));
+#ifdef USE_ZONE_STATS
+	zonestats[0] = xmallocarray(xfrd->zonestat_safe, sizeof(struct nsdst));
+	zonestats[1] = xmallocarray(xfrd->zonestat_safe, sizeof(struct nsdst));
+#else
+	(void)zonestats;
+#endif
+}
+
+/* grab a copy of the statistics, at this particular time. */
+static void
+process_stats_grab(xfrd_state_type* xfrd, struct timeval* stattime,
+	struct nsdst* stats, struct nsdst** zonestats)
+{
+	if(gettimeofday(stattime, NULL) == -1)
+		log_msg(LOG_ERR, "gettimeofday: %s", strerror(errno));
+	memcpy(stats, xfrd->nsd->stat_map,
+		xfrd->nsd->child_count*2*sizeof(struct nsdst));
+#ifdef USE_ZONE_STATS
+	memcpy(zonestats[0], xfrd->nsd->zonestat[0],
+		xfrd->zonestat_safe*sizeof(struct nsdst));
+	memcpy(zonestats[1], xfrd->nsd->zonestat[1],
+		xfrd->zonestat_safe*sizeof(struct nsdst));
+#else
+	(void)zonestats;
+#endif
+}
+
+/* add the old and new processes stat values into the first part of the
+ * array of stats */
+static void
+process_stats_add_old_new(xfrd_state_type* xfrd, struct nsdst* stats)
+{
+	size_t i;
+	uint64_t dbd = xfrd->nsd->st->db_disk;
+	uint64_t dbm = xfrd->nsd->st->db_mem;
+	/* The old and new server processes have separate stat blocks,
+	 * and these are added up together. This results in the statistics
+	 * values per server-child. The reload task briefly forks both
+	 * old and new server processes. */
+	for(i=0; i<xfrd->nsd->child_count; i++) {
+		stats_add(&stats[i], &stats[xfrd->nsd->child_count+i]);
+	}
+	stats[0].db_disk = dbd;
+	stats[0].db_mem = dbm;
+}
+
+/* manage clearing of stats, a cumulative count of cleared statistics */
+static void
+process_stats_manage_clear(xfrd_state_type* xfrd, struct nsdst* stats,
+	int peek)
+{
+	struct nsdst st;
+	size_t i;
+	if(peek)
+		return;
+	if(!xfrd->stat_clear)
+		xfrd->stat_clear = region_alloc_zero(xfrd->region,
+			sizeof(struct nsdst)*xfrd->nsd->child_count);
+	for(i=0; i<xfrd->nsd->child_count; i++) {
+		/* store cumulative count copy */
+		memcpy(&st, &stats[i], sizeof(st));
+		/* subtract cumulative count that has been reset */
+		stats_subtract(&stats[i], &xfrd->stat_clear[i]);
+		/* store cumulative count in the cleared value array */
+		memcpy(&xfrd->stat_clear[i], &st, sizeof(st));
+	}
+}
+
+/* add up the statistics to get the total over the server children. */
+static void
+process_stats_add_total(xfrd_state_type* xfrd, struct nsdst* total,
+	struct nsdst* stats)
+{
+	size_t i;
+	/* copy over the first one, with also the nonadded values. */
+	memcpy(total, &stats[0], sizeof(*total));
+	xfrd->nsd->children[0].query_count = stats[0].qudp + stats[0].qudp6
+		+ stats[0].ctcp + stats[0].ctcp6 + stats[0].ctls
+		+ stats[0].ctls6;
+	for(i=1; i<xfrd->nsd->child_count; i++) {
+		stats_add(total, &stats[i]);
+		xfrd->nsd->children[i].query_count = stats[i].qudp
+			+ stats[i].qudp6 + stats[i].ctcp + stats[i].ctcp6
+			+ stats[i].ctls + stats[i].ctls6;
+	}
+}
+
+/* process the statistics and output them */
+static void
+process_stats(RES* ssl, xfrd_state_type* xfrd, int peek)
+{
+	struct timeval stattime;
+	struct nsdst* stats, *zonestats[2], total;
+
+	process_stats_alloc(xfrd, &stats, zonestats);
+	process_stats_grab(xfrd, &stattime, stats, zonestats);
+	process_stats_add_old_new(xfrd, stats);
+	process_stats_manage_clear(xfrd, stats, peek);
+	process_stats_add_total(xfrd, &total, stats);
+	print_stats(ssl, xfrd, &stattime, !peek, &total, zonestats);
+	xfrd->nsd->rc->stats_time = stattime;
+
+	free(stats);
+#ifdef USE_ZONE_STATS
+	free(zonestats[0]);
+	free(zonestats[1]);
+#endif
+
+	VERBOSITY(3, (LOG_INFO, "remote control stats printed"));
+}
+
 void
 daemon_remote_process_stats(struct daemon_remote* rc)
 {
@@ -2887,7 +2993,8 @@ daemon_remote_process_stats(struct daemon_remote* rc)
 		res.ssl = s->ssl;
 #endif
 		res.fd = s->fd;
-		print_stats(&res, rc->xfrd, &now, (s->in_stats_list == 1));
+		print_stats(&res, rc->xfrd, &now, (s->in_stats_list == 1),
+			rc->xfrd->nsd->st, rc->xfrd->nsd->zonestat);
 		if(s->in_stats_list == 1) {
 			clear_stats(rc->xfrd);
 			rc->stats_time = now;
