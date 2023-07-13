@@ -2899,8 +2899,8 @@ static void
 process_stats_add_old_new(xfrd_state_type* xfrd, struct nsdst* stats)
 {
 	size_t i;
-	uint64_t dbd = xfrd->nsd->st->db_disk;
-	uint64_t dbm = xfrd->nsd->st->db_mem;
+	uint64_t dbd = stats[0].db_disk;
+	uint64_t dbm = stats[0].db_mem;
 	/* The old and new server processes have separate stat blocks,
 	 * and these are added up together. This results in the statistics
 	 * values per server-child. The reload task briefly forks both
