@@ -874,13 +874,11 @@ when sending notifies.
 .TP
 .B provide\-xfr:\fR <ip\-spec> <key\-name | NOKEY | BLOCKED>
 Access control list. The listed address (a secondary) is allowed to 
-request AXFR from this server. Zone data will be provided to the 
-address. The specified key is used during AXFR. For unlisted or 
-BLOCKED addresses no data is provided, requests are discarded.
-BLOCKED supersedes other entries, other entries are scanned for a match
+request XFR from this server. Zone data will be provided to the 
+address. The specified key is used during XFR. For unlisted or 
+BLOCKED addresses no data is provided and requests are discarded.
+BLOCKED supersedes other entries and other entries are scanned for a match
 in the order of the statements.
-NSD provides AXFR for its secondaries, but IXFR is not implemented (IXFR
-is implemented for request\-xfr, but not for provide\-xfr).
 .P
 .RS
 The ip\-spec is either a plain IP address (IPv4 or IPv6), or can be 
@@ -903,8 +901,8 @@ A port number can be added using a suffix of @number, for example
 .TP
 .B store\-ixfr:\fR <yes or no>
 If enabled, IXFR contents are stored and provided to the set of clients
-specified in the provide\-xfr statement. Default is no. IXFR contents is
-a smaller set of changes that differ between zone versions, where an AXFR
+specified in the provide\-xfr statement. Default is no. IXFR content is
+a smaller set of changes that differ between zone versions, whereas an AXFR
 contains the full contents of the zone.
 .TP
 .B ixfr\-number:\fR <number>
@@ -912,21 +910,20 @@ The number of IXFR versions to store for this zone, at most. Default is 5.
 .TP
 .B ixfr\-size:\fR <number>
 The max storage to use for IXFR versions for this zone, in bytes.
-Default is 1048576. A value of 0 means unlimited, if you want to turn off
-IXFR storage, use the store\-ixfr option.
+Default is 1048576. A value of 0 means unlimited. If you want to turn off
+IXFR storage, set the store\-ixfr option to no.
 NSD does not elide IXFR contents from versions that add and remove the same
-data, that merges version changes together to shorten the data, but leaves
-the data and change sequence as it was transmitted by another server.
+data. It stores and transmits IXFRs as they were transmitted by the upstream server.
 .TP
 .B create\-ixfr:\fR <yes or no>
 If enabled, IXFR data is created when a zonefile is read by the server.
-Also set store\-ixfr enabled, so that the contents are stored, when you use
-this. Default is off. If the server is not running, the nsd\-checkzone \-i
+This requires store\-ixfr to be set to yes, so that the IXFR contents are saved to disk.
+Default is off. If the server is not running, the nsd\-checkzone \-i
 option can be used to create an IXFR file. When an IXFR is created, the server
 spools a version of the zone to a temporary file, at the location where the
 ixfr files are stored. This creates IXFR data when the zone is read from file,
 but not when a zone is read by AXFR transfer from a server, because then
-the topmost server that originates the data is the one place where ixfr
+the topmost server that originates the data is the one place where IXFR
 differences are computed and those differences are then transmitted verbatim
 to all the other servers.
 .TP
