@@ -2842,23 +2842,6 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear,
 #endif
 }
 
-static void
-clear_stats(xfrd_state_type* xfrd)
-{
-	size_t i;
-	uint64_t dbd = xfrd->nsd->st->db_disk;
-	uint64_t dbm = xfrd->nsd->st->db_mem;
-	for(i=0; i<xfrd->nsd->child_count; i++) {
-		xfrd->nsd->children[i].query_count = 0;
-	}
-	memset(xfrd->nsd->st, 0, sizeof(struct nsdst));
-	/* zonestats are cleared by storing the cumulative value that
-	 * was last printed in the zonestat_clear array, and subtracting
-	 * that before the next stats printout */
-	xfrd->nsd->st->db_disk = dbd;
-	xfrd->nsd->st->db_mem = dbm;
-}
-
 /* allocate stats temp arrays, for taking a coherent snapshot of the
  * statistics values at that time. */
 static void
@@ -2975,35 +2958,6 @@ process_stats(RES* ssl, xfrd_state_type* xfrd, int peek)
 #endif
 
 	VERBOSITY(3, (LOG_INFO, "remote control stats printed"));
-}
-
-void
-daemon_remote_process_stats(struct daemon_remote* rc)
-{
-	RES res;
-	struct rc_state* s;
-	struct timeval now;
-	if(!rc) return;
-	if(gettimeofday(&now, NULL) == -1)
-		log_msg(LOG_ERR, "gettimeofday: %s", strerror(errno));
-	/* pop one and give it stats */
-	while((s = rc->stats_list)) {
-		assert(s->in_stats_list);
-#ifdef HAVE_SSL
-		res.ssl = s->ssl;
-#endif
-		res.fd = s->fd;
-		print_stats(&res, rc->xfrd, &now, (s->in_stats_list == 1),
-			rc->xfrd->nsd->st, rc->xfrd->nsd->zonestat);
-		if(s->in_stats_list == 1) {
-			clear_stats(rc->xfrd);
-			rc->stats_time = now;
-		}
-		VERBOSITY(3, (LOG_INFO, "remote control stats printed"));
-		rc->stats_list = s->next;
-		s->in_stats_list = 0;
-		clean_point(rc, s);
-	}
 }
 #endif /* BIND8_STATS */
 

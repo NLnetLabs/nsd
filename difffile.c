@@ -1703,26 +1703,6 @@ void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v)
 	udb_ptr_unlink(&e, udb);
 }
 
-#ifdef BIND8_STATS
-void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,
-	size_t child_count)
-{
-	void* p;
-	udb_ptr e;
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task stat_info"));
-	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
-		sizeof(*stat) + sizeof(stc_type)*child_count, NULL)) {
-		log_msg(LOG_ERR, "tasklist: out of space, cannot add stati");
-		return NULL;
-	}
-	TASKLIST(&e)->task_type = task_stat_info;
-	p = TASKLIST(&e)->zname;
-	memcpy(p, stat, sizeof(*stat));
-	udb_ptr_unlink(&e, udb);
-	return (char*)p + sizeof(*stat);
-}
-#endif /* BIND8_STATS */
-
 void
 task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
 	const char* pattern, unsigned zonestatid)
