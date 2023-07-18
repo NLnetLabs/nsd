@@ -2690,21 +2690,6 @@ xfrd_get_temp_buffer()
 	return xfrd->packet;
 }
 
-#ifdef BIND8_STATS
-/** process stat info task */
-static void
-xfrd_process_stat_info_task(xfrd_state_type* xfrd, struct task_list_d* task)
-{
-	size_t i;
-	stc_type* p = (void*)((char*)task->zname + sizeof(struct nsdst));
-	for(i=0; i<xfrd->nsd->child_count; i++) {
-		(void)p; /* query_count=*p++ */
-	}
-	/* got total, now see if users are interested in these statistics */
-	daemon_remote_process_stats(xfrd->nsd->rc);
-}
-#endif /* BIND8_STATS */
-
 #ifdef USE_ZONE_STATS
 /** process zonestat inc task */
 static void
@@ -2728,11 +2713,6 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 	case task_soa_info:
 		xfrd_process_soa_info_task(task);
 		break;
-#ifdef BIND8_STATS
-	case task_stat_info:
-		xfrd_process_stat_info_task(xfrd, task);
-		break;
-#endif /* BIND8_STATS */
 #ifdef USE_ZONE_STATS
 	case task_zonestat_inc:
 		xfrd_process_zonestat_inc_task(xfrd, task);
