@@ -1,0 +1,37 @@
+# #-- stats.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+# are stats enabled?
+if grep "define BIND8_STATS" $PRE/config.h; then
+	echo "BIND8_STATS enabled, do test"
+else
+	echo "BIND8_STATS not enabled, skip test"
+	exit 0
+fi
+
+# prepare config
+get_random_port 2
+CONTROL_PORT=$RND_PORT
+TPKG_PORT=$(($RND_PORT + 1))
+echo controlport: $CONTROL_PORT
+echo "export CONTROL_PORT=$CONTROL_PORT" >> .tpkg.var.test
+cat stats.conf | sed "s/CONTROLPORT/$CONTROL_PORT/g" > nsd_1.conf
+if [[ $? -ne 0 ]]; then
+	exit 1
+fi
+
+# start NSD
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+echo port: $TPKG_PORT
+
+$TPKG_NSD -c nsd_1.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -V 5
+wait_nsd_up nsd.log
