@@ -12,7 +12,7 @@
 #include "namedb.h"
 #include "udb.h"
 
-int nsd_catalog_consumer_process(
+void nsd_catalog_consumer_process(
 	struct nsd *nsd, 
 	struct zone *zone,
 	udb_base* udb,

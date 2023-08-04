@@ -13,7 +13,7 @@
 #include "util.h"
 
 
-int
+void
 catz_add_zone(const dname_type *member_zone_name,
 	const dname_type *member_id,
 	zone_type *catalog_zone, 
@@ -24,10 +24,12 @@ catz_add_zone(const dname_type *member_zone_name,
 {
 	nsd_type* nsd = (nsd_type*)arg;
 
+	region_type* cat_region = region_create(xalloc, free);
+
 	const char* zname = 
-		region_strdup(nsd->region, dname_to_string(member_zone_name, NULL));
+		region_strdup(cat_region, dname_to_string(member_zone_name, NULL));
 	const char* catname = 
-		region_strdup(nsd->region, dname_to_string(catalog_zone->apex->dname, NULL));
+		region_strdup(cat_region, dname_to_string(catalog_zone->apex->dname, NULL));
 	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
 
 	struct pattern_options* patopt;
@@ -56,10 +58,11 @@ catz_add_zone(const dname_type *member_zone_name,
 	DEBUG(DEBUG_CATZ, 1, 
 	(LOG_INFO, "Task created for catalog %s: %s", catname, zname));
 	task_new_add_catzone(udb, last_task, zname, pname, catname, dname_to_string(member_id, NULL), 0);
-	return 1;
+
+	region_destroy(cat_region);
 }
 
-int nsd_catalog_consumer_process(
+void nsd_catalog_consumer_process(
 	struct nsd *nsd, 
 	struct zone *zone,
 	udb_base* udb,
@@ -75,7 +78,7 @@ int nsd_catalog_consumer_process(
 	// Re-add all zones coming from a catalog
 
 	const char* catname = region_strdup(nsd->region, 
-		dname_to_string(zone->apex->dname, NULL));
+		domain_to_string(zone->apex));
 
 	for (struct radnode* n = radix_first(nsd->db->zonetree);
 	n;
@@ -167,6 +170,4 @@ int nsd_catalog_consumer_process(
 			break;
 		}
 	}
-
-	return -1;
 }
