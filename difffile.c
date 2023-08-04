@@ -2116,7 +2116,6 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 
 	pattern_options_type* patopt;
 
-	log_msg(LOG_INFO, "addcatzone task %s %s %s %s", zname, pname, catname, member_id);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "addcatzone task %s %s %s %s", zname, pname, catname, member_id));
 	zdname = dname_parse(nsd->db->region, zname);
 	if(!zdname) {
