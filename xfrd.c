@@ -2772,7 +2772,9 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		/* add to xfrd - notify (for master and slaves) */
 		init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
 		/* add to xfrd - slave */
-		xfrd_init_slave_zone(xfrd, zopt);
+		if (zone_is_slave(zopt)) {
+			xfrd_init_slave_zone(xfrd, zopt);
+		}
 		break;
 	}
 	case task_check_coo: {
