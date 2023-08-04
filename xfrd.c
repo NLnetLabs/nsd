@@ -2755,14 +2755,14 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		patopt = pattern_options_find(xfrd->nsd->options, pattern);
 		if (!patopt) {
 			patopt = pattern_options_create(xfrd->region);
-			patopt->pname = pattern;
+			patopt->pname = region_strdup(xfrd->region, pattern);
 			pattern_options_add_modify(xfrd->nsd->options, patopt);
 		} 
 		zopt = zone_options_find(xfrd->nsd->options, dname_parse(xfrd->region, zname));
 		if (!zopt) {
 			zopt = zone_list_zone_insert(xfrd->nsd->options, zname, pattern, 0, 0);
 		} else {
-			log_msg(LOG_INFO, "catzone already added %s", zname);
+			log_msg(LOG_DEBUG, "catzone already added %s", zname);
 			return;
 		}
 		task_new_add_catzone(xfrd->nsd->task[xfrd->nsd->mytask],
