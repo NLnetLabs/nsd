@@ -1,4 +1,4 @@
-# #-- cname_soa.test --#
+# #-- catzone.test --#
 # source the master var file when it's there
 [ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 # use .tpkg.var.test for in test variable passing
@@ -19,19 +19,12 @@ wait_nsd_up nsd-secondary.log
 if dig @127.0.0.1 -p 55555 example.com SOA | grep "dns1.example.com"; then
 	echo OK
 else
-	cat nsd.log
+	cat nsd-primary.log
+	cat nsd-secondary.log
 	echo "Secondary could not load example.com zone!"
 	exit 1
 fi
 kill_pid `cat nsd-primary.pid`
 kill_pid `cat nsd-secondary.pid`
-
-# if grep "zone example.com file cname_soa.zone read with 3 errors" nsd.log; then
-# 	echo "detected the errors OK"
-# else
-# 	cat nsd.log
-# 	echo "Did not detect all errors"
-# 	exit 1
-# fi
 
 exit 0
