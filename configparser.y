@@ -217,7 +217,6 @@ struct component {
 
 /* catalog */
 %token VAR_CATALOG
-%token VAR_CATALOG_FROM
 
 %%
 
@@ -1022,20 +1021,8 @@ pattern_or_zone_option:
     { cfg_parser->pattern->verifier_timeout = $2; } 
   | VAR_CATALOG STRING
     { 
-      if (cfg_parser->pattern->catalog_from) {
-        yyerror("expected only a catalog or catalog-from, both specified");
-        YYABORT;
-      }
       cfg_parser->pattern->catalog = region_strdup(cfg_parser->opt->region, $2); 
       config_apply_pattern(cfg_parser->pattern, $2);
-    }
-  | VAR_CATALOG_FROM STRING
-    { 
-      if (cfg_parser->pattern->catalog) {
-        yyerror("expected only a catalog or catalog-from, both specified");
-        YYABORT;
-      }
-      cfg_parser->pattern->catalog_from = region_strdup(cfg_parser->opt->region, $2); 
     };
 
 verify:

@@ -33,7 +33,6 @@
 #include "ixfr.h"
 #include "ixfrcreate.h"
 
-/* TODO: Maybe eventually include "cat-zones.h" */
 #include "cat-zones-nsd.h"
 
 static time_t udb_time = 0;
@@ -691,14 +690,14 @@ void namedb_check_zonefiles(struct nsd* nsd, struct nsd_options* opt,
 	zone_linkedlist* zl = NULL;
 	/* check all zones in opt, create if not exist in main db */
 	RBTREE_FOR(zo, struct zone_options*, opt->zone_options) {
-			zone_type* zone;
+		zone_type* zone;
 		const dname_type* dname = (const dname_type*)zo->node.key;
 		/* find zone to go with it, or create it */
 		zone = namedb_find_zone(nsd->db, dname);
 		if(!zone) {
 			zone = namedb_zone_create(nsd->db, dname, zo);
 		}
-		if (zone->catalog_member_id || zo->pattern->catalog_from) {
+		if (zone->catalog_member_id || zo->pattern->catalog) {
 			/* Ensure catalog zone members are loaded last */
 			zone_linkedlist* zl2 = malloc(sizeof(zone_linkedlist));
 			zl2->me = zone;
