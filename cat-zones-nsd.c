@@ -17,13 +17,10 @@ void
 catz_add_zone(const dname_type *member_zone_name,
 	const dname_type *member_id,
 	zone_type *catalog_zone, 
-	const char* pname,
-	void *arg,
+	nsd_type* nsd,
 	udb_base* udb,
 	udb_ptr* last_task)
 {
-	nsd_type* nsd = (nsd_type*)arg;
-
 	region_type* cat_region = region_create(xalloc, free);
 
 	const char* zname = 
@@ -34,9 +31,7 @@ catz_add_zone(const dname_type *member_zone_name,
 
 	struct pattern_options* patopt;
 
-	if (!pname) {
-		pname = catname;
-	} 
+	const char* pname = catname;
 	patopt = pattern_options_find(nsd->options, pname);
 
 	if (t) {
@@ -161,7 +156,6 @@ void nsd_catalog_consumer_process(
 					member_zone, 
 					member_id, 
 					zone,
-					NULL,
 					nsd,
 					udb,
 					last_task
