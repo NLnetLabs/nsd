@@ -2750,6 +2750,8 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		struct zone_options* zopt = NULL;
 		pattern_options_type* patopt;
 
+		const dname_type* zdname = dname_parse(xfrd->region, zname);
+
 		log_msg(LOG_INFO, "now adding catzone %s %s %s %s", zname, pattern, catname, member_id);
 
 		patopt = pattern_options_find(xfrd->nsd->options, pattern);
@@ -2758,10 +2760,14 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 			patopt->pname = region_strdup(xfrd->region, pattern);
 			pattern_options_add_modify(xfrd->nsd->options, patopt);
 		} 
-		zopt = zone_options_find(xfrd->nsd->options, dname_parse(xfrd->region, zname));
+		zopt = zone_options_find(xfrd->nsd->options, zdname);
 		if (!zopt) {
-			zopt = zone_list_zone_insert(xfrd->nsd->options, zname, pattern, 0, 0);
+			zopt = zone_options_create(xfrd->region);
+			zopt->name = zname;
+			zopt->pattern = patopt;
+			nsd_options_insert_zone(xfrd->nsd->options, zopt);
 		} else {
+			region_recycle(xfrd->region, (void*)zdname, dname_total_size(zdname));
 			log_msg(LOG_DEBUG, "catzone already added %s", zname);
 			return;
 		}
