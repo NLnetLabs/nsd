@@ -134,7 +134,8 @@ void nsd_catalog_consumer_process(
 				(const uint8_t*)"\005zones") == 0 && 
 			label_compare(
 				dname_label(dname, dname->label_count - 1), 
-				(const uint8_t*)"\005group") == 0) {
+				(const uint8_t*)"\005group") == 0 &&
+			rdata_atom_size(rr->rdatas[0]) > 1) {
 				
 				DEBUG(DEBUG_CATZ, 1, 
 				(LOG_INFO, "Group property discovered"));
