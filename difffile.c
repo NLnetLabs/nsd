@@ -2120,6 +2120,7 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 	zdname = dname_parse(nsd->db->region, zname);
 	if(!zdname) {
 		log_msg(LOG_ERR, "can not parse zone name %s", zname);
+		region_recycle(nsd->db->region, (void*)zdname, dname_total_size(zdname));
 		return;
 	}
 
@@ -2130,6 +2131,7 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		patopt = pattern_options_create(nsd->region);
 		patopt->pname = pname;
 		pattern_options_add_modify(nsd->options, patopt);
+		region_recycle(nsd->region, (void*)patopt, sizeof(pattern_options_type));
 	} 
 
 	z = find_or_create_zone(nsd->db, zdname, nsd->options, zname, pname);
@@ -2140,7 +2142,7 @@ task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		return;
 	}
 	z->zonestatid = (unsigned)task->yesno;
-	z->from_catalog = (char*)catname;
+	z->from_catalog = region_strdup(nsd->db->region, (char*)catname);
 	z->catalog_member_id = (dname_type*)dname_parse(nsd->db->region, member_id);
 	/* if zone is empty, attempt to read the zonefile from disk (if any) */
 	if(!z->soa_rrset && z->opts->pattern->zonefile) {
@@ -2159,10 +2161,11 @@ task_process_check_coo(struct nsd* nsd, udb_base* ATTR_UNUSED(udb), udb_ptr* ATT
 
 	zone_type* t;
 
-	log_msg(LOG_INFO, "checkcoo task %s %s %s", zname, catname, member_id);
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "checkcoo task %s %s %s", zname, catname, member_id));
 	zdname = dname_parse(nsd->region, zname);
 	if(!zdname) {
 		log_msg(LOG_ERR, "can not parse zone name %s", zname);
+		region_recycle(nsd->region, (void*)zdname, dname_total_size(zdname));
 		return;
 	}
 
@@ -2186,7 +2189,7 @@ task_process_check_coo(struct nsd* nsd, udb_base* ATTR_UNUSED(udb), udb_ptr* ATT
 
 		DEBUG(DEBUG_CATZ, 1, 
 			(LOG_INFO, 
-			"Found existing zone belong to a catalog zone %s", 
+			"Found existing zone belonging to a catalog zone %s", 
 			dname_to_string(cz->apex->dname, NULL)));
 
 		zone_rr_iter_init(&rr_iter, cz);
