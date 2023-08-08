@@ -2164,7 +2164,7 @@ task_process_check_coo(struct nsd* nsd, udb_base* ATTR_UNUSED(udb), udb_ptr* ATT
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "checkcoo task %s %s %s", zname, catname, member_id));
 	zdname = dname_parse(nsd->region, zname);
 	if(!zdname) {
-		log_msg(LOG_ERR, "can not parse zone name %s", zname);
+		log_msg(LOG_ERR, "cannot parse zone name %s", zname);
 		region_recycle(nsd->region, (void*)zdname, dname_total_size(zdname));
 		return;
 	}
@@ -2173,6 +2173,8 @@ task_process_check_coo(struct nsd* nsd, udb_base* ATTR_UNUSED(udb), udb_ptr* ATT
 
 	if (t) {
 		zone_type* cz;
+		dname_type* cz_dname;
+
 		struct zone_rr_iter rr_iter;
 		struct rr *rr;
 		int coo_correct = 0;
@@ -2180,11 +2182,12 @@ task_process_check_coo(struct nsd* nsd, udb_base* ATTR_UNUSED(udb), udb_ptr* ATT
 		if (!t->from_catalog) {
 			return;
 		}
+
+		cz_dname = dname_parse(nsd->region, t->from_catalog);
+
 		cz = namedb_find_zone(
 			nsd->db, 
-			dname_parse(
-				nsd->region, 
-				t->from_catalog)
+			cz_dname
 			);
 
 		DEBUG(DEBUG_CATZ, 1, 
@@ -2238,12 +2241,13 @@ task_process_check_coo(struct nsd* nsd, udb_base* ATTR_UNUSED(udb), udb_ptr* ATT
 		}
 
 		if (coo_correct) {
-			t->from_catalog = (char*)catname;
-			t->catalog_member_id = (dname_type*)member_id;
-			return;
-		} else {
-			return;
+			t->from_catalog = region_strdup(
+				nsd->db->region, (char*)catname);
+			t->catalog_member_id = dname_copy(
+				nsd->db->region, (dname_type*)member_id);
 		}
+
+		region_recycle(nsd->region, cz_dname, dname_total_size(cz_dname));
 	}
 }
 
