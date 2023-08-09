@@ -2264,14 +2264,14 @@ task_process_apply_pattern(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 
 	zdname = dname_parse(nsd->region, member_id);
 
-	log_msg(LOG_INFO, "applypattern task %s %s", member_id, pname);
+	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "applypattern task %s %s", member_id, pname));
 
 	RBTREE_FOR(zo, struct zone_options*, 
 	nsd->options->zone_options) {
 		const dname_type* gd = 
 			(const dname_type*)zo->node.key;
 		gz = namedb_find_zone(nsd->db, gd);
-		log_msg(LOG_INFO, "consider zone %s %s", member_id, dname_to_string(gz->apex->dname, NULL));
+		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "consider zone %s %s", member_id, dname_to_string(gz->apex->dname, NULL)));
 
 
 		if (gz && gz->catalog_member_id && 
@@ -2286,7 +2286,7 @@ task_process_apply_pattern(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 	if (gz) {
 		struct pattern_options* patopt = pattern_options_find(nsd->options, pname);
 
-		log_msg(LOG_INFO, "config apply %s with pattern %s", dname_to_string(gz->apex->dname, NULL), pname);
+		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "config apply %s with pattern %s", dname_to_string(gz->apex->dname, NULL), pname));
 		if (patopt && !pattern_options_equal(patopt, gz->opts->pattern)) {
 			const char* nzname = region_strdup(nsd->region, dname_to_string(gz->apex->dname, NULL));
 			const char* npname = pname;
@@ -2303,8 +2303,20 @@ task_process_apply_pattern(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 				ncatalog_member_id, 
 				0
 			);
+
+			region_recycle(
+				nsd->region, nzname, strlen(nzname));
+			region_recycle(
+				nsd->region, nfrom_catalog, strlen(nfrom_catalog));
+			region_recycle(
+				nsd->region, 
+				ncatalog_member_id, 
+				dname_total_size(ncatalog_member_id)
+			);
 		}
 	}
+
+	region_recycle(nsd->region, zdname, dname_total_size(zdname));
 }
 
 static void
