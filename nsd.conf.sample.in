@@ -480,11 +480,7 @@ remote-control:
 	# Number of seconds before verifier is killed (0 is forever).
 	# Default is verifier-timeout in verify.
 	# verifier-timeout: 0
-
-	# Pattern for the catalog producer that generates the contents of the 
-	# catalog zone.
-	# catalog-from: "mycatalog"
-
+	
 	# Pattern for the catalog consumer that extracts information from the 
 	# catalog zone.
 	# catalog: "mycatalog"

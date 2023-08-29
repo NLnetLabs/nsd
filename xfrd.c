@@ -2763,7 +2763,7 @@ xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 		zopt = zone_options_find(xfrd->nsd->options, zdname);
 		if (!zopt) {
 			zopt = zone_options_create(xfrd->region);
-			zopt->name = zname;
+			zopt->name = region_strdup(xfrd->region, zname);
 			zopt->pattern = patopt;
 			nsd_options_insert_zone(xfrd->nsd->options, zopt);
 		} else {
