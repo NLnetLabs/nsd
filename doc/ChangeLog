@@ -1,3 +1,6 @@
+31 August 2023: Wouter
+	- Fix autoconf 2.69 warnings in configure.
+
 14 July 2023: Wouter
 	- Merge #287: Update nsd.conf.5.in.
 

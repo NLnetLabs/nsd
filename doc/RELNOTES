@@ -12,6 +12,7 @@ BUG FIXES:
 	  Mac/Darwin.
 	- Fix unused variable warning in unit test of udb.
 	- Merge #287: Update nsd.conf.5.in.
+	- Fix autoconf 2.69 warnings in configure.
 
 4.7.0
 ================
