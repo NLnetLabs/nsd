@@ -219,17 +219,18 @@ void nsd_catalog_consumer_process(
 				} while ((c = c->next));
 
 				if (!zone_exists) {
+					char* pname = region_strdup(
+						catzonezones_region,
+						dname_to_string(zone->apex->dname, NULL)
+					);
 					c = region_alloc(catzonezones_region, sizeof(catzonezone_type));
 					c->member_id = (dname_type*)member_id;
 					c->member_zone = (dname_type*)member_zone;
 					c->to_delete = 0;
 					c->to_add = 1;
 					c->updated_pattern = 0;
-					c->original_pname = zone->apex->dname;
-					c->pname = region_strdup(
-						catzonezones_region,
-						dname_to_string(zone->apex->dname, NULL)
-					);
+					c->original_pname = pname;
+					c->pname = pname;
 					c->next = catzonezones;
 					catzonezones = c;
 				}
@@ -247,9 +248,22 @@ void nsd_catalog_consumer_process(
 			task_new_del_zone(udb, last_task, 
 			catzonezones->member_zone);
 		} else if (catzonezones->to_add) {
-			catz_add_zone(catzonezones->member_zone, catzonezones->member_id, zone, catzonezones->pname, nsd, udb, last_task);
+			catz_add_zone(
+				catzonezones->member_zone, 
+				catzonezones->member_id, 
+				zone, 
+				catzonezones->pname, 
+				nsd, 
+				udb, 
+				last_task
+			);
 		} else if (catzonezones->updated_pattern) {
-			task_new_apply_pattern(udb, last_task, dname_to_string(catzonezones->member_id, NULL), catzonezones->pname);
+			task_new_apply_pattern(
+				udb, 
+				last_task, 
+				dname_to_string(catzonezones->member_id, NULL), 
+				catzonezones->pname
+			);
 		}
 	} while ((catzonezones = catzonezones->next));
 	
