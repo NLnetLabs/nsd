@@ -98,7 +98,7 @@ void nsd_catalog_consumer_process(
 		if (z->from_catalog && strcmp(z->from_catalog, catname) == 0) {
 			catzonezone_type* c = region_alloc(catzonezones_region, sizeof(catzonezone_type));
 			c->member_id = z->catalog_member_id;
-			c->member_zone = dname_parse(catzonezones_region, z->from_catalog);
+			c->member_zone = (dname_type*)dname_parse(catzonezones_region, z->from_catalog);
 			c->to_delete = 1;
 			c->to_add = 0;
 			c->updated_pattern = 0;
