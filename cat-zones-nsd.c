@@ -13,10 +13,25 @@
 #include "util.h"
 
 
+struct catzonezone
+{
+	dname_type* member_zone;
+	dname_type* member_id;
+	uint to_delete : 1;
+	uint to_add : 1;
+	uint updated_pattern : 1;
+	const char* original_pname;
+	char* pname;
+	struct catzonezone* next;
+};
+typedef struct catzonezone catzonezone_type;
+
+
 void
 catz_add_zone(const dname_type *member_zone_name,
 	const dname_type *member_id,
 	zone_type *catalog_zone, 
+	const char* pname,
 	nsd_type* nsd,
 	udb_base* udb,
 	udb_ptr* last_task)
@@ -29,10 +44,11 @@ catz_add_zone(const dname_type *member_zone_name,
 		region_strdup(cat_region, dname_to_string(catalog_zone->apex->dname, NULL));
 	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
 
-	struct pattern_options* patopt;
-
-	const char* pname = catname;
-	patopt = pattern_options_find(nsd->options, pname);
+	// struct pattern_options* patopt;
+	if (!pname) {
+		pname = catname;
+	}
+	// patopt = pattern_options_find(nsd->options, pname);
 
 	if (t) {
 		task_new_check_coo(
@@ -44,11 +60,11 @@ catz_add_zone(const dname_type *member_zone_name,
 		);
 	}
 
-	if (!patopt || !patopt->pname) {
-		patopt = pattern_options_create(nsd->region);
-		patopt->pname = pname;
-		pattern_options_add_modify(nsd->options, patopt);
-	}
+	// if (!patopt || !patopt->pname) {
+	// 	patopt = pattern_options_create(nsd->region);
+	// 	patopt->pname = pname;
+	// 	pattern_options_add_modify(nsd->options, patopt);
+	// }
 
 	DEBUG(DEBUG_CATZ, 1, 
 	(LOG_INFO, "Task created for catalog %s: %s", catname, zname));
@@ -69,20 +85,31 @@ void nsd_catalog_consumer_process(
 
 	uint8_t has_version_txt = 0;
 
-	// Remove all zones coming from a catalog
-	// Re-add all zones coming from a catalog
-
 	const char* catname = region_strdup(nsd->region, 
 		domain_to_string(zone->apex));
+	
+	catzonezone_type* catzonezones = NULL;
+	region_type* catzonezones_region = region_create(xalloc, free);
 
 	for (struct radnode* n = radix_first(nsd->db->zonetree);
 	n;
 	n = radix_next(n)) {
 		zone_type* z = (zone_type*)n->elem;
 		if (z->from_catalog && strcmp(z->from_catalog, catname) == 0) {
+			catzonezone_type* c = region_alloc(catzonezones_region, sizeof(catzonezone_type));
+			c->member_id = z->catalog_member_id;
+			c->member_zone = dname_parse(catzonezones_region, z->from_catalog);
+			c->to_delete = 1;
+			c->to_add = 0;
+			c->updated_pattern = 0;
+			c->original_pname = z->opts->pattern->pname;
+			c->pname = (char*)z->opts->pattern->pname;
+			c->next = catzonezones;
+			catzonezones = c;
+
 			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Deleted zone %s", 
 				dname_to_string(z->apex->dname, NULL)));
-			task_new_del_zone(udb, last_task, z->apex->dname);
+			// task_new_del_zone(udb, last_task, z->apex->dname);
 		}
 	}
 	
@@ -131,11 +158,23 @@ void nsd_catalog_consumer_process(
 				dname_label(dname, dname->label_count - 1), 
 				(const uint8_t*)"\005group") == 0 &&
 			rdata_atom_size(rr->rdatas[0]) > 1) {
-				
+				catzonezone_type* c = catzonezones;
+				const char* pname = (const char*)(rdata_atom_data(rr->rdatas[0]) + 1);
+
 				DEBUG(DEBUG_CATZ, 1, 
 				(LOG_INFO, "Group property discovered"));
 
-				task_new_apply_pattern(udb, last_task, dname_to_string(dname, NULL), (const char*)(rdata_atom_data(rr->rdatas[0]) + 1));
+				do {
+					if (c->member_id && 
+					dname_label_match_count(c->member_id, dname)
+					 == c->member_id->label_count && strcmp(c->original_pname, pname) != 0) {
+						c->pname = (char*)pname;
+						c->updated_pattern = 1;
+						break;
+					}
+				} while ((c = c->next));
+			
+				// task_new_apply_pattern(udb, last_task, dname_to_string(dname, NULL), (const char*)(rdata_atom_data(rr->rdatas[0]) + 1));
 			}
 			break;
 		case TYPE_PTR:
@@ -152,17 +191,67 @@ void nsd_catalog_consumer_process(
 
 				const dname_type* member_id = rr->owner->dname;
 
-				catz_add_zone(
-					member_zone, 
-					member_id, 
-					zone,
-					nsd,
-					udb,
-					last_task
-				);
+				catzonezone_type* c = catzonezones;
+
+				int zone_exists = 0;
+
+				do {
+					if (!c) {
+						break;
+					}
+					if (c->member_id && 
+					dname_label_match_count(c->member_id, member_id)
+					 == c->member_id->label_count) {
+						if (dname_compare(c->member_zone, member_zone) != 0) {
+							// This member_id got a new zone
+							c->to_delete = 1;
+							zone_exists = 0;
+						} else {
+							c->to_delete = 0;
+							c->pname = region_strdup(
+								catzonezones_region, 
+								dname_to_string(zone->apex->dname, NULL)
+							);
+							zone_exists = 1;
+						}
+						break;
+					}
+				} while ((c = c->next));
+
+				if (!zone_exists) {
+					c = region_alloc(catzonezones_region, sizeof(catzonezone_type));
+					c->member_id = (dname_type*)member_id;
+					c->member_zone = (dname_type*)member_zone;
+					c->to_delete = 0;
+					c->to_add = 1;
+					c->updated_pattern = 0;
+					c->original_pname = zone->apex->dname;
+					c->pname = region_strdup(
+						catzonezones_region,
+						dname_to_string(zone->apex->dname, NULL)
+					);
+					c->next = catzonezones;
+					catzonezones = c;
+				}
 				break;				
 			} 
 			break;
 		}
 	}
+
+	do {
+		if (!catzonezones) {
+			break;
+		}
+		if (catzonezones->to_delete) {
+			task_new_del_zone(udb, last_task, 
+			catzonezones->member_zone);
+		} else if (catzonezones->to_add) {
+			catz_add_zone(catzonezones->member_zone, catzonezones->member_id, zone, catzonezones->pname, nsd, udb, last_task);
+		} else if (catzonezones->updated_pattern) {
+			task_new_apply_pattern(udb, last_task, dname_to_string(catzonezones->member_id, NULL), catzonezones->pname);
+		}
+	} while ((catzonezones = catzonezones->next));
+	
+	region_destroy(catzonezones_region); 
 }
