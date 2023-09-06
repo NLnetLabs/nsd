@@ -23,7 +23,6 @@ CuSuite * reg_cutest_iterated_hash(void);
 CuSuite * reg_cutest_dname(void);
 CuSuite * reg_cutest_region(void);
 CuSuite * reg_cutest_udb(void);
-CuSuite * reg_cutest_udb_radtree(void);
 CuSuite * reg_cutest_namedb(void);
 CuSuite * reg_cutest_bitset(void);
 #ifdef RATELIMIT
@@ -75,9 +74,8 @@ int runalltests(const char *regex)
 	CuSuiteAddSuite(suite, reg_cutest_iterated_hash());
 #ifdef HAVE_MMAP
 	CuSuiteAddSuite(suite, reg_cutest_udb());
-	CuSuiteAddSuite(suite, reg_cutest_udb_radtree());
-	CuSuiteAddSuite(suite, reg_cutest_namedb());
 #endif
+	CuSuiteAddSuite(suite, reg_cutest_namedb());
 #ifdef RATELIMIT
 	CuSuiteAddSuite(suite, reg_cutest_rrl());
 #endif

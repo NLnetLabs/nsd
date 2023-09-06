@@ -5,7 +5,7 @@ dnl
 sinclude(acx_nlnetlabs.m4)
 sinclude(dnstap/dnstap.m4)
 
-AC_INIT([NSD],[4.7.1],[https://github.com/NLnetLabs/nsd/issues or nsd-bugs@nlnetlabs.nl])
+AC_INIT([NSD],[4.8.0],[https://github.com/NLnetLabs/nsd/issues or nsd-bugs@nlnetlabs.nl])
 AC_CONFIG_HEADERS([config.h])
 
 #
@@ -96,20 +96,8 @@ AC_ARG_WITH([pidfile],
 AC_SUBST(pidfile)
 AC_DEFINE_UNQUOTED(PIDFILE, ["`eval echo $pidfile`"], [Pathname to the NSD pidfile])
 
-#
-# Determine location of nsd.db
-#
-dbfile=${dbdir}/nsd.db
 AC_ARG_WITH([dbfile],
-	AS_HELP_STRING([--with-dbfile=path],[Pathname to the NSD database]),
-	[dbfile=$withval])
-AC_SUBST(dbfile)
-AC_DEFINE_UNQUOTED(DBFILE, ["`eval echo $dbfile`"], [Pathname to the NSD database])
-
-if test -n "$dbfile"; then
-	dbdir=`dirname $dbfile`
-fi
-AC_SUBST(dbdir)
+	AS_HELP_STRING([--with-dbfile=path],[Pathname to the NSD database (obsolete)]),[])
 
 piddir=`dirname $pidfile`
 AC_SUBST(piddir)

@@ -1,3 +1,6 @@
+1 November 2023: Jeroen
+	- Remove on-disk database.
+
 31 October 2023: Wouter
 	- Merge #301: improve the logging of ixfr fallbacks to axfr.
 
