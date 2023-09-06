@@ -6,7 +6,7 @@
 
 sleep 3
 
-dig NSEC @localhost -p $TPKG_PORT +dnssec +short aap.example.NET. > master.out
-dig NSEC @localhost -p $TPKG_PORT2 +dnssec +short aap.example.NET. > slave.out
+dig -4 NSEC @localhost -p $TPKG_PORT +dnssec +short aap.example.NET. > master.out
+dig -4 NSEC @localhost -p $TPKG_PORT2 +dnssec +short aap.example.NET. > slave.out
 
 wdiff master.out slave.out

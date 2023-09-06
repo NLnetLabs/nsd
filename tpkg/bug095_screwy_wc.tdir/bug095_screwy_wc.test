@@ -10,7 +10,7 @@ if $DIG $NOEDNS -v 2>&1 | grep "Invalid option" >/dev/null; then
 	NOEDNS=""
 fi
 
-$DIG $NOEDNS +noall +comments @localhost -p $TPKG_PORT www2.\*.example. txt| sed 's/id.*//' > bug095_screwy_wc.current_respons1
+$DIG -4 $NOEDNS +noall +comments @localhost -p $TPKG_PORT www2.\*.example. txt| sed 's/id.*//' > bug095_screwy_wc.current_respons1
 grep -v WARNING bug095_screwy_wc.current_respons1 > bug095_screwy_wc.current_respons2
 
 echo "START CURRENT"

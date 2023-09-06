@@ -3,7 +3,7 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 # normal query
-dig +noall +answer @localhost -p $TPKG_PORT txt-test1.text-test.nl txt > bug090_000_txt.current_respons1
+dig -4 +noall +answer @localhost -p $TPKG_PORT txt-test1.text-test.nl txt > bug090_000_txt.current_respons1
 
 # both must be ok
 wdiff bug090_000_txt.known_good_respons1 bug090_000_txt.current_respons1
