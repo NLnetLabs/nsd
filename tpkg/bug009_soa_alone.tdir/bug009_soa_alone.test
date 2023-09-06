@@ -7,8 +7,8 @@
 DIG=dig
 echo "NSD PORT: $TPKG_PORT"
 
-$DIG +noall +answer @localhost -p $TPKG_PORT miek.nl soa > bug009_soa_alone.current_respons1
-$DIG +noall +auth @localhost -p $TPKG_PORT a.miek.nl a > bug009_soa_alone.current_respons2
+$DIG -4 +noall +answer @localhost -p $TPKG_PORT miek.nl soa > bug009_soa_alone.current_respons1
+$DIG -4 +noall +auth @localhost -p $TPKG_PORT a.miek.nl a > bug009_soa_alone.current_respons2
 
 # must be ok
 wdiff bug009_soa_alone.known_good_respons1 bug009_soa_alone.current_respons1 && \

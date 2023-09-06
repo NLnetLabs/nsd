@@ -3,9 +3,9 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 # normal query
-dig +noall +answer @localhost -p $TPKG_PORT miek.nl a > bug103_nx_soa_ttl.current_respons1
+dig -4 +noall +answer @localhost -p $TPKG_PORT miek.nl a > bug103_nx_soa_ttl.current_respons1
 # check the ttl on this one
-dig +noall +authority @localhost -p $TPKG_PORT blaat.miek.nl > bug103_nx_soa_ttl.current_respons2
+dig -4 +noall +authority @localhost -p $TPKG_PORT blaat.miek.nl > bug103_nx_soa_ttl.current_respons2
 
 # both must be ok
 wdiff bug103_nx_soa_ttl.known_good_respons1 bug103_nx_soa_ttl.current_respons1 && \

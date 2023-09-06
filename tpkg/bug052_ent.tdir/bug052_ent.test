@@ -3,7 +3,7 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 # the query
-dig -p $TPKG_PORT +noall +auth @localhost a b.miek.nl > bug052_ent.current_respons1
+dig -4 -p $TPKG_PORT +noall +auth @localhost a b.miek.nl > bug052_ent.current_respons1
 
 # must match
 wdiff bug052_ent.known_good_respons1 bug052_ent.current_respons1 
