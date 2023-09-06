@@ -66,7 +66,6 @@ nsd_options_create(region_type* region)
 	opt->drop_updates = 0;
 	opt->do_ip4 = 1;
 	opt->do_ip6 = 1;
-	opt->database = DBFILE;
 	opt->identity = 0;
 	opt->version = 0;
 	opt->nsid = 0;
@@ -131,9 +130,7 @@ nsd_options_create(region_type* region)
 	opt->dnstap_log_auth_response_messages = 0;
 #endif
 	opt->zonefiles_check = 1;
-	if(opt->database == NULL || opt->database[0] == 0)
-		opt->zonefiles_write = ZONEFILES_WRITE_INTERVAL;
-	else	opt->zonefiles_write = 0;
+	opt->zonefiles_write = ZONEFILES_WRITE_INTERVAL;
 	opt->xfrd_reload_timeout = 1;
 	opt->tls_service_key = NULL;
 	opt->tls_service_ocsp = NULL;

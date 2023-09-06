@@ -489,9 +489,6 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				nsd->children[i].handler->fd = nsd->children[i].child_fd;
 				break;
 			case 0: /* CHILD */
-				/* the child need not be able to access the
-				 * nsd.db file */
-				namedb_close_udb(nsd->db);
 #ifdef MEMCLEAN /* OS collects memory pages */
 				region_destroy(region);
 #endif
@@ -1423,7 +1420,7 @@ int
 server_prepare(struct nsd *nsd)
 {
 #ifdef RATELIMIT
-	/* set secret modifier for hashing (udb ptr buckets and rate limits) */
+	/* set secret modifier for hashing (rate limits) */
 #ifdef HAVE_GETRANDOM
 	uint32_t v;
 	if(getrandom(&v, sizeof(v), 0) == -1) {
@@ -1452,9 +1449,8 @@ server_prepare(struct nsd *nsd)
 #endif /* RATELIMIT */
 
 	/* Open the database... */
-	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options)) == NULL) {
-		log_msg(LOG_ERR, "unable to open the database %s: %s",
-			nsd->dbfile, strerror(errno));
+	if ((nsd->db = namedb_open(nsd->options)) == NULL) {
+		log_msg(LOG_ERR, "unable to open the database: %s", strerror(errno));
 		unlink(nsd->task[0]->fname);
 		unlink(nsd->task[1]->fname);
 #ifdef USE_ZONE_STATS
@@ -1464,12 +1460,10 @@ server_prepare(struct nsd *nsd)
 		xfrd_del_tempdir(nsd);
 		return -1;
 	}
-	/* check if zone files have been modified */
+	/* check if zone files can be read */
 	/* NULL for taskudb because we send soainfo in a moment, batched up,
 	 * for all zones */
-	if(nsd->options->zonefiles_check || (nsd->options->database == NULL ||
-		nsd->options->database[0] == 0))
-		namedb_check_zonefiles(nsd, nsd->options, NULL, NULL);
+	namedb_check_zonefiles(nsd, nsd->options, NULL, NULL);
 	zonestatid_tree_set(nsd);
 
 	compression_table_capacity = 0;
@@ -1566,7 +1560,6 @@ server_shutdown(struct nsd *nsd)
 	udb_base_free_keep_mmap(nsd->task[0]);
 	udb_base_free_keep_mmap(nsd->task[1]);
 	namedb_free_ixfr(nsd->db);
-	namedb_close_udb(nsd->db); /* keeps mmap */
 	namedb_close(nsd->db);
 	nsd_options_destroy(nsd->options);
 	region_destroy(nsd->region);
@@ -1736,9 +1729,6 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 			unlink(nsd->zonestatfname[0]);
 			unlink(nsd->zonestatfname[1]);
 #endif
-			/* write the nsd.db to disk, wait for it to complete */
-			udb_base_sync(nsd->db->udb, 1);
-			udb_base_close(nsd->db->udb);
 			server_shutdown(nsd);
 			/* ENOTREACH */
 			exit(0);
@@ -2217,8 +2207,6 @@ reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
 			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc command from main %d", (int)cmd));
 			if(cmd == NSD_QUIT) {
 				DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: quit to follow nsd"));
-				/* sync to disk (if needed) */
-				udb_base_sync(nsd->db->udb, 0);
 				/* unlink files of remainder of tasks */
 				while(!udb_ptr_is_null(&t)) {
 					if(TASKLIST(&t)->task_type == task_apply_xfr) {
@@ -2265,7 +2253,7 @@ reload_do_stats(int cmdfd, struct nsd* nsd, udb_ptr* last)
 		log_msg(LOG_ERR, "could not read stats from oldpar");
 		return;
 	}
-	s.db_disk = (nsd->db->udb?nsd->db->udb->base_size:0);
+	s.db_disk = 0;
 	s.db_mem = region_get_mem(nsd->db->region);
 	p = (stc_type*)task_new_stat_info(nsd->task[nsd->mytask], last, &s,
 		nsd->child_count);
@@ -2313,18 +2301,12 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* see what tasks we got from xfrd */
 	task_remap(nsd->task[nsd->mytask]);
 	udb_ptr_init(&last_task, nsd->task[nsd->mytask]);
-	udb_compact_inhibited(nsd->db->udb, 1);
 	reload_process_tasks(nsd, &last_task, cmdsocket);
-	udb_compact_inhibited(nsd->db->udb, 0);
-	udb_compact(nsd->db->udb);
 
 #ifndef NDEBUG
 	if(nsd_debug_level >= 1)
 		region_log_stats(nsd->db->region);
 #endif /* NDEBUG */
-	/* sync to disk (if needed) */
-	udb_base_sync(nsd->db->udb, 0);
-
 	initialize_dname_compression_tables(nsd);
 
 #ifdef BIND8_STATS
@@ -2880,9 +2862,6 @@ server_main(struct nsd *nsd)
 #ifdef MEMCLEAN /* OS collects memory pages */
 	region_destroy(server_region);
 #endif
-	/* write the nsd.db to disk, wait for it to complete */
-	udb_base_sync(nsd->db->udb, 1);
-	udb_base_close(nsd->db->udb);
 	server_shutdown(nsd);
 }
 

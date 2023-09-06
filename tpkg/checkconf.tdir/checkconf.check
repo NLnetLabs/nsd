@@ -14,7 +14,6 @@ server:
 	hide-identity: no
 	drop-updates: no
 	tcp-reject-overflow: no
-	database: "/etc/nsd.db"
 	identity: "server number 23"
 	#version:
 	nsid: "123456"
@@ -49,7 +48,7 @@ server:
 	ip-address: 127.0.0.1
 	ip-address: 10.1.2.3
 	zonefiles-check: yes
-	zonefiles-write: 0
+	zonefiles-write: 3600
 	#tls-service-key:
 	#tls-service-pem:
 	#tls-service-ocsp:
@@ -150,7 +149,6 @@ server:
 	hide-identity: no
 	drop-updates: no
 	tcp-reject-overflow: no
-	database: "/etc/nsd/nsd.db"
 	#identity:
 	#version:
 	#nsid:
@@ -183,7 +181,7 @@ server:
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
-	zonefiles-write: 0
+	zonefiles-write: 3600
 	#tls-service-key:
 	#tls-service-pem:
 	#tls-service-ocsp:
@@ -227,7 +225,6 @@ server:
 	hide-identity: no
 	drop-updates: no
 	tcp-reject-overflow: no
-	database: "/var/db/nsd/nsd.db"
 	#identity:
 	#version:
 	#nsid:
@@ -260,7 +257,7 @@ server:
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
-	zonefiles-write: 0
+	zonefiles-write: 3600
 	#tls-service-key:
 	#tls-service-pem:
 	#tls-service-ocsp:
@@ -313,7 +310,6 @@ server:
 	hide-identity: no
 	drop-updates: no
 	tcp-reject-overflow: no
-	database: "/var/db/nsd/nsd.db"
 	#identity:
 	#version:
 	#nsid:
@@ -346,7 +342,7 @@ server:
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
-	zonefiles-write: 0
+	zonefiles-write: 3600
 	#tls-service-key:
 	#tls-service-pem:
 	#tls-service-ocsp:
@@ -443,7 +439,6 @@ server:
 	hide-identity: no
 	drop-updates: no
 	tcp-reject-overflow: no
-	database: "/var/db/nsd/nsd.db"
 	#identity:
 	#version:
 	#nsid:
@@ -476,7 +471,7 @@ server:
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
-	zonefiles-write: 0
+	zonefiles-write: 3600
 	#tls-service-key:
 	#tls-service-pem:
 	#tls-service-ocsp:

@@ -20,12 +20,12 @@ create_namedb(void)
 {
 	struct namedb *db;
 
-        if((db = namedb_open(NULL, NULL)) == NULL) {
-                fprintf(stderr, "failed to create namedb\n");
-                exit(1);
-        }
+	if((db = namedb_open(NULL)) == NULL) {
+		fprintf(stderr, "failed to create namedb\n");
+		exit(1);
+	}
 
-        return db;
+	return db;
 }
 
 static void

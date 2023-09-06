@@ -420,7 +420,6 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_BIN(tcp_reject_overflow, o);
 		SERV_GET_BIN(log_only_syslog, o);
 		/* str */
-		SERV_GET_PATH(final, database, o);
 		SERV_GET_STR(identity, o);
 		SERV_GET_STR(version, o);
 		SERV_GET_STR(nsid, o);
@@ -612,7 +611,6 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\tdrop-updates: %s\n", opt->drop_updates?"yes":"no");
 	printf("\ttcp-reject-overflow: %s\n",
 		opt->tcp_reject_overflow ? "yes" : "no");
-	print_string_var("database:", opt->database);
 	print_string_var("identity:", opt->identity);
 	print_string_var("version:", opt->version);
 	print_string_var("nsid:", opt->nsid);
@@ -862,11 +860,6 @@ additional_checks(nsd_options_type* opt, const char* filename)
 		if (!file_inside_chroot(opt->pidfile, opt->chroot)) {
 			fprintf(stderr, "%s: pidfile %s is not relative to chroot %s.\n",
 				filename, opt->pidfile, opt->chroot);
-			errors ++;
-                }
-		if (!file_inside_chroot(opt->database, opt->chroot)) {
-			fprintf(stderr, "%s: database %s is not relative to chroot %s.\n",
-				filename, opt->database, opt->chroot);
 			errors ++;
                 }
 		if (!file_inside_chroot(opt->xfrdfile, opt->chroot)) {

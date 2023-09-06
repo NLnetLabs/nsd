@@ -207,15 +207,6 @@ If yes, NSD listens to IPv4 connections.  Default yes.
 .B do\-ip6:\fR <yes or no>
 If yes, NSD listens to IPv6 connections.  Default yes.
 .TP
-.B database:\fR <filename>
-By default 
-.I @dbfile@
-is used. The specified file is used to store the compiled 
-zone information. Same as commandline option 
-.BR \-f.
-If set to "" then no database is used.  This uses less memory but
-zone updates are not (immediately) spooled to disk.
-.TP
 .B zonelistfile:\fR <filename>
 By default 
 .I @zonelistfile@

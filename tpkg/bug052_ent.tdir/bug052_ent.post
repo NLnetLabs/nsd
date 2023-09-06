@@ -2,7 +2,6 @@
 [ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
-rm -f bug052_ent.db
 rm -f bug052_ent.current_respons1
 
 # kill NSD

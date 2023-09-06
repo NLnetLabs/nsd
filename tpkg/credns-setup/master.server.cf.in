@@ -1,7 +1,6 @@
 server:
     zonesdir:            @ZONESDIR@
     username:            @USERNAME@
-    database:           ""
     logfile:            "@abs_builddir@/nsd.log"
     pidfile:            "@abs_builddir@/nsd.pid"
     difffile:           "@abs_builddir@/ixfr.db"

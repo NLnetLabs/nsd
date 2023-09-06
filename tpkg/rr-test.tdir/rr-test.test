@@ -38,50 +38,51 @@ else
 fi
 
 # test wireformat parse routine, by reading the db again.
-echo ""
-echo "second test (read own wireformat from db)"
-rm -f rr-test.zone
+# on-disk binary database has been removed
+#echo ""
+#echo "second test (read own wireformat from db)"
+#rm -f rr-test.zone
 mv cmp.zone firstwrite.zone
-../../nsd -c nsd.conf -p $RND_PORT
-wait_nsd_up nsd.log
-../../nsd-control -c nsd.conf write
-if test ! -f rr-test.zone; then sleep 1; fi
-if test ! -f rr-test.zone; then sleep 1; fi
-if test ! -f rr-test.zone; then sleep 1; fi
-if test ! -f rr-test.zone; then sleep 1; fi
-if test ! -f rr-test.zone; then sleep 1; fi
-if test ! -f rr-test.zone; then sleep 1; fi
-if test ! -f rr-test.zone; then sleep 1; fi
-if test ! -f rr-test.zone; then sleep 1; fi
-if test ! -f rr-test.zone; then sleep 1; fi
-if test ! -f rr-test.zone; then sleep 1; fi
-kill_pid `cat nsd.pid`
-
-grep -v "^;" rr-test.zone > cmp.zone
-
-if wdiff bak.zone cmp.zone >/dev/null; then
-	echo "diff ok, for read of database (wireformat read)"
-else
-	echo "zone printed differently, the second time (wireformat read)"
-	cat nsd.log
-	wdiff -3 bak.zone cmp.zone
-	exit 1
-fi
-
-mv cmp.zone secondwrite.zone
-if wdiff firstwrite.zone secondwrite.zone >/dev/null; then
-	echo "diff ok"
-else
-	echo "zone printed differently, the second time"
-	cat nsd.log
-	wdiff -3 firstwrite.zone secondwrite.zone
-	exit 1
-fi
+#../../nsd -c nsd.conf -p $RND_PORT
+#wait_nsd_up nsd.log
+#../../nsd-control -c nsd.conf write
+#if test ! -f rr-test.zone; then sleep 1; fi
+#if test ! -f rr-test.zone; then sleep 1; fi
+#if test ! -f rr-test.zone; then sleep 1; fi
+#if test ! -f rr-test.zone; then sleep 1; fi
+#if test ! -f rr-test.zone; then sleep 1; fi
+#if test ! -f rr-test.zone; then sleep 1; fi
+#if test ! -f rr-test.zone; then sleep 1; fi
+#if test ! -f rr-test.zone; then sleep 1; fi
+#if test ! -f rr-test.zone; then sleep 1; fi
+#if test ! -f rr-test.zone; then sleep 1; fi
+#kill_pid `cat nsd.pid`
+#
+#grep -v "^;" rr-test.zone > cmp.zone
+#
+#if wdiff bak.zone cmp.zone >/dev/null; then
+#	echo "diff ok, for read of database (wireformat read)"
+#else
+#	echo "zone printed differently, the second time (wireformat read)"
+#	cat nsd.log
+#	wdiff -3 bak.zone cmp.zone
+#	exit 1
+#fi
+#
+#mv cmp.zone secondwrite.zone
+#if wdiff firstwrite.zone secondwrite.zone >/dev/null; then
+#	echo "diff ok"
+#else
+#	echo "zone printed differently, the second time"
+#	cat nsd.log
+#	wdiff -3 firstwrite.zone secondwrite.zone
+#	exit 1
+#fi
 
 # now read its own output.
 echo ""
 echo "third test (read own text output)"
-rm -f rr-test.db
+#rm -f rr-test.db
 ../../nsd -c nsd.conf -p $RND_PORT -V 3
 wait_nsd_up nsd.log
 wait_logfile nsd.log "read with success" 10

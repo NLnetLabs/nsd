@@ -436,7 +436,6 @@ void dt_collector_start(struct dt_collector* dt_col, struct nsd* nsd)
 #endif
 		udb_base_free_keep_mmap(nsd->task[0]);
 		udb_base_free_keep_mmap(nsd->task[1]);
-		namedb_close_udb(nsd->db); /* keeps mmap */
 		namedb_close(nsd->db);
 
 		dt_collector_run(dt_col, nsd);

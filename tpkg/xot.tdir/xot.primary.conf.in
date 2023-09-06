@@ -1,6 +1,5 @@
 server:
 	username: ""
-	database: ""
 	zonesdir: ""
 	xfrdfile: ""
 	zonelistfile: ""

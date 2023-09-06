@@ -244,7 +244,6 @@ struct	nsd
 	struct daemon_remote* rc;
 
 	/* Configuration */
-	const char		*dbfile;
 	const char		*pidfile;
 	const char		*log_filename;
 	const char		*username;

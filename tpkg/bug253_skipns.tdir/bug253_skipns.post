@@ -7,7 +7,6 @@
 # do your teardown here
 
 . ../common.sh
-rm bug253_skipns.db
 
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then

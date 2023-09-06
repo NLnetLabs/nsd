@@ -869,7 +869,6 @@ xfrd_del_slave_zone(xfrd_state_type* xfrd, const dname_type* dname)
 void
 xfrd_free_namedb(struct nsd* nsd)
 {
-	namedb_close_udb(nsd->db);
 	namedb_close(nsd->db);
 	nsd->db = 0;
 }

@@ -1,6 +1,5 @@
 server:
 	logfile: "nsd-secondary.log"
-	database: ""
 	zonesdir: ""
 	xfrdfile: ""
 	zonelistfile: ""

@@ -84,7 +84,6 @@ usage (void)
 #ifndef NDEBUG
 		"  -F facilities        Specify the debug facilities.\n"
 #endif /* NDEBUG */
-		"  -f database          Specify the database to load.\n"
 		"  -h                   Print this help information.\n"
 		, CONFIGFILE);
 	fprintf(stderr,
@@ -951,7 +950,6 @@ main(int argc, char *argv[])
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
 	nsd.region      = region_create(xalloc, free);
-	nsd.dbfile	= 0;
 	nsd.pidfile	= 0;
 	nsd.server_kind = NSD_SERVER_MAIN;
 	memset(&hints, 0, sizeof(hints));
@@ -1019,7 +1017,6 @@ main(int argc, char *argv[])
 			nsd.debug = 1;
 			break;
 		case 'f':
-			nsd.dbfile = optarg;
 			break;
 		case 'h':
 			usage();
@@ -1154,13 +1151,6 @@ main(int argc, char *argv[])
 		verbosity = nsd_debug_level;
 #endif /* NDEBUG */
 	if(nsd.options->debug_mode) nsd.debug=1;
-	if(!nsd.dbfile)
-	{
-		if(nsd.options->database)
-			nsd.dbfile = nsd.options->database;
-		else
-			nsd.dbfile = DBFILE;
-	}
 	if(!nsd.pidfile)
 	{
 		if(nsd.options->pidfile)
@@ -1465,9 +1455,6 @@ main(int argc, char *argv[])
 		} else if (!file_inside_chroot(nsd.pidfile, nsd.chrootdir)) {
 			error("pidfile %s is not relative to %s: chroot not possible",
 				nsd.pidfile, nsd.chrootdir);
-		} else if (!file_inside_chroot(nsd.dbfile, nsd.chrootdir)) {
-			error("database %s is not relative to %s: chroot not possible",
-				nsd.dbfile, nsd.chrootdir);
 		} else if (!file_inside_chroot(nsd.options->xfrdfile, nsd.chrootdir)) {
 			error("xfrdfile %s is not relative to %s: chroot not possible",
 				nsd.options->xfrdfile, nsd.chrootdir);
@@ -1645,8 +1632,6 @@ main(int argc, char *argv[])
 		}
 		if (nsd.pidfile && nsd.pidfile[0] == '/')
 			nsd.pidfile += l;
-		if (nsd.dbfile[0] == '/')
-			nsd.dbfile += l;
 		if (nsd.options->xfrdfile[0] == '/')
 			nsd.options->xfrdfile += l;
 		if (nsd.options->zonelistfile[0] == '/')
