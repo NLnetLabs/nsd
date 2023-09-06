@@ -156,7 +156,7 @@ wait_logfile () {
 	local MAX_UP_TRY=`expr $3 + $WAIT_THRES`
 	local try
 	for (( try=0 ; try <= $MAX_UP_TRY ; try++ )) ; do
-		if test -f $1 && fgrep "$2" $1 >/dev/null; then
+		if test -f $1 && grep -F "$2" $1 >/dev/null; then
 			#echo "done on try $try"
 			break;
 		fi
@@ -180,7 +180,7 @@ wait_server_up () {
 	local MAX_UP_TRY=120
 	local try
 	for (( try=0 ; try <= $MAX_UP_TRY ; try++ )) ; do
-		if test -f $1 && fgrep "$2" $1 >/dev/null; then
+		if test -f $1 && grep -F "$2" $1 >/dev/null; then
 			#echo "done on try $try"
 			break;
 		fi
@@ -231,11 +231,11 @@ wait_server_up_or_fail () {
 	local WAIT_THRES=30
 	local try
 	for (( try=0 ; try <= $MAX_UP_TRY ; try++ )) ; do
-		if test -f $1 && fgrep "$2" $1 >/dev/null; then
+		if test -f $1 && grep -F "$2" $1 >/dev/null; then
 			echo "done on try $try"
 			break;
 		fi
-		if test -f $1 && fgrep "$3" $1 >/dev/null; then
+		if test -f $1 && grep -F "$3" $1 >/dev/null; then
 			echo "failed on try $try"
 			break;
 		fi
