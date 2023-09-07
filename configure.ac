@@ -849,8 +849,12 @@ AC_REPLACE_FUNCS(snprintf)
 AC_REPLACE_FUNCS(strlcat)
 AC_REPLACE_FUNCS(strlcpy)
 AC_REPLACE_FUNCS(strptime)
-AC_REPLACE_FUNCS(b64_pton)
-AC_REPLACE_FUNCS(b64_ntop)
+AC_CHECK_FUNCS(b64_pton, [AC_CHECK_DECLS(b64_pton)], [
+  AC_CHECK_FUNCS(__b64_pton, [AC_CHECK_DECLS(__b64_pton)], [AC_LIBOBJ(b64_pton)])
+])
+AC_CHECK_FUNCS(b64_ntop, [AC_CHECK_DECLS(b64_ntop)], [
+  AC_CHECK_FUNCS(__b64_ntop, [AC_CHECK_DECLS(__b64_ntop)], [AC_LIBOBJ(b64_ntop)])
+])
 AC_REPLACE_FUNCS(pselect)
 AC_REPLACE_FUNCS(memmove)
 AC_REPLACE_FUNCS(setproctitle)
@@ -1296,13 +1300,23 @@ AH_BOTTOM([
 ])
 
 AH_BOTTOM([
-#ifndef HAVE_B64_NTOP
+#if !defined(HAVE_B64_NTOP) || !HAVE_DECL_B64_NTOP
+# ifdef HAVE___B64_NTOP
+#  define b64_ntop __b64_ntop
+# endif /* HAVE___B64_NTOP */
+# if !defined(HAVE_DECL___B64_NTOP) || !HAVE_DECL___B64_NTOP
 int b64_ntop(uint8_t const *src, size_t srclength,
 	     char *target, size_t targsize);
-#endif /* !HAVE_B64_NTOP */
-#ifndef HAVE_B64_PTON
+# endif /* !HAVE___B64_NTOP || !HAVE_DECL___B64_NTOP */
+#endif /* !HAVE_B64_NTOP || !HAVE_DECL_B64_NTOP */
+#if !defined(HAVE_B64_PTON) || !HAVE_DECL_B64_PTON
+# ifdef HAVE___B64_PTON
+#  define b64_pton __b64_pton
+# endif /* HAVE___B64_PTON */
+# if !defined(HAVE_DECL___B64_PTON) || !HAVE_DECL___B64_PTON
 int b64_pton(char const *src, uint8_t *target, size_t targsize);
-#endif /* !HAVE_B64_PTON */
+# endif /* !HAVE_DECL___B64_PTON || !HAVE_DECL___B64_PTON */
+#endif /* !HAVE_B64_PTON || !HAVE_DECL_B64_PTON */
 #ifndef HAVE_FSEEKO
 #define fseeko fseek
 #define ftello ftell
