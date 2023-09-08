@@ -763,6 +763,14 @@ fail_exit:
 }
 #endif /* BIND8_STATS */
 
+#ifdef BIND8_STATS
+void
+server_stat_free(struct nsd* nsd)
+{
+	unlink(nsd->statfname);
+}
+#endif /* BIND8_STATS */
+
 static void
 cleanup_dname_compression_tables(void *ptr)
 {
@@ -1513,7 +1521,7 @@ server_prepare(struct nsd *nsd)
 		unlink(nsd->zonestatfname[1]);
 #endif
 #ifdef BIND8_STATS
-		unlink(nsd->statfname);
+		server_stat_free(nsd);
 #endif
 		xfrd_del_tempdir(nsd);
 		return -1;
@@ -1641,7 +1649,7 @@ server_prepare_xfrd(struct nsd* nsd)
 		unlink(nsd->zonestatfname[1]);
 #endif
 #ifdef BIND8_STATS
-		unlink(nsd->statfname);
+		server_stat_free(nsd);
 #endif
 		xfrd_del_tempdir(nsd);
 		exit(1);
@@ -1656,7 +1664,7 @@ server_prepare_xfrd(struct nsd* nsd)
 		unlink(nsd->zonestatfname[1]);
 #endif
 #ifdef BIND8_STATS
-		unlink(nsd->statfname);
+		server_stat_free(nsd);
 #endif
 		xfrd_del_tempdir(nsd);
 		exit(1);
@@ -1794,7 +1802,7 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 			unlink(nsd->zonestatfname[1]);
 #endif
 #ifdef BIND8_STATS
-			unlink(nsd->statfname);
+			server_stat_free(nsd);
 #endif
 			server_shutdown(nsd);
 			/* ENOTREACH */
@@ -2851,7 +2859,7 @@ server_main(struct nsd *nsd)
 	unlink(nsd->zonestatfname[1]);
 #endif
 #ifdef BIND8_STATS
-	unlink(nsd->statfname);
+	server_stat_free(nsd);
 #endif
 #ifdef USE_DNSTAP
 	dt_collector_close(nsd->dt_collector, nsd);
