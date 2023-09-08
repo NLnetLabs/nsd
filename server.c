@@ -736,23 +736,19 @@ server_stat_alloc(struct nsd* nsd)
 	if(lseek(nsd->statfd, (off_t)sz-1, SEEK_SET) == -1) {
 		log_msg(LOG_ERR, "lseek %s: %s", nsd->statfname,
 			strerror(errno));
-		unlink(nsd->statfname);
-		unlink(nsd->zonestatfname[0]);
-		unlink(nsd->zonestatfname[1]);
-		exit(1);
+		goto fail_exit;
 	}
 	if(write(nsd->statfd, &z, 1) == -1) {
 		log_msg(LOG_ERR, "cannot extend stat file %s (%s)",
 			nsd->statfname, strerror(errno));
-		unlink(nsd->statfname);
-		unlink(nsd->zonestatfname[0]);
-		unlink(nsd->zonestatfname[1]);
-		exit(1);
+		goto fail_exit;
 	}
 	nsd->stat_map = (struct nsdst*)mmap(NULL, sz, PROT_READ|PROT_WRITE,
 		MAP_SHARED, nsd->statfd, 0);
 	if(nsd->stat_map == MAP_FAILED) {
 		log_msg(LOG_ERR, "mmap failed: %s", strerror(errno));
+fail_exit:
+		close(nsd->statfd);
 		unlink(nsd->statfname);
 		unlink(nsd->zonestatfname[0]);
 		unlink(nsd->zonestatfname[1]);
