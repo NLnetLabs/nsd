@@ -2902,8 +2902,17 @@ process_stats_manage_clear(xfrd_state_type* xfrd, struct nsdst* stats,
 {
 	struct nsdst st;
 	size_t i;
-	if(peek)
+	if(peek) {
+		/* Subtract the earlier resetted values from the numbers,
+		 * but do not reset the values that are retrieved now. */
+		if(!xfrd->stat_clear)
+			return; /* nothing to subtract */
+		for(i=0; i<xfrd->nsd->child_count; i++) {
+			/* subtract cumulative count that has been reset */
+			stats_subtract(&stats[i], &xfrd->stat_clear[i]);
+		}
 		return;
+	}
 	if(!xfrd->stat_clear)
 		xfrd->stat_clear = region_alloc_zero(xfrd->region,
 			sizeof(struct nsdst)*xfrd->nsd->child_count);
