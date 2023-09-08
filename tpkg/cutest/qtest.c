@@ -68,9 +68,11 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 	/* setup nsd */
 	memset(nsd, 0, sizeof(*nsd));
 	nsd->region = region;
+#ifdef BIND8_STATS
 	nsd->st = (struct nsdst*)region_alloc_zero(nsd->region,
 		sizeof(struct nsdst));
-	
+#endif
+
 	/* options */
 	printf("read %s\n", config);
 	nsd->options = nsd_options_create(region);
