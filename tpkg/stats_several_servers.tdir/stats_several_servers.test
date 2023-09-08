@@ -110,7 +110,7 @@ while test $i -ne 24; do
 	echo ""
 	echo "i=$i"
 
-	dig @127.0.0.1 -p $TPKG_PORT www.example.com A | tee result
+	dig @127.0.0.1 -p $TPKG_PORT www.example.com A >result
 	if grep "192.0.2.1" result; then
 		echo "OK"
 	else
@@ -148,7 +148,7 @@ while test $i -ne 24; do
 	echo ""
 	echo "i=$i"
 
-	dig @127.0.0.1 -p $TPKG_PORT www.example.com A | tee result
+	dig @127.0.0.1 -p $TPKG_PORT www.example.com A >result
 	if grep "192.0.2.1" result; then
 		echo "OK"
 	else
