@@ -218,8 +218,10 @@ remote_accept_callback(int fd, short event, void* arg);
 static void
 remote_control_callback(int fd, short event, void* arg);
 
+#ifdef BIND8_STATS
 /* process the statistics and output them */
 static void process_stats(RES* ssl, xfrd_state_type* xfrd, int peek);
+#endif
 
 /** ---- end of private defines ---- **/
 
