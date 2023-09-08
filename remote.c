@@ -133,9 +133,6 @@ struct rc_state {
 	struct daemon_remote* rc;
 	/** stats list next item */
 	struct rc_state* stats_next;
-	/** stats list indicator (0 is not part of stats list, 1 is stats,
-	 * 2 is stats_noreset. */
-	int in_stats_list;
 };
 
 /**
@@ -165,8 +162,6 @@ struct daemon_remote {
 	int max_active;
 	/** current commpoints busy; double linked, malloced */
 	struct rc_state* busy_list;
-	/** commpoints waiting for stats to complete (also in busy_list) */
-	struct rc_state* stats_list;
 	/** last time stats was reported */
 	struct timeval stats_time, boot_time;
 #ifdef HAVE_SSL
@@ -688,7 +683,6 @@ remote_accept_callback(int fd, short event, void* arg)
 
 	n->rc = rc;
 	n->stats_next = NULL;
-	n->in_stats_list = 0;
 	n->prev = NULL;
 	n->next = rc->busy_list;
 	if(n->next) n->next->prev = n;
@@ -709,35 +703,10 @@ state_list_remove_elem(struct rc_state** list, struct rc_state* todel)
 	if(todel->next) todel->next->prev = todel->prev;
 }
 
-/** delete from stats list */
-static void
-stats_list_remove_elem(struct rc_state** list, struct rc_state* todel)
-{
-	struct rc_state* prev = NULL;
-	struct rc_state* n = *list;
-	while(n) {
-		/* delete this one? */
-		if(n == todel) {
-			if(prev) prev->next = n->next;
-			else	(*list) = n->next;
-			/* go on and delete further elements */
-			/* prev = prev; */
-			n = n->next;
-			continue;
-		}
-
-		/* go to the next element */
-		prev = n;
-		n = n->next;
-	}
-}
-
 /** decrease active count and remove commpoint from busy list */
 static void
 clean_point(struct daemon_remote* rc, struct rc_state* s)
 {
-	if(s->in_stats_list)
-		stats_list_remove_elem(&rc->stats_list, s);
 	state_list_remove_elem(&rc->busy_list, s);
 	rc->active --;
 	if(s->event_added)
@@ -2578,10 +2547,8 @@ remote_control_callback(int fd, short event, void* arg)
 	res.fd = fd;
 	handle_req(rc, s, &res);
 
-	if(!s->in_stats_list) {
-		VERBOSITY(3, (LOG_INFO, "remote control operation completed"));
-		clean_point(rc, s);
-	}
+	VERBOSITY(3, (LOG_INFO, "remote control operation completed"));
+	clean_point(rc, s);
 }
 
 #ifdef BIND8_STATS
