@@ -410,6 +410,8 @@ void server_zonestat_alloc(struct nsd* nsd);
 void zonestat_remap(struct nsd* nsd, int idx, size_t sz);
 /* allocate stat structures */
 void server_stat_alloc(struct nsd* nsd);
+/* free stat mmap file, unlinks it */
+void server_stat_free(struct nsd* nsd);
 /* allocate and init xfrd variables */
 void server_prepare_xfrd(struct nsd *nsd);
 /* start xfrdaemon (again) */
