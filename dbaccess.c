@@ -687,6 +687,7 @@ void namedb_check_zonefiles(struct nsd* nsd, struct nsd_options* opt,
 	} zone_linkedlist;
 
 	zone_linkedlist* zl = NULL;
+	region_type* zl_region = region_create(xalloc, free);
 	/* check all zones in opt, create if not exist in main db */
 	RBTREE_FOR(zo, struct zone_options*, opt->zone_options) {
 		zone_type* zone;
@@ -698,7 +699,7 @@ void namedb_check_zonefiles(struct nsd* nsd, struct nsd_options* opt,
 		}
 		if (zone->catalog_member_id || zo->pattern->catalog) {
 			/* Ensure catalog zone members are loaded last */
-			zone_linkedlist* zl2 = malloc(sizeof(zone_linkedlist));
+			zone_linkedlist* zl2 = region_alloc(zl_region, sizeof(zone_linkedlist));
 			zl2->me = zone;
 			zl2->prev = zl;
 			zl = zl2;
@@ -710,8 +711,7 @@ void namedb_check_zonefiles(struct nsd* nsd, struct nsd_options* opt,
 	while (zl)
 	{
 		namedb_read_zonefile(nsd, zl->me, taskudb, last_task);
-		zone_linkedlist* old_zl = zl;
 		zl = zl->prev;
-		free(old_zl);
 	}
+	region_destroy(zl_region);
 }
