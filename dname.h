@@ -216,6 +216,7 @@ uint8_t dname_label_match_count(const dname_type *left,
 static inline size_t
 dname_total_size(const dname_type *dname)
 {
+	assert(dname);
 	return (sizeof(dname_type)
 		+ ((((size_t)dname->label_count) + ((size_t)dname->name_size))
 		   * sizeof(uint8_t)));
