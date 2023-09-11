@@ -317,6 +317,7 @@ verifier{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFIER; }
 verifier-count{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFIER_COUNT; }
 verifier-feed-zone{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFIER_FEED_ZONE; }
 verifier-timeout{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFIER_TIMEOUT; }
+catalog{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_CATALOG; }
 {NEWLINE}		{ LEXOUT(("NL\n")); cfg_parser->line++;}
 
 servers={UNQUOTEDLETTER}*	{

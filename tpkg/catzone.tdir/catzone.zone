@@ -1,0 +1,17 @@
+testing.catz.                                0  SOA   invalid. (
+                        invalid. 1625079951 3600 600 2147483646 0 )
+testing.catz.                                0  NS    invalid.
+example.vendor.ext.testing.catz.             0  CNAME example.net.
+version.testing.catz.                        0  TXT   "2"
+com.zones.testing.catz.                  0  PTR   example.com.
+group.com.zones.testing.catz.            0  TXT   ( "KOEN" )
+nvxxezj.zones.testing.catz.                  0  PTR   example.net.
+group.nvxxezj.zones.testing.catz.            0  TXT   (
+                        "operator-x-foo" )
+nfwxa33.zones.testing.catz.                  0  PTR   example.org.
+coo.nfwxa33.zones.testing.catz.              0  PTR   (
+                        catalog.testing2.catz. )
+group.nfwxa33.zones.testing.catz.            0  TXT   (
+                        "operator-y-bar" )
+metrics.vendor.ext.nfwxa33.zones.testing.catz. 0  CNAME (
+                        collector.example.net. )

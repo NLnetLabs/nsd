@@ -86,6 +86,7 @@
 #include "dnstap/dnstap_collector.h"
 #endif
 #include "verify.h"
+#include "cat-zones.h"
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 
@@ -2350,6 +2351,15 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			   update(s), communicate soainfo_gone */
 			task_new_soainfo(nsd->task[nsd->mytask], &last_task,
 			                 zone, soainfo_gone);
+		} 
+		
+		if(zone->opts && 
+		zone->opts->pattern && 
+		zone->opts->pattern->catalog && 
+		zone->is_updated) {
+			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "start catalog consumption"));
+			catalog_consumer_process(nsd, zone, 
+				nsd->task[nsd->mytask], &last_task);
 		}
 		zone->is_updated = 0;
 		zone->is_skipped = 0;

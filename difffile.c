@@ -902,7 +902,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	return 1;
 }
 
-static zone_type*
+zone_type*
 find_or_create_zone(namedb_type* db, const dname_type* zone_name,
 	struct nsd_options* opt, const char* zstr, const char* patname)
 {
@@ -1746,6 +1746,84 @@ task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
 }
 
 void
+task_new_add_catzone(udb_base* udb, udb_ptr* last, const char* zone,
+	const char* pattern, const char* from_catalog, const char* member_id, 
+	unsigned zonestatid)
+{
+	size_t zlen = strlen(zone);
+	size_t plen = strlen(pattern);
+	size_t clen = strlen(from_catalog);
+	size_t mlen = strlen(member_id);
+
+	void *p;
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task addcatzone %s %s %s %s", zone, pattern, from_catalog, member_id));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
+		zlen + 1 + plen + 1 + clen + 1 + mlen + 1, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add addcatz");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_add_catzone;
+	TASKLIST(&e)->yesno = zonestatid;
+	p = TASKLIST(&e)->zname;
+	memcpy(p, zone, zlen+1);
+	memmove((char*)p+zlen+1, pattern, plen+1);
+	memmove((char*)p+zlen+1+plen+1, from_catalog, clen+1);
+	memmove((char*)p+zlen+1+plen+1+clen+1, member_id, mlen+1);
+
+	udb_ptr_unlink(&e, udb);
+}
+
+void
+task_new_check_coo(udb_base* udb, udb_ptr* last, const char* zone,
+	const char* catname, const char* member_id)
+{
+	size_t zlen = strlen(zone);
+	size_t catlen = strlen(catname);
+	size_t mlen = strlen(member_id);
+
+	void *p;
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task checkcoo %s %s %s", zone, catname, member_id));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
+		zlen + 1 + catlen + 1 + mlen + 1, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add checkcoo");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_check_coo;
+	TASKLIST(&e)->yesno = 0;
+	p = TASKLIST(&e)->zname;
+	memcpy(p, zone, zlen+1);
+	memmove((char*)p+zlen+1, catname, catlen+1);
+	memmove((char*)p+zlen+1+catlen+1, member_id, mlen+1);
+
+	udb_ptr_unlink(&e, udb);
+}
+
+void
+task_new_apply_pattern(udb_base* udb, udb_ptr* last, const char* member_id, const char* pattern)
+{
+	size_t mlen = strlen(member_id);
+	size_t plen = strlen(pattern);
+
+	void *p;
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task applypattern %s %s", member_id, pattern));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
+		mlen + 1 + plen + 1, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add addcatz");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_apply_pattern;
+	TASKLIST(&e)->yesno = 0;
+	p = TASKLIST(&e)->zname;
+	memcpy(p, member_id, mlen+1);
+	memmove((char*)p+mlen+1, pattern, plen+1);
+
+	udb_ptr_unlink(&e, udb);
+}
+
+void
 task_new_del_zone(udb_base* udb, udb_ptr* last, const dname_type* dname)
 {
 	udb_ptr e;
@@ -2026,6 +2104,222 @@ task_process_add_zone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 }
 
 static void
+task_process_add_catzone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
+	struct task_list_d* task)
+{
+	zone_type* z;
+	const dname_type* zdname;
+	const char* zname = (const char*)task->zname;
+	const char* pname = zname + strlen(zname)+1;
+	const char* catname = pname + strlen(pname)+1;
+	const char* member_id = catname + strlen(catname)+1;
+
+	pattern_options_type* patopt;
+
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "addcatzone task %s %s %s %s", zname, pname, catname, member_id));
+	zdname = dname_parse(nsd->db->region, zname);
+	if(!zdname) {
+		log_msg(LOG_ERR, "can not parse zone name %s", zname);
+		region_recycle(nsd->db->region, (void*)zdname, dname_total_size(zdname));
+		return;
+	}
+
+	/* create zone */
+
+	patopt = pattern_options_find(nsd->options, pname);
+	if (!patopt) {
+		patopt = pattern_options_create(nsd->region);
+		patopt->pname = pname;
+		pattern_options_add_modify(nsd->options, patopt);
+		region_recycle(nsd->region, (void*)patopt, sizeof(pattern_options_type));
+	} 
+
+	z = find_or_create_zone(nsd->db, zdname, nsd->options, zname, pname);
+	if(!z) {
+		region_recycle(nsd->db->region, (void*)zdname,
+			dname_total_size(zdname));
+		log_msg(LOG_ERR, "can not add zone %s %s", zname, pname);
+		return;
+	}
+	z->zonestatid = (unsigned)task->yesno;
+	z->from_catalog = region_strdup(nsd->db->region, (char*)catname);
+	z->catalog_member_id = (dname_type*)dname_parse(nsd->db->region, member_id);
+	/* if zone is empty, attempt to read the zonefile from disk (if any) */
+	if(!z->soa_rrset && z->opts->pattern->zonefile) {
+		namedb_read_zonefile(nsd, z, udb, last_task);
+	}
+}
+
+static void
+task_process_check_coo(struct nsd* nsd, udb_base* ATTR_UNUSED(udb), udb_ptr* ATTR_UNUSED(last_task),
+	struct task_list_d* task)
+{
+	const dname_type* zdname;
+	const char* zname = (const char*)task->zname;
+	const char* catname = zname + strlen(zname)+1;
+	const char* member_id = catname + strlen(catname)+1;
+
+	zone_type* t;
+
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "checkcoo task %s %s %s", zname, catname, member_id));
+	zdname = dname_parse(nsd->region, zname);
+	if(!zdname) {
+		log_msg(LOG_ERR, "cannot parse zone name %s", zname);
+		region_recycle(nsd->region, (void*)zdname, dname_total_size(zdname));
+		return;
+	}
+
+	t = namedb_find_zone(nsd->db, zdname);
+
+	if (t) {
+		zone_type* cz;
+		const dname_type* cz_dname;
+
+		struct zone_rr_iter rr_iter;
+		struct rr *rr;
+		int coo_correct = 0;
+
+		if (!t->from_catalog) {
+			return;
+		}
+
+		cz_dname = dname_parse(nsd->region, t->from_catalog);
+
+		cz = namedb_find_zone(
+			nsd->db, 
+			cz_dname
+			);
+
+		DEBUG(DEBUG_CATZ, 1, 
+			(LOG_INFO, 
+			"Found existing zone belonging to a catalog zone %s", 
+			dname_to_string(cz->apex->dname, NULL)));
+
+		zone_rr_iter_init(&rr_iter, cz);
+		for ( rr = zone_rr_iter_next(&rr_iter)
+		; rr != NULL
+		; rr = zone_rr_iter_next(&rr_iter)) {
+			const dname_type* dname;
+
+			if (rr->klass != CLASS_IN) {
+				continue;
+			}
+			if (rr->type != TYPE_PTR) {
+				continue;
+			}
+			dname = rr->owner->dname;
+
+			DEBUG(DEBUG_CATZ, 1, 
+			(LOG_INFO, 
+			"Checking %s", 
+			dname_to_string(dname, NULL)));
+
+			if (dname->label_count == 
+			cz->apex->dname->label_count + 3 && 
+			label_compare(
+				dname_label(dname, dname->label_count - 3),
+				(const uint8_t*)"\005zones") == 0 && 
+			label_compare(
+				dname_label(dname, dname->label_count - 1), 
+				(const uint8_t*)"\003coo") == 0) {
+				// `dname` is now the RR for the coo property
+
+				const dname_type* coo_property = 
+					domain_dname(rdata_atom_domain(rr->rdatas[0]));
+
+				if (dname_label_match_count(t->catalog_member_id, dname)
+				 == t->catalog_member_id->label_count && 
+				dname_compare(coo_property, zdname) == 0) {
+					DEBUG(DEBUG_CATZ, 1, 
+					(LOG_INFO, 
+					"COO correct, transferring from %s to %s", 
+					t->from_catalog, catname));
+					coo_correct = 1;
+					break;
+				}
+			} 
+		}
+
+		if (coo_correct) {
+			t->from_catalog = region_strdup(
+				nsd->db->region, (char*)catname);
+			t->catalog_member_id = (dname_type*)dname_copy(
+				nsd->db->region, (dname_type*)member_id);
+		}
+
+		region_recycle(nsd->region, (void*)cz_dname, dname_total_size(cz_dname));
+	}
+}
+
+static void
+task_process_apply_pattern(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
+	struct task_list_d* task)
+{
+	const dname_type* zdname;
+	const char* member_id = (const char*)task->zname;
+	const char* pname = member_id + strlen(member_id)+1;
+
+	zone_type* gz = NULL;
+	struct zone_options* zo;
+
+	zdname = dname_parse(nsd->region, member_id);
+
+	DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "applypattern task %s %s", member_id, pname));
+
+	RBTREE_FOR(zo, struct zone_options*, 
+	nsd->options->zone_options) {
+		const dname_type* gd = 
+			(const dname_type*)zo->node.key;
+		gz = namedb_find_zone(nsd->db, gd);
+		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "consider zone %s %s", member_id, dname_to_string(gz->apex->dname, NULL)));
+
+
+		if (gz && gz->catalog_member_id && 
+		dname_label_match_count(gz->catalog_member_id, zdname)
+		== gz->catalog_member_id->label_count) {
+			break;
+		} else {
+			gz = NULL;
+		}
+	}
+
+	if (gz) {
+		struct pattern_options* patopt = pattern_options_find(nsd->options, pname);
+
+		DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "config apply %s with pattern %s", dname_to_string(gz->apex->dname, NULL), pname));
+		if (patopt && !pattern_options_equal(patopt, gz->opts->pattern)) {
+			const char* nzname = region_strdup(nsd->region, dname_to_string(gz->apex->dname, NULL));
+			const char* npname = pname;
+			const char* nfrom_catalog = region_strdup(nsd->region, gz->from_catalog);
+			const char* ncatalog_member_id = region_strdup(nsd->region, dname_to_string(gz->catalog_member_id, NULL));
+
+			task_new_del_zone(udb, last_task, gz->apex->dname);
+			task_new_add_catzone(
+				udb, 
+				last_task, 
+				nzname,
+				npname,
+				nfrom_catalog,
+				ncatalog_member_id, 
+				0
+			);
+
+			region_recycle(
+				nsd->region, (void*)nzname, strlen(nzname));
+			region_recycle(
+				nsd->region, (void*)nfrom_catalog, strlen(nfrom_catalog));
+			region_recycle(
+				nsd->region, 
+				(void*)ncatalog_member_id, 
+				strlen(ncatalog_member_id)
+			);
+		}
+	}
+
+	region_recycle(nsd->region, (void*)zdname, dname_total_size(zdname));
+}
+
+static void
 task_process_del_zone(struct nsd* nsd, struct task_list_d* task)
 {
 	zone_type* zone;
@@ -2233,6 +2527,15 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_add_zone:
 		task_process_add_zone(nsd, udb, last_task, TASKLIST(task));
+		break;
+	case task_add_catzone:
+		task_process_add_catzone(nsd, udb, last_task, TASKLIST(task));
+		break;
+	case task_check_coo:
+		task_process_check_coo(nsd, udb, last_task, TASKLIST(task));
+		break;
+	case task_apply_pattern:
+		task_process_apply_pattern(nsd, udb, last_task, TASKLIST(task));
 		break;
 	case task_del_zone:
 		task_process_del_zone(nsd, TASKLIST(task));

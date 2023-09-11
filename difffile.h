@@ -53,6 +53,10 @@ int diff_read_32(FILE *in, uint32_t* result);
 int diff_read_8(FILE *in, uint8_t* result);
 int diff_read_str(FILE* in, char* buf, size_t len);
 
+
+zone_type* find_or_create_zone(namedb_type* db, 
+	const dname_type* zone_name,
+	struct nsd_options* opt, const char* zstr, const char* patname);
 /* delete the RRs for a zone from memory */
 void delete_zone_rrs(namedb_type* db, zone_type* zone);
 /* delete an RR */
@@ -114,6 +118,12 @@ struct task_list_d {
 		task_drop_cookie_secret,
 		/** make staging cookie secret active */
 		task_activate_cookie_secret,
+		/** add catalog zone */
+		task_add_catzone,
+		/** apply pattern for a catalog zone group property */
+		task_apply_pattern,
+		/** check coo property for catalog zone */
+		task_check_coo,
 	} task_type;
 	uint32_t size; /* size of this struct */
 
@@ -143,6 +153,12 @@ void task_new_write_zonefiles(udb_base* udb, udb_ptr* last,
 void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v);
 void task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
 	const char* pattern, unsigned zonestatid);
+void task_new_add_catzone(udb_base* udb, udb_ptr* last, const char* zone,
+	const char* pattern, const char* catname, const char* member_id, unsigned zonestatid);
+void task_new_check_coo(udb_base* udb, udb_ptr* last, const char* zone,
+	const char* catname, const char* member_id);
+void task_new_apply_pattern(udb_base* udb, udb_ptr* last, const char* member_id,
+	const char* pattern);
 void task_new_del_zone(udb_base* udb, udb_ptr* last, const dname_type* dname);
 void task_new_add_key(udb_base* udb, udb_ptr* last, struct key_options* key);
 void task_new_del_key(udb_base* udb, udb_ptr* last, const char* name);

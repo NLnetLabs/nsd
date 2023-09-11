@@ -32,6 +32,7 @@
 #include "nsd.h"
 #include "ixfr.h"
 #include "ixfrcreate.h"
+#include "cat-zones.h"
 
 static time_t udb_time = 0;
 static unsigned long udb_rrsets = 0;
@@ -252,6 +253,8 @@ namedb_zone_create(namedb_type* db, const dname_type* dname,
 	zone->is_checked = 0;
 	zone->is_bad = 0;
 	zone->is_ok = 1;
+	zone->from_catalog = NULL;
+	zone->catalog_member_id = NULL;
 	return zone;
 }
 
@@ -616,6 +619,9 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 			zone->opts->name));
 		zone->is_ok = 1;
 		zone->is_changed = 0;
+		if (zone->opts->pattern->catalog) {
+			catalog_consumer_process(nsd, zone, taskudb, last_task);
+		}
 		/* store zone into udb */
 		if(nsd->db->udb) {
 			if(!write_zone_to_udb(nsd->db->udb, zone, &mtime,
@@ -674,9 +680,38 @@ void namedb_check_zonefiles(struct nsd* nsd, struct nsd_options* opt,
 	udb_base* taskudb, udb_ptr* last_task)
 {
 	struct zone_options* zo;
+
+	typedef struct zone_linkedlist {
+		zone_type* me;
+		struct zone_linkedlist* prev;
+	} zone_linkedlist;
+
+	zone_linkedlist* zl = NULL;
 	/* check all zones in opt, create if not exist in main db */
 	RBTREE_FOR(zo, struct zone_options*, opt->zone_options) {
-		namedb_check_zonefile(nsd, taskudb, last_task, zo);
-		if(nsd->signal_hint_shutdown) break;
+		zone_type* zone;
+		const dname_type* dname = (const dname_type*)zo->node.key;
+		/* find zone to go with it, or create it */
+		zone = namedb_find_zone(nsd->db, dname);
+		if(!zone) {
+			zone = namedb_zone_create(nsd->db, dname, zo);
+		}
+		if (zone->catalog_member_id || zo->pattern->catalog) {
+			/* Ensure catalog zone members are loaded last */
+			zone_linkedlist* zl2 = malloc(sizeof(zone_linkedlist));
+			zl2->me = zone;
+			zl2->prev = zl;
+			zl = zl2;
+		} else {
+			namedb_read_zonefile(nsd, zone, taskudb, last_task);
+			if(nsd->signal_hint_shutdown) break;
+		}
+	}
+	while (zl)
+	{
+		namedb_read_zonefile(nsd, zl->me, taskudb, last_task);
+		zone_linkedlist* old_zl = zl;
+		zl = zl->prev;
+		free(old_zl);
 	}
 }

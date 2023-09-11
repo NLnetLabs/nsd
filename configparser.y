@@ -221,6 +221,9 @@ struct component {
 %token VAR_VERIFIER_FEED_ZONE
 %token VAR_VERIFIER_TIMEOUT
 
+/* catalog */
+%token VAR_CATALOG
+
 %%
 
 blocks:
@@ -1033,7 +1036,12 @@ pattern_or_zone_option:
   | VAR_VERIFIER_FEED_ZONE boolean
     { cfg_parser->pattern->verifier_feed_zone = $2; }
   | VAR_VERIFIER_TIMEOUT number
-    { cfg_parser->pattern->verifier_timeout = $2; } ;
+    { cfg_parser->pattern->verifier_timeout = $2; } 
+  | VAR_CATALOG STRING
+    { 
+      cfg_parser->pattern->catalog = region_strdup(cfg_parser->opt->region, $2); 
+      config_apply_pattern(cfg_parser->pattern, $2);
+    };
 
 verify:
     VAR_VERIFY verify_block ;

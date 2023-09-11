@@ -1,0 +1,30 @@
+# #-- catzone.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+
+PRE="../.."
+NSD="$PRE/nsd"
+
+# see if the zone compiles (it should give an error).
+$NSD -c catzone-primary.conf
+$NSD -c catzone-secondary.conf
+
+wait_nsd_up nsd-primary.log
+wait_nsd_up nsd-secondary.log
+
+if dig @127.0.0.1 -p 55555 example.com SOA | grep "dns1.example.com"; then
+	echo OK
+else
+	cat nsd-primary.log
+	cat nsd-secondary.log
+	echo "Secondary could not load example.com zone!"
+	exit 1
+fi
+kill_pid `cat nsd-primary.pid`
+kill_pid `cat nsd-secondary.pid`
+
+exit 0

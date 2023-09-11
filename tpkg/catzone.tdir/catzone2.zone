@@ -1,0 +1,16 @@
+catalog.testing2.catz.                                0  SOA   testing2.catz. (
+                        testing2.catz. 1625079950 3600 600 2147483646 0 )
+catalog.testing2.catz.                                0  NS    testing2.catz.
+example.vendor.ext.catalog.testing2.catz.             0  CNAME example.net.
+version.catalog.testing2.catz.                        0  TXT   "2"
+nj2xg5b.zones.catalog.testing2.catz.                  0  PTR   example.com.
+nvxxezj.zones.catalog.testing2.catz.                  0  PTR   example.net.
+group.nvxxezj.zones.catalog.testing2.catz.            0  TXT   (
+                        "WILLEM" )
+nfwxa33.zones.catalog.testing2.catz.                  0  PTR   example.org.
+coo.nfwxa33.zones.catalog.testing2.catz.              0  PTR   (
+                        testing.catz. )
+group.nfwxa33.zones.catalog.testing2.catz.            0  TXT   (
+                        "operator-y-bar2" )
+metrics.vendor.ext.nfwxa33.zones.catalog.testing2.catz. 0  CNAME (
+                        collector.example.net. )
