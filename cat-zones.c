@@ -165,6 +165,9 @@ void catalog_consumer_process(
 				(LOG_INFO, "Group property discovered"));
 
 				do {
+					if (!c) {
+						break;
+					}
 					if (c->member_id && 
 					dname_label_match_count(c->member_id, dname)
 					 == c->member_id->label_count && strcmp(c->original_pname, pname) != 0) {
