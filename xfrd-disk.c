@@ -340,13 +340,6 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		if (zone->state == xfrd_zone_expired)
 		{
 			xfrd_send_expire_notification(zone);
-		} else if (zone->zone_options && 
-				zone->zone_options->pattern && 
-				zone->zone_options->pattern->catalog) {
-			DEBUG(DEBUG_XFRD,1, 
-			(LOG_INFO, "xfrd: reload catalog zone %s", 
-			zone->apex_str));
-			xfrd_send_expire_notification(zone);
 		}
 		if(incoming_acquired != 0)
 			xfrd_handle_incoming_soa(zone, &incoming_soa, incoming_acquired);

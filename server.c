@@ -2513,6 +2513,9 @@ server_main(struct nsd *nsd)
 	pid_t reload_pid = -1;
 	sig_atomic_t mode;
 
+	struct radnode* node = NULL;
+	zone_type* zone = NULL;
+
 	/* Ensure we are the main process */
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
@@ -2529,6 +2532,19 @@ server_main(struct nsd *nsd)
 
 	/* This_child MUST be 0, because this is the parent process */
 	assert(nsd->this_child == 0);
+
+	for(node = radix_first(nsd->db->zonetree);
+	    node != NULL;
+	    node = radix_next(node))
+	{
+		zone = (zone_type *)node->elem;
+		if (zone->opts->pattern->catalog) {
+			udb_ptr last_task;
+			log_msg(LOG_INFO, "scheduling zone %s for reload", 
+				dname_to_string(zone->apex->dname, NULL));
+			catalog_consumer_process(nsd, zone, nsd->task[nsd->mytask], &last_task);
+		}
+	}
 
 	/* Run the server until we get a shutdown signal */
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
