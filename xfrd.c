@@ -567,6 +567,7 @@ xfrd_init_zones()
 			DEBUG(DEBUG_XFRD,1, 
 			(LOG_INFO, "xfrd: reset catalog zone SOA for %s", 
 			zone_opt->name));
+			xfrd_handle_notify_and_start_xfr(zone, NULL);
 
 			region_recycle(xfrd->region, (void*)zname, dname_total_size(zname));
 		}
