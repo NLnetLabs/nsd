@@ -2357,7 +2357,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		zone->opts->pattern && 
 		zone->opts->pattern->catalog && 
 		zone->is_updated) {
-			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "start catalog consumption"));
+			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Start catalog consumption"));
 			catalog_consumer_process(nsd, zone, 
 				nsd->task[nsd->mytask], &last_task);
 		}
