@@ -556,21 +556,6 @@ xfrd_init_zones()
 			continue;
 		}
 		xfrd_init_slave_zone(xfrd, zone_opt);
-
-		if (zone_opt->pattern && zone_opt->pattern->catalog) {
-			const dname_type* zname = dname_parse(xfrd->region, zone_opt->name);
-			xfrd_zone_type* zone = 
-				(xfrd_zone_type*)rbtree_search(xfrd->zones, zname);
-			zone->soa_disk_acquired = 0;
-			zone->soa_nsd_acquired = 0;
-
-			DEBUG(DEBUG_XFRD,1, 
-			(LOG_INFO, "xfrd: reset catalog zone SOA for %s", 
-			zone_opt->name));
-			xfrd_handle_notify_and_start_xfr(zone, NULL);
-
-			region_recycle(xfrd->region, (void*)zname, dname_total_size(zname));
-		}
 	}
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: started server %d "
 		"secondary zones", (int)xfrd->zones->count));
