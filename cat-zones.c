@@ -129,21 +129,25 @@ void catalog_consumer_process(
 			if (dname->label_count == zone->apex->dname->label_count + 1
 			&&  label_compare( dname_name(dname)
 			                 , (const uint8_t *)"\007version") == 0) {
-				DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Catz version TXT"));
 				if (has_version_txt) {
-					DEBUG(DEBUG_CATZ, 1, 
-					(LOG_INFO, "Catz has more than one version TXT defined"));
+					log_msg(LOG_WARNING, 
+					"Catalog zone %s has more than one version TXT defined", 
+					dname_to_string(zone->apex->dname, NULL));
+					return;
 				} else if (
 					rr->rdata_count != 1 || 
 					rdata_atom_size(rr->rdatas[0]) != 2 ||
 					rdata_atom_data(rr->rdatas[0])[0] != 1 ||
 					rdata_atom_data(rr->rdatas[0])[1] != '2'
 				) {
-					DEBUG(DEBUG_CATZ, 1, 
-					(LOG_INFO, "Catz has a version different than 2"));
+					log_msg(LOG_WARNING, 
+					"Catalog zone %s version is not equal to 2", 
+					dname_to_string(zone->apex->dname, NULL));
+					return;
 				} else {
-					DEBUG(DEBUG_CATZ, 1, 
-					(LOG_INFO, "Catz version is 2"));
+					log_msg(LOG_INFO, 
+					"Catalog zone %s version is 2", 
+					dname_to_string(zone->apex->dname, NULL));
 					has_version_txt = 2;
 				}
 				break;
@@ -205,6 +209,12 @@ void catalog_consumer_process(
 					if (c->member_id && 
 					dname_label_match_count(c->member_id, member_id)
 					 == c->member_id->label_count) {
+						if (!c->to_delete) {
+							log_msg(LOG_INFO, 
+							"Member zone identifier %s is used more than once", 
+							dname_to_string(zone->apex->dname, NULL));
+							return;
+						}
 						if (dname_compare(c->member_zone, member_zone) != 0) {
 							// This member_id got a new zone
 							c->to_delete = 1;
@@ -241,6 +251,13 @@ void catalog_consumer_process(
 			} 
 			break;
 		}
+	}
+
+	if (!has_version_txt) {
+		log_msg(LOG_WARNING, 
+		"Catalog zone %s version TXT record is missing", 
+		dname_to_string(zone->apex->dname, NULL));
+		return;
 	}
 
 	do {
