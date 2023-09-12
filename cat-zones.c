@@ -44,11 +44,9 @@ catz_add_zone(const dname_type *member_zone_name,
 		region_strdup(cat_region, dname_to_string(catalog_zone->apex->dname, NULL));
 	zone_type* t = namedb_find_zone(nsd->db, member_zone_name);
 
-	// struct pattern_options* patopt;
 	if (!pname) {
 		pname = catname;
 	}
-	// patopt = pattern_options_find(nsd->options, pname);
 
 	if (t) {
 		task_new_check_coo(
@@ -59,12 +57,6 @@ catz_add_zone(const dname_type *member_zone_name,
 			dname_to_string(member_id, NULL)
 		);
 	}
-
-	// if (!patopt || !patopt->pname) {
-	// 	patopt = pattern_options_create(nsd->region);
-	// 	patopt->pname = pname;
-	// 	pattern_options_add_modify(nsd->options, patopt);
-	// }
 
 	DEBUG(DEBUG_CATZ, 1, 
 	(LOG_INFO, "Task created for catalog %s: %s", catname, zname));
@@ -98,7 +90,7 @@ void catalog_consumer_process(
 		if (z->from_catalog && strcmp(z->from_catalog, catname) == 0) {
 			catzonezone_type* c = region_alloc(catzonezones_region, sizeof(catzonezone_type));
 			c->member_id = z->catalog_member_id;
-			c->member_zone = z->apex->dname;
+			c->member_zone = (dname_type*)z->apex->dname;
 			c->to_delete = 1;
 			c->to_add = 0;
 			c->updated_pattern = 0;
@@ -106,10 +98,6 @@ void catalog_consumer_process(
 			c->pname = (char*)z->opts->pattern->pname;
 			c->next = catzonezones;
 			catzonezones = c;
-
-			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Deleted zone %s", 
-				dname_to_string(z->apex->dname, NULL)));
-			// task_new_del_zone(udb, last_task, z->apex->dname);
 		}
 	}
 	
@@ -168,10 +156,7 @@ void catalog_consumer_process(
 				DEBUG(DEBUG_CATZ, 1, 
 				(LOG_INFO, "Group property discovered"));
 
-				do {
-					if (!c) {
-						break;
-					}
+				while (c) {
 					if (c->member_id && 
 					dname_label_match_count(c->member_id, dname)
 					 == c->member_id->label_count && strcmp(c->original_pname, pname) != 0) {
@@ -179,16 +164,11 @@ void catalog_consumer_process(
 						c->updated_pattern = 1;
 						break;
 					}
-				} while ((c = c->next));
-			
-				// task_new_apply_pattern(udb, last_task, dname_to_string(dname, NULL), (const char*)(rdata_atom_data(rr->rdatas[0]) + 1));
+					c = c->next;
+				}
 			}
 			break;
 		case TYPE_PTR:
-			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "%s", dname_to_string(
-				dname, 
-				zone->apex->dname
-			)));
 			if (dname->label_count == zone->apex->dname->label_count + 2
 			&& label_compare( dname_label(dname, dname->label_count - 2)
 			                , (const uint8_t*)"\005zones") == 0) {
@@ -202,10 +182,7 @@ void catalog_consumer_process(
 
 				int zone_exists = 0;
 
-				do {
-					if (!c) {
-						break;
-					}
+				while (c) {
 					if (c->member_id && 
 					dname_label_match_count(c->member_id, member_id)
 					 == c->member_id->label_count) {
@@ -229,7 +206,8 @@ void catalog_consumer_process(
 						}
 						break;
 					}
-				} while ((c = c->next));
+					c = c->next;
+				}
 
 				if (!zone_exists) {
 					char* pname = region_strdup(
@@ -260,10 +238,7 @@ void catalog_consumer_process(
 		return;
 	}
 
-	do {
-		if (!catzonezones) {
-			break;
-		}
+	while (catzonezones) {
 		if (catzonezones->to_delete) {
 			task_new_del_zone(udb, last_task, 
 			catzonezones->member_zone);
@@ -285,7 +260,8 @@ void catalog_consumer_process(
 				catzonezones->pname
 			);
 		}
-	} while ((catzonezones = catzonezones->next));
+		catzonezones = catzonezones->next;
+	}
 	
 	region_destroy(catzonezones_region); 
 }
