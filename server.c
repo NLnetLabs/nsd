@@ -2355,7 +2355,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		
 		if(zone->opts && 
 		zone->opts->pattern && 
-		zone->opts->pattern->catalog && 
+		zone->opts->pattern->is_catalog && 
 		zone->is_updated) {
 			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Start catalog consumption"));
 			catalog_consumer_process(nsd, zone, 
@@ -2538,7 +2538,14 @@ server_main(struct nsd *nsd)
 	    node = radix_next(node))
 	{
 		zone = (zone_type *)node->elem;
-		if (zone->opts->pattern->catalog) {
+		if (zone->opts->pattern->is_catalog && 
+		!zone->opts->pattern->catalog_member_pattern) {
+			log_msg(LOG_ERR,
+				"Zone %s is a catalog but misses the mandatory catalog-member-pattern configuration option!",
+				dname_to_string(zone->apex->dname, NULL));
+				nsd->mode = NSD_SHUTDOWN;
+		}
+		if (zone->opts->pattern->is_catalog) {
 			udb_ptr last_task;
 			log_msg(LOG_INFO, "scheduling zone %s for reload", 
 				dname_to_string(zone->apex->dname, NULL));

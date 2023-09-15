@@ -914,7 +914,8 @@ pattern_options_create(region_type* region)
 	p->verifier_feed_zone_is_default = 1;
 	p->verifier_timeout = VERIFIER_TIMEOUT_INHERIT;
 	p->verifier_timeout_is_default = 1;
-	p->catalog = NULL;
+	p->is_catalog = 0;
+	p->catalog_member_pattern = NULL;
 
 	return p;
 }

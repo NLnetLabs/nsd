@@ -212,7 +212,7 @@ void catalog_consumer_process(
 				if (!zone_exists) {
 					char* pname = region_strdup(
 						catzonezones_region,
-						dname_to_string(zone->apex->dname, NULL)
+						zone->opts->pattern->catalog_member_pattern
 					);
 					c = region_alloc(catzonezones_region, sizeof(catzonezone_type));
 					c->member_id = (dname_type*)member_id;
