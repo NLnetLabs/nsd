@@ -1065,7 +1065,7 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 			return 0;
 	}
 	if(zo->pattern->is_catalog) {
-		if(!ssl_printf(ssl, "	is-catalog: %s\n", zo->pattern->is_catalog ? "yes" : "no"))
+		if(!ssl_printf(ssl, "	catalog: %s\n", zo->pattern->is_catalog ? "yes" : "no"))
 			return 0;
 	}
 	if(nz) {

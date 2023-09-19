@@ -631,4 +631,5 @@ verify:
 
 pattern:
 	name: "myzones"
-	catalog: "mycatalog2"
+	catalog: yes
+	catalog-member-pattern: "mycatalog2"

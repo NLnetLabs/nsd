@@ -201,7 +201,7 @@ struct component {
 %token VAR_IXFR_SIZE
 %token VAR_IXFR_NUMBER
 %token VAR_CREATE_IXFR
-%token VAR_IS_CATALOG
+%token VAR_CATALOG
 %token VAR_CATALOG_MEMBER_PATTERN
 
 /* zone */
@@ -1036,7 +1036,7 @@ pattern_or_zone_option:
     { cfg_parser->pattern->verifier_feed_zone = $2; }
   | VAR_VERIFIER_TIMEOUT number
     { cfg_parser->pattern->verifier_timeout = $2; } 
-  | VAR_IS_CATALOG boolean
+  | VAR_CATALOG boolean
     { cfg_parser->pattern->is_catalog = $2; }
   | VAR_CATALOG_MEMBER_PATTERN STRING 
     { 

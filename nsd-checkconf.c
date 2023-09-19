@@ -582,7 +582,7 @@ static void print_zone_content_elems(pattern_options_type* pat)
 	}
 
 	if(pat->is_catalog) {
-		printf("\tis-catalog: ");
+		printf("\tcatalog: ");
 		if(pat->is_catalog) {
 			printf("yes\n");
 		} else {

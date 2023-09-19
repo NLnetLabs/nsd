@@ -998,12 +998,15 @@ Number of seconds before verifier is forcefully terminated. Specify 0 (zero)
 to not use a specific timeout. Default is verifier\-timeout from
 .B verify:\fR.
 .TP
-.B catalog:\fR <pattern>
-Pattern for the catalog consumer that extracts information from the catalog 
-zone. This pattern can be used to configure which primary to use. Zones added 
-by this catalog zone will by default use a pattern with the same name as the 
-catalog zone apex including trailing dot, but this can be overwritten by 
-specifying a pattern name in the group property inside the catalog zone itself.
+.B catalog:\fR <yes or no>
+Enable catalog zone processing for this catalog or not. If set to yes, the
+.B catalog-member-pattern\fR option MUST be set as well.
+.TP
+.B catalog-member-pattern:\fR <pattern>
+Pattern to assign to any zone created from this catalog zone that does not have
+a group property set. This pattern can be used to configure which primary to 
+use. This option MUST be present if the
+.B catalog \fR option is set to yes.
 
 .SS "Key Declarations"
 The 

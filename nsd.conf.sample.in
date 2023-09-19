@@ -488,9 +488,10 @@ remote-control:
 	# Default is verifier-timeout in verify.
 	# verifier-timeout: 0
 	
-	# Pattern for the catalog consumer that extracts information from the 
-	# catalog zone.
-	# catalog: "mycatalog"
+	# Turn this zone into a catalog zone. If set to "yes", the 
+	# catalog-member-pattern option MUST be present.
+	# catalog: yes
+	# catalog-member-pattern: "example-pattern"
 
 # Fixed zone entries.  Here you can config zones that cannot be deleted.
 # Zones that are dynamically added and deleted are put in the zonelist file.
