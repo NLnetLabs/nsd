@@ -875,7 +875,7 @@ offered through a mailing lists and the 'bugzilla' web interface.
 If for any reason NLnet Labs would stop community support of NSD such 
 would be announced on our web pages at least two years in advance.
 
-The community mailing list nsd-users@nlnetlabs.nl can be used to discuss 
+The community mailing list nsd-users@lists.NLnetLabs.nl can be used to discuss
 issues with other users of NSD. Subscribe here
 
 	http://lists.nlnetlabs.nl/mailman/listinfo/nsd-users
@@ -885,9 +885,7 @@ community support is not sufficient and that support needs to be codified.
 We therefore offer paid support contracts that come in 3 varieties. 
 
 More information about these support varieties can be found at 
-	<url on support varieties on www.nlnetlabs.nl>
-
-Alternatively you can contact mailto:nsd-support@nlnetlabs.nl .
+	https://nlnetlabs.nl/services/contracts/
 
 Support goes two ways.  By acquiring one of the support contracts you
 also support NLnet Labs to continue to participate in the development
@@ -896,11 +894,10 @@ the (IETF) standards process and by developing and maintaining
 reference implementations of standards and tools to support operation
 and deployment of new and existing Internet technology. 
 
-We are interested in our users and in the environment you use NSD. Please 
-drop us a mail when you use NSD. Indicate in what kind of operation you 
-deploy NSD and let us know what your positive and negative experiences are.
-http://www.nlnetlabs.nl/nsd  and  mailto:nsd-info@nlnetlabs.nl
-
+We are interested in our users and in the environment you use NSD. Please drop
+us a mail when you use NSD at users@NLnetLabs.nl. Indicate in what kind of
+operation you deploy NSD and let us know what your positive and negative
+experiences are.
 
 4.1 Your Support
 
