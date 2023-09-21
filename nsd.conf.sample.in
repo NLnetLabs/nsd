@@ -487,11 +487,6 @@ remote-control:
 	# Number of seconds before verifier is killed (0 is forever).
 	# Default is verifier-timeout in verify.
 	# verifier-timeout: 0
-	
-	# Turn this zone into a catalog zone. If set to "yes", the 
-	# catalog-member-pattern option MUST be present.
-	# catalog: yes
-	# catalog-member-pattern: "example-pattern"
 
 # Fixed zone entries.  Here you can config zones that cannot be deleted.
 # Zones that are dynamically added and deleted are put in the zonelist file.
@@ -504,6 +499,14 @@ remote-control:
 	# You can also specify (additional) options directly for this zone.
 	# zonefile: "example.com.zone"
 	# request-xfr: 192.0.2.1 example.com.key
+
+	# Specify zone is a catalog zone. Default is no.
+	# catalog: no
+
+	# Pattern applied to member zones by default. Mandatory for catalog zones
+	# on catalog consumers. The group property in the catalog zone may be used
+	# to override the pattern that is applied to a member zone.
+	# catalog-member-pattern: "member-zones"
 
 	# RRLconfig
 	# Response Rate Limiting, whitelist types

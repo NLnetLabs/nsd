@@ -201,12 +201,12 @@ struct component {
 %token VAR_IXFR_SIZE
 %token VAR_IXFR_NUMBER
 %token VAR_CREATE_IXFR
-%token VAR_CATALOG
-%token VAR_CATALOG_MEMBER_PATTERN
 
 /* zone */
 %token VAR_ZONE
 %token VAR_RRL_WHITELIST
+%token VAR_CATALOG
+%token VAR_CATALOG_MEMBER_PATTERN
 
 /* socket options */
 %token VAR_SERVERS
@@ -814,6 +814,8 @@ zone:
         assert(cfg_parser->zone == NULL);
         cfg_parser->zone = zone_options_create(cfg_parser->opt->region);
         cfg_parser->zone->part_of_config = 1;
+        cfg_parser->zone->catalog = 0;
+        cfg_parser->zone->catalog_member_pattern = NULL;
         cfg_parser->zone->pattern = cfg_parser->pattern =
           pattern_options_create(cfg_parser->opt->region);
         cfg_parser->zone->pattern->implicit = 1;
@@ -821,13 +823,15 @@ zone:
     zone_block
     {
       assert(cfg_parser->zone != NULL);
-      if(cfg_parser->zone->name == NULL) {
+      if(!cfg_parser->zone->name)
         yyerror("zone has no name");
-      } else if(!nsd_options_insert_zone(cfg_parser->opt, cfg_parser->zone)) {
+      if(!nsd_options_insert_zone(cfg_parser->opt, cfg_parser->zone))
         yyerror("duplicate zone %s", cfg_parser->zone->name);
-      } else if(!nsd_options_insert_pattern(cfg_parser->opt, cfg_parser->zone->pattern)) {
+      if(!nsd_options_insert_pattern(cfg_parser->opt, cfg_parser->zone->pattern))
         yyerror("duplicate pattern %s", cfg_parser->zone->pattern->pname);
-      }
+      // pattern to apply to member zones by default on catalog consumers is mandatory
+      if (zone_is_consumer(cfg_parser->zone) && !cfg_parser->zone->catalog_member_pattern)
+        yyerror("no catalog-member-pattern specified for catalog zone %s", cfg_parser->zone->name);
       cfg_parser->pattern = NULL;
       cfg_parser->zone = NULL;
     } ;
@@ -848,6 +852,16 @@ zone_option:
         yyerror("zone %s cannot be created because implicit pattern %s "
                     "already exists", $2, pname);
       }
+    }
+  | VAR_CATALOG boolean
+    {
+      cfg_parser->zone->catalog = $2;
+    }
+  | VAR_CATALOG_MEMBER_PATTERN STRING
+    {
+      cfg_parser->zone->catalog_member_pattern = pattern_options_find(cfg_parser->opt, $2);
+      if (!cfg_parser->zone->catalog_member_pattern)
+        yyerror("pattern %s does not exist", $2);
     }
   | pattern_or_zone_option ;
 
@@ -1035,13 +1049,7 @@ pattern_or_zone_option:
   | VAR_VERIFIER_FEED_ZONE boolean
     { cfg_parser->pattern->verifier_feed_zone = $2; }
   | VAR_VERIFIER_TIMEOUT number
-    { cfg_parser->pattern->verifier_timeout = $2; } 
-  | VAR_CATALOG boolean
-    { cfg_parser->pattern->is_catalog = $2; }
-  | VAR_CATALOG_MEMBER_PATTERN STRING 
-    { 
-      cfg_parser->pattern->catalog_member_pattern = region_strdup(cfg_parser->opt->region, $2); 
-    };
+    { cfg_parser->pattern->verifier_timeout = $2; } ;
 
 verify:
     VAR_VERIFY verify_block ;

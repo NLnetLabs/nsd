@@ -150,7 +150,9 @@ struct zone
 	unsigned     is_skipped : 1; /* subsequent zone updates are skipped */
 	unsigned     is_checked : 1; /* zone already verified */
 	unsigned     is_bad : 1; /* zone failed verification */
+	// FIXME: make from_catalog a pointer to a zone?
 	char*        from_catalog; /* zone originates from catalog zone */
+	// FIXME: make catalog_member_id a pointer to a domain?
 	dname_type*  catalog_member_id; /* member id in the catalog zone */
 } ATTR_PACKED;
 

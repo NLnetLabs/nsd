@@ -83,6 +83,8 @@ void catalog_consumer_process(
 	catzonezone_type* catzonezones = NULL;
 	region_type* catzonezones_region = region_create(xalloc, free);
 
+	// FIXME: verify this zone is a consumer, NOT a producer
+
 	for (struct radnode* n = radix_first(nsd->db->zonetree);
 	n;
 	n = radix_next(n)) {
@@ -212,7 +214,7 @@ void catalog_consumer_process(
 				if (!zone_exists) {
 					char* pname = region_strdup(
 						catzonezones_region,
-						zone->opts->pattern->catalog_member_pattern
+						zone->opts->catalog_member_pattern->pname
 					);
 					c = region_alloc(catzonezones_region, sizeof(catzonezone_type));
 					c->member_id = (dname_type*)member_id;

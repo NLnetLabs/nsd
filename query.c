@@ -1291,6 +1291,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	size_t domain_number, int exact, domain_type *closest_match,
 	domain_type *closest_encloser, const dname_type *qname)
 {
+	int check_acl;
 	zone_type* origzone = q->zone;
 	q->zone = domain_find_zone(nsd->db, closest_encloser);
 	if (!q->zone) {
@@ -1304,8 +1305,13 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 		return;
 	}
 	assert(closest_encloser); /* otherwise, no q->zone would be found */
-	if(q->zone->opts && q->zone->opts->pattern
-	&& q->zone->opts->pattern->allow_query) {
+
+	check_acl = (q->zone->opts != NULL) &&
+	            (q->zone->opts->pattern != NULL) &&
+	            (q->zone->opts->pattern->allow_query != NULL);
+
+	/* restrict catalog zone access by default to prevent unintended exposure */
+	if (q->zone->from_catalog || check_acl) {
 		struct acl_options *why = NULL;
 
 		/* check if it passes acl */
@@ -1336,6 +1342,9 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 				/* RFC8914 - Extended DNS Errors
 				 * 4.19. Extended DNS Error Code 18 - Prohibited */
 				q->edns.ede = EDE_PROHIBITED;
+				/* pretend zone is non-existent to prevent information leakage */
+				if (q->zone->from_catalog)
+					q->edns.ede = EDE_NOT_AUTHORITATIVE;
 			}
 			return;
 		}

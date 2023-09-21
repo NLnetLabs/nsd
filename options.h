@@ -305,8 +305,6 @@ struct pattern_options {
 	uint8_t verifier_feed_zone_is_default;
 	int32_t verifier_timeout;
 	uint8_t verifier_timeout_is_default;
-	uint8_t is_catalog : 1;
-	const char* catalog_member_pattern;
 } ATTR_PACKED;
 
 #define PATTERN_IMPLICIT_MARKER "_implicit_"
@@ -328,6 +326,10 @@ struct zone_options {
 	struct pattern_options* pattern;
 	/* zone is fixed into the main config, not in zonelist, cannot delete */
 	uint8_t part_of_config;
+	/* zone is a catalog zone */
+	uint8_t catalog;
+	/* default pattern applied to member zones */
+	struct pattern_options* catalog_member_pattern;
 } ATTR_PACKED;
 
 union acl_addr_storage {
@@ -531,7 +533,18 @@ int acl_list_equal(struct acl_options* p, struct acl_options* q);
 int acl_equal(struct acl_options* p, struct acl_options* q);
 
 /* see if a zone is a slave or a master zone */
-int zone_is_slave(struct zone_options* opt);
+static inline int
+zone_is_slave(const struct zone_options* opt)
+{
+	return opt && opt->pattern && opt->pattern->request_xfr != 0;
+}
+
+static inline int
+zone_is_consumer(const struct zone_options* opt)
+{
+	return zone_is_slave(opt) && opt->catalog;
+}
+
 /* create zonefile name, returns static pointer (perhaps to options data) */
 const char* config_make_zonefile(struct zone_options* zone, struct nsd* nsd);
 

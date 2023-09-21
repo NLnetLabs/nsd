@@ -1064,10 +1064,8 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 		if(!ssl_printf(ssl, "	pattern: %s\n", zo->pattern->pname))
 			return 0;
 	}
-	if(zo->pattern->is_catalog) {
-		if(!ssl_printf(ssl, "	catalog: %s\n", zo->pattern->is_catalog ? "yes" : "no"))
-			return 0;
-	}
+	if(!ssl_printf(ssl, "	catalog: %s\n", zo->catalog ? "yes" : "no"))
+		return 0;
 	if(nz) {
 		if(nz->is_waiting) {
 			if(!ssl_printf(ssl, "	notify: \"waiting-for-fd\"\n"))

@@ -2351,14 +2351,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			   update(s), communicate soainfo_gone */
 			task_new_soainfo(nsd->task[nsd->mytask], &last_task,
 			                 zone, soainfo_gone);
-		} 
-		
-		if(zone->opts && 
-		zone->opts->pattern && 
-		zone->opts->pattern->is_catalog && 
-		zone->is_updated) {
+		}
+
+		if(zone_is_consumer(zone->opts) && zone->is_updated) {
 			DEBUG(DEBUG_CATZ, 1, (LOG_INFO, "Start catalog consumption"));
-			catalog_consumer_process(nsd, zone, 
+			catalog_consumer_process(nsd, zone,
 				nsd->task[nsd->mytask], &last_task);
 		}
 		zone->is_updated = 0;
@@ -2538,16 +2535,10 @@ server_main(struct nsd *nsd)
 	    node = radix_next(node))
 	{
 		zone = (zone_type *)node->elem;
-		if (zone->opts->pattern->is_catalog && 
-		!zone->opts->pattern->catalog_member_pattern) {
-			log_msg(LOG_ERR,
-				"Zone %s is a catalog but misses the mandatory catalog-member-pattern configuration option!",
-				dname_to_string(zone->apex->dname, NULL));
-				nsd->mode = NSD_SHUTDOWN;
-		}
-		if (zone->opts->pattern->is_catalog) {
+		if (zone_is_consumer(zone->opts)) {
 			udb_ptr last_task;
-			log_msg(LOG_INFO, "scheduling zone %s for reload", 
+			assert(zone->opts->catalog_member_pattern);
+			log_msg(LOG_INFO, "scheduling zone %s for reload",
 				dname_to_string(zone->apex->dname, NULL));
 			catalog_consumer_process(nsd, zone, nsd->task[nsd->mytask], &last_task);
 		}

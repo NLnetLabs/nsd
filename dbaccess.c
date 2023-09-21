@@ -619,9 +619,8 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 			zone->opts->name));
 		zone->is_ok = 1;
 		zone->is_changed = 0;
-		if (zone->opts->pattern->is_catalog) {
+		if (zone_is_consumer(zone->opts))
 			catalog_consumer_process(nsd, zone, taskudb, last_task);
-		}
 		/* store zone into udb */
 		if(nsd->db->udb) {
 			if(!write_zone_to_udb(nsd->db->udb, zone, &mtime,
@@ -697,7 +696,8 @@ void namedb_check_zonefiles(struct nsd* nsd, struct nsd_options* opt,
 		if(!zone) {
 			zone = namedb_zone_create(nsd->db, dname, zo);
 		}
-		if (zone->catalog_member_id || zo->pattern->is_catalog) {
+		// FIXME: not quite correct
+		if (zone->catalog_member_id || zone_is_consumer(zo)) {
 			/* Ensure catalog zone members are loaded last */
 			zone_linkedlist* zl2 = region_alloc(zl_region, sizeof(zone_linkedlist));
 			zl2->me = zone;

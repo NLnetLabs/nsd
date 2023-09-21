@@ -807,8 +807,10 @@ zone_options_create(region_type* region)
 		struct zone_options));
 	zone->node = *RBTREE_NULL;
 	zone->name = 0;
-	zone->pattern = 0;
+	zone->pattern = NULL;
 	zone->part_of_config = 0;
+	zone->catalog = 0;
+	zone->catalog_member_pattern = NULL;
 	return zone;
 }
 
@@ -914,8 +916,6 @@ pattern_options_create(region_type* region)
 	p->verifier_feed_zone_is_default = 1;
 	p->verifier_timeout = VERIFIER_TIMEOUT_INHERIT;
 	p->verifier_timeout_is_default = 1;
-	p->is_catalog = 0;
-	p->catalog_member_pattern = NULL;
 
 	return p;
 }
@@ -1977,12 +1977,6 @@ key_options_tsig_add(struct nsd_options* opt)
 	}
 }
 #endif
-
-int
-zone_is_slave(struct zone_options* opt)
-{
-	return opt && opt->pattern && opt->pattern->request_xfr != 0;
-}
 
 /* get a character in string (or replacement char if not long enough) */
 static const char*

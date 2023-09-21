@@ -580,18 +580,6 @@ static void print_zone_content_elems(pattern_options_type* pat)
 	if(pat->verifier_timeout != VERIFIER_TIMEOUT_INHERIT) {
 		printf("\tverifier-timeout: %d\n", pat->verifier_timeout);
 	}
-
-	if(pat->is_catalog) {
-		printf("\tcatalog: ");
-		if(pat->is_catalog) {
-			printf("yes\n");
-		} else {
-			printf("no\n");
-		}
-	}
-
-	if(pat->catalog_member_pattern) 
-		print_string_var("catalog-member-pattern:", pat->catalog_member_pattern);	
 }
 
 void
@@ -785,6 +773,9 @@ config_test_print_server(nsd_options_type* opt)
 			continue;
 		printf("\nzone:\n");
 		print_string_var("name:", zone->name);
+		printf("catalog: %s\n", zone->catalog ? "yes" : "no");
+		if (zone->catalog_member_pattern)
+			printf("catalog-member-pattern: %s\n", zone->catalog_member_pattern->pname);
 		print_zone_content_elems(zone->pattern);
 	}
 }
@@ -815,6 +806,10 @@ additional_checks(nsd_options_type* opt, const char* filename)
 				"no zonefile. Where can the data come from?\n",
 				filename, zone->name);
 			errors ++;
+		}
+		if (zone_is_consumer(zone) && !zone->catalog_member_pattern) {
+			fprintf(stderr, "%s: zone %s is a catalog zone but does not "
+				"specify a catalog-member-pattern\n", filename, zone->name);
 		}
 	}
 
