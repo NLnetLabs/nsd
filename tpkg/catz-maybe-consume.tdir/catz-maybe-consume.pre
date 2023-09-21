@@ -1,0 +1,61 @@
+# #-- catz-maybe-consume.pre --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+PRODUCER_PORT=${RND_PORT}
+CONSUMER_PORT=`expr $RND_PORT + 1`
+
+echo "PRODUCER_PORT=${PRODUCER_PORT}" >> .tpkg.var.test
+echo "CONSUMER_PORT=${CONSUMER_PORT}" >> .tpkg.var.test
+
+# producer.conf
+cat << EOF > producer.conf
+server:
+	zonesdir: "."
+	username: ""
+	database: ""
+	verbosity: 5
+	ip-address: 127.0.0.1
+	port: ${PRODUCER_PORT}
+	pidfile: "producer.pid"
+	xfrdfile: "xfrd.state"
+	logfile: "producer.log"
+
+zone:
+	name: catz
+	zonefile: catz.zone
+	notify: 127.0.0.1@${CONSUMER_PORT} NOKEY
+	provide-xfr: 127.0.0.1 NOKEY
+	catalog: yes
+EOF
+
+# consumer.conf
+cat << EOF > consumer.conf
+server:
+	zonesdir: "."
+	username: ""
+	database: ""
+	verbosity: 5
+	ip-address: 127.0.0.1
+	port: ${CONSUMER_PORT}
+	pidfile: "consumer.pid"
+	xfrdfile: "xfrd.state"
+	logfile: "consumer.log"
+
+pattern:
+	name: catz-members
+	allow-notify: 127.0.0.1 NOKEY
+	request-xfr: 127.0.0.1@${PRODUCER_PORT} NOKEY
+
+zone:
+	name: catz
+	allow-notify: 127.0.0.1 NOKEY
+	request-xfr: 127.0.0.1@${PRODUCER_PORT} NOKEY
+	catalog: yes
+	catalog-member-pattern: catz-members
+EOF

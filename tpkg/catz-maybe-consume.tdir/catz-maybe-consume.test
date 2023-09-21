@@ -1,0 +1,29 @@
+# #-- catz-maybe-consume.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+
+PRE="../.."
+NSD="$PRE/nsd"
+
+$NSD -c producer.conf -V 5
+$NSD -c consumer.conf -V 5
+
+wait_logfile producer.log "zone catz read with success" 45
+wait_logfile consumer.log "zone catz. received update" 45
+
+if grep "zone example.com. received error code SERVER NOT AUTHORITATIVE FOR ZONE" consumer.log; then
+	echo OK
+	exit 0
+else
+	echo "----- producer.log -----"
+	cat producer.log
+	echo "----- consumer.log -----"
+	cat consumer.log
+	echo "producer is authoritative for example.com, but zone is not configured"
+	echo "catz.zone. has probably been consumed, which the producer MUST not do"
+	exit 1
+fi

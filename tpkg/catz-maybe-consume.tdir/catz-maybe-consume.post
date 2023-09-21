@@ -1,0 +1,16 @@
+# #-- catz-maybe-consume.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+if [ -n producer.pid ]; then
+	kill_pid `cat producer.pid`
+fi
+
+if [ -n consumer.pid ]; then
+	kill_pid `cat consumer.pid`
+fi
+
+exit 0
