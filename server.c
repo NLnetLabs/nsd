@@ -254,6 +254,9 @@ struct tcp_handler_data
 	 */
 	size_t				bytes_transmitted;
 
+	/* If the query is restarted and needs a reset */
+	int query_needs_reset;
+
 	/*
 	 * The number of queries handled by this specific TCP connection.
 	 */
@@ -4019,9 +4022,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 
 	assert((event & EV_READ));
 
-	if (data->bytes_transmitted == 0 &&
-		data->pp2_header_state == pp2_header_none) {
+	if (data->bytes_transmitted == 0 && data->query_needs_reset) {
 		query_reset(data->query, TCP_MAX_MESSAGE_LEN, 1);
+		data->query_needs_reset = 0;
 	}
 
 	if(data->pp2_enabled && data->pp2_header_state != pp2_header_done) {
@@ -4426,6 +4429,7 @@ handle_tcp_writing(int fd, short event, void* arg)
 	}
 
 	data->bytes_transmitted = 0;
+	data->query_needs_reset = 1;
 
 	timeout.tv_sec = data->tcp_timeout / 1000;
 	timeout.tv_usec = (data->tcp_timeout % 1000)*1000;
@@ -4585,9 +4589,9 @@ handle_tls_reading(int fd, short event, void* arg)
 
 	assert((event & EV_READ));
 
-	if (data->bytes_transmitted == 0 &&
-		data->pp2_header_state == pp2_header_none) {
+	if (data->bytes_transmitted == 0 && data->query_needs_reset) {
 		query_reset(data->query, TCP_MAX_MESSAGE_LEN, 1);
+		data->query_needs_reset = 0;
 	}
 
 	if(data->shake_state != tls_hs_none) {
@@ -4959,6 +4963,7 @@ handle_tls_writing(int fd, short event, void* arg)
 	}
 
 	data->bytes_transmitted = 0;
+	data->query_needs_reset = 1;
 
 	tcp_handler_setup_event(data, handle_tls_reading, fd, EV_PERSIST | EV_READ | EV_TIMEOUT);
 }
@@ -5090,6 +5095,7 @@ handle_tcp_accept(int fd, short event, void* arg)
 	tcp_data->shake_state = tls_hs_none;
 	tcp_data->tls = NULL;
 #endif
+	tcp_data->query_needs_reset = 1;
 	tcp_data->pp2_enabled = data->pp2_enabled;
 	tcp_data->pp2_header_state = pp2_header_none;
 	tcp_data->prev = NULL;
