@@ -1,0 +1,8 @@
+$ORIGIN example.com.
+$TTL 86400
+
+@ SOA ns.example.com. hostmaster.example.com. (
+  2023092101 21600 3600 604800 86400 )
+
+  NS ns.example.com.
+  A 192.0.2.1

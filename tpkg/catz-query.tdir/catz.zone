@@ -1,0 +1,6 @@
+$ORIGIN catz.
+
+@ SOA invalid. invalid. 1625079951 3600 600 2147483646 0
+@ NS invalid.
+version.catz. TXT "2"
+example.zones.catz. PTR example.com.

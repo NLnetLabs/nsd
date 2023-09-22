@@ -1,0 +1,129 @@
+# #-- catz-query.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+
+PRE="../.."
+NSD="$PRE/nsd"
+
+exit_code=0
+
+# start nsd using not-allowed.conf (allow-query + provide-xfr not configured).
+# queries and transfers for catalog zones should not be allowed. queries for
+# regular zones should be allowed. transfers for regular zones  should not be
+# allowed.
+$NSD -c not-allowed.conf -L 5 -F 0xFFFF
+wait_nsd_up nsd.not-allowed.log
+
+# query catalog zone for SOA record, should not be allowed
+dig -4 @127.0.0.1 -p $TPKG_PORT catz.zone. SOA \
+  > catz.not-allowed.soa 2>&1
+if [ ${?} -eq 0 ] && grep 'status: REFUSED' catz.not-allowed.soa > /dev/null; then
+  echo "SOA QUERY for catz. in not-allowed was correct"
+else
+  exit_code=1
+  echo "SOA QUERY for catz. in not-allowed was incorrect"
+  echo "dig:"
+  cat catz.not-allowed.soa
+fi
+
+# query regular zone for SOA record, should be allowed
+dig -4 @127.0.0.1 -p $TPKG_PORT example.com. SOA \
+  > example.com.not-allowed.soa 2>&1
+if [ ${?} -eq 0 ] && grep 'status: NOERROR' example.com.not-allowed.soa > /dev/null; then
+  echo "SOA QUERY for example.com. in not-allowed was correct"
+else
+  exit_code=1
+  echo "SOA QUERY for example.com. in not-allowed was incorrect"
+  echo "dig:"
+  cat example.not-allowed.soa
+fi
+
+# query catalog zone for AXFR, should not be allowed
+dig -4 @127.0.0.1 -p $TPKG_PORT catz. AXFR \
+  > catz.not-allowed.axfr 2>&1
+if [ ${?} -eq 0 ] && grep 'Transfer failed' catz.not-allowed.axfr > /dev/null; then
+  echo "AXFR QUERY for catz. in not-allowed was correct"
+else
+  exit_code=1
+  echo "AXFR QUERY for catz. in not-allowed was incorrect"
+  echo "dig:"
+  cat catz.not-allowed.axfr
+fi
+
+# query regular zone for AXFR, should not be allowed
+dig -4 @127.0.0.1 -p $TPKG_PORT example.com. AXFR \
+  > example.com.not-allowed.axfr 2>&1
+if [ ${?} -eq 0 ] && grep 'Transfer failed' example.com.not-allowed.axfr > /dev/null; then
+  echo "AXFR QUERY for example.com. in not-allowed was correct"
+else
+  exit_code=1
+  echo "AXFR QUERY for example.com. in not-allowed was incorrect"
+  echo "dig:"
+  cat example.com.not-allowed.axfr
+fi
+
+# stop nsd
+if [ -f nsd.not-allowed.pid ]; then
+  kill_pid `cat nsd.not-allowed.pid`
+fi
+
+
+# start nsd using allowed.conf (allow-query and provide-xfr configured).
+# queries and transfers for (catalog) zones should be allowed.
+$NSD -c allowed.conf
+wait_nsd_up nsd.allowed.log
+
+dig -4 @127.0.0.1 -p $TPKG_PORT catz. SOA \
+  > catz.allowed.soa 2>&1
+if [ ${?} -eq 0 ] && grep 'status: NOERROR' catz.allowed.soa > /dev/null; then
+  echo "SOA QUERY for catz. in allowed was correct"
+else
+  exit_code=1
+  echo "SOA QUERY for catz. in allowed was incorrect"
+  echo "dig:"
+  cat catz.allowed.soa
+fi
+
+dig -4 @127.0.0.1 -p $TPKG_PORT example.com. SOA \
+  > example.com.allowed.soa 2>&1
+if [ ${?} -eq 0 ] && grep 'status: NOERROR' example.com.allowed.soa > /dev/null; then
+  echo "SOA QUERY for example.com. in allowed was correct"
+else
+  exit_code=1
+  echo "SOA QUERY for example.com. in allowed was incorrect"
+  echo "dig:"
+  cat example.allowed.soa
+fi
+
+# query catalog zone for AXFR, should be allowed
+dig -4 @127.0.0.1 -p $TPKG_PORT catz. AXFR > catz.allowed.axfr 2>&1
+if [ ${?} -eq 0 ] && ! grep 'Transfer failed' catz.allowed.axfr > /dev/null; then
+  echo "AXFR QUERY for catz. in allowed was correct"
+else
+  exit_code=1
+  echo "AXFR QUERY for catz. in allowed was incorrect"
+  echo "dig:"
+  cat catz.allowed.axfr
+fi
+
+# query regular zone for AXFR, should be allowed
+dig -4 @127.0.0.1 -p $TPKG_PORT example.com. AXFR > example.com.allowed.axfr 2>&1
+if [ ${?} -eq 0 ] && ! grep 'Transfer failed' example.com.allowed.axfr > /dev/null; then
+  echo "AXFR QUERY for example.com. in allowed was correct"
+else
+  exit_code=1
+  echo "AXFR QUERY for example.com. in allowed was incorrect"
+  echo "dig:"
+  cat example.com.allowed.axfr
+fi
+
+# stop nsd
+if [ -f nsd.allowed.pid ]; then
+  kill_pid `cat nsd.allowed.pid`
+fi
+
+exit ${exit_code}
