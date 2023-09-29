@@ -3631,7 +3631,7 @@ consume_pp2_header(struct buffer* buf, struct query* q, int stream)
 		 * No need to do anything with addresses. */
 		goto done;
 	}
-	if(header->fam_prot == 0x00) {
+	if(header->fam_prot == PP2_UNSPEC_UNSPEC) {
 		/* Unspecified family and protocol. This could be used for
 		 * health checks by proxies.
 		 * No need to do anything with addresses. */
@@ -3639,8 +3639,8 @@ consume_pp2_header(struct buffer* buf, struct query* q, int stream)
 	}
 	/* Read the proxied address */
 	switch(header->fam_prot) {
-		case 0x11: /* AF_INET|STREAM */
-		case 0x12: /* AF_INET|DGRAM */
+		case PP2_INET_STREAM:
+		case PP2_INET_DGRAM:
 			{
 			struct sockaddr_in* addr =
 				(struct sockaddr_in*)&q->client_addr;
@@ -3654,8 +3654,8 @@ consume_pp2_header(struct buffer* buf, struct query* q, int stream)
 			/* Ignore the destination address; it should be us. */
 			break;
 #ifdef INET6
-		case 0x21: /* AF_INET6|STREAM */
-		case 0x22: /* AF_INET6|DGRAM */
+		case PP2_INET6_STREAM:
+		case PP2_INET6_DGRAM:
 			{
 			struct sockaddr_in6* addr =
 				(struct sockaddr_in6*)&q->client_addr;
