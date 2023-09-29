@@ -129,8 +129,8 @@ pp2_write_to_buf(uint8_t* buf, size_t buflen,
 		/* dst port */
 		(*pp_data.write_uint16)(buf, 12);
 		break;
-	case AF_INET6:
 #ifdef INET6
+	case AF_INET6:
 		/* family and protocol */
 		*buf = (PP2_AF_INET6<<4) |
 			(stream?PP2_PROT_STREAM:PP2_PROT_DGRAM);
@@ -151,8 +151,6 @@ pp2_write_to_buf(uint8_t* buf, size_t buflen,
 		/* dst port */
 		(*pp_data.write_uint16)(buf, 0);
 		break;
-#else
-		return 0;
 #endif /* INET6 */
 	case AF_UNIX:
 		/* fallthrough */
