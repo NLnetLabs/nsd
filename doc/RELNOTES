@@ -3,6 +3,10 @@ NSD RELEASE NOTES
 4.7.1 (upcoming)
 ================
 FEATURES:
+	- Merge #281: Proxy protocol. An implementation of PROXYv2 for NSD.
+	  It can be configured with proxy-protocol-port: portnum with the
+	  port number of the interface on which proxy traffic is handled.
+	  The interface can support proxy traffic for UDP, TCP and TLS.
 BUG FIXES:
 	- Merge #282: Improve nsd.conf man page.
 	- Fix unused but set variable warning.

@@ -1,3 +1,9 @@
+3 October 2023: Wouter
+	- Merge #281: Proxy protocol. An implementation of PROXYv2 for NSD.
+	  It can be configured with proxy-protocol-port: portnum with the
+	  port number of the interface on which proxy traffic is handled.
+	  The interface can support proxy traffic for UDP, TCP and TLS.
+
 21 September 2023: Wouter
 	- Merge #295: Update e-mail addresses, add ref to support contracts
 
