@@ -1,0 +1,33 @@
+# #-- proxy_protocol.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# Is streamtcp available?
+if test -f "`which streamtcp 2>&1`"; then
+	echo "streamtcp available, do test"
+else
+	echo "streamtcp not available, skip test"
+	exit 0
+fi
+# The streamtcp tool is in path. It is from make from unbound tests.
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+TPKG_PORT2=`expr $RND_PORT + 1`
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_PORT2=$TPKG_PORT2" >> .tpkg.var.test
+
+sed -e "s/PORT1/$TPKG_PORT/" -e "s/PORT2/$TPKG_PORT2/" < proxy_protocol.conf > edit.conf
+echo "nsd on port $TPKG_PORT and $TPKG_PORT2"
+
+$TPKG_NSD -c edit.conf -u "" -p $TPKG_PORT -V 6
+wait_nsd_up nsd.log

@@ -1,0 +1,393 @@
+# #-- proxy_protocol.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+# Is streamtcp available?
+if test -f "`which streamtcp 2>&1`"; then
+	echo "streamtcp available, do test"
+else
+	echo "streamtcp not available, skip test"
+	exit 0
+fi
+
+# use proxy protocol to query server
+echo ""
+echo "> UDP test"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -u www.example.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo ""
+echo "> UDP allow-query test"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -u www.ex2.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo ""
+echo "> UDP allow-query test for block client"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.31.15@1234 -u www.ex2.com. A IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "query www.ex2.com. from 10.20.31.15 refused, BLOCKED 10.20.31.0/24" 5
+if grep "query www.ex2.com. from 10.20.31.15 refused, BLOCKED 10.20.31.0/24" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> UDP allow-query test for block proxy"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -u www.ex5.com. A IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "query www.ex5.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" 5
+if grep "query www.ex5.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> UDP provide-xfr test"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -u ex3.com. IXFR=4 IN &> out2
+cat out2
+if grep "ns0.example.org. d.example.com. 4" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "ixfr for ex3.com. from 10.20.30.40" 5
+if grep "ixfr for ex3.com. from 10.20.30.40" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> UDP provide-xfr test for block client"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.31.15@1234 -u ex3.com. IXFR=4 IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "ixfr for ex3.com. from 10.20.31.15 refused, blocked" 5
+if grep "ixfr for ex3.com. from 10.20.31.15 refused, blocked" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> UDP provide-xfr test for block proxy"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -u ex6.com. IXFR=4 IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "ixfr for ex6.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" 5
+if grep "ixfr for ex6.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> UDP allow-notify test"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -u ex4.com. NOTIFY=5 IN &> out2
+cat out2
+if grep "NOERROR" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "notify for ex4.com. from 10.20.30.40 serial 5" 5
+if grep "notify for ex4.com. from 10.20.30.40 serial 5" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> UDP allow-notify test for block client"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.31.15@1234 -u ex4.com. NOTIFY=5 IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "notify for ex4.com. from 10.20.31.15 refused, 10.20.31.0/24 BLOCKED" 5
+if grep "notify for ex4.com. from 10.20.31.15 refused, 10.20.31.0/24 BLOCKED" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> UDP allow-notify test for block proxy"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -u ex7.com. NOTIFY=5 IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "notify for ex7.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" 5
+if grep "notify for ex7.com. from 10.20.30.40 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TCP test"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 www.example.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TCP allow-query test"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 www.ex2.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TCP allow-query test for block client"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.31.17@4567 www.ex2.com. A IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "query www.ex2.com. from 10.20.31.17 refused, BLOCKED 10.20.31.0/24" 5
+if grep "query www.ex2.com. from 10.20.31.17 refused, BLOCKED 10.20.31.0/24" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TCP test with IPv6"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p ::1@1234 www.example.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TCP provide-xfr test"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.41@1234 ex3.com. IXFR=4 IN &> out2
+cat out2
+if grep "ns0.example.org. d.example.com. 4" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "ixfr for ex3.com. from 10.20.30.41" 5
+if grep "ixfr for ex3.com. from 10.20.30.41" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TCP provide-xfr test for block client"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.31.17@4567 ex3.com. AXFR IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "axfr for ex3.com. from 10.20.31.17 refused, blocked" 5
+if grep "axfr for ex3.com. from 10.20.31.17 refused, blocked" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TCP provide-xfr test for block proxy"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.41@1234 ex6.com. AXFR IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "axfr for ex6.com. from 10.20.30.41 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" 5
+if grep "axfr for ex6.com. from 10.20.30.41 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TLS test"
+streamtcp -f 127.0.0.1@$TPKG_PORT2 -p 10.20.30.40@1234 -s www.example.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TLS allow-query test"
+streamtcp -f 127.0.0.1@$TPKG_PORT2 -p 10.20.30.40@1234 -s www.ex2.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TLS allow-query test for block client"
+streamtcp -f 127.0.0.1@$TPKG_PORT2 -p 10.20.31.18@4567 -s www.ex2.com. A IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "query www.ex2.com. from 10.20.31.18 refused, BLOCKED 10.20.31.0/24" 5
+if grep "query www.ex2.com. from 10.20.31.18 refused, BLOCKED 10.20.31.0/24" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TLS test with IPv6"
+streamtcp -f 127.0.0.1@$TPKG_PORT2 -p ::1@1234 -s www.example.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TLS provide-xfr test"
+streamtcp -f 127.0.0.1@$TPKG_PORT2 -p 10.20.30.42@1234 -s ex3.com. IXFR=4 IN &> out2
+cat out2
+if grep "ns0.example.org. d.example.com. 4" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "ixfr for ex3.com. from 10.20.30.42" 5
+if grep "ixfr for ex3.com. from 10.20.30.42" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TLS provide-xfr test for block client"
+streamtcp -f 127.0.0.1@$TPKG_PORT2 -p 10.20.31.18@4567 -s ex3.com. AXFR IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "axfr for ex3.com. from 10.20.31.18 refused, blocked" 5
+if grep "axfr for ex3.com. from 10.20.31.18 refused, blocked" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TLS provide-xfr test for block proxy"
+streamtcp -f 127.0.0.1@$TPKG_PORT2 -p 10.20.30.42@1234 -s ex6.com. AXFR IN &> out2
+cat out2
+if grep "REFUSED" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+wait_logfile nsd.log "axfr for ex6.com. from 10.20.30.42 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" 5
+if grep "axfr for ex6.com. from 10.20.30.42 via proxy 127.0.0.1 refused because of proxy, 127.0.0.0/8 BLOCKED" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+exit 0

@@ -1,0 +1,42 @@
+# #-- proxy_dnstap.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+
+. ../common.sh
+PRE="../.."
+
+if grep "define USE_DNSTAP " $PRE/config.h; then
+	echo "USE_DNSTAP enabled"
+else
+	echo "USE_DNSTAP not enabled, skip test"
+	exit 0
+fi
+# Is streamtcp available?
+if test -f "`which streamtcp 2>&1`"; then
+	echo "streamtcp available, do test"
+else
+	echo "streamtcp not available, skip test"
+	exit 0
+fi
+# Is unbound-dnstap-socket available?
+if test -f "`which unbound-dnstap-socket 2>&1`"; then
+	echo "unbound-dnstap-socket available, do test"
+else
+	echo "unbound-dnstap-socket not available, skip test"
+	exit 0
+fi
+
+# do your teardown here
+if test -f nsd.pid; then
+	kill_pid `cat nsd.pid`
+fi
+if test "x$DNSTAP_PID" != "x"; then
+	kill_pid "$DNSTAP_PID"
+fi
+
+cat nsd.log
+cat dnstap.log
