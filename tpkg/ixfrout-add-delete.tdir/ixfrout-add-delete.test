@@ -1,0 +1,29 @@
+# #-- ixfrout-add-delete.test --#
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# Use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+NSD="${PRE}/nsd"
+
+${NSD} -c $(pwd)/nsd.conf -p ${NSD_PORT} -V 5 -L 5 -F 0xFFFF
+wait_nsd_up nsd.log
+
+# notify nsd updates are available
+ldns-notify -z example.com -p ${NSD_PORT} -s 2 127.0.0.1
+# wait for update to be applied
+wait_logfile nsd.log "zone example.com. serial 0 is updated to 2" 10
+
+dig @127.0.0.1 -p ${LDNS_PORT} -t ixfr=0 IXFR example.com. | sed -n -e '/^[^;]/p' > ldns.ixfr
+dig @127.0.0.1 -p ${NSD_PORT} -t ixfr=0 IXFR example.com. | sed -n -e '/^[^;]/p' > nsd.ixfr
+
+if diff nsd.ixfr ldns.ixfr; then
+	exit 0
+else
+	echo "expected:" 1>&2
+	cat ldns.ixfr 1>&2
+	echo "result:" 1>&2
+	cat nsd.ixfr 1>&2
+	exit 1
+fi
