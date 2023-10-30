@@ -1003,20 +1003,16 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 
 /* return value 0: syntaxerror,badIXFR, 1:OK, 2:done_and_skip_it */
 static int
-apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
-	struct nsd_options* opt, uint32_t seq_nr, uint32_t seq_total,
+apply_ixfr(nsd_type* nsd, FILE *in, uint32_t serialno,
+	uint32_t seq_nr, uint32_t seq_total,
 	int* is_axfr, int* delete_mode, int* rr_count,
-	udb_ptr* udbz, struct zone** zone_res, const char* patname, int* bytes,
+	udb_ptr* udbz, struct zone* zone, int* bytes,
 	int* softfail, struct ixfr_store* ixfr_store)
 {
 	uint32_t msglen, checklen, pkttype;
-	int qcount, ancount, counter;
+	int qcount, ancount;
 	buffer_type* packet;
 	region_type* region;
-	int i;
-	uint16_t rrlen;
-	const dname_type *dname_zone, *dname;
-	zone_type* zone_db;
 
 	/* note that errors could not really happen due to format of the
 	 * packet since xfrd has checked all dnames and RRs before commit,
@@ -1066,15 +1062,6 @@ apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
 	}
 	*bytes += msglen;
 
-	dname_zone = dname_parse(region, zone);
-	zone_db = find_or_create_zone(db, dname_zone, opt, zone, patname);
-	if(!zone_db) {
-		log_msg(LOG_ERR, "could not create zone %s %s", zone, patname);
-		region_destroy(region);
-		return 0;
-	}
-	*zone_res = zone_db;
-
 	/* only answer section is really used, question, additional and
 	   authority section RRs are skipped */
 	qcount = QDCOUNT(packet);
@@ -1088,79 +1075,24 @@ apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
 	}
 
 	/* skip queries */
-	for(i=0; i<qcount; ++i)
+	for(int i=0; i < qcount; ++i) {
 		if(!packet_skip_rr(packet, 1)) {
 			log_msg(LOG_ERR, "bad RR in question section");
 			region_destroy(region);
 			return 0;
 		}
-
-	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: started packet for zone %s",
-			dname_to_string(dname_zone, 0)));
-	/* first RR: check if SOA and correct zone & serialno */
-	if(*rr_count == 0) {
-		size_t ttlpos;
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s parse first RR",
-			dname_to_string(dname_zone, 0)));
-		dname = dname_make_from_packet(region, packet, 1, 1);
-		if(!dname) {
-			log_msg(LOG_ERR, "could not parse dname");
-			region_destroy(region);
-			return 0;
-		}
-		if(dname_compare(dname_zone, dname) != 0) {
-			log_msg(LOG_ERR, "SOA dname %s not equal to zone",
-				dname_to_string(dname,0));
-			log_msg(LOG_ERR, "zone dname is %s",
-				dname_to_string(dname_zone,0));
-			region_destroy(region);
-			return 0;
-		}
-		if(!buffer_available(packet, 10)) {
-			log_msg(LOG_ERR, "bad SOA RR");
-			region_destroy(region);
-			return 0;
-		}
-		if(buffer_read_u16(packet) != TYPE_SOA ||
-			buffer_read_u16(packet) != CLASS_IN) {
-			log_msg(LOG_ERR, "first RR not SOA IN");
-			region_destroy(region);
-			return 0;
-		}
-		ttlpos = buffer_position(packet);
-		buffer_skip(packet, sizeof(uint32_t)); /* ttl */
-		if(!buffer_available(packet, buffer_read_u16(packet)) ||
-			!packet_skip_dname(packet) /* skip prim_ns */ ||
-			!packet_skip_dname(packet) /* skip email */) {
-			log_msg(LOG_ERR, "bad SOA RR");
-			region_destroy(region);
-			return 0;
-		}
-		if(buffer_read_u32(packet) != serialno) {
-			buffer_skip(packet, -4);
-			log_msg(LOG_ERR, "SOA serial %u different from commit %u",
-				(unsigned)buffer_read_u32(packet), (unsigned)serialno);
-			region_destroy(region);
-			return 0;
-		}
-		buffer_skip(packet, sizeof(uint32_t)*4);
-		counter = 1;
-		*rr_count = 1;
-		*is_axfr = 0;
-		*delete_mode = 0;
-		if(ixfr_store)
-			ixfr_store_add_newsoa(ixfr_store, packet, ttlpos);
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s start count %d, ax %d, delmode %d",
-			dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
 	}
-	else  counter = 0;
 
-	for(; counter < ancount; ++counter,++(*rr_count))
-	{
-		uint16_t type, klass;
+	DEBUG(DEBUG_XFRD, 2, (LOG_INFO, "diff: started packet for zone %s",
+			domain_to_string(zone->apex)));
+
+	for(int i=0; i < ancount; ++i, ++(*rr_count)) {
+		const dname_type *owner;
+		uint16_t type, klass, rrlen;
 		uint32_t ttl;
 
-		if(!(dname=dname_make_from_packet(region, packet, 1,1))) {
+		owner = dname_make_from_packet(region, packet, 1, 1);
+		if(!owner) {
 			log_msg(LOG_ERR, "bad xfr RR dname %d", *rr_count);
 			region_destroy(region);
 			return 0;
@@ -1180,79 +1112,120 @@ apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
 			region_destroy(region);
 			return 0;
 		}
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s parsed count %d, ax %d, delmode %d",
-			dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
 
-		if(*rr_count == 1 && type != TYPE_SOA) {
-			/* second RR: if not SOA: this is an AXFR; delete all zone contents */
-#ifdef NSEC3
-			nsec3_clear_precompile(db, zone_db);
-			zone_db->nsec3_param = NULL;
-#endif
-			delete_zone_rrs(db, zone_db);
-			if(db->udb)
-				udb_zone_clear(db->udb, udbz);
-			/* add everything else (incl end SOA) */
-			*delete_mode = 0;
-			*is_axfr = 1;
-			if(ixfr_store) {
-				ixfr_store_cancel(ixfr_store);
-				ixfr_store_delixfrs(zone_db);
-			}
-			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s sawAXFR count %d, ax %d, delmode %d",
-				dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
-		}
-		if(*rr_count == 1 && type == TYPE_SOA) {
-			/* if the serial no of the SOA equals the serialno, then AXFR */
-			size_t bufpos = buffer_position(packet);
-			uint32_t thisserial;
-			if(!packet_skip_dname(packet) ||
-				!packet_skip_dname(packet) ||
-				buffer_remaining(packet) < sizeof(uint32_t)*5)
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s parsed count %d, ax %d, delmode %d",
+			domain_to_string(zone->apex), *rr_count, *is_axfr, *delete_mode));
+
+		if (type == TYPE_SOA) {
+			size_t position;
+			uint32_t serial;
+			position = buffer_position(packet);
+			if (!packet_skip_dname(packet) ||
+					!packet_skip_dname(packet) ||
+					buffer_remaining(packet) < sizeof(uint32_t) * 5)
 			{
 				log_msg(LOG_ERR, "bad xfr SOA RR formerr.");
 				region_destroy(region);
 				return 0;
 			}
-			thisserial = buffer_read_u32(packet);
-			if(thisserial == serialno) {
-				/* AXFR */
-#ifdef NSEC3
-				nsec3_clear_precompile(db, zone_db);
-				zone_db->nsec3_param = NULL;
-#endif
-				delete_zone_rrs(db, zone_db);
-				if(db->udb)
-					udb_zone_clear(db->udb, udbz);
-				*delete_mode = 0;
-				*is_axfr = 1;
+			serial = buffer_read_u32(packet);
+			buffer_set_position(packet, position);
+
+			/* first RR: check if SOA and correct zone & serialno */
+			if (*rr_count == 0) {
+				assert(!*is_axfr);
+				assert(!*delete_mode);
+				if (klass != CLASS_IN) {
+					log_msg(LOG_ERR, "first RR not SOA IN");
+					region_destroy(region);
+					return 0;
+				}
+				if(dname_compare(domain_dname(zone->apex), owner) != 0) {
+					log_msg(LOG_ERR, "SOA dname not equal to zone %s",
+						domain_to_string(zone->apex));
+					region_destroy(region);
+					return 0;
+				}
+				if(serial != serialno) {
+					log_msg(LOG_ERR, "SOA serial %u different from commit %u",
+						(unsigned)serial, (unsigned)serialno);
+					region_destroy(region);
+					return 0;
+				}
+				buffer_skip(packet, rrlen);
+
 				if(ixfr_store)
-					ixfr_store_cancel(ixfr_store);
+					ixfr_store_add_newsoa(ixfr_store, ttl, packet, rrlen);
+
+				continue;
+			} else if (*rr_count == 1) {
+				assert(!*is_axfr);
+				assert(!*delete_mode);
+				/* if the serial no of the SOA equals the serialno, then AXFR */
+				if (serial == serialno)
+					goto axfr;
+				*delete_mode = 1;
+				/* must have stuff in memory for a successful IXFR,
+				 * the serial number of the SOA has been checked
+				 * previously (by check_for_bad_serial) if it exists */
+				if(!domain_find_rrset(zone->apex, zone, TYPE_SOA)) {
+					log_msg(LOG_ERR, "%s SOA serial %u is not "
+						"in memory, skip IXFR", domain_to_string(zone->apex), serialno);
+					region_destroy(region);
+					/* break out and stop the IXFR, ignore it */
+					return 2;
+				}
+
+				if(ixfr_store)
+					ixfr_store_add_oldsoa(ixfr_store, ttl, packet, rrlen);
+			} else if (!*is_axfr) {
+				/* do not delete final SOA RR for IXFR */
+				if (i == ancount - 1 && seq_nr == seq_total - 1) {
+					if (ixfr_store) {
+						ixfr_store_add_newsoa(ixfr_store, ttl, packet, rrlen);
+					}
+					*delete_mode = 0;
+					buffer_skip(packet, rrlen);
+					continue;
+				} else
+					*delete_mode = !*delete_mode;
+
+				if (ixfr_store && *delete_mode) {
+					ixfr_store_add_newsoa(ixfr_store, ttl, packet, rrlen);
+					ixfr_store_finish(ixfr_store, nsd, NULL);
+					ixfr_store_start(zone, ixfr_store);
+					ixfr_store_add_oldsoa(ixfr_store, ttl, packet, rrlen);
+				}
+				/* switch from delete-part to add-part and back again,
+				   just before soa - so it gets deleted and added too */
+				DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s IXFRswapdel count %d, ax %d, delmode %d",
+					domain_to_string(zone->apex), *rr_count, *is_axfr, *delete_mode));
 			}
-			/* must have stuff in memory for a successful IXFR,
-			 * the serial number of the SOA has been checked
-			 * previously (by check_for_bad_serial) if it exists */
-			if(!*is_axfr && !domain_find_rrset(zone_db->apex,
-				zone_db, TYPE_SOA)) {
-				log_msg(LOG_ERR, "%s SOA serial %u is not "
-					"in memory, skip IXFR", zone, serialno);
+		} else {
+			if (*rr_count == 0) {
+				log_msg(LOG_ERR, "first RR not SOA IN");
 				region_destroy(region);
-				/* break out and stop the IXFR, ignore it */
-				return 2;
+				return 0;
+			/* second RR: if not SOA: this is an AXFR; delete all zone contents */
+			} else if (*rr_count == 1) {
+axfr:
+				*is_axfr = 1;
+#ifdef NSEC3
+				nsec3_clear_precompile(nsd->db, zone);
+				zone->nsec3_param = NULL;
+#endif
+				delete_zone_rrs(nsd->db, zone);
+				if(nsd->db->udb)
+					udb_zone_clear(nsd->db->udb, udbz);
+				if(ixfr_store) {
+					ixfr_store_cancel(ixfr_store);
+					ixfr_store_delixfrs(zone);
+				}
+				DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s sawAXFR count %d, ax %d, delmode %d",
+					domain_to_string(zone->apex), *rr_count, *is_axfr, *delete_mode));
 			}
-			buffer_set_position(packet, bufpos);
-			if(!*is_axfr && ixfr_store)
-				ixfr_store_add_oldsoa(ixfr_store, ttl, packet,
-					rrlen);
 		}
-		if(type == TYPE_SOA && !*is_axfr) {
-			/* switch from delete-part to add-part and back again,
-			   just before soa - so it gets deleted and added too */
-			/* this means we switch to delete mode for the final SOA */
-			*delete_mode = !*delete_mode;
-			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s IXFRswapdel count %d, ax %d, delmode %d",
-				dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
-		}
+
 		if(type == TYPE_TSIG || type == TYPE_OPT) {
 			/* ignore pseudo RRs */
 			buffer_skip(packet, rrlen);
@@ -1261,30 +1234,25 @@ apply_ixfr(namedb_type* db, FILE *in, const char* zone, uint32_t serialno,
 
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfr %s RR dname is %s type %s",
 			*delete_mode?"del":"add",
-			dname_to_string(dname,0), rrtype_to_string(type)));
+			dname_to_string(owner, 0), rrtype_to_string(type)));
 		if(*delete_mode) {
+			assert(!*is_axfr);
 			/* delete this rr */
-			if(!*is_axfr && type == TYPE_SOA && counter==ancount-1
-				&& seq_nr == seq_total-1) {
-				continue; /* do not delete final SOA RR for IXFR */
-			}
 			if(ixfr_store)
-				ixfr_store_delrr(ixfr_store, dname, type,
+				ixfr_store_delrr(ixfr_store, owner, type,
 					klass, ttl, packet, rrlen, region);
-			if(!delete_RR(db, dname, type, klass, packet,
-				rrlen, zone_db, region, udbz, softfail)) {
+			if(!delete_RR(nsd->db, owner, type, klass, packet,
+				rrlen, zone, region, udbz, softfail)) {
 				region_destroy(region);
 				return 0;
 			}
-		}
-		else
-		{
+		} else {
 			/* add this rr */
 			if(ixfr_store)
-				ixfr_store_addrr(ixfr_store, dname, type,
+				ixfr_store_addrr(ixfr_store, owner, type,
 					klass, ttl, packet, rrlen, region);
-			if(!add_RR(db, dname, type, klass, ttl, packet,
-				rrlen, zone_db, udbz, softfail)) {
+			if(!add_RR(nsd->db, owner, type, klass, ttl, packet,
+				rrlen, zone, udbz, softfail)) {
 				region_destroy(region);
 				return 0;
 			}
@@ -1320,8 +1288,8 @@ check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
 }
 
 static int
-apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
-	struct nsd_options* opt, udb_base* taskudb, udb_ptr* last_task,
+apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
+	struct nsd_options* ATTR_UNUSED(opt), udb_base* taskudb, udb_ptr* last_task,
 	uint32_t xfrfilenr)
 {
 	char zone_buf[3072];
@@ -1335,7 +1303,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 	uint32_t i;
 	int num_bytes = 0;
 	(void)last_task;
-	assert(zonedb);
+	assert(zone);
 
 	/* read zone name and serial */
 	if(!diff_read_32(in, &type)) {
@@ -1366,9 +1334,9 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 	}
 
 	/* has been read in completely */
-	if(strcmp(zone_buf, domain_to_string(zonedb->apex)) != 0) {
+	if(strcmp(zone_buf, domain_to_string(zone->apex)) != 0) {
 		log_msg(LOG_ERR, "file %s does not match task %s",
-			zone_buf, domain_to_string(zonedb->apex));
+			zone_buf, domain_to_string(zone->apex));
 		return 0;
 	}
 	switch(committed) {
@@ -1397,17 +1365,16 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 		return 1;
 	}
 
-	if(!zonedb->is_skipped)
+	if(!zone->is_skipped)
 	{
 		int is_axfr=0, delete_mode=0, rr_count=0, softfail=0;
-		const dname_type* apex = domain_dname_const(zonedb->apex);
+		const dname_type* apex = domain_dname_const(zone->apex);
 		udb_ptr z;
 		struct ixfr_store* ixfr_store = NULL, ixfr_store_mem;
 
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s", zone_buf));
-		if(zone_is_ixfr_enabled(zonedb))
-			ixfr_store = ixfr_store_start(zonedb, &ixfr_store_mem,
-				old_serial, new_serial);
+		if(zone_is_ixfr_enabled(zone))
+			ixfr_store = ixfr_store_start(zone, &ixfr_store_mem);
 		memset(&z, 0, sizeof(z)); /* if udb==NULL, have &z defined */
 		if(nsd->db->udb) {
 			if(udb_base_get_userflags(nsd->db->udb) != 0) {
@@ -1436,11 +1403,10 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 		for(i=0; i<num_parts; i++) {
 			int ret;
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));
-			ret = apply_ixfr(nsd->db, in, zone_buf, new_serial, opt,
+			ret = apply_ixfr(nsd, in, new_serial,
 				i, num_parts, &is_axfr, &delete_mode,
-				&rr_count, (nsd->db->udb?&z:NULL), &zonedb,
-				patname_buf, &num_bytes, &softfail, ixfr_store);
-			assert(zonedb);
+				&rr_count, (nsd->db->udb?&z:NULL), zone,
+				&num_bytes, &softfail, ixfr_store);
 			if(ret == 0) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d in diff file for %s", (int)i, zone_buf);
 				diff_update_commit(
@@ -1460,11 +1426,11 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 			snprintf(log_buf, sizeof(log_buf), "error reading log");
 		}
 #ifdef NSEC3
-		if(zonedb) prehash_zone(nsd->db, zonedb);
+		prehash_zone(nsd->db, zone);
 #endif /* NSEC3 */
-		zonedb->is_changed = 1;
-		zonedb->is_updated = 1;
-		zonedb->is_checked = (committed == DIFF_VERIFIED);
+		zone->is_changed = 1;
+		zone->is_updated = 1;
+		zone->is_checked = (committed == DIFF_VERIFIED);
 		if(nsd->db->udb) {
 			assert(z.base);
 			ZONE(&z)->is_changed = 1;
@@ -1475,16 +1441,16 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zonedb, FILE* in,
 			udb_zone_set_file_str(nsd->db->udb, &z, NULL);
 			udb_ptr_unlink(&z, nsd->db->udb);
 		} else {
-			zonedb->mtime.tv_sec = time_end_0;
-			zonedb->mtime.tv_nsec = time_end_1*1000;
-			if(zonedb->logstr)
-				region_recycle(nsd->db->region, zonedb->logstr,
-					strlen(zonedb->logstr)+1);
-			zonedb->logstr = region_strdup(nsd->db->region, log_buf);
-			if(zonedb->filename)
-				region_recycle(nsd->db->region, zonedb->filename,
-					strlen(zonedb->filename)+1);
-			zonedb->filename = NULL;
+			zone->mtime.tv_sec = time_end_0;
+			zone->mtime.tv_nsec = time_end_1*1000;
+			if(zone->logstr)
+				region_recycle(nsd->db->region, zone->logstr,
+					strlen(zone->logstr)+1);
+			zone->logstr = region_strdup(nsd->db->region, log_buf);
+			if(zone->filename)
+				region_recycle(nsd->db->region, zone->filename,
+					strlen(zone->filename)+1);
+			zone->filename = NULL;
 		}
 		if(softfail && taskudb && !is_axfr) {
 			log_msg(LOG_ERR, "Failed to apply IXFR cleanly "
