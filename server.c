@@ -2417,6 +2417,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* Send quit command to parent: blocking, wait for receipt. */
 	do {
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
+		cmd = NSD_QUIT_SYNC;
 		if (!write_socket(cmdsocket, &cmd, sizeof(cmd)))
 		{
 			log_msg(LOG_ERR, "problems sending command from reload to oldnsd: %s",
