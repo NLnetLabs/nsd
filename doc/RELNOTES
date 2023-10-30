@@ -21,6 +21,7 @@ BUG FIXES:
 	- Merge #295: Update e-mail addresses, add ref to support contracts
 	- Fix for interprocess communication to set quit sync command from
 	  main process explicitly.
+	- Fix processing of consolidated IXFRs.
 
 4.7.0
 ================
