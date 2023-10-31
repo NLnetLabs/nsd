@@ -820,6 +820,8 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 			/* we have no ixfr information for the zone, make an AXFR */
 			if(query->tsig_prepare_it)
 				query->tsig_sign_it = 1;
+			VERBOSITY(2, (LOG_INFO, "ixfr fallback to axfr, no ixfr info for zone: %s",
+				dname_to_string(query->qname, NULL)));
 			return query_axfr(nsd, query, 0);
 		}
 		ixfr_data = zone_ixfr_find_serial(zone->ixfr, qserial);
@@ -827,6 +829,8 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 			/* the specific version is not available, make an AXFR */
 			if(query->tsig_prepare_it)
 				query->tsig_sign_it = 1;
+			VERBOSITY(2, (LOG_INFO, "ixfr fallback to axfr, no history for serial for zone: %s",
+				dname_to_string(query->qname, NULL)));
 			return query_axfr(nsd, query, 0);
 		}
 		/* see if the IXFRs connect to the next IXFR, and if it ends
@@ -835,6 +839,8 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 			end_serial != current_serial) {
 			if(query->tsig_prepare_it)
 				query->tsig_sign_it = 1;
+			VERBOSITY(2, (LOG_INFO, "ixfr fallback to axfr, incomplete history from this serial for zone: %s",
+				dname_to_string(query->qname, NULL)));
 			return query_axfr(nsd, query, 0);
 		}
 
