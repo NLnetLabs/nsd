@@ -7,6 +7,7 @@ FEATURES:
 	  It can be configured with proxy-protocol-port: portnum with the
 	  port number of the interface on which proxy traffic is handled.
 	  The interface can support proxy traffic for UDP, TCP and TLS.
+	- Merge #301: improve the logging of ixfr fallbacks to axfr.
 BUG FIXES:
 	- Merge #282: Improve nsd.conf man page.
 	- Fix unused but set variable warning.
