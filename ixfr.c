@@ -1452,7 +1452,7 @@ static size_t skip_dname(uint8_t* rdata, size_t rdata_len)
 			return (index + 1 < rdata_len) ? index + 2 : 0;
 		} else {
 			/* loop breaks if index exceeds rdata_len */
-			index += label_size;
+			index += label_size + 1;
 		}
 	}
 
