@@ -1379,11 +1379,13 @@ int ixfr_store_add_newsoa_rdatas(struct ixfr_store* ixfr_store,
 	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num)
 {
 	size_t capacity = 0;
+	uint32_t serial;
 	if(ixfr_store->cancelled)
 		return 1;
 	if(rdata_num < 2 || rdata_atom_size(rdatas[2]) < 4)
 		return 0;
-	ixfr_store->data->newserial = ntohl((uint32_t)*rdatas[2].data);
+	memcpy(&serial, rdata_atom_data(rdatas[2]), sizeof(serial));
+	ixfr_store->data->newserial = ntohl(serial);
 	if(!ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
 		&ixfr_store->data->newsoa, &ixfr_store->data->newsoa_len,
 		&ixfr_store->add_capacity))
