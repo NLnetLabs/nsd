@@ -1447,7 +1447,7 @@ static size_t skip_dname(uint8_t* rdata, size_t rdata_len)
 		if (label_size == 0) {
 			return index + 1;
 		} else if ((label_size & 0xc0) != 0) {
-			index += 1;
+			return (index + 1 < rdata_len) ? index + 2 : 0;
 		} else {
 			/* loop breaks if index exceeds rdata_len */
 			index += label_size;
