@@ -68,7 +68,7 @@ fi
 
 dig @127.0.0.1 -p ${TPKG_PORT} +noedns +opcode=UPDATE +timeout=1 www.example.net \
   > drop_updates_yes.update 2>&1
-if [ ${?} -eq 9 ] && grep 'connection timed out' drop_updates_yes.update >/dev/null; then
+if [ ${?} -eq 9 ] && grep ' timed out' drop_updates_yes.update >/dev/null; then
   echo "UPDATE result with drop-updates: yes was correct"
 else
   exit_code=1
