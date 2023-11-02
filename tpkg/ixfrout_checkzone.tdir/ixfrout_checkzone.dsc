@@ -10,6 +10,6 @@ Help:
 Pre:
 Post:
 Test: ixfrout_checkzone.test
-AuxFiles: ixfrout_checkzone.conf, ixfrout_checkzone.zone, ixfrout_checkzone.zone.old
+AuxFiles: ixfrout_checkzone.zone, ixfrout_checkzone.zone.old
 Passed:
 Failure:

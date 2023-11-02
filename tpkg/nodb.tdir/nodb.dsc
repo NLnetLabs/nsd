@@ -11,6 +11,6 @@ Help:
 Pre: nodb.pre
 Post: nodb.post
 Test: nodb.test
-AuxFiles: nodb.known_good
+AuxFiles:
 Passed:
 Failure:

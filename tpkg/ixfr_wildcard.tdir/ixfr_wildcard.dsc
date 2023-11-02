@@ -11,7 +11,7 @@ Help:
 Pre: ixfr_wildcard.pre
 Post: ixfr_wildcard.post
 Test: ixfr_wildcard.test
-AuxFiles: ixfr_wildcard.known_good, ixfr_wildcard.conf, ixfr_wildcard.conf, ixfr_wildcard.zone, 
-	ixfr_wildcard.datafile
+AuxFiles: ixfr_wildcard.conf, ixfr_wildcard.zone, ixfr_wildcard.datafile1,
+	ixfr_wildcard.datafile2, ixfr_wildcard.datafile3
 Passed:
 Failure:

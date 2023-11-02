@@ -11,7 +11,6 @@ Help: cname_ttl.help
 Pre: cname_ttl.pre
 Post: cname_ttl.post
 Test: cname_ttl.test
-AuxFiles: cname_ttl.known_good, cname_ttl.conf, cname_ttl.conf, cname_ttl.zone, 
-	cname_ttl.datafile
+AuxFiles: cname_ttl.conf, cname_ttl.net.zone, cname_ttl.com.zone
 Passed:
 Failure:

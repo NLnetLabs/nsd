@@ -10,6 +10,6 @@ Help:
 Pre: ixfr_faildel.pre
 Post: ixfr_faildel.post
 Test: ixfr_faildel.test
-AuxFiles: ixfr_faildel.conf, ixfr_faildel.zone
+AuxFiles: ixfr_faildel.conf
 Passed:
 Failure:

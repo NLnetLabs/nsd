@@ -10,6 +10,6 @@ Help: soa_test.help
 Pre: 
 Post: 
 Test: soa_test.test
-AuxFiles: soa_test.conf, soa_test.zone1, soa_test.zone1, soa_test.zone2, soa_test.zone3, soa_test.zone4, soa_test.zone5
+AuxFiles: soa_test.conf, soa_test.zone1, soa_test.zone2, soa_test.zone3, soa_test.zone4, soa_test.zone5
 Passed:
 Failure:

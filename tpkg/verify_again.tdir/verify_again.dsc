@@ -11,6 +11,6 @@ Help:
 Pre: verify_again.pre
 Post: verify_again.post
 Test: verify_again.test
-AuxFiles: verify.conf, verify.zone, verify.datafile, verifier.script, verifier.zone
+AuxFiles: verify_again.conf, verify_again.zone, verify_again.datafile, verifier.script
 Passed:
 Failure:

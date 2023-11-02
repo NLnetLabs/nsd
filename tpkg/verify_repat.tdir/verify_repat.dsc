@@ -11,6 +11,6 @@ Help:
 Pre: verify_repat.pre
 Post: verify_repat.post
 Test: verify_repat.test
-AuxFiles: verify_repat.zone verify_repat.datafile
+AuxFiles: verify_repat.zone, verify_repat.datafile
 Passed:
 Failure:

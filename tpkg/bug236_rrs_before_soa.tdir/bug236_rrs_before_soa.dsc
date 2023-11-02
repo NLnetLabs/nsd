@@ -11,6 +11,6 @@ Help: bug236_rrs_before_soa.help
 Pre:
 Post:
 Test: bug236_rrs_before_soa.test
-AuxFiles: bug236_rrs_before_soa.zone bug236_rrs_before_soa.zone2
+AuxFiles: bug236_rrs_before_soa.zone, bug236_rrs_before_soa.zone2
 Passed:
 Failure:

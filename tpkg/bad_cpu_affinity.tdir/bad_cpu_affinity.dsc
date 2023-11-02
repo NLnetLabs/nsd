@@ -11,6 +11,6 @@ Help:
 Pre: bad_cpu_affinity.pre
 Post: bad_cpu_affinity.post
 Test: bad_cpu_affinity.test
-AuxFiles: bad_cpu_affinity.conf, bad_server_cpu_affinity.conf, bad_xfrd_cpu_affinity.conf, bad_server.conf
+AuxFiles: bad_cpu_affinity.conf, bad_server_cpu_affinity.conf, bad_xfrd_cpu_affinity.conf
 Passed:
 Failure:

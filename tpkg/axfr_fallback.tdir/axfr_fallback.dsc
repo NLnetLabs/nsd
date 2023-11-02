@@ -12,6 +12,6 @@ Pre: axfr_fallback.pre
 Post: axfr_fallback.post
 Test: axfr_fallback.test
 AuxFiles: axfr_fallback.known_good, axfr_fallback.conf, axfr_fallback.datafile, 
-	axfr_fallback_zone
+	axfr_fallback.zone
 Passed:
 Failure:

@@ -11,6 +11,6 @@ Help: nsdc-run.help
 Pre: 
 Post: nsdc-run.post
 Test: nsdc-run.test
-AuxFiles: nsdc-run.conf nsdc-run.zone
+AuxFiles: nsdc-run.conf, nsdc-run.zone
 Passed:
 Failure:

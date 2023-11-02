@@ -10,6 +10,6 @@ Help:
 Pre: nsec3_parentaxfr.pre
 Post: nsec3_parentaxfr.post
 Test: nsec3_parentaxfr.test
-AuxFiles: nsec3_parentaxfr.conf, nsec3_parentaxfr.zone
+AuxFiles: nsec3_parentaxfr.conf
 Passed:
 Failure:

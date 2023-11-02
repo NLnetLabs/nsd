@@ -7,7 +7,7 @@ Category:
 Component:
 CmdDepends: 
 Depends: 0000_nsd-compile.tpkg
-Help: terminate_unclean.help
+Help: 
 Pre: terminate_unclean.pre
 Post: terminate_unclean.post
 Test: terminate_unclean.test

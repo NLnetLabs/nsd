@@ -11,7 +11,6 @@ Help: xfr_udp.help
 Pre: xfr_udp.pre
 Post: xfr_udp.post
 Test: xfr_udp.test
-AuxFiles: xfr_udp.known_good, xfr_udp.conf, xfr_udp.conf, xfr_udp.zone, 
-	xfr_udp.datafile
+AuxFiles: xfr_udp.known_good, xfr_udp.conf, xfr_udp.zone, xfr_udp.datafile
 Passed:
 Failure:
