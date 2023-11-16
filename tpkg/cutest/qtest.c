@@ -90,12 +90,10 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 #endif /* defined(INET6) */
 
 	/* read db */
-	printf("read %s (%d zones)\n", nsd->options->database,
-		(int)nsd_options_num_zones(nsd->options));
-	nsd->db = namedb_open(nsd->options->database, nsd->options);
+	printf("open namedb (%d zones)\n", (int)nsd_options_num_zones(nsd->options));
+	nsd->db = namedb_open(nsd->options);
 	if(!nsd->db) {
-		printf("failed to open %s: %s\n", nsd->options->database,
-			strerror(errno));
+		printf("failed to open namedb\n");
 		exit(1);
 	}
 	namedb_check_zonefiles(nsd, nsd->options, NULL, NULL);

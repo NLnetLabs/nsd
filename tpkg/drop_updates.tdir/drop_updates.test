@@ -17,7 +17,7 @@ exit_code=0
 $TPKG_NSD -c $(pwd)/drop_updates_no.conf -V 5 -a 127.0.0.1 -p $TPKG_PORT
 wait_nsd_up nsd.log
 
-dig @127.0.0.1 -p ${TPKG_PORT} +timeout=1 +noedns www.example.net \
+dig -4 @127.0.0.1 -p ${TPKG_PORT} +timeout=1 +noedns www.example.net \
   > drop_updates_no.query 2>&1
 if [ ${?} -eq 0 ] && grep 'status: NOERROR' drop_updates_no.query >/dev/null \
                   && grep 'www\.example\.net\.' drop_updates_no.query >/dev/null; then
@@ -29,7 +29,7 @@ else
   cat drop_updates_no.query
 fi
 
-dig @127.0.0.1 -p ${TPKG_PORT} +timeout=1 +noedns +opcode=UPDATE www.example.net \
+dig -4 @127.0.0.1 -p ${TPKG_PORT} +timeout=1 +noedns +opcode=UPDATE www.example.net \
   > drop_updates_no.update 2>&1
 if [ ${?} -eq 0 ] && grep 'status: NOTIMP' drop_updates_no.update >/dev/null; then
   echo "UPDATE result with drop-updates: no was correct"
@@ -54,7 +54,7 @@ rm -f nsd.log nsd.pid
 $TPKG_NSD -c $(pwd)/drop_updates_yes.conf -V 5 -a 127.0.0.1 -p $TPKG_PORT
 wait_nsd_up nsd.log
 
-dig @127.0.0.1 -p ${TPKG_PORT} +timeout=1 +noedns www.example.net \
+dig -4 @127.0.0.1 -p ${TPKG_PORT} +timeout=1 +noedns www.example.net \
   > drop_updates_yes.query 2>&1
 if [ ${?} -eq 0 ] && grep 'status: NOERROR' drop_updates_yes.query >/dev/null \
                   && grep 'www\.example\.net\.' drop_updates_yes.query >/dev/null; then
@@ -66,9 +66,9 @@ else
   cat drop_updates_yes.query
 fi
 
-dig @127.0.0.1 -p ${TPKG_PORT} +noedns +opcode=UPDATE +timeout=1 www.example.net \
+dig -4 @127.0.0.1 -p ${TPKG_PORT} +noedns +opcode=UPDATE +timeout=1 www.example.net \
   > drop_updates_yes.update 2>&1
-if [ ${?} -eq 9 ] && grep ' timed out' drop_updates_yes.update >/dev/null; then
+if [ ${?} -eq 9 ] && grep 'timed out' drop_updates_yes.update >/dev/null; then
   echo "UPDATE result with drop-updates: yes was correct"
 else
   exit_code=1

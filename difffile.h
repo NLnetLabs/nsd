@@ -59,12 +59,12 @@ void delete_zone_rrs(namedb_type* db, zone_type* zone);
 int delete_RR(namedb_type* db, const dname_type* dname,
 	uint16_t type, uint16_t klass,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
-	region_type* temp_region, struct udb_ptr* udbz, int* softfail);
+	region_type* temp_region, int* softfail);
 /* add an RR */
 int add_RR(namedb_type* db, const dname_type* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
-	struct udb_ptr* udbz, int* softfail);
+	int* softfail);
 
 enum soainfo_hint {
 	soainfo_ok,

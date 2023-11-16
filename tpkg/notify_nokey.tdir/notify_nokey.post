@@ -5,7 +5,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 . ../common.sh
-rm notify_nokey.db
 
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then

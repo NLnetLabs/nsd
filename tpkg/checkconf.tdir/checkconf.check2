@@ -14,7 +14,6 @@ server:
 	hide-identity: no
 	drop-updates: no
 	tcp-reject-overflow: no
-	database: "/etc/nsd.db"
 	identity: "server number 23"
 	#version:
 	nsid: "123456"
@@ -140,7 +139,6 @@ server:
 	hide-identity: no
 	drop-updates: no
 	tcp-reject-overflow: no
-	database: "/etc/nsd/nsd.db"
 	#identity:
 	#version:
 	#nsid:
@@ -207,7 +205,6 @@ server:
 	hide-identity: no
 	drop-updates: no
 	tcp-reject-overflow: no
-	database: "/var/db/nsd/nsd.db"
 	#identity:
 	#version:
 	#nsid:
@@ -283,7 +280,6 @@ server:
 	hide-identity: no
 	drop-updates: no
 	tcp-reject-overflow: no
-	database: "/var/db/nsd/nsd.db"
 	#identity:
 	#version:
 	#nsid:
@@ -403,7 +399,6 @@ server:
 	hide-identity: no
 	drop-updates: no
 	tcp-reject-overflow: no
-	database: "/var/db/nsd/nsd.db"
 	#identity:
 	#version:
 	#nsid:

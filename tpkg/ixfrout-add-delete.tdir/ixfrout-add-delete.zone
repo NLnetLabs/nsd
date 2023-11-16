@@ -1,0 +1,4 @@
+example.com.	3600	IN	NS	ns.example.com.
+example.com.	3600	IN	SOA	ns.example.com. hostmaster.example.com. 0 300 4 3000 5
+example.com.	3600	IN	ZONEMD	0 1 1 eb0812df3a81dac068bef25ac10322b301f09e93761c73f63b9af35a1684179992de6732bf928892bdff39b6ea45287b
+ns.example.com.	3600	IN	A	1.2.3.4

@@ -2,7 +2,6 @@
 server:
 	#logfile: "/dev/stdout"
 	logfile: "../i3.log"
-	database: "nsdb.i3.db"
 	xfrdfile: "xfrd.i3.db"
 	difffile: "diff.i3.db"
 	xfrd-reload-timeout: 0

@@ -281,7 +281,7 @@ server_option:
   | VAR_DEBUG_MODE boolean
     { cfg_parser->opt->debug_mode = $2; }
   | VAR_USE_SYSTEMD boolean
-    { /* ignored, deprecated */ }
+    { /* ignored, obsolete */ }
   | VAR_HIDE_VERSION boolean
     { cfg_parser->opt->hide_version = $2; }
   | VAR_HIDE_IDENTITY boolean
@@ -297,14 +297,7 @@ server_option:
   | VAR_DO_IP6 boolean
     { cfg_parser->opt->do_ip6 = $2; }
   | VAR_DATABASE STRING
-    {
-      cfg_parser->opt->database = region_strdup(cfg_parser->opt->region, $2);
-      if(cfg_parser->opt->database[0] == 0 &&
-         cfg_parser->opt->zonefiles_write == 0)
-      {
-        cfg_parser->opt->zonefiles_write = ZONEFILES_WRITE_INTERVAL;
-      }
-    }
+    { /* ignored, obsolete */ }
   | VAR_IDENTITY STRING
     { cfg_parser->opt->identity = region_strdup(cfg_parser->opt->region, $2); }
   | VAR_VERSION STRING
@@ -387,7 +380,7 @@ server_option:
   | VAR_ZONELISTFILE STRING
     { cfg_parser->opt->zonelistfile = region_strdup(cfg_parser->opt->region, $2); }
   | VAR_DIFFFILE STRING
-    { /* ignored, deprecated */ }
+    { /* ignored, obsolete */ }
   | VAR_XFRDFILE STRING
     { cfg_parser->opt->xfrdfile = region_strdup(cfg_parser->opt->region, $2); }
   | VAR_XFRDIR STRING

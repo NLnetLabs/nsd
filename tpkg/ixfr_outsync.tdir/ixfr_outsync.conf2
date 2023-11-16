@@ -6,7 +6,6 @@ server:
 	username: ""
 	chroot: ""
 	pidfile: nsd.pid
-	database: nsd.db
 	zonelistfile: "zone2.list"
 	interface: 127.0.0.1
 

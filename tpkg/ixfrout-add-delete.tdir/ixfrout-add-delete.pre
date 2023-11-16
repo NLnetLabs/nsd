@@ -1,0 +1,23 @@
+# #-- ixfrout-add-delete.pre --#
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# Use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+get_random_port 2
+LDNS_PORT=${RND_PORT}
+NSD_PORT=$((${RND_PORT} + 1))
+
+# generate configuration files
+sed -e "s#LDNS_PORT#${LDNS_PORT}#" \
+    -e "s#NSD_PORT#${NSD_PORT}#" \
+    ixfrout-add-delete.conf > nsd.conf
+
+# share the vars
+echo "LDNS_PORT=${LDNS_PORT}" >> .tpkg.var.test
+echo "NSD_PORT=${NSD_PORT}" >> .tpkg.var.test
+
+ldns-testns -v -p ${LDNS_PORT} ixfrout-add-delete.datafile >ldns.log 2>&1 &
+LDNS_PID="${!}"
+echo "LDNS_PID=${LDNS_PID}" >> .tpkg.var.test
+wait_ldns_testns_up ldns.log

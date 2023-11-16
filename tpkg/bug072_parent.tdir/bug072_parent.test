@@ -7,8 +7,8 @@
 DIG=dig
 
 # both should give a normal answer, not abc/bac here!
-$DIG +noall +answer @localhost -p $TPKG_PORT A a.abc > bug072_parent.current_respons1
-$DIG +noall +answer @localhost -p $TPKG_PORT A a.bac > bug072_parent.current_respons2
+$DIG -4 +noall +answer @localhost -p $TPKG_PORT A a.abc > bug072_parent.current_respons1
+$DIG -4 +noall +answer @localhost -p $TPKG_PORT A a.bac > bug072_parent.current_respons2
 
 wdiff bug072_parent.current_respons1 bug072_parent.known_good_respons1 && \
 wdiff bug072_parent.current_respons2 bug072_parent.known_good_respons2

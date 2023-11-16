@@ -1,3 +1,16 @@
+1 November 2023: Jeroen
+	- Remove on-disk database.
+
+31 October 2023: Wouter
+	- Merge #301: improve the logging of ixfr fallbacks to axfr.
+
+30 October 2023: Jeroen
+	- Fix processing of consolidated IXFRs.
+
+30 October 2023: Wouter
+	- Fix for interprocess communication to set quit sync command from
+	  main process explicitly.
+
 3 October 2023: Wouter
 	- Merge #281: Proxy protocol. An implementation of PROXYv2 for NSD.
 	  It can be configured with proxy-protocol-port: portnum with the

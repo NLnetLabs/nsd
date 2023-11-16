@@ -20,7 +20,7 @@ sleep 3
 
 # now query for the update I sent and compare that with a known good one
 echo port: $TPKG_PORT
-dig @127.0.0.1 -p $TPKG_PORT example.net axfr | tee axfr
+dig -4 @127.0.0.1 -p $TPKG_PORT example.net axfr | tee axfr
 grep -v "^;" < axfr | sort > axfr.clean
 # see that is it updated
 echo diff
@@ -31,15 +31,20 @@ if test $? -ne 0; then
 fi
 echo OK
 
+# on-disk binary database has been obsoleted, force a write using nsd-control
+../../nsd-control -c nsd.conf write
+sleep 3
+
 # stop the server
 kill_pid `cat nsd.pid`
 
 # delete ixfr file
-# and start again, (with the nsd.db), and check the changes are in nsd.db
+# and start again, (previously with the nsd.db, now with updated zone file),
+# and check the changes are in nsd.db
 rm -f ixfr.db
 $TPKG_NSD -c nsd.conf -p $TPKG_PORT -l nsd.log -V 3
 wait_server_up nsd.log
-dig @127.0.0.1 -p $TPKG_PORT example.net axfr | tee axfr
+dig -4 @127.0.0.1 -p $TPKG_PORT example.net axfr | tee axfr
 grep -v "^;" < axfr | sort > axfr.clean
 # see that is it updated
 echo diff

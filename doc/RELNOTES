@@ -1,12 +1,13 @@
 NSD RELEASE NOTES
 
-4.7.1 (upcoming)
+4.8.0 (upcoming)
 ================
 FEATURES:
 	- Merge #281: Proxy protocol. An implementation of PROXYv2 for NSD.
 	  It can be configured with proxy-protocol-port: portnum with the
 	  port number of the interface on which proxy traffic is handled.
 	  The interface can support proxy traffic for UDP, TCP and TLS.
+	- Merge #301: improve the logging of ixfr fallbacks to axfr.
 BUG FIXES:
 	- Merge #282: Improve nsd.conf man page.
 	- Fix unused but set variable warning.
@@ -18,6 +19,10 @@ BUG FIXES:
 	- Merge #287: Update nsd.conf.5.in.
 	- Fix autoconf 2.69 warnings in configure.
 	- Merge #295: Update e-mail addresses, add ref to support contracts
+	- Fix for interprocess communication to set quit sync command from
+	  main process explicitly.
+	- Fix processing of consolidated IXFRs.
+	- Remove on-disk database.
 
 4.7.0
 ================

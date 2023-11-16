@@ -82,7 +82,6 @@ struct nsd_options {
 	int drop_updates;
 	int do_ip4;
 	int do_ip6;
-	const char* database;
 	const char* identity;
 	const char* version;
 	const char* logfile;

@@ -3,7 +3,6 @@ server:
 	logfile: "slave.log"
 	difffile: "ixfr.db.2"
 	xfrdfile: "xfrd.state.2"
-	database: outgoing_ifc.db.2
 	zonesdir: ""
 	pidfile: outgoing_ifc.pid.slave
 	username: ""
