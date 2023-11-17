@@ -8,7 +8,10 @@
 kill_pid $TESTNS_PID
 
 # do your teardown here
-if test -z nsd.pid ; then
+if test ! -f nsd.pid ; then
+        exit 0
+fi
+if test -z `cat nsd.pid` ; then
         exit 0
 fi
 

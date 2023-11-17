@@ -11,7 +11,7 @@ kill_pid $TESTNS_PID
 if test ! -f nsd.pid; then
 	exit 0
 fi
-if test -z nsd.pid ; then
+if test -z `cat nsd.pid` ; then
         exit 0
 fi
 

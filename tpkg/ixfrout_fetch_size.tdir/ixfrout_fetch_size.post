@@ -14,7 +14,10 @@ if test -f testns.pid; then
 fi
 
 # do your teardown here
-if [ -z nsd.pid ]; then
+if [ ! -f nsd.pid ]; then
+        exit 0
+fi
+if [ -z `cat nsd.pid` ]; then
         exit 0
 fi
 
