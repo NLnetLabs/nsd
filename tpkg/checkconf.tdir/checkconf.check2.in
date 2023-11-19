@@ -34,10 +34,10 @@ server:
 	statistics: 60
 	#chroot:
 	username: "nsd"
-	zonesdir: "/etc/nsd"
-	xfrdfile: "/var/db/nsd/xfrd.state"
-	zonelistfile: "/var/db/nsd/zone.list"
-	xfrdir: "/tmp"
+	zonesdir: "@zonesdir@"
+	xfrdfile: "@xfrdfile@"
+	zonelistfile: "@zonelistfile@"
+	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
 	round-robin: no
@@ -48,20 +48,30 @@ server:
 	ip-address: 127.0.0.1
 	ip-address: 10.1.2.3
 	zonefiles-check: yes
-	zonefiles-write: 0
+	zonefiles-write: 3600
 	#tls-service-key:
 	#tls-service-pem:
 	#tls-service-ocsp:
 	tls-port: "853"
+	#tls-cert-bundle:
 	answer-cookie: no
+	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
 
 remote-control:
 	control-enable: no
 	control-port: 8952
-	server-key-file: "/etc/nsd/nsd_server.key"
-	server-cert-file: "/etc/nsd/nsd_server.pem"
-	control-key-file: "/etc/nsd/nsd_control.key"
-	control-cert-file: "/etc/nsd/nsd_control.pem"
+	server-key-file: "@configdir@/nsd_server.key"
+	server-cert-file: "@configdir@/nsd_server.pem"
+	control-key-file: "@configdir@/nsd_control.key"
+	control-cert-file: "@configdir@/nsd_control.pem"
+
+verify:
+	enable: no
+	port: 5347
+	verify-zones: yes
+	verifier-count: 1
+	verifier-feed-zone: yes
+	verifier-timeout: 0
 
 key:
 	name: "BKEY"
@@ -159,10 +169,10 @@ server:
 	statistics: 0
 	#chroot:
 	username: "nsd"
-	zonesdir: "/etc/nsd"
-	xfrdfile: "/var/db/nsd/xfrd.state"
-	zonelistfile: "/var/db/nsd/zone.list"
-	xfrdir: "/tmp"
+	zonesdir: "@zonesdir@"
+	xfrdfile: "@xfrdfile@"
+	zonelistfile: "@zonelistfile@"
+	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
 	round-robin: no
@@ -171,20 +181,30 @@ server:
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
-	zonefiles-write: 0
+	zonefiles-write: 3600
 	#tls-service-key:
 	#tls-service-pem:
 	#tls-service-ocsp:
 	tls-port: "853"
+	#tls-cert-bundle:
 	answer-cookie: no
+	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
 
 remote-control:
 	control-enable: no
 	control-port: 8952
-	server-key-file: "/etc/nsd/nsd_server.key"
-	server-cert-file: "/etc/nsd/nsd_server.pem"
-	control-key-file: "/etc/nsd/nsd_control.key"
-	control-cert-file: "/etc/nsd/nsd_control.pem"
+	server-key-file: "@configdir@/nsd_server.key"
+	server-cert-file: "@configdir@/nsd_server.pem"
+	control-key-file: "@configdir@/nsd_control.key"
+	control-cert-file: "@configdir@/nsd_control.pem"
+
+verify:
+	enable: no
+	port: 5347
+	verify-zones: yes
+	verifier-count: 1
+	verifier-feed-zone: yes
+	verifier-timeout: 0
 
 zone:
 	name: "example.com"
@@ -220,15 +240,15 @@ server:
 	xfrd-tcp-pipeline: 128
 	ipv4-edns-size: 1232
 	ipv6-edns-size: 1232
-	pidfile: "/var/run/nsd.pid"
+	pidfile: "@pidfile@"
 	port: "53"
 	statistics: 0
 	#chroot:
 	username: "nsd"
-	zonesdir: "/etc/nsd"
-	xfrdfile: "/var/db/nsd/xfrd.state"
-	zonelistfile: "/var/db/nsd/zone.list"
-	xfrdir: "/tmp"
+	zonesdir: "@zonesdir@"
+	xfrdfile: "@xfrdfile@"
+	zonelistfile: "@zonelistfile@"
+	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: no
 	round-robin: no
@@ -237,20 +257,30 @@ server:
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
-	zonefiles-write: 0
+	zonefiles-write: 3600
 	#tls-service-key:
 	#tls-service-pem:
 	#tls-service-ocsp:
 	tls-port: "853"
+	#tls-cert-bundle:
 	answer-cookie: no
+	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
 
 remote-control:
 	control-enable: no
 	control-port: 8952
-	server-key-file: "/etc/nsd/nsd_server.key"
-	server-cert-file: "/etc/nsd/nsd_server.pem"
-	control-key-file: "/etc/nsd/nsd_control.key"
-	control-cert-file: "/etc/nsd/nsd_control.pem"
+	server-key-file: "@configdir@/nsd_server.key"
+	server-cert-file: "@configdir@/nsd_server.pem"
+	control-key-file: "@configdir@/nsd_control.key"
+	control-cert-file: "@configdir@/nsd_control.pem"
+
+verify:
+	enable: no
+	port: 5347
+	verify-zones: yes
+	verifier-count: 1
+	verifier-feed-zone: yes
+	verifier-timeout: 0
 
 key:
 	name: "tsig.example.org."
@@ -295,15 +325,15 @@ server:
 	xfrd-tcp-pipeline: 128
 	ipv4-edns-size: 1232
 	ipv6-edns-size: 1232
-	pidfile: "/var/run/nsd.pid"
+	pidfile: "@pidfile@"
 	port: "53"
 	statistics: 0
 	#chroot:
 	username: "nsd"
-	zonesdir: "/etc/nsd"
-	xfrdfile: "/var/db/nsd/xfrd.state"
-	zonelistfile: "/var/db/nsd/zone.list"
-	xfrdir: "/tmp"
+	zonesdir: "@zonesdir@"
+	xfrdfile: "@xfrdfile@"
+	zonelistfile: "@zonelistfile@"
+	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
 	round-robin: no
@@ -312,20 +342,30 @@ server:
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
-	zonefiles-write: 0
+	zonefiles-write: 3600
 	#tls-service-key:
 	#tls-service-pem:
 	#tls-service-ocsp:
 	tls-port: "853"
+	#tls-cert-bundle:
 	answer-cookie: no
+	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
 
 remote-control:
 	control-enable: no
 	control-port: 8952
-	server-key-file: "/etc/nsd/nsd_server.key"
-	server-cert-file: "/etc/nsd/nsd_server.pem"
-	control-key-file: "/etc/nsd/nsd_control.key"
-	control-cert-file: "/etc/nsd/nsd_control.pem"
+	server-key-file: "@configdir@/nsd_server.key"
+	server-cert-file: "@configdir@/nsd_server.pem"
+	control-key-file: "@configdir@/nsd_control.key"
+	control-cert-file: "@configdir@/nsd_control.pem"
+
+verify:
+	enable: no
+	port: 5347
+	verify-zones: yes
+	verifier-count: 1
+	verifier-feed-zone: yes
+	verifier-timeout: 0
 
 zone:
 	name: "example.nl"
@@ -414,15 +454,15 @@ server:
 	xfrd-tcp-pipeline: 128
 	ipv4-edns-size: 1232
 	ipv6-edns-size: 1232
-	pidfile: "/var/run/nsd.pid"
+	pidfile: "@pidfile@"
 	port: "53"
 	statistics: 0
 	#chroot:
 	username: "nsd"
-	zonesdir: "/etc/nsd"
-	xfrdfile: "/var/db/nsd/xfrd.state"
-	zonelistfile: "/var/db/nsd/zone.list"
-	xfrdir: "/tmp"
+	zonesdir: "@zonesdir@"
+	xfrdfile: "@xfrdfile@"
+	zonelistfile: "@zonelistfile@"
+	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
 	round-robin: no
@@ -431,20 +471,30 @@ server:
 	refuse-any: no
 	verbosity: 0
 	zonefiles-check: yes
-	zonefiles-write: 0
+	zonefiles-write: 3600
 	#tls-service-key:
 	#tls-service-pem:
 	#tls-service-ocsp:
 	tls-port: "853"
+	#tls-cert-bundle:
 	answer-cookie: no
+	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
 
 remote-control:
 	control-enable: no
 	control-port: 8952
-	server-key-file: "/etc/nsd/nsd_server.key"
-	server-cert-file: "/etc/nsd/nsd_server.pem"
-	control-key-file: "/etc/nsd/nsd_control.key"
-	control-cert-file: "/etc/nsd/nsd_control.pem"
+	server-key-file: "@configdir@/nsd_server.key"
+	server-cert-file: "@configdir@/nsd_server.pem"
+	control-key-file: "@configdir@/nsd_control.key"
+	control-cert-file: "@configdir@/nsd_control.pem"
+
+verify:
+	enable: no
+	port: 5347
+	verify-zones: yes
+	verifier-count: 1
+	verifier-feed-zone: yes
+	verifier-timeout: 0
 
 pattern:
 	name: "bla"
@@ -501,3 +551,79 @@ checkconf.nsd09.conf:9: error: expected yes or no
 read checkconf.nsd09.conf failed: 1 errors in configuration file
 checkconf.nsd10.conf:10: error: expected a number
 read checkconf.nsd10.conf failed: 1 errors in configuration file
+# Read file checkconf.nsd11.conf: 1 patterns, 0 fixed-zones, 0 keys, 0 tls-auth.
+# Config settings.
+server:
+	debug-mode: no
+	ip-transparent: no
+	ip-freebind: no
+	reuseport: no
+	do-ip4: yes
+	do-ip6: yes
+	send-buffer-size: 0
+	receive-buffer-size: 0
+	hide-version: no
+	hide-identity: no
+	drop-updates: no
+	tcp-reject-overflow: no
+	#identity:
+	#version:
+	#nsid:
+	#logfile:
+	log-only-syslog: no
+	server-count: 1
+	tcp-count: 100
+	tcp-query-count: 0
+	tcp-timeout: 120
+	tcp-mss: 0
+	outgoing-tcp-mss: 0
+	xfrd-tcp-max: 128
+	xfrd-tcp-pipeline: 128
+	ipv4-edns-size: 1232
+	ipv6-edns-size: 1232
+	pidfile: "@pidfile@"
+	port: "53"
+	statistics: 0
+	#chroot:
+	username: "nsd"
+	zonesdir: "@zonesdir@"
+	xfrdfile: "@xfrdfile@"
+	zonelistfile: "@zonelistfile@"
+	xfrdir: "@xfrdir@"
+	xfrd-reload-timeout: 1
+	log-time-ascii: yes
+	round-robin: no
+	minimal-responses: no
+	confine-to-zone: no
+	refuse-any: no
+	verbosity: 0
+	zonefiles-check: yes
+	zonefiles-write: 3600
+	#tls-service-key:
+	#tls-service-pem:
+	#tls-service-ocsp:
+	tls-port: "853"
+	#tls-cert-bundle:
+	answer-cookie: no
+	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+
+remote-control:
+	control-enable: no
+	control-port: 8952
+	server-key-file: "@configdir@/nsd_server.key"
+	server-cert-file: "@configdir@/nsd_server.pem"
+	control-key-file: "@configdir@/nsd_control.key"
+	control-cert-file: "@configdir@/nsd_control.pem"
+
+verify:
+	enable: no
+	port: 5347
+	verify-zones: yes
+	verifier-count: 1
+	verifier-feed-zone: yes
+	verifier-timeout: 0
+
+pattern:
+	name: "myzones"
+	catalog: yes
+	catalog-member-pattern: "mycatalog2"

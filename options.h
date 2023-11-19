@@ -308,6 +308,8 @@ struct pattern_options {
 	uint8_t verifier_feed_zone_is_default;
 	int32_t verifier_timeout;
 	uint8_t verifier_timeout_is_default;
+	uint8_t is_catalog;
+	const char* catalog_member_pattern;
 } ATTR_PACKED;
 
 #define PATTERN_IMPLICIT_MARKER "_implicit_"

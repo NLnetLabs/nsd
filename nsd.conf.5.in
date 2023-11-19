@@ -990,10 +990,21 @@ Feed updated zone to verifier over standard input. Default is
 verifier\-feed\-zone configured in
 .B verify:\fR.
 .TP
-.B verifier\-timeout: <seconds>
+.B verifier\-timeout:\fR <seconds>
 Number of seconds before verifier is forcefully terminated. Specify 0 (zero)
 to not use a specific timeout. Default is verifier\-timeout from
 .B verify:\fR.
+.TP
+.B catalog:\fR <yes or no>
+Enable catalog zone processing for this catalog or not. If set to yes, the
+.B catalog-member-pattern\fR option MUST be set as well.
+.TP
+.B catalog-member-pattern:\fR <pattern>
+Pattern to assign to any zone created from this catalog zone that does not have
+a group property set. This pattern can be used to configure which primary to 
+use. This option MUST be present if the
+.B catalog \fR option is set to yes.
+
 .SS "Key Declarations"
 The 
 .B key: 
