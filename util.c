@@ -64,9 +64,15 @@ static FILE *current_log_file = NULL;
 int log_time_asc = 1;
 
 void
-log_init(const char *ident)
+log_set_ident(const char *ident)
 {
 	global_ident = ident;
+}
+
+void
+log_init(const char *ident)
+{
+	log_set_ident(ident);
 	current_log_file = stderr;
 }
 

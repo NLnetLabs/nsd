@@ -44,6 +44,11 @@ struct nsd;
 void log_init(const char *ident);
 
 /*
+ * Change the ident (for debugging purposes)
+ */
+void log_set_ident(const char *ident);
+
+/*
  * Open the system log.  If FILENAME is not NULL, a log file is opened
  * as well.
  */
