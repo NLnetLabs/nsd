@@ -2553,7 +2553,7 @@ server_main(struct nsd *nsd)
 
 #ifdef BIND8_STATS
 	nsd->st = &nsd->stat_map[0];
-	nsd->st->db_disk = (nsd->db->udb?nsd->db->udb->base_size:0);
+	nsd->st->db_disk = 0;
 	nsd->st->db_mem = region_get_mem(nsd->db->region);
 #endif
 

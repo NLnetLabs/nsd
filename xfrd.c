@@ -2706,7 +2706,7 @@ xfrd_process_zonestat_inc_task(xfrd_state_type* xfrd, struct task_list_d* task)
 static void
 xfrd_handle_taskresult(xfrd_state_type* xfrd, struct task_list_d* task)
 {
-#ifndef BIND8_STATS
+#ifndef USE_ZONE_STATS
 	(void)xfrd;
 #endif
 	switch(task->task_type) {
