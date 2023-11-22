@@ -4293,8 +4293,8 @@ handle_tcp_reading(int fd, short event, void* arg)
 	ev_base = data->event.ev_base;
 	event_del(&data->event);
 	memset(&data->event, 0, sizeof(data->event));
-	event_set(&data->event, fd, EV_PERSIST | EV_READ | EV_TIMEOUT,
-		handle_tcp_reading, data);
+	event_set(&data->event, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT,
+		handle_tcp_writing, data);
 	if(event_base_set(ev_base, &data->event) != 0)
 		log_msg(LOG_ERR, "event base set tcpr failed");
 	if(event_add(&data->event, &timeout) != 0)
