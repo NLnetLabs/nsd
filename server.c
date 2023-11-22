@@ -4040,8 +4040,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 	}
 
 	if ((data->nsd->tcp_query_count > 0 &&
-		data->query_count >= data->nsd->tcp_query_count) ||
-		data->tcp_no_more_queries) {
+	     data->query_count >= data->nsd->tcp_query_count) ||
+	    (data->query_count > 0 && data->tcp_no_more_queries))
+  {
 		/* No more queries allowed on this tcp connection. */
 		cleanup_tcp_handler(data);
 		return;
@@ -4607,8 +4608,9 @@ handle_tls_reading(int fd, short event, void* arg)
 	}
 
 	if ((data->nsd->tcp_query_count > 0 &&
-	    data->query_count >= data->nsd->tcp_query_count) ||
-	    data->tcp_no_more_queries) {
+	     data->query_count >= data->nsd->tcp_query_count) ||
+	    (data->query_count > 0 && data->tcp_no_more_queries))
+	{
 		/* No more queries allowed on this tcp connection. */
 		cleanup_tcp_handler(data);
 		return;
