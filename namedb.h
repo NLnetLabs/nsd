@@ -318,6 +318,10 @@ static inline int domain_is_subdomain(domain_type* d1, domain_type* d2)
 /* easy printout, to static buffer of dname_to_string, fqdn. */
 static inline const char* domain_to_string(domain_type* domain)
 { return dname_to_string(domain_dname(domain), NULL); }
+/* easy printout, to given buffer of dname_to_string, fqdn. */
+static inline const char* domain_to_string_buf(domain_type* domain, char *buf)
+{ return dname_to_string_buf(domain_dname(domain), NULL, buf); }
+
 
 /*
  * The type covered by the signature in the specified RRSIG RR.
