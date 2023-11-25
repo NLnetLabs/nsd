@@ -330,7 +330,15 @@ struct zone_options {
 	 * a anonymous pattern created in-place */
 	struct pattern_options* pattern;
 	/* zone is fixed into the main config, not in zonelist, cannot delete */
-	uint8_t part_of_config;
+	unsigned part_of_config        : 1;
+	unsigned is_catalog_member_zone: 1;
+} ATTR_PACKED;
+
+struct catalog_member_zone {
+	struct zone_options          options;
+	struct domain*               member_id;
+	struct catalog_member_zone** prev_next_ptr;
+	struct catalog_member_zone*  next;
 } ATTR_PACKED;
 
 union acl_addr_storage {
@@ -464,6 +472,10 @@ int parse_options_file(struct nsd_options* opt, const char* file,
 	void (*err)(void*,const char*), void* err_arg);
 struct zone_options* zone_options_create(region_type* region);
 void zone_options_delete(struct nsd_options* opt, struct zone_options* zone);
+struct catalog_member_zone* catalog_member_zone_create(region_type* region);
+void catalog_member_zone_delete(struct nsd* nsd, struct catalog_member_zone* zone);
+static inline struct catalog_member_zone* as_catalog_member_zone(struct zone_options* zopt)
+{ return zopt && zopt->is_catalog_member_zone ? (struct catalog_member_zone*)zopt : NULL; }
 /* find a zone by apex domain name, or NULL if not found. */
 struct zone_options* zone_options_find(struct nsd_options* opt,
 	const struct dname* apex);
@@ -546,6 +558,8 @@ int acl_equal(struct acl_options* p, struct acl_options* q);
 
 /* see if a zone is a slave or a master zone */
 int zone_is_slave(struct zone_options* opt);
+/* see if a zone is a catalog consumer */
+int zone_is_catalog(struct zone_options* opt);
 /* create zonefile name, returns static pointer (perhaps to options data) */
 const char* config_make_zonefile(struct zone_options* zone, struct nsd* nsd);
 

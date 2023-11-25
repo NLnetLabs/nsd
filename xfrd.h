@@ -33,6 +33,7 @@ struct buffer;
 struct xfrd_tcp;
 struct xfrd_tcp_set;
 struct notify_zone;
+struct xfrd_catalog_consumer;
 struct udb_ptr;
 typedef struct xfrd_state xfrd_state_type;
 typedef struct xfrd_xfr xfrd_xfr_type;
@@ -117,7 +118,44 @@ struct xfrd_state {
 	int notify_udp_num;
 	/* first and last notify_zone* entries waiting for a UDP socket */
 	struct notify_zone *notify_waiting_first, *notify_waiting_last;
+
+	/* tree of catalog consumer zones. Processing is disabled if > 1. */
+	rbtree_type *catalog_consumer_zones;
 };
+
+/**
+ * Catalog zones withing the xfrd context
+ */
+struct xfrd_catalog_consumer_zone {
+	/* For indexing in struc xfrd_state { rbtree_type* catalog_consumer_zones; } */
+	rbnode_type node;
+
+	/* Associated zone options with this catalog consumer zone */
+	struct zone_options* options;
+
+	/* Double linked list of member zones for this catalog consumer zone */
+	struct catalog_member_zone* member_zones;
+
+	/* The reason for this zone to be invalid, or NULL if it is valid */
+	char *invalid;
+
+	/* The catalog consumer zone needs checking/processing */
+	unsigned to_check : 1;
+} ATTR_PACKED;
+
+/* Initialize as a catalog consumer zone */
+void xfrd_init_catalog_consumer_zone(xfrd_state_type* xfrd,
+		struct zone_options* zone);
+
+/* To be called if and a zone is no longer a catalog zone (changed pattern) */
+void xfrd_deinit_catalog_consumer_zone(xfrd_state_type* xfrd,
+		const dname_type* dname);
+
+/* Mark the catalog consumer zone for checking (if it matches zone) */
+void xfrd_mark_catalog_consumer_zone_for_checking(const dname_type* zone);
+
+/* Return the reason a zone is invalid, or NULL on a valid catalog */
+const char *invalid_catalog_consumer_zone(struct zone_options* zone);
 
 /*
  * XFR daemon SOA information kept in network format.

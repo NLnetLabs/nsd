@@ -488,7 +488,24 @@ zone_options_delete(struct nsd_options* opt, struct zone_options* zone)
 	rbtree_delete(opt->zone_options, zone->node.key);
 	region_recycle(opt->region, (void*)zone->node.key, dname_total_size(
 		(dname_type*)zone->node.key));
+	assert(zone->is_catalog_member_zone == 0);
 	region_recycle(opt->region, zone, sizeof(*zone));
+}
+
+void
+catalog_member_zone_delete(struct nsd* nsd,
+		struct catalog_member_zone* member_zone)
+{
+	rbtree_delete(nsd->options->zone_options, member_zone->options.node.key);
+	region_recycle(nsd->options->region,
+		(void*)member_zone->options.node.key,
+		dname_total_size((dname_type*)member_zone->options.node.key));
+	assert(member_zone->options.is_catalog_member_zone == 1);
+	assert(member_zone->prev_next_ptr == NULL);
+	assert(member_zone->next == NULL);
+	member_zone->member_id->usage--;
+	domain_table_deldomain(nsd->db, member_zone->member_id);
+	region_recycle(nsd->options->region, member_zone, sizeof(*member_zone));
 }
 
 /* add a new zone to the zonelist */
@@ -617,6 +634,11 @@ zone_list_add(struct nsd_options* opt, const char* zname, const char* pname)
 void
 zone_list_del(struct nsd_options* opt, struct zone_options* zone)
 {
+	if (zone->is_catalog_member_zone) {
+		/* catalog member zones are not in the zones.list file */
+		zone_options_delete(opt, zone);
+		return;
+	}
 	/* put its space onto the free entry */
 	if(fseeko(opt->zonelist, zone->off, SEEK_SET) == -1) {
 		log_msg(LOG_ERR, "fseeko(%s): %s", opt->zonelistfile, strerror(errno));
@@ -807,7 +829,25 @@ zone_options_create(region_type* region)
 	zone->name = 0;
 	zone->pattern = 0;
 	zone->part_of_config = 0;
+	zone->is_catalog_member_zone = 0;
 	return zone;
+}
+
+struct catalog_member_zone*
+catalog_member_zone_create(region_type* region)
+{
+	struct catalog_member_zone* member_zone;
+	member_zone = (struct catalog_member_zone*)region_alloc(region,
+			sizeof(struct catalog_member_zone));
+	member_zone->options.node = *RBTREE_NULL;
+	member_zone->options.name = 0;
+	member_zone->options.pattern = 0;
+	member_zone->options.part_of_config = 0;
+	member_zone->options.is_catalog_member_zone = 1;
+	member_zone->member_id = NULL;
+	member_zone->prev_next_ptr = NULL;
+	member_zone->next = NULL;
+	return member_zone;
 }
 
 /* true is booleans are the same truth value */
@@ -2031,6 +2071,12 @@ int
 zone_is_slave(struct zone_options* opt)
 {
 	return opt && opt->pattern && opt->pattern->request_xfr != 0;
+}
+
+int
+zone_is_catalog(struct zone_options* opt)
+{
+	return opt && opt->pattern && opt->pattern->is_catalog != 0;
 }
 
 /* get a character in string (or replacement char if not long enough) */
