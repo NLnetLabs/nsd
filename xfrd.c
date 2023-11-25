@@ -781,7 +781,12 @@ catalog_del_member_zone(struct catalog_member_zone* member_zone)
 		xfrd_del_slave_zone(xfrd, dname);
 	}
 	xfrd_del_notify(xfrd, dname);
-
+#ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
+	/* delete it in xfrd's catalog consumers list */
+	if(zone_is_catalog(&member_zone->options)) {
+		xfrd_deinit_catalog_consumer_zone(xfrd, dname);
+	}
+#endif
 	/* Remove from dubbel linked list */
 	if (member_zone->next) {
 		member_zone->next->prev_next_ptr = member_zone->prev_next_ptr;
@@ -870,7 +875,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 {
 	zone_type* zone;
 	const dname_type* dname;
-	domain_type *match, *closest_encloser, *member_id;
+	domain_type *match, *closest_encloser, *member_id, *group;
 	rrset_type *rrset;
 	size_t i;
 	uint8_t version_2_found;
@@ -990,6 +995,8 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		domain_type *member_domain;
 		char member_domain_str[5 * MAXDOMAINLEN];
 		struct zone_options* zopt;
+		int valid_group_values;
+		struct pattern_options *pattern;
 
 		if (domain_dname(member_id)->label_count > dname->label_count + 2
 		||  !(rrset = domain_find_rrset(member_id, zone, TYPE_PTR)))
@@ -1016,10 +1023,57 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		/* remove trailing dot */
 		member_domain_str[strlen(member_domain_str) - 1] = 0;
 
-		if (default_pattern)
+		valid_group_values = 0;
+		/* Lookup group.<member_id> TXT for matching patterns  */
+		if(!namedb_lookup(xfrd->nsd->db, label_plus_dname("group",
+						domain_dname(member_id)),
+					&group, &closest_encloser)
+		|| !(rrset = domain_find_rrset(group, zone, TYPE_TXT))) {
 			; /* pass */
 
-		else if (!(default_pattern = catalog_member_pattern(catz))) {
+		} else for (i = 0; i < rrset->rr_count; i++) {
+			/* Max single TXT rdata field length + '\x00' == 256 */
+			char group_value[256];
+
+			/* Looking for a single TXT rdata field */
+			if (rrset->rrs[i].rdata_count != 1
+
+			    /* rdata field should be at least 1 char */
+			||  rrset->rrs[i].rdatas[0].data[0] < 2
+
+			    /* single rdata atom with single TXT rdata field */
+			||  ((uint8_t*)(rrset->rrs[i].rdatas[0].data + 1))[0]
+			  != (uint8_t) (rrset->rrs[i].rdatas[0].data[0]-1))
+				continue;
+
+			memcpy( group_value
+			      , (uint8_t*)(rrset->rrs[i].rdatas[0].data+1) + 1
+			      ,((uint8_t*)(rrset->rrs[i].rdatas[0].data+1))[0]
+			      );
+			group_value[
+			       ((uint8_t*)(rrset->rrs[i].rdatas[0].data+1))[0]
+			] = 0;
+			if ((pattern = pattern_options_find(
+					xfrd->nsd->options, group_value)))
+				valid_group_values += 1;
+		}
+		if (valid_group_values > 1) {
+	                log_msg(LOG_ERR, "member zone '%s': only a single "
+				"group property that matches a pattern is "
+				"allowed."
+				"The pattern from \"catalog-member-patter\" "
+				"will be used instead.",
+				domain_to_string(member_id));
+			valid_group_values = 0;
+		}
+		if (valid_group_values == 1)
+			; /* pass: pattern is already set */
+
+		else if (default_pattern)
+			pattern = default_pattern; /* pass */
+
+		else if (!(pattern = default_pattern =
+					catalog_member_pattern(catz))) {
 			make_catalog_consumer_invalid(catz, 
 				"missing 'group.%s' TXT RR and "
 				"no default pattern from \"catalog-member-pattern\"",
@@ -1031,7 +1085,6 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 			   * From here onwards, zones will only be added.
 			   */
 		else {
-			/* Is this member domain ... */
 			int cmp;
 #ifndef NDEBUF
 			char member_id_str[5 * MAXDOMAINLEN];
@@ -1057,7 +1110,48 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 				/* member_id is also in an current catalog
 				 * member zone, and next_member_ptr is pointing
 				 * to it. So, move along ...
-				 * */
+				 */
+				/* ... but first check if the pattern needs
+				 * a change
+				 */
+				if ((*next_member_ptr)->options.pattern == pattern)
+					; /* pass: Pattern remains the same */
+				else {
+					/* Changing patterns is basically
+					 * deleting and adding the zone again
+					 */
+					zopt  = &(*next_member_ptr)->options;
+					dname = (dname_type *)zopt->node.key;
+					task_new_del_zone( xfrd->nsd->task[xfrd->nsd->mytask]
+					                 , xfrd->last_task
+							 , dname);
+					xfrd_set_reload_now(xfrd);
+					if(zone_is_slave(zopt)) {
+						xfrd_del_slave_zone(xfrd, dname);
+					}
+					xfrd_del_notify(xfrd, dname);
+#ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
+					if(zone_is_catalog(zopt)) {
+						xfrd_deinit_catalog_consumer_zone(xfrd, dname);
+					}
+#endif
+					zopt->pattern = pattern;
+					task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
+						xfrd->last_task, member_domain_str,
+						pattern->pname,
+						getzonestatid(xfrd->nsd->options, &cmz->options));
+					zonestat_inc_ifneeded(xfrd);
+					xfrd_set_reload_now(xfrd);
+#ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
+					if(zone_is_catalog(zopt)) {
+						xfrd_init_catalog_consumer_zone(xfrd, zopt);
+					}
+#endif
+					init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
+					if(zone_is_slave(zopt)) {
+						xfrd_init_slave_zone(xfrd, zopt);
+					}
+				}
 				next_member_ptr = &(*next_member_ptr)->next;
 				continue;
 			}
@@ -1082,10 +1176,10 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		/* Add member zone if not already there */
 		cmz = catalog_member_zone_create(xfrd->region);
 		cmz->options.name = region_strdup(xfrd->region, member_domain_str);
-		cmz->options.pattern = default_pattern;
+		cmz->options.pattern = pattern;
 		if (!nsd_options_insert_zone(xfrd->nsd->options, &cmz->options)) {
 	                log_msg(LOG_ERR, "bad domain name or duplicate zone "
-				"'%s' pattern %s", member_domain_str, default_pattern->pname);
+				"'%s' pattern %s", member_domain_str, pattern->pname);
                 	region_recycle(xfrd->region, (void*)cmz->options.name,
 					strlen(cmz->options.name)+1);
                 	region_recycle(xfrd->region, cmz, sizeof(*cmz));
@@ -1104,10 +1198,16 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		/* make addzone task and schedule reload */
         	task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
                 	xfrd->last_task, member_domain_str,
-			default_pattern->pname,
+			pattern->pname,
                 	getzonestatid(xfrd->nsd->options, &cmz->options));
 		zonestat_inc_ifneeded(xfrd);
 		xfrd_set_reload_now(xfrd);
+#ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
+		/* add to xfrd - catalog consumer zones */
+		if(zone_is_catalog(&cmz->options)) {
+			xfrd_init_catalog_consumer_zone(xfrd, &cmz->options);
+		}
+#endif
 		/* add to xfrd - notify (for master and slaves) */
 		init_notify_send(xfrd->notify_zones, xfrd->region, &cmz->options);
 		/* add to xfrd - slave */
