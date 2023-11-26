@@ -1136,9 +1136,9 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 #endif
 					zopt->pattern = pattern;
 					task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
-						xfrd->last_task, member_domain_str,
+						xfrd->last_task, zopt->name,
 						pattern->pname,
-						getzonestatid(xfrd->nsd->options, &cmz->options));
+						getzonestatid(xfrd->nsd->options, zopt));
 					zonestat_inc_ifneeded(xfrd);
 					xfrd_set_reload_now(xfrd);
 #ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
