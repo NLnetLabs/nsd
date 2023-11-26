@@ -995,16 +995,17 @@ Number of seconds before verifier is forcefully terminated. Specify 0 (zero)
 to not use a specific timeout. Default is verifier\-timeout from
 .B verify:\fR.
 .TP
-.B catalog:\fR <yes or no>
-Enable catalog zone processing for this catalog or not. If set to yes, the
-.B catalog-member-pattern\fR option MUST be set as well.
+.B catalog:\fR <consumer or producer>
+If set to consumer, catalog zone processing is enabled for this catalog.
+Member zones of the catalog will use the patter specified by the group
+property, or if a group property is missing or invalid, the pattern specified
+by the .B catalog-member-pattern\fR option is used. Group properties are valid
+if there is only a single one mathing the name of a configured pattern.
 .TP
 .B catalog-member-pattern:\fR <pattern>
 Pattern to assign to any zone created from this catalog zone that does not have
 a group property set. This pattern can be used to configure which primary to 
-use. This option MUST be present if the
-.B catalog \fR option is set to yes.
-
+use.
 .SS "Key Declarations"
 The 
 .B key: 

@@ -35,6 +35,9 @@ typedef struct config_parser_state config_parser_state_type;
 #define VERIFY_ZONE_INHERIT (2)
 #define VERIFIER_FEED_ZONE_INHERIT (2)
 #define VERIFIER_TIMEOUT_INHERIT (-1)
+#define CATALOG_ROLE_INHERIT  (0)
+#define CATALOG_ROLE_CONSUMER (1)
+#define CATALOG_ROLE_PRODUCER (2)
 
 /*
  * Options global for nsd.
@@ -308,7 +311,8 @@ struct pattern_options {
 	uint8_t verifier_feed_zone_is_default;
 	int32_t verifier_timeout;
 	uint8_t verifier_timeout_is_default;
-	uint8_t is_catalog;
+	uint8_t catalog_role;
+	uint8_t catalog_role_is_default;
 	const char* catalog_member_pattern;
 } ATTR_PACKED;
 
@@ -559,7 +563,12 @@ int acl_equal(struct acl_options* p, struct acl_options* q);
 /* see if a zone is a slave or a master zone */
 int zone_is_slave(struct zone_options* opt);
 /* see if a zone is a catalog consumer */
-int zone_is_catalog(struct zone_options* opt);
+static inline int zone_is_catalog_consumer(struct zone_options* opt)
+{ return opt && opt->pattern
+             && opt->pattern->catalog_role == CATALOG_ROLE_CONSUMER; }
+static inline int zone_is_catalog_producer(struct zone_options* opt)
+{ return opt && opt->pattern
+             && opt->pattern->catalog_role == CATALOG_ROLE_PRODUCER; }
 /* create zonefile name, returns static pointer (perhaps to options data) */
 const char* config_make_zonefile(struct zone_options* zone, struct nsd* nsd);
 

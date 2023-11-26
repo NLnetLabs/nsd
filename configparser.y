@@ -33,6 +33,7 @@ extern config_parser_state_type *cfg_parser;
 static void append_acl(struct acl_options **list, struct acl_options *acl);
 static void add_to_last_acl(struct acl_options **list, char *ac);
 static int parse_boolean(const char *str, int *bln);
+static int parse_catalog_role(const char *str, int *role);
 static int parse_expire_expr(const char *str, long long *num, uint8_t *expr);
 static int parse_number(const char *str, long long *num);
 static int parse_range(const char *str, long long *low, long long *high);
@@ -53,6 +54,7 @@ struct component {
   struct cpu_option *cpu;
   char **strv;
   struct component *comp;
+  int role;
 }
 
 %token <str> STRING
@@ -63,6 +65,7 @@ struct component {
 %type <cpu> cpus
 %type <strv> command
 %type <comp> arguments
+%type <role> catalog_role
 
 /* server */
 %token VAR_SERVER
@@ -1038,8 +1041,11 @@ pattern_or_zone_option:
     { cfg_parser->pattern->verifier_feed_zone = $2; }
   | VAR_VERIFIER_TIMEOUT number
     { cfg_parser->pattern->verifier_timeout = $2; } 
-  | VAR_CATALOG boolean
-    { cfg_parser->pattern->is_catalog = $2; }
+  | VAR_CATALOG catalog_role
+    {
+      cfg_parser->pattern->catalog_role = $2;
+      cfg_parser->pattern->catalog_role_is_default = 0;
+    }
   | VAR_CATALOG_MEMBER_PATTERN STRING 
     { 
       cfg_parser->pattern->catalog_member_pattern = region_strdup(cfg_parser->opt->region, $2); 
@@ -1153,6 +1159,15 @@ tlsauth_option:
 	| STRING
 	{ char *tls_auth_name = region_strdup(cfg_parser->opt->region, $1);
 	  add_to_last_acl(&cfg_parser->pattern->request_xfr, tls_auth_name);} ;
+
+catalog_role:
+    STRING
+    {
+      if(!parse_catalog_role($1, &$$)) {
+        yyerror("expected consumer or producer");
+        YYABORT; /* trigger a parser error */
+      }
+    } ;
 
 %%
 
@@ -1272,3 +1287,18 @@ parse_range(const char *str, long long *low, long long *high)
 
 	return 0;
 }
+
+static int
+parse_catalog_role(const char *str, int *role)
+{
+	if(strcasecmp(str, "consumer") == 0) {
+		*role = CATALOG_ROLE_CONSUMER;
+	} else if(strcmp(str, "producer") == 0) {
+		*role = CATALOG_ROLE_PRODUCER;
+	} else {
+		return 0;
+	}
+	return 1;
+}
+
+

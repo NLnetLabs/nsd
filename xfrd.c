@@ -585,7 +585,7 @@ xfrd_init_zones()
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: adding %s zone",
 			zone_opt->name));
 
-		if(zone_is_catalog(zone_opt)) {
+		if(zone_is_catalog_consumer(zone_opt)) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s "
 				"is a catalog consumer zone", zone_opt->name));
 			xfrd_init_catalog_consumer_zone(xfrd, zone_opt);
@@ -760,7 +760,6 @@ static struct pattern_options*
 catalog_member_pattern(struct xfrd_catalog_consumer_zone* catz)
 {
 	if (!catz->options->pattern
-	||  !catz->options->pattern->is_catalog
 	||  !catz->options->pattern->catalog_member_pattern)
 		return NULL;
 	return pattern_options_find(xfrd->nsd->options,
@@ -783,7 +782,7 @@ catalog_del_member_zone(struct catalog_member_zone* member_zone)
 	xfrd_del_notify(xfrd, dname);
 #ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
 	/* delete it in xfrd's catalog consumers list */
-	if(zone_is_catalog(&member_zone->options)) {
+	if(zone_is_catalog_consumer(&member_zone->options)) {
 		xfrd_deinit_catalog_consumer_zone(xfrd, dname);
 	}
 #endif
@@ -828,7 +827,7 @@ const char *invalid_catalog_consumer_zone(struct zone_options* zone)
 	struct xfrd_catalog_consumer_zone* catz;
 	const char *msg;
 
-	if (!zone || !zone_is_catalog(zone))
+	if (!zone || !zone_is_catalog_consumer(zone))
 		msg = NULL;
 
 	else if (!xfrd) 
@@ -1131,7 +1130,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 					}
 					xfrd_del_notify(xfrd, dname);
 #ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
-					if(zone_is_catalog(zopt)) {
+					if(zone_is_catalog_consumer(zopt)) {
 						xfrd_deinit_catalog_consumer_zone(xfrd, dname);
 					}
 #endif
@@ -1143,7 +1142,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 					zonestat_inc_ifneeded(xfrd);
 					xfrd_set_reload_now(xfrd);
 #ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
-					if(zone_is_catalog(zopt)) {
+					if(zone_is_catalog_consumer(zopt)) {
 						xfrd_init_catalog_consumer_zone(xfrd, zopt);
 					}
 #endif
@@ -1204,7 +1203,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		xfrd_set_reload_now(xfrd);
 #ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
 		/* add to xfrd - catalog consumer zones */
-		if(zone_is_catalog(&cmz->options)) {
+		if(zone_is_catalog_consumer(&cmz->options)) {
 			xfrd_init_catalog_consumer_zone(xfrd, &cmz->options);
 		}
 #endif

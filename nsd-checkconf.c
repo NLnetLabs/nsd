@@ -586,13 +586,12 @@ static void print_zone_content_elems(pattern_options_type* pat)
 		printf("\tverifier-timeout: %d\n", pat->verifier_timeout);
 	}
 
-	if(pat->is_catalog) {
-		printf("\tcatalog: ");
-		if(pat->is_catalog) {
-			printf("yes\n");
-		} else {
-			printf("no\n");
-		}
+	switch(pat->catalog_role) {
+	case CATALOG_ROLE_CONSUMER: printf("\tcatalog: consumer\n");
+	                            break;
+	case CATALOG_ROLE_PRODUCER: printf("\tcatalog: producer\n");
+	                            break;
+	default                   : break;
 	}
 
 	if(pat->catalog_member_pattern) 

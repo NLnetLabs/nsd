@@ -952,9 +952,9 @@ pattern_options_create(region_type* region)
 	p->verifier_feed_zone_is_default = 1;
 	p->verifier_timeout = VERIFIER_TIMEOUT_INHERIT;
 	p->verifier_timeout_is_default = 1;
-	p->is_catalog = 0;
+	p->catalog_role = CATALOG_ROLE_INHERIT;
+	p->catalog_role_is_default = 1;
 	p->catalog_member_pattern = NULL;
-
 	return p;
 }
 
@@ -1156,6 +1156,12 @@ copy_pat_fixed(region_type* region, struct pattern_options* orig,
 	orig->verifier_timeout_is_default = p->verifier_timeout_is_default;
 	orig->verifier_feed_zone = p->verifier_feed_zone;
 	orig->verifier_feed_zone_is_default = p->verifier_feed_zone_is_default;
+	orig->catalog_role = p->catalog_role;
+	orig->catalog_role_is_default = p->catalog_role_is_default;
+	if(p->catalog_member_pattern)
+		orig->catalog_member_pattern =
+			region_strdup(region, p->catalog_member_pattern);
+	else orig->catalog_member_pattern = NULL;
 }
 
 void
@@ -1290,6 +1296,14 @@ pattern_options_equal(struct pattern_options* p, struct pattern_options* q)
 	if(p->verifier_timeout != q->verifier_timeout) return 0;
 	if(!booleq(p->verifier_timeout_is_default,
 		q->verifier_timeout_is_default)) return 0;
+	if(p->catalog_role != q->catalog_role) return 0;
+	if(!booleq(p->catalog_role_is_default,
+		q->catalog_role_is_default)) return 0;
+	if(!p->catalog_member_pattern && q->catalog_member_pattern) return 0;
+	else if(p->catalog_member_pattern && !q->catalog_member_pattern) return 0;
+	else if(p->catalog_member_pattern && q->catalog_member_pattern) {
+		if(strcmp(p->catalog_member_pattern, q->catalog_member_pattern) != 0) return 0;
+	}
 	return 1;
 }
 
@@ -1514,6 +1528,9 @@ pattern_options_marshal(struct buffer* b, struct pattern_options* p)
 	marshal_u8(b, p->verifier_feed_zone_is_default);
 	marshal_u32(b, p->verifier_timeout);
 	marshal_u8(b, p->verifier_timeout_is_default);
+	marshal_u8(b, p->catalog_role);
+	marshal_u8(b, p->catalog_role_is_default);
+	marshal_str(b, p->catalog_member_pattern);
 }
 
 struct pattern_options*
@@ -1564,6 +1581,9 @@ pattern_options_unmarshal(region_type* r, struct buffer* b)
 	p->verifier_feed_zone_is_default = unmarshal_u8(b);
 	p->verifier_timeout = unmarshal_u32(b);
 	p->verifier_timeout_is_default = unmarshal_u8(b);
+	p->catalog_role = unmarshal_u8(b);
+	p->catalog_role_is_default = unmarshal_u8(b);
+	p->catalog_member_pattern = unmarshal_str(r, b);
 	return p;
 }
 
@@ -2073,12 +2093,6 @@ zone_is_slave(struct zone_options* opt)
 	return opt && opt->pattern && opt->pattern->request_xfr != 0;
 }
 
-int
-zone_is_catalog(struct zone_options* opt)
-{
-	return opt && opt->pattern && opt->pattern->is_catalog != 0;
-}
-
 /* get a character in string (or replacement char if not long enough) */
 static const char*
 get_char(const char* str, size_t i)
@@ -2483,6 +2497,13 @@ config_apply_pattern(struct pattern_options *dest, const char* name)
 		}
 		dest->verifier = vec;
 	}
+	if(!pat->catalog_role_is_default) {
+		dest->catalog_role = pat->catalog_role;
+		dest->catalog_role_is_default = 0;
+	}
+	if(pat->catalog_member_pattern)
+		dest->catalog_member_pattern = region_strdup(
+			cfg_parser->opt->region, pat->catalog_member_pattern);
 }
 
 void
