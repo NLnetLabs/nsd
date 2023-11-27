@@ -3467,9 +3467,9 @@ service_remaining_tcp(struct nsd* nsd)
 #endif
 
 		p->tcp_no_more_queries = 1;
-		/* set timeout to 1/10 second */
-		if(p->tcp_timeout > 100)
-			p->tcp_timeout = 100;
+		/* set timeout to 3 seconds (previously 1/10 second) */
+		if(p->tcp_timeout > 3000)
+			p->tcp_timeout = 3000;
 		timeout.tv_sec = p->tcp_timeout / 1000;
 		timeout.tv_usec = (p->tcp_timeout % 1000)*1000;
 		event_del(&p->event);
@@ -3494,8 +3494,8 @@ service_remaining_tcp(struct nsd* nsd)
 			break;
 		}
 		/* timer */
-		/* have to do something every second */
-		tv.tv_sec = 1;
+		/* have to do something every 3 seconds */
+		tv.tv_sec = 3;
 		tv.tv_usec = 0;
 		memset(&timeout, 0, sizeof(timeout));
 		event_set(&timeout, -1, EV_TIMEOUT, remaining_tcp_timeout,
