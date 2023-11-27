@@ -1,3 +1,8 @@
+27 November 2023: Jeroen
+	- Fix #14: Set timeout to 3s when servicing remaining TCP connections.
+	- Fix: Always instate write handler after reading queries from TCP.
+	- Answer first query on connections accepted just before reload.
+
 27 November 2023: Wouter
 	- Merge #305: faster stats. Statistics can be gathered while a reload
 	  is in progress.

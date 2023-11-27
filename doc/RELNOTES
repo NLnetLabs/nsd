@@ -25,6 +25,9 @@ BUG FIXES:
 	  main process explicitly.
 	- Fix processing of consolidated IXFRs.
 	- Remove on-disk database.
+	- Answer first query for connections accepted just before reload.
+	- Fix: Always instate write handler after reading a query over TCP.
+	- Fix #14: Set timeout to 3s when servicing remaining TCP connections.
 
 4.7.0
 ================

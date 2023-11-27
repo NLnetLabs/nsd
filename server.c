@@ -3467,9 +3467,9 @@ service_remaining_tcp(struct nsd* nsd)
 #endif
 
 		p->tcp_no_more_queries = 1;
-		/* set timeout to 1/10 second */
-		if(p->tcp_timeout > 100)
-			p->tcp_timeout = 100;
+		/* set timeout to 3 seconds (previously 1/10 second) */
+		if(p->tcp_timeout > 3000)
+			p->tcp_timeout = 3000;
 		timeout.tv_sec = p->tcp_timeout / 1000;
 		timeout.tv_usec = (p->tcp_timeout % 1000)*1000;
 		event_del(&p->event);
@@ -3494,8 +3494,8 @@ service_remaining_tcp(struct nsd* nsd)
 			break;
 		}
 		/* timer */
-		/* have to do something every second */
-		tv.tv_sec = 1;
+		/* have to do something every 3 seconds */
+		tv.tv_sec = 3;
 		tv.tv_usec = 0;
 		memset(&timeout, 0, sizeof(timeout));
 		event_set(&timeout, -1, EV_TIMEOUT, remaining_tcp_timeout,
@@ -4040,8 +4040,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 	}
 
 	if ((data->nsd->tcp_query_count > 0 &&
-		data->query_count >= data->nsd->tcp_query_count) ||
-		data->tcp_no_more_queries) {
+	     data->query_count >= data->nsd->tcp_query_count) ||
+	    (data->query_count > 0 && data->tcp_no_more_queries))
+  {
 		/* No more queries allowed on this tcp connection. */
 		cleanup_tcp_handler(data);
 		return;
@@ -4292,8 +4293,8 @@ handle_tcp_reading(int fd, short event, void* arg)
 	ev_base = data->event.ev_base;
 	event_del(&data->event);
 	memset(&data->event, 0, sizeof(data->event));
-	event_set(&data->event, fd, EV_PERSIST | EV_READ | EV_TIMEOUT,
-		handle_tcp_reading, data);
+	event_set(&data->event, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT,
+		handle_tcp_writing, data);
 	if(event_base_set(ev_base, &data->event) != 0)
 		log_msg(LOG_ERR, "event base set tcpr failed");
 	if(event_add(&data->event, &timeout) != 0)
@@ -4607,8 +4608,9 @@ handle_tls_reading(int fd, short event, void* arg)
 	}
 
 	if ((data->nsd->tcp_query_count > 0 &&
-	    data->query_count >= data->nsd->tcp_query_count) ||
-	    data->tcp_no_more_queries) {
+	     data->query_count >= data->nsd->tcp_query_count) ||
+	    (data->query_count > 0 && data->tcp_no_more_queries))
+	{
 		/* No more queries allowed on this tcp connection. */
 		cleanup_tcp_handler(data);
 		return;
