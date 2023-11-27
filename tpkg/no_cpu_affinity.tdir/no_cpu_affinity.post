@@ -6,9 +6,5 @@
 . ../common.sh
 
 # do your teardown here
-if ! test -e nsd.pid ; then
-	exit 0
-fi
+kill_from_pidfile nsd.pid
 
-# kill NSD
-kill_pid `cat nsd.pid`

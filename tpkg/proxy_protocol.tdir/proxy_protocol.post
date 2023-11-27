@@ -18,6 +18,5 @@ fi
 
 cat nsd.log
 # do your teardown here
-if test -f nsd.pid; then
-	kill_pid `cat nsd.pid`
-fi
+kill_from_pidfile nsd.pid
+

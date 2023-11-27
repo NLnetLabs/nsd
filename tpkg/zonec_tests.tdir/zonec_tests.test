@@ -18,17 +18,17 @@ if dig @127.0.0.1 -p $RND_PORT miek.nl SOA | grep NOERROR; then
 else
 	cat nsd.log
 	echo "zonec failed"
-	kill_pid `cat nsd.pid`
+	kill_from_pidfile nsd.pid
 	exit 1
 fi
 cat nsd.log
 if grep error nsd.log; then
 	echo "zonec failed"
-	kill_pid `cat nsd.pid`
+	kill_from_pidfile nsd.pid
 	exit 1
 fi
 echo OK
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 rm nsd.log
 
 # test 2
@@ -36,7 +36,7 @@ $NSD -c zonec_tests.conf2 -p $RND_PORT
 if dig @127.0.0.1 -p $RND_PORT miek.nl SOA | grep NOERROR; then
 	cat out
 	echo "zonec worked, but had to fail"
-	kill_pid `cat nsd.pid`
+	kill_from_pidfile nsd.pid
 	exit 1
 fi
 cat nsd.log
@@ -46,10 +46,10 @@ if grep "read with 2 errors" nsd.log && \
 	echo "errors checked ok"
 else
 	echo "bad errors"
-	kill_pid `cat nsd.pid`
+	kill_from_pidfile nsd.pid
 	exit 1
 fi
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 rm nsd.log
 
 # test 3
@@ -57,7 +57,7 @@ $NSD -c zonec_tests.conf3 -p $RND_PORT
 if dig @127.0.0.1 -p $RND_PORT miek.nl SOA | grep NOERROR; then
 	cat nsd.log
 	echo "zonec worked, but had to fail"
-	kill_pid `cat nsd.pid`
+	kill_from_pidfile nsd.pid
 	exit 1
 fi
 cat nsd.log
@@ -66,10 +66,10 @@ if grep "read with 1 errors" nsd.log && \
 	echo "errors checked ok"
 else
 	echo "bad errors"
-	kill_pid `cat nsd.pid`
+	kill_from_pidfile nsd.pid
 	exit 1
 fi
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 rm nsd.log
 
 exit 0

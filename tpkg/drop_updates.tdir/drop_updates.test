@@ -40,9 +40,7 @@ else
   cat drop_updates_no.update
 fi
 
-if test -f nsd.pid; then
-  kill_pid $(head -n 1 nsd.pid)
-fi
+kill_from_pidfile nsd.pid
 
 cat nsd.log
 rm -f nsd.log nsd.pid
@@ -77,9 +75,7 @@ else
   cat drop_updates_yes.update
 fi
 
-if test -f nsd.pid; then
-  kill_pid $(head -n 1 nsd.pid)
-fi
+kill_from_pidfile nsd.pid
 
 cat nsd.log
 rm -f nsd.log nsd.pid

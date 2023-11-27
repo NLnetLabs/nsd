@@ -22,7 +22,7 @@ if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 
 # printout the zone
 # The test was created on a system without ntp named in /etc/services
@@ -60,7 +60,7 @@ mv cmp.zone firstwrite.zone
 #if test ! -f rr-test.zone; then sleep 1; fi
 #if test ! -f rr-test.zone; then sleep 1; fi
 #if test ! -f rr-test.zone; then sleep 1; fi
-#kill_pid `cat nsd.pid`
+#kill_from_pidfile nsd.pid
 #
 #grep -v "^;" rr-test.zone > cmp.zone
 #
@@ -102,7 +102,7 @@ if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 
 grep -v "^;" rr-test.zone > cmp.zone
 cp cmp.zone thirdwrite.zone

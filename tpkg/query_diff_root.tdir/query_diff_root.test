@@ -22,7 +22,7 @@ wait_nsd_up nsd.log
 $PCAT -a 127.0.0.1 -p $PORT \
 query_diff_root.20011009-134418-q50000.pcap > query_diff_root.NSD30.pcat
 
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 rm -f root.db
 
 if [[ ! -s query_diff_root.NSD30.pcat ]]; then

@@ -22,7 +22,7 @@ $TPKG_NSD -c nsd.conf.master -p $TPKG_PORT $NSD_OPTS
 wait_nsd_up nsd.log
 cat nsd.log
 echo '>>> compiled'
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 $TPKG_NSD -c nsd.conf -p $TPKG_PORT $NSD_OPTS
 wait_nsd_up nsd.log
 wait_logfile nsd.log "serial 1 is updated to 2" 45

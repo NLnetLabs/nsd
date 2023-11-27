@@ -12,10 +12,10 @@ if dig @127.0.0.1 -p $RND_PORT example.com SOA | grep NOERROR; then
 	echo OK
 else
 	echo FAIL
-	kill_pid `cat nsd.pid`
+	kill_from_pidfile nsd.pid
 	exit 1
 fi
 
 # this crashes in NSD 2.3.1
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 exit 0
