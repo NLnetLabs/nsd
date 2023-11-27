@@ -28,6 +28,8 @@ BUG FIXES:
 	- Answer first query for connections accepted just before reload.
 	- Fix: Always instate write handler after reading a query over TCP.
 	- Fix #14: Set timeout to 3s when servicing remaining TCP connections.
+	- Merge #302: Test package fixes. Correct Auxfiles, kill_from_pidfile
+	  function and fix drop_updates, rr-test and xfr_update tests.
 
 4.7.0
 ================

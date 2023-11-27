@@ -7,6 +7,10 @@
 	- Merge #305: faster stats. Statistics can be gathered while a reload
 	  is in progress.
 
+27 November 2023: Willem
+	- Merge #302: Test package fixes. Correct Auxfiles, kill_from_pidfile
+	  function and fix drop_updates, rr-test and xfr_update tests.
+
 1 November 2023: Jeroen
 	- Remove on-disk database.
 
