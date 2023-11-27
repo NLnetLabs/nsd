@@ -997,7 +997,7 @@ to not use a specific timeout. Default is verifier\-timeout from
 .TP
 .B catalog:\fR <consumer or producer>
 If set to consumer, catalog zone processing is enabled for this catalog.
-Member zones of the catalog will use the patter specified by the group
+Member zones of the catalog will use the pattern specified by the group
 property, or if a group property is missing or invalid, the pattern specified
 by the .B catalog-member-pattern\fR option is used. Group properties are valid
 if there is only a single one mathing the name of a configured pattern.
