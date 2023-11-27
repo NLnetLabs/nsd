@@ -25,7 +25,7 @@ else
 	cat nsd.log
 	exit 1
 fi
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 rm nsd.log nsd.db
 
 $NSD -c bug236_rrs_before_soa.conf2 -p $PORT
@@ -47,6 +47,6 @@ else
 	exit 1
 fi
 
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 echo OK
 exit 0

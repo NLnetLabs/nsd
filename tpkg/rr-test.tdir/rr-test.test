@@ -22,10 +22,14 @@ if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 
 # printout the zone
-grep -v "^;" rr-test.cmp_zone > bak.zone
+# The test was created on a system without ntp named in /etc/services
+# we anticipate for systems that *do* have this name in /etc/servives,
+# by changing ntp in the WKS RR of the written out zone file in the number 123.
+#
+grep -v "^;" rr-test.cmp_zone | sed 's/ ntp/ 123/g' > bak.zone
 grep -v "^;" rr-test.zone > cmp.zone
 
 if wdiff bak.zone cmp.zone >/dev/null; then
@@ -56,7 +60,7 @@ mv cmp.zone firstwrite.zone
 #if test ! -f rr-test.zone; then sleep 1; fi
 #if test ! -f rr-test.zone; then sleep 1; fi
 #if test ! -f rr-test.zone; then sleep 1; fi
-#kill_pid `cat nsd.pid`
+#kill_from_pidfile nsd.pid
 #
 #grep -v "^;" rr-test.zone > cmp.zone
 #
@@ -98,7 +102,7 @@ if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 
 grep -v "^;" rr-test.zone > cmp.zone
 cp cmp.zone thirdwrite.zone

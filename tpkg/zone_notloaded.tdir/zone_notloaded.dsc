@@ -11,6 +11,6 @@ Help:
 Pre: zone_notloaded.pre
 Post: zone_notloaded.post
 Test: zone_notloaded.test
-AuxFiles: zone_notloaded.conf, zone_notloaded.zone, zone_notloaded.datafile
+AuxFiles: zone_notloaded.conf, zone_notloaded.datafile
 Passed:
 Failure:

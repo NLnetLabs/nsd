@@ -8,10 +8,9 @@ Component:
 CmdDepends: 
 Depends: 
 Help:
-Pre: xfr_udp.pre
-Post: xfr_udp.post
-Test: xfr_udp.test
-AuxFiles: xfr_udp.known_good, xfr_udp.conf, xfr_udp.conf, xfr_udp.zone, 
-	xfr_udp.datafile
+Pre: xfr_update.pre
+Post: xfr_update.post
+Test: xfr_update.test
+AuxFiles: xfr_update.known_good, xfr_update.conf, xfr_update.zone, xfr_update.datafile
 Passed:
 Failure:

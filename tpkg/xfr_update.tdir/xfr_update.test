@@ -36,7 +36,7 @@ echo OK
 sleep 3
 
 # stop the server
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 
 # delete ixfr file
 # and start again, (previously with the nsd.db, now with updated zone file),

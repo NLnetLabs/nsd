@@ -22,7 +22,7 @@ else
 	echo "compilation succeeded for bad zone!"
 	exit 1
 fi
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 
 if grep "zone example.com file cname_soa.zone read with 3 errors" nsd.log; then
 	echo "detected the errors OK"

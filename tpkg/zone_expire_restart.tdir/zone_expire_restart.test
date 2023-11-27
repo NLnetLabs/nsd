@@ -31,7 +31,7 @@ else
 fi
 
 echo "stop server"
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 sleep 1
 echo "xfrd.state"
 cat xfrd.state

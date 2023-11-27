@@ -10,6 +10,6 @@ Help:
 Pre: ixfrout_create.pre
 Post: ixfrout_create.post
 Test: ixfrout_create.test
-AuxFiles: ixfrout_create.conf, ixfrout_create.zone
+AuxFiles: ixfrout_create.conf
 Passed:
 Failure:

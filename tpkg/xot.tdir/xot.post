@@ -12,7 +12,7 @@ rm -f xot.ixfr.db
 rm -f xot.xfrd.state
 
 # do your teardown here
-kill_pid `cat nsd-primary.pid`
-kill_pid `cat nsd-secondary.pid`
-kill_pid `cat nsd-tertiary.pid`
+kill_from_pidfile nsd-primary.pid
+kill_from_pidfile nsd-secondary.pid
+kill_from_pidfile nsd-tertiary.pid
 

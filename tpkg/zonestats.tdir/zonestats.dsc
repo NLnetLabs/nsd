@@ -11,6 +11,6 @@ Help:
 Pre: zonestats.pre
 Post: zonestats.post
 Test: zonestats.test
-AuxFiles: zonestats.known_good
+AuxFiles: zonestats.zone
 Passed:
 Failure:

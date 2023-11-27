@@ -31,7 +31,7 @@ if test `grep -v '^;' thezone.1 | wc -l` -ne 20; then
 fi
 
 # now, stop the server
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 
 # now, change config
 cp nsd.conf2 nsd.conf

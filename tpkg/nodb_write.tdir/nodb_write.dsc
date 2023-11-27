@@ -11,6 +11,6 @@ Help:
 Pre: nodb_write.pre
 Post: nodb_write.post
 Test: nodb_write.test
-AuxFiles: nodb_write.known_good
+AuxFiles:
 Passed:
 Failure:

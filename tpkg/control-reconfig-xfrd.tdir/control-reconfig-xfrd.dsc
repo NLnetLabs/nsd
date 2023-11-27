@@ -7,7 +7,7 @@ Category:
 Component:
 CmdDepends: 
 Depends: 0000_nsd-compile.tpkg
-Help: control-reconfig-xfrd.help
+Help:
 Pre: control-reconfig-xfrd.pre
 Post: control-reconfig-xfrd.post
 Test: control-reconfig-xfrd.test

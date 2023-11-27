@@ -9,15 +9,8 @@
 if test -f testns.log; then
 	cat testns.log
 fi
-if test -f testns.pid; then
-	kill_pid `cat testns.pid`
-fi
+kill_from_pidfile testns.pid
 
 # do your teardown here
-if [ -z nsd.pid ]; then
-        exit 0
-fi
+kill_from_pidfile nsd.pid
 
-# kill NSD
-NSD_PID=`cat nsd.pid`
-kill_pid $NSD_PID
