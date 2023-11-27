@@ -529,8 +529,8 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 static void set_bind8_alarm(struct nsd* nsd)
 {
 	/* resync so that the next alarm is on the next whole minute */
-	if(nsd->st.period > 0) /* % by 0 gives divbyzero error */
-		alarm(nsd->st.period - (time(NULL) % nsd->st.period));
+	if(nsd->st_period > 0) /* % by 0 gives divbyzero error */
+		alarm(nsd->st_period - (time(NULL) % nsd->st_period));
 }
 #endif
 
@@ -707,6 +707,69 @@ server_zonestat_switch(struct nsd* nsd)
 	}
 }
 #endif /* USE_ZONE_STATS */
+
+#ifdef BIND8_STATS
+void
+server_stat_alloc(struct nsd* nsd)
+{
+	char tmpfile[256];
+	size_t sz = sizeof(struct nsdst) * nsd->child_count * 2;
+	uint8_t z = 0;
+
+	/* file name */
+	nsd->statfname = 0;
+	snprintf(tmpfile, sizeof(tmpfile), "%snsd-xfr-%d/nsd.%u.stat",
+		nsd->options->xfrdir, (int)getpid(), (unsigned)getpid());
+	nsd->statfname = region_strdup(nsd->region, tmpfile);
+
+	/* file descriptor */
+	nsd->statfd = open(nsd->statfname, O_CREAT|O_RDWR, 0600);
+	if(nsd->statfd == -1) {
+		log_msg(LOG_ERR, "cannot create %s: %s", nsd->statfname,
+			strerror(errno));
+		unlink(nsd->zonestatfname[0]);
+		unlink(nsd->zonestatfname[1]);
+		exit(1);
+	}
+
+#ifdef HAVE_MMAP
+	if(lseek(nsd->statfd, (off_t)sz-1, SEEK_SET) == -1) {
+		log_msg(LOG_ERR, "lseek %s: %s", nsd->statfname,
+			strerror(errno));
+		goto fail_exit;
+	}
+	if(write(nsd->statfd, &z, 1) == -1) {
+		log_msg(LOG_ERR, "cannot extend stat file %s (%s)",
+			nsd->statfname, strerror(errno));
+		goto fail_exit;
+	}
+	nsd->stat_map = (struct nsdst*)mmap(NULL, sz, PROT_READ|PROT_WRITE,
+		MAP_SHARED, nsd->statfd, 0);
+	if(nsd->stat_map == MAP_FAILED) {
+		log_msg(LOG_ERR, "mmap failed: %s", strerror(errno));
+fail_exit:
+		close(nsd->statfd);
+		unlink(nsd->statfname);
+		unlink(nsd->zonestatfname[0]);
+		unlink(nsd->zonestatfname[1]);
+		exit(1);
+	}
+	memset(nsd->stat_map, 0, sz);
+	nsd->stats_per_child[0] = nsd->stat_map;
+	nsd->stats_per_child[1] = &nsd->stat_map[nsd->child_count];
+	nsd->stat_current = 0;
+	nsd->st = &nsd->stats_per_child[nsd->stat_current][0];
+#endif /* HAVE_MMAP */
+}
+#endif /* BIND8_STATS */
+
+#ifdef BIND8_STATS
+void
+server_stat_free(struct nsd* nsd)
+{
+	unlink(nsd->statfname);
+}
+#endif /* BIND8_STATS */
 
 static void
 cleanup_dname_compression_tables(void *ptr)
@@ -1457,6 +1520,9 @@ server_prepare(struct nsd *nsd)
 		unlink(nsd->zonestatfname[0]);
 		unlink(nsd->zonestatfname[1]);
 #endif
+#ifdef BIND8_STATS
+		server_stat_free(nsd);
+#endif
 		xfrd_del_tempdir(nsd);
 		return -1;
 	}
@@ -1471,7 +1537,7 @@ server_prepare(struct nsd *nsd)
 
 #ifdef	BIND8_STATS
 	/* Initialize times... */
-	time(&nsd->st.boot);
+	time(&nsd->st->boot);
 	set_bind8_alarm(nsd);
 #endif /* BIND8_STATS */
 
@@ -1582,6 +1648,9 @@ server_prepare_xfrd(struct nsd* nsd)
 		unlink(nsd->zonestatfname[0]);
 		unlink(nsd->zonestatfname[1]);
 #endif
+#ifdef BIND8_STATS
+		server_stat_free(nsd);
+#endif
 		xfrd_del_tempdir(nsd);
 		exit(1);
 	}
@@ -1593,6 +1662,9 @@ server_prepare_xfrd(struct nsd* nsd)
 #ifdef USE_ZONE_STATS
 		unlink(nsd->zonestatfname[0]);
 		unlink(nsd->zonestatfname[1]);
+#endif
+#ifdef BIND8_STATS
+		server_stat_free(nsd);
 #endif
 		xfrd_del_tempdir(nsd);
 		exit(1);
@@ -1733,6 +1805,9 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 #ifdef USE_ZONE_STATS
 			unlink(nsd->zonestatfname[0]);
 			unlink(nsd->zonestatfname[1]);
+#endif
+#ifdef BIND8_STATS
+			server_stat_free(nsd);
 #endif
 			server_shutdown(nsd);
 			/* ENOTREACH */
@@ -2230,47 +2305,6 @@ reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
 	udb_ptr_unlink(&next, u);
 }
 
-#ifdef BIND8_STATS
-static void
-parent_send_stats(struct nsd* nsd, int cmdfd)
-{
-	size_t i;
-	if(!write_socket(cmdfd, &nsd->st, sizeof(nsd->st))) {
-		log_msg(LOG_ERR, "could not write stats to reload");
-		return;
-	}
-	for(i=0; i<nsd->child_count; i++)
-		if(!write_socket(cmdfd, &nsd->children[i].query_count,
-			sizeof(stc_type))) {
-			log_msg(LOG_ERR, "could not write stats to reload");
-			return;
-		}
-}
-
-static void
-reload_do_stats(int cmdfd, struct nsd* nsd, udb_ptr* last)
-{
-	struct nsdst s;
-	stc_type* p;
-	size_t i;
-	if(block_read(nsd, cmdfd, &s, sizeof(s),
-		RELOAD_SYNC_TIMEOUT) != sizeof(s)) {
-		log_msg(LOG_ERR, "could not read stats from oldpar");
-		return;
-	}
-	s.db_disk = 0;
-	s.db_mem = region_get_mem(nsd->db->region);
-	p = (stc_type*)task_new_stat_info(nsd->task[nsd->mytask], last, &s,
-		nsd->child_count);
-	if(!p) return;
-	for(i=0; i<nsd->child_count; i++) {
-		if(block_read(nsd, cmdfd, p++, sizeof(stc_type), 1)!=
-			sizeof(stc_type))
-			return;
-	}
-}
-#endif /* BIND8_STATS */
-
 void server_verify(struct nsd *nsd, int cmdsocket);
 
 /*
@@ -2313,8 +2347,12 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 #ifdef BIND8_STATS
 	/* Restart dumping stats if required.  */
-	time(&nsd->st.boot);
+	time(&nsd->st->boot);
 	set_bind8_alarm(nsd);
+	/* Switch to a different set of stat array for new server processes,
+	 * because they can briefly coexist with the old processes. They
+	 * have their own stat structure. */
+	nsd->stat_current = (nsd->stat_current==0?1:0);
 #endif
 #ifdef USE_ZONE_STATS
 	server_zonestat_realloc(nsd); /* realloc for new children */
@@ -2426,9 +2464,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		exit(1);
 	}
 	assert(ret==-1 || ret == 0 || cmd == NSD_RELOAD);
-#ifdef BIND8_STATS
-	reload_do_stats(cmdsocket, nsd, &last_task);
-#endif
 	udb_ptr_unlink(&last_task, nsd->task[nsd->mytask]);
 	task_process_sync(nsd->task[nsd->mytask]);
 #ifdef USE_ZONE_STATS
@@ -2517,6 +2552,12 @@ server_main(struct nsd *nsd)
 
 	/* Add listener for the XFRD process */
 	netio_add_handler(netio, nsd->xfrd_listener);
+
+#ifdef BIND8_STATS
+	nsd->st = &nsd->stat_map[0];
+	nsd->st->db_disk = 0;
+	nsd->st->db_mem = region_get_mem(nsd->db->region);
+#endif
 
 	/* Start the child processes that handle incoming queries */
 	if (server_start_children(nsd, server_region, netio,
@@ -2788,9 +2829,6 @@ server_main(struct nsd *nsd)
 					log_msg(LOG_ERR, "server_main: "
 						"could not ack quit: %s", strerror(errno));
 				}
-#ifdef BIND8_STATS
-				parent_send_stats(nsd, reload_listener.fd);
-#endif /* BIND8_STATS */
 				close(reload_listener.fd);
 			}
 			DEBUG(DEBUG_IPC,1, (LOG_INFO, "server_main: shutdown sequence"));
@@ -2837,6 +2875,9 @@ server_main(struct nsd *nsd)
 #ifdef USE_ZONE_STATS
 	unlink(nsd->zonestatfname[0]);
 	unlink(nsd->zonestatfname[1]);
+#endif
+#ifdef BIND8_STATS
+	server_stat_free(nsd);
 #endif
 #ifdef USE_DNSTAP
 	dt_collector_close(nsd->dt_collector, nsd);
@@ -3210,6 +3251,12 @@ server_child(struct nsd *nsd)
 		set_cpu_affinity(nsd->this_child->cpuset);
 	}
 #endif
+#ifdef BIND8_STATS
+	nsd->st = &nsd->stats_per_child[nsd->stat_current]
+		[nsd->this_child->child_num];
+	nsd->st->boot = nsd->stat_map[0].boot;
+	memcpy(&nsd->stat_proc, nsd->st, sizeof(nsd->stat_proc));
+#endif
 
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
 		server_close_all_sockets(nsd->tcp, nsd->ifs);
@@ -3327,11 +3374,11 @@ server_child(struct nsd *nsd)
 		/* Do we need to do the statistics... */
 		if (mode == NSD_STATS) {
 #ifdef BIND8_STATS
-			int p = nsd->st.period;
-			nsd->st.period = 1; /* force stats printout */
+			int p = nsd->st_period;
+			nsd->st_period = 1; /* force stats printout */
 			/* Dump the statistics */
 			bind8_stats(nsd);
-			nsd->st.period = p;
+			nsd->st_period = p;
 #else /* !BIND8_STATS */
 			log_msg(LOG_NOTICE, "Statistics support not enabled at compile time.");
 #endif /* BIND8_STATS */
@@ -3441,9 +3488,9 @@ service_remaining_tcp(struct nsd* nsd)
 #endif
 
 		p->tcp_no_more_queries = 1;
-		/* set timeout to 1/10 second */
-		if(p->tcp_timeout > 100)
-			p->tcp_timeout = 100;
+		/* set timeout to 3 seconds (previously 1/10 second) */
+		if(p->tcp_timeout > 3000)
+			p->tcp_timeout = 3000;
 		timeout.tv_sec = p->tcp_timeout / 1000;
 		timeout.tv_usec = (p->tcp_timeout % 1000)*1000;
 		event_del(&p->event);
@@ -3468,8 +3515,8 @@ service_remaining_tcp(struct nsd* nsd)
 			break;
 		}
 		/* timer */
-		/* have to do something every second */
-		tv.tv_sec = 1;
+		/* have to do something every 3 seconds */
+		tv.tv_sec = 3;
 		tv.tv_usec = 0;
 		memset(&timeout, 0, sizeof(timeout));
 		event_set(&timeout, -1, EV_TIMEOUT, remaining_tcp_timeout,
@@ -3890,7 +3937,7 @@ handle_udp(int fd, short event, void* arg)
 				log_msg(LOG_ERR, "sendmmsg [0]=%s count=%d failed: %s", a, (int)(recvcount-i), es);
 			}
 #ifdef BIND8_STATS
-			data->nsd->st.txerr += recvcount-i;
+			data->nsd->st->txerr += recvcount-i;
 #endif /* BIND8_STATS */
 			break;
 		}
@@ -4014,8 +4061,9 @@ handle_tcp_reading(int fd, short event, void* arg)
 	}
 
 	if ((data->nsd->tcp_query_count > 0 &&
-		data->query_count >= data->nsd->tcp_query_count) ||
-		data->tcp_no_more_queries) {
+	     data->query_count >= data->nsd->tcp_query_count) ||
+	    (data->query_count > 0 && data->tcp_no_more_queries))
+  {
 		/* No more queries allowed on this tcp connection. */
 		cleanup_tcp_handler(data);
 		return;
@@ -4266,8 +4314,8 @@ handle_tcp_reading(int fd, short event, void* arg)
 	ev_base = data->event.ev_base;
 	event_del(&data->event);
 	memset(&data->event, 0, sizeof(data->event));
-	event_set(&data->event, fd, EV_PERSIST | EV_READ | EV_TIMEOUT,
-		handle_tcp_reading, data);
+	event_set(&data->event, fd, EV_PERSIST | EV_WRITE | EV_TIMEOUT,
+		handle_tcp_writing, data);
 	if(event_base_set(ev_base, &data->event) != 0)
 		log_msg(LOG_ERR, "event base set tcpr failed");
 	if(event_add(&data->event, &timeout) != 0)
@@ -4581,8 +4629,9 @@ handle_tls_reading(int fd, short event, void* arg)
 	}
 
 	if ((data->nsd->tcp_query_count > 0 &&
-	    data->query_count >= data->nsd->tcp_query_count) ||
-	    data->tcp_no_more_queries) {
+	     data->query_count >= data->nsd->tcp_query_count) ||
+	    (data->query_count > 0 && data->tcp_no_more_queries))
+	{
 		/* No more queries allowed on this tcp connection. */
 		cleanup_tcp_handler(data);
 		return;

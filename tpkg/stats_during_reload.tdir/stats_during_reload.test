@@ -1,0 +1,109 @@
+# #-- stats_during_reload.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+# are stats enabled?
+if grep "define BIND8_STATS" $PRE/config.h; then
+	echo "BIND8_STATS enabled, do test"
+else
+	echo "BIND8_STATS not enabled, skip test"
+	exit 0
+fi
+
+# send a couple of queries
+dig @127.0.0.1 -p $TPKG_PORT www.example.com A | tee result
+if grep "192.0.2.1" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+echo "> fetch stats before reload"
+$PRE/nsd-control -c nsd_1.conf stats | tee stats
+echo ""
+echo "> check stats"
+if grep "num.queries=1" stats; then echo "OK num.queries"; else echo "FAIL"; exit 1; fi
+
+dig @127.0.0.1 -p $TPKG_PORT www.example.com A | tee result
+if grep "192.0.2.1" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+dig @127.0.0.1 -p $TPKG_PORT www.example.com A | tee result
+if grep "192.0.2.1" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+dig @127.0.0.1 -p $TPKG_PORT www.example.com TXT | tee result
+if grep "SOA" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+# start a long reload
+# The reload waits on read of the zone file of "longload.org" and this
+# is really a fifo. The fifo is given content later on. And then the reload
+# completes and reads the zonefile for the domain.
+echo "> make fifo"
+fifo="longload.zone"
+mkfifo $fifo || exit 1
+echo "> long reload started"
+$PRE/nsd-control -c nsd_1.conf reload
+
+# fetch and check statistics
+echo "> fetch the stats during the reload"
+$PRE/nsd-control -c nsd_1.conf stats | tee stats
+echo ""
+echo "> check stats"
+if grep "num.queries=3" stats; then echo "OK num.queries"; else echo "FAIL"; exit 1; fi
+if grep "num.type.A=2" stats; then echo "OK num.type.A"; else echo "FAIL"; exit 1; fi
+if grep "num.rcode.NOERROR=3" stats; then echo "OK num.rcode.NOERROR"; else echo "FAIL"; exit 1; fi
+if grep "num.opcode.QUERY=3" stats; then echo "OK num.opcode.QUERY"; else echo "FAIL"; exit 1; fi
+if grep "num.class.IN=3" stats; then echo "OK num.class.IN"; else echo "FAIL"; exit 1; fi
+if grep "zone.master=3" stats; then echo "OK zone.master"; else echo "FAIL"; exit 1; fi
+
+# check that server is still up
+dig @127.0.0.1 -p $TPKG_PORT www.example.com A | tee result
+if grep "192.0.2.1" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+# stop long reload
+echo "> long reload stopped"
+cat stats_during_reload.zone > $fifo
+wait_logfile nsd.log "zone longload.org read with success" 10
+
+dig @127.0.0.1 -p $TPKG_PORT www.longload.org A | tee result
+if grep "192.0.2.1" result; then
+	echo "OK"
+else
+	echo "zone not present"
+	cat nsd.log
+	exit 1
+fi
+
+echo ""
+cat nsd.log
+
+exit 0

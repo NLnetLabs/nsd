@@ -15,13 +15,5 @@ else
 fi
 
 # do your teardown here
-if [ ! -f nsd.pid ]; then
-        exit 0
-fi
-if [ -z `cat nsd.pid` ]; then
-        exit 0
-fi
+kill_from_pidfile nsd.pid
 
-# kill NSD
-NSD_PID=`cat nsd.pid`
-kill_pid $NSD_PID

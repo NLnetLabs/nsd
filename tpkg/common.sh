@@ -31,6 +31,7 @@
 # kill_pid		: kill a server, make sure and wait for it to go down.
 # cpu_count		: get number of cpus in system
 # process_cpu_list	: get cpu affinity list for process
+# kill_from_pidfile     : kill the pid in the given pid file
 
 
 # print error and exit
@@ -345,3 +346,14 @@ process_cpu_list() {
     echo "${infl}"
   fi
 }
+
+#
+#
+kill_from_pidfile() {
+  local pidfile="${1}"
+  if test -f ${pidfile} -a ! -z $(head -n 1 ${pidfile})
+  then
+    kill_pid $(head -n 1 ${pidfile})
+  fi
+}
+

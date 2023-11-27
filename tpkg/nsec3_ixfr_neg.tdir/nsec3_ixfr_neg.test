@@ -38,7 +38,7 @@ echo ">>> perform update"
 # make IXFR update happen
 sed -e 's/#request-xfr:/request-xfr:/' < nsd.conf > nsd.conf.2
 mv nsd.conf.2 nsd.conf
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 $TPKG_NSD -c nsd.conf -p $TPKG_PORT -V 5 -F -1 -L 2
 echo ">>> wait_logfile nsd.log"
 wait_logfile nsd.log "serial 2021099481 is updated to 2021099482" 45

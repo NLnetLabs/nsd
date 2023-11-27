@@ -31,9 +31,7 @@ else
 fi
 
 # do your teardown here
-if test -f nsd.pid; then
-	kill_pid `cat nsd.pid`
-fi
+kill_from_pidfile nsd.pid
 if test "x$DNSTAP_PID" != "x"; then
 	kill_pid "$DNSTAP_PID"
 fi

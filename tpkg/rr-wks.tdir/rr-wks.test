@@ -36,7 +36,7 @@ if test ! -f rr-wks.zone; then sleep 1; fi
 if test ! -f rr-wks.zone; then sleep 1; fi
 if test ! -f rr-wks.zone; then sleep 1; fi
 if test ! -f rr-wks.zone; then sleep 1; fi
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 
 # printout the zone
 cp rr-wks.zone cmp.zone

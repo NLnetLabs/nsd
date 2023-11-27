@@ -22,9 +22,7 @@ ldns-read-zone -e SOA minimal_responses.zone | \
   sed -e 's/\s\+/ /g' | \
   sort > minimal_responses_no.ldns-read-zone
 
-if test -f nsd.pid; then
-  kill_pid $(head -n 1 nsd.pid)
-fi
+kill_from_pidfile nsd.pid
 
 diff minimal_responses_no.dig minimal_responses_no.ldns-read-zone
 if [ ${?} -eq 0 ]; then
@@ -55,9 +53,7 @@ ldns-read-zone minimal_responses.zone | \
   sed -n -e 's/\s\+/ /g' -e '/MX/p' | \
   sort > minimal_responses_yes.ldns-read-zone
 
-if test -f nsd.pid; then
-  kill_pid $(head -n 1 nsd.pid)
-fi
+kill_from_pidfile nsd.pid
 
 diff minimal_responses_yes.dig minimal_responses_yes.ldns-read-zone
 if [ ${?} -eq 0 ]; then

@@ -96,8 +96,6 @@ struct task_list_d {
 		task_write_zonefiles,
 		/** set verbosity */
 		task_set_verbosity,
-		/** statistic info */
-		task_stat_info,
 		/** add a zone */
 		task_add_zone,
 		/** delete zone */
@@ -140,8 +138,6 @@ void task_clear(udb_base* udb);
 void task_new_soainfo(udb_base* udb, udb_ptr* last, struct zone* z, enum soainfo_hint hint);
 void task_new_expire(udb_base* udb, udb_ptr* last,
 	const struct dname* z, int expired);
-void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,
-	size_t child_count);
 void task_new_check_zonefiles(udb_base* udb, udb_ptr* last,
 	const dname_type* zone);
 void task_new_write_zonefiles(udb_base* udb, udb_ptr* last,

@@ -16,7 +16,7 @@ if dig @127.0.0.1 -p $RND_PORT miek.nl SOA | grep NOERROR; then
 	echo OK
 else
 	echo fail
-	kill_pid `cat nsd.pid`
+	kill_from_pidfile nsd.pid
 	cat nsd.log
 	exit 1
 fi
@@ -27,7 +27,7 @@ if test ! -f unknown_rr.zone; then sleep 1; fi
 if test ! -f unknown_rr.zone; then sleep 1; fi
 if test ! -f unknown_rr.zone; then sleep 1; fi
 if test ! -f unknown_rr.zone; then sleep 1; fi
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 cat nsd.log
 
 # printout the zone

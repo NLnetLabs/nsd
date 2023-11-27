@@ -17,8 +17,8 @@ if dig @127.0.0.1 -p $RND_PORT example SOA | grep SERVFAIL; then
 else
 	echo not OK
 	cat nsd.log
-	kill_pid `cat nsd.pid`
+	kill_from_pidfile nsd.pid
 	exit 1
 fi
-kill_pid `cat nsd.pid`
+kill_from_pidfile nsd.pid
 exit 0
