@@ -1,3 +1,7 @@
+27 November 2023: Wouter
+	- Merge #305: faster stats. Statistics can be gathered while a reload
+	  is in progress.
+
 1 November 2023: Jeroen
 	- Remove on-disk database.
 
