@@ -30,6 +30,8 @@ BUG FIXES:
 	- Fix #14: Set timeout to 3s when servicing remaining TCP connections.
 	- Merge #302: Test package fixes. Correct Auxfiles, kill_from_pidfile
 	  function and fix drop_updates, rr-test and xfr_update tests.
+	- Fix unit test kill_from_pidfile function for nonexistent files
+	  because the argument is evaluated before the test expression.
 
 4.7.0
 ================

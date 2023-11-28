@@ -350,10 +350,12 @@ process_cpu_list() {
 #
 #
 kill_from_pidfile() {
-  local pidfile="${1}"
-  if test -f ${pidfile} -a ! -z $(head -n 1 ${pidfile})
-  then
-    kill_pid $(head -n 1 ${pidfile})
+  local pidfile="$1"
+  if test -f "$pidfile"; then
+    local pid=`head -n 1 "$pidfile"`
+    if test ! -z "$pid"; then
+      kill_pid "$pid"
+    fi
   fi
 }
 

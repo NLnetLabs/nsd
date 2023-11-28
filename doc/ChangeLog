@@ -1,5 +1,7 @@
 28 November 2023: Wouter
 	- Set up doc/RELNOTES for upcoming release.
+	- Fix unit test kill_from_pidfile function for nonexistent files
+	  because the argument is evaluated before the test expression.
 
 27 November 2023: Jeroen
 	- Fix #14: Set timeout to 3s when servicing remaining TCP connections.
