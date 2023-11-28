@@ -10,7 +10,6 @@
 
 . ../common.sh
 rm -f file_rotation.log*
-rm -f file_rotation.db
 
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then

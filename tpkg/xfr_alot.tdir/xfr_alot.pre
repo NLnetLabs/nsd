@@ -28,9 +28,9 @@ cat master.conf
 
 # master
 cp xfr_alot.zone xfr_alot.master.zone
-$TPKG_NSD -c master.conf -p $TPKG_PORT -P $TPKG_NSD_PID -f xfr_alot.db -V 3
+$TPKG_NSD -c master.conf -p $TPKG_PORT -P $TPKG_NSD_PID -V 3
 # slave
-$TPKG_NSD -c xfr_alot.conf3 -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f xfr_alot.2.db -V 3
+$TPKG_NSD -c xfr_alot.conf3 -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -V 3
 
 echo master at port $TPKG_PORT $TPKG_NSD_PID = `cat $TPKG_NSD_PID`
 echo slave at port $TPKG_PORT2 $TPKG_NSD_PID2 = `cat $TPKG_NSD_PID2`

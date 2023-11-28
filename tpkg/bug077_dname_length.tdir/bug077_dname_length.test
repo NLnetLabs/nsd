@@ -9,7 +9,7 @@ PORT=$RND_PORT
 # this crashes in NSD 2.3.1
 
 # create .db file
-../../nsd -p $PORT -f bug077_dname_length.db -c bug077_dname_length.conf
+../../nsd -p $PORT -c bug077_dname_length.conf
 wait_nsd_up nsd.log
 
 # it should give servfail

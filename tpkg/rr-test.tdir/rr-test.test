@@ -86,7 +86,6 @@ mv cmp.zone firstwrite.zone
 # now read its own output.
 echo ""
 echo "third test (read own text output)"
-#rm -f rr-test.db
 ../../nsd -c nsd.conf -p $RND_PORT -V 3
 wait_nsd_up nsd.log
 wait_logfile nsd.log "read with success" 10

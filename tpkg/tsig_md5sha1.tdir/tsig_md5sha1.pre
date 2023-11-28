@@ -19,6 +19,6 @@ TPKG_NSD="$PRE/nsd"
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 
-$TPKG_NSD -c tsig_md5sha1.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f tsig_md5sha1.db
+$TPKG_NSD -c tsig_md5sha1.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID
 wait_nsd_up tsig_md5sha1.log
 

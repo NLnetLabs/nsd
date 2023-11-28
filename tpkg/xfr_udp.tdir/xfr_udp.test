@@ -18,7 +18,7 @@ echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 
 exit_code=0
 
-$TPKG_NSD -c nsd_udp.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f xfr_udp.db
+$TPKG_NSD -c nsd_udp.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID
 
 wait_nsd_up nsd.log
 wait_logfile nsd.log "serial 1 is updated to 2" 45

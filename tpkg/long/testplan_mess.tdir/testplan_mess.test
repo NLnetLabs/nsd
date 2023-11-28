@@ -120,7 +120,6 @@ sleep $WAITTIME
 echo "-------wait-----------------------------------------"
 echo ">>> del xfrdfile: xfrd.i2.db"
 rm -f xfrd.i2.db
-# difffile: diff.i2.db
 echo ">>> restart i2"
 $TPKG_NSD -c i2.conf -u "" -p $PORT_I2 -P $TPKG_NSD_PID_I2
 sleep $WAITTIME
@@ -131,8 +130,6 @@ echo ">>> kill i2"
 kill `cat $TPKG_NSD_PID_I2`
 sleep $WAITTIME
 echo "-------wait-----------------------------------------"
-echo ">>> del xfrdfile: diff.i2.db"
-rm -f diff.i2.db
 echo ">>> restart i2"
 $TPKG_NSD -c i2.conf -u "" -p $PORT_I2 -P $TPKG_NSD_PID_I2
 sleep $WAITTIME
@@ -143,8 +140,8 @@ echo ">>> kill i2"
 kill `cat $TPKG_NSD_PID_I2`
 sleep $WAITTIME
 echo "-------wait-----------------------------------------"
-echo ">>> del xfrdfile: diff.i2.db and xfrd.i2.db"
-rm -f diff.i2.db xfrd.i2.db
+echo ">>> del xfrdfile: xfrd.i2.db"
+rm -f xfrd.i2.db
 echo ">>> restart i2"
 $TPKG_NSD -c i2.conf -u "" -p $PORT_I2 -P $TPKG_NSD_PID_I2
 sleep $WAITTIME
@@ -165,11 +162,10 @@ kill `cat $TPKG_NSD_PID_I2`
 sleep $WAITTIME
 cat xfrd.i2.db
 echo "-------wait-----------------------------------------"
-echo ">>> del xfrdfile: diff.i2.db and xfrd.i2.db"
-rm -f diff.i2.db xfrd.i2.db
+echo ">>> del xfrdfile: xfrd.i2.db"
+rm -f xfrd.i2.db
 # put in old xfrd files.
 # very longggg times ago.
-cp testplan_mess.zone_i1 diff.i2.db # a mess as the diff file from bad crash.
 cat > xfrd.i2.db <<EOF
 NSDXFRD1
 filetime: 1154005682    # Thu Aug  3 16:34:42 2006

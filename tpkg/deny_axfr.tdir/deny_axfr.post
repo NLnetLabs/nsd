@@ -5,7 +5,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 . ../common.sh
-rm -f deny_axfr.db
 rm -f deny_axfr.current_respons1
 
 # do your teardown here

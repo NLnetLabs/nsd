@@ -14,11 +14,9 @@ cat testns.log
 echo testns2.log
 cat testns2.log
 
-rm -f nsd.db
 rm -f nsd.log
 rm -f xfrd.state
 rm -f nsd.zonelist
-rm -f ixfr.db
 
 if test -f $NSD_PID; then
 	# see if the server exits anyway

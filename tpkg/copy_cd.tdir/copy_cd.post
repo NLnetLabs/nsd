@@ -3,7 +3,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 . ../common.sh
-rm -f copy_cd.db
 rm -f copy_cd.current_respons1
 rm -f copy_cd.current_respons2
 

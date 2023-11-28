@@ -5,8 +5,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 . ../common.sh
-rm xfr_huge.db
-rm xfr_huge.2.db
 
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then

@@ -7,8 +7,6 @@
 # do your teardown here
 
 . ../common.sh
-rm -f xot.db
-rm -f xot.ixfr.db
 rm -f xot.xfrd.state
 
 # do your teardown here

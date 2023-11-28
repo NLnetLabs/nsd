@@ -5,7 +5,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 . ../common.sh
-rm -f wcard_add_rr.db
 rm -f wcard_add_rr.current_respons1
 
 # do your teardown here

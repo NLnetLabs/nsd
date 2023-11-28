@@ -214,7 +214,7 @@ clean-dnskeys:
 clean-servers:
 	@echo "-- Removing servers state ... "
 	@for dir in $(SERVERS) ; do \
-	rm -f $$dir/nsd.log $$dir/xfrd.state $$dir/ixfr.db ; \
+	rm -f $$dir/nsd.log $$dir/xfrd.state; \
 	rm -f $$dir/nsd_control.key $$dir/nsd_control.pem; \
 	rm -f $$dir/nsd_server.key $$dir/nsd_server.pem; \
 	if test -d $$dir/xfrs; then rmdir $$dir/xfrs || : ; fi ; \

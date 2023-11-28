@@ -7,8 +7,6 @@
 # do your teardown here
 
 . ../common.sh
-rm -f nsid_ascii.db
-rm -f nsid_ascii.ixfr.db
 rm -f nsid_ascii.xfrd.state
 rm -f nsid_ascii.current_response
 

@@ -4,7 +4,6 @@
 # source the test var file when it's there
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
-rm bug144_loc_defaults.db
 . ../common.sh
 
 # do your teardown here

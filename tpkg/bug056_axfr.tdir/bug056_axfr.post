@@ -4,8 +4,6 @@
 # source the test var file when it's there
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
-rm bug056_axfr.db
-
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then
         exit 0

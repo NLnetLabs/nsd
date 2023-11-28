@@ -20,5 +20,5 @@ echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 NUMSRV=20
 echo starting $NUMSRV servers.
 
-$TPKG_NSD -c bug134_manyproc.conf -u "" -p $TPKG_PORT -N $NUMSRV -P $TPKG_NSD_PID -f bug134_manyproc.db
+$TPKG_NSD -c bug134_manyproc.conf -u "" -p $TPKG_PORT -N $NUMSRV -P $TPKG_NSD_PID
 wait_nsd_up nsd.log

@@ -8,7 +8,6 @@
 
 . ../common.sh
 
-rm -f qname_offbyone.db
 rm -f qname_offbyone.log
 
 # do your teardown here

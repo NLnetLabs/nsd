@@ -23,7 +23,6 @@ function stop_server() {
 	if test -f $PIDFILE; then
 		kill_pid `cat $PIDFILE`
 		rm nsd.log
-		rm dname_test.db
 	fi
 }
 

@@ -3,7 +3,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 . ../common.sh
-rm -f nx_dnssec.db
 
 if [ -z $TPKG_NSD_PID ]; then
         exit 0

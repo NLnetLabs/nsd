@@ -17,6 +17,6 @@ echo "export TPKG_PORT=$TPKG_PORT" > .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 
 # debug echo of command.
-echo $TPKG_NSD -c kill_nsd.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f kill_nsd.db
+echo $TPKG_NSD -c kill_nsd.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID
 
-$TPKG_NSD -c kill_nsd.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f kill_nsd.db
+$TPKG_NSD -c kill_nsd.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID

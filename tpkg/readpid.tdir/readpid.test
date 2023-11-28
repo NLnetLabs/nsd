@@ -11,7 +11,7 @@ echo "NSD PORT: $TPKG_PORT"
 
 echo "10240" > $TPKG_NSD_PID
 
-$TPKG_NSD -c readpid.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f readpid.db
+$TPKG_NSD -c readpid.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID
 wait_nsd_up nsd.logfile
 
 cat nsd.logfile

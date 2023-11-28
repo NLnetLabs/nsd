@@ -25,9 +25,9 @@ sed -e "s/TPKGPORT/$TPKG_PORT/" < xfr_huge.conf2 > xfr_huge.conf3
 cat xfr_huge.conf3
 
 # master
-$TPKG_NSD -c xfr_huge.conf -p $TPKG_PORT -P $TPKG_NSD_PID -f xfr_huge.db
+$TPKG_NSD -c xfr_huge.conf -p $TPKG_PORT -P $TPKG_NSD_PID
 # slave
-$TPKG_NSD -c xfr_huge.conf3 -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f xfr_huge.2.db
+$TPKG_NSD -c xfr_huge.conf3 -p $TPKG_PORT2 -P $TPKG_NSD_PID2
 
 wait_nsd_up master.log
 wait_nsd_up slave.log

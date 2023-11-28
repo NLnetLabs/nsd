@@ -6,7 +6,6 @@
 
 . ../common.sh
 cat nsd.log
-rm nsec3_zone.db
 
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then

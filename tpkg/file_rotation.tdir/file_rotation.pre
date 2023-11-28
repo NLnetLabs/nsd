@@ -18,7 +18,7 @@ TPKG_NSD="$PRE/nsd"
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 
-$TPKG_NSD -c file_rotation.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f file_rotation.db
+$TPKG_NSD -c file_rotation.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID
 wait_nsd_up file_rotation.log
 
 echo nsd at port $TPKG_PORT $TPKG_NS_PID = `cat $TPKG_NSD_PID`
