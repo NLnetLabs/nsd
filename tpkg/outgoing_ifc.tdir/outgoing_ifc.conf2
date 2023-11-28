@@ -1,7 +1,6 @@
 # SLAVE CONFIG
 server:
 	logfile: "slave.log"
-	difffile: "ixfr.db.2"
 	xfrdfile: "xfrd.state.2"
 	zonesdir: ""
 	pidfile: outgoing_ifc.pid.slave

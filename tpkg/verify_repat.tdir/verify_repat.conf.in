@@ -1,6 +1,5 @@
 server:
 	xfrdfile: "xfrd.state"
-	difffile: "ixfr.db"
 	pidfile: nsd.pid
 	logfile: nsd.log
 	zonelistfile: "control-repat-zone-verifier.zonelist"

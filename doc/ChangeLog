@@ -5,6 +5,7 @@
 	- Fix rr-test to also convert the contents of the just written output
 	  file.
 	- Fix test set to remove -f nsd.db and rm nsd.db commands.
+	- Fix test set to remove difffile option.
 
 27 November 2023: Jeroen
 	- Fix #14: Set timeout to 3s when servicing remaining TCP connections.

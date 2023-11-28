@@ -3,7 +3,6 @@ server:
 	#logfile: "/dev/stdout"
 	logfile: "../m2.log"
 	xfrdfile: "xfrd.m2.db"
-	difffile: "diff.m2.db"
 	xfrd-reload-timeout: 0
 	zonesdir: ""
 	zonelistfile: "zone.m2.list"

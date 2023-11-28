@@ -35,6 +35,7 @@ BUG FIXES:
 	- Fix rr-test to also convert the contents of the just written output
 	  file.
 	- Fix test set to remove -f nsd.db and rm nsd.db commands.
+	- Fix test set to remove difffile option.
 
 4.7.0
 ================
