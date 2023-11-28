@@ -1,3 +1,6 @@
+28 November 2023: Wouter
+	- Set up doc/RELNOTES for upcoming release.
+
 27 November 2023: Jeroen
 	- Fix #14: Set timeout to 3s when servicing remaining TCP connections.
 	- Fix: Always instate write handler after reading queries from TCP.
