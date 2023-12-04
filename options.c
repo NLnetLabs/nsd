@@ -485,28 +485,29 @@ parse_zone_list_file(struct nsd_options* opt)
 void
 zone_options_delete(struct nsd_options* opt, struct zone_options* zone)
 {
+	struct catalog_member_zone* member_zone = as_catalog_member_zone(zone);
+
 	rbtree_delete(opt->zone_options, zone->node.key);
 	region_recycle(opt->region, (void*)zone->node.key, dname_total_size(
 		(dname_type*)zone->node.key));
-	assert(zone->is_catalog_member_zone == 0);
-	region_recycle(opt->region, zone, sizeof(*zone));
+	if(!member_zone) {
+		region_recycle(opt->region, zone, sizeof(*zone));
+		return;
+	}
+	/* Unlink the member zone if needed */
+	if(member_zone->prev_next_ptr) {
+		*member_zone->prev_next_ptr = member_zone->next;
+	}
+	if(member_zone->next) {
+		member_zone->next->prev_next_ptr = member_zone->prev_next_ptr;
+	}
+	if(member_zone->member_id) {
+		region_recycle(opt->region, (void*)member_zone->member_id,
+				dname_total_size(member_zone->member_id));
+	}
+	region_recycle(opt->region, member_zone, sizeof(*member_zone));
 }
 
-void
-catalog_member_zone_delete(struct nsd* nsd,
-		struct catalog_member_zone* member_zone)
-{
-	rbtree_delete(nsd->options->zone_options, member_zone->options.node.key);
-	region_recycle(nsd->options->region,
-		(void*)member_zone->options.node.key,
-		dname_total_size((dname_type*)member_zone->options.node.key));
-	assert(member_zone->options.is_catalog_member_zone == 1);
-	assert(member_zone->prev_next_ptr == NULL);
-	assert(member_zone->next == NULL);
-	member_zone->member_id->usage--;
-	domain_table_deldomain(nsd->db, member_zone->member_id);
-	region_recycle(nsd->options->region, member_zone, sizeof(*member_zone));
-}
 
 /* add a new zone to the zonelist */
 struct zone_options*

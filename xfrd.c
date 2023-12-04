@@ -786,14 +786,7 @@ catalog_del_member_zone(struct catalog_member_zone* member_zone)
 		xfrd_deinit_catalog_consumer_zone(xfrd, dname);
 	}
 #endif
-	/* Remove from dubbel linked list */
-	if (member_zone->next) {
-		member_zone->next->prev_next_ptr = member_zone->prev_next_ptr;
-	}
-	*member_zone->prev_next_ptr = member_zone->next;
-	member_zone->prev_next_ptr = NULL;
-	member_zone->next = NULL;
-	catalog_member_zone_delete(xfrd->nsd, member_zone);
+	zone_options_delete(xfrd->nsd->options, &member_zone->options);
 }
 
 void xfrd_mark_catalog_consumer_zone_for_checking(const dname_type* zone)
@@ -1092,16 +1085,16 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 			while (*next_member_ptr && 
 			       (cmp = dname_compare(
 					domain_dname(member_id),
-					domain_dname((*next_member_ptr)->
-					             member_id))) > 0) {
+					(*next_member_ptr)->member_id)) > 0) {
 				/* member_id is ahead of the current catalog
 				 * member zone pointed to by next_member_ptr.
 				 * The member zone must be deleted.
 				 */
 				DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 					"Compare (%s, %s) = %d: delete member",
-				       	member_id_str, domain_to_string(
-					(*next_member_ptr)->member_id), cmp));
+				       	member_id_str, dname_to_string(
+					(*next_member_ptr)->member_id, NULL),
+					cmp));
 
 				catalog_del_member_zone(*next_member_ptr);
 			};
@@ -1173,19 +1166,20 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 			continue;
 		}
 		/* Add member zone if not already there */
-		cmz = catalog_member_zone_create(xfrd->region);
-		cmz->options.name = region_strdup(xfrd->region, member_domain_str);
+		cmz =  catalog_member_zone_create(xfrd->nsd->options->region);
+		cmz->options.name = region_strdup(xfrd->nsd->options->region,
+				member_domain_str);
 		cmz->options.pattern = pattern;
 		if (!nsd_options_insert_zone(xfrd->nsd->options, &cmz->options)) {
 	                log_msg(LOG_ERR, "bad domain name or duplicate zone "
 				"'%s' pattern %s", member_domain_str, pattern->pname);
-                	region_recycle(xfrd->region, (void*)cmz->options.name,
-					strlen(cmz->options.name)+1);
-                	region_recycle(xfrd->region, cmz, sizeof(*cmz));
+			zone_options_delete(xfrd->nsd->options, &cmz->options);
 			continue;
 		}
-		cmz->member_id = member_id;
-		cmz->member_id->usage++;
+		cmz->member_id = (dname_type*)region_alloc_init(
+				xfrd->nsd->options->region,
+				domain_dname(member_id),
+				dname_total_size(domain_dname(member_id)));
 		/* Insert into the double linked list */
 		cmz->next = *next_member_ptr;
 		if (cmz->next) {
@@ -1227,7 +1221,8 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 	for ( cmz = catz->member_zones, i = 0
 	    ; cmz ; i++, cmz = cmz->next) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Catalog member %.2zu: %s = %s",
-		      i, domain_to_string(cmz->member_id), cmz->options.name));
+		      i, dname_to_string(cmz->member_id, NULL),
+		      cmz->options.name));
 	}
 #endif
 	make_catalog_consumer_valid(catz, 0);

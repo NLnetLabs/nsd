@@ -1059,7 +1059,8 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 	}
 	if(zo->is_catalog_member_zone) {
 		if(!ssl_printf(ssl, "	catalog-member-id: %s\n",
-		   domain_to_string(as_catalog_member_zone(zo)->member_id)))
+		   dname_to_string(
+		   as_catalog_member_zone(zo)->member_id, NULL)))
 			return 0;
 	}
 	if(nz) {
@@ -1295,8 +1296,8 @@ perform_changezone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		if(zopt->is_catalog_member_zone) {
 			(void)ssl_printf(ssl, "Error: Zone is a catalog "
 			  "member zone with id %s\nRepattern in the catalog "
-			  "with a group property.\n",
-			  domain_to_string(as_catalog_member_zone(zopt)->member_id));
+			  "with a group property.\n", dname_to_string(
+			  as_catalog_member_zone(zopt)->member_id, NULL));
 			region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
 			dname = NULL;
 			return 0;
@@ -1455,8 +1456,8 @@ perform_delzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	if(zopt->is_catalog_member_zone) {
 		(void)ssl_printf(ssl, "Error: Zone is a catalog member zone "
 		  "with id %s\nRemove the member id from the catalog to "
-		  "delete this zone.\n",
-		  domain_to_string(as_catalog_member_zone(zopt)->member_id));
+		  "delete this zone.\n", dname_to_string(
+		  as_catalog_member_zone(zopt)->member_id, NULL));
 		region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
 		dname = NULL;
 		return 0;

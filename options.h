@@ -340,7 +340,7 @@ struct zone_options {
 
 struct catalog_member_zone {
 	struct zone_options          options;
-	struct domain*               member_id;
+	struct dname*                member_id;
 	struct catalog_member_zone** prev_next_ptr;
 	struct catalog_member_zone*  next;
 } ATTR_PACKED;
@@ -477,7 +477,6 @@ int parse_options_file(struct nsd_options* opt, const char* file,
 struct zone_options* zone_options_create(region_type* region);
 void zone_options_delete(struct nsd_options* opt, struct zone_options* zone);
 struct catalog_member_zone* catalog_member_zone_create(region_type* region);
-void catalog_member_zone_delete(struct nsd* nsd, struct catalog_member_zone* zone);
 static inline struct catalog_member_zone* as_catalog_member_zone(struct zone_options* zopt)
 { return zopt && zopt->is_catalog_member_zone ? (struct catalog_member_zone*)zopt : NULL; }
 /* find a zone by apex domain name, or NULL if not found. */
