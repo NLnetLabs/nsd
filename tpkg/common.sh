@@ -1,13 +1,16 @@
 # common.sh - an include file for commonly used functions for test code.
 # BSD licensed (see LICENSE file).
 #
-# Version 4
+# Version 5
+# 2023-12-06: get_ldns_notify, skip_test and teststep, and previous changes
+# also included are wait_logfile, cpu_count, process_cpu_list, and
+# kill_from_pidfile, and use HOME variable for HOME/bin.
 # 2011-04-06: tpk wait_logfile to wait (with timeout) for a logfile line to appear
 # 2011-02-23: get_pcat for PCAT, PCAT_DIFF and PCAT_PRINT defines.
 # 2011-02-18: ports check on BSD,Solaris. wait_nsd_up.
 # 2011-02-11: first version.
 #
-# include this file from a tpkg script with
+# include this file from a tdir script with
 #   . ../common.sh
 #
 # overview of functions available:
@@ -15,6 +18,7 @@
 # info x		: print info
 # test_tool_avail x	: see if program in path and complain, exit if not.
 # get_ldns_testns	: set LDNS_TESTNS to executable ldns-testns
+# get_ldns_notify	: set LDNS_NOTIFY to executable ldns-notify
 # get_make		: set MAKE to gmake or make tool.
 # get_gcc		: set cc or gcc in CC
 # get_pcat		: set PCAT, PCAT_DIFF and PCAT_PRINT executables.
@@ -28,10 +32,12 @@
 # wait_petal_up		: wait for petal to come up.
 # wait_nsd_up		: wait for nsd to come up.
 # wait_server_up_or_fail: wait for server to come up or print a failure string
+# skip_test x		: print message and skip test (must be called in .pre)
 # kill_pid		: kill a server, make sure and wait for it to go down.
 # cpu_count		: get number of cpus in system
 # process_cpu_list	: get cpu affinity list for process
 # kill_from_pidfile     : kill the pid in the given pid file
+# teststep		: print the current test step in the output
 
 
 # print error and exit
@@ -63,7 +69,16 @@ get_ldns_testns () {
 	if test -x "`which ldns-testns 2>&1`"; then
 		LDNS_TESTNS=ldns-testns
 	else
-		LDNS_TESTNS=/home/wouter/bin/ldns-testns
+		LDNS_TESTNS=$HOME/bin/ldns-testns
+	fi
+}
+
+# get ldns-notify tool in LDNS_NOTIFY variable.
+get_ldns_notify () {
+	if test -x "`which ldns-notify 2>&1`"; then
+		LDNS_NOTIFY=ldns-notify
+	else
+		LDNS_NOTIFY=$HOME/bin/ldns-notify
 	fi
 }
 
@@ -102,6 +117,13 @@ skip_if_in_list () {
 			SKIP=1;
 		fi
 	fi
+}
+
+# Print a message and skip the test. Must be called in the .pre file.
+# $1: message to print.
+skip_test () {
+	echo "$1"
+	exit 3
 }
 
 # function to get a number of random port numbers.
@@ -307,8 +329,8 @@ kill_pid () {
 
 # set doxygen path, so that make doc can find doxygen
 set_doxygen_path () {
-	if test -x '/home/wouter/bin/doxygen'; then
-	        export PATH="/home/wouter/bin:$PATH"
+	if test -x '$HOME/bin/doxygen'; then
+	        export PATH="$HOME/bin:$PATH"
 	fi
 }
 
@@ -359,3 +381,8 @@ kill_from_pidfile() {
   fi
 }
 
+# Print the current test step in the output
+teststep () {
+	echo
+	echo "STEP [ $1 ]"
+}
