@@ -6,6 +6,7 @@ FEATURES:
 BUG FIXES:
 	- Fix to sync the tests script file common.sh.
 	- Update test script file common.sh.
+	- Fix #306: Missing AC_SUBST(dbdir) breaks installation with 4.8.0.
 
 4.8.0
 ================

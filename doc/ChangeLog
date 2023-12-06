@@ -1,6 +1,7 @@
 6 December 2023: Wouter
 	- Fix to sync the tests script file common.sh.
 	- Update test script file common.sh.
+	- Fix #306: Missing AC_SUBST(dbdir) breaks installation with 4.8.0.
 
 29 November 2023: Wouter
 	- Tag for 4.8.0rc1. This became 4.8.0 release on 6 December 2023.

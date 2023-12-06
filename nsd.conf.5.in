@@ -32,9 +32,6 @@ server:
 server-count: 1 # use this number of cpu cores
 .RE
 .RS 5
-database: ""  # or use "@dbfile@"
-.RE
-.RS 5
 zonelistfile: "@zonelistfile@"
 .RE
 .RS 5
@@ -1255,11 +1252,6 @@ compared with those for NSD in this section. However, BIND9 can
 also function as a resolver or cache. The configuration options that
 BIND9 has for the resolver or caching thus have no equivalents for NSD.
 .SH "FILES"
-.TP
-"@dbfile@"
-default
-.B NSD
-database
 .TP
 @nsdconfigfile@
 default
