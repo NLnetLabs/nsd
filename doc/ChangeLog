@@ -1,6 +1,8 @@
 7 December 2023: Wouter
 	- Merge #307 from anandb-ripencc: Many improvements to the nsd.conf
 	  man page.
+	- Fix #308: Deprecate "multi-master-check" in favour of
+	  "multi-primary-check".
 
 6 December 2023: Wouter
 	- Fix to sync the tests script file common.sh.

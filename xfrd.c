@@ -1063,7 +1063,7 @@ xfrd_make_request(xfrd_zone_type* zone)
 	}
 
 	/* multi-master-check */
-	if(zone->zone_options->pattern->multi_master_check) {
+	if(zone->zone_options->pattern->multi_primary_check) {
 		if(zone->multi_master_first_master == zone->master_num &&
 			zone->round_num > 0 &&
 			zone->state != xfrd_zone_expired) {
@@ -1527,7 +1527,7 @@ xfrd_udp_read(xfrd_zone_type* zone)
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 			break;
 		case xfrd_packet_transfer:
-			if(zone->zone_options->pattern->multi_master_check) {
+			if(zone->zone_options->pattern->multi_primary_check) {
 				xfrd_udp_release(zone);
 				xfrd_make_request(zone);
 				break;
@@ -2115,7 +2115,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 			xfrd_set_zone_state(zone, xfrd_zone_ok);
  			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s is ok",
 				zone->apex_str));
-			if(zone->zone_options->pattern->multi_master_check) {
+			if(zone->zone_options->pattern->multi_primary_check) {
 				region_destroy(tempregion);
 				return xfrd_packet_drop;
 			}
@@ -2384,7 +2384,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"xfrd: zone %s is waiting for reload",
 			zone->apex_str));
-		if(zone->zone_options->pattern->multi_master_check) {
+		if(zone->zone_options->pattern->multi_primary_check) {
 			zone->multi_master_update_check = zone->master_num;
 			xfrd_set_reload_timeout();
 			return xfrd_packet_transfer;

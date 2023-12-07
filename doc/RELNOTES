@@ -11,6 +11,8 @@ BUG FIXES:
 	  in make install.
 	- Merge #307 from anandb-ripencc: Many improvements to the nsd.conf
 	  man page.
+	- Fix #308: Deprecate "multi-master-check" in favour of
+	  "multi-primary-check".
 
 4.8.0
 ================

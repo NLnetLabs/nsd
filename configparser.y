@@ -194,7 +194,7 @@ struct component {
 %token VAR_MAX_RETRY_TIME
 %token VAR_MIN_RETRY_TIME
 %token VAR_MIN_EXPIRE_TIME
-%token VAR_MULTI_MASTER_CHECK
+%token VAR_MULTI_PRIMARY_CHECK
 %token VAR_SIZE_LIMIT_XFR
 %token VAR_ZONESTATS
 %token VAR_INCLUDE_PATTERN
@@ -900,8 +900,8 @@ pattern_or_zone_option:
         yyerror("expected a number greater than zero");
       }
     }
-  | VAR_MULTI_MASTER_CHECK boolean
-    { cfg_parser->pattern->multi_master_check = (int)$2; }
+  | VAR_MULTI_PRIMARY_CHECK boolean
+    { cfg_parser->pattern->multi_primary_check = (int)$2; }
   | VAR_INCLUDE_PATTERN STRING
     { config_apply_pattern(cfg_parser->pattern, $2); }
   | VAR_REQUEST_XFR STRING STRING

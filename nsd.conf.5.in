@@ -965,10 +965,13 @@ The RRL classification types are: nxdomain, error, referral, any, rrsig,
 wildcard, nodata, dnskey, positive, all.
 .\" rrlend
 .TP
-.B multi\-master\-check:\fR <yes or no>
+.B multi\-primary\-check:\fR <yes or no>
 Default no.  If enabled, checks all primaries for the last version.  It uses
 the higher version of all the configured primaries.  Useful if you have multiple
 primaries that have different version numbers served.
+.TP
+.B multi\-master\-check:\fR <yes or no>
+It is the same as multi\-primary\-check.
 .TP
 .B verify\-zone:\fR <yes or no>
 Enable or disable verification for this zone. Default is value\-zones
