@@ -635,8 +635,8 @@ zone_list_add(struct nsd_options* opt, const char* zname, const char* pname)
 void
 zone_list_del(struct nsd_options* opt, struct zone_options* zone)
 {
-	if (zone->is_catalog_member_zone) {
-		/* catalog member zones are not in the zones.list file */
+	if (zone_is_catalog_consumer_member(zone)) {
+		/* catalog consumer member zones are not in the zones.list file */
 		zone_options_delete(opt, zone);
 		return;
 	}
