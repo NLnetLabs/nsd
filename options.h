@@ -340,7 +340,7 @@ struct zone_options {
 
 struct catalog_member_zone {
 	struct zone_options          options;
-	struct dname*                member_id;
+	const struct dname*          member_id;
 	struct catalog_member_zone** prev_next_ptr;
 	struct catalog_member_zone*  next;
 } ATTR_PACKED;
@@ -568,6 +568,12 @@ static inline int zone_is_catalog_consumer(struct zone_options* opt)
 static inline int zone_is_catalog_producer(struct zone_options* opt)
 { return opt && opt->pattern
              && opt->pattern->catalog_role == CATALOG_ROLE_PRODUCER; }
+static inline int zone_is_catalog_member(struct zone_options* opt)
+{ return opt && opt->is_catalog_member_zone; }
+static inline const char* zone_is_catalog_producer_member(struct zone_options* opt)
+{ (void)opt; return NULL; }
+static inline int zone_is_catalog_consumer_member(struct zone_options* opt)
+{ return zone_is_catalog_member(opt) && !zone_is_catalog_producer_member(opt); }
 /* create zonefile name, returns static pointer (perhaps to options data) */
 const char* config_make_zonefile(struct zone_options* zone, struct nsd* nsd);
 

@@ -1176,10 +1176,8 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 			zone_options_delete(xfrd->nsd->options, &cmz->options);
 			continue;
 		}
-		cmz->member_id = (dname_type*)region_alloc_init(
-				xfrd->nsd->options->region,
-				domain_dname(member_id),
-				dname_total_size(domain_dname(member_id)));
+		cmz->member_id = dname_copy( xfrd->nsd->options->region
+		                           , domain_dname(member_id));
 		/* Insert into the double linked list */
 		cmz->next = *next_member_ptr;
 		if (cmz->next) {
