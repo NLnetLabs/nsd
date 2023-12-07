@@ -5,7 +5,6 @@ server:
 	pidfile: nsd.pid
 	logfile: nsd.log
 	xfrdfile: nsd.xfrd
-	difffile: nsd.ixfr
 	zonelistfile: zone2.list
 	interface: 127.0.0.1
 zone:

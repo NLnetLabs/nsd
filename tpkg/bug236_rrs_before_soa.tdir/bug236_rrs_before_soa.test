@@ -26,7 +26,7 @@ else
 	exit 1
 fi
 kill_from_pidfile nsd.pid
-rm nsd.log nsd.db
+rm nsd.log
 
 $NSD -c bug236_rrs_before_soa.conf2 -p $PORT
 wait_nsd_up nsd.log

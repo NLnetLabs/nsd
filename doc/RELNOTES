@@ -1,6 +1,20 @@
 NSD RELEASE NOTES
 
-4.8.0 (upcoming)
+4.8.1 (upcoming)
+================
+FEATURES:
+BUG FIXES:
+	- Fix to sync the tests script file common.sh.
+	- Update test script file common.sh.
+	- Fix #306: Missing AC_SUBST(dbdir) breaks installation with 4.8.0.
+	- Fix for #306: Create directory for xfrd.state and zone.list files
+	  in make install.
+	- Merge #307 from anandb-ripencc: Many improvements to the nsd.conf
+	  man page.
+	- Fix #308: Deprecate "multi-master-check" in favour of
+	  "multi-primary-check".
+
+4.8.0
 ================
 FEATURES:
 	- Merge #281: Proxy protocol. An implementation of PROXYv2 for NSD.
@@ -28,6 +42,14 @@ BUG FIXES:
 	- Answer first query for connections accepted just before reload.
 	- Fix: Always instate write handler after reading a query over TCP.
 	- Fix #14: Set timeout to 3s when servicing remaining TCP connections.
+	- Merge #302: Test package fixes. Correct Auxfiles, kill_from_pidfile
+	  function and fix drop_updates, rr-test and xfr_update tests.
+	- Fix unit test kill_from_pidfile function for nonexistent files
+	  because the argument is evaluated before the test expression.
+	- Fix rr-test to also convert the contents of the just written output
+	  file.
+	- Fix test set to remove -f nsd.db and rm nsd.db commands.
+	- Fix test set to remove difffile option.
 
 4.7.0
 ================

@@ -3,7 +3,6 @@ server:
 	#logfile: "/dev/stdout"
 	logfile: "../i3.log"
 	xfrdfile: "xfrd.i3.db"
-	difffile: "diff.i3.db"
 	xfrd-reload-timeout: 0
 	zonesdir: ""
 	zonelistfile: "zone.i3.list"

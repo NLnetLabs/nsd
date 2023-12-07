@@ -3,7 +3,6 @@ server:
     username:            @USERNAME@
     logfile:            "@abs_builddir@/nsd.log"
     pidfile:            "@abs_builddir@/nsd.pid"
-    difffile:           "@abs_builddir@/ixfr.db"
     xfrdfile:           "@abs_builddir@/xfrd.state"
     xfrdir:             "@abs_builddir@/xfrs"
     zonelistfile:       "@abs_builddir@/zone.list"

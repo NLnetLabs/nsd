@@ -92,10 +92,10 @@ fi
 echo "done generating config"
 
 # debug echo of command.
-echo $TPKG_NSD -c myconf -p $TPKG_PORT -P $TPKG_NSD_PID -f socket10kxfr.db
-$TPKG_NSD -c myconf -p $TPKG_PORT -P $TPKG_NSD_PID -f socket10kxfr.db
-echo $TPKG_NSD -c slaveconf -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f socket10kxfr_slave.db
-$TPKG_NSD -c slaveconf -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f socket10kxfr_slave.db
+echo $TPKG_NSD -c myconf -p $TPKG_PORT -P $TPKG_NSD_PID
+$TPKG_NSD -c myconf -p $TPKG_PORT -P $TPKG_NSD_PID
+echo $TPKG_NSD -c slaveconf -p $TPKG_PORT2 -P $TPKG_NSD_PID2
+$TPKG_NSD -c slaveconf -p $TPKG_PORT2 -P $TPKG_NSD_PID2
 
 wait_logfile log "nsd started" 300
 

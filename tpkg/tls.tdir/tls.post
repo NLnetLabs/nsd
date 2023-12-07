@@ -7,8 +7,6 @@
 # do your teardown here
 
 . ../common.sh
-rm -f tls.db
-rm -f tls.ixfr.db
 rm -f tls.xfrd.state
 rm -f tls.current_response
 

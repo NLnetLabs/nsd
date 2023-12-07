@@ -5,7 +5,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 . ../common.sh
-rm nsec3_parentds.db
 
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then

@@ -30,7 +30,7 @@ kill_from_pidfile nsd.pid
 # by changing ntp in the WKS RR of the written out zone file in the number 123.
 #
 grep -v "^;" rr-test.cmp_zone | sed 's/ ntp/ 123/g' > bak.zone
-grep -v "^;" rr-test.zone > cmp.zone
+grep -v "^;" rr-test.zone | sed 's/ ntp/ 123/g' > cmp.zone
 
 if wdiff bak.zone cmp.zone >/dev/null; then
 	echo "diff ok"
@@ -62,7 +62,7 @@ mv cmp.zone firstwrite.zone
 #if test ! -f rr-test.zone; then sleep 1; fi
 #kill_from_pidfile nsd.pid
 #
-#grep -v "^;" rr-test.zone > cmp.zone
+#grep -v "^;" rr-test.zone | sed 's/ ntp/ 123/g' > cmp.zone
 #
 #if wdiff bak.zone cmp.zone >/dev/null; then
 #	echo "diff ok, for read of database (wireformat read)"
@@ -86,7 +86,6 @@ mv cmp.zone firstwrite.zone
 # now read its own output.
 echo ""
 echo "third test (read own text output)"
-#rm -f rr-test.db
 ../../nsd -c nsd.conf -p $RND_PORT -V 3
 wait_nsd_up nsd.log
 wait_logfile nsd.log "read with success" 10
@@ -104,7 +103,7 @@ if test ! -f rr-test.zone; then sleep 1; fi
 if test ! -f rr-test.zone; then sleep 1; fi
 kill_from_pidfile nsd.pid
 
-grep -v "^;" rr-test.zone > cmp.zone
+grep -v "^;" rr-test.zone | sed 's/ ntp/ 123/g' > cmp.zone
 cp cmp.zone thirdwrite.zone
 
 if wdiff bak.zone cmp.zone >/dev/null; then

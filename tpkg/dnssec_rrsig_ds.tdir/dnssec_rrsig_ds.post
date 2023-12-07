@@ -5,7 +5,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 . ../common.sh
-rm -f dnssec_rrsig_ds.db
 rm -f dnssec_rrsig_ds.current_respons1
 
 # do your teardown here

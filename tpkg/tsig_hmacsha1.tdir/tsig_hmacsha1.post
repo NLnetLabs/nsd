@@ -7,8 +7,6 @@
 # do your teardown here
 
 . ../common.sh
-rm tsig_hmacsha1.db
-rm tsig_hmacsha1.2.db
 
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then

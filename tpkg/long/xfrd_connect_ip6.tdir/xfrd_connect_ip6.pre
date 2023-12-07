@@ -25,9 +25,9 @@ sed -e "s/TPKGPORT/$TPKG_PORT/" < xfrd_connect_ip6.conf2 > xfrd_connect_ip6.conf
 cat xfrd_connect_ip6.conf3
 
 # master
-$TPKG_NSD -c xfrd_connect_ip6.conf -p $TPKG_PORT -P $TPKG_NSD_PID -f xfrd_connect_ip6.db
+$TPKG_NSD -c xfrd_connect_ip6.conf -p $TPKG_PORT -P $TPKG_NSD_PID
 # slave
-$TPKG_NSD -c xfrd_connect_ip6.conf3 -p $TPKG_PORT2 -P $TPKG_NSD_PID2 -f xfrd_connect_ip6.2.db
+$TPKG_NSD -c xfrd_connect_ip6.conf3 -p $TPKG_PORT2 -P $TPKG_NSD_PID2
 
 echo master at port $TPKG_PORT $TPKG_NSD_PID
 echo slave at port $TPKG_PORT2 $TPKG_NSD_PID2

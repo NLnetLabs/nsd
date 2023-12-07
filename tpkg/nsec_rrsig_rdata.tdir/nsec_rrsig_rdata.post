@@ -21,13 +21,9 @@ echo
 cat slave.log
 rm -f slave.log
 
-rm -f nsec_rrsig_rdata.master.db
-rm -f nsec_rrsig_rdata.slave.db
 rm -f nsec_rrsig_rdata.slave.zone
 rm -f nsec_rrsig_rdata.master.zone.signed
 rm -f nsec_rrsig_rdata.slave.conf2
-rm -f ixfr.master.db
-rm -f ixfr.slave.db
 rm -f xfrd.master.state
 rm -f xfrd.slave.state
 rm -f keyinfo.txt

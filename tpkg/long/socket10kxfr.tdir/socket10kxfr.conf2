@@ -1,6 +1,5 @@
 server:
 	logfile: "log.slave"
-	difffile: ixfr_slave.db
 	xfrdfile: xfrd_slave.state
 	zonesdir: .
 	username: ""

@@ -5,8 +5,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 . ../../common.sh
-rm xfrd_connect_ip6.db
-rm xfrd_connect_ip6.2.db
 
 # do your teardown here
 if test ! -s $TPKG_NSD_PID; then

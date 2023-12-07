@@ -6,8 +6,6 @@
 
 . ../common.sh
 echo killing off nsds.
-rm notify_nsdnsd.db
-rm notify_nsdnsd.2.db
 
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then

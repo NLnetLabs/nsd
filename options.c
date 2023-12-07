@@ -937,7 +937,7 @@ pattern_options_create(region_type* region)
 #ifdef RATELIMIT
 	p->rrl_whitelist = 0;
 #endif
-	p->multi_master_check = 0;
+	p->multi_primary_check = 0;
 	p->store_ixfr = 0;
 	p->store_ixfr_is_default = 1;
 	p->ixfr_size = IXFR_SIZE_DEFAULT;
@@ -1142,7 +1142,7 @@ copy_pat_fixed(region_type* region, struct pattern_options* orig,
 #ifdef RATELIMIT
 	orig->rrl_whitelist = p->rrl_whitelist;
 #endif
-	orig->multi_master_check = p->multi_master_check;
+	orig->multi_primary_check = p->multi_primary_check;
 	orig->store_ixfr = p->store_ixfr;
 	orig->store_ixfr_is_default = p->store_ixfr_is_default;
 	orig->ixfr_size = p->ixfr_size;
@@ -1276,7 +1276,7 @@ pattern_options_equal(struct pattern_options* p, struct pattern_options* q)
 #ifdef RATELIMIT
 	if(p->rrl_whitelist != q->rrl_whitelist) return 0;
 #endif
-	if(!booleq(p->multi_master_check,q->multi_master_check)) return 0;
+	if(!booleq(p->multi_primary_check,q->multi_primary_check)) return 0;
 	if(p->size_limit_xfr != q->size_limit_xfr) return 0;
 	if(!booleq(p->store_ixfr,q->store_ixfr)) return 0;
 	if(!booleq(p->store_ixfr_is_default,q->store_ixfr_is_default)) return 0;
@@ -1513,7 +1513,7 @@ pattern_options_marshal(struct buffer* b, struct pattern_options* p)
 	marshal_u8(b, p->min_retry_time_is_default);
 	marshal_u32(b, p->min_expire_time);
 	marshal_u8(b, p->min_expire_time_expr);
-	marshal_u8(b, p->multi_master_check);
+	marshal_u8(b, p->multi_primary_check);
 	marshal_u8(b, p->store_ixfr);
 	marshal_u8(b, p->store_ixfr_is_default);
 	marshal_u64(b, p->ixfr_size);
@@ -1566,7 +1566,7 @@ pattern_options_unmarshal(region_type* r, struct buffer* b)
 	p->min_retry_time_is_default = unmarshal_u8(b);
 	p->min_expire_time = unmarshal_u32(b);
 	p->min_expire_time_expr = unmarshal_u8(b);
-	p->multi_master_check = unmarshal_u8(b);
+	p->multi_primary_check = unmarshal_u8(b);
 	p->store_ixfr = unmarshal_u8(b);
 	p->store_ixfr_is_default = unmarshal_u8(b);
 	p->ixfr_size = unmarshal_u64(b);
@@ -2460,8 +2460,8 @@ config_apply_pattern(struct pattern_options *dest, const char* name)
 	copy_and_append_acls(&dest->provide_xfr, pat->provide_xfr);
 	copy_and_append_acls(&dest->allow_query, pat->allow_query);
 	copy_and_append_acls(&dest->outgoing_interface, pat->outgoing_interface);
-	if(pat->multi_master_check)
-		dest->multi_master_check = pat->multi_master_check;
+	if(pat->multi_primary_check)
+		dest->multi_primary_check = pat->multi_primary_check;
 
 	if(!pat->verify_zone_is_default) {
 		dest->verify_zone = pat->verify_zone;

@@ -19,9 +19,6 @@ echo
 cat slave.log
 rm -f slave.log
 
-rm tsig_nsdnsd.db
-rm tsig_nsdnsd.2.db
-
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then
 	echo exit_ok;

@@ -7,8 +7,6 @@
 # do your teardown here
 
 . ../common.sh
-rm -f ede.db
-rm -f ede.ixfr.db
 rm -f ede.xfrd.state
 rm -f ede.current_response
 

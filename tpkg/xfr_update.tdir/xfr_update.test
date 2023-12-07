@@ -41,7 +41,6 @@ kill_from_pidfile nsd.pid
 # delete ixfr file
 # and start again, (previously with the nsd.db, now with updated zone file),
 # and check the changes are in nsd.db
-rm -f ixfr.db
 $TPKG_NSD -c nsd.conf -p $TPKG_PORT -l nsd.log -V 3
 wait_server_up nsd.log
 dig -4 @127.0.0.1 -p $TPKG_PORT example.net axfr | tee axfr

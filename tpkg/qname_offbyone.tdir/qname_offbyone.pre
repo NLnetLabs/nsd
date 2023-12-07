@@ -18,7 +18,7 @@ echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 
 # master
-$TPKG_NSD -c qname_offbyone.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f qname_offbyone.db
+$TPKG_NSD -c qname_offbyone.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID
 wait_nsd_up qname_offbyone.log
 
 echo nsd at port $TPKG_PORT $TPKG_NSD_PID = `cat $TPKG_NSD_PID`

@@ -18,10 +18,8 @@ datarootdir = @datarootdir@
 # NSD specific pathnames
 configdir = @configdir@
 piddir = @piddir@
-dbdir = @dbdir@
 pidfile = @pidfile@
 logfile = @logfile@
-dbfile = @dbfile@
 xfrdir = @xfrdir@
 xfrdfile = @xfrdfile@
 zonelistfile = @zonelistfile@
@@ -66,7 +64,6 @@ EDIT		= $(SED) \
 			-e 's,@chrootdir\@,$(chrootdir),g' \
 			-e 's,@pidfile\@,$(pidfile),g' \
 			-e 's,@logfile\@,$(logfile),g' \
-			-e 's,@dbfile\@,$(dbfile),g' \
 			-e 's,@xfrdir\@,$(xfrdir),g' \
 			-e 's,@xfrdfile\@,$(xfrdfile),g' \
 			-e 's,@zonelistfile\@,$(zonelistfile),g' \
@@ -127,7 +124,8 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(configdir)
 	if test -n "$(piddir)"; then $(INSTALL) -d $(DESTDIR)$(piddir); fi
 	$(INSTALL) -d $(DESTDIR)$(xfrdir)
-	$(INSTALL) -d $(DESTDIR)$(dbdir)
+	$(INSTALL) -d `dirname $(DESTDIR)$(xfrdfile)`
+	$(INSTALL) -d `dirname $(DESTDIR)$(zonelistfile)`
 	$(INSTALL) -d $(DESTDIR)$(mandir)
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man8
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man5
@@ -150,7 +148,7 @@ uninstall:
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkzone.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
 	rm -f -- $(DESTDIR)$(pidfile)
 	@echo
-	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(dbfile) directory by hand."
+	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(xfrdfile), $(DESTDIR)$(zonelistfile) directory by hand."
 
 test: 
 

@@ -31,12 +31,6 @@ rm -f outgoing_ifc_denied.slavedig
 rm -f outgoing_ifc_denied.outputmaster
 rm -f outgoing_ifc_denied.outputslave
 
-rm -f ixfr.db
-rm -f ixfr.db.2
-
-rm -f outgoing_ifc_denied.db
-rm -f outgoing_ifc_denied.db.2
-
 rm -f xfrd.state
 rm -f xfrd.state.2
 
@@ -44,8 +38,6 @@ rm -f master.log
 rm -f slave.log
 
 echo killing off nsds.
-rm -f outgoing_ifc_denied.db
-rm -f outgoing_ifc_denied.db.2
 
 # do your teardown here
 if test ! -s outgoing_ifc_denied.pid.master; then

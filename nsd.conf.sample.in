@@ -451,9 +451,9 @@ remote-control:
 	# retry values (limited to the bounds given with the above parameters), plus 1.
 	#min-expire-time: 0
 
-	# Slave server tries zone transfer to all masters and picks highest
-	# zone version available, for when masters have different versions.
-	#multi-master-check: no
+	# Secondary server tries zone transfer to all primaries and picks highest
+	# zone version available, for when primaries have different versions.
+	#multi-primary-check: no
 
 	# limit the zone transfer size (in bytes), stops very large transfers
 	# 0 is no limits enforced.

@@ -5,7 +5,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 . ../common.sh
 
-rm -f acl_range.db
 rm -f acl_range.current_respons1
 
 # do your teardown here

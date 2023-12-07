@@ -5,7 +5,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 . ../common.sh
-rm -f tcp_underrun.db
 rm -f tcp_underrun.current_respons1
 
 # do your teardown here

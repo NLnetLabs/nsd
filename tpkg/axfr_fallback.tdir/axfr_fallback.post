@@ -8,8 +8,6 @@
 . ../common.sh
 kill_pid $TESTNS_PID
 
-rm -f ixfr.db
-rm -f axfr_fallback.db
 rm -f xfrd.state
 rm -f axfr_fallback.current
 

@@ -17,5 +17,5 @@ echo "export TPKG_PORT=$TPKG_PORT" > .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 
 # debug echo of command.
-echo $TPKG_NSD -c readpid.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f readpid.db
+echo $TPKG_NSD -c readpid.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID
 

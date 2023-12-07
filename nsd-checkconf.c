@@ -354,7 +354,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 #ifdef RATELIMIT
 		ZONE_GET_RRL(rrl_whitelist, o, zone->pattern);
 #endif
-		ZONE_GET_BIN(multi_master_check, o, zone->pattern);
+		ZONE_GET_BIN(multi_primary_check, o, zone->pattern);
 		ZONE_GET_BIN(store_ixfr, o, zone->pattern);
 		ZONE_GET_INT(ixfr_size, o, zone->pattern);
 		ZONE_GET_INT(ixfr_number, o, zone->pattern);
@@ -391,7 +391,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 #ifdef RATELIMIT
 		ZONE_GET_RRL(rrl_whitelist, o, p);
 #endif
-		ZONE_GET_BIN(multi_master_check, o, p);
+		ZONE_GET_BIN(multi_primary_check, o, p);
 		ZONE_GET_BIN(store_ixfr, o, p);
 		ZONE_GET_INT(ixfr_size, o, p);
 		ZONE_GET_INT(ixfr_number, o, p);
@@ -524,8 +524,8 @@ static void print_zone_content_elems(pattern_options_type* pat)
 	print_acl("allow_query:", pat->allow_query);
 	print_acl("allow-notify:", pat->allow_notify);
 	print_acl("request-xfr:", pat->request_xfr);
-	if(pat->multi_master_check)
-		printf("\tmulti-master-check: %s\n", pat->multi_master_check?"yes":"no");
+	if(pat->multi_primary_check)
+		printf("\tmulti-primary-check: %s\n", pat->multi_primary_check?"yes":"no");
 	if(!pat->notify_retry_is_default)
 		printf("\tnotify-retry: %d\n", pat->notify_retry);
 	print_acl("notify:", pat->notify);

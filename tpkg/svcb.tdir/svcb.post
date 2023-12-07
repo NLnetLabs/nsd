@@ -7,8 +7,6 @@
 # do your teardown here
 
 . ../common.sh
-rm -f svcb.db
-rm -f svcb.ixfr.db
 rm -f svcb.xfrd.state
 rm -f svcb.current_response
 

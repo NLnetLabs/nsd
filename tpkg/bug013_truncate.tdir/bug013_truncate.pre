@@ -16,5 +16,5 @@ TPKG_NSD="$PRE/nsd"
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 
-$TPKG_NSD -c bug013_truncate.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -f bug013_truncate.db
+$TPKG_NSD -c bug013_truncate.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID
 wait_nsd_up nsd.log

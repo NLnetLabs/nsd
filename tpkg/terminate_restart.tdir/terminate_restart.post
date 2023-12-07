@@ -5,7 +5,6 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 . ../common.sh
-rm -f terminate_restart.db
 rm -f terminate_restart.current_respons1
 
 # do your teardown here

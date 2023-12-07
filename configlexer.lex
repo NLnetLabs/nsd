@@ -298,7 +298,8 @@ store-ixfr{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_STORE_IXFR;}
 ixfr-size{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_IXFR_SIZE;}
 ixfr-number{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_IXFR_NUMBER;}
 create-ixfr{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_CREATE_IXFR;}
-multi-master-check{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_MULTI_MASTER_CHECK;}
+multi-master-check{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_MULTI_PRIMARY_CHECK;}
+multi-primary-check{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_MULTI_PRIMARY_CHECK;}
 tls-service-key{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_TLS_SERVICE_KEY;}
 tls-service-ocsp{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_TLS_SERVICE_OCSP;}
 tls-service-pem{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_TLS_SERVICE_PEM;}

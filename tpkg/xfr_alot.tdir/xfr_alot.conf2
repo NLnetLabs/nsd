@@ -2,7 +2,6 @@
 # conf file for test tsig
 server:
 	xfrdfile: "xfrd.state.2"
-	difffile: "ixfr.db.2"
 	logfile: "slave.log"
 	zonesdir: ""
 	username: ""

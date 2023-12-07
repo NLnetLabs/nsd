@@ -3,7 +3,6 @@ server:
 	#logfile: "/dev/stdout"
 	logfile: "../s1.log"
 	xfrdfile: "xfrd.s1.db"
-	difffile: "diff.s1.db"
 	xfrd-reload-timeout: 0
 	zonesdir: ""
 	zonelistfile: "zone.s1.list"
