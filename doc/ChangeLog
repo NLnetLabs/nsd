@@ -1,3 +1,7 @@
+7 December 2023: Wouter
+	- Merge #307 from anandb-ripencc: Many improvements to the nsd.conf
+	  man page.
+
 6 December 2023: Wouter
 	- Fix to sync the tests script file common.sh.
 	- Update test script file common.sh.

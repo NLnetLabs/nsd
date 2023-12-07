@@ -9,6 +9,8 @@ BUG FIXES:
 	- Fix #306: Missing AC_SUBST(dbdir) breaks installation with 4.8.0.
 	- Fix for #306: Create directory for xfrd.state and zone.list files
 	  in make install.
+	- Merge #307 from anandb-ripencc: Many improvements to the nsd.conf
+	  man page.
 
 4.8.0
 ================
