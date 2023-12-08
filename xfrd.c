@@ -628,7 +628,7 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 	}
 
 	if(!zone) {
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: zone %s master zone updated",
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: zone %s primary zone updated",
 			dname_to_string(task->zname,0)));
 		notify_handle_master_zone_soainfo(xfrd->notify_zones,
 			task->zname, soa_ptr);
@@ -1023,7 +1023,7 @@ xfrd_make_request(xfrd_zone_type* zone)
 	if(zone->next_master != -1) {
 		/* we are told to use this next master */
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-			"xfrd zone %s use master %i",
+			"xfrd zone %s use primary %i",
 			zone->apex_str, zone->next_master));
 		zone->master_num = zone->next_master;
 		zone->master = acl_find_num(zone->zone_options->pattern->
@@ -1069,7 +1069,7 @@ xfrd_make_request(xfrd_zone_type* zone)
 			zone->state != xfrd_zone_expired) {
 			/* tried all servers and update zone */
 			if(zone->multi_master_update_check >= 0) {
-				VERBOSITY(2, (LOG_INFO, "xfrd: multi master "
+				VERBOSITY(2, (LOG_INFO, "xfrd: multi primary "
 					"check: zone %s completed transfers",
 					zone->apex_str));
 			}
@@ -1088,7 +1088,7 @@ xfrd_make_request(xfrd_zone_type* zone)
 	if (zone->master->ixfr_disabled &&
 	   (zone->master->ixfr_disabled + XFRD_NO_IXFR_CACHE) <= time(NULL)) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "clear negative caching ixfr "
-						"disabled for master %s num "
+						"disabled for primary %s num "
 						"%d ",
 			zone->master->ip_address_spec, zone->master_num));
 		zone->master->ixfr_disabled = 0;
@@ -1119,7 +1119,7 @@ xfrd_make_request(xfrd_zone_type* zone)
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 		} else {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s axfr "
-				"fallback not allowed, skipping master %s.",
+				"fallback not allowed, skipping primary %s.",
 				zone->apex_str, zone->master->ip_address_spec));
 		}
 	}
@@ -2514,7 +2514,7 @@ xfrd_handle_passed_packet(buffer_type* packet,
 		if(next != -1) {
 			zone->next_master = next;
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-				"xfrd: notify set next master to query %d",
+				"xfrd: notify set next primary to query %d",
 				next));
 		}
 	}

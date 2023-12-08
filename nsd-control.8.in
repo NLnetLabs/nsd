@@ -144,7 +144,7 @@ transferred, without argument, all zones are transferred.
 Print state of the zone, the serial numbers and since when they have
 been acquired.  Also prints the notify action (to which server), and
 zone transfer (and from which primary) if there is activity right now.
-The state of the zone is printed as: 'master' (primary zones), 'ok' (secondary
+The state of the zone is printed as: 'primary' (primary zones), 'ok' (secondary
 zone is up\-to\-date), 'expired' (secondary zone has expired), 'refreshing' (secondary
 zone has transfers active).  The serial numbers printed are
 the 'served\-serial' (currently active), the 'commit\-serial' (is in reload),
@@ -323,13 +323,13 @@ number of answers with TC flag set.
 .I num.dropped
 number of queries that were dropped because they failed sanity check.
 .TP
-.I zone.master
+.I zone.primary
 number of primary zones served.  These are zones with no 'request\-xfr:'
-entries.
+entries. Also output as 'zone.master' for backwards compatibility.
 .TP
-.I zone.slave
+.I zone.secondary
 number of secondary zones served.  These are zones with 'request\-xfr'
-entries.
+entries. Also output as 'zone.slave' for backwards compatibility.
 .SH "FILES"
 .TP
 .I @nsdconfigfile@

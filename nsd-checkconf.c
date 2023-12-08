@@ -808,7 +808,7 @@ additional_checks(nsd_options_type* opt, const char* filename)
 		}
 		if(!zone_is_slave(zone) && (!zone->pattern->zonefile ||
 			zone->pattern->zonefile[0] == 0)) {
-			fprintf(stderr, "%s: zone %s is a master zone but has "
+			fprintf(stderr, "%s: zone %s is a primary zone but has "
 				"no zonefile. Where can the data come from?\n",
 				filename, zone->name);
 			errors ++;
