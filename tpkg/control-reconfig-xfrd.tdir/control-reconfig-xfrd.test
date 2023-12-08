@@ -14,16 +14,16 @@ if test $? -ne 0; then
 fi
 
 
-# check that masters are masters and slaves are slaves
+# check that primaries are primaries and secondaries are secondaries
 echo "pre-change test"
 $CTRL zonestatus m2s.explicit. | tee result
-if grep "master" result; then echo "OK"; else echo "bad state"; exit 1; fi
+if grep "primary" result; then echo "OK"; else echo "bad state"; exit 1; fi
 $CTRL zonestatus m2s.implicit. | tee result
-if grep "master" result; then echo "OK"; else echo "bad state"; exit 1; fi
+if grep "primary" result; then echo "OK"; else echo "bad state"; exit 1; fi
 $CTRL zonestatus s2m.explicit. | tee result
-if grep "master" result; then echo "bad state"; exit 1; else echo "OK"; fi
+if grep "primary" result; then echo "bad state"; exit 1; else echo "OK"; fi
 $CTRL zonestatus s2m.implicit. | tee result
-if grep "master" result; then echo "bad state"; exit 1; else echo "OK"; fi
+if grep "primary" result; then echo "bad state"; exit 1; else echo "OK"; fi
 
 # check zone contents
 echo "pre-change check zone contents"
@@ -81,16 +81,16 @@ if test $? -ne 0; then
 	exit 1
 fi
 
-# check that masters are masters and slaves are slaves
+# check that primaries are primaries and secondaries are secondaries
 echo "post-change test"
 $CTRL zonestatus m2s.explicit. | tee result
-if grep "master" result; then echo "bad state"; exit 1; else echo "OK"; fi
+if grep "primary" result; then echo "bad state"; exit 1; else echo "OK"; fi
 $CTRL zonestatus m2s.implicit. | tee result
-if grep "master" result; then echo "bad state"; exit 1; else echo "OK"; fi
+if grep "primary" result; then echo "bad state"; exit 1; else echo "OK"; fi
 $CTRL zonestatus s2m.explicit. | tee result
-if grep "master" result; then echo "OK"; else echo "bad state"; exit 1; fi
+if grep "primary" result; then echo "OK"; else echo "bad state"; exit 1; fi
 $CTRL zonestatus s2m.implicit. | tee result
-if grep "master" result; then echo "OK"; else echo "bad state"; exit 1; fi
+if grep "primary" result; then echo "OK"; else echo "bad state"; exit 1; fi
 
 # check zone contents
 echo "post-change check zone contents"

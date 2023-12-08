@@ -14,6 +14,8 @@ BUG FIXES:
 	- Fix #308: Deprecate "multi-master-check" in favour of
 	  "multi-primary-check".
 	- Merge #309: More RFC 8499 compliance.
+	- Fix control-reconfig-xfrd test for zonestatus primary that is
+	  printed by nsd-control zonestatus.
 
 4.8.0
 ================
