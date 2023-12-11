@@ -960,7 +960,7 @@ do_transfer(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			xfrd_handle_notify_and_start_xfr(zone, NULL);
 			send_ok(ssl);
 		} else {
-			(void)ssl_printf(ssl, "error zone not slave\n");
+			(void)ssl_printf(ssl, "error zone not secondary\n");
 		}
 	} else {
 		RBTREE_FOR(zone, xfrd_zone_type*, xfrd->zones) {
@@ -1001,7 +1001,7 @@ do_force_transfer(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			force_transfer_zone(zone);
 			send_ok(ssl);
 		} else {
-			(void)ssl_printf(ssl, "error zone not slave\n");
+			(void)ssl_printf(ssl, "error zone not secondary\n");
 		}
 	} else {
 		RBTREE_FOR(zone, xfrd_zone_type*, xfrd->zones) {
@@ -1084,7 +1084,7 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 		}
 	}
 	if(!xz) {
-		if(!ssl_printf(ssl, "	state: master\n"))
+		if(!ssl_printf(ssl, "	state: primary\n"))
 			return 0;
 		return 1;
 	}
@@ -2904,6 +2904,11 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear,
 	print_stat_block(ssl, "", "", st);
 
 	/* zone statistics */
+	if(!ssl_printf(ssl, "zone.primary=%lu\n",
+		(unsigned long)(xfrd->notify_zones->count - xfrd->zones->count)))
+		return;
+	if(!ssl_printf(ssl, "zone.secondary=%lu\n", (unsigned long)xfrd->zones->count))
+		return;
 	if(!ssl_printf(ssl, "zone.master=%lu\n",
 		(unsigned long)(xfrd->notify_zones->count - xfrd->zones->count)))
 		return;

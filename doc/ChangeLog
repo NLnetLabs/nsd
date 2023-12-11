@@ -1,3 +1,9 @@
+8 December 2023: Wouter
+	- Merge #309: More RFC 8499 compliance.
+	- Fix #310: NSD stats contain the terms "master" and "slave".
+	- Fix control-reconfig-xfrd test for zonestatus primary that is
+	  printed by nsd-control zonestatus.
+
 7 December 2023: Wouter
 	- Merge #307 from anandb-ripencc: Many improvements to the nsd.conf
 	  man page.
