@@ -64,6 +64,9 @@ xfrd_one_catalog_consumer_zone()
 }
 #endif
 
+/* Convenience function for lookup parts of a catalog consumer zone */
+static dname_type* label_plus_dname(const char* label, const dname_type* dname);
+
 /* make the catalog consumer zone invalid for given reason */
 static void make_catalog_consumer_invalid(
 		struct xfrd_catalog_consumer_zone *catz,
@@ -82,6 +85,9 @@ static void xfrd_process_catalog_consumer_zone(
 
 /* process the catalog consumer zones, load if needed */
 static void xfrd_process_catalog_consumer_zones();
+
+/* process the catalog producer zones */
+static void xfrd_process_catalog_producer_zones();
 
 /* main xfrd loop */
 static void xfrd_main(void);
@@ -347,7 +353,7 @@ xfrd_main(void)
 	xfrd->shutdown = 0;
 	while(!xfrd->shutdown)
 	{
-		/* process catalog zone if needed */
+		xfrd_process_catalog_producer_zones();
 		xfrd_process_catalog_consumer_zones();
 		/* process activated zones before blocking in select again */
 		xfrd_process_activated();
@@ -453,7 +459,9 @@ xfrd_shutdown()
 	/* process-exit cleans up memory used by xfrd process */
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown complete"));
 #ifdef MEMCLEAN /* OS collects memory pages */
-	/* TODO: Cleanup catalog zones and if needed xfrd->nsd->db */
+	if(xfrd->nsd->db) {
+		namedb_close(nsd->db);
+	}
 	if(xfrd->zones) {
 		xfrd_zone_type* z;
 		RBTREE_FOR(z, xfrd_zone_type*, xfrd->zones) {
@@ -579,6 +587,8 @@ xfrd_init_zones()
 		(int (*)(const void *, const void *)) dname_compare);
 	xfrd->catalog_consumer_zones = rbtree_create(xfrd->region,
 		(int (*)(const void *, const void *)) dname_compare);
+	xfrd->catalog_producer_zones = rbtree_create(xfrd->region,
+		(int (*)(const void *, const void *)) dname_compare);
 
 	RBTREE_FOR(zone_opt, struct zone_options*, xfrd->nsd->options->zone_options)
 	{
@@ -589,6 +599,10 @@ xfrd_init_zones()
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s "
 				"is a catalog consumer zone", zone_opt->name));
 			xfrd_init_catalog_consumer_zone(xfrd, zone_opt);
+		}
+		if(zone_is_catalog_producer_member(zone_opt)) {
+			xfrd_add_catalog_producer_member(
+					as_catalog_member_zone(zone_opt));
 		}
 		init_notify_send(xfrd->notify_zones, xfrd->region, zone_opt);
 		if(!zone_is_slave(zone_opt)) {
@@ -602,6 +616,436 @@ xfrd_init_zones()
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: started server %d "
 		"secondary zones, %d catalog zones", (int)xfrd->zones->count,
 		(int)xfrd->catalog_consumer_zones->count));
+}
+
+static int member_id_compare(const void *left, const void *right)
+{
+	return dname_compare( ((struct catalog_member_zone*)left )->member_id
+	                    , ((struct catalog_member_zone*)right)->member_id);
+}
+
+static struct xfrd_catalog_producer_zone*
+xfrd_get_catalog_producer_zone(struct catalog_member_zone* cmz)
+{
+	struct zone_options *producer_zopt;
+	struct xfrd_catalog_producer_zone* producer_zone;
+	const dname_type* producer_name;
+	const char* producer_name_str;
+
+	assert(xfrd);
+	if(!cmz || !cmz->options.pattern->catalog_producer_zone)
+		return NULL;
+
+	/* TODO: Store as dname in pattern->catalog_producer_zone */
+	producer_name = dname_parse(xfrd->nsd->options->region,
+			cmz->options.pattern->catalog_producer_zone);
+	producer_zopt = zone_options_find(xfrd->nsd->options, producer_name);
+	producer_name_str = dname_to_string(producer_name, NULL);
+	region_recycle( xfrd->nsd->options->region, (void *)producer_name
+	              , dname_total_size(producer_name));
+	if(!producer_zopt) {
+		log_msg(LOG_ERR, "catalog producer zone '%s' not found for "
+			"zone '%s'", producer_name_str, cmz->options.name);
+		return NULL;
+	}
+	if(!zone_is_catalog_producer(producer_zopt)) {
+		log_msg(LOG_ERR, "cannot add catalog producer member "
+			"zone '%s' to non producer zone '%s'",
+			cmz->options.name, producer_zopt->name);
+		return NULL;
+	}
+	producer_name = (dname_type*)producer_zopt->node.key;
+	producer_zone = (struct xfrd_catalog_producer_zone*)
+		rbtree_search(xfrd->catalog_producer_zones, producer_name);
+	if (!producer_zone) {
+		/* Create a new one */
+		DEBUG(DEBUG_XFRD, 1, (LOG_INFO,"creating catalog producer zone"
+			" '%s'", producer_zopt->name));
+		producer_zone = (struct xfrd_catalog_producer_zone*)
+			region_alloc(xfrd->region,
+				   sizeof(struct xfrd_catalog_producer_zone));
+		memset(producer_zone,0,sizeof(struct xfrd_catalog_producer_zone));
+		producer_zone->node.key = producer_zopt->node.key;
+		producer_zone->options = producer_zopt;
+		producer_zone->serial = 0;
+		producer_zone->to_delete = NULL;
+		producer_zone->to_add = NULL;
+		producer_zone->member_ids.region = xfrd->region;
+		producer_zone->member_ids.root = RBTREE_NULL;
+		producer_zone->member_ids.count = 0;
+		producer_zone->member_ids.cmp = member_id_compare;
+		producer_zone->latest_pxfr = NULL;
+		producer_zone->axfr = 1;
+
+		rbtree_insert(xfrd->catalog_producer_zones,
+				(rbnode_type*)producer_zone);
+	}
+	return producer_zone;
+}
+
+void
+xfrd_add_catalog_producer_member(struct catalog_member_zone* cmz)
+{
+	struct xfrd_catalog_producer_zone* producer_zone;
+	const dname_type* producer_name;
+
+	assert(xfrd);
+	if(cmz->next) {
+		log_msg(LOG_ERR, "cannot add catalog producer member "
+			"zone '%s': already being added",
+			cmz->options.name);
+		return;
+	}
+	if (!(producer_zone = xfrd_get_catalog_producer_zone(cmz))) {
+		return;
+	}
+	producer_name = producer_zone->node.key;
+	while(!cmz->member_id) {
+		/* Make new member_id with this catalog producer */
+		char id_label[sizeof(uint32_t)*2+1];
+		uint32_t new_id = (uint32_t)random_generate(0x7fffffff);
+
+		id_label[hex_ntop( (void *)&new_id
+		                 , sizeof(uint32_t)
+		                 , id_label
+		                 , sizeof(id_label))] = 0;
+		cmz->member_id = label_plus_dname(id_label,
+				label_plus_dname("zones", producer_name));
+		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "does member_id %s exist?",
+			dname_to_string(cmz->member_id, NULL)));
+		if (!rbtree_search(&producer_zone->member_ids, cmz)) {
+			cmz->member_id = dname_copy(xfrd->nsd->options->region,
+				       	cmz->member_id);
+			break;
+		}
+		cmz->member_id = NULL;
+	}
+	/* Put member zone to be added on the producer's to_add stack */
+	cmz->next = producer_zone->to_add;
+	producer_zone->to_add = cmz;
+	rbtree_insert(&producer_zone->member_ids, &cmz->node);
+}
+
+int
+xfrd_del_catalog_producer_member(struct xfrd_state* xfrd,
+	       	const dname_type* member_zone_name)
+{
+	struct xfrd_member_to_delete* to_delete;
+	struct catalog_member_zone* cmz;
+	struct xfrd_catalog_producer_zone* producer_zone;
+
+	if(!(cmz = as_catalog_member_zone(zone_options_find(xfrd->nsd->options,
+						member_zone_name)))
+	|| !(producer_zone = xfrd_get_catalog_producer_zone(cmz))
+	|| !rbtree_delete(&producer_zone->member_ids, cmz))
+		return 0;
+	to_delete = (struct xfrd_member_to_delete*)region_alloc(xfrd->region,
+			sizeof(struct xfrd_member_to_delete));
+	to_delete->member_id = cmz->member_id; cmz->member_id = NULL;
+	to_delete->member_zone_name = member_zone_name;
+	to_delete->group_name = cmz->options.pattern->pname;
+	to_delete->next = producer_zone->to_delete;
+	producer_zone->to_delete = to_delete;
+	return 1;
+}
+
+static int
+try_buffer_write_SOA(buffer_type* packet, const dname_type* owner,
+		uint32_t serial)
+{
+	size_t mark = buffer_position(packet);
+
+	if(try_buffer_write(packet, dname_name(owner), owner->name_size)
+	&& try_buffer_write_u16(packet, TYPE_SOA)
+	&& try_buffer_write_u16(packet, CLASS_IN)
+	&& try_buffer_write_u32(packet, 0) /* TTL*/
+	&& try_buffer_write_u16(packet, 9 + 9 + 5 * sizeof(uint32_t))
+	&& try_buffer_write(packet, "\007invalid\000", 9) /* primary */
+	&& try_buffer_write(packet, "\007invalid\000", 9) /* mailbox */
+	&& try_buffer_write_u32(packet,     serial)       /* serial */
+	&& try_buffer_write_u32(packet,       3600)       /* refresh*/
+	&& try_buffer_write_u32(packet,        600)       /* retry */
+	&& try_buffer_write_u32(packet, 2147483646)       /* expire */
+	&& try_buffer_write_u32(packet,          0)       /* minimum */) {
+		ANCOUNT_SET(packet, ANCOUNT(packet) + 1);
+		return 1;
+	}
+	buffer_set_position(packet, mark);
+	return 0;
+}
+
+static int
+try_buffer_write_RR(buffer_type* packet, const dname_type* owner,
+		uint16_t rr_type, uint16_t rdata_len, const void* rdata)
+{
+	size_t mark = buffer_position(packet);
+
+	if(try_buffer_write(packet, dname_name(owner), owner->name_size)
+	&& try_buffer_write_u16(packet, rr_type)
+	&& try_buffer_write_u16(packet, CLASS_IN)
+	&& try_buffer_write_u32(packet, 0) /* TTL*/
+	&& try_buffer_write_u16(packet, rdata_len)
+	&& try_buffer_write(packet, rdata, rdata_len)) {
+		ANCOUNT_SET(packet, ANCOUNT(packet) + 1);
+		return 1;
+	}
+	buffer_set_position(packet, mark);
+	return 0;
+}
+
+static inline int
+try_buffer_write_PTR(buffer_type* packet, const dname_type* owner,
+		const dname_type* name)
+{
+	return try_buffer_write_RR(packet, owner, TYPE_PTR,
+			name->name_size, dname_name(name));
+}
+
+static int
+try_buffer_write_TXT(buffer_type* packet, const dname_type* name, const char *txt)
+{
+	size_t mark = buffer_position(packet);
+	size_t len = strlen(txt);
+
+	if(len > 255) {
+		log_msg(LOG_ERR, "cannot make '%s 0 IN TXT \"%s\"': rdata "
+			"field too long", dname_to_string(name, NULL), txt);
+		return 1;
+	}
+	if(try_buffer_write(packet, dname_name(name), name->name_size)
+	&& try_buffer_write_u16(packet, TYPE_TXT)
+	&& try_buffer_write_u16(packet, CLASS_IN)
+	&& try_buffer_write_u32(packet, 0) /* TTL*/
+	&& try_buffer_write_u16(packet, len + 1)
+	&& try_buffer_write_u8(packet, len)
+	&& try_buffer_write_string(packet, txt)) {
+		ANCOUNT_SET(packet, ANCOUNT(packet) + 1);
+		return 1;
+	}
+	buffer_set_position(packet, mark);
+	return 0; 
+}
+
+struct xfrd_xfr_writer {
+	struct xfrd_catalog_producer_zone* producer_zone;
+	char packet_space[16384];
+	buffer_type packet;
+	uint32_t seq_nr; /* number of messages already handled */
+	uint32_t old_serial, new_serial; /* host byte order */
+	uint64_t xfrfilenumber; /* identifier for file to store xfr into */
+};
+
+static void xfr_writer_init(struct xfrd_xfr_writer* xw,
+		struct xfrd_catalog_producer_zone* producer_zone)
+{
+	xw->producer_zone = producer_zone;
+	buffer_create_from( &xw->packet, &xw->packet_space
+	                               , sizeof(xw->packet_space));
+	buffer_write(&xw->packet, "\000\000\000\000\000\000"
+	                          "\000\000\000\000\000\000", 12); /* header */
+	xw->seq_nr = 0;
+	xw->old_serial = xw->producer_zone->serial;
+	xw->new_serial = (uint32_t)xfrd_time();
+	if(xw->new_serial <= xw->old_serial)
+		xw->new_serial = xw->old_serial + 1;
+	if(producer_zone->axfr) {
+		xw->old_serial = 0;
+		producer_zone->axfr = 0;
+	}
+	xw->xfrfilenumber = xfrd->xfrfilenumber++;
+}
+
+static void xfr_writer_write_packet(struct xfrd_xfr_writer* xw)
+{
+	const dname_type* producer_name =
+		(const dname_type*)xw->producer_zone->options->node.key;
+
+	/* We want some content at least, so not just a header
+	 * This can occur when final SOA was already written.
+	 */
+	if(buffer_position(&xw->packet) == 12)
+		return;
+	buffer_flip(&xw->packet);
+	diff_write_packet( dname_to_string(producer_name, NULL)
+			 , xw->producer_zone->options->pattern->pname
+			 , xw->old_serial, xw->new_serial, xw->seq_nr
+			 , buffer_begin(&xw->packet), buffer_limit(&xw->packet)
+			 , xfrd->nsd, xw->xfrfilenumber);
+	xw->seq_nr += 1;
+	buffer_clear(&xw->packet);
+	buffer_write(&xw->packet, "\000\000\000\000\000\000"
+	                          "\000\000\000\000\000\000", 12); /* header */
+}
+
+static inline void
+xfr_writer_add_SOA(struct xfrd_xfr_writer* xw, const dname_type* owner,
+		uint32_t serial)
+{
+	if(try_buffer_write_SOA(&xw->packet, owner, serial))
+		return;
+	xfr_writer_write_packet(xw);
+	assert(buffer_position(&xw->packet) == 12);
+	try_buffer_write_SOA(&xw->packet, owner, serial);
+}
+
+static inline void
+xfr_writer_add_RR(struct xfrd_xfr_writer* xw, const dname_type* owner,
+		uint16_t rr_type, uint16_t rdata_len, const void* rdata)
+{
+	if(try_buffer_write_RR(&xw->packet, owner, rr_type, rdata_len, rdata))
+		return;
+	xfr_writer_write_packet(xw);
+	assert(buffer_position(&xw->packet) == 12);
+	try_buffer_write_RR(&xw->packet, owner, rr_type, rdata_len, rdata);
+}
+
+static inline void
+xfr_writer_add_PTR(struct xfrd_xfr_writer* xw, const dname_type* owner,
+		const dname_type* name)
+{
+	if(try_buffer_write_PTR(&xw->packet, owner, name))
+		return;
+	xfr_writer_write_packet(xw);
+	assert(buffer_position(&xw->packet) == 12);
+	try_buffer_write_PTR(&xw->packet, owner, name);
+}
+
+static inline void
+xfr_writer_add_TXT(struct xfrd_xfr_writer* xw, const dname_type* owner,
+		const char* txt)
+{
+	if(try_buffer_write_TXT(&xw->packet, owner, txt))
+		return;
+	xfr_writer_write_packet(xw);
+	assert(buffer_position(&xw->packet) == 12);
+	try_buffer_write_TXT(&xw->packet, owner, txt);
+}
+
+static void xfr_writer_commit(struct xfrd_xfr_writer* xw, const char *fmt, ...)
+{
+	va_list args;
+	char msg[1024];
+	const dname_type* producer_name =
+		(const dname_type*)xw->producer_zone->options->node.key;
+
+	va_start(args, fmt);
+	if (vsnprintf(msg, sizeof(msg), fmt, args) >= (int)sizeof(msg)) {
+		log_msg(LOG_WARNING, "truncated diff commit message: '%s'",
+				msg);
+	}
+	xfr_writer_write_packet(xw); /* Write remaining data */
+	diff_write_commit( dname_to_string(producer_name, NULL)
+			 , xw->old_serial, xw->new_serial
+			 , xw->seq_nr /* Number of packets */
+			 , 1, msg, xfrd->nsd, xw->xfrfilenumber);
+	task_new_apply_xfr( xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task
+			  , producer_name
+			  , xw->old_serial, xw->new_serial, xw->xfrfilenumber);
+	xfrd_set_reload_timeout();
+}
+
+static void
+xfrd_process_catalog_producer_zone(
+		struct xfrd_catalog_producer_zone* producer_zone)
+{
+	struct xfrd_xfr_writer xw;
+	dname_type* producer_name;
+	struct xfrd_producer_xfr* pxfr;
+
+	if(!producer_zone->to_add && !producer_zone->to_delete)
+		return; /* No changes */
+
+	producer_name = (dname_type*)producer_zone->node.key;
+	xfr_writer_init(&xw, producer_zone);
+	xfr_writer_add_SOA(&xw, producer_name, xw.new_serial);
+
+	if(xw.old_serial == 0) {
+		/* initial deployment */
+		assert(producer_zone->to_add && !producer_zone->to_delete);
+
+		xfr_writer_add_RR (&xw, producer_name
+		                      , TYPE_NS, 9, "\007invalid\000");
+		xfr_writer_add_TXT(&xw, label_plus_dname("version"
+		                                        , producer_name), "2");
+		goto add_member_zones;
+	} 
+	/* IXFR */
+	xfr_writer_add_SOA(&xw, producer_name, xw.old_serial);
+	while(producer_zone->to_delete) {
+		struct xfrd_member_to_delete* to_delete =
+			producer_zone->to_delete;
+
+		/* Pop to_delete from stack */
+		producer_zone->to_delete = to_delete->next;
+		to_delete->next = NULL;
+
+		/* Write <member_id> PTR <member_name> */
+		xfr_writer_add_PTR(&xw, to_delete->member_id
+				      , to_delete->member_zone_name);
+
+		/* Write group.<member_id> TXT <pattern> */
+		xfr_writer_add_TXT( &xw
+				  , label_plus_dname("group"
+						    , to_delete->member_id)
+				  , to_delete->group_name);
+
+		region_recycle( xfrd->nsd->options->region
+		              , (void *)to_delete->member_id
+			      , dname_total_size(to_delete->member_id));
+		region_recycle( xfrd->region /* allocated in perform_delzone */
+		              , (void *)to_delete->member_zone_name
+			      , dname_total_size(to_delete->member_zone_name));
+		/* Don't recycle to_delete->group_name it's pattern->pname */
+		region_recycle( xfrd->region, to_delete, sizeof(*to_delete));
+	}
+	xfr_writer_add_SOA(&xw, producer_name, xw.new_serial);
+
+add_member_zones:
+	while(producer_zone->to_add) {
+		struct catalog_member_zone* cmz = producer_zone->to_add;
+		dname_type* member_name =
+			(dname_type*)cmz->options.node.key;
+
+		/* Pop cmz from stack */
+		producer_zone->to_add = cmz->next;
+		cmz->next = NULL;
+
+		/* Write <member_id> PTR <member_name> */
+		xfr_writer_add_PTR(&xw, cmz->member_id, member_name);
+
+		/* Write group.<member_id> TXT <pattern> */
+		xfr_writer_add_TXT( &xw
+				  , label_plus_dname("group"
+						    , cmz->member_id)
+				  , cmz->options.pattern->pname);
+	}
+	xfr_writer_add_SOA(&xw, producer_name, xw.new_serial);
+	xfr_writer_commit(&xw, "xfr for catalog producer zone "
+			"'%s' with %d members from %u to %u",
+			dname_to_string(producer_name, NULL),
+			producer_zone->member_ids.count,
+			xw.old_serial, xw.new_serial);
+	producer_zone->serial = xw.new_serial;
+
+	/* Hook up an xfrd_producer_xfr, to delete the xfr file when applied */
+	pxfr = (struct xfrd_producer_xfr*)region_alloc(xfrd->region,
+			sizeof(struct xfrd_producer_xfr));
+	pxfr->serial = xw.new_serial;
+	pxfr->xfrfilenumber = xw.xfrfilenumber;
+	if((pxfr->next = producer_zone->latest_pxfr))
+		pxfr->next->prev_next_ptr = &pxfr->next;
+	pxfr->prev_next_ptr = &producer_zone->latest_pxfr;
+	producer_zone->latest_pxfr = pxfr;
+}
+
+static void xfrd_process_catalog_producer_zones()
+{
+	struct xfrd_catalog_producer_zone* producer_zone;
+
+	RBTREE_FOR(producer_zone, struct xfrd_catalog_producer_zone*,
+			xfrd->catalog_producer_zones) {
+		xfrd_process_catalog_producer_zone(producer_zone);
+	}
 }
 
 void
@@ -730,15 +1174,18 @@ static dname_type* label_plus_dname(const char* label, const dname_type* dname)
 	if ((int)dname->name_size + ll + 1 > MAXDOMAINLEN)
 		return NULL;
 
-	name.dname.name_size   = dname->name_size   + ll + 1;
-	name.dname.label_count = dname->label_count + 1;
+	/* In reversed order and first copy with memmove, so we can nest.
+	 * i.e. label_plus_dname(label1, label_plus_dname(label2, dname))
+	 */
+	memmove(name.bytes + dname->label_count + 2 + ll,
+		((void*)dname) + 2 + dname->label_count, dname->name_size + 1);
+	memcpy(name.bytes + dname->label_count + 2, label, ll);
+	name.bytes[dname->label_count + 1] = ll;
+	name.bytes[dname->label_count] = 0;
 	for (i = 0; i < dname->label_count; i++)
 		name.bytes[i] = ((uint8_t*)(void*)dname)[2+i] + ll + 1;
-	name.bytes[dname->label_count] = 0;
-	name.bytes[dname->label_count + 1] = ll;
-	memcpy(name.bytes + dname->label_count + 2, label, ll);
-	memcpy(name.bytes + dname->label_count + 2 + ll,
-		((void*)dname) + 2 + dname->label_count, dname->name_size + 1);
+	name.dname.label_count = dname->label_count + 1;
+	name.dname.name_size   = dname->name_size   + ll + 1;
 	return &name.dname;
 }
 
@@ -1127,6 +1574,11 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 						xfrd_deinit_catalog_consumer_zone(xfrd, dname);
 					}
 #endif
+					/* It is a catalog consumer member,
+					 * so no need to check if it was a
+					 * catalog producer member zone to 
+					 * delete and add
+					 */
 					zopt->pattern = pattern;
 					task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
 						xfrd->last_task, zopt->name,
@@ -1232,6 +1684,7 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 	xfrd_soa_type soa;
 	xfrd_soa_type* soa_ptr = &soa;
 	xfrd_zone_type* zone;
+	struct xfrd_catalog_producer_zone* producer_zone;
 	xfrd_xfr_type* xfr;
 	xfrd_xfr_type* prev_xfr;
 	enum soainfo_hint hint;
@@ -1292,7 +1745,53 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 #endif
 	}
 
-	if(!zone) {
+	if(zone) 
+		; /* pass */
+
+	else if((producer_zone = (struct xfrd_catalog_producer_zone*)
+			rbtree_search(xfrd->catalog_producer_zones, task->zname))) {
+		struct xfrd_producer_xfr* pxfr, *next_pxfr;
+
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "Zone %s is catalog producer",
+			dname_to_string(task->zname,0)));
+
+		if(hint != soainfo_ok)
+			producer_zone->axfr = 1;
+
+		for(pxfr = producer_zone->latest_pxfr; pxfr; pxfr = next_pxfr) {
+			next_pxfr = pxfr->next;
+
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "pxfr for zone %s for serial %u",
+				dname_to_string(task->zname,0), pxfr->serial));
+			
+			if(hint != soainfo_ok)
+				; /* pass */
+			else if(!soa_ptr || soa_ptr->serial != htonl(pxfr->serial))
+				continue;
+
+			else if(xfrd->reload_failed) {
+				DEBUG(DEBUG_IPC, 1,
+					(LOG_INFO, "xfrd: zone %s mark update "
+					           "to serial %u verified",
+					           producer_zone->options->name,
+					           pxfr->serial));
+				diff_update_commit(
+					producer_zone->options->name,
+					DIFF_VERIFIED, xfrd->nsd,
+					pxfr->xfrfilenumber);
+				return;
+			}
+			DEBUG(DEBUG_IPC, 1,
+				(LOG_INFO, "xfrd: zone %s delete update to "
+				 "serial %u", producer_zone->options->name,
+				 pxfr->serial));
+			xfrd_unlink_xfrfile(xfrd->nsd, pxfr->xfrfilenumber);
+			if((*pxfr->prev_next_ptr = pxfr->next))
+				pxfr->next->prev_next_ptr = pxfr->prev_next_ptr;
+			region_recycle(xfrd->region, pxfr, sizeof(*pxfr));
+		}
+		return;
+	} else {
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: zone %s master zone updated",
 			dname_to_string(task->zname,0)));
 		notify_handle_master_zone_soainfo(xfrd->notify_zones,

@@ -33,7 +33,8 @@ struct buffer;
 struct xfrd_tcp;
 struct xfrd_tcp_set;
 struct notify_zone;
-struct xfrd_catalog_consumer;
+struct xfrd_catalog_consumer_zone;
+struct xfrd_catalog_producer_zone;
 struct udb_ptr;
 typedef struct xfrd_state xfrd_state_type;
 typedef struct xfrd_xfr xfrd_xfr_type;
@@ -123,6 +124,9 @@ struct xfrd_state {
 
 	/* tree of catalog consumer zones. Processing is disabled if > 1. */
 	rbtree_type *catalog_consumer_zones;
+
+	/* tree of updated catalog producer zones for which the content to serve */
+	rbtree_type *catalog_producer_zones;
 };
 
 /**
@@ -153,11 +157,73 @@ void xfrd_init_catalog_consumer_zone(xfrd_state_type* xfrd,
 void xfrd_deinit_catalog_consumer_zone(xfrd_state_type* xfrd,
 		const dname_type* dname);
 
+/* Add (or change) <member_id> PTR <member_zone_name>, and 
+ * group.<member_id> TXT <pattern->pname> to the associated producer zone by 
+ * constructed xfr. make cmz->member_id if needed. */
+void xfrd_add_catalog_producer_member(struct catalog_member_zone* cmz);
+
+/* Delete <member_id> PTR <member_zone_name>, and 
+ * group.<member_id> TXT <pattern->pname> from the associated producer zone by
+ * constructed xfr. Return 1 if zone is deleted. In this case, member_zone_name
+ * is taken over by xfrd and cannot be recycled by the caller. member_zone_name
+ * must have been allocated int the xfrd->nsd->options->region
+ */
+int xfrd_del_catalog_producer_member(xfrd_state_type* xfrd,
+		const dname_type* dname);
+
 /* Mark the catalog consumer zone for checking (if it matches zone) */
 void xfrd_mark_catalog_consumer_zone_for_checking(const dname_type* zone);
 
 /* Return the reason a zone is invalid, or NULL on a valid catalog */
 const char *invalid_catalog_consumer_zone(struct zone_options* zone);
+
+/**
+ * Data to remove from a catalog producer zone
+ */
+struct xfrd_member_to_delete {
+	const dname_type* member_id;
+	const dname_type* member_zone_name;
+	const char* group_name;
+	struct xfrd_member_to_delete* next;
+} ATTR_PACKED;
+
+/**
+ * To track applied transfers
+ */
+struct xfrd_producer_xfr {
+	uint32_t serial;
+	uint64_t xfrfilenumber;
+	struct xfrd_producer_xfr** prev_next_ptr;
+	struct xfrd_producer_xfr*  next;
+} ATTR_PACKED;
+
+/**
+ * Catalog producer zones withing the xfrd context
+ */
+struct xfrd_catalog_producer_zone {
+	/* For indexing in struc xfrd_state { rbtree_type* catalog_producer_zones; } */
+	rbnode_type node;
+
+	/* Associated zone options with this catalog consumer zone */
+	struct zone_options* options;
+
+	/* SOA serial for this zone */
+	uint32_t serial;
+
+	/* Stack of members to delete from this catalog producer zone */
+	struct xfrd_member_to_delete* to_delete;
+
+	/* Stack of member zones to add to this catalog producer zone */
+	struct catalog_member_zone* to_add;
+
+	/* Member zones indexed by member_id */
+	rbtree_type member_ids;
+
+	/* To cleanup on disk xfr files */
+	struct xfrd_producer_xfr* latest_pxfr;
+
+	unsigned axfr: 1;
+} ATTR_PACKED;
 
 /*
  * XFR daemon SOA information kept in network format.
