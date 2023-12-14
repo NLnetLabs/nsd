@@ -399,12 +399,12 @@ remote-control:
 	# which is only offered for transfer to secondaries over TLS.
 	#allow-query: 192.0.2.0/24 NOKEY
 
-	# If no master and slave access control elements are provided,
+	# If no primary and secondary access control elements are provided,
 	# this zone will not be served to/from other servers.
 
-	# A master zone needs notify: and provide-xfr: lists.  A slave
+	# A primary zone needs notify: and provide-xfr: lists.  A secondary
 	# may also allow zone transfer (for debug or other secondaries).
-	# notify these slaves when the master zone changes, address TSIG|NOKEY
+	# notify these secondaries when the primary zone changes, address TSIG|NOKEY
 	# IP can be ipv4 and ipv6, with @port for a nondefault port number.
 	#notify: 192.0.2.1 NOKEY
 	# allow these IPs and TSIG to transfer zones, addr TSIG|NOKEY|BLOCKED
@@ -425,9 +425,9 @@ remote-control:
 	# provide-xfr: 0.0.0.0/0 NOKEY
 	# provide-xfr: ::0/0 NOKEY
 
-	# A slave zone needs allow-notify: and request-xfr: lists.
+	# A secondary zone needs allow-notify: and request-xfr: lists.
 	#allow-notify: 2001:db8::0/64 my_tsig_key_name
-	# By default, a slave will request a zone transfer with IXFR/TCP.
+	# By default, a secondary will request a zone transfer with IXFR/TCP.
 	# If you want to make use of IXFR/UDP use: UDP addr tsigkey
 	# for a master that only speaks AXFR (like NSD) use AXFR addr tsigkey
 	# If you want to require use of XFR-over-TLS use: addr tsigkey tlsauthname
@@ -467,7 +467,7 @@ remote-control:
 	# from that pattern are inserted into this one (as if it were a
 	# macro).  The statement can be given in between other statements,
 	# because the order of access control elements can make a difference
-	# (which master to request from first, which slave to notify first).
+	# (which master to request from first, which secondary to notify first).
 	#include-pattern: "common-masters"
 
 	# Verify zone before publishing.

@@ -920,7 +920,7 @@ find_or_create_zone(namedb_type* db, const dname_type* zone_name,
 			 * by xfrd, who wrote the AXFR or IXFR to disk, so we only
 			 * need to add it to our config.
 			 * This process does not need linesize and offset zonelist */
-			zopt = zone_list_zone_insert(opt, zstr, patname, 0, 0);
+			zopt = zone_list_zone_insert(opt, zstr, patname);
 			if(!zopt)
 				return 0;
 		}
@@ -1403,7 +1403,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 		if(softfail && taskudb && !is_axfr) {
 			log_msg(LOG_ERR, "Failed to apply IXFR cleanly "
 				"(deletes nonexistent RRs, adds existing RRs). "
-				"Zone %s contents is different from master, "
+				"Zone %s contents is different from primary, "
 				"starting AXFR. Transfer %s", zone_buf, log_buf);
 			/* add/del failures in IXFR, get an AXFR */
 			diff_update_commit(

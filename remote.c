@@ -960,7 +960,7 @@ do_transfer(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			xfrd_handle_notify_and_start_xfr(zone, NULL);
 			send_ok(ssl);
 		} else {
-			(void)ssl_printf(ssl, "error zone not slave\n");
+			(void)ssl_printf(ssl, "error zone not secondary\n");
 		}
 	} else {
 		RBTREE_FOR(zone, xfrd_zone_type*, xfrd->zones) {
@@ -1001,7 +1001,7 @@ do_force_transfer(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			force_transfer_zone(zone);
 			send_ok(ssl);
 		} else {
-			(void)ssl_printf(ssl, "error zone not slave\n");
+			(void)ssl_printf(ssl, "error zone not secondary\n");
 		}
 	} else {
 		RBTREE_FOR(zone, xfrd_zone_type*, xfrd->zones) {
@@ -1084,7 +1084,7 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 		}
 	}
 	if(!xz) {
-		if(!ssl_printf(ssl, "	state: master\n"))
+		if(!ssl_printf(ssl, "	state: primary\n"))
 			return 0;
 		return 1;
 	}
@@ -1294,10 +1294,10 @@ perform_changezone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			dname = NULL;
 			return 0;
 		}
-		if(zone_is_catalog_member(zopt)) {
+		if(zone_is_catalog_consumer_member(zopt)) {
 			(void)ssl_printf(ssl, "Error: Zone is a catalog "
-			  "member zone with id %s\nRepattern in the catalog "
-			  "with a group property.\n", dname_to_string(
+			  "consumer member zone with id %s\nRepattern in the "
+			  "catalog with a group property.\n", dname_to_string(
 			  as_catalog_member_zone(zopt)->member_id, NULL));
 			region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
 			dname = NULL;
@@ -1330,7 +1330,8 @@ perform_changezone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	dname = NULL;
 
 	/* add to zonelist and adds to config in memory */
-	zopt = zone_list_add(xfrd->nsd->options, arg, arg2);
+	zopt = zone_list_add_or_cat(xfrd->nsd->options, arg, arg2,
+			xfrd_add_catalog_producer_member);
 	if(!zopt) {
 		/* also dname parse error here */
 		(void)ssl_printf(ssl, "error could not add zonelist entry\n");
@@ -1397,7 +1398,8 @@ perform_addzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	dname = NULL;
 
 	/* add to zonelist and adds to config in memory */
-	zopt = zone_list_add(xfrd->nsd->options, arg, arg2);
+	zopt = zone_list_add_or_cat(xfrd->nsd->options, arg, arg2,
+			xfrd_add_catalog_producer_member);
 	if(!zopt) {
 		/* also dname parse error here */
 		(void)ssl_printf(ssl, "error could not add zonelist entry\n");
@@ -1428,6 +1430,8 @@ perform_delzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 {
 	const dname_type* dname;
 	struct zone_options* zopt;
+	/* dont recycle dname when it becomes part of xfrd_member_to_delete */
+	int recycle_dname = 1;
 
 	dname = dname_parse(xfrd->region, arg);
 	if(!dname) {
@@ -1454,17 +1458,17 @@ perform_delzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			"nsd.conf yourself and repattern\n");
 		return 0;
 	}
-	if(zone_is_catalog_member(zopt)
-	&& as_catalog_member_zone(zopt)->member_id) {
-		(void)ssl_printf(ssl, "Error: Zone is a catalog member zone "
-		  "with id %s\nRemove the member id from the catalog to "
-		  "delete this zone.\n", dname_to_string(
+	if(zone_is_catalog_consumer_member(zopt)
+	&& !as_catalog_member_zone(zopt)->member_id) {
+		(void)ssl_printf(ssl, "Error: Zone is a catalog consumer "
+		  "member zone with id %s\nRemove the member id from the "
+		  "catalog to delete this zone.\n", dname_to_string(
 		  as_catalog_member_zone(zopt)->member_id, NULL));
 		region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
 		dname = NULL;
 		return 0;
-	}
 
+	}
 	/* create deletion task */
 	task_new_del_zone(xfrd->nsd->task[xfrd->nsd->mytask],
 		xfrd->last_task, dname);
@@ -1477,11 +1481,15 @@ perform_delzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	/* delete it in xfrd's catalog consumers list */
 	if(zone_is_catalog_consumer(zopt)) {
 		xfrd_deinit_catalog_consumer_zone(xfrd, dname);
+	} else {
+		recycle_dname = !xfrd_del_catalog_producer_member(xfrd, dname);
 	}
 	/* delete from config */
 	zone_list_del(xfrd->nsd->options, zopt);
 
-	region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
+	if(recycle_dname)
+		region_recycle(xfrd->region,
+				(void*)dname, dname_total_size(dname));
 	return 1;
 }
 
@@ -2896,6 +2904,11 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear,
 	print_stat_block(ssl, "", "", st);
 
 	/* zone statistics */
+	if(!ssl_printf(ssl, "zone.primary=%lu\n",
+		(unsigned long)(xfrd->notify_zones->count - xfrd->zones->count)))
+		return;
+	if(!ssl_printf(ssl, "zone.secondary=%lu\n", (unsigned long)xfrd->zones->count))
+		return;
 	if(!ssl_printf(ssl, "zone.master=%lu\n",
 		(unsigned long)(xfrd->notify_zones->count - xfrd->zones->count)))
 		return;

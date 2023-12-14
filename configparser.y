@@ -207,6 +207,7 @@ struct component {
 %token VAR_CREATE_IXFR
 %token VAR_CATALOG
 %token VAR_CATALOG_MEMBER_PATTERN
+%token VAR_CATALOG_PRODUCER_ZONE
 
 /* zone */
 %token VAR_ZONE
@@ -1049,6 +1050,10 @@ pattern_or_zone_option:
   | VAR_CATALOG_MEMBER_PATTERN STRING 
     { 
       cfg_parser->pattern->catalog_member_pattern = region_strdup(cfg_parser->opt->region, $2); 
+    }
+  | VAR_CATALOG_PRODUCER_ZONE STRING 
+    { 
+      cfg_parser->pattern->catalog_producer_zone = region_strdup(cfg_parser->opt->region, $2); 
     };
 
 verify:

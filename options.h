@@ -20,6 +20,7 @@ struct buffer;
 struct nsd;
 struct proxy_protocol_port_list;
 
+
 typedef struct nsd_options nsd_options_type;
 typedef struct pattern_options pattern_options_type;
 typedef struct zone_options zone_options_type;
@@ -314,6 +315,7 @@ struct pattern_options {
 	uint8_t catalog_role;
 	uint8_t catalog_role_is_default;
 	const char* catalog_member_pattern;
+	const char* catalog_producer_zone;
 } ATTR_PACKED;
 
 #define PATTERN_IMPLICIT_MARKER "_implicit_"
@@ -343,7 +345,11 @@ struct catalog_member_zone {
 	const struct dname*          member_id;
 	struct catalog_member_zone** prev_next_ptr;
 	struct catalog_member_zone*  next;
+	/* member_id index in the associated catalog producer */
+	rbnode_type                  node;
 } ATTR_PACKED;
+
+typedef void (*new_member_id_type)(struct catalog_member_zone* zone);
 
 union acl_addr_storage {
 #ifdef INET6
@@ -505,12 +511,16 @@ void tls_auth_options_insert(struct nsd_options* opt, struct tls_auth_options* a
 struct tls_auth_options* tls_auth_options_find(struct nsd_options* opt, const char* name);
 /* read in zone list file. Returns false on failure */
 int parse_zone_list_file(struct nsd_options* opt);
+/* create (potential) catalog producer member entry and add to the zonelist */
+struct zone_options* zone_list_add_or_cat(struct nsd_options* opt,
+	const char* zname, const char* pname, new_member_id_type new_member_id);
 /* create zone entry and add to the zonelist file */
-struct zone_options* zone_list_add(struct nsd_options* opt, const char* zname,
-	const char* pname);
+static inline struct zone_options* zone_list_add(struct nsd_options* opt,
+		const char* zname, const char* pname)
+{ return zone_list_add_or_cat(opt, zname, pname, NULL); }
 /* create zonelist entry, do not insert in file (called by _add) */
 struct zone_options* zone_list_zone_insert(struct nsd_options* opt,
-	const char* nm, const char* patnm, int linesize, off_t off);
+	const char* nm, const char* patnm);
 void zone_list_del(struct nsd_options* opt, struct zone_options* zone);
 void zone_list_compact(struct nsd_options* opt);
 void zone_list_close(struct nsd_options* opt);
@@ -571,7 +581,8 @@ static inline int zone_is_catalog_producer(struct zone_options* opt)
 static inline int zone_is_catalog_member(struct zone_options* opt)
 { return opt && opt->is_catalog_member_zone; }
 static inline const char* zone_is_catalog_producer_member(struct zone_options* opt)
-{ (void)opt; return NULL; }
+{ return opt && opt->pattern && opt->pattern->catalog_producer_zone
+                              ? opt->pattern->catalog_producer_zone : NULL; }
 static inline int zone_is_catalog_consumer_member(struct zone_options* opt)
 { return zone_is_catalog_member(opt) && !zone_is_catalog_producer_member(opt); }
 /* create zonefile name, returns static pointer (perhaps to options data) */
