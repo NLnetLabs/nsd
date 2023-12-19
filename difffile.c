@@ -1599,7 +1599,7 @@ void task_new_check_zonefiles(udb_base* udb, udb_ptr* last,
 	const dname_type* zone)
 {
 	udb_ptr e;
-	xfrd_mark_catalog_consumer_zone_for_checking(zone);
+	xfrd_check_catalog_consumer_zonefiles(zone);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task checkzonefiles"));
 	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d) +
 		(zone?dname_total_size(zone):0), zone)) {
@@ -1837,7 +1837,6 @@ task_new_apply_xfr(udb_base* udb, udb_ptr* last, const dname_type* dname,
 	uint32_t old_serial, uint32_t new_serial, uint64_t filenumber)
 {
 	udb_ptr e;
-	xfrd_mark_catalog_consumer_zone_for_checking(dname);
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task apply_xfr"));
 	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)
 		+dname_total_size(dname), dname)) {

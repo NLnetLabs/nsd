@@ -74,7 +74,7 @@ static void make_catalog_consumer_invalid(
 
 /* make the catalog consumer zone valid again */
 static void make_catalog_consumer_valid(
-		struct xfrd_catalog_consumer_zone *catz, uint8_t to_check);
+		struct xfrd_catalog_consumer_zone *catz);
 
 /* delete the catalog member zone */
 static void catalog_del_member_zone(struct catalog_member_zone* member_zone);
@@ -1060,7 +1060,7 @@ xfrd_init_catalog_consumer_zone(xfrd_state_type* xfrd,
 				" '%s: it already exists in xfrd's catalog "
 				" consumer zones index", zone->name);
 		/* Maybe we need to reprocess it? */
-		make_catalog_consumer_valid(catz, 1);
+		make_catalog_consumer_valid(catz);
 		return;
 	}
        	catz = (struct xfrd_catalog_consumer_zone*)
@@ -1069,10 +1069,11 @@ xfrd_init_catalog_consumer_zone(xfrd_state_type* xfrd,
         memset(catz, 0, sizeof(struct xfrd_catalog_consumer_zone));
         catz->node.key = zone->node.key;
         catz->options = zone;
+	catz->mtime.tv_sec = 0;
+	catz->mtime.tv_nsec = 0;
 	catz->member_zones = NULL;
 	catz->n_member_zones = 0;
 	catz->invalid = NULL;
-	catz->to_check = 1;
 	rbtree_insert(xfrd->catalog_consumer_zones, (rbnode_type*)catz);
 #ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
 	if ((int)xfrd->catalog_consumer_zones->count > 1) {
@@ -1132,7 +1133,6 @@ vmake_catalog_consumer_invalid(struct xfrd_catalog_consumer_zone *catz,
 	log_msg(LOG_ERR, "invalid catalog consumer zone '%s': %s",
 		catz->options->name, message);
 	catz->invalid = region_strdup(xfrd->region, message);
-	catz->to_check = 0;
 }
 
 
@@ -1150,15 +1150,13 @@ make_catalog_consumer_invalid(struct xfrd_catalog_consumer_zone *catz,
 
 /** make the catalog consumer zone valid again */
 static void
-make_catalog_consumer_valid(
-		struct xfrd_catalog_consumer_zone *catz, uint8_t to_check)
+make_catalog_consumer_valid(struct xfrd_catalog_consumer_zone *catz)
 {
 	if (catz->invalid) {
 		region_recycle(xfrd->region,
 				catz->invalid, strlen(catz->invalid)+1);
 		catz->invalid = NULL;
 	}
-	catz->to_check = to_check;
 }
 
 /** Convenience function for lookup parts of a catalog consumer zone */
@@ -1238,7 +1236,7 @@ catalog_del_member_zone(struct catalog_member_zone* member_zone)
 	zone_options_delete(xfrd->nsd->options, &member_zone->options);
 }
 
-void xfrd_mark_catalog_consumer_zone_for_checking(const dname_type* zone)
+void xfrd_check_catalog_consumer_zonefiles(const dname_type* zone)
 {
 	struct xfrd_catalog_consumer_zone* catz;
 
@@ -1250,16 +1248,28 @@ void xfrd_mark_catalog_consumer_zone_for_checking(const dname_type* zone)
 		return;
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Mark %s "
 		"for checking", catz->options->name));
-	make_catalog_consumer_valid(catz, 1);
+	make_catalog_consumer_valid(catz);
+	namedb_read_zonefile(xfrd->nsd,
+		namedb_find_or_create_zone(xfrd->nsd->db, zone, catz->options),
+		NULL, NULL);
 #else
 	if (!zone) {
 		RBTREE_FOR(catz, struct xfrd_catalog_consumer_zone*,
 				xfrd->catalog_consumer_zones) {
-			make_catalog_consumer_valid(catz, 1);
+			make_catalog_consumer_valid(catz);
+			namedb_read_zonefile(xfrd->nsd,
+				namedb_find_or_create_zone(
+					xfrd->nsd->db, catz->options->node.key,
+					catz->options),
+				NULL, NULL);
 		}
 	} else if ((catz = (struct xfrd_catalog_consumer_zone*)
 			rbtree_search(xfrd->catalog_consumer_zones, zone))) {
-		make_catalog_consumer_valid(catz, 1);
+		make_catalog_consumer_valid(catz);
+		namedb_read_zonefile(xfrd->nsd,
+			namedb_find_or_create_zone(
+				xfrd->nsd->db, zone, catz->options),
+			NULL, NULL);
 	}
 #endif
 }
@@ -1311,70 +1321,6 @@ static void xfrd_process_catalog_consumer_zones()
 #endif
 }
 
-/* Return 1 if an xfr has been tried, 0 otherwise */
-static int
-try2apply_xfr_on_consumer(struct xfrd_catalog_consumer_zone* catz,
-		zone_type* zone, xfrd_zone_type* secondary)
-{
-	xfrd_xfr_type* xfr;
-
-	for(xfr = secondary->latest_xfr; xfr; xfr = xfr->prev) {
-		FILE *df;
-
-		if(xfr->already_tried || !xfr->acquired
-		|| (  xfr->msg_is_ixfr && zone->soa_rrset && zone->soa_rrset->rrs
-		   && zone->soa_rrset->rrs[0].rdata_count > 2
-		   && rdata_atom_size(zone->soa_rrset->rrs[0].rdatas[2])
-				== sizeof(uint32_t)
-		   && read_uint32(rdata_atom_data(
-					zone->soa_rrset->rrs[0].rdatas[2]))
-			 	!= xfr->msg_old_serial))
-			continue;
-
-		xfr->already_tried = 1;
-#ifndef NDEBUG
-		if(xfr->msg_is_ixfr)
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "trying IXFR from "
-				"serial %u to serial %u available for "
-				"catalog consumer zone %s",
-				xfr->msg_old_serial, xfr->msg_new_serial,
-				catz->options->name));
-		else
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "trying AXFR to "
-				"serial %u available for catalog consumer %s",
-				xfr->msg_new_serial, catz->options->name));
-#endif
-		df = xfrd_open_xfrfile(xfrd->nsd, xfr->xfrfilenumber, "r");
-		if (!df) {
-			make_catalog_consumer_invalid(catz,
-				"could not open transfer file %lld: %s",
-				(long long)xfr->xfrfilenumber,
-				strerror(errno));
-			return 1;
-		}
-		/* read and apply zone transfer */
-		if(!apply_ixfr_for_zone(xfrd->nsd, zone, df,
-				xfrd->nsd->options, NULL, NULL,
-				xfr->xfrfilenumber)) {
-			make_catalog_consumer_invalid(catz,
-				"error processing transfer file %lld",
-				(long long)xfr->xfrfilenumber);
-		}
-		return 1;
-	}
-	return 0;
-}
-
-static void
-try2apply_xfrs_on_consumer(struct xfrd_catalog_consumer_zone* catz,
-		zone_type* zone, xfrd_zone_type* secondary)
-{
-	if(!secondary)
-		return;
-	while(try2apply_xfr_on_consumer(catz, zone, secondary))
-		; /* Keep trying as long as we've tried something */
-}
-
 static void
 xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 {
@@ -1384,12 +1330,11 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 	rrset_type *rrset;
 	size_t i;
 	uint8_t version_2_found;
-	struct timespec old_mtime, new_mtime;
 	struct catalog_member_zone** next_member_ptr;
 	struct catalog_member_zone*  cmz;
 	struct pattern_options *default_pattern = NULL;
 
-	if (!catz || !catz->to_check)
+	if (!catz)
 		return;
 	if (!xfrd->nsd->db) {
 		xfrd->nsd->db = namedb_open(xfrd->nsd->options);
@@ -1406,33 +1351,14 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 	zone = namedb_find_zone(xfrd->nsd->db, dname);
 	if (!zone) {
 		zone = namedb_zone_create(xfrd->nsd->db, dname, catz->options);
-		old_mtime = zone->mtime;
-		/* secondary zones also read zonefile initially */
-		if(zone_is_slave(catz->options))
-			namedb_read_zonefile(xfrd->nsd, zone, NULL, NULL);
-	} else
-		old_mtime = zone->mtime;
-
-	if(zone_is_slave(catz->options)) {
-		try2apply_xfrs_on_consumer(catz, zone,
-			(xfrd_zone_type*)rbtree_search(xfrd->zones, dname));
-	} else
 		namedb_read_zonefile(xfrd->nsd, zone, NULL, NULL);
-	new_mtime = zone->mtime;
-#ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
-	if (!catz->member_zones) {
-		; /* The catalog may be unprocessed due to the presence of
-		   * other catalog consumer zones before, so do process when
-		   * not configured for support for multiple catalog consumers
-		   */
-	} else
-#endif
-	if (timespec_compare(&old_mtime, &new_mtime) == 0) {
+	}
+	if (timespec_compare(&catz->mtime, &zone->mtime) == 0) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Not processing unchanged "
 			"catalog consumer zone %s", catz->options->name));
-		catz->to_check = 0;
 		return;
 	}
+	catz->mtime = zone->mtime;
 	/* start processing */
 	/* Lookup version.<catz> TXT and check that it is version 2 */
 	if(!namedb_lookup(xfrd->nsd->db, label_plus_dname("version", dname),
@@ -1466,7 +1392,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		/* zones.<catz> does not exist, so the catalog has no members.
 		 * This is just fine.
 		 */
-		make_catalog_consumer_valid(catz, 0);
+		make_catalog_consumer_valid(catz);
 		return;
 	}
 	next_member_ptr = &catz->member_zones;
@@ -1720,7 +1646,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		      cmz->options.name));
 	}
 #endif
-	make_catalog_consumer_valid(catz, 0);
+	make_catalog_consumer_valid(catz);
 }
 
 static void
@@ -1730,6 +1656,8 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 	xfrd_soa_type* soa_ptr = &soa;
 	xfrd_zone_type* zone;
 	struct xfrd_catalog_producer_zone* producer_zone;
+	struct xfrd_catalog_consumer_zone* consumer_zone;
+	zone_type* dbzone;
 	xfrd_xfr_type* xfr;
 	xfrd_xfr_type* prev_xfr;
 	enum soainfo_hint hint;
@@ -1857,6 +1785,8 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 			continue;
 		}
 		if(hint == soainfo_ok) {
+			FILE *df;
+
 			/* skip non-queued updates */
 			if(!xfr->sent)
 				continue;
@@ -1880,6 +1810,42 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 					zone->apex_str, DIFF_VERIFIED,
 					xfrd->nsd, xfr->xfrfilenumber);
 				return;
+			}
+			if(!xfrd->nsd->db
+			|| !xfrd->catalog_consumer_zones
+#ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
+			||  xfrd->catalog_consumer_zones->count != 1
+#endif
+			|| !(consumer_zone =
+					(struct xfrd_catalog_consumer_zone*)
+					rbtree_search(
+						xfrd->catalog_consumer_zones,
+						task->zname)))
+				; /* Not a consumer zone, all is good */
+
+			else if(!(dbzone = namedb_find_or_create_zone(
+					xfrd->nsd->db, task->zname,
+					consumer_zone->options)))
+				; /* unreachable: assert(dbzone); */
+
+			else if(!(df = xfrd_open_xfrfile(xfrd->nsd,
+						xfr->xfrfilenumber, "r"))) {
+				make_catalog_consumer_invalid(consumer_zone,
+				       "could not open transfer file %lld: %s",
+				       (long long)xfr->xfrfilenumber,
+				       strerror(errno));
+
+			} else if(!apply_ixfr_for_zone(xfrd->nsd, dbzone, df,
+					xfrd->nsd->options, NULL, NULL,
+					xfr->xfrfilenumber)) {
+				make_catalog_consumer_invalid(consumer_zone,
+                                	"error processing transfer file %lld",
+                                	(long long)xfr->xfrfilenumber);
+				fclose(df);
+			} else {
+				/* Make valid for reprocessing */
+				make_catalog_consumer_valid(catz);
+				fclose(df);
 			}
 		}
 		DEBUG(DEBUG_IPC, 1,

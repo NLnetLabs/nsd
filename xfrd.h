@@ -139,6 +139,9 @@ struct xfrd_catalog_consumer_zone {
 	/* Associated zone options with this catalog consumer zone */
 	struct zone_options* options;
 
+	/* Last time processed, compare with zone->mtime to see if we need to process */
+	struct timespec mtime;
+
 	/* Double linked list of member zones for this catalog consumer zone */
 	struct catalog_member_zone* member_zones;
 
@@ -147,9 +150,6 @@ struct xfrd_catalog_consumer_zone {
 
 	/* The reason for this zone to be invalid, or NULL if it is valid */
 	char *invalid;
-
-	/* The catalog consumer zone needs checking/processing */
-	unsigned to_check : 1;
 } ATTR_PACKED;
 
 /* Initialize as a catalog consumer zone */
@@ -174,8 +174,8 @@ void xfrd_add_catalog_producer_member(struct catalog_member_zone* cmz);
 int xfrd_del_catalog_producer_member(xfrd_state_type* xfrd,
 		const dname_type* dname);
 
-/* Mark the catalog consumer zone for checking (if it matches zone) */
-void xfrd_mark_catalog_consumer_zone_for_checking(const dname_type* zone);
+/* Check the catalog consumer zone files (or file if zone is given) */
+void xfrd_check_catalog_consumer_zonefiles(const dname_type* zone);
 
 /* Return the reason a zone is invalid, or NULL on a valid catalog */
 const char *invalid_catalog_consumer_zone(struct zone_options* zone);
@@ -344,8 +344,6 @@ struct xfrd_xfr {
 	tsig_record_type tsig; /* tsig state for IXFR/AXFR */
 	uint64_t xfrfilenumber; /* identifier for file to store xfr into,
 	                           valid if msg_seq_nr nonzero */
-	/* The transfer's has been tried to apply on a catalog consumer */
-	unsigned already_tried: 1;
 };
 
 enum xfrd_packet_result {
