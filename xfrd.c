@@ -1070,6 +1070,7 @@ xfrd_init_catalog_consumer_zone(xfrd_state_type* xfrd,
         catz->node.key = zone->node.key;
         catz->options = zone;
 	catz->member_zones = NULL;
+	catz->n_member_zones = 0;
 	catz->invalid = NULL;
 	catz->to_check = 1;
 	rbtree_insert(xfrd->catalog_consumer_zones, (rbnode_type*)catz);
@@ -1111,6 +1112,7 @@ xfrd_deinit_catalog_consumer_zone(xfrd_state_type* xfrd,
 				catz->member_zones->options.name,
 				catz->options->name);
 			catalog_del_member_zone(catz->member_zones);
+			catz->n_member_zones -= 1;
 		}
 	}
 	if ((zone = namedb_find_zone(xfrd->nsd->db, dname))) {
@@ -1309,6 +1311,70 @@ static void xfrd_process_catalog_consumer_zones()
 #endif
 }
 
+/* Return 1 if an xfr has been tried, 0 otherwise */
+static int
+try2apply_xfr_on_consumer(struct xfrd_catalog_consumer_zone* catz,
+		zone_type* zone, xfrd_zone_type* secondary)
+{
+	xfrd_xfr_type* xfr;
+
+	for(xfr = secondary->latest_xfr; xfr; xfr = xfr->prev) {
+		FILE *df;
+
+		if(xfr->already_tried || !xfr->acquired
+		|| (  xfr->msg_is_ixfr && zone->soa_rrset && zone->soa_rrset->rrs
+		   && zone->soa_rrset->rrs[0].rdata_count > 2
+		   && rdata_atom_size(zone->soa_rrset->rrs[0].rdatas[2])
+				== sizeof(uint32_t)
+		   && read_uint32(rdata_atom_data(
+					zone->soa_rrset->rrs[0].rdatas[2]))
+			 	!= xfr->msg_old_serial))
+			continue;
+
+		xfr->already_tried = 1;
+#ifndef NDEBUG
+		if(xfr->msg_is_ixfr)
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "trying IXFR from "
+				"serial %u to serial %u available for "
+				"catalog consumer zone %s",
+				xfr->msg_old_serial, xfr->msg_new_serial,
+				catz->options->name));
+		else
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "trying AXFR to "
+				"serial %u available for catalog consumer %s",
+				xfr->msg_new_serial, catz->options->name));
+#endif
+		df = xfrd_open_xfrfile(xfrd->nsd, xfr->xfrfilenumber, "r");
+		if (!df) {
+			make_catalog_consumer_invalid(catz,
+				"could not open transfer file %lld: %s",
+				(long long)xfr->xfrfilenumber,
+				strerror(errno));
+			return 1;
+		}
+		/* read and apply zone transfer */
+		if(!apply_ixfr_for_zone(xfrd->nsd, zone, df,
+				xfrd->nsd->options, NULL, NULL,
+				xfr->xfrfilenumber)) {
+			make_catalog_consumer_invalid(catz,
+				"error processing transfer file %lld",
+				(long long)xfr->xfrfilenumber);
+		}
+		return 1;
+	}
+	return 0;
+}
+
+static void
+try2apply_xfrs_on_consumer(struct xfrd_catalog_consumer_zone* catz,
+		zone_type* zone, xfrd_zone_type* secondary)
+{
+	if(!secondary)
+		return;
+	while(try2apply_xfr_on_consumer(catz, zone, secondary))
+		; /* Keep trying as long as we've tried something */
+}
+
 static void
 xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 {
@@ -1322,7 +1388,6 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 	struct catalog_member_zone** next_member_ptr;
 	struct catalog_member_zone*  cmz;
 	struct pattern_options *default_pattern = NULL;
-	xfrd_zone_type* slave_zone;
 
 	if (!catz || !catz->to_check)
 		return;
@@ -1341,41 +1406,18 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 	zone = namedb_find_zone(xfrd->nsd->db, dname);
 	if (!zone) {
 		zone = namedb_zone_create(xfrd->nsd->db, dname, catz->options);
-	}
+		old_mtime = zone->mtime;
+		/* secondary zones also read zonefile initially */
+		if(zone_is_slave(catz->options))
+			namedb_read_zonefile(xfrd->nsd, zone, NULL, NULL);
+	} else
+		old_mtime = zone->mtime;
 
-	old_mtime = zone->mtime;
-	if (zone_is_slave(catz->options)
-	&& (slave_zone = (xfrd_zone_type*)rbtree_search(xfrd->zones, dname))
-	&&  slave_zone->latest_xfr) {
-		FILE *df;
-
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "XFR from serial %d "
-			"to serial %d available for catalog zone %s",
-			(int)slave_zone->latest_xfr->msg_old_serial,
-			(int)slave_zone->latest_xfr->msg_new_serial,
-			catz->options->name));
-		df = xfrd_open_xfrfile(xfrd->nsd, slave_zone->latest_xfr->xfrfilenumber, "r");
-		if (!df) {
-			make_catalog_consumer_invalid(catz,
-				"could not open transfer file %lld: %s",
-				(long long)slave_zone->latest_xfr->xfrfilenumber,
-				strerror(errno));
-			return;
-		}
-		/* read and apply zone transfer */
-		if(!apply_ixfr_for_zone(xfrd->nsd, zone, df,
-				xfrd->nsd->options, NULL, NULL,
-				slave_zone->latest_xfr->xfrfilenumber)) {
-			fclose(df);
-			make_catalog_consumer_invalid(catz,
-				"error processing transfer file %lld",
-				(long long)slave_zone->latest_xfr->xfrfilenumber);
-			return;
-		}
-		fclose(df);
-	} else {
+	if(zone_is_slave(catz->options)) {
+		try2apply_xfrs_on_consumer(catz, zone,
+			(xfrd_zone_type*)rbtree_search(xfrd->zones, dname));
+	} else
 		namedb_read_zonefile(xfrd->nsd, zone, NULL, NULL);
-	}
 	new_mtime = zone->mtime;
 #ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
 	if (!catz->member_zones) {
@@ -1544,6 +1586,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 					cmp));
 
 				catalog_del_member_zone(*next_member_ptr);
+				catz->n_member_zones -= 1;
 			};
 			if (*next_member_ptr && cmp == 0) {
 				/* member_id is also in an current catalog
@@ -1638,6 +1681,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		cmz->prev_next_ptr = next_member_ptr;
 		*next_member_ptr = cmz;
 		next_member_ptr = &cmz->next;
+		catz->n_member_zones += 1;
 		/* make addzone task and schedule reload */
         	task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
                 	xfrd->last_task, member_domain_str,
@@ -1666,6 +1710,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		 * member_id in the catalog anymore, so should be deleted too.
 		 */
 		catalog_del_member_zone(*next_member_ptr);
+		catz->n_member_zones -= 1;
 	}
 #ifndef NDEBUG
 	for ( cmz = catz->member_zones, i = 0
@@ -1789,6 +1834,8 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 			if((*pxfr->prev_next_ptr = pxfr->next))
 				pxfr->next->prev_next_ptr = pxfr->prev_next_ptr;
 			region_recycle(xfrd->region, pxfr, sizeof(*pxfr));
+			notify_handle_master_zone_soainfo(xfrd->notify_zones,
+				task->zname, soa_ptr);
 		}
 		return;
 	} else {

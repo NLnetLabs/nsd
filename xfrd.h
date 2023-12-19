@@ -142,6 +142,9 @@ struct xfrd_catalog_consumer_zone {
 	/* Double linked list of member zones for this catalog consumer zone */
 	struct catalog_member_zone* member_zones;
 
+	/* number of catalog consumer member zones */
+	size_t n_member_zones;
+
 	/* The reason for this zone to be invalid, or NULL if it is valid */
 	char *invalid;
 
@@ -341,6 +344,8 @@ struct xfrd_xfr {
 	tsig_record_type tsig; /* tsig state for IXFR/AXFR */
 	uint64_t xfrfilenumber; /* identifier for file to store xfr into,
 	                           valid if msg_seq_nr nonzero */
+	/* The transfer's has been tried to apply on a catalog consumer */
+	unsigned already_tried: 1;
 };
 
 enum xfrd_packet_result {

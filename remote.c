@@ -1040,16 +1040,47 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 			return 0;
 	}
 	if(zone_is_catalog_consumer(zo)) {
-		if(!ssl_printf(ssl, "	catalog: consumer\n"))
+		zone_type* zone = namedb_find_zone(xfrd->nsd->db,
+				(const dname_type*)zo->node.key);
+		struct xfrd_catalog_consumer_zone* consumer_zone =
+			(struct xfrd_catalog_consumer_zone*)
+			rbtree_search( xfrd->catalog_consumer_zones
+			             , zo->node.key);
+
+		if(!ssl_printf(ssl, "	catalog: consumer"))
 			return 0;
-		if (invalid_catalog_consumer_zone(zo)) {
+		if(zone && zone->soa_rrset && zone->soa_rrset->rrs
+		&& zone->soa_rrset->rrs[0].rdata_count > 2
+		&& rdata_atom_size(zone->soa_rrset->rrs[0].rdatas[2]) ==
+							sizeof(uint32_t)) {
+			if(!ssl_printf(ssl, " (serial: %u, # members: %zu)\n",
+					read_uint32(rdata_atom_data(
+					zone->soa_rrset->rrs[0].rdatas[2])),
+					  consumer_zone
+					? consumer_zone->n_member_zones : 0))
+				return 0;
+
+		} else if(!ssl_printf(ssl, "\n"))
+			return 0;
+		if(invalid_catalog_consumer_zone(zo)) {
 			if(!ssl_printf(ssl, "	catalog-invalid: %s\n",
 					invalid_catalog_consumer_zone(zo)))
 				return 0;
 		}
 	}
 	if(zone_is_catalog_producer(zo)) {
-		if(!ssl_printf(ssl, "	catalog: producer\n"))
+		struct xfrd_catalog_producer_zone* producer_zone =
+			(struct xfrd_catalog_producer_zone*)
+			rbtree_search( xfrd->catalog_producer_zones
+			             , zo->node.key);
+		if(!ssl_printf(ssl, "	catalog: producer"))
+			return 0;
+		if(producer_zone) {
+			if(!ssl_printf(ssl, " (serial: %u, # members: %zu)\n",
+					producer_zone->serial,
+				       	producer_zone->member_ids.count))
+				return 0;
+		} else if(!ssl_printf(ssl, "\n"))
 			return 0;
 		if (zone_is_slave(zo)) {
 			if(!ssl_printf(ssl, "	catalog-invalid: a catalog "
@@ -1459,7 +1490,7 @@ perform_delzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		return 0;
 	}
 	if(zone_is_catalog_consumer_member(zopt)
-	&& !as_catalog_member_zone(zopt)->member_id) {
+	&& as_catalog_member_zone(zopt)->member_id) {
 		(void)ssl_printf(ssl, "Error: Zone is a catalog consumer "
 		  "member zone with id %s\nRemove the member id from the "
 		  "catalog to delete this zone.\n", dname_to_string(
