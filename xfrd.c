@@ -1593,7 +1593,9 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		cmz->options.pattern = pattern;
 		if (!nsd_options_insert_zone(xfrd->nsd->options, &cmz->options)) {
 	                log_msg(LOG_ERR, "bad domain name or duplicate zone "
-				"'%s' pattern %s", member_domain_str, pattern->pname);
+				"'%s' pattern %s", member_domain_str,
+				( pattern && pattern->pname
+				? pattern->pname: "<NULL>"));
 			zone_options_delete(xfrd->nsd->options, &cmz->options);
 			continue;
 		}
