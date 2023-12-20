@@ -1473,10 +1473,11 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 				domain_to_string(member_id));
 			valid_group_values = 0;
 		}
-		if (valid_group_values == 1)
-			; /* pass: pattern is already set */
+		if (valid_group_values == 1) {
+			/* pass: pattern is already set */
+			assert(pattern);
 
-		else if (default_pattern)
+		} else if (default_pattern)
 			pattern = default_pattern; /* pass */
 
 		else if (!(pattern = default_pattern =
@@ -1594,8 +1595,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		if (!nsd_options_insert_zone(xfrd->nsd->options, &cmz->options)) {
 	                log_msg(LOG_ERR, "bad domain name or duplicate zone "
 				"'%s' pattern %s", member_domain_str,
-				( pattern && pattern->pname
-				? pattern->pname: "<NULL>"));
+				( pattern->pname ? pattern->pname: "<NULL>"));
 			zone_options_delete(xfrd->nsd->options, &cmz->options);
 			continue;
 		}
