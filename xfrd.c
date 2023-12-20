@@ -1837,14 +1837,15 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 
 			} else if(!apply_ixfr_for_zone(xfrd->nsd, dbzone, df,
 					xfrd->nsd->options, NULL, NULL,
-					xfr->xfrfilenumber)) {
+					xfr->xfrfilenumber,
+					CALLED_FROM_XFRD_PROCESS)) {
 				make_catalog_consumer_invalid(consumer_zone,
                                 	"error processing transfer file %lld",
                                 	(long long)xfr->xfrfilenumber);
 				fclose(df);
 			} else {
 				/* Make valid for reprocessing */
-				make_catalog_consumer_valid(catz);
+				make_catalog_consumer_valid(consumer_zone);
 				fclose(df);
 			}
 		}
