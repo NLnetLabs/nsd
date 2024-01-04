@@ -74,6 +74,7 @@
 #include "remote.h"
 #include "util.h"
 #include "xfrd.h"
+#include "xfrd-catalog-zones.h"
 #include "xfrd-notify.h"
 #include "xfrd-tcp.h"
 #include "nsd.h"

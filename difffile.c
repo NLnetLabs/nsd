@@ -24,7 +24,7 @@
 #include "rrl.h"
 #include "ixfr.h"
 #include "zonec.h"
-#include "xfrd.h"
+#include "xfrd-catalog-zones.h"
 
 static int
 write_64(FILE *out, uint64_t val)
