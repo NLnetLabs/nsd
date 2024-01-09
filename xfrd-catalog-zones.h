@@ -8,7 +8,7 @@
 #ifndef XFRD_CATALOG_ZONES_H
 #define XFRD_CATALOG_ZONES_H
 #include "xfrd.h"
-struct xfrd_member_to_delete;
+struct xfrd_producer_member;
 struct xfrd_producer_xfr;
 
 /**
@@ -48,10 +48,10 @@ struct xfrd_catalog_producer_zone {
 	uint32_t serial;
 
 	/* Stack of members to delete from this catalog producer zone */
-	struct xfrd_member_to_delete* to_delete;
+	struct xfrd_producer_member* to_delete;
 
 	/* Stack of member zones to add to this catalog producer zone */
-	struct catalog_member_zone* to_add;
+	struct xfrd_producer_member* to_add;
 
 	/* Member zones indexed by member_id */
 	rbtree_type member_ids;
@@ -66,11 +66,11 @@ struct xfrd_catalog_producer_zone {
 /**
  * Data to remove from a catalog producer zone
  */
-struct xfrd_member_to_delete {
+struct xfrd_producer_member {
 	const dname_type* member_id;
 	const dname_type* member_zone_name;
 	const char* group_name;
-	struct xfrd_member_to_delete* next;
+	struct xfrd_producer_member* next;
 } ATTR_PACKED;
 
 /**

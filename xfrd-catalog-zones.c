@@ -825,6 +825,7 @@ xfrd_add_catalog_producer_member(struct catalog_member_zone* cmz)
 {
 	struct xfrd_catalog_producer_zone* producer_zone;
 	const dname_type* producer_name;
+	struct xfrd_producer_member* to_add;
 
 	assert(xfrd);
 	if(cmz->next) {
@@ -857,17 +858,23 @@ xfrd_add_catalog_producer_member(struct catalog_member_zone* cmz)
 		}
 		cmz->member_id = NULL;
 	}
-	/* Put member zone to be added on the producer's to_add stack */
-	cmz->next = producer_zone->to_add;
-	producer_zone->to_add = cmz;
 	rbtree_insert(&producer_zone->member_ids, &cmz->node);
+
+	/* Put data to be added to the producer zone to the to_add stack */
+	to_add = (struct xfrd_producer_member*)region_alloc(xfrd->region,
+			sizeof(struct xfrd_producer_member));
+	to_add->member_id = cmz->member_id;
+	to_add->member_zone_name = (dname_type*)cmz->options.node.key;
+	to_add->group_name = cmz->options.pattern->pname;
+	to_add->next = producer_zone->to_add;
+	producer_zone->to_add = to_add;
 }
 
 int
 xfrd_del_catalog_producer_member(struct xfrd_state* xfrd,
 	       	const dname_type* member_zone_name)
 {
-	struct xfrd_member_to_delete* to_delete;
+	struct xfrd_producer_member* to_delete;
 	struct catalog_member_zone* cmz;
 	struct xfrd_catalog_producer_zone* producer_zone;
 
@@ -876,8 +883,8 @@ xfrd_del_catalog_producer_member(struct xfrd_state* xfrd,
 	|| !(producer_zone = xfrd_get_catalog_producer_zone(cmz))
 	|| !rbtree_delete(&producer_zone->member_ids, cmz))
 		return 0;
-	to_delete = (struct xfrd_member_to_delete*)region_alloc(xfrd->region,
-			sizeof(struct xfrd_member_to_delete));
+	to_delete = (struct xfrd_producer_member*)region_alloc(xfrd->region,
+			sizeof(struct xfrd_producer_member));
 	to_delete->member_id = cmz->member_id; cmz->member_id = NULL;
 	to_delete->member_zone_name = member_zone_name;
 	to_delete->group_name = cmz->options.pattern->pname;
@@ -1060,7 +1067,7 @@ xfrd_process_catalog_producer_zone(
 	/* IXFR */
 	xfr_writer_add_SOA(&xw, producer_name, xw.old_serial);
 	while(producer_zone->to_delete) {
-		struct xfrd_member_to_delete* to_delete =
+		struct xfrd_producer_member* to_delete =
 			producer_zone->to_delete;
 
 		/* Pop to_delete from stack */
@@ -1090,22 +1097,25 @@ xfrd_process_catalog_producer_zone(
 
 add_member_zones:
 	while(producer_zone->to_add) {
-		struct catalog_member_zone* cmz = producer_zone->to_add;
-		dname_type* member_name =
-			(dname_type*)cmz->options.node.key;
+		struct xfrd_producer_member* to_add = producer_zone->to_add;
 
-		/* Pop cmz from stack */
-		producer_zone->to_add = cmz->next;
-		cmz->next = NULL;
+		/* Pop to_add from stack */
+		producer_zone->to_add = to_add->next;
+		to_add->next = NULL;
 
 		/* Write <member_id> PTR <member_name> */
-		xfr_writer_add_PTR(&xw, cmz->member_id, member_name);
+		xfr_writer_add_PTR(&xw, to_add->member_id, to_add->member_zone_name);
 
 		/* Write group.<member_id> TXT <pattern> */
 		xfr_writer_add_TXT( &xw
 				  , label_plus_dname("group"
-						    , cmz->member_id)
-				  , cmz->options.pattern->pname);
+						    , to_add->member_id)
+				  , to_add->group_name);
+
+		/* Don't recycle any of the struct attributes as they come
+		 * from zone_option's that are in use
+		 */
+		region_recycle(xfrd->region, to_add, sizeof(*to_add));
 	}
 	xfr_writer_add_SOA(&xw, producer_name, xw.new_serial);
 	xfr_writer_commit(&xw, "xfr for catalog producer zone "

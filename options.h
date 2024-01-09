@@ -340,6 +340,14 @@ struct zone_options {
 	unsigned is_catalog_member_zone: 1;
 } ATTR_PACKED;
 
+/*
+ * Options for catalog member zones
+ * assert(options->is_catalog_member_zone == 1)
+ * when options->pattern->catalog_producer_zone is set, this is a
+ * producer member zone, otherwise a consumer member zone.
+ * A catalog member zone is either a member zone of a catalog producer zone
+ * or a catalog consumer zone. They are mutually exclusive.
+ */
 struct catalog_member_zone {
 	struct zone_options          options;
 	const struct dname*          member_id;

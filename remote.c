@@ -1462,7 +1462,7 @@ perform_delzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 {
 	const dname_type* dname;
 	struct zone_options* zopt;
-	/* dont recycle dname when it becomes part of xfrd_member_to_delete */
+	/* dont recycle dname when it becomes part of a xfrd_producer_member */
 	int recycle_dname = 1;
 
 	dname = dname_parse(xfrd->region, arg);
