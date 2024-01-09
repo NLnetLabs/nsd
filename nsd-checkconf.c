@@ -594,8 +594,10 @@ static void print_zone_content_elems(pattern_options_type* pat)
 	default                   : break;
 	}
 
-	if(pat->catalog_member_pattern) 
-		print_string_var("catalog-member-pattern:", pat->catalog_member_pattern);	
+	if(pat->catalog_member_pattern)
+		print_string_var("catalog-member-pattern:", pat->catalog_member_pattern);
+	if(pat->catalog_producer_zone)
+		print_string_var("catalog-producer-zone:", pat->catalog_producer_zone);
 }
 
 void
@@ -817,8 +819,8 @@ additional_checks(nsd_options_type* opt, const char* filename)
 				"is received?\n", filename, zone->name);
 			errors ++;
 		}
-		if(!zone_is_slave(zone) && (!zone->pattern->zonefile ||
-			zone->pattern->zonefile[0] == 0)) {
+		if(!zone_is_slave(zone) && !zone_is_catalog_producer(zone)
+		&& (!zone->pattern->zonefile || zone->pattern->zonefile[0] == 0)) {
 			fprintf(stderr, "%s: zone %s is a primary zone but has "
 				"no zonefile. Where can the data come from?\n",
 				filename, zone->name);

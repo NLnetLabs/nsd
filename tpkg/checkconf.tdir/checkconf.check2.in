@@ -551,7 +551,7 @@ checkconf.nsd09.conf:9: error: expected yes or no
 read checkconf.nsd09.conf failed: 1 errors in configuration file
 checkconf.nsd10.conf:10: error: expected a number
 read checkconf.nsd10.conf failed: 1 errors in configuration file
-# Read file checkconf.nsd11.conf: 1 patterns, 0 fixed-zones, 0 keys, 0 tls-auth.
+# Read file checkconf.nsd11.conf: 5 patterns, 1 fixed-zones, 0 keys, 0 tls-auth.
 # Config settings.
 server:
 	debug-mode: no
@@ -624,6 +624,22 @@ verify:
 	verifier-timeout: 0
 
 pattern:
+	name: "group1"
+	catalog-producer-zone: "producer.catalog.invalid"
+
+pattern:
+	name: "group2"
+	catalog-producer-zone: "producer.catalog.invalid"
+
+pattern:
+	name: "group3"
+	catalog-producer-zone: "producer.catalog.invalid"
+
+pattern:
 	name: "myzones"
-	catalog: yes
+	catalog: consumer
 	catalog-member-pattern: "mycatalog2"
+
+zone:
+	name: "producer.catalog.invalid"
+	catalog: producer
