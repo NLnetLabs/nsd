@@ -453,8 +453,9 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		namedb_read_zonefile(xfrd->nsd, zone, NULL, NULL);
 	}
 	if (timespec_compare(&catz->mtime, &zone->mtime) == 0) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Not processing unchanged "
-			"catalog consumer zone %s", catz->options->name));
+		/* DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Not processing unchanged "
+		 *	"catalog consumer zone %s", catz->options->name));
+		 */
 		return;
 	}
 	catz->mtime = zone->mtime;
@@ -739,7 +740,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		catalog_del_member_zone(*next_member_ptr);
 		catz->n_member_zones -= 1;
 	}
-#ifndef NDEBUG
+#if !defined(NDEBUG) && 0 /* Only disable for seriously slow debugging */
 	for ( cmz = catz->member_zones, i = 0
 	    ; cmz ; i++, cmz = cmz->next) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Catalog member %.2zu: %s = %s",
