@@ -21,14 +21,11 @@ struct xfrd_catalog_consumer_zone {
 	/* Associated zone options with this catalog consumer zone */
 	struct zone_options* options;
 
+	/* Member zones indexed by member_id */
+	rbtree_type member_ids;
+
 	/* Last time processed, compare with zone->mtime to see if we need to process */
 	struct timespec mtime;
-
-	/* Double linked list of member zones for this catalog consumer zone */
-	struct catalog_member_zone* member_zones;
-
-	/* number of catalog consumer member zones */
-	size_t n_member_zones;
 
 	/* The reason for this zone to be invalid, or NULL if it is valid */
 	char *invalid;
@@ -44,6 +41,9 @@ struct xfrd_catalog_producer_zone {
 	/* Associated zone options with this catalog consumer zone */
 	struct zone_options* options;
 
+	/* Member zones indexed by member_id */
+	rbtree_type member_ids;
+
 	/* SOA serial for this zone */
 	uint32_t serial;
 
@@ -53,9 +53,6 @@ struct xfrd_catalog_producer_zone {
 	/* Stack of member zones to add to this catalog producer zone */
 	struct xfrd_producer_member* to_add;
 
-	/* Member zones indexed by member_id */
-	rbtree_type member_ids;
-
 	/* To cleanup on disk xfr files */
 	struct xfrd_producer_xfr* latest_pxfr;
 
@@ -64,7 +61,7 @@ struct xfrd_catalog_producer_zone {
 } ATTR_PACKED;
 
 /**
- * Data to remove from a catalog producer zone
+ * Data to add or remove from a catalog producer zone
  */
 struct xfrd_producer_member {
 	const dname_type* member_id;
@@ -93,17 +90,18 @@ void xfrd_deinit_catalog_consumer_zone(xfrd_state_type* xfrd,
 
 /* make the catalog consumer zone invalid for given reason */
 void make_catalog_consumer_invalid(
-		struct xfrd_catalog_consumer_zone *catz,
+		struct xfrd_catalog_consumer_zone *consumer_zone,
 		const char *format, ...) ATTR_FORMAT(printf, 2, 3);
 
 /* Return the reason a zone is invalid, or NULL on a valid catalog */
 const char *invalid_catalog_consumer_zone(struct zone_options* zone);
 
 /* make the catalog consumer zone valid again */
-void make_catalog_consumer_valid(struct xfrd_catalog_consumer_zone *catz);
+void make_catalog_consumer_valid(
+		struct xfrd_catalog_consumer_zone *consumer_zone);
 
 /* Check the catalog consumer zone files (or file if zone is given) */
-void xfrd_check_catalog_consumer_zonefiles(const dname_type* zone);
+void xfrd_check_catalog_consumer_zonefiles(const dname_type* name);
 
 /* process the catalog consumer zones, load if needed */
 void xfrd_process_catalog_consumer_zones();

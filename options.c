@@ -568,13 +568,12 @@ zone_options_delete(struct nsd_options* opt, struct zone_options* zone)
 		region_recycle(opt->region, zone, sizeof(*zone));
 		return;
 	}
-	/* Unlink the member zone if needed */
-	if(member_zone->prev_next_ptr) {
-		*member_zone->prev_next_ptr = member_zone->next;
-	}
-	if(member_zone->next) {
-		member_zone->next->prev_next_ptr = member_zone->prev_next_ptr;
-	}
+	/* member_zone->member_id == NULL because catalog member zones are
+	 * deleted either through catalog_del_consumer_member_zone() or
+	 * through xfrd_del_catalog_producer_member(), which both set
+	 * member_id to NULL.
+	 */
+	assert(member_zone->member_id == NULL);
 	if(member_zone->member_id) {
 		region_recycle(opt->region, (void*)member_zone->member_id,
 				dname_total_size(member_zone->member_id));
@@ -944,8 +943,6 @@ catalog_member_zone_create(region_type* region)
 	member_zone->options.part_of_config = 0;
 	member_zone->options.is_catalog_member_zone = 1;
 	member_zone->member_id = NULL;
-	member_zone->prev_next_ptr = NULL;
-	member_zone->next = NULL;
 	member_zone->node = *RBTREE_NULL;
 	member_zone->node.key = (void*)member_zone;
 	return member_zone;

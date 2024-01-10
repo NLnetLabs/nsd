@@ -1058,7 +1058,7 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 					read_uint32(rdata_atom_data(
 					zone->soa_rrset->rrs[0].rdatas[2])),
 					  consumer_zone
-					? consumer_zone->n_member_zones : 0))
+					? consumer_zone->member_ids.count : 0))
 				return 0;
 
 		} else if(!ssl_printf(ssl, "\n"))

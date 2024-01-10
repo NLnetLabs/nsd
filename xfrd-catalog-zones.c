@@ -19,18 +19,20 @@
 
 /** process a catalog consumer zone, load if needed */
 static void xfrd_process_catalog_consumer_zone(
-		struct xfrd_catalog_consumer_zone* catz);
+		struct xfrd_catalog_consumer_zone* consumer_zone);
 
 /** make the catalog consumer zone invalid for given reason */
 static void vmake_catalog_consumer_invalid(
-	struct xfrd_catalog_consumer_zone *catz,
+	struct xfrd_catalog_consumer_zone *consumer_zone,
 	const char *format, va_list args);
 
 /** return (static) dname with label prepended to dname */
-static dname_type* label_plus_dname(const char* label, const dname_type* dname);
+static dname_type* label_plus_dname(const char* label,const dname_type* dname);
 
 /** delete the catalog member zone */
-static void catalog_del_member_zone(struct catalog_member_zone* member_zone);
+static void catalog_del_consumer_member_zone(
+		struct xfrd_catalog_consumer_zone* consumer_zone,
+		struct catalog_member_zone* consumer_member_zone);
 
 #ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
 /* return a single catalog consumer zone from xfrd struct */
@@ -47,13 +49,13 @@ xfrd_one_catalog_consumer_zone()
 
 /** return the catalog-member-pattern or NULL on error if not present */
 static inline struct pattern_options*
-catalog_member_pattern(struct xfrd_catalog_consumer_zone* catz)
+catalog_member_pattern(struct xfrd_catalog_consumer_zone* consumer_zone)
 {
-	if (!catz->options->pattern
-	||  !catz->options->pattern->catalog_member_pattern)
+	if (!consumer_zone->options->pattern
+	||  !consumer_zone->options->pattern->catalog_member_pattern)
 		return NULL;
 	return pattern_options_find(xfrd->nsd->options,
-		catz->options->pattern->catalog_member_pattern);
+		consumer_zone->options->pattern->catalog_member_pattern);
 }
 
 /** see if we have more zonestatistics entries and it has to be incremented */
@@ -80,7 +82,7 @@ static void xfrd_process_catalog_producer_zone(
 /** rbnode must be struct catalog_member_zone*; compares (key->member_id) */
 static int member_id_compare(const void *left, const void *right);
 
-/** return xfrd_catalog_producer_zone* pointed to by cmz's catalog-producer-zone
+/** return xfrd_catalog_producer_zone* pointed to by cmz' catalog-producer-zone
  * pattern option. struct is created if necessary. returns NULL on failure. */
 static struct xfrd_catalog_producer_zone* xfrd_get_catalog_producer_zone(
 		struct catalog_member_zone* cmz);
@@ -178,29 +180,33 @@ void
 xfrd_init_catalog_consumer_zone(xfrd_state_type* xfrd,
 		struct zone_options* zone)
 {
-	struct xfrd_catalog_consumer_zone* catz;
+	struct xfrd_catalog_consumer_zone* consumer_zone;
 
-	if ((catz = (struct xfrd_catalog_consumer_zone*)rbtree_search(
+	if ((consumer_zone = (struct xfrd_catalog_consumer_zone*)rbtree_search(
 			xfrd->catalog_consumer_zones, zone->node.key))) {
 		log_msg(LOG_ERR, "cannot initialize new catalog consumer zone:"
 				" '%s: it already exists in xfrd's catalog "
 				" consumer zones index", zone->name);
 		/* Maybe we need to reprocess it? */
-		make_catalog_consumer_valid(catz);
+		make_catalog_consumer_valid(consumer_zone);
 		return;
 	}
-       	catz = (struct xfrd_catalog_consumer_zone*)
+	consumer_zone = (struct xfrd_catalog_consumer_zone*)
 		region_alloc(xfrd->region,
 			sizeof(struct xfrd_catalog_consumer_zone));
-        memset(catz, 0, sizeof(struct xfrd_catalog_consumer_zone));
-        catz->node.key = zone->node.key;
-        catz->options = zone;
-	catz->mtime.tv_sec = 0;
-	catz->mtime.tv_nsec = 0;
-	catz->member_zones = NULL;
-	catz->n_member_zones = 0;
-	catz->invalid = NULL;
-	rbtree_insert(xfrd->catalog_consumer_zones, (rbnode_type*)catz);
+        memset(consumer_zone, 0, sizeof(struct xfrd_catalog_consumer_zone));
+        consumer_zone->node.key = zone->node.key;
+        consumer_zone->options = zone;
+	consumer_zone->member_ids.region = xfrd->region;
+	consumer_zone->member_ids.root = RBTREE_NULL;
+	consumer_zone->member_ids.count = 0;
+	consumer_zone->member_ids.cmp = member_id_compare;
+	consumer_zone->mtime.tv_sec = 0;
+	consumer_zone->mtime.tv_nsec = 0;
+
+	consumer_zone->invalid = NULL;
+	rbtree_insert(xfrd->catalog_consumer_zones,
+			(rbnode_type*)consumer_zone);
 #ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
 	if ((int)xfrd->catalog_consumer_zones->count > 1) {
 		log_msg(LOG_ERR, "catalog consumer processing disabled: "
@@ -213,10 +219,10 @@ void
 xfrd_deinit_catalog_consumer_zone(xfrd_state_type* xfrd,
 		const dname_type* dname)
 {
-	struct xfrd_catalog_consumer_zone* catz;
+	struct xfrd_catalog_consumer_zone* consumer_zone;
 	zone_type* zone;
 
-	if (!(catz = (struct xfrd_catalog_consumer_zone*)rbtree_delete(
+	if (!(consumer_zone =(struct xfrd_catalog_consumer_zone*)rbtree_delete(
 			xfrd->catalog_consumer_zones, dname))) {
 		log_msg(LOG_ERR, "cannot de-initialize catalog consumer zone:"
 				" '%s: it did not exist in xfrd's catalog "
@@ -224,61 +230,58 @@ xfrd_deinit_catalog_consumer_zone(xfrd_state_type* xfrd,
 				dname_to_string(dname, NULL));
 		return;
 	}
-	if (catz->member_zones) {
+	if (consumer_zone->member_ids.count)
 		log_msg(LOG_WARNING, "de-initialize catalog consumer zone:"
 				" '%s: will cause all member zones to be "
-				" deleted", catz->options->name);
+				" deleted", consumer_zone->options->name);
 
-		/* catz->member_zones will become NULL because the member zone
-		 * will reset the reference to itself (in prev_next_ptr) to
-		 * it's next pointer.
-		 */
-		while (catz->member_zones) {
-			log_msg(LOG_INFO, "deleting member zone '%s' on "
-				"de-initializing catalog consumer zone '%s'",
-				catz->member_zones->options.name,
-				catz->options->name);
-			catalog_del_member_zone(catz->member_zones);
-			catz->n_member_zones -= 1;
-		}
+	while (consumer_zone->member_ids.count) {
+		struct catalog_member_zone* cmz = (struct catalog_member_zone*)
+			rbtree_first(&consumer_zone->member_ids);
+
+		log_msg(LOG_INFO, "deleting member zone '%s' on "
+			"de-initializing catalog consumer zone '%s'",
+			cmz->options.name, consumer_zone->options->name);
+		catalog_del_consumer_member_zone(consumer_zone, cmz);
 	}
 	if ((zone = namedb_find_zone(xfrd->nsd->db, dname))) {
 		namedb_zone_delete(xfrd->nsd->db, zone);
 	}
-	region_recycle(xfrd->region, catz, sizeof(*catz));
+	region_recycle(xfrd->region, consumer_zone, sizeof(*consumer_zone));
 }
 
 /** make the catalog consumer zone invalid for given reason */
 static void
-vmake_catalog_consumer_invalid(struct xfrd_catalog_consumer_zone *catz,
+vmake_catalog_consumer_invalid(
+		struct xfrd_catalog_consumer_zone *consumer_zone,
 		const char *format, va_list args)
 {
 	char message[MAXSYSLOGMSGLEN];
-	if (!catz || catz->invalid) return;
+	if (!consumer_zone || consumer_zone->invalid) return;
         vsnprintf(message, sizeof(message), format, args);
 	log_msg(LOG_ERR, "invalid catalog consumer zone '%s': %s",
-		catz->options->name, message);
-	catz->invalid = region_strdup(xfrd->region, message);
+		consumer_zone->options->name, message);
+	consumer_zone->invalid = region_strdup(xfrd->region, message);
 }
 
 void
-make_catalog_consumer_invalid(struct xfrd_catalog_consumer_zone *catz,
+make_catalog_consumer_invalid(struct xfrd_catalog_consumer_zone *consumer_zone,
 		const char *format, ...)
 {
 	va_list args;
-	if (!catz || catz->invalid) return;
+	if (!consumer_zone || consumer_zone->invalid) return;
 	va_start(args, format);
-	vmake_catalog_consumer_invalid(catz, format, args);
+	vmake_catalog_consumer_invalid(consumer_zone, format, args);
 	va_end(args);
 }
 
 void
-make_catalog_consumer_valid(struct xfrd_catalog_consumer_zone *catz)
+make_catalog_consumer_valid(struct xfrd_catalog_consumer_zone *consumer_zone)
 {
-	if (catz->invalid) {
-		region_recycle(xfrd->region,
-				catz->invalid, strlen(catz->invalid)+1);
-		catz->invalid = NULL;
+	if (consumer_zone->invalid) {
+		region_recycle(xfrd->region, consumer_zone->invalid,
+				strlen(consumer_zone->invalid) + 1);
+		consumer_zone->invalid = NULL;
 	}
 }
 
@@ -313,61 +316,71 @@ label_plus_dname(const char* label, const dname_type* dname)
 }
 
 static void
-catalog_del_member_zone(struct catalog_member_zone* member_zone)
+catalog_del_consumer_member_zone(
+		struct xfrd_catalog_consumer_zone* consumer_zone,
+		struct catalog_member_zone* consumer_member_zone)
 {
-	const dname_type* dname = member_zone->options.node.key;
+	const dname_type* dname = consumer_member_zone->options.node.key;
 
 	/* create deletion task */
 	task_new_del_zone(xfrd->nsd->task[xfrd->nsd->mytask],
 			xfrd->last_task, dname);
 	xfrd_set_reload_now(xfrd);
 	/* delete it in xfrd */
-	if(zone_is_slave(&member_zone->options)) {
+	if(zone_is_slave(&consumer_member_zone->options)) {
 		xfrd_del_slave_zone(xfrd, dname);
 	}
 	xfrd_del_notify(xfrd, dname);
 #ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
 	/* delete it in xfrd's catalog consumers list */
-	if(zone_is_catalog_consumer(&member_zone->options)) {
+	if(zone_is_catalog_consumer(&consumer_member_zone->options)) {
 		xfrd_deinit_catalog_consumer_zone(xfrd, dname);
 	}
 #endif
-	zone_options_delete(xfrd->nsd->options, &member_zone->options);
+	if(consumer_member_zone->member_id) {
+		rbtree_delete(&consumer_zone->member_ids,consumer_member_zone);
+		consumer_member_zone->node = *RBTREE_NULL;
+		consumer_member_zone->node.key = (void*)consumer_member_zone;
+		region_recycle( xfrd->nsd->options->region,
+			(void*)consumer_member_zone->member_id,
+			dname_total_size(consumer_member_zone->member_id));
+		consumer_member_zone->member_id = NULL;
+	}
+	zone_options_delete(xfrd->nsd->options,&consumer_member_zone->options);
 }
 
-void xfrd_check_catalog_consumer_zonefiles(const dname_type* zone)
+void xfrd_check_catalog_consumer_zonefiles(const dname_type* name)
 {
-	struct xfrd_catalog_consumer_zone* catz;
+	struct xfrd_catalog_consumer_zone* consumer_zone;
 
 #ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
-       	catz = xfrd_one_catalog_consumer_zone();
-	if (!catz)
+	consumer_zone = xfrd_one_catalog_consumer_zone();
+	if (!consumer_zone)
 		return;
-	if (zone && dname_compare(zone, catz->node.key) != 0)
+	if (name && dname_compare(name, consumer_zone->node.key) != 0)
 		return;
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Mark %s "
-		"for checking", catz->options->name));
-	make_catalog_consumer_valid(catz);
-	namedb_read_zonefile(xfrd->nsd,
-		namedb_find_or_create_zone(xfrd->nsd->db, zone, catz->options),
-		NULL, NULL);
+		"for checking", consumer_zone->options->name));
+	make_catalog_consumer_valid(consumer_zone);
+	namedb_read_zonefile(xfrd->nsd, namedb_find_or_create_zone(
+		xfrd->nsd->db, name, consumer_zone->options), NULL, NULL);
 #else
-	if (!zone) {
-		RBTREE_FOR(catz, struct xfrd_catalog_consumer_zone*,
+	if (!name) {
+		RBTREE_FOR(consumer_zone, struct xfrd_catalog_consumer_zone*,
 				xfrd->catalog_consumer_zones) {
-			make_catalog_consumer_valid(catz);
+			make_catalog_consumer_valid(consumer_zone);
 			namedb_read_zonefile(xfrd->nsd,
-				namedb_find_or_create_zone(
-					xfrd->nsd->db, catz->options->node.key,
-					catz->options),
+				namedb_find_or_create_zone(xfrd->nsd->db,
+					consumer_zone->options->node.key,
+					consumer_zone->options),
 				NULL, NULL);
 		}
-	} else if ((catz = (struct xfrd_catalog_consumer_zone*)
-			rbtree_search(xfrd->catalog_consumer_zones, zone))) {
-		make_catalog_consumer_valid(catz);
+	} else if ((consumer_zone = (struct xfrd_catalog_consumer_zone*)
+			rbtree_search(xfrd->catalog_consumer_zones, name))) {
+		make_catalog_consumer_valid(consumer_zone);
 		namedb_read_zonefile(xfrd->nsd,
 			namedb_find_or_create_zone(
-				xfrd->nsd->db, zone, catz->options),
+				xfrd->nsd->db, name, consumer_zone->options),
 			NULL, NULL);
 	}
 #endif
@@ -375,7 +388,7 @@ void xfrd_check_catalog_consumer_zonefiles(const dname_type* zone)
 
 const char *invalid_catalog_consumer_zone(struct zone_options* zone)
 {
-	struct xfrd_catalog_consumer_zone* catz;
+	struct xfrd_catalog_consumer_zone* consumer_zone;
 	const char *msg;
 
 	if (!zone || !zone_is_catalog_consumer(zone))
@@ -393,11 +406,11 @@ const char *invalid_catalog_consumer_zone(struct zone_options* zone)
 		return "not processing: more than one catalog consumer zone "
 		       "configured and only a single one allowed";
 #endif
-	else if (!(catz = (struct xfrd_catalog_consumer_zone*)
+	else if (!(consumer_zone = (struct xfrd_catalog_consumer_zone*)
 	         rbtree_search(xfrd->catalog_consumer_zones, zone->node.key)))
 		msg = "zone not found in xfrd's catalog consumer zones index";
 	else
-		return catz->invalid;
+		return consumer_zone->invalid;
 
 	if (msg)
 		log_msg(LOG_ERR, "catalog consumer zone '%s': %s",
@@ -411,17 +424,41 @@ void xfrd_process_catalog_consumer_zones()
 #ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
 	xfrd_process_catalog_consumer_zone(xfrd_one_catalog_consumer_zone());
 #else
-	struct xfrd_catalog_consumer_zone* catz;
+	struct xfrd_catalog_consumer_zone* consumer_zone;
 
-	RBTREE_FOR(catz, struct xfrd_catalog_consumer_zone*,
+	RBTREE_FOR(consumer_zone, struct xfrd_catalog_consumer_zone*,
 			xfrd->catalog_consumer_zones) {
-		xfrd_process_catalog_consumer_zone(catz);
+		xfrd_process_catalog_consumer_zone(consumer_zone);
 	}
 #endif
 }
 
+static inline struct catalog_member_zone* cursor_cmz(rbnode_type* node)
+{ return node != RBTREE_NULL ? (struct catalog_member_zone*)node->key : NULL; }
+static inline const dname_type* cursor_member_id(rbnode_type* node)
+{ return cursor_cmz(node) ? cursor_cmz(node)->member_id : NULL; }
+
+#if !defined(NDEBUG) && 1 /* Only disable for seriously slow debugging */
+static void debug_log_consumer_members(
+		struct xfrd_catalog_consumer_zone* consumer_zone)
+{
+	rbnode_type* cursor;
+	size_t i;
+
+	for ( cursor = rbtree_first(&consumer_zone->member_ids), i = 0
+	    ; cursor != RBTREE_NULL; i++, cursor = rbtree_next(cursor)) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Catalog member %.2zu: %s = %s",
+		      i, dname_to_string(cursor_member_id(cursor), NULL),
+		      cursor_cmz(cursor)->options.name));
+	}
+}
+#else
+# define debug_log_consumer_members(x) /* nothing */
+#endif
+
 static void
-xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
+xfrd_process_catalog_consumer_zone(
+		struct xfrd_catalog_consumer_zone* consumer_zone)
 {
 	zone_type* zone;
 	const dname_type* dname;
@@ -429,44 +466,43 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 	rrset_type *rrset;
 	size_t i;
 	uint8_t version_2_found;
-	struct catalog_member_zone** next_member_ptr;
-	struct catalog_member_zone*  cmz;
+	/* Currect catalog member zone */
+	rbnode_type* cursor;
 	struct pattern_options *default_pattern = NULL;
 
-	if (!catz)
+	if (!consumer_zone)
 		return;
 	if (!xfrd->nsd->db) {
 		xfrd->nsd->db = namedb_open(xfrd->nsd->options);
 	}
-	dname = (const dname_type*)catz->node.key;
+	dname = (const dname_type*)consumer_zone->node.key;
 	if (dname->name_size > 247) {
-		make_catalog_consumer_invalid(catz, "name too long");
+		make_catalog_consumer_invalid(consumer_zone, "name too long");
 		return;
 	}
 	if (dname->label_count > 126) {
-		make_catalog_consumer_invalid(catz, "too many labels");
+		make_catalog_consumer_invalid(consumer_zone,"too many labels");
 		return;
 	}
 	zone = namedb_find_zone(xfrd->nsd->db, dname);
 	if (!zone) {
-		zone = namedb_zone_create(xfrd->nsd->db, dname, catz->options);
+		zone = namedb_zone_create(xfrd->nsd->db, dname,
+				consumer_zone->options);
 		namedb_read_zonefile(xfrd->nsd, zone, NULL, NULL);
 	}
-	if (timespec_compare(&catz->mtime, &zone->mtime) == 0) {
-		/* DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Not processing unchanged "
-		 *	"catalog consumer zone %s", catz->options->name));
-		 */
+	if (timespec_compare(&consumer_zone->mtime, &zone->mtime) == 0) {
+		/* Not processing unchanged catalog consumer zone */
 		return;
 	}
-	catz->mtime = zone->mtime;
+	consumer_zone->mtime = zone->mtime;
 	/* start processing */
-	/* Lookup version.<catz> TXT and check that it is version 2 */
+	/* Lookup version.<consumer_zone> TXT and check that it is version 2 */
 	if(!namedb_lookup(xfrd->nsd->db, label_plus_dname("version", dname),
 				&match, &closest_encloser)
 	|| !(rrset = domain_find_rrset(match, zone, TYPE_TXT))) {
-		make_catalog_consumer_invalid(catz,
+		make_catalog_consumer_invalid(consumer_zone,
 			"'version.%s TXT RRset not found",
-			catz->options->name);
+			consumer_zone->options->name);
 		return;
 	}
 	version_2_found = 0;
@@ -481,21 +517,21 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		}
 	}
 	if (!version_2_found) {
-		make_catalog_consumer_invalid(catz,
+		make_catalog_consumer_invalid(consumer_zone,
 			"'version.%s' TXT RR with value \"2\" not found",
-			catz->options->name);
+			consumer_zone->options->name);
 		return;
 	}
-	/* Walk over all names under zones.<catz> */
+	/* Walk over all names under zones.<consumer_zone> */
 	if(!namedb_lookup(xfrd->nsd->db, label_plus_dname("zones", dname),
 				&match, &closest_encloser)) {
-		/* zones.<catz> does not exist, so the catalog has no members.
-		 * This is just fine.
+		/* zones.<consumer_zone> does not exist, so the catalog has no
+		 * members. This is just fine.
 		 */
-		make_catalog_consumer_valid(catz);
+		make_catalog_consumer_valid(consumer_zone);
 		return;
 	}
-	next_member_ptr = &catz->member_zones;
+	cursor = rbtree_first(&consumer_zone->member_ids);
 	for ( member_id = domain_next(match)
 	    ; member_id && domain_is_subdomain(member_id, match)
 	    ; member_id = domain_next(member_id)) {
@@ -504,8 +540,9 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		struct zone_options* zopt;
 		int valid_group_values;
 		struct pattern_options *pattern = NULL;
+		struct catalog_member_zone* to_add;
 
-		if (domain_dname(member_id)->label_count > dname->label_count + 2
+		if (domain_dname(member_id)->label_count > dname->label_count+2
 		||  !(rrset = domain_find_rrset(member_id, zone, TYPE_PTR)))
 			continue;
 
@@ -517,7 +554,7 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 		 *    NOT be processed (see Section 5.1).
 		 */
 		if (rrset->rr_count != 1) {
-			make_catalog_consumer_invalid(catz, 
+			make_catalog_consumer_invalid(consumer_zone, 
 				"only a single PTR RR expected on '%s'",
 				domain_to_string(member_id));
 			return;
@@ -568,9 +605,19 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 	                log_msg(LOG_ERR, "member zone '%s': only a single "
 				"group property that matches a pattern is "
 				"allowed."
-				"The pattern from \"catalog-member-patter\" "
+				"The pattern from \"catalog-member-pattern\" "
 				"will be used instead.",
 				domain_to_string(member_id));
+			valid_group_values = 0;
+
+		} else if (valid_group_values == 1 && pattern
+				&& pattern->catalog_producer_zone) {
+	                log_msg(LOG_ERR, "member zone '%s': group property "
+				"'%s' matches a catalog producer member zone "
+				"pattern. In NSD, catalog member zones can be "
+				"either a member of a catalog consumer zone or"
+				" a catalog producer zone, but not both.",
+				domain_to_string(member_id), pattern->pname);
 			valid_group_values = 0;
 		}
 		if (valid_group_values == 1) {
@@ -581,14 +628,14 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 			pattern = default_pattern; /* pass */
 
 		else if (!(pattern = default_pattern =
-					catalog_member_pattern(catz))) {
-			make_catalog_consumer_invalid(catz, 
-				"missing 'group.%s' TXT RR and "
-				"no default pattern from \"catalog-member-pattern\"",
+				catalog_member_pattern(consumer_zone))) {
+			make_catalog_consumer_invalid(consumer_zone, 
+				"missing 'group.%s' TXT RR and no default "
+				"pattern from \"catalog-member-pattern\"",
 				domain_to_string(member_id));
 			return;
 		}
-		if (!*next_member_ptr)
+		if (cursor == RBTREE_NULL)
 			; /* End of the current member zones list.
 			   * From here onwards, zones will only be added.
 			   */
@@ -598,50 +645,78 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 			char member_id_str[5 * MAXDOMAINLEN];
 			domain_to_string_buf(member_id, member_id_str);
 #endif
-			while (*next_member_ptr && 
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Comparing %s with %s",
+				member_id_str,
+				dname_to_string(cursor_member_id(cursor),
+					NULL)));
+
+			while (cursor != RBTREE_NULL && 
 			       (cmp = dname_compare(
 					domain_dname(member_id),
-					(*next_member_ptr)->member_id)) > 0) {
+					cursor_member_id(cursor))) > 0) {
 				/* member_id is ahead of the current catalog
-				 * member zone pointed to by next_member_ptr.
+				 * member zone pointed to by cursor.
 				 * The member zone must be deleted.
 				 */
-				DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-					"Compare (%s, %s) = %d: delete member",
-				       	member_id_str, dname_to_string(
-					(*next_member_ptr)->member_id, NULL),
-					cmp));
+				struct catalog_member_zone* to_delete =
+					cursor_cmz(cursor);
+#ifndef NDEBUF
+				const char *member_id_to_delete_str =
+				   dname_to_string(to_delete->member_id, NULL);
+#endif
+				cursor = rbtree_next(cursor);
 
-				catalog_del_member_zone(*next_member_ptr);
-				catz->n_member_zones -= 1;
+				DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+					"%s > %s: delete %s",
+					member_id_str,
+					member_id_to_delete_str,
+					member_id_to_delete_str));
+				catalog_del_consumer_member_zone(
+						consumer_zone, to_delete);
+				DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+					"Comparing %s with %s",
+					member_id_str,
+					dname_to_string(
+						cursor_member_id(cursor),
+						NULL)));
 			};
-			if (*next_member_ptr && cmp == 0) {
+			if (cursor != RBTREE_NULL && cmp == 0) {
 				/* member_id is also in an current catalog
-				 * member zone, and next_member_ptr is pointing
+				 * member zone, and cursor is pointing
 				 * to it. So, move along ...
 				 */
 				/* ... but first check if the pattern needs
 				 * a change
 				 */
-				if ((*next_member_ptr)->options.pattern == pattern)
+				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "%s == %s: "
+				    "Compare pattern %s with %s",
+				    member_id_str, member_id_str,
+				    cursor_cmz(cursor)->options.pattern->pname,
+				    pattern->pname));
+
+				if (cursor_cmz(cursor)->options.pattern ==
+						pattern)
 					; /* pass: Pattern remains the same */
 				else {
 					/* Changing patterns is basically
 					 * deleting and adding the zone again
 					 */
-					zopt  = &(*next_member_ptr)->options;
+					zopt  = &cursor_cmz(cursor)->options;
 					dname = (dname_type *)zopt->node.key;
-					task_new_del_zone( xfrd->nsd->task[xfrd->nsd->mytask]
-					                 , xfrd->last_task
-							 , dname);
+					task_new_del_zone(
+					    xfrd->nsd->task[xfrd->nsd->mytask],
+					    xfrd->last_task,
+					    dname);
 					xfrd_set_reload_now(xfrd);
 					if(zone_is_slave(zopt)) {
-						xfrd_del_slave_zone(xfrd, dname);
+						xfrd_del_slave_zone( xfrd
+						                   , dname);
 					}
 					xfrd_del_notify(xfrd, dname);
 #ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
 					if(zone_is_catalog_consumer(zopt)) {
-						xfrd_deinit_catalog_consumer_zone(xfrd, dname);
+						xfrd_deinit_catalog_consumer_zone(
+								xfrd, dname);
 					}
 #endif
 					/* It is a catalog consumer member,
@@ -650,29 +725,34 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 					 * delete and add
 					 */
 					zopt->pattern = pattern;
-					task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
-						xfrd->last_task, zopt->name,
-						pattern->pname,
-						getzonestatid(xfrd->nsd->options, zopt));
+					task_new_add_zone(
+					    xfrd->nsd->task[xfrd->nsd->mytask],
+					    xfrd->last_task, zopt->name,
+					    pattern->pname,
+					    getzonestatid( xfrd->nsd->options
+					                 , zopt));
 					zonestat_inc_ifneeded(xfrd);
 					xfrd_set_reload_now(xfrd);
 #ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
 					if(zone_is_catalog_consumer(zopt)) {
-						xfrd_init_catalog_consumer_zone(xfrd, zopt);
+						xfrd_init_catalog_consumer_zone(
+								xfrd, zopt);
 					}
 #endif
-					init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
+					init_notify_send(xfrd->notify_zones,
+							xfrd->region, zopt);
 					if(zone_is_slave(zopt)) {
-						xfrd_init_slave_zone(xfrd, zopt);
+						xfrd_init_slave_zone(
+								xfrd, zopt);
 					}
 				}
-				next_member_ptr = &(*next_member_ptr)->next;
+				cursor = rbtree_next(cursor);
 				continue;
 			}
 			/* member_id is not in the current catalog member zone
 			 * list, so it must be added
 			 */
-			assert(*next_member_ptr == NULL || cmp < 0);
+			assert(cursor == RBTREE_NULL || cmp < 0);
 		}
 		/* See if the zone already exists */
 		zopt = zone_options_find(xfrd->nsd->options,
@@ -684,71 +764,76 @@ xfrd_process_catalog_consumer_zone(struct xfrd_catalog_consumer_zone* catz)
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Cannot add catalog "
 				"member zone %s (from %s): "
 				"zone already exists",
-				member_domain_str, domain_to_string(member_id)));
+				member_domain_str,
+				domain_to_string(member_id)));
 			continue;
 		}
 		/* Add member zone if not already there */
-		cmz =  catalog_member_zone_create(xfrd->nsd->options->region);
-		cmz->options.name = region_strdup(xfrd->nsd->options->region,
+                log_msg(LOG_INFO, "Adding '%s' PTR '%s'",
+				domain_to_string(member_id),
 				member_domain_str);
-		cmz->options.pattern = pattern;
-		if (!nsd_options_insert_zone(xfrd->nsd->options, &cmz->options)) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Adding %s PTR %s",
+			domain_to_string(member_id), member_domain_str));
+		to_add= catalog_member_zone_create(xfrd->nsd->options->region);
+		to_add->options.name = region_strdup(
+				xfrd->nsd->options->region, member_domain_str);
+		to_add->options.pattern = pattern;
+		if (!nsd_options_insert_zone(xfrd->nsd->options,
+					&to_add->options)) {
 	                log_msg(LOG_ERR, "bad domain name or duplicate zone "
 				"'%s' pattern %s", member_domain_str,
 				( pattern->pname ? pattern->pname: "<NULL>"));
-			zone_options_delete(xfrd->nsd->options, &cmz->options);
+			zone_options_delete(xfrd->nsd->options,
+					&to_add->options);
 			continue;
 		}
-		cmz->member_id = dname_copy( xfrd->nsd->options->region
+		to_add->member_id = dname_copy( xfrd->nsd->options->region
 		                           , domain_dname(member_id));
-		/* Insert into the double linked list */
-		cmz->next = *next_member_ptr;
-		if (cmz->next) {
-			cmz->next->prev_next_ptr = &cmz->next;
-		}
-		cmz->prev_next_ptr = next_member_ptr;
-		*next_member_ptr = cmz;
-		next_member_ptr = &cmz->next;
-		catz->n_member_zones += 1;
+		to_add->node.key = to_add;
+		/* Insert into the members_id list */
+		if(!rbtree_insert( &consumer_zone->member_ids, &to_add->node)){
+	                log_msg(LOG_ERR, "Error adding '%s' PTR '%s' to "
+				"consumer_zone->member_ids",
+				domain_to_string(member_id),
+				member_domain_str);
+			break;
+		} else
+			cursor = rbtree_next(&to_add->node);
 		/* make addzone task and schedule reload */
-        	task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
-                	xfrd->last_task, member_domain_str,
+		task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
+			xfrd->last_task, member_domain_str,
 			pattern->pname,
-                	getzonestatid(xfrd->nsd->options, &cmz->options));
+			getzonestatid(xfrd->nsd->options, &to_add->options));
 		zonestat_inc_ifneeded(xfrd);
 		xfrd_set_reload_now(xfrd);
 #ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
 		/* add to xfrd - catalog consumer zones */
-		if(zone_is_catalog_consumer(&cmz->options)) {
-			xfrd_init_catalog_consumer_zone(xfrd, &cmz->options);
+		if(zone_is_catalog_consumer(&to_add->options)) {
+			xfrd_init_catalog_consumer_zone(xfrd,&to_add->options);
 		}
 #endif
 		/* add to xfrd - notify (for master and slaves) */
-		init_notify_send(xfrd->notify_zones, xfrd->region, &cmz->options);
+		init_notify_send(xfrd->notify_zones, xfrd->region,
+				&to_add->options);
 		/* add to xfrd - slave */
-		if(zone_is_slave(&cmz->options)) {
-			xfrd_init_slave_zone(xfrd, &cmz->options);
+		if(zone_is_slave(&to_add->options)) {
+			xfrd_init_slave_zone(xfrd, &to_add->options);
 		}
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Added catalog "
 			"member zone %s (from %s)",
 			member_domain_str, domain_to_string(member_id)));
 	}
-	while (*next_member_ptr) {
+	while (cursor != RBTREE_NULL) {
 		/* Any current catalog member zones remaining, don't have an
 		 * member_id in the catalog anymore, so should be deleted too.
 		 */
-		catalog_del_member_zone(*next_member_ptr);
-		catz->n_member_zones -= 1;
+		struct catalog_member_zone* to_delete = cursor_cmz(cursor);
+
+		cursor = rbtree_next(cursor);
+		catalog_del_consumer_member_zone(consumer_zone, to_delete);
 	}
-#if !defined(NDEBUG) && 0 /* Only disable for seriously slow debugging */
-	for ( cmz = catz->member_zones, i = 0
-	    ; cmz ; i++, cmz = cmz->next) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Catalog member %.2zu: %s = %s",
-		      i, dname_to_string(cmz->member_id, NULL),
-		      cmz->options.name));
-	}
-#endif
-	make_catalog_consumer_valid(catz);
+	debug_log_consumer_members(consumer_zone);
+	make_catalog_consumer_valid(consumer_zone);
 }
 
 
@@ -786,7 +871,7 @@ xfrd_get_catalog_producer_zone(struct catalog_member_zone* cmz)
 			"zone '%s'", producer_name_str, cmz->options.name);
 		return NULL;
 	}
-if(!zone_is_catalog_producer(producer_zopt)) {
+	if(!zone_is_catalog_producer(producer_zopt)) {
 		log_msg(LOG_ERR, "cannot add catalog producer member "
 			"zone '%s' to non producer zone '%s'",
 			cmz->options.name, producer_zopt->name);
@@ -800,21 +885,19 @@ if(!zone_is_catalog_producer(producer_zopt)) {
 		DEBUG(DEBUG_XFRD, 1, (LOG_INFO,"creating catalog producer zone"
 			" '%s'", producer_zopt->name));
 		producer_zone = (struct xfrd_catalog_producer_zone*)
-			region_alloc(xfrd->region,
-				   sizeof(struct xfrd_catalog_producer_zone));
-		memset(producer_zone,0,sizeof(struct xfrd_catalog_producer_zone));
+			region_alloc(xfrd->region, sizeof(*producer_zone));
+		memset(producer_zone , 0, sizeof(*producer_zone));
 		producer_zone->node.key = producer_zopt->node.key;
 		producer_zone->options = producer_zopt;
-		producer_zone->serial = 0;
-		producer_zone->to_delete = NULL;
-		producer_zone->to_add = NULL;
 		producer_zone->member_ids.region = xfrd->region;
 		producer_zone->member_ids.root = RBTREE_NULL;
 		producer_zone->member_ids.count = 0;
 		producer_zone->member_ids.cmp = member_id_compare;
+		producer_zone->serial = 0;
+		producer_zone->to_delete = NULL;
+		producer_zone->to_add = NULL;
 		producer_zone->latest_pxfr = NULL;
 		producer_zone->axfr = 1;
-
 		rbtree_insert(xfrd->catalog_producer_zones,
 				(rbnode_type*)producer_zone);
 	}
@@ -829,12 +912,6 @@ xfrd_add_catalog_producer_member(struct catalog_member_zone* cmz)
 	struct xfrd_producer_member* to_add;
 
 	assert(xfrd);
-	if(cmz->next) {
-		log_msg(LOG_ERR, "cannot add catalog producer member "
-			"zone '%s': already being added",
-			cmz->options.name);
-		return;
-	}
 	if (!(producer_zone = xfrd_get_catalog_producer_zone(cmz))) {
 		return;
 	}
@@ -854,7 +931,7 @@ xfrd_add_catalog_producer_member(struct catalog_member_zone* cmz)
 			dname_to_string(cmz->member_id, NULL)));
 		if (!rbtree_search(&producer_zone->member_ids, cmz)) {
 			cmz->member_id = dname_copy(xfrd->nsd->options->region,
-				       	cmz->member_id);
+				cmz->member_id);
 			break;
 		}
 		cmz->member_id = NULL;
@@ -873,7 +950,7 @@ xfrd_add_catalog_producer_member(struct catalog_member_zone* cmz)
 
 int
 xfrd_del_catalog_producer_member(struct xfrd_state* xfrd,
-	       	const dname_type* member_zone_name)
+		const dname_type* member_zone_name)
 {
 	struct xfrd_producer_member* to_delete;
 	struct catalog_member_zone* cmz;
@@ -887,6 +964,8 @@ xfrd_del_catalog_producer_member(struct xfrd_state* xfrd,
 	to_delete = (struct xfrd_producer_member*)region_alloc(xfrd->region,
 			sizeof(struct xfrd_producer_member));
 	to_delete->member_id = cmz->member_id; cmz->member_id = NULL;
+	cmz->node = *RBTREE_NULL;
+	cmz->node.key = (void*)cmz;
 	to_delete->member_zone_name = member_zone_name;
 	to_delete->group_name = cmz->options.pattern->pname;
 	to_delete->next = producer_zone->to_delete;
@@ -947,7 +1026,8 @@ try_buffer_write_PTR(buffer_type* packet, const dname_type* owner,
 }
 
 static int
-try_buffer_write_TXT(buffer_type* packet, const dname_type* name, const char *txt)
+try_buffer_write_TXT(buffer_type* packet, const dname_type* name,
+		const char *txt)
 {
 	size_t mark = buffer_position(packet);
 	size_t len = strlen(txt);
@@ -1105,7 +1185,8 @@ add_member_zones:
 		to_add->next = NULL;
 
 		/* Write <member_id> PTR <member_name> */
-		xfr_writer_add_PTR(&xw, to_add->member_id, to_add->member_zone_name);
+		xfr_writer_add_PTR(&xw, to_add->member_id,
+				to_add->member_zone_name);
 
 		/* Write group.<member_id> TXT <pattern> */
 		xfr_writer_add_TXT( &xw

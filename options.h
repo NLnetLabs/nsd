@@ -351,9 +351,7 @@ struct zone_options {
 struct catalog_member_zone {
 	struct zone_options          options;
 	const struct dname*          member_id;
-	struct catalog_member_zone** prev_next_ptr;
-	struct catalog_member_zone*  next;
-	/* member_id index in the associated catalog producer */
+	/* node in the associated catalog consumer or producer zone */
 	rbnode_type                  node;
 } ATTR_PACKED;
 
