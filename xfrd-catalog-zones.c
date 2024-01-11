@@ -340,7 +340,6 @@ catalog_del_consumer_member_zone(
 	if(consumer_member_zone->member_id) {
 		rbtree_delete(&consumer_zone->member_ids,consumer_member_zone);
 		consumer_member_zone->node = *RBTREE_NULL;
-		consumer_member_zone->node.key = (void*)consumer_member_zone;
 		region_recycle( xfrd->nsd->options->region,
 			(void*)consumer_member_zone->member_id,
 			dname_total_size(consumer_member_zone->member_id));
@@ -522,16 +521,16 @@ xfrd_process_catalog_consumer_zone(
 			consumer_zone->options->name);
 		return;
 	}
+	cursor = rbtree_first(&consumer_zone->member_ids);
 	/* Walk over all names under zones.<consumer_zone> */
 	if(!namedb_lookup(xfrd->nsd->db, label_plus_dname("zones", dname),
 				&match, &closest_encloser)) {
 		/* zones.<consumer_zone> does not exist, so the catalog has no
-		 * members. This is just fine.
+		 * members. This is just fine. But there may be members that need
+		 * to be deleted.
 		 */
-		make_catalog_consumer_valid(consumer_zone);
-		return;
+		goto delete_members;
 	}
-	cursor = rbtree_first(&consumer_zone->member_ids);
 	for ( member_id = domain_next(match)
 	    ; member_id && domain_is_subdomain(member_id, match)
 	    ; member_id = domain_next(member_id)) {
@@ -789,8 +788,8 @@ xfrd_process_catalog_consumer_zone(
 		}
 		to_add->member_id = dname_copy( xfrd->nsd->options->region
 		                           , domain_dname(member_id));
-		to_add->node.key = to_add;
 		/* Insert into the members_id list */
+		to_add->node.key = to_add;
 		if(!rbtree_insert( &consumer_zone->member_ids, &to_add->node)){
 	                log_msg(LOG_ERR, "Error adding '%s' PTR '%s' to "
 				"consumer_zone->member_ids",
@@ -823,6 +822,7 @@ xfrd_process_catalog_consumer_zone(
 			"member zone %s (from %s)",
 			member_domain_str, domain_to_string(member_id)));
 	}
+delete_members:
 	while (cursor != RBTREE_NULL) {
 		/* Any current catalog member zones remaining, don't have an
 		 * member_id in the catalog anymore, so should be deleted too.
@@ -936,6 +936,7 @@ xfrd_add_catalog_producer_member(struct catalog_member_zone* cmz)
 		}
 		cmz->member_id = NULL;
 	}
+	cmz->node.key = cmz;
 	rbtree_insert(&producer_zone->member_ids, &cmz->node);
 
 	/* Put data to be added to the producer zone to the to_add stack */
@@ -965,7 +966,6 @@ xfrd_del_catalog_producer_member(struct xfrd_state* xfrd,
 			sizeof(struct xfrd_producer_member));
 	to_delete->member_id = cmz->member_id; cmz->member_id = NULL;
 	cmz->node = *RBTREE_NULL;
-	cmz->node.key = (void*)cmz;
 	to_delete->member_zone_name = member_zone_name;
 	to_delete->group_name = cmz->options.pattern->pname;
 	to_delete->next = producer_zone->to_delete;

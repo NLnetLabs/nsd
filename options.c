@@ -568,12 +568,16 @@ zone_options_delete(struct nsd_options* opt, struct zone_options* zone)
 		region_recycle(opt->region, zone, sizeof(*zone));
 		return;
 	}
-	/* member_zone->member_id == NULL because catalog member zones are
-	 * deleted either through catalog_del_consumer_member_zone() or
-	 * through xfrd_del_catalog_producer_member(), which both set
-	 * member_id to NULL.
+	/* Because catalog member zones are in xfrd only deleted through
+	 * catalog_del_consumer_member_zone() or through
+	 * xfrd_del_catalog_producer_member(), which both clear the node,
+	 * and because member zones in the main and serve processes are not
+	 * indexed, *member_zone->node == *RBTREE_NULL.
+	 * member_id is cleared too by those delete function, but there may be
+	 * leftover member_id's from the initial zone.list processing, which
+	 * made it to the main and serve processes.
 	 */
-	assert(member_zone->member_id == NULL);
+	assert(!memcmp(&member_zone->node, RBTREE_NULL, sizeof(*RBTREE_NULL)));
 	if(member_zone->member_id) {
 		region_recycle(opt->region, (void*)member_zone->member_id,
 				dname_total_size(member_zone->member_id));
@@ -944,7 +948,6 @@ catalog_member_zone_create(region_type* region)
 	member_zone->options.is_catalog_member_zone = 1;
 	member_zone->member_id = NULL;
 	member_zone->node = *RBTREE_NULL;
-	member_zone->node.key = (void*)member_zone;
 	return member_zone;
 }
 
