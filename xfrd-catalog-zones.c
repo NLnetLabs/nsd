@@ -237,7 +237,7 @@ xfrd_deinit_catalog_consumer_zone(xfrd_state_type* xfrd,
 
 	while (consumer_zone->member_ids.count) {
 		struct catalog_member_zone* cmz = (struct catalog_member_zone*)
-			rbtree_first(&consumer_zone->member_ids);
+			rbtree_first(&consumer_zone->member_ids)->key;
 
 		log_msg(LOG_INFO, "deleting member zone '%s' on "
 			"de-initializing catalog consumer zone '%s'",
