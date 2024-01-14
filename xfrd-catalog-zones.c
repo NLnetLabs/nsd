@@ -468,6 +468,7 @@ xfrd_process_catalog_consumer_zone(
 	/* Currect catalog member zone */
 	rbnode_type* cursor;
 	struct pattern_options *default_pattern = NULL;
+	enum { try_to_add, retry_to_add, just_add } mode;
 
 	if (!consumer_zone)
 		return;
@@ -521,7 +522,6 @@ xfrd_process_catalog_consumer_zone(
 			consumer_zone->options->name);
 		return;
 	}
-	cursor = rbtree_first(&consumer_zone->member_ids);
 	/* Walk over all names under zones.<consumer_zone> */
 	if(!namedb_lookup(xfrd->nsd->db, label_plus_dname("zones", dname),
 				&match, &closest_encloser)) {
@@ -529,8 +529,13 @@ xfrd_process_catalog_consumer_zone(
 		 * members. This is just fine. But there may be members that need
 		 * to be deleted.
 		 */
+		cursor = rbtree_first(&consumer_zone->member_ids);
+		mode = just_add;
 		goto delete_members;
 	}
+	mode = consumer_zone->member_ids.count ? try_to_add : just_add;
+retry_adding:
+	cursor = rbtree_first(&consumer_zone->member_ids);
 	for ( member_id = domain_next(match)
 	    ; member_id && domain_is_subdomain(member_id, match)
 	    ; member_id = domain_next(member_id)) {
@@ -672,12 +677,13 @@ xfrd_process_catalog_consumer_zone(
 					member_id_to_delete_str));
 				catalog_del_consumer_member_zone(
 						consumer_zone, to_delete);
-				DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-					"Comparing %s with %s",
-					member_id_str,
-					dname_to_string(
-						cursor_member_id(cursor),
-						NULL)));
+				if(cursor != RBTREE_NULL)
+					DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+						"Comparing %s with %s",
+						member_id_str,
+						dname_to_string(
+							cursor_member_id(cursor),
+							NULL)));
 			};
 			if (cursor != RBTREE_NULL && cmp == 0) {
 				/* member_id is also in an current catalog
@@ -760,11 +766,20 @@ xfrd_process_catalog_consumer_zone(
 			/* Produce warning if zopt is from other catalog.
 			 * Give debug message if zopt is not from this catalog.
 			 */
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Cannot add catalog "
-				"member zone %s (from %s): "
-				"zone already exists",
-				member_domain_str,
-				domain_to_string(member_id)));
+			switch(mode) {
+			case try_to_add:
+				mode = retry_to_add;
+				break;
+			case just_add:
+				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Cannot add "
+					"catalog member zone %s (from %s): "
+					"zone already exists",
+					member_domain_str,
+					domain_to_string(member_id)));
+				break;
+			default:
+				break;
+			}
 			continue;
 		}
 		/* Add member zone if not already there */
@@ -779,8 +794,8 @@ xfrd_process_catalog_consumer_zone(
 		to_add->options.pattern = pattern;
 		if (!nsd_options_insert_zone(xfrd->nsd->options,
 					&to_add->options)) {
-	                log_msg(LOG_ERR, "bad domain name or duplicate zone "
-				"'%s' pattern %s", member_domain_str,
+	                log_msg(LOG_ERR, "bad domain name  '%s' pattern %s",
+				member_domain_str,
 				( pattern->pname ? pattern->pname: "<NULL>"));
 			zone_options_delete(xfrd->nsd->options,
 					&to_add->options);
@@ -831,6 +846,10 @@ delete_members:
 
 		cursor = rbtree_next(cursor);
 		catalog_del_consumer_member_zone(consumer_zone, to_delete);
+	}
+	if(mode == retry_to_add) {
+		mode = just_add;
+		goto retry_adding;
 	}
 	debug_log_consumer_members(consumer_zone);
 	make_catalog_consumer_valid(consumer_zone);
