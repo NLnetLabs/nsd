@@ -583,14 +583,84 @@ xfrd_init_zones()
 }
 
 static void
+apply_xfrs_to_consumer_zone(struct xfrd_catalog_consumer_zone* consumer_zone,
+		zone_type* dbzone, xfrd_xfr_type* xfr)
+{
+	FILE* df;
+
+	if(xfr->msg_is_ixfr) {
+		uint32_t soa_serial;
+		xfrd_xfr_type* prev;
+
+		if(dbzone->soa_rrset == NULL || dbzone->soa_rrset->rrs == NULL
+		|| dbzone->soa_rrset->rrs[0].rdata_count <= 2
+		|| rdata_atom_size(dbzone->soa_rrset->rrs[0].rdatas[2])
+				!= sizeof(uint32_t)) {
+
+			make_catalog_consumer_invalid(consumer_zone,
+			       "could not apply ixfr on catalog consumer zone "
+			       "\'%s\': invalid SOA resource record",
+			       consumer_zone->options->name);
+			return;
+		}
+		soa_serial = read_uint32(rdata_atom_data(
+				dbzone->soa_rrset->rrs[0].rdatas[2]));
+		if(soa_serial == xfr->msg_old_serial) 
+			goto apply_xfr;
+		for(prev = xfr->prev; prev; prev = prev->prev) {
+			if(!prev->sent)
+				continue;
+			if(xfr->msg_old_serial != prev->msg_new_serial)
+				continue;
+			apply_xfrs_to_consumer_zone(consumer_zone, dbzone, prev);
+			break;
+		}
+		if(!prev || xfr->msg_old_serial != read_uint32(rdata_atom_data(
+					dbzone->soa_rrset->rrs[0].rdatas[2]))){
+			make_catalog_consumer_invalid(consumer_zone,
+			       "could not find and/or apply xfrs for catalog "
+			       "consumer zone \'%s\': to update to serial %u",
+			       consumer_zone->options->name,
+			       xfr->msg_new_serial);
+			return;
+		}
+	}
+apply_xfr:
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "apply %sXFR %u -> %u to consumer zone "
+		"\'%s\'", (xfr->msg_is_ixfr ? "I" : "A"), xfr->msg_old_serial,
+		xfr->msg_new_serial, consumer_zone->options->name));
+
+	if(!(df = xfrd_open_xfrfile(xfrd->nsd, xfr->xfrfilenumber, "r"))) {
+		make_catalog_consumer_invalid(consumer_zone,
+		       "could not open transfer file %lld: %s",
+		       (long long)xfr->xfrfilenumber, strerror(errno));
+
+	} else if(!apply_ixfr_for_zone(xfrd->nsd, dbzone, df,
+			xfrd->nsd->options, NULL, NULL, xfr->xfrfilenumber,
+			CALLED_FROM_XFRD_PROCESS)) {
+		make_catalog_consumer_invalid(consumer_zone,
+			"error processing transfer file %lld",
+			(long long)xfr->xfrfilenumber);
+		fclose(df);
+	} else {
+		/* Make valid for reprocessing */
+		make_catalog_consumer_valid(consumer_zone);
+		fclose(df);
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "%sXFR %u -> %u to consumer zone \'%s\' "
+			"applied", (xfr->msg_is_ixfr ? "I" : "A"), xfr->msg_old_serial,
+			xfr->msg_new_serial, consumer_zone->options->name));
+	}
+}
+
+static void
 xfrd_process_soa_info_task(struct task_list_d* task)
 {
 	xfrd_soa_type soa;
 	xfrd_soa_type* soa_ptr = &soa;
 	xfrd_zone_type* zone;
 	struct xfrd_catalog_producer_zone* producer_zone;
-	struct xfrd_catalog_consumer_zone* consumer_zone;
-	zone_type* dbzone;
+	struct xfrd_catalog_consumer_zone* consumer_zone = NULL;
+	zone_type* dbzone = NULL;
 	xfrd_xfr_type* xfr;
 	xfrd_xfr_type* prev_xfr;
 	enum soainfo_hint hint;
@@ -706,7 +776,16 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 			task->zname, soa_ptr);
 		return;
 	}
-
+	if(xfrd->nsd->db
+	&& xfrd->catalog_consumer_zones
+#ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
+	&& xfrd->catalog_consumer_zones->count == 1
+#endif
+	&& (consumer_zone = (struct xfrd_catalog_consumer_zone*)rbtree_search(
+			xfrd->catalog_consumer_zones, task->zname))) {
+		dbzone = namedb_find_or_create_zone( xfrd->nsd->db, task->zname
+		                                   , consumer_zone->options);
+	}
 	/* soainfo_gone and soainfo_bad are straightforward, delete all updates
 	   that were transfered, i.e. acquired != 0. soainfo_ok is more
 	   complicated as it is possible that there are subsequent corrupt or
@@ -718,8 +797,6 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 			continue;
 		}
 		if(hint == soainfo_ok) {
-			FILE *df;
-
 			/* skip non-queued updates */
 			if(!xfr->sent)
 				continue;
@@ -744,43 +821,9 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 					xfrd->nsd, xfr->xfrfilenumber);
 				return;
 			}
-			if(!xfrd->nsd->db
-			|| !xfrd->catalog_consumer_zones
-#ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
-			||  xfrd->catalog_consumer_zones->count != 1
-#endif
-			|| !(consumer_zone =
-					(struct xfrd_catalog_consumer_zone*)
-					rbtree_search(
-						xfrd->catalog_consumer_zones,
-						task->zname)))
-				; /* Not a consumer zone, all is good */
-
-			else if(!(dbzone = namedb_find_or_create_zone(
-					xfrd->nsd->db, task->zname,
-					consumer_zone->options)))
-				; /* unreachable: assert(dbzone); */
-
-			else if(!(df = xfrd_open_xfrfile(xfrd->nsd,
-						xfr->xfrfilenumber, "r"))) {
-				make_catalog_consumer_invalid(consumer_zone,
-				       "could not open transfer file %lld: %s",
-				       (long long)xfr->xfrfilenumber,
-				       strerror(errno));
-
-			} else if(!apply_ixfr_for_zone(xfrd->nsd, dbzone, df,
-					xfrd->nsd->options, NULL, NULL,
-					xfr->xfrfilenumber,
-					CALLED_FROM_XFRD_PROCESS)) {
-				make_catalog_consumer_invalid(consumer_zone,
-                                	"error processing transfer file %lld",
-                                	(long long)xfr->xfrfilenumber);
-				fclose(df);
-			} else {
-				/* Make valid for reprocessing */
-				make_catalog_consumer_valid(consumer_zone);
-				fclose(df);
-			}
+			if(consumer_zone && dbzone)
+				apply_xfrs_to_consumer_zone(
+					consumer_zone, dbzone, xfr);
 		}
 		DEBUG(DEBUG_IPC, 1,
 			(LOG_INFO, "xfrd: zone %s delete update to serial %u",
