@@ -670,7 +670,7 @@ retry_adding:
 			   * From here onwards, zones will only be added.
 			   */
 		else {
-			int cmp;
+			int cmp = 0;
 #ifndef NDEBUF
 			char member_id_str[5 * MAXDOMAINLEN];
 			domain_to_string_buf(member_id, member_id_str);
