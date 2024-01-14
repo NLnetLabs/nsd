@@ -468,6 +468,17 @@ xfrd_process_catalog_consumer_zone(
 	/* Currect catalog member zone */
 	rbnode_type* cursor;
 	struct pattern_options *default_pattern = NULL;
+	/* A transfer of a catalog zone can contain deletion and adding of
+	 * the same member zone. In such cases it can occur that the member
+	 * is tried to be added before it is deleted. For these exceptional
+	 * cases, we will rewalk the zone after the first pass, to retry
+	 * adding those zones.
+	 *
+	 * Initial pass is mode "try_to_add".
+	 * If a zone cannot be added, mode is set to "retry_to_add"
+	 * If after the first pass the mode is "retry_to_add",
+	 *    mode will be set to "just_add", and a second pass is done.
+	 */
 	enum { try_to_add, retry_to_add, just_add } mode;
 
 	if (!consumer_zone)
