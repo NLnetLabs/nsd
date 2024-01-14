@@ -1,0 +1,127 @@
+# #-- catzones.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+TPKG_NSD_CONTROL="$PRE/nsd-control"
+PRIMARY_CONTROL="$PRE/nsd-control -c primary.conf"
+SECONDARY_CONTROL="$PRE/nsd-control -c secondary.conf"
+SECONDARY2_CONTROL="$PRE/nsd-control -c secondary2.conf"
+N_MEMBER_ZONES=256
+SLEEP=""
+
+n_zones() {
+	$TPKG_NSD_CONTROL -c $1.conf zonestatus | grep ^zone: | wc -l
+}
+
+print_catzone_status() {
+	return
+	CTRL="$TPKG_NSD_CONTROL -c $1.conf"
+	echo "$1: `n_zones $1` zones"
+	shift
+	while [ $# -gt 0 ]
+	do
+		Z=$1.invalid
+		S=`$CTRL zonestatus $z \
+		 | awk '/\(serial: /{s=substr($4,0,length($4)-1)}END{print s}'`
+		M=`$CTRL zonestatus $z \
+		 | awk '/\(serial: /{m=substr($7,0,length($7)-1)}END{print m}'`
+		echo "	$1 (serial: $S, # members: $M)"
+		shift
+	done
+	echo ""
+}
+
+print_status() {
+	$SLEEP
+	print_catzone_status primary catalog1 catalog2 catalog3
+	print_catzone_status secondary catalog1
+	print_catzone_status secondary2 catalog2
+}
+
+
+# Add some zones
+#
+for (( i = 0; i < $N_MEMBER_ZONES; i++))
+do   echo zone${i}.invalid group$((${i} % 4))
+done | $PRIMARY_CONTROL addzones > nsd-control.log
+
+# Add the second consumer by nsd-control addzone
+#
+$SECONDARY2_CONTROL addzone catalog2.invalid consumer
+
+print_status "$N_MEMBER_ZONES member zones added"
+
+for (( i = 0; i < $N_MEMBER_ZONES; i++))
+do   echo zone${i}.invalid
+done | $PRIMARY_CONTROL delzones > nsd-control.log
+
+print_status "$N_MEMBER_ZONES member zones deleted"
+
+for (( i = 0; i < $N_MEMBER_ZONES; i++))
+do   echo zone${i}.invalid group$((${i} % 4))
+done | $PRIMARY_CONTROL addzones > nsd-control.log
+
+print_status "$N_MEMBER_ZONES member zones added"
+
+for (( i = 0; i < $(( $N_MEMBER_ZONES / 4 )); i++))
+do   echo zone${i}.invalid
+done | $PRIMARY_CONTROL delzones > nsd-control.log
+
+print_status "$(($N_MEMBER_ZONES / 4)) member zones deleted"
+
+for (( i = $(( $N_MEMBER_ZONES / 4 * 3 )); i < $(( $N_MEMBER_ZONES )); i++))
+do   echo zone${i}.invalid
+done | $PRIMARY_CONTROL delzones > nsd-control.log
+
+print_status "$(($N_MEMBER_ZONES / 4)) member zones deleted"
+
+$PRIMARY_CONTROL write
+wait_logfile primary.log "writing zone catalog1.invalid" 10
+wait_logfile primary.log "writing zone catalog2.invalid" 10
+CATALOG1_SERIAL=`awk 'FNR==2{print $NF}' primary.catalog1.invalid.zone`
+CATALOG2_SERIAL=`awk 'FNR==2{print $NF}' primary.catalog2.invalid.zone`
+
+wait_logfile secondary.log "received update to serial $CATALOG1_SERIAL" 10
+wait_logfile secondary2.log "received update to serial $CATALOG2_SERIAL" 10
+
+$SECONDARY_CONTROL write
+wait_logfile secondary.log "writing zone catalog1.invalid" 10
+$SECONDARY2_CONTROL write
+wait_logfile secondary2.log "writing zone catalog2.invalid" 10
+
+tail -n +3 primary.catalog1.invalid.zone > catalog1.invalid.zone.pri
+tail -n +3 secondary.catalog1.invalid.zone > catalog1.invalid.zone.sec
+if ! diff catalog1.invalid.zone.pri catalog1.invalid.zone.sec ; then
+	>&2 echo "catalog1.invalid differs between primary and secondary"
+	exit 1
+fi
+
+tail -n +3 primary.catalog2.invalid.zone > catalog2.invalid.zone.pri
+tail -n +3 secondary2.catalog2.invalid.zone > catalog2.invalid.zone.sec2
+if ! diff catalog1.invalid.zone.pri catalog1.invalid.zone.sec ; then
+	>&2 echo "catalog2.invalid differs between primary and secondary"
+	exit 1
+fi
+
+print_status "Final stats"
+
+if [ `n_zones primary` -ne $(( $N_MEMBER_ZONES / 2 + 3 )) ]; then
+	>&2 echo "primary has wrong number of zones"
+	exit 1
+fi
+if [ `n_zones secondary` -ne $(( $N_MEMBER_ZONES / 4 + 1 )) ]; then
+	>&2 echo "secondary has wrong number of zones"
+	exit 1
+fi
+if [ `n_zones secondary2` -ne $(( $N_MEMBER_ZONES / 8 + 1 )) ]; then
+	>&2 echo "secondary2 has wrong number of zones"
+	exit 1
+fi
+
+
+exit 0
+
