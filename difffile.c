@@ -1349,7 +1349,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 	if(check_for_bad_serial(nsd->db, zone_buf, old_serial)) {
 		DEBUG(DEBUG_XFRD,1, (LOG_ERR,
 			"skipping diff file commit with bad serial"));
-		return 1;
+		return called_from == CALLED_FROM_XFRD_PROCESS ? 0 : 1;
 	}
 
 	if(!zone->is_skipped)
@@ -1375,7 +1375,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 					zone_buf, DIFF_CORRUPT, nsd, xfrfilenr);
 				/* the udb is still dirty, it is bad */
 				if(called_from == CALLED_FROM_XFRD_PROCESS) {
-					return 1;
+					return 0;
 				} else {
 					exit(1);
 				}
@@ -1414,7 +1414,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 			diff_update_commit(
 				zone_buf, DIFF_INCONSISTENT, nsd, xfrfilenr);
 			if(called_from == CALLED_FROM_XFRD_PROCESS) {
-				return 1;
+				return 0;
 			} else {
 				exit(1);
 			}
