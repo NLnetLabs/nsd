@@ -406,8 +406,9 @@ zone_list_member_zone_insert(struct nsd_options* opt, const char* nm,
 		return NULL;
 	}
 	if(!mem_idnm) {
-		if(cmz && new_member_id) {
+		if(cmz && new_member_id)
 			new_member_id(cmz);
+		if(cmz && cmz->member_id) {
 			/* Assume all bytes of member_id are printable.
 			 * plus 1 for space
 			 */
@@ -605,11 +606,12 @@ zone_list_add_or_cat(struct nsd_options* opt, const char* zname,
 		return NULL;
 
 	if(zone_is_catalog_producer_member(zone)
-	&& (cmz = as_catalog_member_zone(zone))) {
+	&& (cmz = as_catalog_member_zone(zone))
+	&& cmz->member_id) {
 		snprintf(zone_list_line, sizeof(zone_list_line),
 			"cat %s %s %.*s\n", zname, pname,
 			(int)label_length(dname_name(cmz->member_id)),
-		       	(const char*)dname_name(cmz->member_id) + 1);
+			(const char*)dname_name(cmz->member_id) + 1);
 	} else {
 		snprintf(zone_list_line, sizeof(zone_list_line),
 			"add %s %s\n", zname, pname);
@@ -810,7 +812,8 @@ zone_list_compact(struct nsd_options* opt)
 		if(zone->part_of_config)
 			continue;
 		if(zone_is_catalog_producer_member(zone)
-		&& (cmz = as_catalog_member_zone(zone))) {
+		&& (cmz = as_catalog_member_zone(zone))
+		&& cmz->member_id) {
 			r = fprintf(out, "cat %s %s %.*s\n", zone->name,
 				zone->pattern->pname,
 				(int)label_length(dname_name(cmz->member_id)),
