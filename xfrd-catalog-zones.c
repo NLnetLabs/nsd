@@ -248,6 +248,20 @@ xfrd_deinit_catalog_consumer_zone(xfrd_state_type* xfrd,
 		namedb_zone_delete(xfrd->nsd->db, zone);
 	}
 	region_recycle(xfrd->region, consumer_zone, sizeof(*consumer_zone));
+#ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
+	if((consumer_zone = xfrd_one_catalog_consumer_zone())
+	&&  consumer_zone->options && consumer_zone->options->node.key) {
+		xfrd_zone_type* zone = (xfrd_zone_type*)rbtree_search(
+			xfrd->zones,
+			(const dname_type*)consumer_zone->options->node.key);
+
+		if(zone) {
+			zone->soa_disk_acquired = 0;
+			zone->soa_nsd_acquired = 0;
+			xfrd_handle_notify_and_start_xfr(zone, NULL);
+		}
+	}
+#endif
 }
 
 /** make the catalog consumer zone invalid for given reason */
@@ -358,6 +372,7 @@ void xfrd_check_catalog_consumer_zonefiles(const dname_type* name)
 		return;
 	if (name && dname_compare(name, consumer_zone->node.key) != 0)
 		return;
+	name = consumer_zone->node.key;
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Mark %s "
 		"for checking", consumer_zone->options->name));
 	make_catalog_consumer_valid(consumer_zone);
