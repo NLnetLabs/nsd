@@ -3225,7 +3225,9 @@ server_child(struct nsd *nsd)
 	region_type *server_region = region_create(xalloc, free);
 	struct event_base* event_base = nsd_child_event_base();
 	sig_atomic_t mode;
+#ifdef HAVE_SETPROCTITLE
 	static char child_name[20];
+#endif
 
 	if(!event_base) {
 		log_msg(LOG_ERR, "nsd server could not create event base");

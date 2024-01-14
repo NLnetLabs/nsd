@@ -762,7 +762,7 @@ retry_adding:
 					    pattern->pname,
 					    getzonestatid( xfrd->nsd->options
 					                 , zopt));
-					zonestat_inc_ifneeded(xfrd);
+					zonestat_inc_ifneeded();
 					xfrd_set_reload_now(xfrd);
 #ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
 					if(zone_is_catalog_consumer(zopt)) {
@@ -844,7 +844,7 @@ retry_adding:
 			xfrd->last_task, member_domain_str,
 			pattern->pname,
 			getzonestatid(xfrd->nsd->options, &to_add->options));
-		zonestat_inc_ifneeded(xfrd);
+		zonestat_inc_ifneeded();
 		xfrd_set_reload_now(xfrd);
 #ifdef MULTIPLE_CATALOG_CONSUMER_ZONES
 		/* add to xfrd - catalog consumer zones */
