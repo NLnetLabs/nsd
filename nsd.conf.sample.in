@@ -487,12 +487,24 @@ remote-control:
 	# Number of seconds before verifier is killed (0 is forever).
 	# Default is verifier-timeout in verify.
 	# verifier-timeout: 0
-	
+
 	# Turn this zone into a catalog consumer zone.
 	# The catalog-member-pattern option is the default pattern that
 	# will be used for members without or with invalid group property.
 	# catalog: consumer
 	# catalog-member-pattern: "example-pattern"
+
+	# Turn this zone into a catalog producer zone.
+	# Member zones can be added using nsd-control addzone <zone> <pattern>
+	# where <pattern> is a pattern containing a catalog-producer-zone
+	# option pointing to this zone.
+	# catalog: producer
+
+	# Use this pattern to add catalog producer members. "catalog1.invalid"
+	# needs to be a valid catalog producer zone; i.e. a primary zone
+	# without a request-xfr option and with and catalog option set to
+	# producer.
+	# catalog-producer-member: "catalog1.invalid"
 
 # Fixed zone entries.  Here you can config zones that cannot be deleted.
 # Zones that are dynamically added and deleted are put in the zonelist file.

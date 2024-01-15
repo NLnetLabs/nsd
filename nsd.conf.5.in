@@ -993,16 +993,46 @@ to not use a specific timeout. Default is verifier\-timeout from
 .B verify:\fR.
 .TP
 .B catalog:\fR <consumer or producer>
-If set to consumer, catalog zone processing is enabled for this catalog.
+If set to \fIconsumer\fR, catalog zone processing is enabled for the zone.
+Only a single zone may be configured as a catalog consumer zone. When more than
+one catalog consumer zone is configured, none of them will be processed.
 Member zones of the catalog will use the pattern specified by the group
 property, or if a group property is missing or invalid, the pattern specified
-by the .B catalog-member-pattern\fR option is used. Group properties are valid
-if there is only a single one mathing the name of a configured pattern.
+by the \fBcatalog-member-pattern\fR option is used. Group properties are valid
+if there is only a single value matching the name of a for member zones valid
+pattern.
+
+A zone with the option set to \fIproducer\fR, can be used to produce a
+catalog zone.  Member zones for catalog producer zones can be added with
+"\fInsd\-control addzone <zone> <pattern>\fR", where <pattern> has a
+\fBcatalog\-producer\-zone\fR option pointing to a catalog producer zone.
+Members will get a group property with the pattern name as value.
+Catalog producer zones must be primary zones and may not have a
+\fBrequest\-xfr\fR option. Catalog producer zones will \fInot\fR read content
+from zone files, but will reconstruct the zone on startup from the member zone
+entries in @zonelistfile@, specified with the \fBzonelistfile\fR option.
+
+The status of both catalog consumer and producer zones can be verified with
+\fInsd\-control zonestatus\fR. It will show the number of member zones and, if
+the catalog zone is invalid, the reason for it to be invalid is shown.
+\fInsd\-control zonestatus\fR will also show the entry of a catalog member zone
+in the catalog (consumer or producer) zone as \fBcatalog-member-id:\fR.
+
+A catalog zone can either be catalog consumer zone or a catalog producer zone
+but not both. Likewise, catalog member zones can be either a member of catalog
+consumer zone or a catalog producer zone but not both.
 .TP
-.B catalog-member-pattern:\fR <pattern>
-Pattern to assign to any zone created from this catalog zone that does not have
-a group property set. This pattern can be used to configure which primary to 
-use.
+.B catalog\-member\-pattern:\fR <pattern\-name>
+If this option is provided for a catalog consumer zone, members of that catalog
+that have a missing or an invalid group property will be added using pattern 
+<pattern\-name>.
+.TP
+.B catalog\-producer\-zone:\fR <zone\-name>
+This option can only be used in a pattern. Adding a zone using
+"\fInsd\-control addzone <zone> <pattern>\fR with a <pattern> containing this
+option, will cause a catalog member entry to be created in the catalog producer
+zone <zone\-name>.  <zone\-name> must exist and must be a valid catalog
+producer zone.
 .SS "Key Declarations"
 The
 .B key:
