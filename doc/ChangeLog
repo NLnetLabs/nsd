@@ -1,3 +1,7 @@
+16 January 2024: Wouter
+	- Move acx_nlnetlabs.m4 to version 48, with ssp and getaddrinfo
+	  include check.
+
 14 January 2024: Wouter
 	- Move acx_nlnetlabs.m4 to version 47, with crypt32 check.
 
