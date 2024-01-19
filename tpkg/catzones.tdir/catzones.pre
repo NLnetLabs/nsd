@@ -5,28 +5,28 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 . ../common.sh
 
-# start NSD
-get_random_port 6
-PRIMARY_PORT=$RND_PORT
-PRIMARY_CTRL_PORT=`expr $RND_PORT + 1`
-SECONDARY_PORT=`expr $RND_PORT + 2`
-SECONDARY_CTRL_PORT=`expr $RND_PORT + 3`
-SECONDARY2_PORT=`expr $RND_PORT + 4`
-SECONDARY2_CTRL_PORT=`expr $RND_PORT + 5`
+if [ -z "$PRIMARY_CTRL_PORT" ]; then
+	get_random_port 6
+	PRIMARY_PORT=$RND_PORT
+	PRIMARY_CTRL_PORT=`expr $RND_PORT + 1`
+	SECONDARY_PORT=`expr $RND_PORT + 2`
+	SECONDARY_CTRL_PORT=`expr $RND_PORT + 3`
+	SECONDARY2_PORT=`expr $RND_PORT + 4`
+	SECONDARY2_CTRL_PORT=`expr $RND_PORT + 5`
+
+	# share the vars
+	echo "export PRIMARY_PORT=$PRIMARY_PORT" >> .tpkg.var.test
+	echo "export PRIMARY_CTRL_PORT=$PRIMARY_CTRL_PORT" >> .tpkg.var.test
+	echo "export SECONDARY_PORT=$SECONDARY_PORT" >> .tpkg.var.test
+	echo "export SECONDARY_CTRL_PORT=$SECONDARY_CTRL_PORT" >> .tpkg.var.test
+	echo "export SECONDARY2_PORT=$SECONDARY2_PORT" >> .tpkg.var.test
+	echo "export SECONDARY2_CTRL_PORT=$SECONDARY2_CTRL_PORT" >> .tpkg.var.test
+fi
 
 PRE="../.."
 TPKG_NSD="$PRE/nsd"
 
-# share the vars
-echo "export PRIMARY_PORT=$PRIMARY_PORT" >> .tpkg.var.test
-echo "export PRIMARY_CTRL_PORT=$PRIMARY_CTRL_PORT" >> .tpkg.var.test
-echo "export SECONDARY_PORT=$SECONDARY_PORT" >> .tpkg.var.test
-echo "export SECONDARY_CTRL_PORT=$SECONDARY_CTRL_PORT" >> .tpkg.var.test
-echo "export SECONDARY2_PORT=$SECONDARY2_PORT" >> .tpkg.var.test
-echo "export SECONDARY2_CTRL_PORT=$SECONDARY2_CTRL_PORT" >> .tpkg.var.test
-
-for CONF in primary secondary secondary2
-do
+for CONF in primary secondary secondary2; do
 	sed \
 	    -e "s/@PRIMARY_PORT@/${PRIMARY_PORT}/g" \
 	    -e "s/@PRIMARY_CTRL_PORT@/${PRIMARY_CTRL_PORT}/g" \
@@ -35,6 +35,7 @@ do
 	    -e "s/@SECONDARY2_PORT@/${SECONDARY2_PORT}/g" \
 	    -e "s/@SECONDARY2_CTRL_PORT@/${SECONDARY2_CTRL_PORT}/g" \
 	    catzones.${CONF}.conf.in > ${CONF}.conf
+	rm -f ${CONF}.log
 	$TPKG_NSD -c ${CONF}.conf
 	wait_nsd_up ${CONF}.log
 done

@@ -1085,7 +1085,7 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 			return 0;
 		if (zone_is_slave(zo)) {
 			if(!ssl_printf(ssl, "	catalog-invalid: a catalog "
-					"producer cannot be a slave zone"))
+					"producer cannot be a secondary zone"))
 				return 0;
 		}
 	}

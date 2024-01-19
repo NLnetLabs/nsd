@@ -855,6 +855,11 @@ zone_option:
                     "already exists", $2, pname);
       }
     }
+  | VAR_CATALOG_PRODUCER_ZONE STRING 
+    {
+      yyerror("catalog-producer-zone option is for patterns only and cannot "
+              "be used in a zone clause");
+    }
   | pattern_or_zone_option ;
 
 pattern:
@@ -913,6 +918,8 @@ pattern_or_zone_option:
   | VAR_REQUEST_XFR STRING STRING
     {
       acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $2, $3);
+      if(cfg_parser->pattern->catalog_role == CATALOG_ROLE_PRODUCER)
+        yyerror("catalog producer zones cannot be secondary zones");
       if(acl->blocked)
         yyerror("blocked address used for request-xfr");
       if(acl->rangetype != acl_range_single)
@@ -1044,6 +1051,8 @@ pattern_or_zone_option:
     { cfg_parser->pattern->verifier_timeout = $2; } 
   | VAR_CATALOG catalog_role
     {
+      if($2 == CATALOG_ROLE_PRODUCER && cfg_parser->pattern->request_xfr)
+        yyerror("catalog producer zones cannot be secondary zones");
       cfg_parser->pattern->catalog_role = $2;
       cfg_parser->pattern->catalog_role_is_default = 0;
     }
@@ -1052,8 +1061,16 @@ pattern_or_zone_option:
       cfg_parser->pattern->catalog_member_pattern = region_strdup(cfg_parser->opt->region, $2); 
     }
   | VAR_CATALOG_PRODUCER_ZONE STRING 
-    { 
+    {
+      dname_type *dname;
+
+      dname = (dname_type *)dname_parse(cfg_parser->opt->region, $2);
       cfg_parser->pattern->catalog_producer_zone = region_strdup(cfg_parser->opt->region, $2); 
+      if(dname == NULL) {
+        yyerror("bad catalog producer name %s", $2);
+      } else {
+        region_recycle(cfg_parser->opt->region, dname, dname_total_size(dname));
+      }
     };
 
 verify:

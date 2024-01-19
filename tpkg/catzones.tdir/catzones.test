@@ -10,6 +10,7 @@ TPKG_NSD_CONTROL="$PRE/nsd-control"
 PRIMARY_CONTROL="$PRE/nsd-control -c primary.conf"
 SECONDARY_CONTROL="$PRE/nsd-control -c secondary.conf"
 SECONDARY2_CONTROL="$PRE/nsd-control -c secondary2.conf"
+TPKG_NSD_CHECKCONF="$PRE/nsd-checkconf"
 N_MEMBER_ZONES=256
 SLEEP=""
 
@@ -122,6 +123,15 @@ if [ `n_zones secondary2` -ne $(( $N_MEMBER_ZONES / 8 + 1 )) ]; then
 	exit 1
 fi
 
-
+CAT1="catalog producer zones cannot be secondary zones"
+CAT2="catalog-producer-zone option can only be used in patterns not zones"
+CAT3="catalog-producer-zone could not be found"
+CAT4="catalog-producer-zone is not configured as a catalog producer"
+for TEST in 1.1 1.2 1.3 1.4 2.1 2.2 3 4; do
+	if $TPKG_NSD_CHECKCONF catzones.bad${TEST}.conf 2>/dev/null; then
+		eval echo Failed test $TEST in category '\"'\$CAT${TEST%.*}'\"'
+		exit 1
+	fi
+done
 exit 0
 

@@ -7,7 +7,10 @@
 . ../common.sh
 
 # do your teardown here
-kill_from_pidfile secondary2.pid
-kill_from_pidfile secondary.pid
-kill_from_pidfile primary.pid
+(
+	kill_from_pidfile secondary2.pid &
+	kill_from_pidfile secondary.pid &
+	kill_from_pidfile primary.pid &
+	wait
+)
 

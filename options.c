@@ -301,6 +301,28 @@ parse_options_file(struct nsd_options* opt, const char* file,
 				c_error("key %s in pattern %s could not be found",
 					acl->key_name, pat->pname);
 		}
+		/* lookup zones for catalog-producer-zone options */
+		if(pat->catalog_producer_zone) {
+			struct zone_options* zopt;
+			const dname_type *dname = dname_parse(opt->region,
+					pat->catalog_producer_zone);
+			if(dname == NULL) {
+				; /* pass; already erred during parsing */
+
+			} else if (!(zopt = zone_options_find(opt, dname))) {
+				c_error("catalog producer zone %s in pattern "
+					"%s could not be found",
+					pat->catalog_producer_zone,
+					pat->pname);
+
+			} else if (!zone_is_catalog_producer(zopt)) {
+				c_error("catalog-producer-zone %s in pattern "
+					"%s is not configered as a "
+					"catalog: producer",
+					pat->catalog_producer_zone,
+					pat->pname);
+			}
+		}
 	}
 
 	if(cfg_parser->errors > 0)
@@ -2511,6 +2533,18 @@ config_apply_pattern(struct pattern_options *dest, const char* name)
 	if(!pat) {
 		c_error("could not find pattern %s", name);
 		return;
+	}
+	if(strncmp(dest->pname, PATTERN_IMPLICIT_MARKER,
+				strlen(PATTERN_IMPLICIT_MARKER)) == 0
+	&& pat->catalog_producer_zone) {
+		c_error("patterns with an catalog-producer-zone option are to "
+		        "be used with \"nsd-control addzone\" only and cannot "
+			"be included from zone clauses in the config file");
+		return;
+	}
+	if((dest->catalog_role == CATALOG_ROLE_PRODUCER &&  pat->request_xfr)
+	|| ( pat->catalog_role == CATALOG_ROLE_PRODUCER && dest->request_xfr)){
+		c_error("catalog producer zones cannot be secondary zones");
 	}
 
 	/* apply settings */
