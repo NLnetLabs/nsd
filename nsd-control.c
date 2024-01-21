@@ -523,7 +523,7 @@ go(const char* cfgfile, char* svr, int argc, char* argv[])
 		exit(1);
 	}
 	tsig_init(opt->region);
-	if(!parse_options_file(opt, cfgfile, NULL, NULL)) {
+	if(!parse_options_file(opt, cfgfile, NULL, NULL, NULL)) {
 		fprintf(stderr, "could not read config file\n");
 		exit(1);
 	}

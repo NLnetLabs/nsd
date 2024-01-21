@@ -976,7 +976,7 @@ main(int argc, char* argv[])
 	/* read config file */
 	options = nsd_options_create(region_create(xalloc, free));
 	tsig_init(options->region);
-	if (!parse_options_file(options, configfile, NULL, NULL) ||
+	if (!parse_options_file(options, configfile, NULL, NULL, NULL) ||
 	   !additional_checks(options, configfile)) {
 		exit(2);
 	}

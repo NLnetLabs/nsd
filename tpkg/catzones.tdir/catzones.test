@@ -18,18 +18,23 @@ n_zones() {
 	$TPKG_NSD_CONTROL -c $1.conf zonestatus | grep ^zone: | wc -l
 }
 
+get_serial() {
+	$1 zonestatus $2 \
+	 | awk '/\(serial: /{s=substr($4,0,length($4)-1)}END{print s}'
+}
+get_n_members() {
+	$1 zonestatus $2 \
+	| awk '/\(serial: /{m=substr($7,0,length($7)-1)}END{print m}'
+}
 print_catzone_status() {
-	return
 	CTRL="$TPKG_NSD_CONTROL -c $1.conf"
 	echo "$1: `n_zones $1` zones"
 	shift
 	while [ $# -gt 0 ]
 	do
 		Z=$1.invalid
-		S=`$CTRL zonestatus $z \
-		 | awk '/\(serial: /{s=substr($4,0,length($4)-1)}END{print s}'`
-		M=`$CTRL zonestatus $z \
-		 | awk '/\(serial: /{m=substr($7,0,length($7)-1)}END{print m}'`
+		S=`get_serial $CTRL $Z`
+		M=`get_n_members $CTRL $Z`
 		echo "	$1 (serial: $S, # members: $M)"
 		shift
 	done
@@ -37,6 +42,7 @@ print_catzone_status() {
 }
 
 print_status() {
+	return
 	$SLEEP
 	print_catzone_status primary catalog1 catalog2 catalog3
 	print_catzone_status secondary catalog1
@@ -48,7 +54,7 @@ print_status() {
 #
 for (( i = 0; i < $N_MEMBER_ZONES; i++))
 do   echo zone${i}.invalid group$((${i} % 4))
-done | $PRIMARY_CONTROL addzones > nsd-control.log
+done | $PRIMARY_CONTROL addzones >> nsd-control.log
 
 # Add the second consumer by nsd-control addzone
 #
@@ -58,25 +64,25 @@ print_status "$N_MEMBER_ZONES member zones added"
 
 for (( i = 0; i < $N_MEMBER_ZONES; i++))
 do   echo zone${i}.invalid
-done | $PRIMARY_CONTROL delzones > nsd-control.log
+done | $PRIMARY_CONTROL delzones >> nsd-control.log
 
 print_status "$N_MEMBER_ZONES member zones deleted"
 
 for (( i = 0; i < $N_MEMBER_ZONES; i++))
 do   echo zone${i}.invalid group$((${i} % 4))
-done | $PRIMARY_CONTROL addzones > nsd-control.log
+done | $PRIMARY_CONTROL addzones >> nsd-control.log
 
 print_status "$N_MEMBER_ZONES member zones added"
 
 for (( i = 0; i < $(( $N_MEMBER_ZONES / 4 )); i++))
 do   echo zone${i}.invalid
-done | $PRIMARY_CONTROL delzones > nsd-control.log
+done | $PRIMARY_CONTROL delzones >> nsd-control.log
 
 print_status "$(($N_MEMBER_ZONES / 4)) member zones deleted"
 
 for (( i = $(( $N_MEMBER_ZONES / 4 * 3 )); i < $(( $N_MEMBER_ZONES )); i++))
 do   echo zone${i}.invalid
-done | $PRIMARY_CONTROL delzones > nsd-control.log
+done | $PRIMARY_CONTROL delzones >> nsd-control.log
 
 print_status "$(($N_MEMBER_ZONES / 4)) member zones deleted"
 
@@ -85,6 +91,7 @@ wait_logfile primary.log "writing zone catalog1.invalid" 10
 wait_logfile primary.log "writing zone catalog2.invalid" 10
 CATALOG1_SERIAL=`awk 'FNR==2{print $NF}' primary.catalog1.invalid.zone`
 CATALOG2_SERIAL=`awk 'FNR==2{print $NF}' primary.catalog2.invalid.zone`
+CATALOG3_SERIAL=`awk 'FNR==2{print $NF}' primary.catalog3.invalid.zone`
 
 wait_logfile secondary.log "received update to serial $CATALOG1_SERIAL" 10
 wait_logfile secondary2.log "received update to serial $CATALOG2_SERIAL" 10
@@ -133,5 +140,99 @@ for TEST in 1.1 1.2 1.3 1.4 2.1 2.2 3 4; do
 		exit 1
 	fi
 done
+
+cp primary.conf primary.conf.bak
+sed -i 's/-zone: "catalog2.invalid"/-zone: "catalog3.invalid"/' primary.conf
+if $PRIMARY_CONTROL reconfig | tail -1 | grep '^ok$'; then
+	echo "Should not be able to change catalog producer member zones"
+	exit 1
+fi
+
+cp primary.conf.bak primary.conf
+sed -i 's/catalog-producer-zone: "catalog2.invalid"//' primary.conf
+if $PRIMARY_CONTROL reconfig | tail -1 | grep '^ok$'; then
+	echo "Should not be able to remove catalog producer member zones"
+	exit 1
+fi
+
+cp primary.conf.bak primary.conf
+cat << EOF >> primary.conf
+pattern:
+	name: "group4"
+	include-pattern: "primary"
+	zonefile: "catzones.primary.group4.zone"
+	catalog-producer-zone: "catalog2.invalid"
+
+pattern:
+	name: "group5"
+	include-pattern: "primary"
+	zonefile: "catzones.primary.group5.zone"
+	#catalog-producer-zone: "catalog3.invalid"
+EOF
+if ! $PRIMARY_CONTROL reconfig | tail -1 | grep '^ok$'; then
+	echo "It should be fine to add new catalog member zone patterns"
+	# Because there wouldn't be any zones configured with it anyway
+	exit 1
+fi
+
+cp primary.conf primary.conf.bak
+sed -i 's/#catalog-producer-zone:/catalog-producer-zone:/' primary.conf
+if $PRIMARY_CONTROL reconfig | tail -1 | grep '^ok$'; then
+	echo "An existing pattern may not become cat producer member zone pat"
+	exit 1
+fi
+
+cp primary.conf.bak primary.conf
+if ! $PRIMARY_CONTROL reconfig | tail -1 | grep '^ok$'; then
+	echo "All previous errors should have had no effect"
+	exit 1
+fi
+
+# More than one consumer is invalid
+$SECONDARY2_CONTROL addzone catalog3.invalid consumer
+wait_logfile secondary2.log "catalog3.invalid serial 0 is updated to $CATALOG3_SERIAL" 10
+
+for (( i = 0; i < $(( $N_MEMBER_ZONES / 4 )); i++))
+do   echo zone${i}.invalid group$((${i} % 4))
+done | $PRIMARY_CONTROL addzones >> nsd-control.log
+
+for (( i = $(( $N_MEMBER_ZONES / 4 * 3 )); i < $(( $N_MEMBER_ZONES )); i++))
+do   echo zone${i}.invalid group$((${i} % 4))
+done | $PRIMARY_CONTROL addzones >> nsd-control.log
+
+CATALOG2_SERIAL=`get_serial "$PRIMARY_CONTROL" catalog2.invalid`
+CATALOG3_SERIAL=`get_serial "$PRIMARY_CONTROL" catalog3.invalid`
+
+wait_logfile secondary2.log " is updated to $CATALOG3_SERIAL" 10
+
+if [ `n_zones secondary2` -ne $(( $N_MEMBER_ZONES / 8 + 2 )) ]; then
+	>&2 echo "secondary2 should not process and has wrong number of zones"
+	exit 1
+fi
+
+$SECONDARY2_CONTROL delzone catalog3.invalid
+wait_logfile secondary2.log "catalog2.invalid serial is updated to $CATALOG2_SERIAL" 10
+
+if [ `n_zones secondary2` -ne $(( $N_MEMBER_ZONES / 4 + 1 )) ]; then
+	>&2 echo "secondary2 should be processing again"
+	exit 1
+fi
+
+$SECONDARY2_CONTROL addzone catalog3.invalid consumer
+$SECONDARY2_CONTROL delzone catalog2.invalid
+wait_logfile secondary2.log "catalog3.invalid serial 0 is updated to $CATALOG3_SERIAL" 10
+
+if [ `n_zones secondary2` -ne $(( $N_MEMBER_ZONES / 4 + 1 )) ]; then
+	>&2 echo "secondary2 should be processing again and have $(( $N_MEMBER_ZONES / 4 + 1)) zones"
+	exit 1
+fi
+
+wait_logfile secondary2.log "zone zone3.invalid serial 0 is updated to 1" 10
+if ! dig @127.0.0.1 -p $SECONDARY2_PORT zone3.invalid TXT +norec +short | grep group3
+then
+	>&2 echo "Consumer member zone should be loaded and served"
+	exit 1
+fi
+
 exit 0
 

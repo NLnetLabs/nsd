@@ -2020,7 +2020,8 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 
 	(void)ssl_printf(ssl, "reconfig start, read %s\n", cfgfile);
 	opt = nsd_options_create(region);
-	if(!parse_options_file(opt, cfgfile, &print_ssl_cfg_err, &ssl)) {
+	if(!parse_options_file(opt, cfgfile, &print_ssl_cfg_err, &ssl,
+				xfrd->nsd->options)) {
 		/* error already printed */
 		region_destroy(region);
 		return;

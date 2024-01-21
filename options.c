@@ -203,7 +203,8 @@ warn_if_directory(const char* filetype, FILE* f, const char* fname)
 
 int
 parse_options_file(struct nsd_options* opt, const char* file,
-	void (*err)(void*,const char*), void* err_arg)
+	void (*err)(void*,const char*), void* err_arg,
+	struct nsd_options* old_opts)
 {
 	FILE *in = 0;
 	struct pattern_options* pat;
@@ -247,6 +248,10 @@ parse_options_file(struct nsd_options* opt, const char* file,
 
 	RBTREE_FOR(pat, struct pattern_options*, opt->patterns)
 	{
+		struct pattern_options* old_pat =
+			old_opts ? pattern_options_find(old_opts, pat->pname)
+			         : NULL;
+
 		/* lookup keys for acls */
 		for(acl=pat->allow_notify; acl; acl=acl->next)
 		{
@@ -322,6 +327,21 @@ parse_options_file(struct nsd_options* opt, const char* file,
 					pat->catalog_producer_zone,
 					pat->pname);
 			}
+		}
+		if( !old_opts /* Okay to add a cat producer member zone pat */
+		|| (!old_pat) /* But not to add, change or del an existing */
+		|| ( old_pat && !old_pat->catalog_producer_zone
+		             &&     !pat->catalog_producer_zone)
+		|| ( old_pat &&  old_pat->catalog_producer_zone
+		             &&      pat->catalog_producer_zone
+		             && strcmp( old_pat->catalog_producer_zone
+		                      ,     pat->catalog_producer_zone) == 0)){
+			; /* No existing catalog producer member zone added
+			   * or changed. Everyting is fine: pass */
+		} else {
+			c_error("catalog-producer-zone in pattern %s cannot "
+				"be removed or changed on a running NSD",
+				pat->pname);
 		}
 	}
 

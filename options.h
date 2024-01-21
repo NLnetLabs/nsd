@@ -485,7 +485,8 @@ int nsd_options_insert_pattern(struct nsd_options* opt,
 /* parses options file. Returns false on failure. callback, if nonNULL,
  * gets called with error strings, default prints. */
 int parse_options_file(struct nsd_options* opt, const char* file,
-	void (*err)(void*,const char*), void* err_arg);
+	void (*err)(void*,const char*), void* err_arg,
+	struct nsd_options* old_opts);
 struct zone_options* zone_options_create(region_type* region);
 void zone_options_delete(struct nsd_options* opt, struct zone_options* zone);
 struct catalog_member_zone* catalog_member_zone_create(region_type* region);

@@ -76,7 +76,7 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 	/* options */
 	printf("read %s\n", config);
 	nsd->options = nsd_options_create(region);
-	if(!parse_options_file(nsd->options, config, NULL, NULL)) {
+	if(!parse_options_file(nsd->options, config, NULL, NULL, NULL)) {
 		printf("failed to read %s\n", config);
 		exit(1);
 	}
