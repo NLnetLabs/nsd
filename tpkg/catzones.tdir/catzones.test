@@ -234,5 +234,11 @@ then
 	exit 1
 fi
 
+if $SECONDARY2_CONTROL delzone zone3.invalid | tail -1 | grep '^ok$'; then
+	echo "A consumer member zone cannot be deleted with nsd-control delzone"
+	# But must be deleted from the catalog
+	exit 1
+fi
+
 exit 0
 
