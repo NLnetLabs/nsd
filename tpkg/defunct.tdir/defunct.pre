@@ -36,7 +36,7 @@ for role in primary secondary; do
 	    -e "s/@SECONDARY_CTRL_PORT@/${SECONDARY_CTRL_PORT}/g" \
 	    -e "s/@VERIFY_PORT@/${VERIFY_PORT}/g" \
 		    defunct.${role}.conf.in > ${role}.conf
-	$TPKG_NSD -L 65535 -F 0xFFFF -c ${role}.conf || $TPKG_NSD -c ${role}.conf
+	$TPKG_NSD -L 65535 -F 0xFFFF -c ${role}.conf 2>/dev/null || $TPKG_NSD -c ${role}.conf
 	wait_nsd_up ${role}.log
 done
 

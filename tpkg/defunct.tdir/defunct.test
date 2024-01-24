@@ -32,7 +32,7 @@ exit_measuring_defuncts_duration()
 }
 
 
-wait_logfile secondary.log "delete update to serial 1" 10
+wait_logfile secondary.log "serial 0 is updated to 1" 10
 echo "START"
 echo "====="
 $SHOWTREE
@@ -42,7 +42,7 @@ TELNET_PID=$!
 echo ""
 $TPKG_SECONDARY_CONTROL reload
 
-wait_logfile secondary.log "delete update to serial 1" 10
+sleep .01
 echo "During normal reload (with 1 serve client occupied)"
 echo "==================================================="
 $SHOWTREE
