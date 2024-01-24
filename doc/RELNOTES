@@ -16,6 +16,9 @@ BUG FIXES:
 	- Merge #309: More RFC 8499 compliance.
 	- Fix control-reconfig-xfrd test for zonestatus primary that is
 	  printed by nsd-control zonestatus.
+	- Move acx_nlnetlabs.m4 to version 47, with crypt32 check.
+	- Move acx_nlnetlabs.m4 to version 48, with ssp and getaddrinfo
+	  include check.
 
 4.8.0
 ================

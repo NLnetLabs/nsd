@@ -1,3 +1,10 @@
+16 January 2024: Wouter
+	- Move acx_nlnetlabs.m4 to version 48, with ssp and getaddrinfo
+	  include check.
+
+14 January 2024: Wouter
+	- Move acx_nlnetlabs.m4 to version 47, with crypt32 check.
+
 8 December 2023: Wouter
 	- Merge #309: More RFC 8499 compliance.
 	- Fix #310: NSD stats contain the terms "master" and "slave".
