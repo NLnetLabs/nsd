@@ -10,7 +10,8 @@ Help:
 Pre: defunct.pre
 Post: defunct.post
 Test: defunct.test
-AuxFiles: defunct.nsd.conf.in, defunct.server.key, defunct.server.pem,
+AuxFiles: defunct.primary.conf.in, defunct.secondary.conf.in,
+	defunct.verifier.sh, defunct.server.key, defunct.server.pem,
 	defunct.control.key, defunct.control.pem,
 Passed:
 Failure:

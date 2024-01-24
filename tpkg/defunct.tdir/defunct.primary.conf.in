@@ -1,0 +1,28 @@
+server:
+	server-count: 1
+	zonesdir: "."
+	username: ""
+	database: ""
+	verbosity: 2
+	ip-address: 127.0.0.1
+	port: @PRIMARY_PORT@
+	pidfile: "primary.pid"
+	logfile: "primary.log"
+	xfrdfile: "primary-xfrd.state"
+	zonelistfile: "primary-zone.list"
+	cookie-secret-file: "primary-nsd-cookiesecrets.txt"
+
+remote-control:
+	control-enable: yes
+	control-port: @PRIMARY_CTRL_PORT@
+	server-key-file: "defunct.server.key"
+	server-cert-file: "defunct.server.pem"
+	control-key-file: "defunct.control.key"
+	control-cert-file: "defunct.control.pem"
+
+zone:
+	name: "defunct.invalid"
+	zonefile: "primary.%s"
+	notify: 127.0.0.1@@SECONDARY_PORT@ NOKEY
+	provide-xfr: 127.0.0.0/8 NOKEY
+

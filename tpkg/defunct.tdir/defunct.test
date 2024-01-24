@@ -6,30 +6,93 @@
 
 . ../common.sh
 PRE="../.."
-TPKG_NSD_CONTROL="$PRE/nsd-control -c nsd.conf"
+TPKG_PRIMARY_CONTROL="$PRE/nsd-control -c primary.conf"
+TPKG_SECONDARY_CONTROL="$PRE/nsd-control -c secondary.conf"
 
-NSD_PID=`cat nsd.pid`
-PSTREE="ps --forest -g $NSD_PID -o pid=,tty=,stat=,time=,cmd="
+SECONDARY_PID=`cat secondary.pid`
+PSTREE="ps --forest -g $SECONDARY_PID -o pid=,tty=,stat=,time=,cmd="
+SHOWTREE="ps --forest -g $SECONDARY_PID -o pid=,tty=,stat=,time=,comm="
 
-( sleep 10 | telnet 127.0.0.1 ${NSD_PORT} >/dev/null 2>&1) &
+exit_measuring_defuncts_duration()
+{
+	PSTREE=$1
+	FOREST=$2
+	TELNET_PID=$3
+	echo "$FOREST"
+	START=`date +%s.%N`
+	while (echo "$FOREST" | grep -q '\<defunct\>'); do
+		sleep 0.01
+		FOREST=`$PSTREE`
+	done
+	awk -vend=`date +%s.%N` -vstart=$START \
+	  'BEGIN{printf "<defunct> processes seen for %4.1f seconds\n", (end - start)}'
 
-TELNET_PID=$!
-$TPKG_NSD_CONTROL reload
-
-FOREST=`$PSTREE`
-echo "$FOREST"
-if ! (echo "$FOREST" | grep -q '\<defunct\>'); then
-	echo "No defuncts!"
 	kill_pid $TELNET_PID
-	exit 0
+	exit 1
+}
+
+
+wait_logfile secondary.log "delete update to serial 1" 10
+echo "START"
+echo "====="
+$SHOWTREE
+
+( sleep 10 | telnet 127.0.0.1 ${SECONDARY_PORT} >/dev/null 2>&1) &
+TELNET_PID=$!
+echo ""
+$TPKG_SECONDARY_CONTROL reload
+
+wait_logfile secondary.log "delete update to serial 1" 10
+echo "During normal reload (with 1 serve client occupied)"
+echo "==================================================="
+$SHOWTREE
+FOREST=`$PSTREE`
+if (echo "$FOREST" | grep -q '\<defunct\>'); then
+	exit_measuring_defuncts_duration "$PSTREE" "$FOREST" "$TELNET_PID"
 fi
-START=`date +%s.%N`
-while (echo "$FOREST" | grep -q '\<defunct\>'); do
-	FOREST=`$PSTREE`
-done
-awk -vend=`date +%s.%N` -vstart=$START \
-  'BEGIN{printf "<defunct> processes seen for %5.3f seconds\n", (end - start)}'
 
-kill_pid $TELNET_PID
-exit 1
+cat << EOF > primary.defunct.invalid
+@       3600    SOA     ns.invalid. noreply.invalid. 2 7200 3600 1209600 3600
+                NS      ns.invalid.
+EOF
 
+( sleep 10 | telnet 127.0.0.1 ${SECONDARY_PORT} >/dev/null 2>&1) &
+TELNET_PID=$!
+$TPKG_PRIMARY_CONTROL reload
+
+wait_logfile secondary.log "Serial 2 is even, exit with failure" 10
+echo ""
+echo "During failed transfer (with 1 serve client occupied)"
+echo "====================================================="
+$SHOWTREE
+FOREST=`$PSTREE`
+if (echo "$FOREST" | grep -q '\<defunct\>'); then
+	exit_measuring_defuncts_duration "$PSTREE" "$FOREST" "$TELNET_PID"
+fi
+
+cat << EOF > primary.defunct.invalid
+@       3600    SOA     ns.invalid. noreply.invalid. 3 7200 3600 1209600 3600
+                NS      ns.invalid.
+EOF
+
+( sleep 10 | telnet 127.0.0.1 ${SECONDARY_PORT} >/dev/null 2>&1) &
+TELNET_PID=$!
+$TPKG_PRIMARY_CONTROL reload
+
+wait_logfile secondary.log "Serial 3 is odd, exit with success" 10
+echo ""
+echo "During transfer of valid zone again (with 1 serve client occupied)"
+echo "=================================================================="
+$SHOWTREE
+FOREST=`$PSTREE`
+if (echo "$FOREST" | grep -q '\<defunct\>'); then
+	exit_measuring_defuncts_duration "$PSTREE" "$FOREST" "$TELNET_PID"
+fi
+
+wait_logfile secondary.log "serial 1 is updated to 3" 10
+echo ""
+echo "END"
+echo "==="
+$SHOWTREE
+
+exit 0

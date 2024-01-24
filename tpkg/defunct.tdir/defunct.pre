@@ -6,23 +6,37 @@
 . ../common.sh
 
 # start NSD
-if [ -z "$NSD_PORT" ]; then
-	get_random_port 2
-	NSD_PORT=$RND_PORT
-	NSD_CTRL_PORT=`expr $RND_PORT + 1`
+if [ -z "$PRIMARY_PORT" ]; then
+	get_random_port 5 
+	PRIMARY_PORT=$RND_PORT
+	PRIMARY_CTRL_PORT=`expr $RND_PORT + 1`
+	SECONDARY_PORT=`expr $RND_PORT + 2`
+	SECONDARY_CTRL_PORT=`expr $RND_PORT + 3`
+	VERIFY_PORT=`expr $RND_PORT + 4`
+
+	# share the vars
+	echo "export PRIMARY_PORT=$PRIMARY_PORT" >> .tpkg.var.test
+	echo "export PRIMARY_CTRL_PORT=$PRIMARY_CTRL_PORT" >> .tpkg.var.test
+	echo "export SECONDARY_PORT=$SECONDARY_PORT" >> .tpkg.var.test
+	echo "export SECONDARY_CTRL_PORT=$SECONDARY_CTRL_PORT" >> .tpkg.var.test
+	echo "export VERIFY_PORT=$VERIFY_PORT" >> .tpkg.var.test
 fi
 
 PRE="../.."
 TPKG_NSD="$PRE/nsd"
 
-# share the vars
-echo "export NSD_PORT=$NSD_PORT" >> .tpkg.var.test
-echo "export NSD_CTRL_PORT=$NSD_CTRL_PORT" >> .tpkg.var.test
-
-sed -e "s/@NSD_PORT@/${NSD_PORT}/g" \
-    -e "s/@NSD_CTRL_PORT@/${NSD_CTRL_PORT}/g" \
-	    defunct.nsd.conf.in > nsd.conf
-
-$TPKG_NSD -L 5 -F 0xFFFF -c nsd.conf || $TPKG_NSD -c nsd.conf
-wait_nsd_up nsd.log
+cat << EOF > primary.defunct.invalid
+@       3600    SOA     ns.invalid. noreply.invalid. 1 7200 3600 1209600 3600   
+                NS      ns.invalid.                                             
+EOF
+for role in primary secondary; do
+	sed -e "s/@PRIMARY_PORT@/${PRIMARY_PORT}/g" \
+	    -e "s/@PRIMARY_CTRL_PORT@/${PRIMARY_CTRL_PORT}/g" \
+	    -e "s/@SECONDARY_PORT@/${SECONDARY_PORT}/g" \
+	    -e "s/@SECONDARY_CTRL_PORT@/${SECONDARY_CTRL_PORT}/g" \
+	    -e "s/@VERIFY_PORT@/${VERIFY_PORT}/g" \
+		    defunct.${role}.conf.in > ${role}.conf
+	$TPKG_NSD -L 65535 -F 0xFFFF -c ${role}.conf || $TPKG_NSD -c ${role}.conf
+	wait_nsd_up ${role}.log
+done
 

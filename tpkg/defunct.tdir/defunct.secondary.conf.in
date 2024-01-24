@@ -1,0 +1,38 @@
+server:
+	server-count: 5
+	zonesdir: "."
+	username: ""
+	database: ""
+	verbosity: 2
+	ip-address: 127.0.0.1
+	port: @SECONDARY_PORT@
+	pidfile: "secondary.pid"
+	logfile: "secondary.log"
+	xfrdfile: "secondary-xfrd.state"
+	zonelistfile: "secondary-zone.list"
+	cookie-secret-file: "secondary-nsd-cookiesecrets.txt"
+
+remote-control:
+	control-enable: yes
+	control-port: @SECONDARY_CTRL_PORT@
+	server-key-file: "defunct.server.key"
+	server-cert-file: "defunct.server.pem"
+	control-key-file: "defunct.control.key"
+	control-cert-file: "defunct.control.pem"
+
+verify:
+	enable: yes
+	port: @VERIFY_PORT@
+	ip-address: 127.0.0.1
+
+zone:
+	name: "defunct.invalid"
+
+	allow-notify: 127.0.0.1 NOKEY
+	request-xfr: 127.0.0.1@@PRIMARY_PORT@ NOKEY
+
+	verify-zone: yes
+	verifier: ./defunct.verifier.sh
+	verifier-feed-zone: yes
+	verifier-timeout: 5
+
