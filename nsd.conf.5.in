@@ -734,8 +734,10 @@ The zone options such as
 .BR verify\-zone ,
 .BR verifier ,
 .BR verifier\-feed\-zone ,
+.BR verifier\-timeout ,
+.BR catalog ,
 and
-.B verifier\-timeout
+.B catalog\-member\-pattern
 can be given.  They are applied to the patterns and zones that include
 this pattern.
 .SS "Zone Options"
@@ -1021,6 +1023,11 @@ in the catalog (consumer or producer) zone as \fBcatalog-member-id:\fR.
 A catalog zone can either be catalog consumer zone or a catalog producer zone
 but not both. Likewise, catalog member zones can be either a member of catalog
 consumer zone or a catalog producer zone but not both.
+.IP
+Catalog zones contain a list of zones that are served. Use \fBallow\-query:
+0.0.0.0/0 BLOCKED\fR and \fBallow\-query: ::0/0 BLOCKED\fR in a catalog zone 
+zone or pattern clause to prevent revealing the catalog. Also consider using
+transfers over TLS to further protect the catalog against eavesdroppers.
 .TP
 .B catalog\-member\-pattern:\fR <pattern\-name>
 If this option is provided for a catalog consumer zone, members of that catalog
