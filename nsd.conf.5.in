@@ -998,10 +998,10 @@ Only a single zone may be configured as a catalog consumer zone. When more than
 one catalog consumer zone is configured, none of them will be processed.
 Member zones of the catalog will use the pattern specified by the group
 property, or if a group property is missing or invalid, the pattern specified
-by the \fBcatalog-member-pattern\fR option is used. Group properties are valid
+by the \fBcatalog\-member\-pattern\fR option is used. Group properties are valid
 if there is only a single value matching the name of a for member zones valid
 pattern.
-
+.IP
 A zone with the option set to \fIproducer\fR, can be used to produce a
 catalog zone.  Member zones for catalog producer zones can be added with
 "\fInsd\-control addzone <zone> <pattern>\fR", where <pattern> has a
@@ -1011,13 +1011,13 @@ Catalog producer zones must be primary zones and may not have a
 \fBrequest\-xfr\fR option. Catalog producer zones will \fInot\fR read content
 from zone files, but will reconstruct the zone on startup from the member zone
 entries in @zonelistfile@, specified with the \fBzonelistfile\fR option.
-
+.IP
 The status of both catalog consumer and producer zones can be verified with
 \fInsd\-control zonestatus\fR. It will show the number of member zones and, if
 the catalog zone is invalid, the reason for it to be invalid is shown.
 \fInsd\-control zonestatus\fR will also show the entry of a catalog member zone
 in the catalog (consumer or producer) zone as \fBcatalog-member-id:\fR.
-
+.IP
 A catalog zone can either be catalog consumer zone or a catalog producer zone
 but not both. Likewise, catalog member zones can be either a member of catalog
 consumer zone or a catalog producer zone but not both.

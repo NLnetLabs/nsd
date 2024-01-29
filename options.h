@@ -523,7 +523,7 @@ struct zone_options* zone_list_add_or_cat(struct nsd_options* opt,
 	const char* zname, const char* pname, new_member_id_type new_member_id);
 /* create zone entry and add to the zonelist file */
 static inline struct zone_options* zone_list_add(struct nsd_options* opt,
-		const char* zname, const char* pname)
+	const char* zname, const char* pname)
 { return zone_list_add_or_cat(opt, zname, pname, NULL); }
 /* create zonelist entry, do not insert in file (called by _add) */
 struct zone_options* zone_list_zone_insert(struct nsd_options* opt,

@@ -1078,7 +1078,7 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 			return 0;
 		if(producer_zone) {
 			if(!ssl_printf(ssl, " (serial: %u, # members: %zu)\n",
-					producer_zone->serial,
+					(unsigned)producer_zone->serial,
 				       	producer_zone->member_ids.count))
 				return 0;
 		} else if(!ssl_printf(ssl, "\n"))

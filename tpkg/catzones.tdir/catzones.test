@@ -110,7 +110,7 @@ fi
 
 tail -n +3 primary.catalog2.invalid.zone > catalog2.invalid.zone.pri
 tail -n +3 secondary2.catalog2.invalid.zone > catalog2.invalid.zone.sec2
-if ! diff catalog1.invalid.zone.pri catalog1.invalid.zone.sec ; then
+if ! diff catalog2.invalid.zone.pri catalog2.invalid.zone.sec2 ; then
 	>&2 echo "catalog2.invalid differs between primary and secondary"
 	exit 1
 fi
