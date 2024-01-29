@@ -855,11 +855,6 @@ zone_option:
                     "already exists", $2, pname);
       }
     }
-  | VAR_CATALOG_PRODUCER_ZONE STRING 
-    {
-      yyerror("catalog-producer-zone option is for patterns only and cannot "
-              "be used in a zone clause");
-    }
   | pattern_or_zone_option ;
 
 pattern:
@@ -1064,12 +1059,14 @@ pattern_or_zone_option:
     {
       dname_type *dname;
 
-      dname = (dname_type *)dname_parse(cfg_parser->opt->region, $2);
-      cfg_parser->pattern->catalog_producer_zone = region_strdup(cfg_parser->opt->region, $2); 
-      if(dname == NULL) {
+      if(cfg_parser->zone) {
+        yyerror("catalog-producer-zone option is for patterns only and cannot "
+                "be used in a zone clause");
+      } else if(!(dname = (dname_type *)dname_parse(cfg_parser->opt->region, $2))) {
         yyerror("bad catalog producer name %s", $2);
       } else {
         region_recycle(cfg_parser->opt->region, dname, dname_total_size(dname));
+        cfg_parser->pattern->catalog_producer_zone = region_strdup(cfg_parser->opt->region, $2); 
       }
     };
 
