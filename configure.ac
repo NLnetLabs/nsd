@@ -971,6 +971,16 @@ case "$enable_checking" in
                 ;;
 esac
 
+AC_ARG_ENABLE(log-role, AS_HELP_STRING([--enable-log-role],[Shows the role of processes in the logfile (enable this only for debugging purposes)]))
+case "$enable_log_role" in
+        yes)
+		AC_DEFINE_UNQUOTED([USE_LOG_PROCESS_ROLE], [], [Define this to show the role of processes in the logfile for debugging purposes.])
+		;;
+        no|*)
+                ;;
+esac
+
+
 AC_ARG_ENABLE(memclean, AS_HELP_STRING([--enable-memclean],[Cleanup memory (at exit) for eg. valgrind, memcheck]))
 if test "$enable_memclean" = "yes"; then AC_DEFINE_UNQUOTED([MEMCLEAN], [1], [Define this to cleanup memory at exit (eg. for valgrind, etc.)])
 fi

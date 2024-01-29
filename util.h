@@ -43,10 +43,14 @@ struct nsd;
  */
 void log_init(const char *ident);
 
+#ifdef USE_LOG_PROCESS_ROLE
 /*
- * Change the ident (for debugging purposes)
+ * Set the name of the role for the process (for debugging purposes)
  */
-void log_set_ident(const char *ident);
+void log_set_process_role(const char* role);
+#else
+#define log_set_process_role(role) /* empty */
+#endif
 
 /*
  * Open the system log.  If FILENAME is not NULL, a log file is opened

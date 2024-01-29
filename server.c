@@ -1728,7 +1728,9 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 
 #ifdef HAVE_SETPROCTITLE
 		setproctitle("xfrd");
-		log_set_ident("xfrd");
+#endif
+#ifdef USE_LOG_PROCESS_ROLE
+		log_set_process_role("xfrd");
 #endif
 #ifdef HAVE_CPUSET_T
 		if(nsd->use_cpu_affinity) {
@@ -1748,7 +1750,9 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		nsd->xfrd_listener->fd = sockets[0];
 #ifdef HAVE_SETPROCTITLE
 		setproctitle("main");
-		log_set_ident("main");
+#endif
+#ifdef USE_LOG_PROCESS_ROLE
+		log_set_process_role("main");
 #endif
 		break;
 	}
@@ -2600,7 +2604,9 @@ server_main(struct nsd *nsd)
 					       (int) child_pid, status);
 #ifdef HAVE_SETPROCTITLE
 					setproctitle("main");
-					log_set_ident("main");
+#endif
+#ifdef USE_LOG_PROCESS_ROLE
+					log_set_process_role("main");
 #endif
 					reload_pid = -1;
 					if(reload_listener.fd != -1) close(reload_listener.fd);
@@ -2700,6 +2706,12 @@ server_main(struct nsd *nsd)
 				log_msg(LOG_WARNING,
 				       "Reload process %d failed, continuing with old database",
 				       (int) reload_pid);
+#ifdef HAVE_SETPROCTITLE
+				setproctitle("main");
+#endif
+#ifdef USE_LOG_PROCESS_ROLE
+				log_set_process_role("main");
+#endif
 				reload_pid = -1;
 				if(reload_listener.fd != -1) close(reload_listener.fd);
 				netio_remove_handler(netio, &reload_listener);
@@ -2762,14 +2774,18 @@ server_main(struct nsd *nsd)
 				close(reload_sockets[0]);
 #ifdef HAVE_SETPROCTITLE
 				setproctitle("load");
-				log_set_ident("load");
+#endif
+#ifdef USE_LOG_PROCESS_ROLE
+				log_set_process_role("load");
 #endif
 				server_reload(nsd, server_region, netio,
 					reload_sockets[1]);
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload exited to become new main"));
 #ifdef HAVE_SETPROCTITLE
 				setproctitle("main");
-				log_set_ident("main");
+#endif
+#ifdef USE_LOG_PROCESS_ROLE
+				log_set_process_role("main");
 #endif
 				close(reload_sockets[1]);
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload closed"));
@@ -2789,7 +2805,9 @@ server_main(struct nsd *nsd)
 				close(reload_sockets[1]);
 #ifdef HAVE_SETPROCTITLE
 				setproctitle("old-main");
-				log_set_ident("old-main");
+#endif
+#ifdef USE_LOG_PROCESS_ROLE
+				log_set_process_role("old-main");
 #endif
 				reload_listener.fd = reload_sockets[0];
 				reload_listener.timeout = NULL;
@@ -3225,7 +3243,7 @@ server_child(struct nsd *nsd)
 	region_type *server_region = region_create(xalloc, free);
 	struct event_base* event_base = nsd_child_event_base();
 	sig_atomic_t mode;
-#ifdef HAVE_SETPROCTITLE
+#ifdef USE_LOG_PROCESS_ROLE
 	static char child_name[20];
 #endif
 
@@ -3239,13 +3257,17 @@ server_child(struct nsd *nsd)
 #ifdef RATELIMIT
 	rrl_init(nsd->this_child->child_num);
 #endif
+
+	assert(nsd->server_kind != NSD_SERVER_MAIN);
+
 #ifdef HAVE_SETPROCTITLE
-	snprintf(child_name, sizeof(child_name), "srv%d",
-		nsd->this_child->child_num + 1);
-	log_set_ident(child_name);
 	setproctitle("server %d", nsd->this_child->child_num + 1);
 #endif
-	assert(nsd->server_kind != NSD_SERVER_MAIN);
+#ifdef USE_LOG_PROCESS_ROLE
+	snprintf(child_name, sizeof(child_name), "srv%d",
+		nsd->this_child->child_num + 1);
+	log_set_process_role(child_name);
+#endif
 	DEBUG(DEBUG_IPC, 2, (LOG_INFO, "child process started"));
 
 #ifdef HAVE_CPUSET_T
