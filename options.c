@@ -567,8 +567,8 @@ parse_zone_list_file(struct nsd_options* opt)
 			}
 			*mem_idnm++ = 0;
 			patnm = strrchr(nm, ' ');
-			if(!mem_idnm) {
-				*--mem_idnm = 0;
+			if(!patnm) {
+				*--mem_idnm = ' ';
 				/* parse error */
 				log_msg(LOG_ERR, "parse error in %s: '%s'",
 					opt->zonelistfile, buf);
