@@ -213,6 +213,10 @@ xfrd_init_catalog_consumer_zone(xfrd_state_type* xfrd,
 			"only one single catalog consumer zone allowed");
 	}
 #endif
+	if(zone->pattern && zone->pattern->store_ixfr) {
+		/* Don't process ixfrs from xfrd */
+		zone->pattern->store_ixfr = 0;
+	}
 }
 
 void

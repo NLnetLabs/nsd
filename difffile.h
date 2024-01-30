@@ -66,13 +66,10 @@ int add_RR(namedb_type* db, const dname_type* dname,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
 	int* softfail);
 
-#define CALLED_FROM_SERVER_PROCESS 0
-#define CALLED_FROM_XFRD_PROCESS   1
-
 /* apply the xfr file identified by xfrfilenr to zone */
 int apply_ixfr_for_zone(struct nsd* nsd, zone_type* zone, FILE* in,
         struct nsd_options* opt, udb_base* taskudb, udb_ptr* last_task,
-        uint32_t xfrfilenr, uint8_t called_from);
+        uint32_t xfrfilenr);
 
 enum soainfo_hint {
 	soainfo_ok,

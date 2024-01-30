@@ -1277,7 +1277,7 @@ check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
 int
 apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 	struct nsd_options* ATTR_UNUSED(opt), udb_base* taskudb, udb_ptr* last_task,
-	uint32_t xfrfilenr, uint8_t called_from)
+	uint32_t xfrfilenr)
 {
 	char zone_buf[3072];
 	char log_buf[5120];
@@ -1349,7 +1349,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 	if(check_for_bad_serial(nsd->db, zone_buf, old_serial)) {
 		DEBUG(DEBUG_XFRD,1, (LOG_ERR,
 			"skipping diff file commit with bad serial"));
-		return called_from == CALLED_FROM_XFRD_PROCESS ? 0 : 1;
+		return -2; /* Success in "main" process, failure in "xfrd" */
 	}
 
 	if(!zone->is_skipped)
@@ -1358,8 +1358,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 		struct ixfr_store* ixfr_store = NULL, ixfr_store_mem;
 
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s", zone_buf));
-		if(called_from == CALLED_FROM_SERVER_PROCESS
-		&& zone_is_ixfr_enabled(zone))
+		if(zone_is_ixfr_enabled(zone))
 			ixfr_store = ixfr_store_start(zone, &ixfr_store_mem);
 		/* read and apply all of the parts */
 		for(i=0; i<num_parts; i++) {
@@ -1374,11 +1373,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 				diff_update_commit(
 					zone_buf, DIFF_CORRUPT, nsd, xfrfilenr);
 				/* the udb is still dirty, it is bad */
-				if(called_from == CALLED_FROM_XFRD_PROCESS) {
-					return 0;
-				} else {
-					exit(1);
-				}
+				return -1; /* Fatal! */
 			} else if(ret == 2) {
 				break;
 			}
@@ -1413,11 +1408,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 			/* add/del failures in IXFR, get an AXFR */
 			diff_update_commit(
 				zone_buf, DIFF_INCONSISTENT, nsd, xfrfilenr);
-			if(called_from == CALLED_FROM_XFRD_PROCESS) {
-				return 0;
-			} else {
-				exit(1);
-			}
+			return -1; /* Fatal! */
 		}
 		if(ixfr_store)
 			ixfr_store_finish(ixfr_store, nsd, log_buf);
@@ -2122,13 +2113,23 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		return;
 	}
 	/* read and apply zone transfer */
-	if(!apply_ixfr_for_zone(nsd, zone, df, nsd->options, udb,
-		last_task, TASKLIST(task)->yesno, CALLED_FROM_SERVER_PROCESS)){
+	switch(apply_ixfr_for_zone(nsd, zone, df, nsd->options, udb, last_task,
+				TASKLIST(task)->yesno)) {
+	case 1: /* Success */
+		break;
+
+	case 0: /* Failure */
 		/* soainfo_gone will be communicated from server_reload, unless
 		   preceding updates have been applied  */
 		zone->is_skipped = 1;
-	}
+		break;
 
+	case -1:/* Fatal */
+		exit(1);
+		break;
+
+	default:break;
+	}
 	fclose(df);
 }
 

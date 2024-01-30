@@ -635,9 +635,8 @@ apply_xfr:
 		       "could not open transfer file %lld: %s",
 		       (long long)xfr->xfrfilenumber, strerror(errno));
 
-	} else if(!apply_ixfr_for_zone(xfrd->nsd, dbzone, df,
-			xfrd->nsd->options, NULL, NULL, xfr->xfrfilenumber,
-			CALLED_FROM_XFRD_PROCESS)) {
+	} else if(0 >= apply_ixfr_for_zone(xfrd->nsd, dbzone, df,
+			xfrd->nsd->options, NULL, NULL, xfr->xfrfilenumber)) {
 		make_catalog_consumer_invalid(consumer_zone,
 			"error processing transfer file %lld",
 			(long long)xfr->xfrfilenumber);
