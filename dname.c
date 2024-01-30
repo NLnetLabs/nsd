@@ -405,7 +405,7 @@ dname_to_string_buf(const dname_type *dname, const dname_type *origin, char buf[
 	const uint8_t *src;
 
 	if (dname->label_count == 1) {
-		strlcpy(buf, ".", sizeof(buf));
+		strlcpy(buf, ".", MAXDOMAINLEN * 5);
 		return buf;
 	}
 

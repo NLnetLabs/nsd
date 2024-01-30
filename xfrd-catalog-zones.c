@@ -317,15 +317,23 @@ label_plus_dname(const char* label, const dname_type* dname)
 	/* In reversed order and first copy with memmove, so we can nest.
 	 * i.e. label_plus_dname(label1, label_plus_dname(label2, dname))
 	 */
-	memmove(name.bytes + dname->label_count + 2 + ll,
-		((void*)dname) + 2 + dname->label_count, dname->name_size);
-	memcpy(name.bytes + dname->label_count + 2, label, ll);
-	name.bytes[dname->label_count + 1] = ll;
-	name.bytes[dname->label_count] = 0;
+	memmove(name.bytes + dname->label_count
+			+ 1 /* label_count increases by one */
+			+ 1 /* label type/length byte for label */ + ll,
+		((void*)dname) + sizeof(dname_type) + dname->label_count,
+		dname->name_size);
+	memcpy(name.bytes + dname->label_count
+			+ 1 /* label_count increases by one */
+			+ 1 /* label type/length byte for label */, label, ll);
+	name.bytes[dname->label_count + 1] = ll; /* label type/length byte */
+	name.bytes[dname->label_count] = 0; /* first label follows last
+	                                     * label_offsets element */
 	for (i = 0; i < dname->label_count; i++)
-		name.bytes[i] = ((uint8_t*)(void*)dname)[2+i] + ll + 1;
-	name.dname.label_count = dname->label_count + 1;
-	name.dname.name_size   = dname->name_size   + ll + 1;
+		name.bytes[i] = ((uint8_t*)(void*)dname)[sizeof(dname_type)+i]
+			+ 1 /* label type/length byte for label */ + ll;
+	name.dname.label_count = dname->label_count + 1 /* label_count incr. */;
+	name.dname.name_size   = dname->name_size   + ll
+	                                            + 1 /* label length */;
 	return &name.dname;
 }
 

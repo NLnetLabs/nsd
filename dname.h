@@ -15,6 +15,7 @@
 
 #include "buffer.h"
 #include "region-allocator.h"
+#include "dns.h" /* for MAXDOMAINLEN */
 
 #if defined(NAMEDB_UPPERCASE) || defined(USE_NAMEDB_UPPERCASE)
 #define DNAME_NORMALIZE        toupper
