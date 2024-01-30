@@ -443,11 +443,12 @@ const char *invalid_catalog_consumer_zone(struct zone_options* zone)
 
 void xfrd_process_catalog_consumer_zones()
 {
-#ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
-	xfrd_process_catalog_consumer_zone(xfrd_one_catalog_consumer_zone());
-#else
 	struct xfrd_catalog_consumer_zone* consumer_zone;
 
+#ifndef MULTIPLE_CATALOG_CONSUMER_ZONES
+	if((consumer_zone = xfrd_one_catalog_consumer_zone()))
+		xfrd_process_catalog_consumer_zone(consumer_zone);
+#else
 	RBTREE_FOR(consumer_zone, struct xfrd_catalog_consumer_zone*,
 			xfrd->catalog_consumer_zones) {
 		xfrd_process_catalog_consumer_zone(consumer_zone);
@@ -504,8 +505,7 @@ xfrd_process_catalog_consumer_zone(
 	 */
 	enum { try_to_add, retry_to_add, just_add } mode;
 
-	if (!consumer_zone)
-		return;
+	assert(consumer_zone);
 	if (!xfrd->nsd->db) {
 		xfrd->nsd->db = namedb_open(xfrd->nsd->options);
 	}
