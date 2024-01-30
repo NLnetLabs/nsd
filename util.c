@@ -64,12 +64,10 @@ static FILE *current_log_file = NULL;
 int log_time_asc = 1;
 
 #ifdef USE_LOG_PROCESS_ROLE
-static const char *global_process_role = NULL;
-
 void
 log_set_process_role(const char *process_role)
 {
-	global_process_role = process_role;
+	global_ident = process_role;
 }
 #endif
 
@@ -170,13 +168,7 @@ log_file(int priority, const char *message)
 		}
 		fprintf(current_log_file, "[%s.%3.3d] %s[%d]: %s: %s",
 			tmbuf, (int)tv.tv_usec/1000,
-#ifdef USE_LOG_PROCESS_ROLE
-			( global_process_role
-			? global_process_role : global_ident ),
-#else
-			global_ident,
-#endif
-			(int) getpid(), priority_text, message);
+			global_ident, (int) getpid(), priority_text, message);
  	} else
 #endif /* have time functions */
 		fprintf(current_log_file, "[%d] %s[%d]: %s: %s",
