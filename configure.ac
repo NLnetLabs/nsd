@@ -980,6 +980,24 @@ case "$enable_log_role" in
                 ;;
 esac
 
+AC_ARG_ENABLE(exit-delay, AS_HELP_STRING([--enable-exit-delay\[=<delay in ms>\]],[Adds a bit of delay before a server or main process exits (default delay = 100ms. enable this only for debugging purposes)]))
+case "$enable_exit_delay" in
+esac
+
+if test -z "$enable_exit_delay"; then
+	enable_exit_delay="no"
+else dnl not 100% sure about the portability of elif
+  if test "$enable_exit_delay" = "yes"; then
+	enable_exit_delay="100"
+  fi
+fi
+case "$enable_exit_delay" in
+        no)
+                ;;
+        *)
+		AC_DEFINE_UNQUOTED([USE_EXIT_DELAY], [$enable_exit_delay], [Adds a delay before a server or main process exits for debugging purposes.])
+		;;
+esac
 
 AC_ARG_ENABLE(memclean, AS_HELP_STRING([--enable-memclean],[Cleanup memory (at exit) for eg. valgrind, memcheck]))
 if test "$enable_memclean" = "yes"; then AC_DEFINE_UNQUOTED([MEMCLEAN], [1], [Define this to cleanup memory at exit (eg. for valgrind, etc.)])

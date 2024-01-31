@@ -49,6 +49,20 @@
 
 #endif /* USE_MMAP_ALLOC */
 
+#ifdef USE_EXIT_DELAY
+#  ifndef USE_MINI_EVENT
+#    ifdef HAVE_EVENT_H
+#      include <event.h>
+#    else
+#      include <event2/event.h>
+#      include "event2/event_struct.h"
+#      include "event2/event_compat.h"
+#    endif
+#  else
+#    include "mini_event.h"
+#  endif
+#endif /* USE_EXIT_DELAY */
+
 #ifndef NDEBUG
 unsigned nsd_debug_facilities = 0xffff;
 int nsd_debug_level = 0;
@@ -70,6 +84,8 @@ log_set_process_role(const char *process_role)
 	global_ident = process_role;
 }
 #endif
+
+
 
 void
 log_init(const char *ident)
@@ -118,9 +134,55 @@ log_reopen(const char *filename, uint8_t verbose)
 	}
 }
 
+#ifdef USE_EXIT_DELAY
+#  define STRINGIFY(x) #x
+#  define TOSTRING(x) STRINGIFY(x)
+
+static void
+exit_loop(int ATTR_UNUSED(fd), short event, void* arg)
+{
+	struct event_base* base = (struct event_base*)arg;
+	assert(event & EV_TIMEOUT);
+	event_base_loopexit(base, NULL);
+}
+#endif
+
 void
 log_finalize(void)
 {
+#ifdef USE_EXIT_DELAY
+        struct event_base* base;
+	struct event delay_event;
+	struct timeval delay;
+#  ifdef USE_MINI_EVENT
+        static time_t secs;
+        static struct timeval now;
+        base = event_init(&secs, &now);
+#  else
+#    if defined(HAVE_EV_LOOP) || defined(HAVE_EV_DEFAULT_LOOP)
+        /* libev */
+        base = (struct event_base *)ev_default_loop(EVFLAG_AUTO);
+#    else
+        /* libevent */
+#      ifdef HAVE_EVENT_BASE_NEW
+        base = event_base_new();
+#      else
+        base = event_init();
+#      endif
+#    endif
+#  endif
+	log_msg(LOG_INFO, "exiting after delay of " TOSTRING(USE_EXIT_DELAY) " milliseconds");
+	event_set(&delay_event, -1, EV_TIMEOUT, exit_loop, base);
+	delay.tv_sec = USE_EXIT_DELAY / 1000;
+	delay.tv_usec = (USE_EXIT_DELAY % 1000) * 1000;
+	if(event_base_set(base, &delay_event) == 0
+	&& event_add(&delay_event, &delay) == 0) {
+		event_base_dispatch(base);
+		event_del(&delay_event);
+		event_base_free(base);
+		log_msg(LOG_INFO, "exiting now...");
+	}
+#endif /* USE_EXIT_DELAY */
 #ifdef HAVE_SYSLOG_H
 	closelog();
 #endif /* HAVE_SYSLOG_H */

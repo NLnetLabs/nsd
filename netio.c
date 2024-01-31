@@ -119,6 +119,16 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 #ifndef HAVE_PPOLL
 	sigset_t origmask;
 #endif
+#ifdef USE_EXIT_DELAY
+#  if 0
+	sigset_t newmask;
+	sigemptyset(&newmask);
+	sigaddset(&newmask, SIGCHLD);
+	if(!sigmask) {
+		sigmask = &newmask;
+	}
+#  endif
+#endif
 
 	assert(netio);
 
