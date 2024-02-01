@@ -112,6 +112,9 @@ usage()
 	printf("  start				start server; runs nsd(8)\n");
 	printf("  stop				stops the server\n");
 	printf("  reload [<zone>]		reload modified zonefiles from disk\n");
+#ifdef USE_FAILED_RELOAD
+	printf("  fail				trigger a failed reload\n");
+#endif
 	printf("  reconfig			reload the config file\n");
 	printf("  repattern			the same as reconfig\n");
 	printf("  log_reopen			reopen logfile (for log rotate)\n");

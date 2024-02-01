@@ -999,6 +999,15 @@ case "$enable_exit_delay" in
 		;;
 esac
 
+AC_ARG_ENABLE(failed-reload, AS_HELP_STRING([--enable-failed-reload],[Adds a fail command to nsd-control for failed reloads (enable this only for debugging purposes)]))
+case "$enable_failed_reload" in
+        yes)
+		AC_DEFINE_UNQUOTED([USE_FAILED_RELOAD], [], [Define this to add a fail command to nsd-control for debugging purposes.])
+		;;
+        no|*)
+                ;;
+esac
+
 AC_ARG_ENABLE(memclean, AS_HELP_STRING([--enable-memclean],[Cleanup memory (at exit) for eg. valgrind, memcheck]))
 if test "$enable_memclean" = "yes"; then AC_DEFINE_UNQUOTED([MEMCLEAN], [1], [Define this to cleanup memory at exit (eg. for valgrind, etc.)])
 fi

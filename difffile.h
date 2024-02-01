@@ -112,6 +112,10 @@ struct task_list_d {
 		task_drop_cookie_secret,
 		/** make staging cookie secret active */
 		task_activate_cookie_secret,
+#ifdef USE_FAILED_RELOAD
+		/** initiate a failed reload */
+		task_failed_reload,
+#endif
 	} task_type;
 	uint32_t size; /* size of this struct */
 
@@ -134,6 +138,9 @@ void task_new_expire(udb_base* udb, udb_ptr* last,
 	const struct dname* z, int expired);
 void task_new_check_zonefiles(udb_base* udb, udb_ptr* last,
 	const dname_type* zone);
+#ifdef USE_FAILED_RELOAD
+void task_new_failed_reload(udb_base* udb, udb_ptr* last);
+#endif
 void task_new_write_zonefiles(udb_base* udb, udb_ptr* last,
 	const dname_type* zone);
 void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v);

@@ -1609,6 +1609,20 @@ void task_new_check_zonefiles(udb_base* udb, udb_ptr* last,
 	udb_ptr_unlink(&e, udb);
 }
 
+#ifdef USE_FAILED_RELOAD
+void task_new_failed_reload(udb_base* udb, udb_ptr* last)
+{
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task failed_reload"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d), NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add failed_reload");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_failed_reload;
+	udb_ptr_unlink(&e, udb);
+}
+#endif
+
 void task_new_write_zonefiles(udb_base* udb, udb_ptr* last,
 	const dname_type* zone)
 {
@@ -1898,6 +1912,17 @@ task_process_checkzones(struct nsd* nsd, udb_base* taskudb, udb_ptr* last_task,
 	}
 }
 
+#ifdef USE_FAILED_RELOAD
+static void
+task_process_failed_reload(struct nsd* ATTR_UNUSED(nsd),
+		struct task_list_d* ATTR_UNUSED(task))
+{
+	log_msg(LOG_WARNING, "processing failed reload task...");
+	log_finalize();
+	exit(1);
+}
+#endif
+
 static void
 task_process_writezones(struct nsd* nsd, struct task_list_d* task)
 {
@@ -2132,6 +2157,11 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	case task_check_zonefiles:
 		task_process_checkzones(nsd, udb, last_task, TASKLIST(task));
 		break;
+#ifdef USE_FAILED_RELOAD
+	case task_failed_reload:
+		task_process_failed_reload(nsd, TASKLIST(task));
+		break;
+#endif
 	case task_write_zonefiles:
 		task_process_writezones(nsd, TASKLIST(task));
 		break;

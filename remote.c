@@ -905,6 +905,18 @@ do_reload(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	send_ok(ssl);
 }
 
+#ifdef USE_FAILED_RELOAD
+/** do the reload command */
+static void
+do_fail(RES* ssl, xfrd_state_type* xfrd)
+{
+	task_new_failed_reload(xfrd->nsd->task[xfrd->nsd->mytask],
+			xfrd->last_task);
+	xfrd_set_reload_now(xfrd);
+	send_ok(ssl);
+}
+#endif
+
 /** do the write command */
 static void
 do_write(RES* ssl, xfrd_state_type* xfrd, char* arg)
@@ -2326,6 +2338,10 @@ execute_cmd(struct daemon_remote* rc, RES* ssl, char* cmd)
 		do_stop(ssl, rc->xfrd);
 	} else if(cmdcmp(p, "reload", 6)) {
 		do_reload(ssl, rc->xfrd, skipwhite(p+6));
+#ifdef USE_FAILED_RELOAD
+	} else if(cmdcmp(p, "fail", 4)) {
+		do_fail(ssl, rc->xfrd);
+#endif
 	} else if(cmdcmp(p, "write", 5)) {
 		do_write(ssl, rc->xfrd, skipwhite(p+5));
 	} else if(cmdcmp(p, "status", 6)) {
