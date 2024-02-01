@@ -15,6 +15,13 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#ifdef HAVE_SYS_PRCTL_H
+#  include <sys/prctl.h>
+#else
+#  ifdef HAVE_SYS_PROCCTL_H
+#    include <sys/procctl.h>
+#  endif
+#endif
 #include <inttypes.h>
 #include "xfrd.h"
 #include "xfrd-tcp.h"
@@ -217,7 +224,17 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 		xfrd_shutdown();
 		return;
 	}
-
+#ifdef HAVE_PRCTL
+	if(prctl(PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0) < 0)
+		log_msg(LOG_ERR, "xfrd could not become subreaper: %s"
+		               , strerror(errno));
+#else
+#  ifdef HAVE_PROCCTLS
+	if(procctl(P_PID, getpid(), PROC_REAP_ACQUIRE, NULL) < 0)
+		log_msg(LOG_ERR, "xfrd could not acquire reaper status: %s"
+		               , strerror(errno));
+#  endif
+#endif
 	/* init libevent signals now, so that in the previous init scripts
 	 * the normal sighandler is called, and can set nsd->signal_hint..
 	 * these are also looked at in sig_process before we run the main loop*/

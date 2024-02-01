@@ -486,6 +486,14 @@ else
 	AC_DEFINE(USE_MINI_EVENT, 1, [Define if you want to use internal select based events])
 fi
 
+AC_CHECK_HEADERS([sys/prctl.h],[
+	AC_CHECK_FUNCS([prctl])
+], [
+	AC_CHECK_HEADERS([sys/procctl.h],[
+		AC_CHECK_FUNCS([procctl])
+	],, [AC_INCLUDES_DEFAULT])
+], [AC_INCLUDES_DEFAULT])
+
 # Checks for header files.
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([time.h arpa/inet.h signal.h string.h strings.h fcntl.h limits.h netinet/in.h netinet/tcp.h stddef.h sys/param.h sys/socket.h sys/un.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h glob.h grp.h endian.h sys/random.h ifaddrs.h],,, [AC_INCLUDES_DEFAULT])
