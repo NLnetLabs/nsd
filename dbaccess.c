@@ -35,7 +35,6 @@ void
 namedb_close(struct namedb* db)
 {
 	if(db) {
-		zonec_desetup_parser();
 		region_destroy(db->region);
 	}
 }
@@ -155,7 +154,6 @@ namedb_open (struct nsd_options* opt)
 	db->zonetree = radix_tree_create(db->region);
 	db->diff_skip = 0;
 	db->diff_pos = 0;
-	zonec_setup_parser(db);
 
 	if (gettimeofday(&(db->diff_timestamp), NULL) != 0) {
 		log_msg(LOG_ERR, "unable to load namedb: cannot initialize timestamp");
@@ -254,14 +252,13 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 		}
 	}
 
-	assert(parser);
 	/* wipe zone from memory */
 #ifdef NSEC3
 	nsec3_clear_precompile(nsd->db, zone);
 	zone->nsec3_param = NULL;
 #endif
 	delete_zone_rrs(nsd->db, zone);
-	errors = zonec_read(zone->opts->name, fname, zone);
+	errors = zonec_read(nsd->db, nsd->db->domains, zone->opts->name, fname, zone);
 	if(errors > 0) {
 		log_msg(LOG_ERR, "zone %s file %s read with %u errors",
 			zone->opts->name, fname, errors);

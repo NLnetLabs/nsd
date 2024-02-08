@@ -114,7 +114,9 @@ task:
         LIBEVENT: "/opt/homebrew/opt/libevent"
 
   build_script:
+    - git submodule update
     - autoconf && autoheader
+    - (cd simdzone && autoconf)
     - libtoolize -c -i || glibtoolize -c -i
     - ./configure --enable-checking --disable-flto --with-ssl=${OPENSSL:-yes} --with-libevent=${LIBEVENT:-yes}
     - make -j 2
