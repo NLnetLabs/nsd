@@ -121,27 +121,31 @@ else
 fi
 
 # zone example.com, allow-query: 0.0.0.0/0 BLOCKED
-# No queries allowed whatsoever
+# zone example.com, provide-xfr: 127.0.0.1/8 hopsa.kidee
+# SOA apex queries are allowed for the proivde-xfr ACL
 #
-$DIG @127.0.0.1 -p $TPKG_PORT -y hmac-sha256:hopsa.kidee:K7/uC0yQoo4xCjYCYQ+HOC+Ng1wajK+3/t6PdneMAqw= SOA example.com. +norec >example.com.refused3
-if ! grep -q ', status: REFUSED, ' example.com.refused3
+$DIG @127.0.0.1 -p $TPKG_PORT -y hmac-sha256:hopsa.kidee:K7/uC0yQoo4xCjYCYQ+HOC+Ng1wajK+3/t6PdneMAqw= SOA example.com. +norec >example.com.noerror
+if ! grep -q ', status: NOERROR, ' example.com.noerror
 then
 	cat example.com.refused3
 	echo "zone example.com, allow-query: 0.0.0.0/0 BLOCKED"
-	echo "No queries allowed whatsoever"
+	echo "zone example.com, provide-xfr: 127.0.0.1/8 hopsa.kidee"
+	echo "SOA query at the apex with provide-xfr acl allowed"
 	echo "FAILED"
 	exit 1
 fi
 
+# zone example.com, allow-query: 0.0.0.0/0 BLOCKED
 # zone example.com, provide-xfr: 127.0.0.1/8 hopsa.kidee
-# No queries allowed whatsoever, but transfer works!
+# No queries allowed, but transfer works!
 #
 $DIG @127.0.0.1 -p $TPKG_PORT -y hmac-sha256:hopsa.kidee:K7/uC0yQoo4xCjYCYQ+HOC+Ng1wajK+3/t6PdneMAqw= AXFR example.com. +norec >example.com.axfr
 if ! grep -q '^example.com.[[:space:]][[:space:]]*3600[[:space:]][[:space:]]*IN[[:space:]][[:space:]]*SOA' example.com.axfr
 then
 	cat example.com.axfr
+	echo "zone example.com, allow-query: 0.0.0.0/0 BLOCKED"
 	echo "zone example.com, provide-xfr: 127.0.0.1/8 hopsa.kidee"
-	echo "No queries allowed whatsoever, but transfer works"
+	echo "No queries allowed, but transfer works"
 	echo "FAILED"
 	exit 1
 fi
