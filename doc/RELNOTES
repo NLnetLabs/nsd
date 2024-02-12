@@ -3,6 +3,10 @@ NSD RELEASE NOTES
 4.8.1 (upcoming)
 ================
 FEATURES:
+	- Merge #315: Allow SOA apex queries to otherwise with allow-query
+	  protected zones for clients matching a provide-xfr rule, because
+	  clients that are allowed to transfer the zone need to be able to
+	  query SOA at the apex preceding the actual transfer.
 BUG FIXES:
 	- Fix to sync the tests script file common.sh.
 	- Update test script file common.sh.
