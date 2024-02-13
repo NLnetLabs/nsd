@@ -265,7 +265,6 @@ struct rrtype_descriptor
 {
 	uint16_t    type;	/* RR type */
 	const char *name;	/* Textual name.  */
-	int         token;	/* Parser token.  */
 	uint32_t    minimum;	/* Minimum number of RDATAs.  */
 	uint32_t    maximum;	/* Maximum number of RDATAs.  */
 	uint8_t     wireformat[MAXRDATALEN]; /* rdata_wireformat_type */
@@ -295,14 +294,5 @@ uint16_t rrtype_from_string(const char *name);
 
 const char *rrclass_to_string(uint16_t rrclass);
 uint16_t rrclass_from_string(const char *name);
-
-#ifdef __cplusplus
-inline rr_section_type
-operator++(rr_section_type &lhs)
-{
-	lhs = (rr_section_type) ((int) lhs + 1);
-	return lhs;
-}
-#endif /* __cplusplus */
 
 #endif /* DNS_H */

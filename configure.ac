@@ -1389,4 +1389,5 @@ if test "$enable_checking" = "yes"; then
 fi
 
 AC_CONFIG_FILES([Makefile $dnstap_config])
+AC_CONFIG_SUBDIRS([simdzone])
 AC_OUTPUT
