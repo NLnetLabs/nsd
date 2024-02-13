@@ -42,7 +42,7 @@ fi
 cat nsd.log
 if grep "read with 2 errors" nsd.log && \
 	grep "zonec_tests.fail:3: only class IN is supported" nsd.log &&
-	grep "zonec_tests.fail:4: invalid TTL value" nsd.log; then
+	grep "zonec_tests.fail:4: Invalid ttl in $TTL" nsd.log; then
 	echo "errors checked ok"
 else
 	echo "bad errors"
@@ -62,7 +62,7 @@ if dig @127.0.0.1 -p $RND_PORT miek.nl SOA | grep NOERROR; then
 fi
 cat nsd.log
 if grep "read with 1 errors" nsd.log && \
-	grep "zonec_tests.offbyone:13: domain name exceeds 255 character limit" nsd.log; then
+	grep "zonec_tests.offbyone:13: Invalid OWNER in RR" nsd.log; then
 	echo "errors checked ok"
 else
 	echo "bad errors"

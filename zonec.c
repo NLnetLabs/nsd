@@ -58,42 +58,40 @@ static long int totalrrs = 0;
  *
  */
 static int
-zrdatacmp(uint16_t type, rr_type *a, rr_type *b)
+zrdatacmp(uint16_t type, const union rdata_atom *rdatas, size_t rdata_count, rr_type *b)
 {
-	int i = 0;
-
-	assert(a);
+	assert(rdatas);
 	assert(b);
 
 	/* One is shorter than another */
-	if (a->rdata_count != b->rdata_count)
+	if (rdata_count != b->rdata_count)
 		return 1;
 
 	/* Compare element by element */
-	for (i = 0; i < a->rdata_count; ++i) {
+	for (size_t i = 0; i < rdata_count; ++i) {
 		if (rdata_atom_is_domain(type, i)) {
-			if (rdata_atom_domain(a->rdatas[i])
+			if (rdata_atom_domain(rdatas[i])
 			    != rdata_atom_domain(b->rdatas[i]))
 			{
 				return 1;
 			}
 		} else if(rdata_atom_is_literal_domain(type, i)) {
-			if (rdata_atom_size(a->rdatas[i])
+			if (rdata_atom_size(rdatas[i])
 			    != rdata_atom_size(b->rdatas[i]))
 				return 1;
-			if (!dname_equal_nocase(rdata_atom_data(a->rdatas[i]),
+			if (!dname_equal_nocase(rdata_atom_data(rdatas[i]),
 				   rdata_atom_data(b->rdatas[i]),
-				   rdata_atom_size(a->rdatas[i])))
+				   rdata_atom_size(rdatas[i])))
 				return 1;
 		} else {
-			if (rdata_atom_size(a->rdatas[i])
+			if (rdata_atom_size(rdatas[i])
 			    != rdata_atom_size(b->rdatas[i]))
 			{
 				return 1;
 			}
-			if (memcmp(rdata_atom_data(a->rdatas[i]),
+			if (memcmp(rdata_atom_data(rdatas[i]),
 				   rdata_atom_data(b->rdatas[i]),
-				   rdata_atom_size(a->rdatas[i])) != 0)
+				   rdata_atom_size(rdatas[i])) != 0)
 			{
 				return 1;
 			}
@@ -192,42 +190,35 @@ int32_t zonec_accept(
 	struct domain *domain;
 	struct buffer buffer;
 	int priority = ZONE_ERROR << (parser->options.non_strict == true);
+	union rdata_atom *rdatas = NULL;
+	ssize_t rdata_count;
 
 	// emulate packet buffer to leverage rdata_wireformat_to_rdata_atoms
 	buffer_create_from(&buffer, rdata, rdlength);
 
-	rdata_atom_type *rdatas = NULL;
-	ssize_t rdcount;
-
 	// limit to IN class
-	if (class != CLASS_IN) {
+	if (class != CLASS_IN)
 		zone_log(parser, priority, "only class IN is supported");
-		return ZONE_SEMANTIC_ERROR;
-	}
 
 	dname = dname_make(state->database->region, owner->octets, 1);
 	assert(dname);
 	domain = domain_table_insert(state->domains, dname);
 	assert(domain);
 
-	rdcount = rdata_wireformat_to_rdata_atoms(
+	rdata_count = rdata_wireformat_to_rdata_atoms(
 		state->database->region, state->domains, type, rdlength, &buffer, &rdatas);
 	// rdlength must not exceed maximum of 65535 bytes
 	assert(rdlength < MAX_RDLENGTH);
 	// number of atoms must not exceed maximum of 65535 (all empty strings)
-	assert(rdcount < MAX_RDLENGTH);
+	assert(rdata_count >= 0);
+	assert(rdata_count < MAX_RDLENGTH);
 
 	/* we have the zone already */
 	if (type == TYPE_SOA) {
-		if (domain != state->zone->apex) {
+		if (domain != state->zone->apex)
 			zone_log(parser, priority, "SOA record with invalid domain name, '%s' is not '%s'", "x", "y");
-			if (!parser->options.non_strict)
-				return ZONE_SEMANTIC_ERROR;
-		} else if (has_soa(domain)) {
+		else if (has_soa(domain))
 			zone_log(parser, priority, "this SOA record was already encountered");
-			if (!parser->options.non_strict)
-				return ZONE_SEMANTIC_ERROR;
-		}
 		domain->is_apex = 1;
 	}
 
@@ -253,8 +244,6 @@ int32_t zonec_accept(
 				if (!domain_find_non_cname_rrset(domain, state->zone))
 					break;
 				zone_log(parser, priority, "CNAME and other data at the same name");
-				if (!parser->options.non_strict)
-					return ZONE_SEMANTIC_ERROR;
 				break;
 			case TYPE_RRSIG:
 			case TYPE_NXT:
@@ -266,8 +255,6 @@ int32_t zonec_accept(
 				if (!domain_find_rrset(domain, state->zone, TYPE_CNAME))
 					break;
 				zone_log(parser, priority, "CNAME and other data at the same name");
-				if (!parser->options.non_strict)
-					return ZONE_SEMANTIC_ERROR;
 				break;
 		}
  
@@ -282,16 +269,15 @@ int32_t zonec_accept(
 
 		// find duplicate
 		for (int i = 0; i < rrset->rr_count; i++) {
-			// RR does not match
-			if (zrdatacmp(type, rr, &rrset->rrs[i]) != 0)
+			if (zrdatacmp(type, rdatas, rdata_count, &rrset->rrs[i]) != 0)
 				continue;
-			for (size_t j = 0; j < rdcount; j++) {
+			for (size_t j = 0; j < (size_t)rdata_count; j++) {
 				if (rdata_atom_is_domain(type, j))
 					continue;
 				const size_t size = rdata_atom_size(rdatas[j]) + sizeof(uint16_t);
 				region_recycle(state->database->region, rdatas[j].data, size);
 			}
-			region_recycle(state->database->region, rdatas, sizeof(*rdatas) * rdcount);
+			region_recycle(state->database->region, rdatas, sizeof(*rdatas) * rdata_count);
 			return 0;
 		}
 
@@ -319,7 +305,7 @@ int32_t zonec_accept(
 	rr->ttl = ttl;
 	rr->type = type;
 	rr->klass = class;
-	rr->rdata_count = rdcount;
+	rr->rdata_count = rdata_count;
 
 	/* Check we have SOA */
 	if (rr->owner == state->zone->apex)
@@ -336,8 +322,10 @@ static void zonec_log(
 	void *user_data)
 {
 	int priority;
-	(void)parser;
-	(void)user_data;
+	struct zonec_state *state = (struct zonec_state *)user_data;
+
+	assert(state);
+
 	switch (category) {
 	case ZONE_INFO:
 		priority = LOG_INFO;
@@ -347,10 +335,11 @@ static void zonec_log(
 		break;
 	default:
 		priority = LOG_ERR;
+		state->errors++;
 		break;
 	}
 
-	log_msg(priority, message);
+	log_msg(priority, "%s:%zu: %s", parser->file->name, parser->file->line, message);
 }
 
 /*
@@ -389,7 +378,7 @@ zonec_read(
 
 	/* Parse and process all RRs.  */
 	if (zone_parse(&parser, &options, &buffers, zonefile, &state) != 0) {
-		return 1;
+		return state.errors;
 	}
 
 	/* Check if zone file contained a correct SOA record */
