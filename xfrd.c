@@ -1010,7 +1010,8 @@ xfrd_del_slave_zone(xfrd_state_type* xfrd, const dname_type* dname)
 		xfrd_tcp_release(xfrd->tcp_set, z);
 	} else if(z->zone_handler.ev_fd != -1 && z->event_added) {
 		xfrd_udp_release(z);
-	} else if(z->event_added)
+	}
+	if(z->event_added)
 		event_del(&z->zone_handler);
 
 	while(z->latest_xfr) xfrd_delete_zone_xfr(z, z->latest_xfr);

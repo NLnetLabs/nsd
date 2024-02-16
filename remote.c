@@ -668,7 +668,8 @@ remote_accept_callback(int fd, short event, void* arg)
 		n->ssl = SSL_new(rc->ctx);
 		if(!n->ssl) {
 			log_crypto_err("could not SSL_new");
-			event_del(&n->c);
+			if(n->event_added)
+				event_del(&n->c);
 			free(n);
 			goto close_exit;
 		}
@@ -676,7 +677,8 @@ remote_accept_callback(int fd, short event, void* arg)
 		(void)SSL_set_mode(n->ssl, SSL_MODE_AUTO_RETRY);
 		if(!SSL_set_fd(n->ssl, newfd)) {
 			log_crypto_err("could not SSL_set_fd");
-			event_del(&n->c);
+			if(n->event_added)
+				event_del(&n->c);
 			SSL_free(n->ssl);
 			free(n);
 			goto close_exit;
@@ -2599,7 +2601,8 @@ remote_handshake_later(struct daemon_remote* rc, struct rc_state* s, int fd,
 			return;
 		}
 		s->shake_state = rc_hs_read;
-		event_del(&s->c);
+		if(s->event_added)
+			event_del(&s->c);
 		memset(&s->c, 0, sizeof(s->c));
 		event_set(&s->c, fd, EV_PERSIST|EV_TIMEOUT|EV_READ,
 			remote_control_callback, s);
@@ -2607,6 +2610,7 @@ remote_handshake_later(struct daemon_remote* rc, struct rc_state* s, int fd,
 			log_msg(LOG_ERR, "remote_accept: cannot set event_base");
 		if(event_add(&s->c, &s->tval) != 0)
 			log_msg(LOG_ERR, "remote_accept: cannot add event");
+		s->event_added = 1;
 		return;
 	} else if(r2 == SSL_ERROR_WANT_WRITE) {
 		if(s->shake_state == rc_hs_write) {
@@ -2614,7 +2618,8 @@ remote_handshake_later(struct daemon_remote* rc, struct rc_state* s, int fd,
 			return;
 		}
 		s->shake_state = rc_hs_write;
-		event_del(&s->c);
+		if(s->event_added)
+			event_del(&s->c);
 		memset(&s->c, 0, sizeof(s->c));
 		event_set(&s->c, fd, EV_PERSIST|EV_TIMEOUT|EV_WRITE,
 			remote_control_callback, s);
@@ -2622,6 +2627,7 @@ remote_handshake_later(struct daemon_remote* rc, struct rc_state* s, int fd,
 			log_msg(LOG_ERR, "remote_accept: cannot set event_base");
 		if(event_add(&s->c, &s->tval) != 0)
 			log_msg(LOG_ERR, "remote_accept: cannot add event");
+		s->event_added = 1;
 		return;
 	} else {
 		if(r == 0)

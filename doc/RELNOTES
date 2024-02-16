@@ -33,6 +33,12 @@ BUG FIXES:
 	  include check.
 	- Fix #313: nsd 4.8 stats with implausible spikes.
 	- Fix compile with memclean for xfrd nsd.db close.
+	- In xfrd del secondarty zone, the timer could perhaps have
+	  event_added, and if so, it would not be event_del if a tcp connection
+	  is active at the time. This could cause the libevent event lists
+	  to fail. Also fix to make sure to set event_added for the
+	  nsd-control ssl nonblocking handshake and check event_added there
+	  too, for extra certainty.
 
 4.8.0
 ================
