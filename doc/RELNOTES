@@ -7,6 +7,14 @@ FEATURES:
 	  protected zones for clients matching a provide-xfr rule, because
 	  clients that are allowed to transfer the zone need to be able to
 	  query SOA at the apex preceding the actual transfer.
+	- Merge #304: Support for Catalog zones version "2" as specified in
+	  RFC 9432. Both the consumer as well as the producer role are
+	  implemented, but only a single catalog consumer zone is allowed.
+	  The "coo" property, only relevant with multiple catalog consumer,
+	  is therefore not supported. The "group" property is supported.
+	  Have a look at the nsd.conf man page for details on how to
+	  configure and use catalog zones.
+
 BUG FIXES:
 	- Fix to sync the tests script file common.sh.
 	- Update test script file common.sh.

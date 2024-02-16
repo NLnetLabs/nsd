@@ -1,0 +1,16 @@
+# #-- catzones.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+
+# do your teardown here
+(
+	kill_from_pidfile secondary2.pid &
+	kill_from_pidfile secondary.pid &
+	kill_from_pidfile primary.pid &
+	wait
+)
+

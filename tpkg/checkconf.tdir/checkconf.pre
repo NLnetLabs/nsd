@@ -1,0 +1,17 @@
+# #-- checkconf.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+(
+awk '/^TARGETS/{exit}{print}' ../../Makefile
+cat << EOT
+checkconf.check2: checkconf.check2.in
+	\$(EDIT) checkconf.check2.in > checkconf.check2
+EOT
+) > Makefile
+rm -f checkconf.check2
+make
+

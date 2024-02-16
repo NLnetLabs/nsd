@@ -74,6 +74,7 @@
 #include "remote.h"
 #include "util.h"
 #include "xfrd.h"
+#include "xfrd-catalog-zones.h"
 #include "xfrd-notify.h"
 #include "xfrd-tcp.h"
 #include "nsd.h"
@@ -101,8 +102,10 @@
 #define REMOTE_CONTROL_TCP_TIMEOUT 120
 
 /** repattern to master or slave */
-#define REPAT_SLAVE  1
-#define REPAT_MASTER 2
+#define REPAT_SLAVE                   1
+#define REPAT_MASTER                  2
+#define REPAT_CATALOG_CONSUMER        4
+#define REPAT_CATALOG_CONSUMER_DEINIT 8
 
 /** if you want zero to be inhibited in stats output.
  * it omits zeroes for types that have no acronym and unused-rcodes */
@@ -1037,6 +1040,62 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 		if(!ssl_printf(ssl, "	pattern: %s\n", zo->pattern->pname))
 			return 0;
 	}
+	if(zone_is_catalog_consumer(zo)) {
+		zone_type* zone = namedb_find_zone(xfrd->nsd->db,
+				(const dname_type*)zo->node.key);
+		struct xfrd_catalog_consumer_zone* consumer_zone =
+			(struct xfrd_catalog_consumer_zone*)
+			rbtree_search( xfrd->catalog_consumer_zones
+			             , zo->node.key);
+
+		if(!ssl_printf(ssl, "	catalog: consumer"))
+			return 0;
+		if(zone && zone->soa_rrset && zone->soa_rrset->rrs
+		&& zone->soa_rrset->rrs[0].rdata_count > 2
+		&& rdata_atom_size(zone->soa_rrset->rrs[0].rdatas[2]) ==
+							sizeof(uint32_t)) {
+			if(!ssl_printf(ssl, " (serial: %u, # members: %zu)\n",
+					read_uint32(rdata_atom_data(
+					zone->soa_rrset->rrs[0].rdatas[2])),
+					  consumer_zone
+					? consumer_zone->member_ids.count : 0))
+				return 0;
+
+		} else if(!ssl_printf(ssl, "\n"))
+			return 0;
+		if(invalid_catalog_consumer_zone(zo)) {
+			if(!ssl_printf(ssl, "	catalog-invalid: %s\n",
+					invalid_catalog_consumer_zone(zo)))
+				return 0;
+		}
+	}
+	if(zone_is_catalog_producer(zo)) {
+		struct xfrd_catalog_producer_zone* producer_zone =
+			(struct xfrd_catalog_producer_zone*)
+			rbtree_search( xfrd->catalog_producer_zones
+			             , zo->node.key);
+		if(!ssl_printf(ssl, "	catalog: producer"))
+			return 0;
+		if(producer_zone) {
+			if(!ssl_printf(ssl, " (serial: %u, # members: %zu)\n",
+					(unsigned)producer_zone->serial,
+				       	producer_zone->member_ids.count))
+				return 0;
+		} else if(!ssl_printf(ssl, "\n"))
+			return 0;
+		if (zone_is_slave(zo)) {
+			if(!ssl_printf(ssl, "	catalog-invalid: a catalog "
+					"producer cannot be a secondary zone"))
+				return 0;
+		}
+	}
+	if(zone_is_catalog_member(zo)) {
+		if(!ssl_printf(ssl, "	catalog-member-id: %s\n",
+		   as_catalog_member_zone(zo)->member_id
+		 ? dname_to_string(as_catalog_member_zone(zo)->member_id, NULL)
+		 : "ERROR member-id is missing!"))
+			return 0;
+	}
 	if(nz) {
 		if(nz->is_waiting) {
 			if(!ssl_printf(ssl, "	notify: \"waiting-for-fd\"\n"))
@@ -1267,6 +1326,15 @@ perform_changezone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			dname = NULL;
 			return 0;
 		}
+		if(zone_is_catalog_consumer_member(zopt)) {
+			(void)ssl_printf(ssl, "Error: Zone is a catalog "
+			  "consumer member zone with id %s\nRepattern in the "
+			  "catalog with a group property.\n", dname_to_string(
+			  as_catalog_member_zone(zopt)->member_id, NULL));
+			region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
+			dname = NULL;
+			return 0;
+		}
 		/* found the zone, now delete it */
 		/* create deletion task */
 		/* this deletion task is processed before the addition task,
@@ -1281,6 +1349,10 @@ perform_changezone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			xfrd_del_slave_zone(xfrd, dname);
 		}
 		xfrd_del_notify(xfrd, dname);
+		/* delete it in xfrd's catalog consumers list */
+		if(zone_is_catalog_consumer(zopt)) {
+			xfrd_deinit_catalog_consumer_zone(xfrd, dname);
+		}
 		/* delete from config */
 		zone_list_del(xfrd->nsd->options, zopt);
 	} else {
@@ -1290,7 +1362,8 @@ perform_changezone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	dname = NULL;
 
 	/* add to zonelist and adds to config in memory */
-	zopt = zone_list_add(xfrd->nsd->options, arg, arg2);
+	zopt = zone_list_add_or_cat(xfrd->nsd->options, arg, arg2,
+			xfrd_add_catalog_producer_member);
 	if(!zopt) {
 		/* also dname parse error here */
 		(void)ssl_printf(ssl, "error could not add zonelist entry\n");
@@ -1302,6 +1375,10 @@ perform_changezone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		getzonestatid(xfrd->nsd->options, zopt));
 	zonestat_inc_ifneeded(xfrd);
 	xfrd_set_reload_now(xfrd);
+	/* add to xfrd - catalog consumer zones */
+	if (zone_is_catalog_consumer(zopt)) {
+		xfrd_init_catalog_consumer_zone(xfrd, zopt);
+	}
 	/* add to xfrd - notify (for master and slaves) */
 	init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
 	/* add to xfrd - slave */
@@ -1353,7 +1430,8 @@ perform_addzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 	dname = NULL;
 
 	/* add to zonelist and adds to config in memory */
-	zopt = zone_list_add(xfrd->nsd->options, arg, arg2);
+	zopt = zone_list_add_or_cat(xfrd->nsd->options, arg, arg2,
+			xfrd_add_catalog_producer_member);
 	if(!zopt) {
 		/* also dname parse error here */
 		(void)ssl_printf(ssl, "error could not add zonelist entry\n");
@@ -1365,6 +1443,10 @@ perform_addzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		getzonestatid(xfrd->nsd->options, zopt));
 	zonestat_inc_ifneeded(xfrd);
 	xfrd_set_reload_now(xfrd);
+	/* add to xfrd - catalog consumer zones */
+	if (zone_is_catalog_consumer(zopt)) {
+		xfrd_init_catalog_consumer_zone(xfrd, zopt);
+	}
 	/* add to xfrd - notify (for master and slaves) */
 	init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
 	/* add to xfrd - slave */
@@ -1380,6 +1462,8 @@ perform_delzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 {
 	const dname_type* dname;
 	struct zone_options* zopt;
+	/* dont recycle dname when it becomes part of a xfrd_producer_member */
+	int recycle_dname = 1;
 
 	dname = dname_parse(xfrd->region, arg);
 	if(!dname) {
@@ -1406,7 +1490,17 @@ perform_delzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 			"nsd.conf yourself and repattern\n");
 		return 0;
 	}
+	if(zone_is_catalog_consumer_member(zopt)
+	&& as_catalog_member_zone(zopt)->member_id) {
+		(void)ssl_printf(ssl, "Error: Zone is a catalog consumer "
+		  "member zone with id %s\nRemove the member id from the "
+		  "catalog to delete this zone.\n", dname_to_string(
+		  as_catalog_member_zone(zopt)->member_id, NULL));
+		region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
+		dname = NULL;
+		return 0;
 
+	}
 	/* create deletion task */
 	task_new_del_zone(xfrd->nsd->task[xfrd->nsd->mytask],
 		xfrd->last_task, dname);
@@ -1416,10 +1510,18 @@ perform_delzone(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		xfrd_del_slave_zone(xfrd, dname);
 	}
 	xfrd_del_notify(xfrd, dname);
+	/* delete it in xfrd's catalog consumers list */
+	if(zone_is_catalog_consumer(zopt)) {
+		xfrd_deinit_catalog_consumer_zone(xfrd, dname);
+	} else {
+		recycle_dname = !xfrd_del_catalog_producer_member(xfrd, dname);
+	}
 	/* delete from config */
 	zone_list_del(xfrd->nsd->options, zopt);
 
-	region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
+	if(recycle_dname)
+		region_recycle(xfrd->region,
+				(void*)dname, dname_total_size(dname));
 	return 1;
 }
 
@@ -1580,6 +1682,10 @@ remove_cfgzone(xfrd_state_type* xfrd, const char* pname)
 		xfrd_del_slave_zone(xfrd, dname);
 	}
 	xfrd_del_notify(xfrd, dname);
+	/* delete it in xfrd's catalog consumers list */
+	if(zone_is_catalog_consumer(zopt)) {
+		xfrd_deinit_catalog_consumer_zone(xfrd, dname);
+	}
 
 	/* delete from zoneoptions */
 	zone_options_delete(xfrd->nsd->options, zopt);
@@ -1614,6 +1720,10 @@ add_cfgzone(xfrd_state_type* xfrd, const char* pname)
 		getzonestatid(xfrd->nsd->options, zopt));
 	/* zonestat_inc is done after the entire config file has been done */
 	xfrd_set_reload_now(xfrd);
+	/* add to xfrd - catalog consumer zones */
+	if (zone_is_catalog_consumer(zopt)) {
+		xfrd_init_catalog_consumer_zone(xfrd, zopt);
+	}
 	/* add to xfrd - notify (for master and slaves) */
 	init_notify_send(xfrd->notify_zones, xfrd->region, zopt);
 	/* add to xfrd - slave */
@@ -1762,12 +1872,19 @@ repat_patterns(xfrd_state_type* xfrd, struct nsd_options* newopt)
 			} else if (!p->request_xfr && origp->request_xfr) {
 				newstate = REPAT_MASTER;
 			}
+			if (   p->catalog_role == CATALOG_ROLE_CONSUMER
+			&& origp->catalog_role != CATALOG_ROLE_CONSUMER) {
+				newstate |= REPAT_CATALOG_CONSUMER;
+			} else if (p->catalog_role != CATALOG_ROLE_CONSUMER
+			    && origp->catalog_role == CATALOG_ROLE_CONSUMER) {
+				newstate |= REPAT_CATALOG_CONSUMER_DEINIT;
+			}
 			add_pat(xfrd, p);
 			if (p->implicit && newstate) {
 				const dname_type* dname =
 					parse_implicit_name(xfrd, p->pname);
 				if (dname) {
-					if (newstate == REPAT_SLAVE) {
+					if (newstate & REPAT_SLAVE) {
 						struct zone_options* zopt =
 							zone_options_find(
 							oldopt, dname);
@@ -1775,9 +1892,21 @@ repat_patterns(xfrd_state_type* xfrd, struct nsd_options* newopt)
 							xfrd_init_slave_zone(
 								xfrd, zopt);
 						}
-					} else if (newstate == REPAT_MASTER) {
+					} else if (newstate & REPAT_MASTER) {
 						xfrd_del_slave_zone(xfrd,
 							dname);
+					}
+					if (newstate & REPAT_CATALOG_CONSUMER) {
+						struct zone_options* zopt =
+							zone_options_find(
+							oldopt, dname);
+						if (zopt) {
+							xfrd_init_catalog_consumer_zone(
+								xfrd, zopt);
+						}
+					} else if (newstate & REPAT_CATALOG_CONSUMER_DEINIT) {
+						xfrd_deinit_catalog_consumer_zone(
+								xfrd, dname);
 					}
 					region_recycle(xfrd->region,
 						(void*)dname,
@@ -1797,12 +1926,20 @@ repat_patterns(xfrd_state_type* xfrd, struct nsd_options* newopt)
 		RBTREE_FOR(zone_opt, struct zone_options*, oldopt->zone_options) {
 			struct pattern_options* oldp = zone_opt->pattern;
 			if (!oldp->implicit) {
-				if (oldp->xfrd_flags == REPAT_SLAVE) {
+				if (oldp->xfrd_flags & REPAT_SLAVE) {
 					/* xfrd needs stable reference so get
 					 * it from the oldopt(modified) tree */
 					xfrd_init_slave_zone(xfrd, zone_opt);
-				} else if (oldp->xfrd_flags == REPAT_MASTER) {
+				} else if (oldp->xfrd_flags & REPAT_MASTER) {
 					xfrd_del_slave_zone(xfrd,
+						(const dname_type*)
+						zone_opt->node.key);
+				}
+				if (oldp->xfrd_flags & REPAT_CATALOG_CONSUMER) {
+					xfrd_init_catalog_consumer_zone(xfrd,
+							zone_opt);
+				} else if (oldp->xfrd_flags & REPAT_CATALOG_CONSUMER_DEINIT) {
+					xfrd_deinit_catalog_consumer_zone(xfrd,
 						(const dname_type*)
 						zone_opt->node.key);
 				}
@@ -1883,7 +2020,8 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 
 	(void)ssl_printf(ssl, "reconfig start, read %s\n", cfgfile);
 	opt = nsd_options_create(region);
-	if(!parse_options_file(opt, cfgfile, &print_ssl_cfg_err, &ssl)) {
+	if(!parse_options_file(opt, cfgfile, &print_ssl_cfg_err, &ssl,
+				xfrd->nsd->options)) {
 		/* error already printed */
 		region_destroy(region);
 		return;

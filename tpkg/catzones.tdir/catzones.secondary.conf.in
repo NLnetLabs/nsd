@@ -1,0 +1,41 @@
+server:
+	zonesdir: "."
+	username: ""
+	database: ""
+	verbosity: 2
+	ip-address: 127.0.0.1
+	port: @SECONDARY_PORT@
+	pidfile: "secondary.pid"
+	logfile: "secondary.log"
+	xfrdfile: "secondary-xfrd.state"
+	zonelistfile: "secondary-zone.list"
+	cookie-secret-file: "secondary_cookiesecrets.txt"
+	#xfrd-reload-timeout: 0
+
+remote-control:
+	control-enable: yes
+	control-port: @SECONDARY_CTRL_PORT@
+	server-key-file: "catzones.server.key"
+	server-cert-file: "catzones.server.pem"
+	control-key-file: "catzones.control.key"
+	control-cert-file: "catzones.control.pem"
+
+pattern:
+	name: "xfr-from-primary"
+	request-xfr: 127.0.0.1@@PRIMARY_PORT@ NOKEY
+	allow-notify: 127.0.0.1 NOKEY
+
+pattern:
+	name: "group0"
+	include-pattern: "xfr-from-primary"
+
+pattern:
+	name: "group1"
+	include-pattern: "xfr-from-primary"
+
+zone:
+        name: "catalog1.invalid"
+	zonefile: "secondary.%s.zone"
+	catalog: consumer
+	include-pattern: "xfr-from-primary"
+

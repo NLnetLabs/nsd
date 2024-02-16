@@ -585,6 +585,20 @@ static void print_zone_content_elems(pattern_options_type* pat)
 	if(pat->verifier_timeout != VERIFIER_TIMEOUT_INHERIT) {
 		printf("\tverifier-timeout: %d\n", pat->verifier_timeout);
 	}
+
+	if(!pat->catalog_role_is_default)
+	    switch(pat->catalog_role) {
+	case CATALOG_ROLE_CONSUMER: printf("\tcatalog: consumer\n");
+	                            break;
+	case CATALOG_ROLE_PRODUCER: printf("\tcatalog: producer\n");
+	                            break;
+	default                   : break;
+	}
+
+	if(pat->catalog_member_pattern)
+		print_string_var("catalog-member-pattern:", pat->catalog_member_pattern);
+	if(pat->catalog_producer_zone)
+		print_string_var("catalog-producer-zone:", pat->catalog_producer_zone);
 }
 
 void
@@ -806,8 +820,8 @@ additional_checks(nsd_options_type* opt, const char* filename)
 				"is received?\n", filename, zone->name);
 			errors ++;
 		}
-		if(!zone_is_slave(zone) && (!zone->pattern->zonefile ||
-			zone->pattern->zonefile[0] == 0)) {
+		if(!zone_is_slave(zone) && !zone_is_catalog_producer(zone)
+		&& (!zone->pattern->zonefile || zone->pattern->zonefile[0] == 0)) {
 			fprintf(stderr, "%s: zone %s is a primary zone but has "
 				"no zonefile. Where can the data come from?\n",
 				filename, zone->name);
@@ -963,7 +977,7 @@ main(int argc, char* argv[])
 	/* read config file */
 	options = nsd_options_create(region_create(xalloc, free));
 	tsig_init(options->region);
-	if (!parse_options_file(options, configfile, NULL, NULL) ||
+	if (!parse_options_file(options, configfile, NULL, NULL, NULL) ||
 	   !additional_checks(options, configfile)) {
 		exit(2);
 	}
