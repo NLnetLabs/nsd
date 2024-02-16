@@ -1,6 +1,6 @@
 16 February 2024: Wouter
 	- Fix compile with memclean for xfrd nsd.db close.
-	- In xfrd del secondarty zone, the timer could perhaps have
+	- In xfrd del secondary zone, the timer could perhaps have
 	  event_added, and if so, it would not be event_del if a tcp connection
 	  is active at the time. This could cause the libevent event lists
 	  to fail. Also fix to make sure to set event_added for the
