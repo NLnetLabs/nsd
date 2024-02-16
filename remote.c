@@ -3070,7 +3070,9 @@ process_stats(RES* ssl, xfrd_state_type* xfrd, int peek)
 	process_stats_manage_clear(xfrd, stats, peek);
 	process_stats_add_total(xfrd, &total, stats);
 	print_stats(ssl, xfrd, &stattime, !peek, &total, zonestats);
-	xfrd->nsd->rc->stats_time = stattime;
+	if(!peek) {
+		xfrd->nsd->rc->stats_time = stattime;
+	}
 
 	free(stats);
 #ifdef USE_ZONE_STATS
