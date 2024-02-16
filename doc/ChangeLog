@@ -1,3 +1,6 @@
+16 February 2024: Wouter
+	- Fix compile with memclean for xfrd nsd.db close.
+
 15 February 2024: Willem
 	- Merge #304: Support for Catalog zones version "2" as specified in
 	  RFC 9432. Both the consumer as well as the producer role are

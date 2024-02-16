@@ -32,6 +32,7 @@ BUG FIXES:
 	- Move acx_nlnetlabs.m4 to version 48, with ssp and getaddrinfo
 	  include check.
 	- Fix #313: nsd 4.8 stats with implausible spikes.
+	- Fix compile with memclean for xfrd nsd.db close.
 
 4.8.0
 ================

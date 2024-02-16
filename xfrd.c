@@ -423,7 +423,7 @@ xfrd_shutdown()
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown complete"));
 #ifdef MEMCLEAN /* OS collects memory pages */
 	if(xfrd->nsd->db) {
-		namedb_close(nsd->db);
+		namedb_close(xfrd->nsd->db);
 	}
 	/* TODO: cleanup xfrd->catalog_consumer_zones and xfrd->catalog_producer_zones */
 	if(xfrd->zones) {
