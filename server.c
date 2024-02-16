@@ -2771,7 +2771,7 @@ server_main(struct nsd *nsd)
 				break;
 
 			/* timeout to collect processes. In case no sigchild happens. */
-			timeout_spec.tv_sec = 60;
+			timeout_spec.tv_sec = 1;
 			timeout_spec.tv_nsec = 0;
 
 			/* listen on ports, timeout for collecting terminated children */
