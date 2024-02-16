@@ -1,3 +1,12 @@
+15 February 2024: Willem
+	- Merge #304: Support for Catalog zones version "2" as specified in
+	  RFC 9432. Both the consumer as well as the producer role are
+	  implemented, but only a single catalog consumer zone is allowed.
+	  The "coo" property, only relevant with multiple catalog consumer,
+	  is therefore not supported. The "group" property is supported.
+	  Have a look at the nsd.conf man page for details on how to
+	  configure and use catalog zones.
+
 12 February 2024: Willem
 	- Allow SOA apex queries to otherwise with allow-query protected zones
 	  for clients matching a provide-xfr rule, because clients that are
