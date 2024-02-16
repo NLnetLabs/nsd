@@ -2513,8 +2513,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	 * The old-main process asks the old-serve processes to quit, however
 	 * if a reload succeeded before, this process is the parent of the
 	 * old-serve processes, so we need to reap the children for it.
-	 * If a reload failed before, xfrd probably receives the SIGCHLD from
-	 * the old-serve processes. TODO: test!
 	 */
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
 	cmd = NSD_QUIT_SYNC;
