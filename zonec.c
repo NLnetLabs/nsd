@@ -121,7 +121,7 @@ domain_find_rrset_any(domain_type *domain, uint16_t type)
 /*
  * Check for DNAME type. Nothing is allowed below it
  */
-static void
+static int
 check_dname(zone_type* zone)
 {
 	domain_type* domain;
@@ -142,12 +142,14 @@ check_dname(zone_type* zone)
 					log_msg(LOG_ERR, "DNAME at %s has data below it. "
 						"This is not allowed (rfc 2672).",
 						domain_to_string(parent));
-					return;
+					return 0;
 				}
 				parent = parent->parent;
 			}
 		}
 	}
+
+	return 1;
 }
 
 static int
@@ -396,8 +398,8 @@ zonec_read(
 #endif
 	}
 
-	if(!zone_is_slave(zone->opts))
-		check_dname(zone);
+	if(!zone_is_slave(zone->opts) && !check_dname(zone))
+		state.errors++;
 
 	return state.errors;
 }
