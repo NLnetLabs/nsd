@@ -206,10 +206,10 @@ int32_t zonec_accept(
 	rdata_count = rdata_wireformat_to_rdata_atoms(
 		state->database->region, state->domains, type, rdlength, &buffer, &rdatas);
 	// rdlength must not exceed maximum of 65535 bytes
-	assert(rdlength < MAX_RDLENGTH);
+	assert(rdlength <= MAX_RDLENGTH);
 	// number of atoms must not exceed maximum of 65535 (all empty strings)
 	assert(rdata_count >= 0);
-	assert(rdata_count < MAX_RDLENGTH);
+	assert(rdata_count <= MAX_RDLENGTH);
 
 	/* we have the zone already */
 	if (type == TYPE_SOA) {
