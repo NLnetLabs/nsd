@@ -211,10 +211,14 @@ int32_t zonec_accept(
 
 	/* we have the zone already */
 	if (type == TYPE_SOA) {
-		if (domain != state->zone->apex)
-			zone_log(parser, priority, "SOA record with invalid domain name, '%s' is not '%s'", "x", "y");
-		else if (has_soa(domain))
+		if (domain != state->zone->apex) {
+			char s[MAXDOMAINLEN*5];
+			snprintf(s, sizeof(s), "%s", domain_to_string(state->zone->apex));
+			zone_log(parser, priority, "SOA record with invalid domain name, '%s' is not '%s'",
+				domain_to_string(state->zone->apex), s);
+		} else if (has_soa(domain)) {
 			zone_log(parser, priority, "this SOA record was already encountered");
+		}
 		domain->is_apex = 1;
 	}
 
