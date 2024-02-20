@@ -21,6 +21,7 @@
 #include "difffile.h"
 #include "zonec.h"
 #include "nsd.h"
+#include "zone.h"
 
 static void namedb_1(CuTest *tc);
 static void namedb_2(CuTest *tc);
@@ -555,31 +556,99 @@ check_namedb(CuTest *tc, namedb_type* db)
 	check_walkdomains(tc, db);
 }
 
+struct parse_rr_state {
+	size_t errors;
+	struct region *region;
+	const struct dname *owner;
+	uint16_t type;
+	uint16_t class;
+	uint32_t ttl;
+	uint16_t rdlength;
+	uint8_t rdata[MAX_RDLENGTH];
+};
+
+/** parse a string into temporary storage */
+static int32_t parse_rr_accept(
+	zone_parser_t *parser,
+	const zone_name_t *owner,
+	uint16_t type,
+	uint16_t class,
+	uint32_t ttl,
+	uint16_t rdlength,
+	const uint8_t *rdata,
+	void *user_data)
+{
+	struct parse_rr_state *state = (struct parse_rr_state *)user_data;
+
+	assert(state);
+
+	(void)parser;
+
+	assert(state->owner == NULL);
+	state->owner = dname_make(state->region, owner->octets, 1);
+	assert(state->owner != NULL);
+	state->type = type;
+	state->class = class;
+	state->ttl = ttl;
+	state->rdlength = rdlength;
+	memcpy(&state->rdata, rdata, rdlength);
+	return 0;
+}
+
+static void parse_rr_log(
+	zone_parser_t *parser,
+	uint32_t category,
+	const char *message,
+	void *user_data)
+{
+	struct parse_rr_state *state = (struct parse_rr_state *)user_data;
+
+	assert(state);
+
+	(void)parser;
+	(void)category;
+	(void)message;
+
+	assert(state->owner == NULL);
+	state->errors++;
+	return;
+}
+
 /* parse string into parts */
 static int
-parse_rr_str(region_type* temp, zone_type* zone, char* str,
-	rr_type** rr)
+parse_rr_str(struct zone *zone, char *input, struct parse_rr_state *state)
 {
-	domain_table_type* temptable;
-	zone_type* tempzone;
-	domain_type* parsed = NULL;
-	int num_rrs = 0;
+	const struct dname *origin;
+	zone_parser_t parser;
+	zone_options_t options;
+	zone_name_buffer_t name_buffer;
+	zone_rdata_buffer_t rdata_buffer;
+	zone_buffers_t buffers = { 1, &name_buffer, &rdata_buffer };
 
-	temptable = domain_table_create(temp);
-	tempzone = region_alloc_zero(temp, sizeof(zone_type));
-	tempzone->apex = domain_table_insert(temptable,
-		domain_dname(zone->apex));
-	tempzone->opts = zone->opts;
+	/* the temp region is cleared after every RR */
+	memset(&options, 0, sizeof(options));
 
-	if(zonec_parse_string(temp, temptable, tempzone, str, &parsed,
-		&num_rrs)) {
-		return 0;
-	}
-	if(num_rrs != 1) {
-		return 0;
-	}
-	*rr = &parsed->rrsets->rrs[0];
-	return 1;
+	origin = domain_dname(zone->apex);
+	options.origin.octets = dname_name(origin);
+	options.origin.length = origin->name_size;
+	options.no_includes = true;
+	options.pretty_ttls = false;
+	options.default_ttl = DEFAULT_TTL;
+	options.default_class = CLASS_IN;
+	options.log.callback = &parse_rr_log;
+	options.accept.callback = &parse_rr_accept;
+
+	int32_t code;
+	size_t length = strlen(input);
+	char *string = malloc(length + 1 + ZONE_PADDING_SIZE);
+	memcpy(string, input, length);
+	string[length] = 0;
+
+	/* Parse and process all RRs.  */
+	code = zone_parse_string(&parser, &options, &buffers, string, length, state);
+	free(string);
+
+	return state->errors == 0 && code == 0;
 }
 
 /** find zone in namebd from string */
@@ -602,50 +671,48 @@ find_zone(namedb_type* db, char* z)
 static void
 add_str(namedb_type* db, zone_type* zone, char* str)
 {
-	region_type* temp = region_create(xalloc, free);
-	uint8_t rdata[MAX_RDLENGTH];
-	size_t rdatalen;
-	buffer_type databuffer;
+	struct buffer buffer;
+	struct parse_rr_state state;
 	int softfail = 0;
-	rr_type* rr;
 	if(v) printf("add_str %s\n", str);
-	if(!parse_rr_str(temp, zone, str, &rr)) {
+	memset(&state, 0, sizeof(state));
+	state.region = region_create(xalloc, free);
+	state.owner = NULL;
+	if(!parse_rr_str(zone, str, &state)) {
 		printf("cannot parse RR: %s\n", str);
 		exit(1);
 	}
-	rdatalen = rr_marshal_rdata(rr, rdata, sizeof(rdata));
-	buffer_create_from(&databuffer, rdata, rdatalen);
-	if(!add_RR(db, domain_dname(rr->owner), rr->type, rr->klass, rr->ttl,
-		&databuffer, rdatalen, zone, &softfail)) {
+	buffer_create_from(&buffer, state.rdata, state.rdlength);
+	if(!add_RR(db, state.owner, state.type, state.class, state.ttl,
+		&buffer, state.rdlength, zone, &softfail)) {
 		printf("cannot add RR: %s\n", str);
 		exit(1);
 	}
-	region_destroy(temp);
+	region_destroy(state.region);
 }
 
 /* del an RR from string */
 static void
 del_str(namedb_type* db, zone_type* zone, char* str)
 {
-	region_type* temp = region_create(xalloc, free);
-	uint8_t rdata[MAX_RDLENGTH];
-	size_t rdatalen;
-	buffer_type databuffer;
+	struct buffer buffer;
+	struct parse_rr_state state;
 	int softfail = 0;
-	rr_type* rr;
 	if(v) printf("del_str %s\n", str);
-	if(!parse_rr_str(temp, zone, str, &rr)) {
+	memset(&state, 0, sizeof(state));
+	state.region = region_create(xalloc, free);
+	state.owner = NULL;
+	if(!parse_rr_str(zone, str, &state)) {
 		printf("cannot parse RR: %s\n", str);
 		exit(1);
 	}
-	rdatalen = rr_marshal_rdata(rr, rdata, sizeof(rdata));
-	buffer_create_from(&databuffer, rdata, rdatalen);
-	if(!delete_RR(db, domain_dname(rr->owner), rr->type, rr->klass,
-		&databuffer, rdatalen, zone, temp, &softfail)) {
+	buffer_create_from(&buffer, state.rdata, state.rdlength);
+	if(!delete_RR(db, state.owner, state.type, state.class,
+		&buffer, state.rdlength, zone, state.region, &softfail)) {
 		printf("cannot delete RR: %s\n", str);
 		exit(1);
 	}
-	region_destroy(temp);
+	region_destroy(state.region);
 }
 
 /* test the namedb, and add, remove items from it */
