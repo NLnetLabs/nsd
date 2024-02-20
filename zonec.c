@@ -22,7 +22,6 @@
 #endif
 #include <unistd.h>
 #include <stdlib.h>
-#include <time.h>
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif
@@ -44,9 +43,6 @@
 #include "options.h"
 #include "nsec3.h"
 #include "zone.h"
-
-static time_t startzonec = 0;
-static long int totalrrs = 0;
 
 /*
  * Compares two rdata arrays.
@@ -374,9 +370,6 @@ zonec_read(
 	options.log.categories = -1;
 	options.log.callback = &zonec_log;
 	options.accept.callback = &zonec_accept;
-
-	totalrrs = 0;
-	startzonec = time(NULL);
 
 	/* Parse and process all RRs.  */
 	if (zone_parse(&parser, &options, &buffers, zonefile, &state) != 0) {
