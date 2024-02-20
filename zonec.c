@@ -259,7 +259,7 @@ int32_t zonec_accept(
 				zone_log(parser, priority, "CNAME and other data at the same name");
 				break;
 		}
- 
+
                 /* Add it */
 		domain_add_rrset(domain, rrset);
 	} else {
