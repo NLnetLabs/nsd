@@ -2461,7 +2461,7 @@ static int ixfr_data_readdel(struct ixfr_data* data, struct zone* zone,
 	/* check SOA and also serial, because there could be other
 	 * add and del sections from older versions collated, we can
 	 * see this del section end when it has the serial */
-	if(rr->type == TYPE_SOA && soa_rr_get_serial(rr) == data->newserial) {
+	if(rr->type != TYPE_SOA && soa_rr_get_serial(rr) != data->newserial) {
 		return 1;
 	}
 	ixfr_trim_capacity(&data->del, &data->del_len, &capacity);
