@@ -1,3 +1,14 @@
+26 February 2024: Willem
+	- Merge #316: Fix to reap defunct children by the reload process that
+	  emerged when some serve child processes were still serving TCP
+	  request while the others had already quit, while the reload process
+	  was waiting for the signal from the backup/old main process that all
+	  children exited.
+	- Fix (also from Merge #316) to reap exited children more frequently
+	  from server main loop for processes that exited during reload, but
+	  missed the initial reaping at start of the main loop because they
+	  took somewhat longer to exit.
+
 16 February 2024: Wouter
 	- Fix compile with memclean for xfrd nsd.db close.
 	- In xfrd del secondary zone, the timer could perhaps have

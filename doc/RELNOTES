@@ -39,6 +39,15 @@ BUG FIXES:
 	  to fail. Also fix to make sure to set event_added for the
 	  nsd-control ssl nonblocking handshake and check event_added there
 	  too, for extra certainty.
+	- Merge #316: Fix to reap defunct children by the reload process that
+	  emerged when some serve child processes were still serving TCP
+	  request while the others had already quit, while the reload process
+	  was waiting for the signal from the backup/old main process that all
+	  children exited.
+	- Fix (also from Merge #316) to reap exited children more frequently
+	  from server main loop for processes that exited during reload, but
+	  missed the initial reaping at start of the main loop because they
+	  took somewhat longer to exit.
 
 4.8.0
 ================
