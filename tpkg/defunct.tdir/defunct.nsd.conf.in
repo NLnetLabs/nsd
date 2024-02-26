@@ -1,0 +1,21 @@
+server:
+	server-count: 5
+	zonesdir: "."
+	username: ""
+	database: ""
+	verbosity: 2
+	ip-address: 127.0.0.1
+	port: @NSD_PORT@
+	pidfile: "nsd.pid"
+	logfile: "nsd.log"
+	xfrdfile: "xfrd.state"
+	zonelistfile: "zone.list"
+	cookie-secret-file: "nsd-cookiesecrets.txt"
+
+remote-control:
+	control-enable: yes
+	control-port: @NSD_CTRL_PORT@
+	server-key-file: "defunct.server.key"
+	server-cert-file: "defunct.server.pem"
+	control-key-file: "defunct.control.key"
+	control-cert-file: "defunct.control.pem"

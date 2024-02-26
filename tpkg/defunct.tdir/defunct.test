@@ -1,0 +1,35 @@
+# #-- defunct.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+TPKG_NSD_CONTROL="$PRE/nsd-control -c nsd.conf"
+
+NSD_PID=`cat nsd.pid`
+PSTREE="ps --forest -g $NSD_PID -o pid=,tty=,stat=,time=,cmd="
+
+( sleep 10 | telnet 127.0.0.1 ${NSD_PORT} >/dev/null 2>&1) &
+
+TELNET_PID=$!
+$TPKG_NSD_CONTROL reload
+
+FOREST=`$PSTREE`
+echo "$FOREST"
+if ! (echo "$FOREST" | grep -q '\<defunct\>'); then
+	echo "No defuncts!"
+	kill_pid $TELNET_PID
+	exit 0
+fi
+START=`date +%s.%N`
+while (echo "$FOREST" | grep -q '\<defunct\>'); do
+	FOREST=`$PSTREE`
+done
+awk -vend=`date +%s.%N` -vstart=$START \
+  'BEGIN{printf "<defunct> processes seen for %5.3f seconds\n", (end - start)}'
+
+kill_pid $TELNET_PID
+exit 1
+
