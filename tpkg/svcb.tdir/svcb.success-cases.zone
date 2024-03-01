@@ -22,21 +22,25 @@ s03	HTTPS	0 . alpn="h2,h3" no-default-alpn
 
 ; SHOULD is not MUST (so allowed)
 ; Zone-file implementations SHOULD enforce self-consistency
-
-s04	HTTPS	0 . no-default-alpn
+;
+; disabled, simdzone enforces self-consistency (unless secondary)
+;s04	HTTPS	0 . no-default-alpn
 
 
 ; SHOULD is not MUST (so allowed)
 ; (port and no-default-alpn are automatically mandatory keys with HTTPS)
 ; Other automatically mandatory keys SHOULD NOT appear in the list either.
-
-s05	HTTPS	0 . alpn="dot" no-default-alpn port=853 mandatory=port
+;
+; disabled, simdzone enforces self-consistency (unless secondary)
+;s05	HTTPS	0 . alpn="dot" no-default-alpn port=853 mandatory=port
 
 ; Any valid base64 is okay for ech
 s06     HTTPS   0 . ech="aGVsbG93b3JsZCE="
 
 ; echconfig is an alias for ech
-s07     HTTPS   0 . echconfig="aGVsbG93b3JsZCE="
+;
+; disabled, echconfig is not registered with IANA
+;s07     HTTPS   0 . echconfig="aGVsbG93b3JsZCE="
 
 ; dohpath can be (non-)quoted
 
