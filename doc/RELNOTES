@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.8.1 (upcoming)
+4.9.0
 ================
 FEATURES:
 	- Merge #315: Allow SOA apex queries to otherwise with allow-query
