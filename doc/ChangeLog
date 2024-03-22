@@ -1,3 +1,6 @@
+22 March 2024: Jeroen
+	- Set up doc/RELNOTES for upcoming release.
+
 26 February 2024: Willem
 	- Merge #316: Fix to reap defunct children by the reload process that
 	  emerged when some serve child processes were still serving TCP
