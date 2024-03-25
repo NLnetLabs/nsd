@@ -40,9 +40,10 @@ cp nsd.conf2 nsd.conf
 touch ixfr_outsync.zone2
 # start again
 mv nsd.log nsd.log.old
-../../nsd -c nsd.conf -p $TPKG_PORT
+../../nsd -c nsd.conf -p $TPKG_PORT -V 5
 # see what happens if its up again.
 wait_nsd_up nsd.log
+wait_logfile nsd.log "received update to serial 2" 45
 
 dig @127.0.0.1 -p $TPKG_PORT +dnssec example.net AXFR | tee thezone.2
 if test `grep -v '^;' thezone.2 | wc -l` -ne 20; then

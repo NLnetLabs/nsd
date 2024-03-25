@@ -1,3 +1,6 @@
+25 March 2024: Jeroen
+	- Fix timing sensitivity in ixfr_outsync test.
+
 22 March 2024: Jeroen
 	- Set up doc/RELNOTES for upcoming release.
 
