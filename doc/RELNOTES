@@ -48,6 +48,7 @@ BUG FIXES:
 	  from server main loop for processes that exited during reload, but
 	  missed the initial reaping at start of the main loop because they
 	  took somewhat longer to exit.
+	- Fix timing sensitivity in ixfr_outsync test.
 
 4.8.0
 ================
