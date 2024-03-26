@@ -51,7 +51,7 @@ else
 	exit 1
 fi
 
-dig @127.0.0.1 -p $NSD_PORT -y "test.add.1:K2tf3TRjvQkVCmJF3/Z9vA==" static.net. AXFR | tee result
+dig @127.0.0.1 -p $NSD_PORT -y "hmac-md5:test.add.1:K2tf3TRjvQkVCmJF3/Z9vA==" static.net. AXFR | tee result
 if grep hostmaster.static.net result; then
 	echo "OK"
 else
