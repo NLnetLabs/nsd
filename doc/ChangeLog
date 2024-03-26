@@ -1,3 +1,6 @@
+26 March 2024: Jeroen
+	- Test if debug is available in do-tests.
+
 25 March 2024: Jeroen
 	- Fix timing sensitivity in ixfr_outsync test.
 
