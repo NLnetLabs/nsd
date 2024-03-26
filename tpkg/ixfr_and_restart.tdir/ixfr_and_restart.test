@@ -16,8 +16,8 @@ export NSD_PATH="$(realpath ${NSD})"
 check_zonestatus () {
   ${NSD_CTRL} -c $(pwd)/nsd.conf zonestatus example.net > check.zonestatus
   cat check.zonestatus
-  local served_serial=$(sed -n -e "s#^\s\+served-serial: \"\([0-9]\+\).*#\\1#p" check.zonestatus)
-  local commit_serial=$(sed -n -e "s#^\s\+commit-serial: \"\([0-9]\+\).*#\\1#p" check.zonestatus)
+  local served_serial=$(sed -n -e 's#^.\{1,\}served-serial: \"\([0-9]\{1,\}\).*#\1#p' check.zonestatus)
+  local commit_serial=$(sed -n -e 's#^.\{1,\}commit-serial: \"\([0-9]\{1,\}\).*#\1#p' check.zonestatus)
   rm -f check.zonestatus
   [[ "${commit_serial}" = "${1}" && "${served_serial}" = "${2}" ]] || return 1
   return 0
@@ -73,12 +73,11 @@ wait_nsd_up nsd.log
 # verify zone served and verify zonestatus
 serial=$(dig -p ${NSD_PORT} @127.0.0.1 example.net SOA +short | awk '{ print $3 }')
 # nsd-control cannot be used as the zone is invalidated to quick
-served_serial=$(sed -n -e 's#.*zone example.net serial is updated to \([0-9]\+\)#\1#p' nsd.log | head -n 1)
-
+served_serial=$(sed -n -e 's#.*zone example.net serial is updated to \([0-9]\{1,\}\)#\1#p' nsd.log | head -n 1)
 wait_logfile nsd.log "received update to serial" 10
 
 # check commit-serial is used in ixfr query
-request_serial=$(sed -n -e 's#^comparepkt: found serial \([0-9]\+\) in msg.*#\1#p' testns.log | head -n 1)
+request_serial=$(sed -n -e 's#^comparepkt: found serial \([0-9]\{1,\}\) in msg.*#\1#p' testns.log | head -n 1)
 if [ "${request_serial}" -ne "${served_serial}" ]; then
   cat testns.log.1 testns.log
   cat nsd.log.1 nsd.log
