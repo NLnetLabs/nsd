@@ -2,6 +2,7 @@
 	- Test if debug is available in do-tests.
 	- Enforce timeout from NSD in ixfr_gone test.
 	- Update expressions in ixfr_and_restart test.
+	- Make algorithm explicit in control-repattern test.
 
 25 March 2024: Jeroen
 	- Fix timing sensitivity in ixfr_outsync test.
