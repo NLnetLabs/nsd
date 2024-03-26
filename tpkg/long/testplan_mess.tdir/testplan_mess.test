@@ -13,16 +13,11 @@ TPKG_CHECKCONF="$PRE/nsd-checkconf"
 TPKG_NOTIFY="ldns-notify"
 WAITTIME=10
 
-HMAC=""
-if dig -h 2>&1 | grep -- "-v" | grep "hmac" >/dev/null; then
-	HMAC="hmac-md5:"
-fi
-
 function check_server_zone() { # <id> <ID> <file>
 	# check if server has the same zone as the master zonefile.
 	port=`eval echo '\$PORT_'$2`
-	echo ">> dig @127.0.0.1 -p $port -y key:secret example.com. AXFR"
-	dig @127.0.0.1 -p $port -y $HMAC"test_xfer:RKb8XLBOpvMfU3zcMq7vlw==" example.com. AXFR | tee $RESULTFILE
+	echo ">> dig @127.0.0.1 -p $port -y hmac-sha256:key:secret example.com. AXFR"
+	dig @127.0.0.1 -p $port -y "hmac-sha256:test_xfer:YmoxUy/n8pM4Q6lxF7YaXf0i5JDX2E/lA1i+jlkR+N4=" example.com. AXFR | tee $RESULTFILE
 	# remove duplicate SOA record from last line with head command
 	cat $RESULTFILE | grep -v '^;' | grep -v '^$' | grep -v TSIG > $RESULTFILE.2
 	lines=`wc -l $RESULTFILE.2 | awk '{print $1}' `
@@ -52,8 +47,8 @@ function check_zones_are() { # m1file m2file restfile
 function send_notify() { # id ID keyname
 	port=`eval echo '\$PORT_'$2`
 	secret=`$TPKG_CHECKCONF -s $3 testplan_mess.keys`
-	echo ">>> $TPKG_NOTIFY -p $port [$2] -y $3:$secret -z example.com 127.0.0.1"
-	$TPKG_NOTIFY -p $port -y $3:$secret -z example.com 127.0.0.1
+	echo ">>> $TPKG_NOTIFY -p $port [$2] -y $3:$secret:hmac-sha256 -z example.com 127.0.0.1"
+	$TPKG_NOTIFY -p $port -y $3:$secret:hmac-sha256 -z example.com 127.0.0.1
 }
 
 sleep $WAITTIME

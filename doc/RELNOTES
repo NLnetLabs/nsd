@@ -53,6 +53,7 @@ BUG FIXES:
 	- Enforce timeout from NSD in ixfr_gone test.
 	- Update expressions in ixfr_and_restart test.
 	- Make algorithm explicit in control-repattern test.
+	- Switch algorithm to hmac-256 for testplan_mess test.
 
 4.8.0
 ================
