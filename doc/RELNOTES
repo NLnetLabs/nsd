@@ -50,6 +50,7 @@ BUG FIXES:
 	  took somewhat longer to exit.
 	- Fix timing sensitivity in ixfr_outsync test.
 	- Test if debug is available in do-tests.
+	- Enforce timeout from NSD in ixfr_gone test.
 
 4.8.0
 ================

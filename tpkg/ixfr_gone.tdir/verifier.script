@@ -10,7 +10,7 @@ fi
 
 if [ -p ${NSD_VERIFIER_IN} ]; then
   echo "verifier for ${VERIFY_ZONE} will block on fifo"
-  read -t ${NSD_VERIFIER_TIMEOUT} line <${NSD_VERIFIER_IN}
+  read line <${NSD_VERIFIER_IN}
   echo "verifier for ${VERIFY_ZONE} woke up"
   rm -f ${NSD_VERIFIER_IN}
 fi

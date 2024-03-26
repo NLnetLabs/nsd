@@ -27,6 +27,7 @@ sed -e "s#TESTNS_PORT#${TESTNS_PORT}#" \
     -e "s#NSD_PORT#${NSD_PORT}#" \
     -e "s#NSD_XFRDIR#${NSD_XFRDIR}#" \
     -e "s#NSD_VERIFY_PORT#${NSD_VERIFY_PORT}#" \
+    -e "s#NSD_VERIFIER_TIMEOUT#${NSD_VERIFIER_TIMEOUT}#" \
     -e "s#NSD_VERIFIER#${NSD_VERIFIER}#" \
     ixfr_gone.conf > nsd.conf
 
