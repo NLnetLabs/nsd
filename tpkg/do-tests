@@ -7,6 +7,14 @@ if test "$1" = "-q"; then
 	shift
 fi
 
+dir="$(realpath ${0})"
+while [ -z "${NSD}" ] && [ "$dir" != "/" ]; do
+       dir="$(dirname ${dir})"
+       if [ -f "${dir}/nsd" ]; then
+               NSD="${dir}/nsd"
+       fi
+done
+
 # you need to have the following tools in your $PATH:
 # export PATH=$PATH:/usr/local/bin
 # basic: grep, grep, tail, head, cp, rm, kill ...
@@ -36,6 +44,7 @@ NEED_NC="tcp_underrun"
 NEED_PCAT="query_diff_root"
 NEED_CPU_AFFINITY="bad_cpu_affinity no_cpu_affinity cpu_affinity"
 NEED_FAKETIME="dnscookies"
+NEED_DEBUG="verify_again nsec3_ixfr_neg ixfrout-add-delete ixfr_badformat"
 
 # do we have dig9?
 DIG9=no
@@ -54,6 +63,9 @@ CPU_AFFINITY=no
 if [ -n "$(cpu_count)" ] && [ "$(cpu_count)" -gt 1 ]; then CPU_AFFINITY=yes; fi
 HAVE_FAKETIME=no
 if test -f "`which faketime 2>&1`"; then HAVE_FAKETIME=yes; fi
+HAVE_DEBUG=no
+if $NSD -h 2>&1 | grep -- '-L'; then HAVE_DEBUG=yes; fi
+
 
 # run the tests
 tdir -a ../../ $tdirarg fake 0000_nsd-compile.tdir
@@ -90,6 +102,10 @@ for i in *.tdir; do
 	fi
 	if [ $HAVE_FAKETIME = no ] && echo $NEED_FAKETIME | grep `basename $i .tdir` >/dev/null; then
 		echo ">>> skipped $i: test needs faketime"
+		skip=yes
+	fi
+	if [ $HAVE_DEBUG = no ] && echo $NEED_DEBUG | grep `basename $i .tdir` >/dev/null; then
+		echo ">>> skipped $i: test needs NSD to be compiled with checking enabled"
 		skip=yes
 	fi
 	if [ $skip = no ]; then
