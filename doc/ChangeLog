@@ -4,6 +4,7 @@
 	- Update expressions in ixfr_and_restart test.
 	- Make algorithm explicit in control-repattern test.
 	- Switch algorithm to hmac-256 for testplan_mess test.
+	- Tag for 4.9.0rc1.
 
 25 March 2024: Jeroen
 	- Fix timing sensitivity in ixfr_outsync test.
