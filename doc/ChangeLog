@@ -1,3 +1,7 @@
+27 February 2024: Wouter
+	- Fix that when the server truncates the pidfile, it does not follow
+	  symbolic links.
+
 26 March 2024: Jeroen
 	- Test if debug is available in do-tests.
 	- Enforce timeout from NSD in ixfr_gone test.

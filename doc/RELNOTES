@@ -1,5 +1,12 @@
 NSD RELEASE NOTES
 
+4.9.1 (Upcoming)
+================
+FEATURES:
+	- Fix that when the server truncates the pidfile, it does not follow
+	  symbolic links.
+BUG FIXES:
+
 4.9.0
 ================
 FEATURES:
