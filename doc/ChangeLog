@@ -1,3 +1,6 @@
+27 March 2024: Jeroen
+	- Force install of auxiliary files in makedist.sh.
+
 26 March 2024: Jeroen
 	- Test if debug is available in do-tests.
 	- Enforce timeout from NSD in ixfr_gone test.
