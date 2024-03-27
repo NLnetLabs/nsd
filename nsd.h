@@ -382,7 +382,7 @@ extern struct nsd nsd;
 /* nsd.c */
 pid_t readpid(const char *file);
 int writepid(struct nsd *nsd);
-void unlinkpid(const char* file);
+void unlinkpid(const char* file, const char* username);
 void sig_handler(int sig);
 void bind8_stats(struct nsd *nsd);
 

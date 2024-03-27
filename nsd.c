@@ -724,18 +724,11 @@ writepid(struct nsd *nsd)
 	}
 	close(fd);
 
-	if (chown(nsd->pidfile, nsd->uid, nsd->gid) == -1) {
-		log_msg(LOG_ERR, "cannot chown %u.%u %s: %s",
-			(unsigned) nsd->uid, (unsigned) nsd->gid,
-			nsd->pidfile, strerror(errno));
-		return -1;
-	}
-
 	return 0;
 }
 
 void
-unlinkpid(const char* file)
+unlinkpid(const char* file, const char* username)
 {
 	int fd = -1;
 
@@ -748,7 +741,15 @@ unlinkpid(const char* file)
 			, 0644);
 		if (fd == -1) {
 			/* Truncate the pid file.  */
-			log_msg(LOG_ERR, "can not truncate the pid file %s: %s", file, strerror(errno));
+			/* If there is a username configured, we assume that
+			 * due to privilege drops, NSD cannot truncate or
+			 * unlink the pid file. NSD does not chown the file
+			 * because that creates a privilege escape. */
+			if(username && username[0]) {
+				VERBOSITY(5, (LOG_INFO, "can not truncate the pid file %s: %s", file, strerror(errno)));
+			} else {
+				log_msg(LOG_ERR, "can not truncate the pid file %s: %s", file, strerror(errno));
+			}
 		} else {
 			close(fd);
 		}
@@ -758,9 +759,15 @@ unlinkpid(const char* file)
 			/* this unlink may not work if the pidfile is located
 			 * outside of the chroot/workdir or we no longer
 			 * have permissions */
-			VERBOSITY(3, (LOG_WARNING,
-				"failed to unlink pidfile %s: %s",
-				file, strerror(errno)));
+			if(username && username[0]) {
+				VERBOSITY(5, (LOG_INFO,
+					"failed to unlink pidfile %s: %s",
+					file, strerror(errno)));
+			} else {
+				VERBOSITY(3, (LOG_WARNING,
+					"failed to unlink pidfile %s: %s",
+					file, strerror(errno)));
+			}
 		}
 	}
 }
@@ -1490,7 +1497,14 @@ main(int argc, char *argv[])
 	log_msg(LOG_NOTICE, "%s starting (%s)", argv0, PACKAGE_STRING);
 
 	/* Do we have a running nsd? */
-	if(nsd.pidfile && nsd.pidfile[0]) {
+	/* When there is a username configured, we assume that due to
+	 * privilege drops, the pidfile could not be removed by NSD and
+	 * as such could be lingering around. We could not remove it,
+	 * and also not chown it as that creates privilege escape problems.
+	 * The init system could remove the pidfile after use for us, but
+	 * it is not sure if it is configured to do so. */
+	if(nsd.pidfile && nsd.pidfile[0] &&
+		!(nsd.username && nsd.username[0])) {
 		if ((oldpid = readpid(nsd.pidfile)) == -1) {
 			if (errno != ENOENT) {
 				log_msg(LOG_ERR, "can't read pidfile %s: %s",
@@ -1744,7 +1758,7 @@ main(int argc, char *argv[])
 #endif /* USE_DNSTAP */
 	}
 	if (server_prepare(&nsd) != 0) {
-		unlinkpid(nsd.pidfile);
+		unlinkpid(nsd.pidfile, nsd.username);
 		error("server preparation failed, %s could "
 			"not be started", argv0);
 	}

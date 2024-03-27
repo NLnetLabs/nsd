@@ -1803,7 +1803,7 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 			server_close_all_sockets(nsd->tcp, nsd->ifs);
 			daemon_remote_close(nsd->rc);
 			/* Unlink it if possible... */
-			unlinkpid(nsd->pidfile);
+			unlinkpid(nsd->pidfile, nsd->username);
 			unlink(nsd->task[0]->fname);
 			unlink(nsd->task[1]->fname);
 #ifdef USE_ZONE_STATS
@@ -2983,7 +2983,7 @@ server_main(struct nsd *nsd)
 	send_children_quit_and_wait(nsd);
 
 	/* Unlink it if possible... */
-	unlinkpid(nsd->pidfile);
+	unlinkpid(nsd->pidfile, nsd->username);
 	unlink(nsd->task[0]->fname);
 	unlink(nsd->task[1]->fname);
 #ifdef USE_ZONE_STATS

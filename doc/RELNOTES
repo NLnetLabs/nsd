@@ -6,6 +6,7 @@ FEATURES:
 BUG FIXES:
 	- Fix that when the server truncates the pidfile, it does not follow
 	  symbolic links.
+	- Fix #317: nsd should not chown its PID file.
 
 4.9.0
 ================
