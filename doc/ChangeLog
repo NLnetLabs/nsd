@@ -1,5 +1,6 @@
 3 April 2024: Jeroen
 	- Replace multiple strcat and strcpy by snprintf.
+	- Tag for 4.9.0.
 
 26 March 2024: Jeroen
 	- Test if debug is available in do-tests.
