@@ -54,6 +54,7 @@ BUG FIXES:
 	- Update expressions in ixfr_and_restart test.
 	- Make algorithm explicit in control-repattern test.
 	- Switch algorithm to hmac-256 for testplan_mess test.
+	- Replace multiple strcat and strcpy by snprintf.
 
 4.8.0
 ================
