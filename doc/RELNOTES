@@ -1,12 +1,17 @@
 NSD RELEASE NOTES
 
-4.9.1 (Upcoming)
+4.9.2 (Upcoming)
 ================
 FEATURES:
 BUG FIXES:
 	- Fix that when the server truncates the pidfile, it does not follow
 	  symbolic links.
 	- Fix #317: nsd should not chown its PID file.
+
+4.9.1
+================
+BUG FIXES:
+	- Use rooted temporary path in makedist.sh.
 
 4.9.0
 ================
@@ -62,6 +67,7 @@ BUG FIXES:
 	- Update expressions in ixfr_and_restart test.
 	- Make algorithm explicit in control-repattern test.
 	- Switch algorithm to hmac-256 for testplan_mess test.
+	- Replace multiple strcat and strcpy by snprintf.
 
 4.8.0
 ================

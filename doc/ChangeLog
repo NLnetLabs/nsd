@@ -1,3 +1,11 @@
+4 April 2024: Jeroen
+	- Use rooted temporary path in makedist.sh.
+	- Tag for 4.9.1.
+
+3 April 2024: Jeroen
+	- Replace multiple strcat and strcpy by snprintf.
+	- Tag for 4.9.0.
+
 27 March 2024: Wouter
 	- Fix that when the server truncates the pidfile, it does not follow
 	  symbolic links.

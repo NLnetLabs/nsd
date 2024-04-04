@@ -137,7 +137,7 @@ info "RELEASE CANDIDATE is $RC"
 
 # Creating temp directory
 info "Creating temporary working directory"
-temp_dir=`mktemp -d nsd-dist-XXXXXX`
+temp_dir=`mktemp -t -d nsd-dist-XXXXXX`
 info "Directory '$temp_dir' created."
 cd $temp_dir
 
@@ -200,7 +200,7 @@ info "Renaming NSD directory to nsd-$version."
 cd ..
 mv nsd nsd-$version || error_cleanup "Failed to rename NSD directory."
 
-tarfile="../nsd-$version.tar.gz"
+tarfile="$cwd/nsd-$version.tar.gz"
 
 if [ -f $tarfile ]; then
     (question "The file $tarfile already exists.  Overwrite?" \
@@ -211,26 +211,27 @@ info "Deleting the tpkg directory"
 rm -rf nsd-$version/tpkg/
 
 info "Creating tar nsd-$version.tar.gz"
-tar czf ../nsd-$version.tar.gz nsd-$version || error_cleanup "Failed to create tar file."
+tar czf $tarfile nsd-$version || error_cleanup "Failed to create tar file."
+
+info "Checking for required auxiliary files"
+cd nsd-$version
+CC=./non-existent-cc ./configure --quiet --no-create 2>&1 | head -n 1 | grep auxiliary && \
+    error_cleanup "Required auxiliary files not available"
 
 cleanup
 
 case $OSTYPE in
-        linux*)
-                sha=`sha1sum nsd-$version.tar.gz |  awk '{ print $1 }'`
-                sha256=`sha256sum nsd-$version.tar.gz |  awk '{ print $1 }'`
-                ;;
-        FreeBSD*)
-                sha=`sha1  nsd-$version.tar.gz |  awk '{ print $5 }'`
-                sha256=`sha256  nsd-$version.tar.gz |  awk '{ print $5 }'`
-                ;;
-	*)
-                sha=`sha1sum nsd-$version.tar.gz |  awk '{ print $1 }'`
-                sha256=`sha256sum nsd-$version.tar.gz |  awk '{ print $1 }'`
-                ;;
+    FreeBSD*)
+        sha=`sha1 $tarfile |  awk '{ print $5 }'`
+        sha256=`sha256 $tarfile |  awk '{ print $5 }'`
+        ;;
+    *)
+        sha=`sha1sum $tarfile |  awk '{ print $1 }'`
+        sha256=`sha256sum $tarfile |  awk '{ print $1 }'`
+        ;;
 esac
-echo $sha > nsd-$version.tar.gz.sha1
-echo $sha256 > nsd-$version.tar.gz.sha256
+echo $sha > $cwd/nsd-$version.tar.gz.sha1
+echo $sha256 > $cwd/nsd-$version.tar.gz.sha256
 
 echo "create nsd-$version.tar.gz.asc with:"
 echo "    gpg --armor --detach-sign --digest-algo SHA256 nsd-$version.tar.gz"

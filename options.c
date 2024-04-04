@@ -463,14 +463,13 @@ zone_list_member_zone_insert(struct nsd_options* opt, const char* nm,
 			"zone value provided in zone '%s' or pattern '%s'",
 			mem_idnm, nm, patnm);
 
-	else if(strlen(pat->catalog_producer_zone)
-	      + strlen(mem_idnm) + 9 > sizeof(member_id_str))
+	else if(snprintf(member_id_str, sizeof(member_id_str),
+	    "%s.zones.%s", mem_idnm, pat->catalog_producer_zone) >=
+	    (int)sizeof(member_id_str))
 		log_msg(LOG_ERR, "syntax error in member ID '%s.zones.%s' for "
 			"zone '%s'", mem_idnm, pat->catalog_producer_zone, nm);
 
-	else if(!(cmz->member_id = dname_parse(opt->region, strcat(strcat(
-				strcpy(member_id_str, mem_idnm),".zones."),
-					pat->catalog_producer_zone))))
+	else if(!(cmz->member_id = dname_parse(opt->region, member_id_str)))
 		log_msg(LOG_ERR, "parse error in member ID '%s' for "
 			"zone '%s'", member_id_str, nm);
 	return zone;
