@@ -150,7 +150,7 @@ cd nsd || error_cleanup "NSD not exported correctly from git"
 rm -rf .git .cirrus.yml .github .gitignore || error_cleanup "Failed to remove .git tracking and ci information"
 
 info "Building configure script (autoreconf)."
-autoreconf -i -f || error_cleanup "Autoconf failed."
+autoreconf -i || error_cleanup "Autoconf failed."
 
 info "Building config.h.in (autoheader)."
 autoheader || error_cleanup "Autoheader failed."
