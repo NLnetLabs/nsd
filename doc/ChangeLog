@@ -1,3 +1,6 @@
+4 April 2024: Jeroen
+	- Use rooted temporary path in makedist.sh.
+
 3 April 2024: Jeroen
 	- Replace multiple strcat and strcpy by snprintf.
 	- Tag for 4.9.0.
