@@ -1,5 +1,10 @@
 NSD RELEASE NOTES
 
+4.9.1
+================
+BUG FIXES:
+	- Use rooted temporary path in makedist.sh.
+
 4.9.0
 ================
 FEATURES:
