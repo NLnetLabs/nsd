@@ -9,6 +9,7 @@ BUG FIXES:
 	- Fix #317: nsd should not chown its PID file.
 	- For #317: Modify nsd service script to stop NSD from creating a
 	  pid file that systemd is not using.
+	- Fix #324: Clarify the purpose of contrib/bug390.patch.
 
 4.9.1
 ================

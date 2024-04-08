@@ -1,6 +1,7 @@
 8 April 2024: Wouter
 	- For #317: Modify nsd service script to stop NSD from creating a
 	  pid file that systemd is not using.
+	- Fix #324: Clarify the purpose of contrib/bug390.patch.
 
 4 April 2024: Jeroen
 	- Use rooted temporary path in makedist.sh.
