@@ -1,0 +1,40 @@
+# #-- ixfr_superlong.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../../.."
+DIG=dig
+
+$DIG @127.0.0.1 -p $TPKG_PORT 123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.example.com. SOA > cur
+cat cur
+
+if grep "3600 600 604800 900" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	cat nsd.log
+	exit 1
+fi
+
+ldns-notify -z 123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.example.com. -p $TPKG_PORT -s 4 127.0.0.1
+
+wait_logfile nsd.log "example.com. serial 3 is updated to 4" 10
+
+$DIG @127.0.0.1 -p $TPKG_PORT 123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.example.com. SOA > cur
+cat cur
+
+if grep "4 3600 600 604800 900" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	cat nsd.log
+	exit 1
+fi
+
+cat nsd.log
+
+echo "OK"
+exit 0

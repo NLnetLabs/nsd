@@ -1,0 +1,5 @@
+$ORIGIN 123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.example.com.
+
+@ IN SOA ns000.d-53.net. dns-managers.iij.ad.jp. 3 3600 600 604800 900
+@ IN NS ns1.example.com.
+@ IN NS ns2.example.com.

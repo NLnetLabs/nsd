@@ -1881,7 +1881,7 @@ xfrd_tsig_sign_request(buffer_type* packet, tsig_record_type* tsig,
 static int
 xfrd_send_ixfr_request_udp(xfrd_zone_type* zone)
 {
-	int fd;
+	int fd, apex_compress = 0;
 
 	/* make sure we have a master to query the ixfr request to */
 	assert(zone->master);
@@ -1893,12 +1893,13 @@ xfrd_send_ixfr_request_udp(xfrd_zone_type* zone)
 		return -1;
 	}
 	xfrd_setup_packet(xfrd->packet, TYPE_IXFR, CLASS_IN, zone->apex,
-		qid_generate());
+		qid_generate(), &apex_compress);
 	zone->query_id = ID(xfrd->packet);
 	xfrd_prepare_zone_xfr(zone, TYPE_IXFR);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "sent query with ID %d", zone->query_id));
         NSCOUNT_SET(xfrd->packet, 1);
-	xfrd_write_soa_buffer(xfrd->packet, zone->apex, &zone->soa_disk);
+	xfrd_write_soa_buffer(xfrd->packet, zone->apex, &zone->soa_disk,
+		apex_compress);
 	/* if we have tsig keys, sign the ixfr query */
 	if(zone->master->key_options && zone->master->key_options->tsig_key) {
 		xfrd_tsig_sign_request(

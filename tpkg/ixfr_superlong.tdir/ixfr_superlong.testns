@@ -1,0 +1,20 @@
+#!
+# premade query answers
+
+$ORIGIN 123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.123456789abcdef.example.com.
+$TTL 3600
+
+# reply IXFR request
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=3
+REPLY QUERY QR AA NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ IN SOA ns000.d-53.net. dns-managers.iij.ad.jp. 4 3600 600 604800 900
+@ IN SOA ns000.d-53.net. dns-managers.iij.ad.jp. 3 3600 600 604800 900
+@ IN SOA ns000.d-53.net. dns-managers.iij.ad.jp. 4 3600 600 604800 900
+@ IN A 1.2.3.4
+@ IN SOA ns000.d-53.net. dns-managers.iij.ad.jp. 4 3600 600 604800 900
+ENTRY_END
