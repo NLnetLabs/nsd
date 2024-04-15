@@ -1,3 +1,6 @@
+15 April 2024: Wouter
+	- Unit test for dname subdomain test used by xfrd-tcp.c.
+
 9 April 2024: Wouter
 	- Fix IXFR requests upstream for zones with a long name. Thanks for
 	  the report to Yuuki Wakisaka from Internet Initiative Japan Inc.

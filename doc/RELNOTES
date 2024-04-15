@@ -12,6 +12,7 @@ BUG FIXES:
 	- Fix #324: Clarify the purpose of contrib/bug390.patch.
 	- Fix IXFR requests upstream for zones with a long name. Thanks for
 	  the report to Yuuki Wakisaka from Internet Initiative Japan Inc.
+	- Unit test for dname subdomain test used by xfrd-tcp.c.
 
 4.9.1
 ================

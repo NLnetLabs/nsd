@@ -470,39 +470,6 @@ xfrd_acl_sockaddr_frm(acl_options_type* acl, struct sockaddr_in *frm)
 #endif /* INET6 */
 }
 
-/* Test is the name is a subdomain of the other name. Equal names return true.
- * Subdomain d of d2 returns true, otherwise false. The names are in
- * wireformat, uncompressed. Does not perform canonicalization, it is case
- * sensitive. */
-static int
-is_dname_subdomain_of(const uint8_t* d, unsigned int len, const uint8_t* d2,
-	unsigned int len2)
-{
-	unsigned int i;
-	if(len < len2)
-		return 0;
-	if(len == len2) {
-		if(memcmp(d, d2, len) == 0)
-			return 1;
-		return 0;
-	}
-	/* so len > len2, for d=a.example.com. and d2=example.com. */
-	/* trailing portion must be exactly name d2. */
-	if(memcmp(d+len-len2, d2, len2) != 0)
-		return 0;
-	/* that must also be a label point */
-	i=0;
-	while(i < len) {
-		if(i == len-len2)
-			return 1;
-		i += d[i];
-		i += 1;
-	}
-
-	/* The trailing portion is not at a label point. */
-	return 0;
-}
-
 void
 xfrd_write_soa_buffer(struct buffer* packet,
 	const dname_type* apex, struct xfrd_soa* soa, int apex_compress)
@@ -523,8 +490,9 @@ xfrd_write_soa_buffer(struct buffer* packet,
 
 	/* compress dnames to apex if possible */
 	if(apex_compress > 0 && apex_compress < (int)buffer_limit(packet) &&
-		apex->name_size > 1 && is_dname_subdomain_of(soa->prim_ns+1,
-		soa->prim_ns[0], dname_name(apex), apex->name_size)) {
+		apex->name_size > 1 && is_dname_subdomain_of_case(
+		soa->prim_ns+1, soa->prim_ns[0], dname_name(apex),
+		apex->name_size)) {
 		if(soa->prim_ns[0] > apex->name_size)
 			buffer_write(packet, soa->prim_ns+1, soa->prim_ns[0]-
 				apex->name_size);
@@ -533,7 +501,7 @@ xfrd_write_soa_buffer(struct buffer* packet,
 		buffer_write(packet, soa->prim_ns+1, soa->prim_ns[0]);
 	}
 	if(apex_compress > 0 && apex_compress < (int)buffer_limit(packet) &&
-		apex->name_size > 1 && is_dname_subdomain_of(soa->email+1,
+		apex->name_size > 1 && is_dname_subdomain_of_case(soa->email+1,
 		soa->email[0], dname_name(apex), apex->name_size)) {
 		if(soa->email[0] > apex->name_size)
 			buffer_write(packet, soa->email+1, soa->email[0]-
