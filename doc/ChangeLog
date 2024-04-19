@@ -1,3 +1,6 @@
+16 April 2024: Jeroen
+	- Replace Flex+Bison based zone parser with simdzone.
+
 15 April 2024: Wouter
 	- Unit test for dname subdomain test used by xfrd-tcp.c.
 

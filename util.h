@@ -322,25 +322,6 @@ timeval_to_timespec(struct timespec *left,
 void get_time(struct timespec* t);
 
 /*
- * Converts a string representation of a period of time into
- * a long integer of seconds or serial value.
- *
- * Set the endptr to the first illegal character.
- *
- * Interface is similar as strtol(3)
- *
- * Returns:
- *	LONG_MIN if underflow occurs
- *	LONG_MAX if overflow occurs.
- *	otherwise number of seconds
- *
- * XXX These functions do not check the range.
- *
- */
-uint32_t strtoserial(const char *nptr, const char **endptr);
-uint32_t strtottl(const char *nptr, const char **endptr);
-
-/*
  * Convert binary data to a string of hexadecimal characters.
  */
 ssize_t hex_ntop(uint8_t const *src, size_t srclength, char *target,
@@ -364,12 +345,6 @@ void strip_string(char *str);
  * Convert a single (hexadecimal) digit to its integer value.
  */
 int hexdigit_to_int(char ch);
-
-/*
- * Convert TM to seconds since epoch (midnight, January 1st, 1970).
- * Like timegm(3), which is not always available.
- */
-time_t mktime_from_utc(const struct tm *tm);
 
 /*
  * Add bytes to given crc. Returns new CRC sum.

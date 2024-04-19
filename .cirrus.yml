@@ -18,7 +18,7 @@ ubuntu_2204_gcc11: &ubuntu_2204_gcc11
   bootstrap_script:
     - apt-get update
   install_script:
-    - apt-get install -y autoconf automake libtool make gcc-11 clang libc-dev libevent-dev libssl-dev flex bison
+    - apt-get install -y autoconf automake libtool make gcc-11 clang libc-dev libevent-dev libssl-dev flex bison git
 
 ubuntu_2204_clang14: &ubuntu_2204_clang14
   container:
@@ -30,7 +30,7 @@ ubuntu_2204_clang14: &ubuntu_2204_clang14
   bootstrap_script:
     - apt-get update
   install_script:
-    - apt-get install -y autoconf automake libtool make clang-${CLANG_VERSION} libc-dev libevent-dev libssl-dev flex bison
+    - apt-get install -y autoconf automake libtool make clang-${CLANG_VERSION} libc-dev libevent-dev libssl-dev flex bison git
     - update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_VERSION} 10
 
 freebsd_14_0: &freebsd_14_0
@@ -39,7 +39,7 @@ freebsd_14_0: &freebsd_14_0
   env:
     CC: clang
   install_script:
-    - pkg install --yes --quiet bash gmake autoconf automake libtool libevent
+    - pkg install --yes --quiet bash gmake autoconf automake libtool libevent git
 
 macos_13_1_xcode14_2: &macos_13_1_xcode14_2
   macos_instance:
@@ -49,7 +49,7 @@ macos_13_1_xcode14_2: &macos_13_1_xcode14_2
     COV_COMPTYPE: clang
     COV_COMPTYPE: macOSX
   install_script:
-    - brew install bash autoconf automake libtool openssl libevent flex bison
+    - brew install bash autoconf automake libtool openssl libevent flex bison git
 
 install_coverity: &install_coverity
   env:
@@ -114,7 +114,9 @@ task:
         LIBEVENT: "/opt/homebrew/opt/libevent"
 
   build_script:
+    - git submodule update --init
     - autoconf && autoheader
+    - (cd simdzone && autoconf)
     - libtoolize -c -i || glibtoolize -c -i
     - ./configure --enable-checking --disable-flto --with-ssl=${OPENSSL:-yes} --with-libevent=${LIBEVENT:-yes}
     - make -j 2

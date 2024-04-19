@@ -1399,4 +1399,9 @@ if test "$enable_checking" = "yes"; then
 fi
 
 AC_CONFIG_FILES([Makefile $dnstap_config])
+
+# Arguments introduced specifically for simdzone.
+AC_ARG_ENABLE(westmere, AS_HELP_STRING([--disable-westmere], [Disable Westmere (SSE4.2) parser kernel]))
+AC_ARG_ENABLE(haswell, AS_HELP_STRING([--disable-haswell], [Disable Haswell (AVX2) parser kernel]))
+AC_CONFIG_SUBDIRS([simdzone])
 AC_OUTPUT
