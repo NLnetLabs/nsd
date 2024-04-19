@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.9.2 (Upcoming)
+4.10.0 (Upcoming)
 ================
 FEATURES:
 BUG FIXES:
@@ -13,6 +13,7 @@ BUG FIXES:
 	- Fix IXFR requests upstream for zones with a long name. Thanks for
 	  the report to Yuuki Wakisaka from Internet Initiative Japan Inc.
 	- Unit test for dname subdomain test used by xfrd-tcp.c.
+	- Merge #278: Replace Flex+Bison based zone parser with simdzone.
 
 4.9.1
 ================

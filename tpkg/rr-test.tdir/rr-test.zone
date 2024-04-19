@@ -67,7 +67,7 @@ $ORIGIN blaat.nl.
 
 $ORIGIN blaat.nl.
 
-dotted\.label IN MX 10 "foo bar.nl"
+dotted\.label IN MX 10 foo\ bar\.nl
 
 low.low.low       IN      DNAME   rt-host
 
