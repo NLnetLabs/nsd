@@ -22,6 +22,7 @@ BUG FIXES:
 	- Fix makedist.sh to remove simdzone git tracking information and
 	  scripting temporaries from tarball.
 	- Fix error output of makedist.sh.
+	- Use simdzone version with name parser fix.
 
 4.9.1
 ================

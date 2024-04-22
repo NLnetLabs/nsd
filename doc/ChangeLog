@@ -10,6 +10,9 @@
 23 April 2024: Wouter
 	- Fix #329: TCP accept queues number.
 
+22 April 2024: Jeroen
+	- Use simdzone version with name parser fix.
+
 16 April 2024: Jeroen
 	- Replace Flex+Bison based zone parser with simdzone.
 
