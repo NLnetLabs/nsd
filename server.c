@@ -1449,13 +1449,11 @@ server_init(struct nsd *nsd)
 			if(open_udp_socket(nsd, &nsd->udp[i], &reuseport) == -1) {
 				return -1;
 			}
-			/* Turn off REUSEPORT for TCP by copying the socket
-			 * file descriptor.
-			 * This means we should not close TCP used by
-			 * other servers in reuseport enabled mode, in
-			 * server_child().
-			 */
 			nsd->tcp[i] = nsd->tcp[i%nsd->ifs];
+			nsd->tcp[i].s = -1;
+			if(open_tcp_socket(nsd, &nsd->tcp[i], &reuseport) == -1) {
+				return -1;
+			}
 		}
 
 		nsd->ifs = ifs;
@@ -3472,15 +3470,7 @@ server_child(struct nsd *nsd)
 				add_tcp_handler(nsd, &nsd->tcp[i], data);
 			} else {
 				/* close sockets intended for other servers */
-				/*
-				 * uncomment this once tcp servers are no
-				 * longer copied in the tcp fd copy line
-				 * in server_init().
 				server_close_socket(&nsd->tcp[i]);
-				*/
-				/* close sockets not meant for this server*/
-				if(!listen)
-					server_close_socket(&nsd->tcp[i]);
 			}
 		}
 	} else {

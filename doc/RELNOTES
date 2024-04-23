@@ -14,6 +14,7 @@ BUG FIXES:
 	  the report to Yuuki Wakisaka from Internet Initiative Japan Inc.
 	- Unit test for dname subdomain test used by xfrd-tcp.c.
 	- Merge #278: Replace Flex+Bison based zone parser with simdzone.
+	- Fix #329: TCP accept queues number.
 
 4.9.1
 ================
