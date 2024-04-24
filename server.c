@@ -2307,7 +2307,8 @@ reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
 	udb_ptr_unlink(&next, u);
 }
 
-void server_verify(struct nsd *nsd, int cmdsocket);
+static void server_verify(struct nsd *nsd, int cmdsocket,
+	struct sigaction* old_sigchld);
 
 struct quit_sync_event_data {
 	struct event_base* base;
@@ -2444,7 +2445,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #endif
 
 		/* spin-up server and execute verifiers for each zone */
-		server_verify(nsd, cmdsocket);
+		server_verify(nsd, cmdsocket, &old_sigchld);
 #ifdef RATELIMIT
 		/* deallocate rate limiting resources */
 		rrl_deinit(nsd->child_count + 1);
@@ -3202,7 +3203,8 @@ add_tcp_handler(
 /*
  * Serve DNS request to verifiers (short-lived)
  */
-void server_verify(struct nsd *nsd, int cmdsocket)
+static void server_verify(struct nsd *nsd, int cmdsocket,
+	struct sigaction* old_sigchld)
 {
 	size_t size = 0;
 	struct event cmd_event, signal_event, exit_event;
@@ -3309,12 +3311,13 @@ void server_verify(struct nsd *nsd, int cmdsocket)
 
 	/* remove command and exit event handlers */
 	event_del(&exit_event);
-	signal_del(&signal_event);
 	event_del(&cmd_event);
 
 	assert(nsd->next_zone_to_verify == NULL || nsd->mode == NSD_QUIT);
 	assert(nsd->verifier_count == 0 || nsd->mode == NSD_QUIT);
+	signal_del(&signal_event);
 fail:
+	sigaction(SIGCHLD, old_sigchld, NULL);
 	close(nsd->verifier_pipe[0]);
 	close(nsd->verifier_pipe[1]);
 fail_pipe:

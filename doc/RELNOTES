@@ -17,6 +17,7 @@ BUG FIXES:
 	- Fix #329: TCP accept queues number.
 	- Fix that the reload handler for sigchild uses signal_add, and
 	  also that the signal handler is restored when done.
+	- Fix that when server verify is done it resets the sigchild handler.
 
 4.9.1
 ================
