@@ -2536,7 +2536,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	event_set(&signal_event, SIGCHLD, EV_SIGNAL|EV_PERSIST,
 	    server_reload_handle_sigchld, NULL);
 	if(event_base_set(cb_data.base, &signal_event) != 0
-	|| event_add(&signal_event, NULL) != 0) {
+	|| signal_add(&signal_event, NULL) != 0) {
 		log_msg(LOG_ERR, "NSD quit sync: could not add signal event");
 	}
 
@@ -2552,7 +2552,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	/* remove command and signal event handlers */
 	event_del(&cmd_event);
-	event_del(&signal_event);
+	signal_del(&signal_event);
+	/* restore the ordinary signal handler for SIGCHLD */
+	sigaction(SIGCHLD, &old_sigchld, NULL);
 	event_base_free(cb_data.base);
 	cmd = cb_data.to_read.cmd;
 
@@ -3307,7 +3309,7 @@ void server_verify(struct nsd *nsd, int cmdsocket)
 
 	/* remove command and exit event handlers */
 	event_del(&exit_event);
-	event_del(&signal_event);
+	signal_del(&signal_event);
 	event_del(&cmd_event);
 
 	assert(nsd->next_zone_to_verify == NULL || nsd->mode == NSD_QUIT);

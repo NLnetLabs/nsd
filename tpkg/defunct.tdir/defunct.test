@@ -9,7 +9,7 @@ PRE="../.."
 TPKG_NSD_CONTROL="$PRE/nsd-control -c nsd.conf"
 
 NSD_PID=`cat nsd.pid`
-PSTREE="ps --forest -g $NSD_PID -o pid=,tty=,stat=,time=,cmd="
+PSTREE="ps --forest -g $NSD_PID -o pid=,tty=,stat=,time=,comm:25=,cmd="
 
 ( sleep 10 | telnet 127.0.0.1 ${NSD_PORT} >/dev/null 2>&1) &
 

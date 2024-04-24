@@ -8,3 +8,4 @@
 
 # do your teardown here
 kill_from_pidfile nsd.pid
+cat nsd.log
