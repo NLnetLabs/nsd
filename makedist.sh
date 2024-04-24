@@ -149,7 +149,11 @@ git clone --depth=1 --no-tags -b $GITBRANCH $GITREPO nsd || error_cleanup "git c
 cd nsd || error_cleanup "NSD not exported correctly from git"
 git submodule update --init || error_cleanup "Could not fetch submodule"
 rm -rf .git .cirrus.yml .github .gitignore || error_cleanup "Failed to remove .git tracking and ci information"
-rm -rf simdzone/.git simdzone/.github simdzone/.gitignore || error_cleanup "Failed to remove simdzone .git tracking and ci information"
+rm -rf simdzone/.git simdzone/.github simdzone/.gitignore \
+       simdzone/cmake simdzone/CMakeLists.txt simdzone/simdzoneConfig.cmake.in \
+       simdzone/conanfile.txt simdzone/tests simdzone/.readthedocs.yaml \
+       simdzone/doc simdzone/scripts || \
+       error_cleanup "Failed to remove simdzone .git tracking and ci information"
 
 info "Building configure script (autoreconf)."
 autoreconf -i || error_cleanup "Autoconf failed."
