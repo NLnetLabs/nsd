@@ -147,6 +147,7 @@ info "git clone --depth=1 --no-tags -b $GITBRANCH $GITREPO nsd"
 git clone --depth=1 --no-tags -b $GITBRANCH $GITREPO nsd || error_cleanup "git clone command failed"
 
 cd nsd || error_cleanup "NSD not exported correctly from git"
+git submodule update --init || error_cleanup "Could not fetch submodule"
 rm -rf .git .cirrus.yml .github .gitignore || error_cleanup "Failed to remove .git tracking and ci information"
 
 info "Building configure script (autoreconf)."
@@ -158,9 +159,6 @@ autoheader || error_cleanup "Autoheader failed."
 rm -r autom4te* || error_cleanup "Failed to remove autoconf cache directory."
 
 info "Building lexer and parser."
-echo '#include "config.h"' > zlexer.c || error_cleanup "Failed to create lexer."
-flex -i -t zlexer.lex >> zlexer.c || error_cleanup "Failed to create lexer."
-bison -y -d -o zparser.c zparser.y || error_cleanup "Failed to create parser."
 echo "#include \"config.h\"" > configlexer.c || error_cleanup "Failed to create configlexer"
 flex -P c_ -i -t configlexer.lex >> configlexer.c || error_cleanup "Failed to create configlexer"
 bison -y -d -p c_ -o configparser.c configparser.y || error_cleanup "Failed to create configparser"
@@ -186,8 +184,6 @@ if [ "$SNAPSHOT" = "yes" ]; then
     version="$version-`date +%Y%m%d`"
     info "Snapshot version number: $version"
 fi
-
-
 
 replace_all doc/README
 replace_all nsd.8.in
