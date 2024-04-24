@@ -19,6 +19,8 @@ BUG FIXES:
 	  also that the signal handler is restored when done.
 	- Fix that when server verify is done it resets the sigchild handler.
 	- Fix makedist.sh for simdzone inclusion.
+	- Fix makedist.sh to remove simdzone git tracking information and
+	  scripting temporaries from tarball.
 
 4.9.1
 ================
