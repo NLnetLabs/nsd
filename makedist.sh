@@ -159,7 +159,7 @@ autoheader || error_cleanup "Autoheader failed."
 
 rm -r autom4te* || error_cleanup "Failed to remove autoconf cache directory."
 rm -r simdzone/autom4te* || error_cleanup "Failed to remove simdzone autoconf cache directory."
-rm -f simdzone/src/config.h.in~ || echo "ignore absence of simdzone/config.h.in~ file"
+rm -f simdzone/src/config.h.in~ || echo "ignore absence of simdzone/src/config.h.in~ file"
 
 info "Building lexer and parser."
 echo "#include \"config.h\"" > configlexer.c || error_cleanup "Failed to create configlexer"
