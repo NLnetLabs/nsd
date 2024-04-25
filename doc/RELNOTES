@@ -30,6 +30,7 @@ BUG FIXES:
 	  scripting temporaries from tarball.
 	- Fix error output of makedist.sh.
 	- Use simdzone version with name parser fix.
+	- Bump simdzone version to fix OpenBSD build issues.
 
 4.9.1
 ================
