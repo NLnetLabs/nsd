@@ -3,6 +3,14 @@ NSD RELEASE NOTES
 4.10.0 (Upcoming)
 ================
 FEATURES:
+	- Merge #278: Replace Flex+Bison based zone parser with simdzone.
+	  Performance of loading zones and IXFRs is greatly improved by using
+	  the simdzone project by NLnet Labs. The optimized presentation format
+	  parser leverages SIMD instructions in modern CPUs to improve throughput.
+	  Right now SSE4.2 and AVX2 instruction sets are supported, other
+	  instruction sets will use the fallback implementation, which still is
+	  a decent improvement over the Flex+Bison based parser.
+
 BUG FIXES:
 	- Fix that when the server truncates the pidfile, it does not follow
 	  symbolic links.
@@ -13,7 +21,6 @@ BUG FIXES:
 	- Fix IXFR requests upstream for zones with a long name. Thanks for
 	  the report to Yuuki Wakisaka from Internet Initiative Japan Inc.
 	- Unit test for dname subdomain test used by xfrd-tcp.c.
-	- Merge #278: Replace Flex+Bison based zone parser with simdzone.
 	- Fix #329: TCP accept queues number.
 	- Fix that the reload handler for sigchild uses signal_add, and
 	  also that the signal handler is restored when done.
