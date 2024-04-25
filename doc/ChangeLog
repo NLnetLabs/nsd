@@ -1,5 +1,6 @@
 25 April 2024: Jeroen
 	- Bump simdzone to fix OpenBSD build issues.
+	- Tag for 4.10.0rc1.
 
 24 April 2024: Wouter
 	- Fix that the reload handler for sigchild uses signal_add, and

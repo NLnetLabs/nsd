@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.10.0 (Upcoming)
+4.10.0
 ================
 FEATURES:
 	- Merge #278: Replace Flex+Bison based zone parser with simdzone.
