@@ -451,10 +451,11 @@ answer_notify(struct nsd* nsd, struct query *query)
 			char address[128], proxy[128];
 			addr2str(&query->client_addr, address, sizeof(address));
 			addr2str(&query->remote_addr, proxy, sizeof(proxy));
-			VERBOSITY(2, (LOG_INFO, "notify for %s from %s via proxy %s refused because of proxy, %s %s",
+			VERBOSITY(2, (LOG_INFO, "notify for %s from %s via proxy %s refused because of proxy, %s%s%s",
 				dname_to_string(query->qname, NULL),
 				address, proxy,
-				(why?why->ip_address_spec:"."),
+				(why?why->ip_address_spec:""),
+				(why&&why->ip_address_spec[0]?" ":""),
 				(why ? ( why->nokey    ? "NOKEY"
 				       : why->blocked  ? "BLOCKED"
 				       : why->key_name )
@@ -531,10 +532,11 @@ answer_notify(struct nsd* nsd, struct query *query)
 	if (verbosity >= 2) {
 		char address[128];
 		addr2str(&query->client_addr, address, sizeof(address));
-		VERBOSITY(2, (LOG_INFO, "notify for %s from %s refused, %s %s",
+		VERBOSITY(2, (LOG_INFO, "notify for %s from %s refused, %s%s%s",
 			dname_to_string(query->qname, NULL),
 			address,
-			(why?why->ip_address_spec:"."),
+			(why?why->ip_address_spec:""),
+			(why&&why->ip_address_spec[0]?" ":""),
 			(why ? ( why->nokey    ? "NOKEY"
 			       : why->blocked  ? "BLOCKED"
 			       : why->key_name )
@@ -1339,10 +1341,11 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 				char address[128], proxy[128];
 				addr2str(&q->client_addr, address, sizeof(address));
 				addr2str(&q->remote_addr, proxy, sizeof(proxy));
-				VERBOSITY(2, (LOG_INFO, "query %s from %s via proxy %s refused because of proxy, %s %s",
+				VERBOSITY(2, (LOG_INFO, "query %s from %s via proxy %s refused because of proxy, %s%s%s",
 					dname_to_string(q->qname, NULL),
 					address, proxy,
-					(why?why->ip_address_spec:"."),
+					(why?why->ip_address_spec:""),
+					(why&&why->ip_address_spec[0]?" ":""),
 					(why ? ( why->nokey    ? "NOKEY"
 					      : why->blocked  ? "BLOCKED"
 					      : why->key_name )
@@ -1381,14 +1384,15 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 			if (verbosity >= 2) {
 				char address[128];
 				addr2str(&q->client_addr, address, sizeof(address));
-				VERBOSITY(2, (LOG_INFO, "query %s from %s refused, %s %s",
+				VERBOSITY(2, (LOG_INFO, "query %s from %s refused, %s%s%s",
 					dname_to_string(q->qname, NULL),
 					address,
 					why ? ( why->nokey    ? "NOKEY"
 					      : why->blocked  ? "BLOCKED"
 					      : why->key_name )
 					    : "no acl matches",
-					why?why->ip_address_spec:"."));
+					(why&&why->ip_address_spec[0]?" ":""),
+					why?why->ip_address_spec:""));
 			}
 			/* no zone for this */
 			if(q->cname_count == 0) {
