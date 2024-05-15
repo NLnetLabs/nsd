@@ -1,0 +1,31 @@
+server:
+	zonesdir: "."
+	username: ""
+	database: ""
+	verbosity: 2
+	ip-address: 127.0.0.1
+	port: @SECONDARY_PORT@
+	pidfile: "secondary.pid"
+	logfile: "secondary.log"
+	xfrdfile: "secondary-xfrd.state"
+	zonelistfile: "secondary-zone.list"
+	cookie-secret-file: "secondary_cookiesecrets.txt"
+	xfrd-reload-timeout: 3600
+
+remote-control:
+	control-enable: yes
+	control-port: @SECONDARY_CTRL_PORT@
+	server-key-file: "tasks_after_bad_xfr.server.key"
+	server-cert-file: "tasks_after_bad_xfr.server.pem"
+	control-key-file: "tasks_after_bad_xfr.control.key"
+	control-cert-file: "tasks_after_bad_xfr.control.pem"
+
+pattern:
+	name: "secondary"
+	request-xfr: 127.0.0.1@@PRIMARY_PORT@ NOKEY
+	allow-notify: 0.0.0.0/0 NOKEY
+	zonefile: "%s"
+
+zone:
+	name: "zone2fail.invalid"
+	include-pattern: "secondary"
