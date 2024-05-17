@@ -26,6 +26,7 @@
 #include "dns.h"
 #include "edns.h"
 #include "bitset.h"
+#include "udb.h"
 struct netio_handler;
 struct nsd_options;
 struct udb_base;
@@ -75,6 +76,13 @@ struct dt_collector;
  * the command to xfrd so it will not reload from xfrd yet.
  */
 #define NSD_RELOAD_FAILED 14
+/*
+ * QUIT_NOSYNC is sent to signify a synchronisation of ipc, but to refrain
+ * from sending NSD_RELOAD to xfrd as "main" will go through another reload
+ * to process the still outstanding apply_xfr tasks.
+ */
+#define NSD_QUIT_NOSYNC 15
+
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U
@@ -253,6 +261,11 @@ struct	nsd
 	region_type* server_region;
 	struct netio_handler* xfrd_listener;
 	struct daemon_remote* rc;
+
+	/* Transfers to process in a second reload  */
+	udb_ptr xfrs2process;
+	/* Quit "old-main" without signalling to xfrd */
+	int nsd_quit_nosync;
 
 	/* Configuration */
 	const char		*pidfile;

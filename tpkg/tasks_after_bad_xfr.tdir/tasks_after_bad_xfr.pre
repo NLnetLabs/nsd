@@ -5,7 +5,7 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 . ../common.sh
 
-if [ -z "$PRIMARY_CTRL_PORT" ]; then
+if [ -z "$PRIMARY_PORT" ]; then
 	get_random_port 3
 	PRIMARY_PORT=$RND_PORT
 	SECONDARY_PORT=`expr $RND_PORT + 1`
@@ -30,6 +30,10 @@ sed \
     -e "s#@SECONDARY_CTRL_PORT@#${SECONDARY_CTRL_PORT}#g" \
     tasks_after_bad_xfr.secondary.conf.in > secondary.conf
 rm -f secondary.log secondary-xfrd.state secondary-zone.list
-$TPKG_NSD -c secondary.conf
+if false
+then
+	$TPKG_NSD -V 2 -L 2 -F 0040 -c secondary.conf
+else
+	$TPKG_NSD -c secondary.conf
+fi
 wait_nsd_up secondary.log
-

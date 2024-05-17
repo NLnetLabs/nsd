@@ -2263,47 +2263,124 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 	return total;
 }
 
+static int
+has_parent_quit(struct nsd* nsd, udb_ptr* t, int cmdsocket)
+{
+	sig_atomic_t cmd = NSD_QUIT_SYNC;
+	udb_base* u = nsd->task[nsd->mytask];
+
+	/* if the parent has quit, we must quit too, poll the fd for cmds */
+	if(block_read(nsd, cmdsocket, &cmd, sizeof(cmd), 0) == sizeof(cmd)) {
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc command from main %d", (int)cmd));
+		if(cmd == NSD_QUIT) {
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: quit to follow nsd"));
+			/* unlink files of remainder of tasks */
+			while(!udb_ptr_is_null(t)) {
+				if(TASKLIST(t)->task_type == task_apply_xfr) {
+					xfrd_unlink_xfrfile(nsd, TASKLIST(t)->yesno);
+				}
+				udb_ptr_set_rptr(t, u, &TASKLIST(t)->next);
+			}
+			return 1;
+		}
+	}
+	return 0;
+}
+
 static void
 reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
 {
-	sig_atomic_t cmd = NSD_QUIT_SYNC;
-	udb_ptr t, next;
+	udb_ptr t, next, xfr_head, xfr_tail;
 	udb_base* u = nsd->task[nsd->mytask];
+	int non_xfr_tasks_done = 0;
 	udb_ptr_init(&next, u);
+	udb_ptr_init(&xfr_head, u);
+	udb_ptr_init(&xfr_tail, u);
 	udb_ptr_new(&t, u, udb_base_get_userdata(u));
 	udb_base_set_userdata(u, 0);
-	while(!udb_ptr_is_null(&t)) {
+	/* Execute all tasks except of type "task_apply_xfr". Count the tasks
+	 * executed. If there are tasks beside transfers, and there are also
+	 * transfer tasks, then the transfer tasks need to be processes in
+	 * a second reload (because they can fail).
+	 */
+	if (!udb_ptr_is_null(&nsd->xfrs2process)) {
+		udb_ptr_set_ptr(&xfr_head, u, &nsd->xfrs2process);
+		udb_ptr_zero(&nsd->xfrs2process, u);
+
+	} else while(!udb_ptr_is_null(&t)) {
 		/* store next in list so this one can be deleted or reused */
 		udb_ptr_set_rptr(&next, u, &TASKLIST(&t)->next);
 		udb_rptr_zero(&TASKLIST(&t)->next, u);
 
-		/* process task t */
-		/* append results for task t and update last_task */
-		task_process_in_reload(nsd, u, last_task, &t);
+		if(TASKLIST(&t)->task_type != task_apply_xfr) {
+			/* process task t */
+			/* append results for task t and update last_task */
+			task_process_in_reload(nsd, u, last_task, &t);
+			non_xfr_tasks_done += 1;
+
+		} else if(udb_ptr_is_null(&xfr_head)) {
+			udb_ptr_set_ptr(&xfr_head, u, &t);
+			udb_ptr_set_ptr(&xfr_tail, u, &t);
+		} else {
+			udb_rptr_set_ptr(&TASKLIST(&xfr_tail)->next, u, &t);
+			udb_ptr_set_ptr(&xfr_tail, u, &t);
+		}
 
 		/* go to next */
 		udb_ptr_set_ptr(&t, u, &next);
 
-		/* if the parent has quit, we must quit too, poll the fd for cmds */
-		if(block_read(nsd, cmdsocket, &cmd, sizeof(cmd), 0) == sizeof(cmd)) {
-			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc command from main %d", (int)cmd));
-			if(cmd == NSD_QUIT) {
-				DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: quit to follow nsd"));
-				/* unlink files of remainder of tasks */
-				while(!udb_ptr_is_null(&t)) {
-					if(TASKLIST(&t)->task_type == task_apply_xfr) {
-						xfrd_unlink_xfrfile(nsd, TASKLIST(&t)->yesno);
-					}
-					udb_ptr_set_rptr(&t, u, &TASKLIST(&t)->next);
+		if(has_parent_quit(nsd, &t, cmdsocket)) {
+			udb_ptr_unlink(&t, u);
+			udb_ptr_unlink(&next, u);
+			udb_ptr_unlink(&xfr_tail, u);
+			while(!udb_ptr_is_null(&xfr_head)) {
+				if(TASKLIST(&xfr_head)->task_type == task_apply_xfr) {
+					xfrd_unlink_xfrfile(nsd, TASKLIST(&xfr_head)->yesno);
 				}
-				udb_ptr_unlink(&t, u);
-				udb_ptr_unlink(&next, u);
-				exit(0);
+				udb_ptr_set_rptr(&xfr_head, u, &TASKLIST(&xfr_head)->next);
 			}
+			udb_ptr_unlink(&xfr_head, u);
+			exit(0);
 		}
-
 	}
 	udb_ptr_unlink(&t, u);
+	udb_ptr_unlink(&xfr_tail, u);
+	if(non_xfr_tasks_done && !udb_ptr_is_null(&xfr_head)) {
+		/* Some non transfer tasks were done *and* there are some xfr
+		 * tasks still to be done. We need to do the transfer tasks
+		 * in a second reload (because they may fail), in order to
+		 * make sure that the non transfer tasks are effectuated in
+		 * the "main" process. We indicate a second reload, processing
+		 * xfrs is needed, by copying the tasks to be done
+		 * to nsd->xfrs2process
+		 */
+		udb_ptr_init(&nsd->xfrs2process, u);
+		udb_ptr_set_ptr(&nsd->xfrs2process, u, &xfr_head);
+		udb_ptr_unlink(&xfr_head, u);
+		udb_ptr_unlink(&next, u);
+		return;
+	}
+	while(!udb_ptr_is_null(&xfr_head)) {
+		/* store next in list so this one can be deleted or reused */
+		udb_ptr_set_rptr(&next, u, &TASKLIST(&xfr_head)->next);
+		udb_rptr_zero(&TASKLIST(&xfr_head)->next, u);
+		
+		assert(TASKLIST(&xfr_head)->task_type == task_apply_xfr);
+
+		/* process task t */
+		/* append results for task t and update last_task */
+		task_process_in_reload(nsd, u, last_task, &xfr_head);
+
+		/* go to next */
+		udb_ptr_set_ptr(&xfr_head, u, &next);
+
+		if(has_parent_quit(nsd, &xfr_head, cmdsocket)) {
+			udb_ptr_unlink(&xfr_head, u);
+			udb_ptr_unlink(&next, u);
+			exit(0);
+		}
+	}
+	udb_ptr_unlink(&xfr_head, u);
 	udb_ptr_unlink(&next, u);
 }
 
@@ -2312,6 +2389,7 @@ static void server_verify(struct nsd *nsd, int cmdsocket,
 
 struct quit_sync_event_data {
 	struct event_base* base;
+	sig_atomic_t cmd2resend;
 	size_t read;
 	union {
 		uint8_t buf[sizeof(sig_atomic_t)];
@@ -2339,7 +2417,7 @@ static void server_reload_handle_quit_sync_ack(int cmdsocket, short event,
 	ssize_t r;
 
 	if(event & EV_TIMEOUT) {
-		sig_atomic_t cmd = NSD_QUIT_SYNC;
+		sig_atomic_t cmd = cb_data->cmd2resend;
 
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
 		if (!write_socket(cmdsocket, &cmd, sizeof(cmd))) {
@@ -2519,8 +2597,13 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	 * if a reload succeeded before, this process is the parent of the
 	 * old-serve processes, so we need to reap the children for it.
 	 */
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
-	cmd = NSD_QUIT_SYNC;
+	if(!udb_ptr_is_null(&nsd->xfrs2process)) {
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit nosync to main"));
+		cmd = NSD_QUIT_NOSYNC;
+	} else {
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit sync to main"));
+		cmd = NSD_QUIT_SYNC;
+	}
 	if (!write_socket(cmdsocket, &cmd, sizeof(cmd)))
 	{
 		log_msg(LOG_ERR, "problems sending command from reload to oldnsd: %s",
@@ -2531,6 +2614,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	reload_sync_timeout.tv_usec = 0;
 
 	cb_data.base = nsd_child_event_base();
+	cb_data.cmd2resend = cmd;
 	cb_data.to_read.cmd = cmd;
 	cb_data.read = 0;
 
@@ -2570,18 +2654,20 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #ifdef USE_ZONE_STATS
 	server_zonestat_realloc(nsd); /* realloc for next children */
 #endif
-
-	/* send soainfo to the xfrd process, signal it that reload is done,
-	 * it picks up the taskudb */
-	cmd = NSD_RELOAD_DONE;
-	if(!write_socket(nsd->xfrd_listener->fd, &cmd,  sizeof(cmd))) {
-		log_msg(LOG_ERR, "problems sending reload_done xfrd: %s",
-			strerror(errno));
-	}
-	mypid = getpid();
-	if(!write_socket(nsd->xfrd_listener->fd, &mypid,  sizeof(mypid))) {
-		log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
-			strerror(errno));
+	/* No second reload needed */
+	if(udb_ptr_is_null(&nsd->xfrs2process)) {
+		/* send soainfo to the xfrd process, signal it that reload is done,
+		 * it picks up the taskudb */
+		cmd = NSD_RELOAD_DONE;
+		if(!write_socket(nsd->xfrd_listener->fd, &cmd,  sizeof(cmd))) {
+			log_msg(LOG_ERR, "problems sending reload_done xfrd: %s",
+				strerror(errno));
+		}
+		mypid = getpid();
+		if(!write_socket(nsd->xfrd_listener->fd, &mypid,  sizeof(mypid))) {
+			log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
+				strerror(errno));
+		}
 	}
 
 	/* try to reopen file */
@@ -2894,6 +2980,14 @@ server_main(struct nsd *nsd)
 				reload_listener.fd = -1;
 				reload_listener.event_types = NETIO_EVENT_NONE;
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload resetup; run"));
+
+				if(!udb_ptr_is_null(&nsd->xfrs2process)) {
+					DEBUG(DEBUG_IPC,2, (LOG_INFO,
+						"Transfers after other tasks detected, "
+						"initiating second reload for processing the transfers"));
+					nsd->mytask = 1 - nsd->mytask;
+					nsd->mode = NSD_RELOAD;
+				}
 				break;
 			case 0:
 				/* CHILD */
@@ -2934,6 +3028,7 @@ server_main(struct nsd *nsd)
 			}
 			nsd->mode = NSD_RUN;
 			break;
+		case NSD_QUIT_NOSYNC:
 		case NSD_QUIT:
 			/* silent shutdown during reload */
 			if(reload_listener.fd != -1) {
