@@ -26,7 +26,6 @@
 #include "dns.h"
 #include "edns.h"
 #include "bitset.h"
-#include "udb.h"
 struct netio_handler;
 struct nsd_options;
 struct udb_base;
@@ -262,8 +261,6 @@ struct	nsd
 	struct netio_handler* xfrd_listener;
 	struct daemon_remote* rc;
 
-	/* Transfers to process in a second reload  */
-	udb_ptr xfrs2process;
 	/* Quit "old-main" without signalling to xfrd */
 	int nsd_quit_nosync;
 

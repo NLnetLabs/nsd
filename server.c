@@ -2287,27 +2287,50 @@ has_parent_quit(struct nsd* nsd, udb_ptr* t, int cmdsocket)
 	return 0;
 }
 
-static void
-reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
+static size_t
+reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket,
+		udb_ptr* xfrs2process)
 {
 	udb_ptr t, next, xfr_head, xfr_tail;
 	udb_base* u = nsd->task[nsd->mytask];
 	int non_xfr_tasks_done = 0;
+	size_t xfrs_processed = 0;
+
 	udb_ptr_init(&next, u);
 	udb_ptr_init(&xfr_head, u);
 	udb_ptr_init(&xfr_tail, u);
 	udb_ptr_new(&t, u, udb_base_get_userdata(u));
-	udb_base_set_userdata(u, 0);
-	/* Execute all tasks except of type "task_apply_xfr". Count the tasks
-	 * executed. If there are tasks beside transfers, and there are also
-	 * transfer tasks, then the transfer tasks need to be processes in
-	 * a second reload (because they can fail).
-	 */
-	if (!udb_ptr_is_null(&nsd->xfrs2process)) {
-		udb_ptr_set_ptr(&xfr_head, u, &nsd->xfrs2process);
-		udb_ptr_zero(&nsd->xfrs2process, u);
+	if(udb_ptr_is_null(xfrs2process))
+		udb_base_set_userdata(u, 0);
+	if(!udb_ptr_is_null(xfrs2process)) {
+		/* We are in a second reload, only the transfer tasks that were
+		 * *not* processed in the first server_reload(), need to be 
+		 * processed now. xfrs2process is pointing to them.
+		 */
+		udb_ptr_set_ptr(&xfr_head, u, xfrs2process);
+		udb_ptr_zero(xfrs2process, u); /* unlinks xfrs2process from u */
 
-	} else while(!udb_ptr_is_null(&t)) {
+		/* In the first reload round, last_task was used to put results
+		 * from the processed tasks back on the tasklist for the xfrd
+		 * to process. However, last_task has been reinitialized in the
+		 * 2nd reload, so we need to re-set it back to the last appended
+		 * result on the tasklist.
+		 */
+		if(!udb_ptr_is_null(&t)) {
+			while(TASKLIST(&t)->next.data != 0) {
+				udb_ptr_set_rptr(&t, u, &TASKLIST(&t)->next);
+			}
+			udb_ptr_set_ptr(last_task, u, &t);
+		}
+
+	} else /* Execute all tasks except of type "task_apply_xfr". Count the
+		* non xfr tasks executed. If there are tasks beside xfrs, and
+		* there are also xfr tasks, then the transfer tasks need to be
+		* processes in a second reload (because they can fail in which
+		* case the reload process exits undoing the effects of the non
+		* xfr tasks).
+		*/
+		while(!udb_ptr_is_null(&t)) {
 		/* store next in list so this one can be deleted or reused */
 		udb_ptr_set_rptr(&next, u, &TASKLIST(&t)->next);
 		udb_rptr_zero(&TASKLIST(&t)->next, u);
@@ -2347,18 +2370,20 @@ reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
 	udb_ptr_unlink(&xfr_tail, u);
 	if(non_xfr_tasks_done && !udb_ptr_is_null(&xfr_head)) {
 		/* Some non transfer tasks were done *and* there are some xfr
-		 * tasks still to be done. We need to do the transfer tasks
-		 * in a second reload (because they may fail), in order to
-		 * make sure that the non transfer tasks are effectuated in
-		 * the "main" process. We indicate a second reload, processing
-		 * xfrs is needed, by copying the tasks to be done
-		 * to nsd->xfrs2process
+		 * tasks still to be done. We need to do the transfer tasks in
+		 * a second reload (because they may fail in which case the
+		 * reload process exits undoing the effects of the non xfr
+		 * tasks), in order to make sure that the non transfer tasks
+		 * are effectuated in the "main" process. We indicate a second
+		 * reload is needed, by pointing xfrs2process to those xfr
+		 * tasks that need to be processed during that 2nd reload.
 		 */
-		udb_ptr_init(&nsd->xfrs2process, u);
-		udb_ptr_set_ptr(&nsd->xfrs2process, u, &xfr_head);
+		udb_ptr_init(xfrs2process, u);
+		udb_ptr_set_ptr(xfrs2process, u, &xfr_head);
 		udb_ptr_unlink(&xfr_head, u);
 		udb_ptr_unlink(&next, u);
-		return;
+		assert(xfrs_processed == 0);
+		return 0;
 	}
 	while(!udb_ptr_is_null(&xfr_head)) {
 		/* store next in list so this one can be deleted or reused */
@@ -2367,9 +2392,10 @@ reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
 		
 		assert(TASKLIST(&xfr_head)->task_type == task_apply_xfr);
 
-		/* process task t */
+		/* process task at xfr_head */
 		/* append results for task t and update last_task */
 		task_process_in_reload(nsd, u, last_task, &xfr_head);
+		xfrs_processed += 1;
 
 		/* go to next */
 		udb_ptr_set_ptr(&xfr_head, u, &next);
@@ -2382,6 +2408,7 @@ reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
 	}
 	udb_ptr_unlink(&xfr_head, u);
 	udb_ptr_unlink(&next, u);
+	return xfrs_processed;
 }
 
 static void server_verify(struct nsd *nsd, int cmdsocket,
@@ -2466,7 +2493,7 @@ static void server_reload_handle_quit_sync_ack(int cmdsocket, short event,
  */
 static void
 server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
-	int cmdsocket)
+	int cmdsocket, udb_ptr* xfrs2process)
 {
 	pid_t mypid;
 	sig_atomic_t cmd;
@@ -2478,6 +2505,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	struct quit_sync_event_data cb_data;
 	struct event signal_event, cmd_event;
 	struct timeval reload_sync_timeout;
+	size_t xfrs_processed = 0;
 
 	/* ignore SIGCHLD from the previous server_main that used this pid */
 	memset(&ign_sigchld, 0, sizeof(ign_sigchld));
@@ -2493,7 +2521,8 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* see what tasks we got from xfrd */
 	task_remap(nsd->task[nsd->mytask]);
 	udb_ptr_init(&last_task, nsd->task[nsd->mytask]);
-	reload_process_tasks(nsd, &last_task, cmdsocket);
+	xfrs_processed = reload_process_tasks(nsd, &last_task, cmdsocket,
+			xfrs2process);
 
 #ifndef NDEBUG
 	if(nsd_debug_level >= 1)
@@ -2530,10 +2559,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #endif
 	}
 
-	for(node = radix_first(nsd->db->zonetree);
-	    node != NULL;
-	    node = radix_next(node))
-	{
+	if(xfrs_processed) for( node = radix_first(nsd->db->zonetree)
+	                      ; node != NULL; node = radix_next(node)) {
+
 		zone = (zone_type *)node->elem;
 		if(zone->is_updated) {
 			if(zone->is_bad) {
@@ -2597,7 +2625,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	 * if a reload succeeded before, this process is the parent of the
 	 * old-serve processes, so we need to reap the children for it.
 	 */
-	if(!udb_ptr_is_null(&nsd->xfrs2process)) {
+	if(!udb_ptr_is_null(xfrs2process)) {
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit nosync to main"));
 		cmd = NSD_QUIT_NOSYNC;
 	} else {
@@ -2654,8 +2682,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #ifdef USE_ZONE_STATS
 	server_zonestat_realloc(nsd); /* realloc for next children */
 #endif
-	/* No second reload needed */
-	if(udb_ptr_is_null(&nsd->xfrs2process)) {
+	/* If a second reload is needed (processing the postponed xfr tasks),
+	 * then do not signal the parent that the reload is done. The parent
+	 * will be signalled after the xfr tasks are processed.
+	 */
+	if(udb_ptr_is_null(xfrs2process)) {
 		/* send soainfo to the xfrd process, signal it that reload is done,
 		 * it picks up the taskudb */
 		cmd = NSD_RELOAD_DONE;
@@ -2728,6 +2759,10 @@ server_main(struct nsd *nsd)
 	netio_type *netio = netio_create(server_region);
 	netio_handler_type reload_listener;
 	int reload_sockets[2] = {-1, -1};
+	/* pointer to the xfr tasks that need to be processed during a 2nd
+	 * reload without signalling that the reload finished to xfrd.
+	 */
+	udb_ptr xfrs2process;
 	struct timespec timeout_spec;
 	int status;
 	pid_t child_pid;
@@ -2745,6 +2780,7 @@ server_main(struct nsd *nsd)
 	nsd->st->db_disk = 0;
 	nsd->st->db_mem = region_get_mem(nsd->db->region);
 #endif
+	memset(&xfrs2process, 0, sizeof(xfrs2process));
 
 	/* Start the child processes that handle incoming queries */
 	if (server_start_children(nsd, server_region, netio,
@@ -2962,7 +2998,7 @@ server_main(struct nsd *nsd)
 				log_set_process_role("load");
 #endif
 				server_reload(nsd, server_region, netio,
-					reload_sockets[1]);
+					reload_sockets[1], &xfrs2process);
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload exited to become new main"));
 #ifdef HAVE_SETPROCTITLE
 				setproctitle("main");
@@ -2981,10 +3017,15 @@ server_main(struct nsd *nsd)
 				reload_listener.event_types = NETIO_EVENT_NONE;
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload resetup; run"));
 
-				if(!udb_ptr_is_null(&nsd->xfrs2process)) {
+				if(!udb_ptr_is_null(&xfrs2process)) {
 					DEBUG(DEBUG_IPC,2, (LOG_INFO,
-						"Transfers after other tasks detected, "
-						"initiating second reload for processing the transfers"));
+						"Transfers after other tasks; "
+						"initiating 2nd reload for "
+						"processing those transfers"));
+					/* Swap tasklist, so we remain with the
+					 * same tasklist, as the list is swapped
+					 * at the start of a reload.
+					 */
 					nsd->mytask = 1 - nsd->mytask;
 					nsd->mode = NSD_RELOAD;
 				}
@@ -3000,6 +3041,17 @@ server_main(struct nsd *nsd)
 #ifdef USE_LOG_PROCESS_ROLE
 				log_set_process_role("old-main");
 #endif
+				/* This process, "old-main", may receive
+				 * NSD_QUIT_NOSYNC from "load" in which this
+				 * boolean is set to convey the signal over
+				 * some callbacks.
+				 */
+				nsd->nsd_quit_nosync = 0;
+				/* Reset xfrs2process for 2nd reloads.
+				 * "main" will unlink it from the udb.
+				 */
+				memset(&xfrs2process, 0, sizeof(xfrs2process));
+
 				reload_listener.fd = reload_sockets[0];
 				reload_listener.timeout = NULL;
 				reload_listener.user_data = nsd;
