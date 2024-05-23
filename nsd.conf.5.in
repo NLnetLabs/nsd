@@ -321,12 +321,20 @@ Preferred EDNS buffer size for IPv4.  Default 1232.
 Preferred EDNS buffer size for IPv6.  Default 1232.
 .TP
 .B pidfile:\fR <filename>
-Use the pid file instead of the platform specific default, usually
-.IR @pidfile@.
+Use the pid file instead of the platform specific default,
+usually "\fI@pidfile@\fR".
 Same as command-line option
 .BR \-P .
 With "" there is no pidfile, for some startup management setups,
 where a pidfile is not useful to have.
+The default can be set at compile time, sometimes to "". Then the config
+option and commandline option can be used to specify that a pidfile is
+used, different from its compile time default value.
+The file is not chowned to the user from the \fBusername:\fR option, for
+permission safety reasons. It remains owned to the user by which the
+server was started. The file may not be removed after the server is
+finished and quit, since permissions for the username may not make
+this possible.
 .TP
 .B port:\fR <number>
 Answer queries on the specified port. Default is 53. Same as
