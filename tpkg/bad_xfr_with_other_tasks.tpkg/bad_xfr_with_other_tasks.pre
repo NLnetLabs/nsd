@@ -1,0 +1,39 @@
+# #-- bad_xfr_with_other_tasks.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+if [ -z "$PRIMARY_PORT" ]; then
+	get_random_port 3
+	PRIMARY_PORT=$RND_PORT
+	SECONDARY_PORT=`expr $RND_PORT + 1`
+	SECONDARY_CTRL_PORT=`expr $RND_PORT + 2`
+
+	# share the vars
+	echo "export PRIMARY_PORT=$PRIMARY_PORT" >> .tpkg.var.test
+	echo "export SECONDARY_PORT=$SECONDARY_PORT" >> .tpkg.var.test
+	echo "export SECONDARY_CTRL_PORT=$SECONDARY_CTRL_PORT" >> .tpkg.var.test
+fi
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+ldns-testns -v -p ${PRIMARY_PORT} bad_xfr_with_other_tasks.datafile > primary.log 2>&1 &
+echo $! > primary.pid
+wait_ldns_testns_up primary.log
+
+sed \
+    -e "s#@PRIMARY_PORT@#${PRIMARY_PORT}#g" \
+    -e "s#@SECONDARY_PORT@#${SECONDARY_PORT}#g" \
+    -e "s#@SECONDARY_CTRL_PORT@#${SECONDARY_CTRL_PORT}#g" \
+    bad_xfr_with_other_tasks.secondary.conf.in > secondary.conf
+rm -f secondary.log secondary-xfrd.state secondary-zone.list
+if false
+then
+	$TPKG_NSD -V 2 -L 2 -F 0040 -c secondary.conf
+else
+	$TPKG_NSD -c secondary.conf
+fi
+wait_nsd_up secondary.log
