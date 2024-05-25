@@ -75,6 +75,8 @@ edns_init_record(edns_record_type *edns)
 	edns->ede = -1; /* -1 means no Extended DNS Error */
 	edns->ede_text = NULL;
 	edns->ede_text_len = 0;
+	edns->expire_option_seen = 0;
+	edns->expire_option_value = 0;
 }
 
 /** handle a single edns option in the query */
@@ -97,6 +99,13 @@ edns_handle_option(uint16_t optcode, uint16_t optlen, buffer_type* packet,
 			/* ignore option */
 			buffer_skip(packet, optlen);
 		}
+		break;
+	case EXPIRE_CODE:
+		edns->expire_option_seen = 1;
+		/* we have to check optlen, and move the buffer along */
+		buffer_skip(packet, optlen);
+		/* in the reply we need space for optcode+optlen+time*/
+		edns->opt_reserved_space += OPT_HDR + sizeof(uint32_t);
 		break;
 	case COOKIE_CODE:
 		/* Cookies enabled? */

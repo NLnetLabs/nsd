@@ -1786,6 +1786,8 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 			/* fill with NULLs */
 			buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		} else {
+			zone_type* expire_zone = NULL;
+
 			/* rdata length */
 			buffer_write_u16(q->packet, q->edns.opt_reserved_space);
 			/* edns options */
@@ -1802,6 +1804,49 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 				cookie_create(q, nsd, now_p);
 				buffer_write(q->packet, q->edns.cookie, 24);
 			}
+			if(q->edns.expire_option_seen) {
+				if(q->qtype == TYPE_AXFR)
+					expire_zone = q->axfr_zone;
+				else
+					expire_zone = q->zone;
+			}
+			/* Append EXPIRE (RFC 7314) option if needed */
+			if(q->edns.expire_option_seen && expire_zone
+			&& expire_zone->soa_rrset && expire_zone->soa_rrset->rrs
+			&& expire_zone->soa_rrset->rrs->type == TYPE_SOA
+			&& expire_zone->soa_rrset->rrs->rdata_count == 7) {
+				uint32_t expire_value;
+
+				/* OPTION-CODE */
+				buffer_write_u16(q->packet, EXPIRE_CODE);
+				/* OPTION-LENGTH */
+				buffer_write_u16(q->packet, sizeof(uint32_t));
+				memcpy(&expire_value, rdata_atom_data(
+					expire_zone->soa_rrset->rrs->rdatas[5])
+				      , sizeof(uint32_t));
+				expire_value = ntohl(expire_value);
+				if(zone_is_slave(expire_zone->opts)) {
+					uint32_t now = *now_p ? *now_p
+						: (*now_p = (uint32_t)time(NULL));
+
+					if(expire_zone->mtime.tv_sec < now) {
+						uint32_t passed = now - expire_zone->mtime.tv_sec;
+						if(passed < expire_value)
+							expire_value -= passed;
+						else
+							expire_value = 0;
+					}
+				}
+				buffer_write_u32(q->packet, expire_value);
+			} else if(q->edns.expire_option_seen) {
+				/* OPTION-CODE */
+				buffer_write_u16(q->packet, EXPIRE_CODE);
+				/* OPTION-LENGTH */
+				buffer_write_u16(q->packet, sizeof(uint32_t));
+				/* OPTION-VALE */
+				buffer_write_u32(q->packet, 0);
+			}
+
 			/* Append Extended DNS Error (RFC8914) option if needed */
 			if (q->edns.ede >= 0) { /* < 0 means no EDE */
 				/* OPTION-CODE */
