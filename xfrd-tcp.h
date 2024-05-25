@@ -229,6 +229,8 @@ void xfrd_setup_packet(struct buffer* packet,
 /* write soa in network format to the packet buffer */
 void xfrd_write_soa_buffer(struct buffer* packet,
         const struct dname* apex, struct xfrd_soa* soa, int apex_compress);
+/* write . OPT RR with empty EXPIRE option */
+void xfrd_write_request_edns_expire_option(struct buffer* packet, uint16_t sz);
 /* use acl address to setup sockaddr struct, returns length of addr. */
 socklen_t xfrd_acl_sockaddr_to(struct acl_options* acl,
 #ifdef INET6

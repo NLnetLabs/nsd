@@ -240,6 +240,8 @@ struct xfrd_xfr {
 	uint32_t msg_old_serial, msg_new_serial; /* host byte order */
 	size_t msg_rr_count;
 	uint8_t msg_is_ixfr; /* 1:IXFR detected. 2:middle IXFR SOA seen. */
+	uint8_t msg_has_expire_option;
+	uint32_t msg_expire_option_value;
 	tsig_record_type tsig; /* tsig state for IXFR/AXFR */
 	uint64_t xfrfilenumber; /* identifier for file to store xfr into,
 	                           valid if msg_seq_nr nonzero */

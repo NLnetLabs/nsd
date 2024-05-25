@@ -18,6 +18,7 @@ struct query;
 #define OPT_RDATA 2                     /* holds the rdata length comes after OPT_LEN */
 #define OPT_HDR 4U                      /* NSID opt header length */
 #define NSID_CODE       3               /* nsid option code */
+#define EXPIRE_CODE     9               /* RFC 7314 */
 #define COOKIE_CODE    10               /* COOKIE option code */
 #define EDE_CODE       15               /* Extended DNS Errors option code */
 #define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
