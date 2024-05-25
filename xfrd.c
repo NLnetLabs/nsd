@@ -2120,58 +2120,6 @@ xfrd_xfr_process_tsig(xfrd_zone_type* zone, buffer_type* packet)
 	return 1;
 }
 
-static void
-xfrd_process_expire_option(buffer_type* packet, xfrd_zone_type* zone)
-{
-	size_t mempos = buffer_position(packet);
-	uint16_t rdlen;
-
-	if(!zone->latest_xfr)
-		return;
-
-	/* len(dname) + len(type) + len(class) + len(ttl) + len(rdlen) =
-	 *          1 +         2 +          2 +        4 +          2 = 11
-	 *
-	 * len(option_code) + len(option_len) + len(expire_option) =
-	 *                2 +               2 +                  4 = 8
-	 */
-	if(!buffer_available(packet, 19)
-        ||  buffer_read_u8(packet) != 0
-	||  buffer_read_u16(packet) != TYPE_OPT) {
-		buffer_set_position(packet, mempos);
-		return;
-	}
-	/* skip UDP payload, rcode, version, flags (or class and ttl) */
-	buffer_skip(packet, 6);
-	rdlen = buffer_read_u16(packet);
-	while(rdlen >= 8) {
-		uint16_t option_code, option_len;
-
-		if(!buffer_available(packet, 8))
-			break;
-		option_code = buffer_read_u16(packet);
-		option_len = buffer_read_u16(packet);
-		rdlen -= 4;
-		if(option_code == EXPIRE_CODE && option_len == 4) {
-			zone->latest_xfr->msg_has_expire_option = 1;
-			zone->latest_xfr->msg_expire_option_value = 
-				buffer_read_u32(packet);
-			log_msg(LOG_INFO, "expire option set to %d for zone %s"
-			       , (int)zone->latest_xfr->msg_expire_option_value
-			       , zone->apex_str);
-			break;
-		}
-		/* skip option */
-		if (option_len > rdlen
-		|| !buffer_available(packet, option_len))
-			break;
-		buffer_skip(packet, option_len);
-		rdlen -= option_len;
-	}
-	buffer_set_position(packet, mempos);
-}
-
-
 static time_t
 xfrd_time_adjusted_for_expire_option_value(xfrd_zone_type* zone)
 {
@@ -2343,8 +2291,10 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 					if(!packet_skip_rr(packet, 0))
 						break;
 				}
-				if(i == 0) {
-					xfrd_process_expire_option(packet, zone);
+				if(i == 0 && zone->latest_xfr) {
+					zone->latest_xfr->msg_has_expire_option
+						= process_expire_option(packet,
+							&zone->latest_xfr->msg_expire_option_value);
 				}
 			}
 			/* (even if notified) the lease on the current soa is renewed */
@@ -2423,8 +2373,10 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 			if(!packet_skip_rr(packet, 0))
 				break;
 		}
-		if(i == 0) {
-			xfrd_process_expire_option(packet, zone);
+		if(i == 0 && zone->latest_xfr) {
+			zone->latest_xfr->msg_has_expire_option
+				= process_expire_option(packet,
+					&zone->latest_xfr->msg_expire_option_value);
 		}
 	}
 	region_destroy(tempregion);

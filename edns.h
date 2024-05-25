@@ -106,4 +106,9 @@ void edns_init_nsid(edns_data_type *data, uint16_t nsid_len);
 void cookie_verify(struct query *q, struct nsd* nsd, uint32_t *now_p);
 void cookie_create(struct query *q, struct nsd* nsd, uint32_t *now_p);
 
+/* packet position must point to the additional section (and the OPT RR)
+ * Returns 1 when the OPT RR contains an EXPIRE option, 0 otherwise.
+ * When an EXPIRE option is seen, expire_option_value is filled with the value
+ */
+int process_expire_option(buffer_type* packet, uint32_t* expire_option_value);
 #endif /* EDNS_H */
