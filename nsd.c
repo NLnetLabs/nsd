@@ -985,7 +985,6 @@ main(int argc, char *argv[])
 	nsd.file_rotation_ok = 0;
 
 	nsd.do_answer_cookie = 1;
-	nsd.nsd_quit_nosync = 0;
 
 	/* Set up our default identity to gethostname(2) */
 	if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {

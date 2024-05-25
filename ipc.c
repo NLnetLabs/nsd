@@ -466,13 +466,8 @@ parent_check_all_children_exited(struct nsd* nsd)
 		if(!nsd->children[i].has_exited)
 		      return;
 	}
-	if(nsd->nsd_quit_nosync) {
-		nsd->mode = NSD_QUIT_NOSYNC;
-		DEBUG(DEBUG_IPC,2, (LOG_INFO, "old-main: all children exited. quit nosync."));
-	} else {
-		nsd->mode = NSD_QUIT_SYNC;
-		DEBUG(DEBUG_IPC,2, (LOG_INFO, "old-main: all children exited. quit sync."));
-	}
+	nsd->mode = NSD_QUIT_SYNC;
+	DEBUG(DEBUG_IPC,2, (LOG_INFO, "main: all children exited. quit sync."));
 }
 
 void
@@ -504,9 +499,6 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 		return;
 	}
 	switch (mode) {
-	case NSD_QUIT_NOSYNC:
-		nsd->nsd_quit_nosync = 1;
-		/* fallthrough */
 	case NSD_QUIT_SYNC:
 		/* set all children to exit, only then notify xfrd. */
 		/* so that buffered packets to pass to xfrd can arrive. */
