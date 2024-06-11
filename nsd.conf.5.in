@@ -454,6 +454,10 @@ to get large responses.  Note that rrl ratelimiting also has type ANY as
 a ratelimiting type.  It sends truncation in response to UDP type ANY queries,
 and it allows TCP type ANY queries like normal.
 The default is no.
+With the option turned off, NSD behaves according to RFC 8482 4.1. It minimizes
+the response with one RRset. Popular and not large types, like A, AAAA and
+MX are preferred, and large types, like DNSKEY and RRSIG are picked with a
+lower preference than other types. This makes the response smaller.
 .TP
 .B zonefiles\-check:\fR <yes or no>
 Make NSD check the mtime of zone files on start and sighup.  If you

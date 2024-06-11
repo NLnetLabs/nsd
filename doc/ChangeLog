@@ -1,3 +1,6 @@
+11 June 2024: Wouter
+	- Fix #334: RFC8482 behavior documentation.
+
 23 May 2024: Wouter
 	- Fix for #317, document more text on pidfile permissions.
 
