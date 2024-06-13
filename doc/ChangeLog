@@ -7,6 +7,13 @@
 29 April 2024: Wouter
 	- Fix incorrect punctuation of log messages.
 
+25 April 2024: Wouter
+	- The tag for the 4.10.0rc1 release became the release 4.10.0,
+	  on 13 June 2024, the code repository continues with 4.10.1 under
+	  development. The release contains the additional fix to change
+	  simdzone version.
+	- Bump simdzone to include minor fixes. This is included in 4.10.0.
+
 25 April 2024: Jeroen
 	- Bump simdzone to fix OpenBSD build issues.
 	- Tag for 4.10.0rc1.
