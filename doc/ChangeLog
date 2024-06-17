@@ -1,3 +1,6 @@
+17 June 2024: Wouter
+	- Fix for OpenSSL 3.0 deprecated functions.
+
 11 June 2024: Wouter
 	- Fix #334: RFC8482 behavior documentation.
 

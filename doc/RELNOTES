@@ -7,6 +7,7 @@ BUG FIXES:
 	- Fix incorrect punctuation of log messages.
 	- Fix for #317, document more text on pidfile permissions.
 	- Fix #334: RFC8482 behavior documentation.
+	- Fix for OpenSSL 3.0 deprecated functions.
 
 4.10.0
 ================

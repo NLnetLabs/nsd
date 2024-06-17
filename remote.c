@@ -2669,7 +2669,11 @@ remote_control_callback(int fd, short event, void* arg)
 		VERBOSITY(3, (LOG_INFO, "unauthenticated remote control connection"));
 #ifdef HAVE_SSL
 	} else if(SSL_get_verify_result(s->ssl) == X509_V_OK) {
+#  ifdef HAVE_SSL_GET1_PEER_CERTIFICATE
+		X509* x = SSL_get1_peer_certificate(s->ssl);
+#  else
 		X509* x = SSL_get_peer_certificate(s->ssl);
+#  endif
 		if(!x) {
 			VERBOSITY(2, (LOG_INFO, "remote control connection "
 				"provided no client certificate"));
