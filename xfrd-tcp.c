@@ -920,6 +920,21 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 			if (SSL_CTX_use_PrivateKey_file(set->ssl_ctx, zone->master->tls_auth_options->client_key, SSL_FILETYPE_PEM) != 1) {
 				log_msg(LOG_ERR, "xfrd tls: Unable to load private key from file %s", zone->master->tls_auth_options->client_key);
 			}
+
+			if (!SSL_CTX_check_private_key(set->ssl_ctx)) {
+				log_msg(LOG_ERR, "xfrd tls: Client private key from file %s does not match the certificate from file %s",
+				                 zone->master->tls_auth_options->client_key,
+				                 zone->master->tls_auth_options->client_cert);
+			}
+		/* If client certificate/private key loading has failed,
+		   client will not try to authenticate to the server but the connection
+		   will procceed and will be up to the server to allow or deny the
+		   unauthenticated connection. A server that does not enforce authentication
+		   (or a badly configured server?) might allow the transfer.
+		   XXX: Maybe we should close the connection now to make it obvious that
+		   there is something wrong from our side. Alternatively make it obvious
+		   to the operator that we're not being authenticated to the server.
+		*/
 		}
 
 		if (!setup_ssl(tp, set, zone->master->tls_auth_options->auth_domain_name)) {

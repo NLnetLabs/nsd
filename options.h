@@ -133,6 +133,8 @@ struct nsd_options {
 	char* tls_service_pem;
 	/* TLS dedicated port */
 	const char* tls_port;
+	/* TLS-AUTH dedicated port */
+	const char* tls_auth_port;
 	/* TLS certificate bundle */
 	const char* tls_cert_bundle;
 

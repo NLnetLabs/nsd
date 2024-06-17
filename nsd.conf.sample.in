@@ -256,6 +256,13 @@ server:
 	# tls-service-ocsp: "path/to/ocsp.pem"
 	# tls-port: 853
 	
+	# Provides a dedidated TLS port where only authenticated clients can
+	# connect. Used for zone transfers to secondary servers. It uses
+	# tls-service-key and tls-service-pem and verifies client certificates
+	# using tls-cert-bundle.
+	# Default is "" (disabled). Requires restart to take effect.
+	# tls-auth-port: 8853
+
 	# Certificates used to authenticate connections made upstream for
 	# Transfers over TLS (XoT). Default is "" (default verify locations).
 	# tls-cert-bundle: "path/to/ca-bundle.pem"

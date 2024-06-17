@@ -563,6 +563,23 @@ openssl ocsp -no_nonce \\
 The port number on which to provide TCP TLS service, default is 853, only
 interfaces configured with that port number as @number get DNS over TLS service.
 .TP
+.B tls\-auth\-port:\fR <number>
+The port number on which to provide TCP TLS service to authenticated clients only.
+If you want to use mutual TLS authentication in Transfer over TLS (XoT) connections,
+this is where the primary server enables a dedicated port for this purpose. Certificates in
+.BR tls-cert-bundle
+are used for verifying the authenticity of a client or a secondary server.
+.IP
+Client (secondary) must enable
+.BR tls-auth ,
+configure
+.BR client-cert
+and
+.BR client-key
+and enable
+.BR tls-auth
+in zone configuration in order to authenticate to a remote (primary) server.
+.TP
 .B tls\-cert\-bundle:\fR <filename>
 If null or "", the default verify locations are used. Set it to the certificate
 bundle file, for example "/etc/pki/tls/certs/ca-bundle.crt". These certificates
