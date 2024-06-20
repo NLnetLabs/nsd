@@ -797,8 +797,8 @@ third character in a two letter domain name).
 .TP
 .B allow\-query:\fR <ip\-spec> <key\-name | NOKEY | BLOCKED>
 Access control list.  When at least one \fBallow\-query\fR option is
-specified, then the in the \fBallow\-query\fR options specified addresses
-are are allowed to query the server for the zone.  Queries from unlisted or
+specified, then the specified addresses in the \fBallow\-query\fR options
+are allowed to query the server for the zone.  Queries from unlisted or
 specifically BLOCKED addresses are discarded. If NOKEY is given no TSIG
 signature is required.  BLOCKED supersedes other entries, other entries are
 scanned for a match in the order of the statements.  Without
