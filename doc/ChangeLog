@@ -1,3 +1,6 @@
+20 June 2024: Wouter
+	- Merge #341: Fix allow-query wording in nsd.conf.5.in.
+
 17 June 2024: Wouter
 	- Fix for OpenSSL 3.0 deprecated functions.
 

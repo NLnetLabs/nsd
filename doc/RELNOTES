@@ -8,6 +8,7 @@ BUG FIXES:
 	- Fix for #317, document more text on pidfile permissions.
 	- Fix #334: RFC8482 behavior documentation.
 	- Fix for OpenSSL 3.0 deprecated functions.
+	- Merge #341: Fix allow-query wording in nsd.conf.5.in.
 
 4.10.0
 ================
