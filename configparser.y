@@ -210,6 +210,7 @@ struct component {
 %token VAR_CATALOG
 %token VAR_CATALOG_MEMBER_PATTERN
 %token VAR_CATALOG_PRODUCER_ZONE
+%token VAR_XDP_INTERFACE
 
 /* zone */
 %token VAR_ZONE
@@ -547,6 +548,10 @@ server_option:
           }
         }
       }
+    }
+  | VAR_XDP_INTERFACE STRING
+    {
+      cfg_parser->opt->xdp_interface = region_strdup(cfg_parser->opt->region, $2);
     }
   ;
 

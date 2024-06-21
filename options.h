@@ -161,6 +161,9 @@ struct nsd_options {
 	/** certificate file for nsd-control */
 	char* control_cert_file;
 
+	/** XDP interface name */
+	const char* xdp_interface;
+
 #ifdef RATELIMIT
 	/** number of buckets in rrl hashtable */
 	size_t rrl_size;

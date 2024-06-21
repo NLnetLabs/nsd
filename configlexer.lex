@@ -324,6 +324,7 @@ verifier-timeout{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFIER_TIMEO
 catalog{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_CATALOG; }
 catalog-member-pattern{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_CATALOG_MEMBER_PATTERN; }
 catalog-producer-zone{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_CATALOG_PRODUCER_ZONE; }
+xdp-interface{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_XDP_INTERFACE; }
 {NEWLINE}		{ LEXOUT(("NL\n")); cfg_parser->line++;}
 
 servers={UNQUOTEDLETTER}*	{
