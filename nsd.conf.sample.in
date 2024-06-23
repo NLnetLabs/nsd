@@ -263,6 +263,11 @@ server:
 	# Default is "" (disabled). Requires restart to take effect.
 	# tls-auth-port: 8853
 
+	# Allow zone transfers only on the tls-auth-port port and only to
+	# authenticated clients. Requests for zone transfers on other ports
+	# are refused. Default is no. Requires restart to change it.
+	# tls-auth-xfr-only: yes
+
 	# Certificates used to authenticate connections made upstream for
 	# Transfers over TLS (XoT). Default is "" (default verify locations).
 	# tls-cert-bundle: "path/to/ca-bundle.pem"

@@ -580,6 +580,14 @@ and enable
 .BR tls-auth
 in zone configuration in order to authenticate to a remote (primary) server.
 .TP
+.B tls\-auth\-xfr\-only:\fR <yes or no>
+Allow zone transfers only on the
+.BR tls-auth-port
+port and only to authenticated clients. This works globally for all zones.
+.BR provide-xfr
+access control list is also required to allow a connection.
+Requests for zone transfers on other ports are refused.
+.TP
 .B tls\-cert\-bundle:\fR <filename>
 If null or "", the default verify locations are used. Set it to the certificate
 bundle file, for example "/etc/pki/tls/certs/ca-bundle.crt". These certificates

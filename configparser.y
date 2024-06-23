@@ -128,6 +128,7 @@ struct component {
 %token VAR_TLS_SERVICE_OCSP
 %token VAR_TLS_PORT
 %token VAR_TLS_AUTH_PORT
+%token VAR_TLS_AUTH_XFR_ONLY
 %token VAR_TLS_CERT_BUNDLE
 %token VAR_PROXY_PROTOCOL_PORT
 %token VAR_CPU_AFFINITY
@@ -486,6 +487,14 @@ server_option:
       char buf[16];
       (void)snprintf(buf, sizeof(buf), "%lld", $2);
       cfg_parser->opt->tls_auth_port = region_strdup(cfg_parser->opt->region, buf);
+    }
+  | VAR_TLS_AUTH_XFR_ONLY boolean
+    {
+      if (!cfg_parser->opt->tls_auth_port) {
+        yyerror("tls-auth-xfr-only set without or before tls-auth-port");
+        YYABORT;
+      }
+      cfg_parser->opt->tls_auth_xfr_only = $2;
     }
   | VAR_TLS_CERT_BUNDLE STRING
     { cfg_parser->opt->tls_cert_bundle = region_strdup(cfg_parser->opt->region, $2); }

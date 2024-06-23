@@ -137,6 +137,8 @@ struct nsd_options {
 	const char* tls_auth_port;
 	/* TLS certificate bundle */
 	const char* tls_cert_bundle;
+	/* Answer XFR only from tls_auth_port and after authentication */
+	int tls_auth_xfr_only;
 
 	/* proxy protocol port list */
 	struct proxy_protocol_port_list* proxy_protocol_port;
