@@ -85,6 +85,7 @@ struct query {
 	*/
 	SSL* tls;
 	SSL* tls_auth;
+	char* cert_cn;
 #endif
 
 	/* Normalized query domain name.  */

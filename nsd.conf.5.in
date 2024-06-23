@@ -119,7 +119,8 @@ attribute is used to define keys for authentication. The
 attribute is followed by the zone options for zones that use the pattern.
 A
 .B tls-auth:
-attribute is used to define credentials for authenticating an outgoing TLS connection used for XFR-over-TLS.
+attribute is used to define authentication attributes for TLS connections used
+for XFR-over-TLS.
 .P
 Files can be included using the
 .B include:
@@ -584,8 +585,11 @@ in zone configuration in order to authenticate to a remote (primary) server.
 Allow zone transfers only on the
 .BR tls-auth-port
 port and only to authenticated clients. This works globally for all zones.
+A
 .BR provide-xfr
-access control list is also required to allow a connection.
+access control list with
+.BR tls-auth
+is also required to allow and verify a connection.
 Requests for zone transfers on other ports are refused.
 .TP
 .B tls\-cert\-bundle:\fR <filename>
@@ -877,8 +881,8 @@ Kaminsky\-style attacks. If the UDP option is left out then IXFR will be
 transmitted using TCP.
 .P
 If a tls-auth-name is given then TLS (by default on port 853) will be used
-for all zone transfers for the zone. If authentication of the primary based on
-the specified tls-auth authentication information fails, the XFR request will
+for all zone transfers for the zone. If authentication of the primary, based on
+the specified tls-auth authentication information, fails the XFR request will
 not be sent. Support for TLS 1.3 is required for XFR-over-TLS.
 .RE
 .TP
@@ -902,7 +906,7 @@ time).
 This option should be accompanied by notify. It sets the number of retries
 when sending notifies.
 .TP
-.B provide\-xfr:\fR <ip\-spec> <key\-name | NOKEY | BLOCKED>
+.B provide\-xfr:\fR <ip\-spec> <key\-name | NOKEY | BLOCKED> [tls\-auth\-name]
 Access control list. The listed address (a secondary) is allowed to
 request XFR from this server. Zone data will be provided to the
 address. The specified key is used during XFR. For unlisted or
@@ -917,6 +921,25 @@ a subnet of the form 1.2.3.4/24, or masked like
 A port number can be added using a suffix of @number, for example
 1.2.3.4@5300 or 1.2.3.4/24@5300 for port 5300. Note the ip\-spec
 ranges do not use spaces around the /, &, @ and \- symbols.
+.P
+If a tls-auth-name is given then TLS authentication of the secondary will be performed
+for zone transfer requests for the zone. The remote end must connect to the
+.BR tls-auth-port
+and must present a certificate with a
+SAN (Subject Alternative Name) DNS entry or CN (Common Name) entry equal to
+.BR auth-domain-name
+of the defined
+.BR tls-auth .
+The certificate validify is also verified with
+.BR tls-cert-bundle .
+If authentication of the secondary, based on the specified tls-auth authentication
+information, fails the XFR zone transfer will be refused. If the connection is performed
+on the
+.BR tls-port
+then no authentication will be performed and the transfer will not be refused.
+To enforce only authenticated zone transfers,
+.BR tls-auth-xfr-only
+should also be enabled. Support for TLS 1.3 is required for XFR-over-TLS.
 .RE
 .TP
 .B outgoing\-interface:\fR <ip\-address>
@@ -1108,16 +1131,21 @@ dev-random output through a base64 encode filter.
 .SS "TLS Auth Declarations"
 The
 .B tls-auth:
-clause establishes authentication attributes to use when authenticating
-the far end of an outgoing TLS connection used in access control lists for XFR-over-TLS.
-It has the following attributes.
+clause establishes attributes to use when authenticating the far end of a TLS connection
+as well as to define credentials to authenticate to a remote server. It is used in
+access control lists for XFR-over-TLS. It has the following attributes.
 .TP
 .B name:\fR <string>
 The tls-auth name. Used to refer to this TLS authentication information in the
 access control list.
 .TP
 .B auth\-domain\-name:\fR <string>
-The authentication domain name as defined in RFC8310.
+The authentication domain name as defined in RFC8310. Used to verify the certificate
+of the remote connecting server. When used by a primary server in
+.BR provide-xfr
+it verifies the secondary. When used by a secondary server in
+.BR request-xfr
+it verifies the primary.
 .TP
 .B client\-cert: <file name of clientcert.pem>
 If you want to use mutual TLS authentication, this is where the client

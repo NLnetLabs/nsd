@@ -938,7 +938,7 @@ pattern_or_zone_option:
         yyerror("address range used for request-xfr");
       append_acl(&cfg_parser->pattern->request_xfr, acl);
     }
-	tlsauth_option
+	request_xfr_tlsauth_option
 	{ }
   | VAR_REQUEST_XFR VAR_AXFR STRING STRING
     {
@@ -950,7 +950,7 @@ pattern_or_zone_option:
         yyerror("address range used for request-xfr");
       append_acl(&cfg_parser->pattern->request_xfr, acl);
     }
-	tlsauth_option
+	request_xfr_tlsauth_option
 	{ }
   | VAR_REQUEST_XFR VAR_UDP STRING STRING
     {
@@ -981,6 +981,8 @@ pattern_or_zone_option:
       acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $2, $3);
       append_acl(&cfg_parser->pattern->provide_xfr, acl);
     }
+	provide_xfr_tlsauth_option
+	{ }
   | VAR_ALLOW_QUERY STRING STRING
     {
       acl_options_type *acl = parse_acl_info(cfg_parser->opt->region, $2, $3);
@@ -1191,10 +1193,15 @@ boolean:
       }
     } ;
 
-tlsauth_option:
+request_xfr_tlsauth_option:
 	| STRING
 	{ char *tls_auth_name = region_strdup(cfg_parser->opt->region, $1);
 	  add_to_last_acl(&cfg_parser->pattern->request_xfr, tls_auth_name);} ;
+
+provide_xfr_tlsauth_option:
+	| STRING
+	{ char *tls_auth_name = region_strdup(cfg_parser->opt->region, $1);
+	  add_to_last_acl(&cfg_parser->pattern->provide_xfr, tls_auth_name);} ;
 
 catalog_role:
     STRING

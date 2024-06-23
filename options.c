@@ -14,6 +14,10 @@
 #ifdef HAVE_IFADDRS_H
 #include <ifaddrs.h>
 #endif
+#ifdef HAVE_SSL
+#include <openssl/ssl.h>
+#include <openssl/x509v3.h>
+#endif
 #include "options.h"
 #include "query.h"
 #include "tsig.h"
@@ -290,6 +294,13 @@ parse_options_file(struct nsd_options* opt, const char* file,
 		}
 		for(acl=pat->provide_xfr; acl; acl=acl->next)
 		{
+			/* Find tls_auth */
+			if (!acl->tls_auth_name)
+				; /* pass */
+			else if (!(acl->tls_auth_options =
+			                tls_auth_options_find(opt, acl->tls_auth_name)))
+				c_error("tls_auth %s in pattern %s could not be found",
+						acl->tls_auth_name, pat->pname);
 			if(acl->nokey || acl->blocked)
 				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
@@ -1940,6 +1951,12 @@ acl_check_incoming(struct acl_options* acl, struct query* q,
 
 	while(acl)
 	{
+#ifdef HAVE_SSL
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "testing acl %s %s %s",
+			acl->ip_address_spec, acl->nokey?"NOKEY":
+			(acl->blocked?"BLOCKED":acl->key_name),
+			(acl->tls_auth_name && q->tls_auth)?acl->tls_auth_name:""));
+#endif
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "testing acl %s %s",
 			acl->ip_address_spec, acl->nokey?"NOKEY":
 			(acl->blocked?"BLOCKED":acl->key_name)));
@@ -1955,6 +1972,28 @@ acl_check_incoming(struct acl_options* acl, struct query* q,
 				return -1;
 			}
 		}
+#ifdef HAVE_SSL
+		/* we are in a acl with tls_auth */
+		if (acl->tls_auth_name && q->tls_auth) {
+			/* we have auth_domain_name in tls_auth */
+			if (acl->tls_auth_options && acl->tls_auth_options->auth_domain_name) {
+				q->cert_cn = NULL;
+				if (!acl_tls_hostname_matches(q->tls_auth, acl->tls_auth_options->auth_domain_name, &(q->cert_cn))) {
+					VERBOSITY(3, (LOG_WARNING,
+							"client cert %s does not match %s %s",
+							q->cert_cn, acl->tls_auth_name, acl->tls_auth_options->auth_domain_name));
+					q->cert_cn = NULL;
+					return -1;
+				}
+				VERBOSITY(5, (LOG_INFO, "%s %s verified",
+					acl->tls_auth_name, acl->tls_auth_options->auth_domain_name));
+				q->cert_cn = acl->tls_auth_options->auth_domain_name;
+			} else {
+				/* nsd gives error on start for this, but check just in case */
+				log_msg(LOG_ERR, "auth-domain-name not defined in %s", acl->tls_auth_name);
+			}
+		}
+#endif
 		number++;
 		acl = acl->next;
 	}
@@ -2157,6 +2196,146 @@ acl_addr_match_range_v6(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t 
 	return 1;
 }
 #endif /* INET6 */
+
+#ifdef HAVE_SSL
+int
+acl_tls_hostname_matches(SSL* tls_auth, const char* acl_cert_cn, char** cert_cn)
+{
+	X509 *client_cert;
+	*cert_cn = NULL;
+
+#  ifdef HAVE_SSL_GET1_PEER_CERTIFICATE
+	if ((client_cert = SSL_get1_peer_certificate(tls_auth)) == NULL) {
+#  else
+	if ((client_cert = SSL_get_peer_certificate(tls_auth)) == NULL) {
+#  endif
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "CN match fail no peer certificate"));
+		X509_free(client_cert);
+		return 0;
+	}
+	if (!acl_cert_cn || !client_cert) {
+		X509_free(client_cert);
+		return 0;
+	}
+
+	/* OpenSSL provides functions for hostname checking from certificate
+	 * Following code should work but it doesn't.
+	 * Keep it for future test in order to not use custom code
+	 *
+	 * X509_VERIFY_PARAM *vpm = SSL_get0_param(tls_auth);
+	 * Hostname check is done here:
+	 * X509_VERIFY_PARAM_set1_host(vpm, acl_cert_cn, 0); // recommended
+	 * X509_check_host() // can also be used instead. Not recommended DANE-EE
+	 * SSL_get_verify_result(tls_auth) != X509_V_OK) // NOT ok
+	 * const char *peername = X509_VERIFY_PARAM_get0_peername(vpm); // NOT ok
+	 */
+
+/* Code in rest of function is from
+ * https://wiki.openssl.org/index.php/Hostname_validation
+ * with modifications
+ *
+ * Obtained from: https://github.com/iSECPartners/ssl-conservatory
+ * Copyright (C) 2012, iSEC Partners.
+ * License: MIT License
+ * Author:  Alban Diquet
+ */
+
+	/* semi follow RFC6125#section-6.4.4 check SAN DNS first */
+	int i;
+	int san_names_nb = -1;
+	STACK_OF(GENERAL_NAME) *san_names = NULL;
+
+	/* Try to extract the names within the SAN extension from the certificate */
+	san_names = X509_get_ext_d2i(client_cert, NID_subject_alt_name, NULL, NULL);
+	if (san_names != NULL) {
+		san_names_nb = sk_GENERAL_NAME_num(san_names);
+
+		/* Check each name within the extension */
+		for (int i = 0; i < san_names_nb; i++) {
+			const GENERAL_NAME *current_name = sk_GENERAL_NAME_value(san_names, i);
+			/* skip non-DNS SAN entries */
+			if (current_name->type != GEN_DNS)
+				continue;
+			char *dns_name = (char *) ASN1_STRING_get0_data(current_name->d.dNSName);
+			if (dns_name == NULL)
+				continue;
+			/* Make sure there isn't an embedded NUL character in the DNS name */
+			if ((size_t)ASN1_STRING_length(current_name->d.dNSName) != strlen(dns_name)) {
+				DEBUG(DEBUG_XFRD,2, (LOG_WARNING, "SAN Malformed certificate"));
+				break;
+			}
+			if (dns_name != NULL) {
+				/* certificate SAN DNS match */
+				if (strncmp(dns_name, acl_cert_cn, strlen(acl_cert_cn))==0) {
+					DEBUG(DEBUG_XFRD,2, (LOG_INFO, "SAN %s matches acl", dns_name));
+					*cert_cn = strndup(dns_name, strlen(dns_name));
+					X509_free(client_cert);
+					return 1;
+				} else {
+					DEBUG(DEBUG_XFRD,2, (LOG_INFO, "SAN %s does not match acl", dns_name));
+					/* check with remaining SANs and then continue with normal CN check */
+				}
+			}
+		}
+		sk_GENERAL_NAME_pop_free(san_names, GENERAL_NAME_free);
+	} else {
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "No SAN DNS extension in certificate"));
+	}
+
+	/* no match on SAN, continue with normal CN */
+	int common_name_loc = -1;
+	char *common_name_str = NULL;
+	X509_NAME *subject_name = NULL;
+	X509_NAME_ENTRY *common_name_entry = NULL;
+	ASN1_STRING *common_name_asn1 = NULL;
+
+	if ((subject_name = X509_get_subject_name(client_cert)) == NULL) {
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "CN get subject failed"));
+		X509_free(client_cert);
+		return 0;
+	}
+	/* Find the position of the CN field in the Subject field of the certificate */
+	common_name_loc = X509_NAME_get_index_by_NID(subject_name, NID_commonName, -1);
+	if (common_name_loc < 0) {
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "CN not found in Subject"));
+		X509_free(client_cert);
+		return 0;
+	}
+	/* Extract the CN field */
+	common_name_entry = X509_NAME_get_entry(subject_name, common_name_loc);
+	if (common_name_entry == NULL) {
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "CN extraction failed"));
+		X509_free(client_cert);
+		return 0;
+	}
+	/* Convert the CN field to a C string */
+	common_name_asn1 = X509_NAME_ENTRY_get_data(common_name_entry);
+	if (common_name_asn1 == NULL) {
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "CN name to string convertion failed"));
+		X509_free(client_cert);
+		return 0;
+	}
+	common_name_str = (char *) ASN1_STRING_get0_data(common_name_asn1);
+	/* Make sure there isn't an embedded NUL character in the CN */
+	if ((size_t)ASN1_STRING_length(common_name_asn1) != strlen(common_name_str)) {
+		DEBUG(DEBUG_XFRD,2, (LOG_WARNING, "CN Malformed certificate"));
+		X509_free(client_cert);
+		return 0;
+	}
+	if (common_name_str != NULL) {
+		/* store it for logging */
+		*cert_cn = strndup(common_name_str, strlen(common_name_str));
+		/* certificate CN match */
+		if (strncmp(common_name_str, acl_cert_cn, strlen(acl_cert_cn))==0) {
+			X509_free(client_cert);
+			return 1;
+		}
+	}
+	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "CN from cert %s does not match acl", common_name_str));
+	X509_free(client_cert);
+	return 0;
+}
+#endif
 
 int
 acl_key_matches(struct acl_options* acl, struct query* q)

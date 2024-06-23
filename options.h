@@ -11,6 +11,9 @@
 #define OPTIONS_H
 
 #include <stdarg.h>
+#ifdef HAVE_SSL
+#include <openssl/ssl.h>
+#endif
 #include "region-allocator.h"
 #include "rbtree.h"
 struct query;
@@ -561,6 +564,9 @@ int acl_check_incoming(struct acl_options* acl, struct query* q,
 int acl_addr_matches_host(struct acl_options* acl, struct acl_options* host);
 int acl_addr_matches(struct acl_options* acl, struct query* q);
 int acl_addr_matches_proxy(struct acl_options* acl, struct query* q);
+#ifdef HAVE_SSL
+int acl_tls_hostname_matches(SSL* ssl, const char* acl_cert_cn, char** cert_cn);
+#endif
 int acl_key_matches(struct acl_options* acl, struct query* q);
 int acl_addr_match_mask(uint32_t* a, uint32_t* b, uint32_t* mask, size_t sz);
 int acl_addr_match_range_v6(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz);
