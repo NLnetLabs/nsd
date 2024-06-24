@@ -636,7 +636,7 @@ apply_xfr:
 		       (long long)xfr->xfrfilenumber, strerror(errno));
 
 	} else if(0 >= apply_ixfr_for_zone(xfrd->nsd, dbzone, df,
-			xfrd->nsd->options, NULL, NULL, xfr->xfrfilenumber)) {
+			xfrd->nsd->options, NULL, xfr->xfrfilenumber)) {
 		make_catalog_consumer_invalid(consumer_zone,
 			"error processing transfer file %lld",
 			(long long)xfr->xfrfilenumber);

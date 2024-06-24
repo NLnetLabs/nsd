@@ -1,0 +1,47 @@
+
+;; AXFR serial=1
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR AA
+ADJUST copy_id
+SECTION QUESTION
+zone2fail.invalid. IN AXFR
+SECTION ANSWER
+zone2fail.invalid. 60 SOA ns.invalid. noreply.invalid. 1 600 500 900 300
+zone2fail.invalid. 60 TXT "This should just succeed"
+zone2fail.invalid. 60 SOA ns.invalid. noreply.invalid. 1 600 500 900 300
+ENTRY_END
+
+;; AXFR serial=1
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR AA
+ADJUST copy_id
+SECTION QUESTION
+absent-zone.invalid. IN AXFR
+SECTION ANSWER
+absent-zone.invalid. 60 SOA ns.invalid. noreply.invalid. 1 600 500 900 300
+absent-zone.invalid. 60 TXT "This zone should be added to the serve process, "
+absent-zone.invalid. 60 TXT "but isn't when it's added just after a failed transfer"
+absent-zone.invalid. 60 SOA ns.invalid. noreply.invalid. 1 600 500 900 300
+ENTRY_END
+
+;; IXFR serial=1 to serial=2
+ENTRY_BEGIN
+MATCH opcode qtype qname
+MATCH serial=1
+REPLY QUERY NOERROR AA
+ADJUST copy_id
+SECTION QUESTION
+zone2fail.invalid. IN IXFR
+SECTION ANSWER
+zone2fail.invalid. 60 SOA ns.invalid. noreply.invalid. 2 600 500 900 300
+zone2fail.invalid. 60 SOA ns.invalid. noreply.invalid. 1 600 500 900 300
+; deleted items
+zone2fail.invalid. 60 TXT "This was not there"
+zone2fail.invalid. 60 SOA ns.invalid. noreply.invalid. 2 600 500 900 300
+; added items
+zone2fail.invalid. 60 SOA ns.invalid. noreply.invalid. 2 600 500 900 300
+ENTRY_END
+
+
