@@ -43,6 +43,7 @@
 /tpkg/long/result.*
 /tpkg/long/.done-*
 /tpkg/long/*.log
+/*.ll
 
 # Eclipse IDE Project Settings
 .cproject
