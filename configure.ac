@@ -132,6 +132,11 @@ AC_ARG_WITH([xfrdir], AS_HELP_STRING([--with-xfrdir=path],[Pathname to where the
 AC_DEFINE_UNQUOTED(XFRDIR, ["`eval echo $xfrdir`"], [Pathname to where the NSD transfer dir is created.])
 AC_SUBST(xfrdir)
 
+sharedfilesdir=${datarootdir}/nsd
+AC_ARG_WITH([sharedfilesdir], AS_HELP_STRING([--with-sharedfilesdir=dir],[NSD shared files directory]), [sharedfilesdir=$withval])
+AC_DEFINE_UNQUOTED(SHAREDFILESDIR, ["`eval echo $sharedfilesdir`"], [NSD shared files dir])
+AC_SUBST(sharedfilesdir)
+
 # nsd sbin location. tmpinstantiate execprefix with defaults if not yet done.
 if test "x${exec_prefix}" = "xNONE"; then
 	if test "x${prefix}" = "xNONE"; then exec_prefix="$ac_default_prefix"
