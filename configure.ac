@@ -1151,6 +1151,15 @@ case "$enable_packed" in
 	;;
 esac
 
+AC_ARG_ENABLE(xdp, AS_HELP_STRING([--enable-xdp],[Enable XDP support.]))
+case "$enable_xdp" in
+	yes)
+	AC_DEFINE_UNQUOTED([USE_XDP], [], [Define this to enable the use of AF_XDP sockets.])
+	;;
+	no|*)
+	;;
+esac
+
 # check for dnstap if requested
 dt_DNSTAP([${localstatedir}/run/nsd-dnstap.sock],
     [
