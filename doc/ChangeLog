@@ -1,3 +1,6 @@
+26 June 2024: Wouter
+	- Fix test script from making spurious output.
+
 24 June 2024: Wouter
 	- Add unit test for #343 relative include in zone file.
 
