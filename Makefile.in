@@ -109,11 +109,11 @@ nsd-control-setup.sh:	$(srcdir)/nsd-control-setup.sh.in config.h
 
 nsd.conf.sample:	$(srcdir)/nsd.conf.sample.in config.h
 	rm -f nsd.conf.sample
-	$(EDIT) $(srcdir)/nsd.conf.sample.in | $(AWK) '/RRLconfig'@ratelimit@'/ { while($$0 !~ /.*RRLend.*/) { getline; } getline; } {print} ' > nsd.conf.sample
+	$(EDIT) $(srcdir)/nsd.conf.sample.in | $(AWK) '/RRLconfig'@ratelimit@'/ { while($$0 !~ /.*RRLend.*/) { getline; } getline; } /XDPconfig'@xdp@'/ { while($$0 !~ /.*XDPend.*/) { getline; } getline; } {print} ' > nsd.conf.sample
 
 nsd.conf.5:	$(srcdir)/nsd.conf.5.in config.h
 	rm -f nsd.conf.5
-	$(EDIT) $(srcdir)/nsd.conf.5.in | $(AWK) '/rrlstart'@ratelimit@'/ { while($$0 !~ /.*rrlend.*/) { getline; } getline; } {print} ' > nsd.conf.5
+	$(EDIT) $(srcdir)/nsd.conf.5.in | $(AWK) '/rrlstart'@ratelimit@'/ { while($$0 !~ /.*rrlend.*/) { getline; } getline; } /xdpstart'@xdp@'/ { while($$0 !~ /.*xdpend.*/) { getline; } getline; } {print} ' > nsd.conf.5
 
 nsd.8:	$(srcdir)/nsd.8.in config.h
 	rm -f nsd.8

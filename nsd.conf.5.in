@@ -600,6 +600,26 @@ The port number for proxy protocol service. If the statement is given multiple
 times, additional port numbers can be used for proxy protocol service. The
 interface definitions that use this port number expect PROXYv2 proxy protocol
 traffic, for UDP, TCP and for TLS service.
+.\" xdpstart
+.TP
+.B xdp\-interface:\fR <string>
+The interface to use XDP with. This enables the use of AF_XDP sockets.
+Default is "", disabled.
+.TP
+.B xdp\-program\-path:\fR <string>
+The eBPF XDP program to extract the XSKMAP from. Specify your own program here,
+if you want to use a custom XDP program. The default program shipped with NSD
+only redirects UDP (over Ethernet[+VLAN]+IPv4/6) traffic to port 53.
+When using your own XDP program, it needs to define a BPF_MAP_TYPE_XSKMAP
+named "xsks_map". This option needs to be set, even when NSD is configured not
+to load the specified XDP program (see \fB xdp-program-load\fR),
+to be able to access the XSKMAP.
+Default is "@sharedfilesdir@/xdp-dns-redirect_kern.o".
+.TP
+.B xdp\-program\-load:\fR <yes or no>
+Specify whether NSD should load the XDP program. If set to no, you need
+to load the XDP program yourself. Default is yes, if xdp-interface is set.
+.\" xdpend
 .SS "Remote Control"
 The
 .B remote\-control:

@@ -276,6 +276,26 @@ server:
 	# expect PROXYv2. For UDP and TCP/TLS interfaces.
 	# proxy-protocol-port: portno for each of the port numbers.
 
+	# XDPconfig
+	# The interface to use XDP with. Default is "", disabled.
+	# xdp-interface: eth0
+
+	# The eBPF XDP program to extract the XSKMAP from. Specify your own
+	# program here, if you want to use a custom XDP program.
+	# The default program shipped with NSD only redirects UDP
+	# (over Ethernet[+VLAN]+IPv4/6) traffic to port 53.
+	# When using your own XDP program, it needs to define
+	# a BPF_MAP_TYPE_XSKMAP named "xsks_map".
+	# This option needs to be set even when NSD is configured not to load
+	# the specified XDP program (see xdp-program-load), to be able to
+	# access the XSKMAP. Default is "@sharedfilesdir@/xdp-dns-redirect_kern.o".
+	# xdp-program-path: "@sharedfilesdir@/xdp-dns-redirect_kern.o"
+
+	# Specify whether NSD should load the XDP program. If set to no, you need
+	# to load the XDP program yourself. Default is yes, if xdp-interface is set.
+	# xdp-program-load: yes
+	# XDPend
+
 verify:
 	# Enable zone verification. Default is no.
 	# enable: no
