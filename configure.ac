@@ -1163,10 +1163,13 @@ case "$enable_xdp" in
 	AC_CHECK_PROG(LLC, llc, llc)
 	CLANG=clang
 	LLC=llc
+	xdp="xx"
 	;;
 	no|*)
+	xdp=""
 	;;
 esac
+AC_SUBST(xdp)
 
 # check for dnstap if requested
 dt_DNSTAP([${localstatedir}/run/nsd-dnstap.sock],
