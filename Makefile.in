@@ -83,7 +83,8 @@ EDIT		= $(SED) \
 			-e 's,@sharedfilesdir\@,$(sharedfilesdir),g' \
 			-e 's,@user\@,$(user),g'
 
-TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf
+XDP_TARGETS=$(if @xdp@,xdp-dns-redirect_kern.o,)
+TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf $(XDP_TARGETS)
 MANUALS=nsd.8 nsd-checkconf.8 nsd-checkzone.8 nsd-control.8 nsd.conf.5
 
 COMMON_OBJ=answer.o axfr.o ixfr.o ixfrcreate.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o rrl.o siphash.o tsig.o tsig-openssl.o udb.o util.o bitset.o popen3.o proxy_protocol.o
@@ -159,7 +160,7 @@ install: all
 	$(INSTALL_DATA) nsd-control.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
 	$(INSTALL_DATA) nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	$(INSTALL_DATA) nsd.conf.sample $(DESTDIR)$(nsdconfigfile).sample
-	$(INSTALL_DATA) xdp-dns-redirect_kern.o $(DESTDIR)$(sharedfilesdir)/xdp-dns-redirect_kern.o
+	if test -n "@xdp@"; then $(INSTALL_DATA) xdp-dns-redirect_kern.o $(DESTDIR)$(sharedfilesdir)/xdp-dns-redirect_kern.o; fi
 
 uninstall:
 	@echo
@@ -167,6 +168,7 @@ uninstall:
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd.8 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkzone.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
 	rm -f -- $(DESTDIR)$(pidfile)
+	rm -f -- $(DESTDIR)$(sharedfilesdir)/xdp-dns-redirect_kern.o
 	@echo
 	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(xfrdfile), $(DESTDIR)$(zonelistfile) directory by hand."
 
