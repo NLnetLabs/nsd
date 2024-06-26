@@ -56,11 +56,8 @@ LEX		= @LEX@
 PROTOC_C	= @PROTOC_C@
 
 # BPF/XDP settings
-# TODO: specify in configure
-# CLANG	= @CLANG@
-# LLC		= @LLC@
-CLANG	= clang
-LLC		= llc
+CLANG	= @CLANG@
+LLC		= @LLC@
 BPF_CFLAGS ?= -Wno-visibility -Wall -Wno-unused-value -Wno-pointer-sign -Wno-compare-distinct-pointer-types -Werror
 # BPF_CFLAGS ?= -Wno-visibility -DBPF_DIR_MNT=/sys/fs/bpf -DBPF_OBJECT_PATH=/usr/lib/bpf
 
