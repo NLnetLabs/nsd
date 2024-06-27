@@ -11,6 +11,7 @@ BUG FIXES:
 	- Merge #341: Fix allow-query wording in nsd.conf.5.in.
 	- Fix test script from making spurious output.
 	- Fix cpu_affinity and socket_partitioning tests for --enable-log-role.
+	- Fix #344: Update simdzone.
 
 4.10.0
 ================
