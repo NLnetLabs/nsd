@@ -1045,7 +1045,7 @@ if test x$HAVE_SSL = x"yes"; then
 	fi
 	SSL_LIBS="-lssl"
 	AC_SUBST(SSL_LIBS)
-	AC_CHECK_HEADERS([openssl/ssl.h openssl/err.h openssl/rand.h openssl/ocsp.h openssl/core_names.h],,, [AC_INCLUDES_DEFAULT])
+	AC_CHECK_HEADERS([openssl/ssl.h openssl/err.h openssl/rand.h openssl/ocsp.h openssl/core_names.h openssl/x509v3.h],,, [AC_INCLUDES_DEFAULT])
 	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new EVP_cleanup ERR_load_crypto_strings OPENSSL_init_crypto CRYPTO_memcmp EC_KEY_new_by_curve_name EVP_MAC_CTX_new EVP_MAC_CTX_set_params EVP_MAC_CTX_get_mac_size SHA1_Init])
 	if test "$ac_cv_func_SHA1_Init" = "yes"; then
 		ACX_FUNC_DEPRECATED([SHA1_Init], [(void)SHA1_Init(NULL);], [
@@ -1071,6 +1071,9 @@ AC_INCLUDES_DEFAULT
 #endif
 #include <openssl/ssl.h>
 #include <openssl/evp.h>
+#ifdef HAVE_OPENSSL_X509V3_h
+#include <openssl/x509v3.h>
+#endif
 ])
 	AC_CHECK_DECL([TLS1_3_VERSION], 
 		[AC_DEFINE([HAVE_TLS_1_3], [1], [Define if TLS 1.3 is supported by OpenSSL])],
@@ -1078,7 +1081,7 @@ AC_INCLUDES_DEFAULT
 
 	BAKLIBS="$LIBS"
 	LIBS="-lssl $LIBS"
-	AC_CHECK_FUNCS([OPENSSL_init_ssl SSL_get1_peer_certificate SSL_CTX_set_security_level ERR_load_SSL_strings])
+	AC_CHECK_FUNCS([OPENSSL_init_ssl SSL_get1_peer_certificate SSL_CTX_set_security_level X509_get_ext_d2i OPENSSL_sk_num OPENSSL_sk_value OPENSSL_sk_pop_free ASN1_STRING_get0_data ASN1_STRING_length X509_get_subject_name X509_NAME_get_index_by_NID X509_NAME_get_entry X509_NAME_ENTRY_get_data ERR_load_SSL_strings])
 	if test "$ac_cv_func_ERR_load_SSL_strings" = "yes"; then
 		ACX_FUNC_DEPRECATED([ERR_load_SSL_strings], [(void)ERR_load_SSL_strings();], [
 #include <openssl/ssl.h>

@@ -374,6 +374,7 @@ struct	nsd
 #ifdef HAVE_SSL
 	/* TLS specific configuration */
 	SSL_CTX *tls_ctx;
+	SSL_CTX *tls_auth_ctx;
 #endif
 };
 

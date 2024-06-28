@@ -1205,6 +1205,7 @@ main(int argc, char *argv[])
 	nsd.ipv6_edns_size = nsd.options->ipv6_edns_size;
 #ifdef HAVE_SSL
 	nsd.tls_ctx = NULL;
+	nsd.tls_auth_ctx = NULL;
 #endif
 
 	if(udp_port == 0)
@@ -1577,9 +1578,17 @@ main(int argc, char *argv[])
 #if defined(HAVE_SSL)
 	if(nsd.options->tls_service_key && nsd.options->tls_service_key[0]
 	   && nsd.options->tls_service_pem && nsd.options->tls_service_pem[0]) {
+		/* normal tls port with no client authentication */
 		if(!(nsd.tls_ctx = server_tls_ctx_create(&nsd, NULL,
-			nsd.options->tls_service_ocsp)))
+		     nsd.options->tls_service_ocsp)))
 			error("could not set up tls SSL_CTX");
+		/* tls-auth port with required client authentication */
+		if(nsd.options->tls_auth_port) {
+			if(!(nsd.tls_auth_ctx = server_tls_ctx_create(&nsd,
+			     (char*)nsd.options->tls_cert_bundle,
+			     nsd.options->tls_service_ocsp)))
+				error("could not set up tls SSL_CTX");
+		}
 	}
 #endif /* HAVE_SSL */
 
