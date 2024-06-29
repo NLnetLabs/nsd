@@ -78,7 +78,7 @@ EDIT		= $(SED) \
 			-e 's,@dnstap_socket_path\@,@opt_dnstap_socket_path@,g' \
 			-e 's,@user\@,$(user),g'
 
-TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc
+TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf
 MANUALS=nsd.8 nsd-checkconf.8 nsd-checkzone.8 nsd-control.8 nsd.conf.5
 
 COMMON_OBJ=answer.o axfr.o ixfr.o ixfrcreate.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o rrl.o siphash.o tsig.o tsig-openssl.o udb.o util.o bitset.o popen3.o proxy_protocol.o
@@ -125,6 +125,9 @@ nsd-control.8:	$(srcdir)/nsd-control.8.in config.h
 	$(EDIT) $(srcdir)/nsd-control.8.in > nsd-control.8
 
 contrib/nsd.openrc: contrib/nsd.openrc.in
+	$(EDIT) $< > $@
+
+contrib/nsd-tmpfiles.conf: contrib/nsd-tmpfiles.conf.in
 	$(EDIT) $< > $@
 
 install: all
