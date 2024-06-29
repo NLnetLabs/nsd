@@ -34,6 +34,7 @@
 /udb-inspect
 /xfr-inspect
 /contrib/nsd.openrc
+/contrib/nsd-tmpfiles.conf
 /dnstap/dnstap.pb-c.c
 /dnstap/dnstap.pb-c.h
 /dnstap/dnstap_config.h
