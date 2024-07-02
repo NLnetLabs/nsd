@@ -1561,6 +1561,21 @@ main(int argc, char *argv[])
 	}
 #endif
 
+#ifdef USE_XDP
+	/* Set XDP config */
+	nsd.xdp.xdp_server.region = nsd.region;
+	nsd.xdp.xdp_server.interface_name = nsd.options->xdp_interface;
+	nsd.xdp.xdp_server.bpf_prog_filename = nsd.options->xdp_program_path;
+	nsd.xdp.xdp_server.bpf_prog_should_load = nsd.options->xdp_program_load;
+	nsd.xdp.xdp_server.nsd = &nsd;
+
+	if (nsd.options->xdp_interface) {
+		xdp_server_init(&nsd.xdp.xdp_server);
+	} else {
+		log_msg(LOG_NOTICE, "XDP support is enabled, but not configured. Not using XDP.");
+	}
+#endif
+
 	print_sockets(nsd.udp, nsd.tcp, nsd.ifs);
 
 	/* Setup the signal handling... */
