@@ -57,6 +57,10 @@
 #ifdef USE_DNSTAP
 #include "dnstap/dnstap_collector.h"
 #endif
+#ifdef USE_XDP
+#include "xdp-server.h"
+#include "xdp-util.h"
+#endif
 #include "util/proxy_protocol.h"
 
 /* The server handler... */
@@ -1188,6 +1192,30 @@ main(int argc, char *argv[])
 	if(nsd.child_count == 0) {
 		nsd.child_count = nsd.options->server_count;
 	}
+
+#ifdef USE_XDP
+	/* make sure we will spawn enough servers to serve all queues of the
+	 * selected network device, otherwise traffic to these queues will take
+	 * the non-af_xdp path */
+	if (nsd.options->xdp_interface) {
+		nsd.xdp.xdp_server.queue_count = ethtool_channels_get(nsd.options->xdp_interface);
+		if (nsd.xdp.xdp_server.queue_count <= 0) {
+			log_msg(LOG_ERR,
+			        "xdp: could not determine netdev queue count: %s. "
+			        "(attempting to continue with 1 queue)",
+			        strerror(errno));
+			nsd.xdp.xdp_server.queue_count = 1;
+		}
+
+		if (nsd.child_count < nsd.xdp.xdp_server.queue_count) {
+			log_msg(LOG_NOTICE,
+			        "xdp configured but server-count not high enough to serve "
+			        "all netdev queues, raising server-count to %d",
+			        nsd.xdp.xdp_server.queue_count);
+			nsd.child_count = nsd.xdp.xdp_server.queue_count;
+		}
+	}
+#endif
 
 #ifdef SO_REUSEPORT
 	if(nsd.options->reuseport && nsd.child_count > 1) {
