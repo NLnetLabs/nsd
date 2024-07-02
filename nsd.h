@@ -26,6 +26,9 @@
 #include "dns.h"
 #include "edns.h"
 #include "bitset.h"
+#ifdef USE_XDP
+#include "xdp-server.h"
+#endif
 struct netio_handler;
 struct nsd_options;
 struct udb_base;
@@ -294,6 +297,13 @@ struct	nsd
 	size_t verifier_limit; /* Maximum number of active verifiers */
 	int verifier_pipe[2]; /* Pipe to trigger verifier exit handler */
 	struct verifier *verifiers;
+
+#ifdef USE_XDP
+	struct {
+		/* only one interface for now */
+		struct xdp_server xdp_server;
+	} xdp;
+#endif
 
 	edns_data_type edns_ipv4;
 #if defined(INET6)
