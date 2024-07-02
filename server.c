@@ -3037,6 +3037,10 @@ server_main(struct nsd *nsd)
 		(void)kill(nsd->pid, SIGTERM);
 	}
 
+#ifdef USE_XDP
+	xdp_server_cleanup(&nsd->xdp.xdp_server);
+#endif
+
 #ifdef MEMCLEAN /* OS collects memory pages */
 	region_destroy(server_region);
 #endif
