@@ -87,6 +87,9 @@
 #endif
 #include "verify.h"
 #include "util/proxy_protocol.h"
+#ifdef USE_XDP
+#include "xdp-server.h"
+#endif
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 
@@ -3503,6 +3506,36 @@ server_child(struct nsd *nsd)
 	} else {
 		tcp_accept_handler_count = 0;
 	}
+
+#ifdef USE_XDP
+	if (nsd->options->xdp_interface) {
+		/* don't try to bind more sockets than there are queues available */
+		if (nsd->xdp.xdp_server.queue_count <= nsd->this_child->child_num) {
+			log_msg(LOG_WARNING,
+			        "xdp: server-count exceeds available queues (%d) on "
+			        "interface %s, skipping xdp in this process",
+			        nsd->xdp.xdp_server.queue_count,
+			        nsd->xdp.xdp_server.interface_name);
+		} else {
+			nsd->xdp.xdp_server.queue_index = nsd->this_child->child_num;
+			/* nsd->xdp.xdp_server.queries = xdp_queries; */
+
+			log_msg(LOG_INFO,
+			        "xdp: using queue_id %d on interface %s",
+			        nsd->xdp.xdp_server.queue_index,
+			        nsd->xdp.xdp_server.interface_name);
+
+			/* attempt binding the AF_XDP socket */
+			if (xdp_socket_init(&nsd->xdp.xdp_server)) {
+				log_msg(LOG_ERR, "xdp: failed to setup xdp socket");
+				/* Not quitting the child server, as it would just be restarted */
+			} else {
+				/* struct xdp_handler_data *data; */
+				// TODO: add handler and queries
+			}
+		}
+	}
+#endif
 
 	/* The main loop... */
 	while ((mode = nsd->mode) != NSD_QUIT) {
