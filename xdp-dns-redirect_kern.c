@@ -8,7 +8,6 @@
 #include <linux/udp.h>      /* for struct udphdr   */
 
 #define DEFAULT_ACTION XDP_PASS
-/* TODO: maybe have this be defined by config.h too? */
 #define DNS_PORT 53
 
 // Define XSK MAP to store the descriptors of the user-space sockets
@@ -17,6 +16,7 @@ struct {
   __type(key, __u32);
   __type(value, __u32);
   __uint(max_entries, 64);
+  __uint(pinning, LIBBPF_PIN_BY_NAME);
 } xsks_map SEC(".maps");
 
 struct vlanhdr {
