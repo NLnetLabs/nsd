@@ -1381,7 +1381,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 				why->nokey?"NOKEY":
 				(why->blocked?"BLOCKED":why->key_name)));
 		} else {
-			if (verbosity >= 2) {
+			if (q->cname_count == 0 && verbosity >= 2) {
 				char address[128];
 				addr2str(&q->client_addr, address, sizeof(address));
 				VERBOSITY(2, (LOG_INFO, "query %s from %s refused, %s%s%s",
