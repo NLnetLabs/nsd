@@ -11,6 +11,16 @@
  * CAP_BPF,
  * CAP_NET_RAW (maybe),
  * CAP_SYS_RESOURCES (maybe)
+ *
+ * If nsd is started as root then we could do bpf setup before privilege drop?
+ * But what about unloading the program in the end? I think we might just use
+ * CAP_BPF to manage the whole BPF shenanigans...
+ * CAP_NET_RAW might not be needed, as binding the AF_XDP socket is supposedly
+ * and unprivileged operation. However, updating the BPF_XSKMAP is a bpf
+ * operation, so CAP_BPF for all child servers too.
+ *   -> Or maybe not? https://github.com/xdp-project/xdp-tools/issues/320#issuecomment-1542338789
+ * CAP_SYS_RESOURCES should not be needed if nsd is started as root and xdp_init
+ * is executed before privilege drop (needs to be done tho).
  */
 
 #include "config.h"
@@ -299,12 +309,6 @@ int xdp_server_init(struct xdp_server *xdp) {
 		log_msg(LOG_ERR, "xdp: configured xdp-interface is unknown: %s", strerror(errno));
 		return -1;
 	}
-
-	/* xdp->queue_count = ethtool_channels_get(xdp->interface_name); */
-	/* if (xdp->queue_count <= 0) { */
-	/*     log_msg(LOG_ERR, "xdp: could not determine netdev queue count: %s. (attempting to continue with 1 queue)", strerror(errno)); */
-	/*     xdp->queue_count = 1; */
-	/* } */
 
 	/* (optionally) load xdp program and (definitely) set xsks_map_fd */
 	if (load_xdp_program(xdp)) {
