@@ -7,6 +7,10 @@
  *
  */
 
+#include "config.h"
+
+#ifdef USE_XDP
+
 #include <errno.h>
 #include <linux/ethtool.h>
 #include <linux/if.h>
@@ -61,3 +65,5 @@ int ethtool_channels_get(char const *ifname) {
 	close(fd);
 	return queue_count;
 }
+
+#endif /* USE_XDP */
