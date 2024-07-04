@@ -99,21 +99,14 @@ static int load_xdp_program(struct xdp_server *xdp);
 /*
  * Send outstanding packets and recollect completed frame addresses
  */
-// TODO: needed?
-static void complete_tx(struct xsk_socket_info *xsk);
+static void handle_tx(struct xsk_socket_info *xsk);
 
 /*
  * Process packet
  */
-// TODO: needed?
-static bool
+// TODO: rename?
+static int
 process_packet(struct xsk_socket_info *xsk, uint64_t addr, uint32_t len);
-
-/*
- * Receive frames from rings and send results
- */
-// TODO: needed?
-static void handle_receive_packets(struct xsk_socket_info *xsk);
 
 /*
  * Main loop, poll for new frames
@@ -394,6 +387,89 @@ int xdp_socket_cleanup(struct xdp_server *xdp) {
 	/* packet buffer is managed by us */
 	free(xdp->umem->buffer);
 	return 0;
+}
+
+static int
+process_packet(struct xsk_socket_info *xsk, uint64_t addr, uint32_t len) {
+	log_msg(LOG_INFO, "xdp: received packet with len %d", len);
+	return 0;
+}
+
+void xdp_handle_recv_and_send(struct xdp_server *xdp) {
+	struct xsk_socket_info *xsk = xdp->xsk;
+	unsigned int recvd, stock_frames, i;
+	uint32_t idx_rx = 0, idx_fq = 0;
+	int ret;
+
+	recvd = xsk_ring_cons__peek(&xsk->rx, XDP_RX_BATCH_SIZE, &idx_rx);
+	if (!recvd) {
+		/* no data available */
+		return;
+	}
+
+	/* TODO: maybe put in it's own function and call after tx too? */
+
+	/* fill the fill ring with as many frames as are available */
+	/* get number of spots available in fq */
+	stock_frames = xsk_prod_nb_free(&xsk->umem->fq, xsk_umem_free_frames(xsk));
+	if (stock_frames > 0) {
+		/* ignoring prod__reserve return value, because we got stock_frames
+		 * from xsk_prod_nb_free(), which are therefore available */
+		xsk_ring_prod__reserve(&xsk->umem->fq, stock_frames, &idx_fq);
+
+		for (i = 0; i < stock_frames; ++i) {
+			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) =
+				xsk_alloc_umem_frame(xsk);
+		}
+
+		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
+	}
+
+	/* Process received packets */
+	for (i = 0; i < recvd; ++i) {
+		uint64_t addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
+		uint32_t len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
+
+		if (!process_packet(xsk, addr, len)) {
+			/* drop packet */
+			xsk_free_umem_frame(xsk, addr);
+		}
+
+		/* xsk->stats.rx_bytes += len; */
+	}
+
+	xsk_ring_cons__release(&xsk->rx, recvd);
+	/* xsk->stats.rx_packets += rcvd; */
+
+	/* wake up kernel for tx if needed and collect completed tx buffers */
+	handle_tx(xsk);
+}
+
+static void handle_tx(struct xsk_socket_info *xsk) {
+	uint32_t completed, idx_cq;
+
+	if (!xsk->outstanding_tx)
+		return;
+
+	if (xsk_ring_prod__needs_wakeup(&xsk->tx))
+		sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+		/* maybe use while (sendto() < 0) and if ==EAGAIN clear completion queue */
+
+	/* free completed TX buffers */
+	completed = xsk_ring_cons__peek(&xsk->umem->cq,
+	                                XSK_RING_CONS__NUM_DESCS,
+	                                &idx_cq);
+
+	if (completed > 0) {
+		for (int i = 0; i < completed; i++) {
+			xsk_free_umem_frame(xsk, *xsk_ring_cons__comp_addr(&xsk->umem->cq,
+			                                                   idx_cq++));
+		}
+
+		xsk_ring_cons__release(&xsk->umem->cq, completed);
+		xsk->outstanding_tx -= completed < xsk->outstanding_tx ?
+		                       completed : xsk->outstanding_tx;
+	}
 }
 
 #endif /* USE_XDP */
