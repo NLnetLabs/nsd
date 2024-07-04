@@ -126,6 +126,26 @@ static void rx_and_process(struct xsk_socket_info *xsk_socket);
 /* Implementations */
 /* *************** */
 
+static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk) {
+	uint64_t frame;
+	if (xsk->umem->umem_frame_free == 0) {
+		return XDP_INVALID_UMEM_FRAME;
+	}
+
+	frame = xsk->umem->umem_frame_addr[--xsk->umem->umem_frame_free];
+	xsk->umem->umem_frame_addr[xsk->umem->umem_frame_free] = XDP_INVALID_UMEM_FRAME;
+	return frame;
+}
+
+static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk) {
+	return xsk->umem->umem_frame_free;
+}
+
+static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame) {
+	assert(xsk->umem_frame_free < XDP_NUM_FRAMES);
+	xsk->umem->umem_frame_addr[xsk->umem->umem_frame_free++] = frame;
+}
+
 /* TODO: rename or split up functionality (cause of map assignment and attaching) */
 static int load_xdp_program(struct xdp_server *xdp) {
 	/* Load custom program */
@@ -191,26 +211,6 @@ static int load_xdp_program(struct xdp_server *xdp) {
 	return 0;
 }
 
-static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk) {
-	uint64_t frame;
-	if (xsk->umem->umem_frame_free == 0) {
-		return XDP_INVALID_UMEM_FRAME;
-	}
-
-	frame = xsk->umem->umem_frame_addr[--xsk->umem->umem_frame_free];
-	xsk->umem->umem_frame_addr[xsk->umem->umem_frame_free] = XDP_INVALID_UMEM_FRAME;
-	return frame;
-}
-
-static uint64_t xsk_umem_free_frame(struct xsk_socket_info *xsk) {
-	return xsk->umem->umem_frame_free;
-}
-
-static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame) {
-	assert(xsk->umem_frame_free < XDP_NUM_FRAMES);
-	xsk->umem->umem_frame_addr[xsk->umem->umem_frame_free++] = frame;
-}
-
 static int
 xsk_configure_umem(struct xsk_umem_info *umem_info, void *buffer, uint64_t size) {
 	int ret;
@@ -259,7 +259,7 @@ xsk_configure_socket(struct xdp_server *xdp, struct xsk_umem_info *umem) {
 	}
 
 	/* TODO: maybe don't update xsk_map here and do it later when the
-     * xdp_handler event thing is set up
+	 * xdp_handler event thing is set up
 	 */
 	ret = xsk_socket__update_xskmap(xsk_info->xsk, xdp->xsk_map_fd);
 	if (ret) {
