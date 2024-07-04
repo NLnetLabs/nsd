@@ -171,6 +171,14 @@ struct tcp_accept_handler_data {
 	int pp2_enabled;
 };
 
+#ifdef USE_XDP
+struct xdp_handler_data {
+	struct nsd        *nsd;
+	struct xdp_server *server;
+	struct event event;
+};
+#endif
+
 /*
  * These globals are used to enable the TCP accept handlers
  * when the number of TCP connection drops below the maximum
@@ -357,6 +365,10 @@ static void handle_tls_reading(int fd, short event, void* arg);
  * be called multiple times before a complete response is sent.
  */
 static void handle_tls_writing(int fd, short event, void* arg);
+#endif
+
+#ifdef USE_XDP
+static void handle_xdp(int fd, short event, void* arg);
 #endif
 
 /*
@@ -3225,6 +3237,33 @@ add_tcp_handler(
 	data->event_added = 1;
 }
 
+#ifdef USE_XDP
+static void
+add_xdp_handler(struct nsd *nsd,
+	            struct xdp_server *xdp,
+	            struct xdp_handler_data *data) {
+
+	struct event *handler = &data->event;
+
+	data->nsd = nsd;
+	data->server = xdp;
+
+	memset(handler, 0, sizeof(*handler));
+	int sock = xsk_socket__fd(xdp->xsk->xsk);
+	if (sock < 0) {
+		log_msg(LOG_ERR, "xdp: xsk socket file descriptor is invalid: %s",
+		        strerror(errno));
+		return;
+	}
+	// TODO: check which EV_flags are needed
+	event_set(handler, sock, EV_PERSIST|EV_READ, handle_xdp, data);
+	if (event_base_set(nsd->event_base, handler) != 0)
+		log_msg(LOG_ERR, "nsd xdp: event_base_set failed");
+	if (event_add(handler, NULL) != 0)
+		log_msg(LOG_ERR, "nsd xdp: event_add failed");
+}
+#endif
+
 /*
  * Serve DNS request to verifiers (short-lived)
  */
@@ -3530,8 +3569,9 @@ server_child(struct nsd *nsd)
 				log_msg(LOG_ERR, "xdp: failed to setup xdp socket");
 				/* Not quitting the child server, as it would just be restarted */
 			} else {
-				/* struct xdp_handler_data *data; */
-				// TODO: add handler and queries
+				struct xdp_handler_data *data;
+				data = region_alloc_zero(nsd->server_region, sizeof(*data));
+				add_xdp_handler(nsd, &nsd->xdp.xdp_server, data);
 			}
 		}
 	}
@@ -5452,6 +5492,15 @@ handle_tcp_accept(int fd, short event, void* arg)
 		configure_handler_event_types(0);
 	}
 }
+
+#ifdef USE_XDP
+static void handle_xdp(int fd, short event, void* arg) {
+	struct xdp_handler_data *data = (struct xdp_handler_data*) arg;
+
+	if (event & EV_READ)
+		xdp_handle_recv_and_send(data->server);
+}
+#endif
 
 static void
 send_children_command(struct nsd* nsd, sig_atomic_t command, int timeout)

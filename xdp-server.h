@@ -67,7 +67,10 @@ struct xdp_server {
 	void *nsd;
 };
 
-// int xdp_server_process(struct xdp_server *sock);
+/*
+ * Handle reading and writing packets via XDP
+ */
+void xdp_handle_recv_and_send(struct xdp_server *xdp);
 
 /* 
  * Initialize server process local XDP socket
