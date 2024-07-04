@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0 */
+
 #include <linux/bpf.h>      /* must be before include bpf/... */
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
@@ -130,5 +132,6 @@ redirect_map:
   return XDP_PASS;
 }
 
-// License needs to be GPL compatible to use bpf_printk
-char _license[] SEC("license") = "Dual MIT/GPL";
+// License needs to be GPL compatible to use bpf_printk. As we're not using
+// that currently, the license could be solely BSD.
+char _license[] SEC("license") = "Dual BSD/GPL";
