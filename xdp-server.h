@@ -72,8 +72,8 @@ struct xdp_server {
 /* 
  * Initialize server process local XDP socket
  *
- *  - free buffers
- *  - close socket
+ *  - create buffers
+ *  - open socket
  */
 int xdp_socket_init(struct xdp_server *xdp);
 
@@ -97,7 +97,7 @@ int xdp_server_init(struct xdp_server *xdp);
  * Cleanup NSD global XDP settings
  *
  *	- unload XDP program if loaded by NSD
- *	- unping BPF map if pinned and loaded by NSD
+ *	- unpin BPF map if pinned and loaded by NSD
  */
 int xdp_server_cleanup(struct xdp_server *xdp);
 
