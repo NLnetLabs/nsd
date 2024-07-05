@@ -4672,7 +4672,7 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 			return 1;
 		} else {
 			if(r == 0)
-				VERBOSITY(3, (LOG_ERR, "TLS handshake: connection closed prematurely"));
+				VERBOSITY(5, (LOG_ERR, "TLS handshake: connection closed prematurely"));
 			else {
 				unsigned long err = ERR_get_error();
 				if(!squelch_err_ssl_handshake(err)) {
@@ -4688,7 +4688,7 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 	}
 
 	/* Use to log successful upgrade for testing - could be removed*/
-	VERBOSITY(3, (LOG_INFO, "TLS handshake succeeded."));
+	VERBOSITY(5, (LOG_INFO, "TLS handshake succeeded."));
 	/* set back to the event we need to have when reading (or writing) */
 	if(data->shake_state == tls_hs_read && writing) {
 		tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST|EV_TIMEOUT|EV_WRITE);

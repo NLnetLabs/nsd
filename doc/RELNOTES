@@ -12,6 +12,7 @@ BUG FIXES:
 	- Fix test script from making spurious output.
 	- Fix cpu_affinity and socket_partitioning tests for --enable-log-role.
 	- Fix #344: Update simdzone.
+	- Fix #347: Adjust verbosity for TLS (+TCP) to be 5.
 
 4.10.0
 ================
