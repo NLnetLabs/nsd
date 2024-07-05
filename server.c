@@ -3184,7 +3184,7 @@ add_tcp_handler(
 		if(verbosity >= 2) {
 			char buf[48];
 			addrport2str((void*)(struct sockaddr_storage*)&sock->addr.ai_addr, buf, sizeof(buf));
-			VERBOSITY(4, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
+			VERBOSITY(5, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
 		}
 	} else {
 		data->tls_accept = 0;
