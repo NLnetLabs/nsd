@@ -1,6 +1,8 @@
 5 July 2024: Wouter
 	- Fix #347: Adjust verbosity for TLS (+TCP) to be 5.
 	- Merge #348: Move TLS logging to verbosity level 5.
+	- For #347: Also adjust verbosity of log message for remaining TCP
+	  connections.
 
 27 June 2024: Wouter
 	- Fix #344: Update simdzone.

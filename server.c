@@ -3564,7 +3564,7 @@ service_remaining_tcp(struct nsd* nsd)
 	/* check if it is needed */
 	if(nsd->current_tcp_count == 0 || tcp_active_list == NULL)
 		return;
-	VERBOSITY(4, (LOG_INFO, "service remaining TCP connections"));
+	VERBOSITY(5, (LOG_INFO, "service remaining TCP connections"));
 #ifdef USE_DNSTAP
 	/* remove dnstap collector, we cannot write there because the new
 	 * child process is using the file descriptor, or the child
@@ -3652,7 +3652,7 @@ service_remaining_tcp(struct nsd* nsd)
 			event_del(&timeout);
 		} else {
 			/* timed out, quit */
-			VERBOSITY(4, (LOG_INFO, "service remaining TCP connections: timed out, quit"));
+			VERBOSITY(5, (LOG_INFO, "service remaining TCP connections: timed out, quit"));
 			break;
 		}
 	}
