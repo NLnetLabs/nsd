@@ -3184,7 +3184,7 @@ add_tcp_handler(
 		if(verbosity >= 2) {
 			char buf[48];
 			addrport2str((void*)(struct sockaddr_storage*)&sock->addr.ai_addr, buf, sizeof(buf));
-			VERBOSITY(4, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
+			VERBOSITY(5, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
 		}
 	} else {
 		data->tls_accept = 0;
@@ -4688,7 +4688,7 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 	}
 
 	/* Use to log successful upgrade for testing - could be removed*/
-	VERBOSITY(3, (LOG_INFO, "TLS handshake succeeded."));
+	VERBOSITY(5, (LOG_INFO, "TLS handshake succeeded."));
 	/* set back to the event we need to have when reading (or writing) */
 	if(data->shake_state == tls_hs_read && writing) {
 		tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST|EV_TIMEOUT|EV_WRITE);
