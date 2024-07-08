@@ -258,7 +258,7 @@ namedb_read_zonefile(struct nsd* nsd, struct zone* zone, udb_base* taskudb,
 	zone->nsec3_param = NULL;
 #endif
 	delete_zone_rrs(nsd->db, zone);
-	VERBOSITY(9, (LOG_INFO, "zone %s zonec_read(%s)",
+	VERBOSITY(5, (LOG_INFO, "zone %s zonec_read(%s)",
 		zone->opts->name, fname));
 	errors = zonec_read(nsd->db, nsd->db->domains, zone->opts->name, fname, zone);
 	if(errors > 0) {

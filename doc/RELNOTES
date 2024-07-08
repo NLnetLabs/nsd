@@ -16,6 +16,7 @@ BUG FIXES:
 	- Merge #348: Move TLS logging to verbosity level 5.
 	- For #347: Also adjust verbosity of log message for remaining TCP
 	  connections.
+	- Merge #349: log file name before loading.
 
 4.10.0
 ================
