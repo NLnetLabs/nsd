@@ -52,14 +52,19 @@
 #include <linux/icmpv6.h>
 #include <linux/if_ether.h>
 #include <linux/ipv6.h>
+#include <linux/ip.h>
 #include <linux/udp.h>
 #include <net/if.h>
 
 #include "query.h"
+#include "dns.h"
 #include "region-allocator.h"
 #include "util.h"
 #include "xdp-server.h"
 #include "xdp-util.h"
+#include "nsd.h"
+
+#define DNS_PORT 53
 
 struct xdp_config {
 	__u32 xdp_flags;
@@ -106,18 +111,29 @@ static int load_xdp_program(struct xdp_server *xdp);
 static void handle_tx(struct xsk_socket_info *xsk);
 
 /*
- * Process packet
+ * Process packet and indicate if it should be dropped
+ * return 0 => drop
+ * return non-zero => use for tx
  */
-// TODO: rename?
 static int
-process_packet(struct xsk_socket_info *xsk, uint64_t addr, uint32_t len);
+process_packet(struct xdp_server *xdp,
+               uint8_t *pkt,
+               uint64_t addr,
+               uint32_t *len,
+               struct query *query);
+
+static void swap_mac(struct ethhdr *eth);
+static void *parse_and_swap_udp(struct udphdr *udp);
+static void *parse_and_swap_ipv6(struct ipv6hdr *ipv6);
+static void *parse_and_swap_ipv4(struct iphdr *ipv4);
 
 /*
- * Main loop, poll for new frames
+ * Parse dns message and return new length of dns message
  */
-// TODO: needed?
-static void rx_and_process(struct xsk_socket_info *xsk_socket);
-
+static int parse_dns(struct nsd* nsd,
+                     void *dnshdr,
+                     uint32_t dnslen,
+                     struct query *q);
 
 /* *************** */
 /* Implementations */
@@ -393,10 +409,175 @@ int xdp_socket_cleanup(struct xdp_server *xdp) {
 	return 0;
 }
 
+static void swap_mac(struct ethhdr *eth) {
+	uint8_t tmp_mac[ETH_ALEN];
+	memcpy(tmp_mac, eth->h_dest, ETH_ALEN);
+	memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
+	memcpy(eth->h_source, tmp_mac, ETH_ALEN);
+}
+
+static void *parse_and_swap_udp(struct udphdr *udp) {
+	if (ntohs(udp->dest) != DNS_PORT) {
+		return NULL;
+	}
+
+	uint16_t tmp_port; /* not touching endianness */
+	tmp_port = udp->source;
+	udp->source = udp->dest;
+	udp->dest = tmp_port;
+
+	return (void *)(udp + 1);
+}
+
+static void *parse_and_swap_ipv6(struct ipv6hdr *ipv6) {
+	if (ipv6->nexthdr != IPPROTO_UDP) {
+		return NULL;
+	}
+
+	struct in6_addr tmp_ip;
+	memcpy(&tmp_ip, &ipv6->saddr, sizeof(tmp_ip));
+	memcpy(&ipv6->saddr, &ipv6->daddr, sizeof(tmp_ip));
+	memcpy(&ipv6->daddr, &tmp_ip, sizeof(tmp_ip));
+
+	return (void *)(ipv6 + 1);
+}
+
+static void *parse_and_swap_ipv4(struct iphdr *ipv4) {
+	if (ipv4->protocol != IPPROTO_UDP) {
+		return NULL;
+	}
+
+	struct in_addr tmp_ip;
+	memcpy(&tmp_ip, &ipv4->saddr, sizeof(tmp_ip));
+	memcpy(&ipv4->saddr, &ipv4->daddr, sizeof(tmp_ip));
+	memcpy(&ipv4->daddr, &tmp_ip, sizeof(tmp_ip));
+
+	return (void *)(ipv4 + 1);
+}
+
+static int parse_dns(struct nsd* nsd, void *dnshdr, uint32_t dnslen, struct query *q) {
+	/* TODO: implement RATELIMIT, BIND8_STATS, DNSTAP, PROXY, ...? */
+	uint32_t now = 0;
+	uint32_t new_dnslen = 0;
+
+	/* ignoring q->remote_addrlen = addr_len; because it only seems to be
+	 * necessary with the msghdr/iovec mechanism */
+	/* TODO: check whether we need to set client_addr */
+	q->client_addrlen = (socklen_t)sizeof(q->client_addr);
+	q->is_proxied = 0;
+
+	/* set the size of the dns message and move position to start */
+	buffer_skip(q->packet, dnslen);
+	buffer_flip(q->packet);
+
+	if (query_process(q, nsd, &now) != QUERY_DISCARDED) {
+		if (RCODE(q->packet) == RCODE_OK && !AA(q->packet)) {
+			STATUP(nsd, nona);
+			ZTATUP(nsd, q->zone, nona);
+		}
+
+		query_add_optional(q, nsd, &now);
+
+		buffer_flip(q->packet);
+		/* return new dns message length */
+		return buffer_remaining(q->packet);
+	} else {
+		/* TODO: we might need somewhere to track whether the current query's
+		 * buffer is usable/allowed to be used? */
+		query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
+		STATUP(nsd, dropped);
+		ZTATUP(nsd, q->zone, dropped);
+		return 0;
+	}
+}
+
 static int
-process_packet(struct xsk_socket_info *xsk, uint64_t addr, uint32_t len) {
-	log_msg(LOG_INFO, "xdp: received packet with len %d", len);
-	return 0;
+process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
+               uint32_t *len, struct query *query) {
+	log_msg(LOG_INFO, "xdp: received packet with len %d", *len);
+
+	uint32_t dnslen = *len;
+	uint32_t data_before_dnshdr_len = 0;
+
+	struct ethhdr *eth = (struct ethhdr *)pkt;
+	struct ipv6hdr *ipv6 = NULL;
+	struct iphdr *ipv4 = NULL;
+	struct udphdr *udp = NULL;
+	void *dnshdr = NULL;
+
+	/* doing the check here, so that the packet/frame is large enough to contain
+	 * at least an ethernet header, an ipv4 header (ipv6 header is larger), and
+	 * a udp header.
+     */
+	if (*len < (sizeof(*eth) + sizeof(struct iphdr) + sizeof(*udp)))
+		return 0;
+
+	swap_mac(eth);
+	data_before_dnshdr_len = sizeof(*eth) + sizeof(*udp);
+
+	/* TODO: implement only accepting IP traffic to actual server ip? */
+	switch (ntohs(eth->h_proto)) {
+	case ETH_P_IPV6: {
+		ipv6 = (struct ipv6hdr *)(eth + 1);
+
+		if (*len < (sizeof(*eth) + sizeof(*ipv6) + sizeof(*udp)))
+			return 0;
+		if (!(udp = parse_and_swap_ipv6(ipv6)))
+			return 0;
+
+		dnslen -= (sizeof(*eth) + sizeof(*ipv6) + sizeof(*udp));
+		data_before_dnshdr_len += sizeof(*ipv6);
+
+		break;
+	} case ETH_P_IP: {
+		ipv4 = (struct iphdr *)(eth + 1);
+
+		if (!(udp = parse_and_swap_ipv4(ipv4)))
+			return 0;
+
+		dnslen -= (sizeof(*eth) + sizeof(*ipv4) + sizeof(*udp));
+		data_before_dnshdr_len += sizeof(*ipv4);
+
+		break;
+	}
+
+	/* TODO: vlan? */
+	/* case ETH_P_8021AD: case ETH_P_8021Q: */
+	/*     if (*len < (sizeof(*eth) + sizeof(*vlan))) */
+	/*         break; */
+	default:
+		return 0;
+	}
+
+	if (!(dnshdr = parse_and_swap_udp(udp)))
+		return 0;
+
+	query_set_buffer_data(query, dnshdr, XDP_FRAME_SIZE - data_before_dnshdr_len);
+
+	dnslen = parse_dns(xdp->nsd, dnshdr, dnslen, query);
+	if (!dnslen) {
+		return 0;
+	}
+
+	udp->len = htons(sizeof(*udp) + dnslen);
+
+	if (ipv4) {
+		__be16 ipv4_old_len = ipv4->tot_len;
+		ipv4->tot_len = htons(sizeof(*ipv4)) + udp->len;
+		csum16_replace(&ipv4->check, ipv4_old_len, ipv4->tot_len);
+		udp->check = calc_csum_udp4(udp, ipv4);
+	} else if (ipv6) {
+		ipv6->payload_len = udp->len;
+		udp->check = calc_csum_udp6(udp, ipv6);
+	} else {
+		log_msg(LOG_ERR, "xdp: we forgot to implement something... oops");
+		return 0;
+	}
+
+	log_msg(LOG_INFO, "xdp: parsed done with processing the packet");
+
+	*len = data_before_dnshdr_len + dnslen;
+	return 1;
 }
 
 void xdp_handle_recv_and_send(struct xdp_server *xdp) {
@@ -434,10 +615,32 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 		uint64_t addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
 
-		if (!process_packet(xsk, addr, len)) {
+		uint8_t *pkt = xsk_umem__get_data(xsk->umem->buffer, addr);
+		if (!process_packet(xdp, pkt, addr, &len, xdp->queries[i])) {
 			/* drop packet */
 			xsk_free_umem_frame(xsk, addr);
+			// TODO: also move query in queries around and recvd--? Maybe, or track query indices?
+		} else {
+			// TODO: send packet
+			/* "Here we sent the packet out of the receive port. Note that
+			 * we allocate one entry and schedule it. Your design would be
+			 * faster if you do batch processing/transmission" -- xdp-tutorial */
+
+			uint32_t tx_idx = 0;
+			ret = xsk_ring_prod__reserve(&xsk->tx, 1, &tx_idx);
+			if (ret != 1) {
+				// no more tx slots available, drop packet
+				xsk_free_umem_frame(xsk, addr);
+				query_reset(xdp->queries[i], UDP_MAX_MESSAGE_LEN, 0);
+				continue;
+			}
+
+			xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
+			xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->len = len;
+			xsk_ring_prod__submit(&xsk->tx, 1);
+			xsk->outstanding_tx++;
 		}
+		query_reset(xdp->queries[i], UDP_MAX_MESSAGE_LEN, 0);
 
 		/* xsk->stats.rx_bytes += len; */
 	}
