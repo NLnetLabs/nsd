@@ -15,7 +15,6 @@
 #include <linux/ethtool.h>
 #include <linux/if.h>
 #include <linux/sockios.h>
-#include <stdint.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
