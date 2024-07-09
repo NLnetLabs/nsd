@@ -213,6 +213,9 @@ struct mmsghdr {
 static struct mmsghdr msgs[NUM_RECV_PER_SELECT];
 static struct iovec iovecs[NUM_RECV_PER_SELECT];
 static struct query *queries[NUM_RECV_PER_SELECT];
+#ifdef USE_XDP
+static struct query *xdp_queries[XDP_RX_BATCH_SIZE];
+#endif
 
 /*
  * Data for the TCP connection handlers.
@@ -3557,7 +3560,7 @@ server_child(struct nsd *nsd)
 			        nsd->xdp.xdp_server.interface_name);
 		} else {
 			nsd->xdp.xdp_server.queue_index = nsd->this_child->child_num;
-			/* nsd->xdp.xdp_server.queries = xdp_queries; */
+			nsd->xdp.xdp_server.queries = xdp_queries;
 
 			log_msg(LOG_INFO,
 			        "xdp: using queue_id %d on interface %s",
@@ -3572,6 +3575,28 @@ server_child(struct nsd *nsd)
 				struct xdp_handler_data *data;
 				data = region_alloc_zero(nsd->server_region, sizeof(*data));
 				add_xdp_handler(nsd, &nsd->xdp.xdp_server, data);
+			}
+
+			const int scratch_data_len = 1;
+			void *scratch_data = region_alloc_zero(nsd->server_region,
+			                                       scratch_data_len);
+			for (i = 0; i < XDP_RX_BATCH_SIZE; i++) {
+				/* Be aware that the buffer is initialized with scratch data
+				 * and will be filled by the xdp handle and receive function
+				 * that receives the packet data.
+				 * Using scratch data so that the existing functions in regards
+				 * to queries and buffers don't break by use of NULL pointers */
+				struct buffer *buffer = region_alloc_zero(
+				                            nsd->server_region,
+				                            sizeof(struct buffer));
+				buffer_create_from(buffer, scratch_data, scratch_data_len);
+				xdp_queries[i] = query_create_with_buffer(
+				                                  server_region,
+				                                  compressed_dname_offsets,
+				                                  compression_table_size,
+				                                  compressed_dnames,
+				                                  buffer);
+				query_reset(xdp_queries[i], UDP_MAX_MESSAGE_LEN, 0);
 			}
 		}
 	}
