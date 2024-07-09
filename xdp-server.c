@@ -7,6 +7,10 @@
  *
  */
 
+/*
+ * Parts inspired by https://github.com/xdp-project/xdp-tutorial
+ */
+
 /* TODO: make sure we have the necessary capabilities
  * CAP_BPF,
  * CAP_NET_RAW (maybe),
