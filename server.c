@@ -3563,7 +3563,7 @@ server_child(struct nsd *nsd)
 			nsd->xdp.xdp_server.queries = xdp_queries;
 
 			log_msg(LOG_INFO,
-			        "xdp: using queue_id %d on interface %s",
+			        "xdp: binding socket to queue_id %d on interface %s",
 			        nsd->xdp.xdp_server.queue_index,
 			        nsd->xdp.xdp_server.interface_name);
 
