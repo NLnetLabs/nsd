@@ -4,6 +4,12 @@
 	  build issues might arise. The MAKE variable expands to the command
 	  used on the command line.
 
+11 July 2024: Jeroen
+	- Serialize WKS RRs using numeric values rather than names.
+	  simdzone does not use getprotobyname and getservbyname. Secondary
+	  zones received via IXFR/AXFR might fail to load because WKS RRs
+	  used "unsupported" protocols or services.
+
 8 July 2024: Wouter
 	- Merge #349: log file name before loading.
 
