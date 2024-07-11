@@ -18,6 +18,7 @@ BUG FIXES:
 	  connections.
 	- Merge #349: log file name before loading.
 	- Use MAKE variable rather than make command directly in Makefile.
+	- Serialize WKS RRs using numeric values rather than names.
 
 4.10.0
 ================
