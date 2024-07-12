@@ -17,6 +17,7 @@ BUG FIXES:
 	- For #347: Also adjust verbosity of log message for remaining TCP
 	  connections.
 	- Merge #349: log file name before loading.
+	- Use MAKE variable rather than make command directly in Makefile.
 
 4.10.0
 ================
