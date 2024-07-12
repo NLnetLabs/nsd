@@ -331,7 +331,8 @@ int xdp_server_init(struct xdp_server *xdp) {
 	}
 
 	/* if we don't do set rlimit, libbpf does it */
-	// TODO: either get CAP_SYS_RESOURCE or do this before privilege drop
+	/* this either has to be done before privilege drop or
+	 * requires CAP_SYS_RESOURCE */
 	if (setrlimit(RLIMIT_MEMLOCK, &rlim)) {
 		log_msg(LOG_ERR, "xdp: cannot adjust rlimit (RLIMIT_MEMLOCK): \"%s\"\n",
 			strerror(errno));
@@ -543,7 +544,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 	/* doing the check here, so that the packet/frame is large enough to contain
 	 * at least an ethernet header, an ipv4 header (ipv6 header is larger), and
 	 * a udp header.
-     */
+	 */
 	if (*len < (sizeof(*eth) + sizeof(struct iphdr) + sizeof(*udp)))
 		return 0;
 

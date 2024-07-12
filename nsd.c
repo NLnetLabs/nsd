@@ -1569,6 +1569,7 @@ main(int argc, char *argv[])
 	nsd.xdp.xdp_server.bpf_prog_should_load = nsd.options->xdp_program_load;
 	nsd.xdp.xdp_server.nsd = &nsd;
 
+	/* beware xdp_server_init needs to be run before dropping privleges */
 	if (nsd.options->xdp_interface) {
 		xdp_server_init(&nsd.xdp.xdp_server);
 	} else {
