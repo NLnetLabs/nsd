@@ -1,3 +1,9 @@
+12 July 2024: Jeroen
+	- Use MAKE variable rather than make command.
+	  On platforms where make is not the same make executing the Makefile,
+	  build issues might arise. The MAKE variable expands to the command
+	  used on the command line.
+
 8 July 2024: Wouter
 	- Merge #349: log file name before loading.
 

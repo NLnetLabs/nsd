@@ -195,7 +195,7 @@ audit: nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem checksec
 
 clean:
 	rm -f *.o $(TARGETS) $(MANUALS) cutest popen3_echo xfr-inspect nsd-mem
-	make -C simdzone $(MAKECMDGOALS)
+	$(MAKE) -C simdzone $(MAKECMDGOALS)
 
 distclean: clean
 	rm -f Makefile config.h config.log config.status dnstap/dnstap_config.h
