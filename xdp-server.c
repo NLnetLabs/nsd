@@ -104,6 +104,7 @@ static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame);
  */
 static int load_xdp_program(struct xdp_server *xdp);
 
+static int unload_xdp_program(struct xdp_server *xdp);
 
 /*
  * Send outstanding packets and recollect completed frame addresses
@@ -353,10 +354,44 @@ int xdp_server_cleanup(struct xdp_server *xdp) {
 			}
 		}
 
-		/* TODO: unload BPF prog */
-		log_msg(LOG_ERR, "xdp: would unload here, but not implemented");
+		log_msg(LOG_INFO, "xdp: unloading xdp program");
+		unload_xdp_program(xdp);
 	}
 
+	return ret;
+}
+
+static int unload_xdp_program(struct xdp_server *xdp) {
+	struct xdp_multiprog *mp = NULL;
+	struct xdp_program *prog = NULL;
+	int ret = 0;
+
+	mp = xdp_multiprog__get_from_ifindex(xdp->interface_index);
+	if (!mp || libxdp_get_error(mp)) {
+		log_msg(LOG_ERR, "xdp: unable to get xdp bpf prog handle: %s\n",
+		        strerror(errno));
+		return -1;
+	}
+
+	if (xdp_multiprog__is_legacy(mp)) {
+		prog = xdp_multiprog__main_prog(mp);
+	} else {
+		while ((prog = xdp_multiprog__next_prog(prog, mp))) {
+			if (xdp_program__id(prog) == xdp_program__id(xdp->bpf_prog)) {
+				break;
+			}
+		}
+	}
+
+	log_msg(LOG_INFO, "xdp: detaching xdp program %u from %s\n",
+	        xdp_program__id(prog), xdp->interface_name);
+	ret = xdp_program__detach(prog, xdp->interface_index, XDP_MODE_UNSPEC, 0);
+	if (ret) {
+		log_msg(LOG_ERR, "xdp: failed to detach xdp program: %s\n",
+		        strerror(-ret));
+	}
+
+	xdp_multiprog__close(mp);
 	return ret;
 }
 
