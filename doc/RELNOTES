@@ -3,6 +3,8 @@ NSD RELEASE NOTES
 4.10.1 (under development)
 ================
 FEATURES:
+	- Merge #352 from orlitzky: contrib: add OpenRC service script, config
+	  file, and tmpfiles entry.
 BUG FIXES:
 	- Fix incorrect punctuation of log messages.
 	- Fix for #317, document more text on pidfile permissions.

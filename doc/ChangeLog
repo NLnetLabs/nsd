@@ -1,3 +1,7 @@
+16 July 2024: Wouter
+	- Merge #352 from orlitzky: contrib: add OpenRC service script, config
+	  file, and tmpfiles entry.
+
 12 July 2024: Jeroen
 	- Use MAKE variable rather than make command.
 	  On platforms where make is not the same make executing the Makefile,
