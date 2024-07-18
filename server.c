@@ -3188,7 +3188,7 @@ add_tcp_handler(
 		if(verbosity >= 2) {
 			char buf[48];
 			addrport2str((void*)(struct sockaddr_storage*)&sock->addr.ai_addr, buf, sizeof(buf));
-			VERBOSITY(4, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
+			VERBOSITY(5, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
 		}
 	} else {
 		data->tls_accept = 0;
@@ -3582,7 +3582,7 @@ service_remaining_tcp(struct nsd* nsd)
 	/* check if it is needed */
 	if(nsd->current_tcp_count == 0 || tcp_active_list == NULL)
 		return;
-	VERBOSITY(4, (LOG_INFO, "service remaining TCP connections"));
+	VERBOSITY(5, (LOG_INFO, "service remaining TCP connections"));
 #ifdef USE_DNSTAP
 	/* remove dnstap collector, we cannot write there because the new
 	 * child process is using the file descriptor, or the child
@@ -3674,7 +3674,7 @@ service_remaining_tcp(struct nsd* nsd)
 			event_del(&timeout);
 		} else {
 			/* timed out, quit */
-			VERBOSITY(4, (LOG_INFO, "service remaining TCP connections: timed out, quit"));
+			VERBOSITY(5, (LOG_INFO, "service remaining TCP connections: timed out, quit"));
 			break;
 		}
 	}
@@ -4706,7 +4706,7 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 			return 1;
 		} else {
 			if(r == 0)
-				VERBOSITY(3, (LOG_ERR, "TLS handshake: connection closed prematurely"));
+				VERBOSITY(5, (LOG_ERR, "TLS handshake: connection closed prematurely"));
 			else {
 				unsigned long err = ERR_get_error();
 				if(!squelch_err_ssl_handshake(err)) {

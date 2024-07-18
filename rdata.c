@@ -17,6 +17,7 @@
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
@@ -507,6 +508,22 @@ rdata_apl_to_string(buffer_type *output, rdata_atom_type rdata,
 	return result;
 }
 
+/*
+ * Print protocol and service numbers rather than names for Well-Know Services
+ * (WKS) RRs. WKS RRs are deprecated, though not technically, and should not
+ * be used. The parser supports tcp/udp for protocols and a small subset of
+ * services because getprotobyname and/or getservbyname are marked MT-Unsafe
+ * and locale. getprotobyname_r and getservbyname_r exist on some platforms,
+ * but are still marked locale (meaning the locale object is used without
+ * synchonization, which is a problem for a library). Failure to load a zone
+ * on a primary server because of an unknown protocol or service name is
+ * acceptable as the operator can opt to use the numeric value. Failure to
+ * load a zone on a secondary server is problematic because "unsupported"
+ * protocols and services might be written. Print the numeric value for
+ * maximum compatibility.
+ *
+ * (see simdzone/generic/wks.h for details).
+ */
 static int
 rdata_services_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
@@ -521,26 +538,16 @@ rdata_services_to_string(buffer_type *output, rdata_atom_type rdata,
 		uint8_t protocol_number = buffer_read_u8(&packet);
 		ssize_t bitmap_size = buffer_remaining(&packet);
 		uint8_t *bitmap = buffer_current(&packet);
-		struct protoent *proto = getprotobynumber(protocol_number);
 
-		if (proto) {
-			int i;
+		buffer_printf(output, "%" PRIu8, protocol_number);
 
-			buffer_printf(output, "%s", proto->p_name);
-
-			for (i = 0; i < bitmap_size * 8; ++i) {
-				if (get_bit(bitmap, i)) {
-					struct servent *service = getservbyport((int)htons(i), proto->p_name);
-					if (service) {
-						buffer_printf(output, " %s", service->s_name);
-					} else {
-						buffer_printf(output, " %d", i);
-					}
-				}
+		for (int i = 0; i < bitmap_size * 8; ++i) {
+			if (get_bit(bitmap, i)) {
+				buffer_printf(output, " %d", i);
 			}
-			buffer_skip(&packet, bitmap_size);
-			result = 1;
 		}
+		buffer_skip(&packet, bitmap_size);
+		result = 1;
 	}
 	return result;
 }

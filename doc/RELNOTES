@@ -3,12 +3,24 @@ NSD RELEASE NOTES
 4.10.1 (under development)
 ================
 FEATURES:
+	- Merge #352 from orlitzky: contrib: add OpenRC service script, config
+	  file, and tmpfiles entry.
 BUG FIXES:
 	- Fix incorrect punctuation of log messages.
 	- Fix for #317, document more text on pidfile permissions.
 	- Fix #334: RFC8482 behavior documentation.
 	- Fix for OpenSSL 3.0 deprecated functions.
 	- Merge #341: Fix allow-query wording in nsd.conf.5.in.
+	- Fix test script from making spurious output.
+	- Fix cpu_affinity and socket_partitioning tests for --enable-log-role.
+	- Fix #344: Update simdzone.
+	- Fix #347: Adjust verbosity for TLS (+TCP) to be 5.
+	- Merge #348: Move TLS logging to verbosity level 5.
+	- For #347: Also adjust verbosity of log message for remaining TCP
+	  connections.
+	- Merge #349: log file name before loading.
+	- Use MAKE variable rather than make command directly in Makefile.
+	- Serialize WKS RRs using numeric values rather than names.
 
 4.10.0
 ================

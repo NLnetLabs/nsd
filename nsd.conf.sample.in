@@ -337,11 +337,13 @@ remote-control:
 	# interfaces can be specified by IP address or interface name.
 	# with an interface name, all IP addresses associated with that
 	# interface are used.
-	# with an absolute path, a unix local named pipe is used for control
-	# (and key and cert files are not needed, use directory permissions).
 	# control-interface: 127.0.0.1
 	# control-interface: ::1
 	# control-interface: lo
+
+	# with an absolute path, a unix local named pipe is used for control
+	# (and key and cert files are not needed, use directory permissions).
+	# control-interface: @runstatedir@/nsd/nsd.sock
 
 	# port number for remote control operations (uses TLS over TCP).
 	# control-port: 8952

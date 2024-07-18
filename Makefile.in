@@ -14,6 +14,7 @@ exec_prefix = @exec_prefix@
 sbindir	= @sbindir@
 mandir = @mandir@
 datarootdir = @datarootdir@
+runstatedir = @runstatedir@
 
 # NSD specific pathnames
 configdir = @configdir@
@@ -65,6 +66,7 @@ EDIT		= $(SED) \
 			-e 's,@configdir\@,$(configdir),g' \
 			-e 's,@zonesdir\@,$(zonesdir),g' \
 			-e 's,@chrootdir\@,$(chrootdir),g' \
+			-e 's,@runstatedir\@,$(runstatedir),g' \
 			-e 's,@pidfile\@,$(pidfile),g' \
 			-e 's,@logfile\@,$(logfile),g' \
 			-e 's,@xfrdir\@,$(xfrdir),g' \
@@ -76,7 +78,7 @@ EDIT		= $(SED) \
 			-e 's,@dnstap_socket_path\@,@opt_dnstap_socket_path@,g' \
 			-e 's,@user\@,$(user),g'
 
-TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh
+TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf
 MANUALS=nsd.8 nsd-checkconf.8 nsd-checkzone.8 nsd-control.8 nsd.conf.5
 
 COMMON_OBJ=answer.o axfr.o ixfr.o ixfrcreate.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o rrl.o siphash.o tsig.o tsig-openssl.o udb.o util.o bitset.o popen3.o proxy_protocol.o
@@ -121,6 +123,12 @@ nsd-checkzone.8:	$(srcdir)/nsd-checkzone.8.in config.h
 nsd-control.8:	$(srcdir)/nsd-control.8.in config.h
 	rm -f nsd-control.8
 	$(EDIT) $(srcdir)/nsd-control.8.in > nsd-control.8
+
+contrib/nsd.openrc: contrib/nsd.openrc.in
+	$(EDIT) $< > $@
+
+contrib/nsd-tmpfiles.conf: contrib/nsd-tmpfiles.conf.in
+	$(EDIT) $< > $@
 
 install: all
 	$(INSTALL) -d $(DESTDIR)$(sbindir)
@@ -195,7 +203,7 @@ audit: nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem checksec
 
 clean:
 	rm -f *.o $(TARGETS) $(MANUALS) cutest popen3_echo xfr-inspect nsd-mem
-	make -C simdzone $(MAKECMDGOALS)
+	$(MAKE) -C simdzone $(MAKECMDGOALS)
 
 distclean: clean
 	rm -f Makefile config.h config.log config.status dnstap/dnstap_config.h

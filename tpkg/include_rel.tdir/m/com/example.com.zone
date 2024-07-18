@@ -1,0 +1,6 @@
+; The zone file for example.com.
+example.com. IN SOA host root 1 3600 300 7200 3600
+$INCLUDE m/common/ns.cf
+$INCLUDE m/common/stats.cf
+
+www IN A 1.2.3.4

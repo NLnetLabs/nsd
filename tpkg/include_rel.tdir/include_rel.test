@@ -1,0 +1,57 @@
+# #-- include_rel.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+DIG=dig
+
+$DIG @127.0.0.1 -p $TPKG_PORT www.example.com A > cur
+cat cur
+if grep "1.2.3.4" cur; then
+	echo "www.example.com is OK"
+else
+	echo "www.example.com is failed"
+	exit 1
+fi
+
+$DIG @127.0.0.1 -p $TPKG_PORT ns1.example.com A > cur
+cat cur
+if grep "1.2.3.6" cur; then
+	echo "ns1.example.com is OK"
+else
+	echo "ns1.example.com is failed"
+	exit 1
+fi
+
+$DIG @127.0.0.1 -p $TPKG_PORT ns2.example.com A > cur
+cat cur
+if grep "1.2.3.7" cur; then
+	echo "ns2.example.com is OK"
+else
+	echo "ns2.example.com is failed"
+	exit 1
+fi
+
+$DIG @127.0.0.1 -p $TPKG_PORT stats.example.com TXT > cur
+cat cur
+if grep "avail" cur; then
+	echo "stats.example.com is OK"
+else
+	echo "stats.example.com is failed"
+	exit 1
+fi
+
+echo ""
+echo "> nsd-checkzone"
+$PRE/nsd-checkzone example.com m/com/example.com.zone
+if test $? -ne 0; then
+	echo "nsd-checkzone failed"
+	exit 1
+fi
+
+echo ""
+echo "OK"
+exit 0

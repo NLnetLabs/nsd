@@ -1,3 +1,38 @@
+16 July 2024: Wouter
+	- Merge #352 from orlitzky: contrib: add OpenRC service script, config
+	  file, and tmpfiles entry.
+
+12 July 2024: Jeroen
+	- Use MAKE variable rather than make command.
+	  On platforms where make is not the same make executing the Makefile,
+	  build issues might arise. The MAKE variable expands to the command
+	  used on the command line.
+
+11 July 2024: Jeroen
+	- Serialize WKS RRs using numeric values rather than names.
+	  simdzone does not use getprotobyname and getservbyname. Secondary
+	  zones received via IXFR/AXFR might fail to load because WKS RRs
+	  used "unsupported" protocols or services.
+
+8 July 2024: Wouter
+	- Merge #349: log file name before loading.
+
+5 July 2024: Wouter
+	- Fix #347: Adjust verbosity for TLS (+TCP) to be 5.
+	- Merge #348: Move TLS logging to verbosity level 5.
+	- For #347: Also adjust verbosity of log message for remaining TCP
+	  connections.
+
+27 June 2024: Wouter
+	- Fix #344: Update simdzone.
+
+26 June 2024: Wouter
+	- Fix test script from making spurious output.
+	- Fix cpu_affinity and socket_partitioning tests for --enable-log-role.
+
+24 June 2024: Wouter
+	- Add unit test for #343 relative include in zone file.
+
 20 June 2024: Wouter
 	- Merge #341: Fix allow-query wording in nsd.conf.5.in.
 
