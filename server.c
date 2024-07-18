@@ -2142,8 +2142,7 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 	}
 	listen_sslctx_setup_2(ctx);
 	if(verifypem && verifypem[0]) {
-		if(!SSL_CTX_load_verify_locations(ctx, verifypem, NULL) ||
-		   !SSL_CTX_set_default_verify_paths(ctx)) {
+		if(!SSL_CTX_load_verify_locations(ctx, verifypem, NULL)) {
 			log_crypto_err("Error in SSL_CTX verify locations");
 			SSL_CTX_free(ctx);
 			return NULL;
