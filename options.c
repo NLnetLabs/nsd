@@ -2207,6 +2207,16 @@ acl_addr_match_range_v6(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t 
 int
 acl_tls_hostname_matches(SSL* tls_auth, const char* acl_cert_cn, char** cert_cn)
 {
+	int i;
+	int san_names_nb = -1;
+	STACK_OF(GENERAL_NAME) *san_names = NULL;
+
+	int common_name_loc = -1;
+	char *common_name_str = NULL;
+	X509_NAME *subject_name = NULL;
+	X509_NAME_ENTRY *common_name_entry = NULL;
+	ASN1_STRING *common_name_asn1 = NULL;
+
 	X509 *client_cert;
 	*cert_cn = NULL;
 
@@ -2247,9 +2257,6 @@ acl_tls_hostname_matches(SSL* tls_auth, const char* acl_cert_cn, char** cert_cn)
  */
 
 	/* semi follow RFC6125#section-6.4.4 check SAN DNS first */
-	int i;
-	int san_names_nb = -1;
-	STACK_OF(GENERAL_NAME) *san_names = NULL;
 
 	/* Try to extract the names within the SAN extension from the certificate */
 	san_names = X509_get_ext_d2i(client_cert, NID_subject_alt_name, NULL, NULL);
@@ -2257,12 +2264,13 @@ acl_tls_hostname_matches(SSL* tls_auth, const char* acl_cert_cn, char** cert_cn)
 		san_names_nb = sk_GENERAL_NAME_num(san_names);
 
 		/* Check each name within the extension */
-		for (int i = 0; i < san_names_nb; i++) {
+		for (i = 0; i < san_names_nb; i++) {
+			char* dns_name;
 			const GENERAL_NAME *current_name = sk_GENERAL_NAME_value(san_names, i);
 			/* skip non-DNS SAN entries */
 			if (current_name->type != GEN_DNS)
 				continue;
-			char *dns_name = (char *) ASN1_STRING_get0_data(current_name->d.dNSName);
+			dns_name = (char *) ASN1_STRING_get0_data(current_name->d.dNSName);
 			if (dns_name == NULL)
 				continue;
 			/* Make sure there isn't an embedded NUL character in the DNS name */
@@ -2289,12 +2297,6 @@ acl_tls_hostname_matches(SSL* tls_auth, const char* acl_cert_cn, char** cert_cn)
 	}
 
 	/* no match on SAN, continue with normal CN */
-	int common_name_loc = -1;
-	char *common_name_str = NULL;
-	X509_NAME *subject_name = NULL;
-	X509_NAME_ENTRY *common_name_entry = NULL;
-	ASN1_STRING *common_name_asn1 = NULL;
-
 	if ((subject_name = X509_get_subject_name(client_cert)) == NULL) {
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "CN get subject failed"));
 		X509_free(client_cert);

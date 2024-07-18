@@ -1,3 +1,6 @@
+18 July 2024: Wouter
+	- Merge #337 from bilias: Mutual TLS-AUTH.
+
 16 July 2024: Wouter
 	- Merge #352 from orlitzky: contrib: add OpenRC service script, config
 	  file, and tmpfiles entry.

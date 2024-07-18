@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 	- Merge #352 from orlitzky: contrib: add OpenRC service script, config
 	  file, and tmpfiles entry.
+	- Merge #337 from bilias: Mutual TLS-AUTH.
 BUG FIXES:
 	- Fix incorrect punctuation of log messages.
 	- Fix for #317, document more text on pidfile permissions.
