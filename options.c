@@ -18,6 +18,9 @@
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 #endif
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
 #include "options.h"
 #include "query.h"
 #include "tsig.h"
@@ -295,12 +298,12 @@ parse_options_file(struct nsd_options* opt, const char* file,
 		for(acl=pat->provide_xfr; acl; acl=acl->next)
 		{
 			/* Find tls_auth */
-			if (!acl->tls_auth_name)
-				; /* pass */
-			else if (!(acl->tls_auth_options =
+			if (acl->tls_auth_name) {
+				if (!(acl->tls_auth_options =
 			                tls_auth_options_find(opt, acl->tls_auth_name)))
-				c_error("tls_auth %s in pattern %s could not be found",
+				    c_error("tls_auth %s in pattern %s could not be found",
 						acl->tls_auth_name, pat->pname);
+			}
 			if(acl->nokey || acl->blocked)
 				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
@@ -1956,10 +1959,11 @@ acl_check_incoming(struct acl_options* acl, struct query* q,
 			acl->ip_address_spec, acl->nokey?"NOKEY":
 			(acl->blocked?"BLOCKED":acl->key_name),
 			(acl->tls_auth_name && q->tls_auth)?acl->tls_auth_name:""));
-#endif
+#else
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "testing acl %s %s",
 			acl->ip_address_spec, acl->nokey?"NOKEY":
 			(acl->blocked?"BLOCKED":acl->key_name)));
+#endif
 		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)) {
 			if(!match)
 			{
@@ -1981,7 +1985,7 @@ acl_check_incoming(struct acl_options* acl, struct query* q,
 				if (!acl_tls_hostname_matches(q->tls_auth, acl->tls_auth_options->auth_domain_name, &(q->cert_cn))) {
 					VERBOSITY(3, (LOG_WARNING,
 							"client cert %s does not match %s %s",
-							q->cert_cn, acl->tls_auth_name, acl->tls_auth_options->auth_domain_name));
+							(q->cert_cn?q->cert_cn:"(null)"), acl->tls_auth_name, acl->tls_auth_options->auth_domain_name));
 					q->cert_cn = NULL;
 					return -1;
 				}
@@ -2266,9 +2270,9 @@ acl_tls_hostname_matches(SSL* tls_auth, const char* acl_cert_cn, char** cert_cn)
 			}
 			if (dns_name != NULL) {
 				/* certificate SAN DNS match */
-				if (strncmp(dns_name, acl_cert_cn, strlen(acl_cert_cn))==0) {
+				if (strcasecmp(dns_name, acl_cert_cn)==0) {
 					DEBUG(DEBUG_XFRD,2, (LOG_INFO, "SAN %s matches acl", dns_name));
-					*cert_cn = strndup(dns_name, strlen(dns_name));
+					*cert_cn = strdup(dns_name);
 					X509_free(client_cert);
 					return 1;
 				} else {
@@ -2324,14 +2328,14 @@ acl_tls_hostname_matches(SSL* tls_auth, const char* acl_cert_cn, char** cert_cn)
 	}
 	if (common_name_str != NULL) {
 		/* store it for logging */
-		*cert_cn = strndup(common_name_str, strlen(common_name_str));
+		*cert_cn = strdup(common_name_str);
 		/* certificate CN match */
-		if (strncmp(common_name_str, acl_cert_cn, strlen(acl_cert_cn))==0) {
+		if (strcasecmp(common_name_str, acl_cert_cn)==0) {
 			X509_free(client_cert);
 			return 1;
 		}
 	}
-	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "CN from cert %s does not match acl", common_name_str));
+	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "CN from cert %s does not match acl", (common_name_str?common_name_str:"(null)")));
 	X509_free(client_cert);
 	return 0;
 }
