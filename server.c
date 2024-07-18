@@ -5316,10 +5316,8 @@ handle_tcp_accept(int fd, short event, void* arg)
 #ifdef HAVE_SSL
 	tcp_data->shake_state = tls_hs_none;
 	/* initialize both incase of dangling pointers */
-	if (data->tls_accept || data->tls_auth_accept) {
-		tcp_data->tls = NULL;
-		tcp_data->tls_auth = NULL;
-	}
+	tcp_data->tls = NULL;
+	tcp_data->tls_auth = NULL;
 #endif
 	tcp_data->query_needs_reset = 1;
 	tcp_data->pp2_enabled = data->pp2_enabled;
