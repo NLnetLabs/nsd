@@ -1986,11 +1986,13 @@ acl_check_incoming(struct acl_options* acl, struct query* q,
 					VERBOSITY(3, (LOG_WARNING,
 							"client cert %s does not match %s %s",
 							(q->cert_cn?q->cert_cn:"(null)"), acl->tls_auth_name, acl->tls_auth_options->auth_domain_name));
+					free(q->cert_cn);
 					q->cert_cn = NULL;
 					return -1;
 				}
 				VERBOSITY(5, (LOG_INFO, "%s %s verified",
 					acl->tls_auth_name, acl->tls_auth_options->auth_domain_name));
+				free(q->cert_cn);
 				q->cert_cn = acl->tls_auth_options->auth_domain_name;
 			} else {
 				/* nsd gives error on start for this, but check just in case */
