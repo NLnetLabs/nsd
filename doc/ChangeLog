@@ -1,3 +1,6 @@
+18 July 2024: Jeroen
+	- Fix propagation of Makefile targets to simdzone.
+
 18 July 2024: Wouter
 	- Merge #337 from bilias: Mutual TLS-AUTH.
 

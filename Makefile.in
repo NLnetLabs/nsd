@@ -31,9 +31,6 @@ user = @user@
 DNSTAP_SRC=@DNSTAP_SRC@
 DNSTAP_OBJ=@DNSTAP_OBJ@
 
-# GNU Make provides MAKECMDGOALS, BSD Make provides .TARGETS
-MAKECMDGOALS ?= $(.TARGETS)
-
 # override $U variable which is used by autotools for deansification (for
 # K&R C compilers), but causes problems if $U is defined in the env).
 U=
@@ -201,21 +198,31 @@ audit: nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem checksec
 	./checksec --file=nsd-control
 	./checksec --file=nsd-mem
 
-clean:
+.clean:
 	rm -f *.o $(TARGETS) $(MANUALS) cutest popen3_echo xfr-inspect nsd-mem
-	$(MAKE) -C simdzone $(MAKECMDGOALS)
 
-distclean: clean
+.distclean: .clean
 	rm -f Makefile config.h config.log config.status dnstap/dnstap_config.h
 
-realclean: distclean
+.realclean: .distclean
 	rm -rf autom4te*
 	rm -f configlexer.c configparser.h configparser.c configparser.stamp
 
+clean: .clean
+	$(MAKE) -C simdzone clean
+
+distclean: .distclean
+	$(MAKE) -C simdzone distclean
+
+realclean: .realclean
+	$(MAKE) -C simdzone realclean
+
 maintainer-clean: realclean
 
-devclean: realclean
+devclean: .realclean
 	rm -f config.h.in configure
+	$(MAKE) -C simdzone devclean
+
 
 basename.o:	$(srcdir)/compat/basename.c
 	$(COMPILE) -c $(srcdir)/compat/basename.c
