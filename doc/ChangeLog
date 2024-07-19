@@ -1,3 +1,6 @@
+19 July 2024: Willem
+	- Do not log ACL mismatch on followed CNAMEs.
+
 18 July 2024: Jeroen
 	- Fix propagation of Makefile targets to simdzone.
 
