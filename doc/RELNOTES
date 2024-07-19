@@ -23,6 +23,7 @@ BUG FIXES:
 	- Use MAKE variable rather than make command directly in Makefile.
 	- Serialize WKS RRs using numeric values rather than names.
 	- Fix propagation of Makefile targets to simdzone
+	- Do not log ACL mismatch on followed CNAMEs.
 
 4.10.0
 ================
