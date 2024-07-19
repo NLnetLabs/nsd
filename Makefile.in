@@ -122,9 +122,11 @@ nsd-control.8:	$(srcdir)/nsd-control.8.in config.h
 	$(EDIT) $(srcdir)/nsd-control.8.in > nsd-control.8
 
 contrib/nsd.openrc: $(srcdir)/contrib/nsd.openrc.in
+	mkdir -p contrib
 	$(EDIT) $(srcdir)/contrib/nsd.openrc.in > $@
 
 contrib/nsd-tmpfiles.conf: $(srcdir)/contrib/nsd-tmpfiles.conf.in
+	mkdir -p contrib
 	$(EDIT) $(srcdir)/contrib/nsd-tmpfiles.conf.in > $@
 
 install: all
