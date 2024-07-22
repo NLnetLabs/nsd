@@ -58,6 +58,7 @@
 #include "dnstap/dnstap_collector.h"
 #endif
 #ifdef USE_XDP
+#include <sys/prctl.h>
 #include "xdp-server.h"
 #include "xdp-util.h"
 #endif
@@ -1569,12 +1570,11 @@ main(int argc, char *argv[])
 	nsd.xdp.xdp_server.bpf_prog_should_load = nsd.options->xdp_program_load;
 	nsd.xdp.xdp_server.nsd = &nsd;
 
-	/* beware xdp_server_init needs to be run before dropping privleges */
-	if (nsd.options->xdp_interface) {
-		xdp_server_init(&nsd.xdp.xdp_server);
-	} else {
+	if (!nsd.options->xdp_interface)
 		log_msg(LOG_NOTICE, "XDP support is enabled, but not configured. Not using XDP.");
-	}
+
+	/* moved xdp_server_init to after privilege drop to prevent
+	 * problems with file ownership of bpf object pins. */
 #endif
 
 	print_sockets(nsd.udp, nsd.tcp, nsd.ifs);
@@ -1757,6 +1757,21 @@ main(int argc, char *argv[])
 	/* Drop the permissions */
 #ifdef HAVE_GETPWNAM
 	if (*nsd.username) {
+#ifdef USE_XDP
+		if (nsd.options->xdp_interface) {
+			/* tell kernel to keep (permitted) privileges across uid change */
+			if (!prctl(PR_SET_KEEPCAPS, 1)) {
+				/* only keep needed capabilities across privilege drop */
+				/* this needs to be close to the privilege drop to prevent issues
+				 * with other setup functions like tls setup */
+				set_caps(0);
+			} else {
+				log_msg(LOG_ERR, "Couldn't set keep capabilities... Disabling XDP.");
+				nsd.options->xdp_interface = NULL;
+			}
+		}
+#endif /* USE_XDP */
+
 #ifdef HAVE_INITGROUPS
 		if(initgroups(nsd.username, nsd.gid) != 0)
 			log_msg(LOG_WARNING, "unable to initgroups %s: %s",
@@ -1786,8 +1801,25 @@ main(int argc, char *argv[])
 
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "dropped user privileges, run as %s",
 			nsd.username));
+
+#ifdef USE_XDP
+		/* enable capabilities after privilege drop */
+		if (nsd.options->xdp_interface) {
+			/* re-enable needed capabilities and drop setuid/gid capabilities */
+			set_caps(1);
+		}
+#endif /* USE_XDP */
 	}
 #endif /* HAVE_GETPWNAM */
+
+#ifdef USE_XDP
+	if (nsd.options->xdp_interface) {
+		/* initializing xdp needs successful capability set with
+		 * privilege drop or nsd running as root */
+		xdp_server_init(&nsd.xdp.xdp_server);
+	}
+#endif
+
 	xfrd_make_tempdir(&nsd);
 #ifdef USE_ZONE_STATS
 	options_zonestatnames_create(nsd.options);

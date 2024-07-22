@@ -19,6 +19,10 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+/* for the capability modifications */
+/* inspired by https://stackoverflow.com/questions/13183327/drop-root-uid-while-retaining-cap-sys-nice#13186076 */
+#include <sys/capability.h>
+
 #include "xdp-util.h"
 
 int ethtool_channels_get(char const *ifname) {
@@ -63,6 +67,49 @@ int ethtool_channels_get(char const *ifname) {
 
 	close(fd);
 	return queue_count;
+}
+
+/* CAPABILITY SHENANIGANS */
+
+void set_caps(int unset_setid_caps) {
+#define NUM_CAPS_ALL 7
+#define NUM_CAPS_NEEDED 5
+	cap_t caps;
+	const cap_value_t cap_list[NUM_CAPS_ALL] = {
+		CAP_BPF,
+		CAP_SYS_ADMIN, /* SYS_ADMIN needed for xdp_multiprog__get_from_ifindex */
+		CAP_SYS_RESOURCE,
+		CAP_NET_ADMIN,
+		CAP_NET_RAW,
+		CAP_SETUID,
+		CAP_SETGID
+	};
+	/* maybe need CAP_IPC_LOCK for mmap and alike used for umem creation?
+	 * so far not, maybe because of rlimit increase? */
+
+	if (!(caps = cap_init()))
+		goto out;
+
+	/* set all above capabilities in permitted and effective sets */
+	if (cap_set_flag(caps, CAP_EFFECTIVE, NUM_CAPS_ALL, cap_list, CAP_SET))
+		goto out;
+	if (cap_set_flag(caps, CAP_PERMITTED, NUM_CAPS_ALL, cap_list, CAP_SET))
+		goto out;
+
+	/* unset unneeded capabilities */
+	if (unset_setid_caps) {
+		if (cap_set_flag(caps, CAP_EFFECTIVE, NUM_CAPS_NEEDED, cap_list + NUM_CAPS_NEEDED, CAP_CLEAR))
+			goto out;
+		if (cap_set_flag(caps, CAP_PERMITTED, NUM_CAPS_NEEDED, cap_list + NUM_CAPS_NEEDED, CAP_CLEAR))
+			goto out;
+	}
+
+	/* set capabilities as configured above to current process */
+	if (cap_set_proc(caps))
+		goto out;
+
+out:
+	cap_free(caps);
 }
 
 #endif /* USE_XDP */

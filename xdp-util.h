@@ -21,6 +21,11 @@
 int ethtool_channels_get(char const *ifname);
 
 /*
+ * Set capabilities to only include the ones needed for using AF_XDP/
+ */
+void set_caps(int unset_setid_caps);
+
+/*
  * Add u16 to checksum value and preserve one's complement sum.
  */
 inline __sum16 csum16_add(__sum16 csum, __be16 addend) {
