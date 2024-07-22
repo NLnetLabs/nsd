@@ -44,7 +44,7 @@ NEED_NC="tcp_underrun"
 NEED_PCAT="query_diff_root"
 NEED_CPU_AFFINITY="bad_cpu_affinity no_cpu_affinity cpu_affinity"
 NEED_FAKETIME="dnscookies"
-NEED_DEBUG="verify_again nsec3_ixfr_neg ixfrout-add-delete ixfr_badformat cpu_affinity ixfr_superlong ixfrout-add-delete"
+NEED_DEBUG="verify_again nsec3_ixfr_neg ixfrout-add-delete ixfr_badformat cpu_affinity ixfr_superlong"
 
 # do we have dig9?
 DIG9=no
