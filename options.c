@@ -144,7 +144,9 @@ nsd_options_create(region_type* region)
 	opt->tls_service_ocsp = NULL;
 	opt->tls_service_pem = NULL;
 	opt->tls_port = TLS_PORT;
+	opt->tls_auth_port = "8853";
 	opt->tls_cert_bundle = NULL;
+	opt->tls_auth_xfr_only = 0;
 	opt->proxy_protocol_port = NULL;
 	opt->answer_cookie = 0;
 	opt->cookie_secret = NULL;
