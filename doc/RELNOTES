@@ -24,6 +24,7 @@ BUG FIXES:
 	- Serialize WKS RRs using numeric values rather than names.
 	- Fix propagation of Makefile targets to simdzone
 	- Do not log ACL mismatch on followed CNAMEs.
+	- Fix link of xfr-inspect for libssl dependency.
 
 4.10.0
 ================

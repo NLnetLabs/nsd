@@ -184,7 +184,7 @@ cutest:	simdzone/libzone.a $(CUTEST_OBJ) $(LIBOBJS) popen3_echo
 	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) simdzone/libzone.a $(SSL_LIBS) $(LIBS)
 
 xfr-inspect:	simdzone/libzone.a xfr-inspect.o $(COMMON_OBJ) zonec.o $(LIBOBJS)
-	$(LINK) -o $@ xfr-inspect.o $(COMMON_OBJ) zonec.o $(LIBOBJS) simdzone/libzone.a $(LIBS)
+	$(LINK) -o $@ xfr-inspect.o $(COMMON_OBJ) zonec.o $(LIBOBJS) simdzone/libzone.a $(SSL_LIBS) $(LIBS)
 
 popen3_echo: popen3.o popen3_echo.o
 	$(LINK) -o $@ popen3.o popen3_echo.o
