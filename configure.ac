@@ -1162,6 +1162,7 @@ case "$enable_xdp" in
 	AC_DEFINE_UNQUOTED([USE_XDP], [], [Define this to enable the use of AF_XDP sockets.])
 	AC_SEARCH_LIBS(xdp_program__open_file, [xdp], , AC_MSG_ERROR(Cannot find libxdp, but is needed for xdp support.))
 	AC_SEARCH_LIBS(bpf_map__fd, [bpf], , AC_MSG_ERROR(Cannot find libbpf, but is needed for xdp support.))
+	AC_SEARCH_LIBS(cap_set_proc, [cap], , AC_MSG_ERROR(Cannot find libcap, but is needed for xdp support.))
 	AC_ARG_VAR(CLANG, [location of clang compiler (only needed for xdp)])
 	AC_ARG_VAR(LLC, [location of LLVM static compiler (only needed for xdp)])
 	AC_CHECK_PROG(CLANG, clang, clang)
