@@ -3652,6 +3652,10 @@ server_child(struct nsd *nsd)
 		}
 	}
 
+	/* This part is seemingly never reached as the loop WOULD exit on NSD_QUIT,
+	 * but nsd->mode is only set to NSD_QUIT in ipc_child_quit. However, that
+	 * function also calls exit(). */
+
 	service_remaining_tcp(nsd);
 #ifdef	BIND8_STATS
 	bind8_stats(nsd);
