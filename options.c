@@ -162,6 +162,7 @@ nsd_options_create(region_type* region)
 	opt->xdp_interface = NULL;
 	opt->xdp_program_path = SHAREDFILESDIR"/xdp-dns-redirect_kern.o";
 	opt->xdp_program_load = 1;
+	opt->xdp_bpffs_path = NULL;
 #endif
 
 	opt->verify_enable = 0;

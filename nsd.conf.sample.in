@@ -294,6 +294,13 @@ server:
 	# Specify whether NSD should load the XDP program. If set to no, you need
 	# to load the XDP program yourself. Default is yes, if xdp-interface is set.
 	# xdp-program-load: yes
+
+	# The path to the bpffs to store/read the xsks_map pin. Nsd needs to have
+	# write access to the specified bpffs. The default of libbpf
+	# (usually /sys/fs/bpf) usually doesn't have the necessary write
+	# permissions set for non-root users. Either set o+rwx on it or mount
+	# your own bpffs. Default is "", letting libbpf decide the default path.
+	# xdp-bpffs-path: ""
 	# XDPend
 
 verify:

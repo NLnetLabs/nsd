@@ -168,6 +168,8 @@ struct nsd_options {
 	const char* xdp_program_path;
 	/** if NSD should load the XDP/eBPF program */
 	int xdp_program_load;
+	/** path to bpffs for pinned BPF objects */
+	const char* xdp_bpffs_path;
 #endif
 
 #ifdef RATELIMIT

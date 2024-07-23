@@ -1568,6 +1568,7 @@ main(int argc, char *argv[])
 	nsd.xdp.xdp_server.interface_name = nsd.options->xdp_interface;
 	nsd.xdp.xdp_server.bpf_prog_filename = nsd.options->xdp_program_path;
 	nsd.xdp.xdp_server.bpf_prog_should_load = nsd.options->xdp_program_load;
+	nsd.xdp.xdp_server.bpf_bpffs_path = nsd.options->xdp_bpffs_path;
 	nsd.xdp.xdp_server.nsd = &nsd;
 
 	if (!nsd.options->xdp_interface)
