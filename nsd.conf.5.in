@@ -611,14 +611,22 @@ The eBPF XDP program to extract the XSKMAP from. Specify your own program here,
 if you want to use a custom XDP program. The default program shipped with NSD
 only redirects UDP (over Ethernet[+VLAN]+IPv4/6) traffic to port 53.
 When using your own XDP program, it needs to define a BPF_MAP_TYPE_XSKMAP
-named "xsks_map". This option needs to be set, even when NSD is configured not
-to load the specified XDP program (see \fB xdp-program-load\fR),
+named "xsks_map" and pin it (see \fBxdp-bpffs-path\fR) with read and write
+permission for NSD. This option needs to be set, even when NSD is configured
+not to load the specified XDP program (see \fBxdp-program-load\fR),
 to be able to access the XSKMAP.
 Default is "@sharedfilesdir@/xdp-dns-redirect_kern.o".
 .TP
 .B xdp\-program\-load:\fR <yes or no>
 Specify whether NSD should load the XDP program. If set to no, you need
 to load the XDP program yourself. Default is yes, if xdp-interface is set.
+.TP
+.B xdp\-bpffs\-path:\fR <string>
+The path to the bpffs to store/read the xsks_map pin. NSD needs to have
+read/write access to the specified bpffs. The default of libbpf (/sys/fs/bpf)
+usually doesn't have the necessary permissions set for non-root users.
+Either set the necessary permissions or mount your own bpffs.
+Default is "", letting libbpf decide the default path.
 .\" xdpend
 .SS "Remote Control"
 The
