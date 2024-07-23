@@ -44,6 +44,7 @@ for x in *.c $compatfiles tpkg/cutest/*.c; do
 	if test "$x" = "configlexer.c"; then continue; fi
 	if test "$x" = "configparser.c"; then continue; fi
 	if test "$x" = "compat/reallocarray.c"; then continue; fi
+	if test "$x" = "xdp-dns-redirect_kern.c"; then continue; fi
 	echo clang --analyze $CPPFLAGS $x
 	plist=`basename $x .c`.plist
 	rm -rf $plist
