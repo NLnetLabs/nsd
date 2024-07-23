@@ -298,7 +298,7 @@ int xdp_server_init(struct xdp_server *xdp) {
 
 	/* (optionally) load xdp program and (definitely) set xsks_map_fd */
 	if (load_xdp_program(xdp)) {
-		log_msg(LOG_ERR, "xdp: failed to load xdp program or re-use pinned map");
+		log_msg(LOG_ERR, "xdp: failed to load/pin xdp program/map");
 		return -1;
 	}
 
