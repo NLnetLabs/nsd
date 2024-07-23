@@ -24,6 +24,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <linux/limits.h>
 
 #include <sys/poll.h>
 #include <sys/resource.h>
@@ -185,13 +186,25 @@ static int load_xdp_program(struct xdp_server *xdp) {
 		xdp->xsk_map_fd = ret;
 		xdp->xsk_map = map;
 	} else {
-		/* TODO: implement reuse map fd from pinned map obj */
-		/*
-		 * Pin map in struct definition in bpf program and then use here:
-		 * fd = bpf_obj_get("/sys/fs/bpf/xsks_map");
-		 * map = ...find_map_by_name...;
-		 * bpf_map__reuse_fd(map, fd);
-		 */
+		char map_path[PATH_MAX];
+		int fd;
+
+		snprintf(map_path, PATH_MAX, "%s/%s", xdp->bpf_bpffs_path, "xsks_map");
+
+		fd = bpf_obj_get(map_path);
+		if (fd < 0) {
+			log_msg(LOG_ERR, "xdp: could not retrieve xsks_map pin: %s\n", strerror(errno));
+			return fd;
+		}
+
+		map = bpf_object__find_map_by_name(xdp_program__bpf_obj(xdp->bpf_prog), "xsks_map");
+		if ((ret = bpf_map__reuse_fd(map, fd))) {
+			log_msg(LOG_ERR, "xdp: could not re-use xsks_map: %s\n", strerror(errno));
+			return ret;
+		}
+
+		xdp->xsk_map_fd = fd;
+		xdp->xsk_map = map;
 	}
 
 	return 0;
