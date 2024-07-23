@@ -183,6 +183,8 @@ static int load_xdp_program(struct xdp_server *xdp) {
 	enum xdp_attach_mode attach_mode = XDP_MODE_UNSPEC; /* UNSPEC => let libxdp decide */
 
 	DECLARE_LIBXDP_OPTS(bpf_object_open_opts, opts);
+	if (xdp->bpf_bpffs_path)
+		opts.pin_root_path = xdp->bpf_bpffs_path;
 
 	/* for now our xdp program should contain just one program section */
 	// TODO: look at xdp_program__create because it can take a pinned prog

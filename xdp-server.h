@@ -49,6 +49,7 @@ struct xdp_server {
 	region_type *region;
 	char const *interface_name;
 	char const *bpf_prog_filename;
+	char const *bpf_bpffs_path;
 	int bpf_prog_should_load;
 
 	/* track bpf objects and file descriptors */
