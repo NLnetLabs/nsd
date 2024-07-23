@@ -1817,7 +1817,10 @@ main(int argc, char *argv[])
 	if (nsd.options->xdp_interface) {
 		/* initializing xdp needs successful capability set with
 		 * privilege drop or nsd running as root */
-		xdp_server_init(&nsd.xdp.xdp_server);
+		if (xdp_server_init(&nsd.xdp.xdp_server)) {
+			log_msg(LOG_ERR, "Failed to initialize XDP... Disabling XDP.");
+			nsd.options->xdp_interface = NULL;
+		}
 	}
 #endif
 
