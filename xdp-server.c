@@ -11,22 +11,6 @@
  * Parts inspired by https://github.com/xdp-project/xdp-tutorial
  */
 
-/* TODO: make sure we have the necessary capabilities
- * CAP_BPF,
- * CAP_NET_RAW (maybe),
- * CAP_SYS_RESOURCES (maybe)
- *
- * If nsd is started as root then we could do bpf setup before privilege drop?
- * But what about unloading the program in the end? I think we might just use
- * CAP_BPF to manage the whole BPF shenanigans...
- * CAP_NET_RAW might not be needed, as binding the AF_XDP socket is supposedly
- * and unprivileged operation. However, updating the BPF_XSKMAP is a bpf
- * operation, so CAP_BPF for all child servers too.
- *   -> Or maybe not? https://github.com/xdp-project/xdp-tools/issues/320#issuecomment-1542338789
- * CAP_SYS_RESOURCES should not be needed if nsd is started as root and xdp_init
- * is executed before privilege drop (needs to be done tho).
- */
-
 #include "config.h"
 
 #ifdef USE_XDP
@@ -162,20 +146,6 @@ static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame) {
 
 /* TODO: rename or split up functionality (cause of map assignment and attaching) */
 static int load_xdp_program(struct xdp_server *xdp) {
-	/* Load custom program */
-	/* TODO: possibly add a xdp->should_load_bpf_prog config option
-	 * We definitely need a bpf_prog to get a file descriptor to the xsk_map,
-	 * but it could be useful to some users that implement their own XDP
-	 * program to not load it from here.
-	 * There are multiple options here:
-	 *   - The user load their own bpf program and tells us the path to the file
-	 *     so that we can use it to retrieve a file descriptor to the xsks_map
-	 *   - The user specifies a bpf program for us to load and use for the
-	 *     xsks_map file descriptor
-	 *   - The user unsets our (config default) bpf program, so that libbpf
-	 *     loads its default bpf program that forwards ALL traffic to AF_XDP
-	 *     (I don't like this variant, and will probably not implement this)
-	 */
 	struct bpf_map *map;
 	char errmsg[512];
 	int err, ret;
