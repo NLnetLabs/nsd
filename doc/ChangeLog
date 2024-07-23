@@ -1,6 +1,10 @@
 23 July 2024: Jeroen
 	- Update simdzone.
-	- Tag for 4.10.1.
+	- Tag for 4.10.1rc2.
+
+23 July 2024: Jeroen
+	- Update simdzone.
+	- Tag for 4.10.1rc1.
 
 22 July 2024: Jeroen
 	- Initialize tls_auth_port and tls_auth_xfr_only options.
