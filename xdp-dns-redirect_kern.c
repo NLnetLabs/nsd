@@ -18,7 +18,7 @@ struct {
   __type(key, __u32);
   __type(value, __u32);
   __uint(max_entries, 64);
-  __uint(pinning, LIBBPF_PIN_BY_NAME);
+  /* __uint(pinning, LIBBPF_PIN_BY_NAME); */
 } xsks_map SEC(".maps");
 
 struct vlanhdr {
