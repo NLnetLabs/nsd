@@ -9,8 +9,8 @@ $ORIGIN blaat.nl.
 @	IN      MB      mb.atoom.net.
 @	IN      MG      mg.atoom.net.
 @	IN      MR      mr.atoom.net.
-@	IN      WKS     192.168.1.2 tcp domain smtp ssh 123
-@	IN      WKS     192.168.1.2 udp domain
+@	IN      WKS     192.168.1.2 6 53 25 22 123
+@	IN      WKS     192.168.1.2 17 53
 @	IN      PTR     ptr.atoom.net.
 @	IN      HINFO   "host" "info"
 @	IN      MINFO   machine.atoom.net. info.atoom.net.
