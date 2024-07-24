@@ -108,10 +108,13 @@ process_packet(struct xdp_server *xdp,
                uint32_t *len,
                struct query *query);
 
-static void swap_mac(struct ethhdr *eth);
-static void *parse_and_swap_udp(struct udphdr *udp);
-static void *parse_and_swap_ipv6(struct ipv6hdr *ipv6);
-static void *parse_and_swap_ipv4(struct iphdr *ipv4);
+static inline void swap_eth(struct ethhdr *eth);
+static inline void swap_udp(struct udphdr *udp);
+static inline void swap_ipv6(struct ipv6hdr *ipv6);
+static inline void swap_ipv4(struct iphdr *ipv4);
+static inline void *parse_udp(struct udphdr *udp);
+static inline void *parse_ipv6(struct ipv6hdr *ipv6);
+static inline void *parse_ipv4(struct iphdr *ipv4);
 
 /*
  * Parse dns message and return new length of dns message
@@ -430,48 +433,51 @@ int xdp_socket_cleanup(struct xdp_server *xdp) {
 	return 0;
 }
 
-static void swap_mac(struct ethhdr *eth) {
+static inline void swap_eth(struct ethhdr *eth) {
 	uint8_t tmp_mac[ETH_ALEN];
 	memcpy(tmp_mac, eth->h_dest, ETH_ALEN);
 	memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
 	memcpy(eth->h_source, tmp_mac, ETH_ALEN);
 }
 
-static void *parse_and_swap_udp(struct udphdr *udp) {
-	if (ntohs(udp->dest) != DNS_PORT) {
-		return NULL;
-	}
-
+static inline void swap_udp(struct udphdr *udp) {
 	uint16_t tmp_port; /* not touching endianness */
 	tmp_port = udp->source;
 	udp->source = udp->dest;
 	udp->dest = tmp_port;
-
-	return (void *)(udp + 1);
 }
 
-static void *parse_and_swap_ipv6(struct ipv6hdr *ipv6) {
-	if (ipv6->nexthdr != IPPROTO_UDP) {
-		return NULL;
-	}
-
+static inline void swap_ipv6(struct ipv6hdr *ipv6) {
 	struct in6_addr tmp_ip;
 	memcpy(&tmp_ip, &ipv6->saddr, sizeof(tmp_ip));
 	memcpy(&ipv6->saddr, &ipv6->daddr, sizeof(tmp_ip));
 	memcpy(&ipv6->daddr, &tmp_ip, sizeof(tmp_ip));
-
-	return (void *)(ipv6 + 1);
 }
 
-static void *parse_and_swap_ipv4(struct iphdr *ipv4) {
-	if (ipv4->protocol != IPPROTO_UDP) {
-		return NULL;
-	}
-
+static inline void swap_ipv4(struct iphdr *ipv4) {
 	struct in_addr tmp_ip;
 	memcpy(&tmp_ip, &ipv4->saddr, sizeof(tmp_ip));
 	memcpy(&ipv4->saddr, &ipv4->daddr, sizeof(tmp_ip));
 	memcpy(&ipv4->daddr, &tmp_ip, sizeof(tmp_ip));
+}
+
+static inline void *parse_udp(struct udphdr *udp) {
+	if (ntohs(udp->dest) != DNS_PORT)
+		return NULL;
+
+	return (void *)(udp + 1);
+}
+
+static inline void *parse_ipv6(struct ipv6hdr *ipv6) {
+	if (ipv6->nexthdr != IPPROTO_UDP)
+		return NULL;
+
+	return (void *)(ipv6 + 1);
+}
+
+static inline void *parse_ipv4(struct iphdr *ipv4) {
+	if (ipv4->protocol != IPPROTO_UDP)
+		return NULL;
 
 	return (void *)(ipv4 + 1);
 }
@@ -533,7 +539,6 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 	if (*len < (sizeof(*eth) + sizeof(struct iphdr) + sizeof(*udp)))
 		return 0;
 
-	swap_mac(eth);
 	data_before_dnshdr_len = sizeof(*eth) + sizeof(*udp);
 
 	/* TODO: implement only accepting IP traffic to actual server ip? */
@@ -543,7 +548,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 
 		if (*len < (sizeof(*eth) + sizeof(*ipv6) + sizeof(*udp)))
 			return 0;
-		if (!(udp = parse_and_swap_ipv6(ipv6)))
+		if (!(udp = parse_ipv6(ipv6)))
 			return 0;
 
 		dnslen -= (sizeof(*eth) + sizeof(*ipv6) + sizeof(*udp));
@@ -553,7 +558,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 	} case ETH_P_IP: {
 		ipv4 = (struct iphdr *)(eth + 1);
 
-		if (!(udp = parse_and_swap_ipv4(ipv4)))
+		if (!(udp = parse_ipv4(ipv4)))
 			return 0;
 
 		dnslen -= (sizeof(*eth) + sizeof(*ipv4) + sizeof(*udp));
@@ -570,7 +575,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 		return 0;
 	}
 
-	if (!(dnshdr = parse_and_swap_udp(udp)))
+	if (!(dnshdr = parse_udp(udp)))
 		return 0;
 
 	query_set_buffer_data(query, dnshdr, XDP_FRAME_SIZE - data_before_dnshdr_len);
@@ -582,12 +587,17 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 
 	udp->len = htons(sizeof(*udp) + dnslen);
 
+	swap_eth(eth);
+	swap_udp(udp);
+
 	if (ipv4) {
+		swap_ipv4(ipv4);
 		__be16 ipv4_old_len = ipv4->tot_len;
 		ipv4->tot_len = htons(sizeof(*ipv4)) + udp->len;
 		csum16_replace(&ipv4->check, ipv4_old_len, ipv4->tot_len);
 		udp->check = calc_csum_udp4(udp, ipv4);
 	} else if (ipv6) {
+		swap_ipv6(ipv6);
 		ipv6->payload_len = udp->len;
 		udp->check = calc_csum_udp6(udp, ipv6);
 	} else {
