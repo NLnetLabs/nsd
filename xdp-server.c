@@ -487,12 +487,6 @@ static int parse_dns(struct nsd* nsd, void *dnshdr, uint32_t dnslen, struct quer
 	uint32_t now = 0;
 	uint32_t new_dnslen = 0;
 
-	/* ignoring q->remote_addrlen = addr_len; because it only seems to be
-	 * necessary with the msghdr/iovec mechanism */
-	/* TODO: check whether we need to set client_addr */
-	q->client_addrlen = (socklen_t)sizeof(q->client_addr);
-	q->is_proxied = 0;
-
 	/* set the size of the dns message and move position to start */
 	buffer_skip(q->packet, dnslen);
 	buffer_flip(q->packet);
@@ -579,6 +573,27 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 		return 0;
 
 	query_set_buffer_data(query, dnshdr, XDP_FRAME_SIZE - data_before_dnshdr_len);
+
+	if(ipv6) {
+#ifdef INET6
+		struct sockaddr_in6* sock6 = (struct sockaddr_in6*)&query->remote_addr;
+		sock6->sin6_family = AF_INET6;
+		sock6->sin6_port = udp->dest;
+		memcpy(&sock6->sin6_addr, &ipv6->saddr, sizeof(ipv6->saddr));
+#else
+		return 0; /* no inet6 no network */
+#endif
+	} else {
+		struct sockaddr_in* sock4 = (struct sockaddr_in*)&query->remote_addr;
+		sock4->sin_family = AF_INET;
+		sock4->sin_port = udp->dest;
+		sock4->sin_addr.s_addr = ipv4->saddr;
+	}
+
+	query->remote_addrlen = (socklen_t)sizeof(query->remote_addr);
+	query->client_addr    = query->remote_addr;
+	query->client_addrlen = query->remote_addrlen;
+	query->is_proxied = 0;
 
 	dnslen = parse_dns(xdp->nsd, dnshdr, dnslen, query);
 	if (!dnslen) {
