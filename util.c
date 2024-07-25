@@ -1069,7 +1069,7 @@ int number_of_cpus(void)
  * with a linker error, we print an error when it is used */
 int set_cpu_affinity(cpuset_t *ATTR_UNUSED(set))
 {
-	log_err("sched_setaffinity: not available on this system");
+	log_msg(LOG_ERR, "sched_setaffinity: not available on this system");
 	return -1;
 }
 #elif defined(HAVE_SCHED_SETAFFINITY)
