@@ -1,3 +1,6 @@
+25 July 2025: Jeroen
+	- Merge #358 from @jas4711: Fix Hurd build error due to log_Err.
+
 23 July 2024: Jeroen
 	- Update simdzone.
 	- Tag for 4.10.1rc2.

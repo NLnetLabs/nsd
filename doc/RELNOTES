@@ -6,6 +6,7 @@ FEATURES:
 	- Merge #352 from orlitzky: contrib: add OpenRC service script, config
 	  file, and tmpfiles entry.
 	- Merge #337 from bilias: Mutual TLS-AUTH.
+
 BUG FIXES:
 	- Fix incorrect punctuation of log messages.
 	- Fix for #317, document more text on pidfile permissions.
@@ -26,6 +27,7 @@ BUG FIXES:
 	- Do not log ACL mismatch on followed CNAMEs.
 	- Fix link of xfr-inspect for libssl dependency.
 	- Initialize tls_auth_port and tls_auth_xfr_only options.
+	- Merge #358: Fix Hurd build error due to log_err.
 
 4.10.0
 ================
