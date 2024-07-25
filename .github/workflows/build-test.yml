@@ -1,0 +1,60 @@
+name: build-test
+
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            cc: gcc
+            cflags: -g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all
+            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison
+          - os: ubuntu-24.04
+            cc: clang
+            cflags: -g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all
+            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison
+          - os: macos-12
+            cflags: -g2 -O0 -fsanitize=address,undefined -fno-sanitize-recover=all
+            packages: autoconf automake libtool openssl libevent flex bison
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: 'Workaround for actions/runner-images#9491'
+        if: runner.os == 'Linux'
+        run: sudo sysctl vm.mmap_rnd_bits=28
+      - name: 'Install Linux packages'
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get install ${{matrix.packages}}
+      - name: 'Install macOS packages'
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install ${{matrix.packages}}
+      - name: 'Build'
+        id: build
+        shell: bash
+        env:
+          CC: ${{matrix.cc}}
+          CFLAGS: ${{matrix.cflags}}
+        run: |
+          set -e -x
+          autoconf && autoheader
+          (cd simdzone && autoconf && autoheader)
+          libtoolize -c -i || glibtoolize -c -i
+          ./configure --enable-checking --disable-flto --with-ssl=yes --with-libevent=yes
+          make -j 2
+      - name: 'Run tests'
+        id: test
+        shell: bash
+        run: |
+          set -e -x
+          make cutest
+          ./cutest
+          (cd tpkg/clang-analysis.tdir && bash clang-analysis.test)
+          (cd tpkg && ./mini_tdir.sh -a ../.. exe checkconf.tdir)

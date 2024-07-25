@@ -6,43 +6,36 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
 
 int main(int argc, char *argv[])
 {
-	int i, fds = 0;
-	char buf[512], hdr[512];
-	struct { FILE *fh; const char *str; } io[3] = {
-		{ stdin, "stdin" }, { stdout, "stdout" }, { stderr, "stderr" }
-	};
+	int fl, fd, fds = 0;
+	char buf[512];
 
 	(void)argc;
 	(void)argv;
 
-	hdr[0] = '\0';
+	buf[0] = '\0';
 	setbuf(stdin, NULL);
 	setbuf(stdout, NULL);
 
-	for(i = 0; i < 3; i++) {
-		char str[32];
-		int fd = fileno(io[i].fh);
-		assert(fd == i);
-		if(fcntl(fd, F_GETFD) != -1) {
-			fds |= (1<<fd);
-		}
-		(void)snprintf(str, sizeof(str), "%s%s%s", i == 0 ? "" : ",", (fds & (1<<fd)) ? "" : "!", io[i].str);
-		memcpy(hdr + strlen(hdr), str, strlen(str) + 1);
-	}
+	fd = fileno(stdin);
+	if (fcntl(fd, F_GETFL) != -1)
+		fds |= 1;
+	fd = fileno(stdout);
+	if ((fl = fcntl(fd, F_GETFL)) != -1 && (fl & (O_WRONLY | O_RDWR)))
+		fds |= 2;
+	fd = fileno(stderr);
+	if ((fl = fcntl(fd, F_GETFL)) != -1 && (fl & (O_WRONLY | O_RDWR)))
+		fds |= 4;
 
-	if(fgets(buf, sizeof(buf), stdin) == NULL) {
-		buf[0] = '\0';
-	}
-	if(fds & (1<<1)) {
-		fprintf(stdout, "%s\n%s", hdr, buf);
-	}
-	if(fds & (1<<2)) {
-		fprintf(stderr, "%s\n%s", hdr, buf);
-	}
+	if (fds & 1)
+		fgets(buf, sizeof(buf), stdin);
+	if ((fds & 3) == 3)
+		fprintf(stdout, "%sstdin,stdout,stderr\n%s", (fds & 1) ? "" : "!", buf);
+	if ((fds & 5) == 5)
+		fprintf(stderr, "%sstdin,stdout,stderr\n%s", (fds & 1) ? "" : "!", buf);
 
-	return fds;
+	exit(fds);
 }
-
