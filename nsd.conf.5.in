@@ -1218,8 +1218,8 @@ Enable to log auth response messages.  Default is no.
 These are responses from NSD to clients.
 .SH "NSD CONFIGURATION FOR BIND9 HACKERS"
 BIND9 is a name server implementation with its own configuration
-file format, named.conf(5). BIND9 types zones as 'Master' or 'Slave'.
-.SS "Slave zones"
+file format, named.conf(5). BIND9 types zones as 'Primary' or 'Secondary'.
+.SS "Secondary zones"
 For a secondary zone, the primary servers are listed. The primary servers are
 queried for zone data, and are listened to for update notifications.
 In NSD these two properties need to be configured separately, by listing
@@ -1312,7 +1312,7 @@ added to specify more primaries.
 .P
 It is possible to specify extra allow\-notify lines for addresses
 that are also allowed to send notifications to this secondary server.
-.SS "Master zones"
+.SS "Primary zones"
 For a primary zone in BIND9, the secondary servers are listed. These secondary
 servers are sent notifications of updated and are allowed to request
 transfer of the zone data. In NSD these two properties need to be
