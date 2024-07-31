@@ -1767,7 +1767,7 @@ main(int argc, char *argv[])
 				 * with other setup functions like tls setup */
 				set_caps(0);
 			} else {
-				log_msg(LOG_ERR, "Couldn't set keep capabilities... Disabling XDP.");
+				log_msg(LOG_ERR, "couldn't set keep capabilities... disabling XDP.");
 				nsd.options->xdp_interface = NULL;
 			}
 		}
@@ -1818,7 +1818,7 @@ main(int argc, char *argv[])
 		/* initializing xdp needs successful capability set with
 		 * privilege drop or nsd running as root */
 		if (xdp_server_init(&nsd.xdp.xdp_server)) {
-			log_msg(LOG_ERR, "Failed to initialize XDP... Disabling XDP.");
+			log_msg(LOG_ERR, "failed to initialize XDP... disabling XDP.");
 			nsd.options->xdp_interface = NULL;
 		}
 	}

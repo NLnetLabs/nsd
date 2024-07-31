@@ -200,7 +200,7 @@ static int load_xdp_program(struct xdp_server *xdp) {
 
 		fd = bpf_obj_get(map_path);
 		if (fd < 0) {
-			log_msg(LOG_ERR, "xdp: could not retrieve xsks_map pin: %s\n", strerror(errno));
+			log_msg(LOG_ERR, "xdp: could not retrieve xsks_map pin from %s: %s", map_path, strerror(errno));
 			return fd;
 		}
 
