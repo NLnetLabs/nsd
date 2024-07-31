@@ -1094,7 +1094,7 @@ that have a missing or an invalid group property will be added using pattern
 .TP
 .B catalog\-producer\-zone:\fR <zone\-name>
 This option can only be used in a pattern. Adding a zone using
-"\fInsd\-control addzone <zone> <pattern>\fR with a <pattern> containing this
+"\fInsd\-control addzone <zone> <pattern>\fR" with a <pattern> containing this
 option, will cause a catalog member entry to be created in the catalog producer
 zone <zone\-name>.  <zone\-name> must exist and must be a valid catalog
 producer zone.
