@@ -251,19 +251,16 @@ option
 .TP
 .B cpu\-affinity:\fR <number> <number> ...
 Overall CPU affinity for NSD server(s). Default is no affinity.
-.BR \-n .
 .TP
 .B server\-N\-cpu\-affinity:\fR <number>
 Bind NSD server specified by N to a specific core. Default is to have affinity
 set to every core specified in cpu\-affinity. This setting only takes effect
 if cpu\-affinity is enabled.
-.BR \-n
 .TP
 .B xfrd\-cpu\-affinity:\fR <number>
 Bind xfrd to a specific core. Default is to have affinity set to every core
 specified in cpu\-affinity. This setting only takes effect if cpu\-affinity is
 enabled.
-.BR \-n
 .TP
 .B tcp\-count:\fR <number>
 The maximum number of concurrent, active TCP connections by each server.
