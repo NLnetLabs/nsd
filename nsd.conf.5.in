@@ -555,7 +555,7 @@ openssl ocsp -no_nonce \\
    -CAfile /path/to/ca_and_any_intermediate.pem \\
    -issuer /path/to/direct_issuer.pem \\
    -cert /path/to/cert.pem \\
-   -url "$( openssl x509 -noout -text -in /path/to/cert.pem | grep 'OCSP - URI:' | cut -d: -f2,3 )"
+   -url "$( openssl x509 -noout -ocsp_uri -in /path/to/cert.pem )"
 .RE
 .TP
 .B tls\-port:\fR <number>
