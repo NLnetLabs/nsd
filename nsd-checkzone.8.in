@@ -24,7 +24,8 @@ Print usage help information and exit.
 The name of the zone to check, eg. "example.com".
 .TP
 .I zonefile
-The file to read, eg. "zones/example.com.zone.signed".
+The file to read, eg. "zones/example.com.zone.signed". Use "-" to read
+from stdin.
 .TP
 .B \-p
 Print the zone contents to stdout if the zone is ok. This prints the
