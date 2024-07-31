@@ -192,7 +192,11 @@ static int load_xdp_program(struct xdp_server *xdp) {
 		char map_path[PATH_MAX];
 		int fd;
 
-		snprintf(map_path, PATH_MAX, "%s/%s", xdp->bpf_bpffs_path, "xsks_map");
+		if (xdp->bpf_bpffs_path)
+			snprintf(map_path, PATH_MAX, "%s/%s", xdp->bpf_bpffs_path, "xsks_map");
+		else
+			/* document this behaviour, as the current documentation states that bpffs path is chosen by libbpf */
+			snprintf(map_path, PATH_MAX, "%s", "/sys/fs/bpf/xsks_map");
 
 		fd = bpf_obj_get(map_path);
 		if (fd < 0) {
