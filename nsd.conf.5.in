@@ -1370,7 +1370,7 @@ default
 .B NSD
 configuration file
 .SH "SEE ALSO"
-\fInsd\fR(8), \fInsd\-checkconf\fR(8), \fInsd\-control\fR(8)
+\fInsd\fR(8), \fInsd\-checkconf\fR(8), \fInsd\-checkzone\fR(8), \fInsd\-control\fR(8)
 .SH "AUTHORS"
 .B NSD
 was written by a combined team from NLnet Labs and RIPE NCC. Please see the
