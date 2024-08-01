@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <linux/limits.h>
+#include <sys/mman.h>
 
 #include <sys/poll.h>
 #include <sys/resource.h>
@@ -43,7 +44,6 @@
 
 #include "query.h"
 #include "dns.h"
-#include "region-allocator.h"
 #include "util.h"
 #include "xdp-server.h"
 #include "xdp-util.h"
@@ -61,7 +61,7 @@ struct xdp_config {
  * Allocate memory for UMEM and setup rings
  */
 static int
-xsk_configure_umem(struct xsk_umem_info *umem_info, void *buffer, uint64_t size);
+xsk_configure_umem(struct xsk_umem_info *umem_info, uint64_t size);
 
 /*
  * Allocate a frame in UMEM
@@ -71,8 +71,10 @@ static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk);
 /*
  * Bind AF_XDP socket and setup rings
  */
-static int
-xsk_configure_socket(struct xdp_server *xdp, struct xsk_umem_info *umem);
+static int xsk_configure_socket(struct xdp_server *xdp,
+                                struct xsk_socket_info *xsk_info,
+                                struct xsk_umem_info *umem,
+                                uint32_t queue_index);
 
 /*
  * Get number of free frames in UMEM
@@ -90,6 +92,21 @@ static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame);
 static int load_xdp_program(struct xdp_server *xdp);
 
 static int unload_xdp_program(struct xdp_server *xdp);
+
+/*
+ * Setup XDP sockets
+ */
+static int xdp_sockets_init(struct xdp_server *xdp);
+
+/*
+ * Cleanup XDP sockets and memory
+ */
+static int xdp_sockets_cleanup(struct xdp_server *xdp);
+
+/*
+ * Allocate a block of shared memory
+ */
+static void *alloc_shared_mem(size_t len);
 
 /*
  * Send outstanding packets and recollect completed frame addresses
@@ -218,10 +235,10 @@ static int load_xdp_program(struct xdp_server *xdp) {
 }
 
 static int
-xsk_configure_umem(struct xsk_umem_info *umem_info, void *buffer, uint64_t size) {
+xsk_configure_umem(struct xsk_umem_info *umem_info, uint64_t size) {
 	int ret;
 
-	ret = xsk_umem__create(&umem_info->umem, buffer, size, &umem_info->fq, &umem_info->cq, NULL);
+	ret = xsk_umem__create(&umem_info->umem, umem_info->buffer, size, &umem_info->fq, &umem_info->cq, NULL);
 	if (ret) {
 		errno = -ret;
 		return -ret;
@@ -231,14 +248,14 @@ xsk_configure_umem(struct xsk_umem_info *umem_info, void *buffer, uint64_t size)
 }
 
 static int
-xsk_configure_socket(struct xdp_server *xdp, struct xsk_umem_info *umem) {
+xsk_configure_socket(struct xdp_server *xdp, struct xsk_socket_info *xsk_info,
+                     struct xsk_umem_info *umem, uint32_t queue_index) {
 	struct xdp_config cfg = {
 		.xdp_flags = 0,
 		.xsk_bind_flags = XDP_USE_NEED_WAKEUP,
 		.libxdp_flags = XSK_LIBXDP_FLAGS__INHIBIT_PROG_LOAD,
 	};
 
-	struct xsk_socket_info *xsk_info = xdp->xsk;
 	struct xsk_socket_config xsk_cfg;
 	uint32_t idx;
 	uint32_t prog_id;
@@ -253,20 +270,17 @@ xsk_configure_socket(struct xdp_server *xdp, struct xsk_umem_info *umem) {
 	xsk_cfg.libxdp_flags = cfg.libxdp_flags;
 
 	ret = xsk_socket__create(&xsk_info->xsk,
-							 xdp->interface_name,
-							 xdp->queue_index,
-							 umem->umem,
-							 &xsk_info->rx,
-							 &xsk_info->tx,
-							 &xsk_cfg);
+	                         xdp->interface_name,
+	                         queue_index,
+	                         umem->umem,
+	                         &xsk_info->rx,
+	                         &xsk_info->tx,
+	                         &xsk_cfg);
 	if (ret) {
 		log_msg(LOG_ERR, "xdp: failed to create xsk_socket");
 		goto error_exit;
 	}
 
-	/* TODO: maybe don't update xsk_map here and do it later when the
-	 * xdp_handler event thing is set up
-	 */
 	ret = xsk_socket__update_xskmap(xsk_info->xsk, xdp->xsk_map_fd);
 	if (ret) {
 		log_msg(LOG_ERR, "xdp: failed to update xskmap");
@@ -282,7 +296,8 @@ xsk_configure_socket(struct xdp_server *xdp, struct xsk_umem_info *umem) {
 
 	/* TODO: maybe move this ring size to xdp_config too? */
 	ret = xsk_ring_prod__reserve(&xsk_info->umem->fq,
-			XSK_RING_PROD__NUM_DESCS, &idx);
+	                             XSK_RING_PROD__NUM_DESCS,
+	                             &idx);
 
 	/* TODO: maybe move this ring size to xdp_config too? */
 	if (ret != XSK_RING_PROD__NUM_DESCS) {
@@ -304,6 +319,68 @@ xsk_configure_socket(struct xdp_server *xdp, struct xsk_umem_info *umem) {
 error_exit:
 	errno = -ret;
 	return -ret;
+}
+
+static void *alloc_shared_mem(size_t len) {
+	/* MAP_ANONYMOUS memory is initialized with zero */
+	return mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+}
+
+static int xdp_sockets_init(struct xdp_server *xdp) {
+	size_t umems_len = sizeof(struct xsk_umem_info) * xdp->queue_count;
+	size_t xsks_len = sizeof(struct xsk_socket_info) * xdp->queue_count;
+
+	xdp->umems = (struct xsk_umem_info *) alloc_shared_mem(umems_len);
+	if (xdp->umems == MAP_FAILED) {
+		log_msg(LOG_ERR,
+		        "xdp: failed to allocate shared memory for umem info: %s",
+		        strerror(errno));
+		return -1;
+	}
+
+	xdp->xsks = (struct xsk_socket_info *) alloc_shared_mem(xsks_len);
+	if (xdp->xsks == MAP_FAILED) {
+		log_msg(LOG_ERR,
+		        "xdp: failed to allocate shared memory for xsk info: %s",
+		        strerror(errno));
+		return -1;
+	}
+
+	for (int q_idx = 0; q_idx < xdp->queue_count; ++q_idx) {
+		/* mmap is supposedly page-aligned, so should be fine */
+		xdp->umems[q_idx].buffer = alloc_shared_mem(XDP_BUFFER_SIZE);
+
+		if (xsk_configure_umem(&xdp->umems[q_idx], XDP_BUFFER_SIZE)) {
+			log_msg(LOG_ERR, "xdp: cannot create umem: %s", strerror(errno));
+			goto out_err_umem;
+		}
+
+		if (xsk_configure_socket(xdp, &xdp->xsks[q_idx], &xdp->umems[q_idx],
+		                         q_idx)) {
+			log_msg(LOG_ERR,
+			        "xdp: cannot create AF_XDP socket: %s",
+			        strerror(errno));
+			goto out_err_xsk;
+		}
+	}
+
+	return 0;
+
+out_err_xsk:
+	for (int i = 0; i < xdp->queue_count; ++i)
+		xsk_umem__delete(xdp->umems[i].umem);
+
+out_err_umem:
+	return -1;
+}
+
+static int xdp_sockets_cleanup(struct xdp_server *xdp) {
+	for (int i = 0; i < xdp->queue_count; ++i) {
+		xsk_socket__delete(xdp->xsks[i].xsk);
+		xsk_umem__delete(xdp->umems[i].umem);
+	}
+
+	return 0;
 }
 
 int xdp_server_init(struct xdp_server *xdp) {
@@ -331,11 +408,16 @@ int xdp_server_init(struct xdp_server *xdp) {
 		return -1;
 	}
 
+	if (xdp_sockets_init(xdp))
+		return -1;
+
 	return 0;
 }
 
 int xdp_server_cleanup(struct xdp_server *xdp) {
 	int ret = 0;
+
+	xdp_sockets_cleanup(xdp);
 
 	/* only unpin if we loaded the program */
 	if (xdp->bpf_prog_should_load) {
@@ -386,55 +468,6 @@ static int unload_xdp_program(struct xdp_server *xdp) {
 
 	xdp_multiprog__close(mp);
 	return ret;
-}
-
-int xdp_socket_init(struct xdp_server *xdp) {
-	xdp->umem = region_alloc_zero(xdp->region, sizeof(*xdp->umem));
-	if (!xdp->umem) {
-		log_msg(LOG_ERR, "xdp: cannot allocate memory for umem info");
-		return -1;
-	}
-
-	xdp->xsk = region_alloc_zero(xdp->region, sizeof(*xdp->xsk));
-	if (!xdp->xsk) {
-		log_msg(LOG_ERR, "xdp: cannot allocate memory for xsk info");
-		return -1;
-	}
-
-	/* not using region here, because we need page aligned memory */
-	if (posix_memalign(&xdp->umem->buffer, getpagesize(), XDP_BUFFER_SIZE)) {
-		log_msg(LOG_ERR, "xdp: cannot allocate aligned memory buffer: %s", strerror(errno));
-		return -1;
-	}
-
-	if (xsk_configure_umem(xdp->umem, xdp->umem->buffer, XDP_BUFFER_SIZE)) {
-		log_msg(LOG_ERR, "xdp: cannot create umem: %s", strerror(errno));
-		goto cleanup_failed_umem;
-	}
-
-	if (xsk_configure_socket(xdp, xdp->umem)) {
-		log_msg(LOG_ERR, "xdp: cannot create AF_XDP socket: %s", strerror(errno));
-		goto cleanup_failed_xsk;
-	}
-
-	return 0;
-
-cleanup_failed_xsk:
-	xsk_umem__delete(xdp->umem->umem);
-
-cleanup_failed_umem:
-	free(xdp->umem->buffer);
-	return -1;
-}
-
-int xdp_socket_cleanup(struct xdp_server *xdp) {
-	/* xsk_*__delete also call free() on the passed pointer */
-	xsk_socket__delete(xdp->xsk->xsk);
-	xsk_umem__delete(xdp->umem->umem);
-
-	/* packet buffer is managed by us */
-	free(xdp->umem->buffer);
-	return 0;
 }
 
 static inline void swap_eth(struct ethhdr *eth) {
@@ -631,7 +664,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 }
 
 void xdp_handle_recv_and_send(struct xdp_server *xdp) {
-	struct xsk_socket_info *xsk = xdp->xsk;
+	struct xsk_socket_info *xsk = &xdp->xsks[xdp->queue_index];
 	unsigned int recvd, stock_frames, i;
 	uint32_t idx_rx = 0, idx_fq = 0;
 	int ret;

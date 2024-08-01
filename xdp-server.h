@@ -61,33 +61,20 @@ struct xdp_server {
 	int queue_count;
 	uint32_t queue_index;
 
-	struct xsk_umem_info *umem;
-	struct xsk_socket_info *xsk;
-
 	struct query **queries;
 	void *nsd;
+
+	/* these items/arrays are shared between processes */
+	/* the number of sockets corresponds to the queue_count */
+	/* these are allocated using mmap and are automatically unmapped on exit */
+	struct xsk_umem_info *umems;
+	struct xsk_socket_info *xsks;
 };
 
 /*
  * Handle reading and writing packets via XDP
  */
 void xdp_handle_recv_and_send(struct xdp_server *xdp);
-
-/* 
- * Initialize server process local XDP socket
- *
- *  - create buffers
- *  - open socket
- */
-int xdp_socket_init(struct xdp_server *xdp);
-
-/* 
- * Cleanup server process local XDP socket
- *
- *  - free buffers
- *  - close socket
- */
-int xdp_socket_cleanup(struct xdp_server *xdp);
 
 /*
  * Initialize NSD global XDP settings
