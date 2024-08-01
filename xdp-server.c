@@ -89,7 +89,7 @@ static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame);
 /*
  * Load eBPF program to forward traffic to our socket
  */
-static int load_xdp_program(struct xdp_server *xdp);
+static int load_xdp_program_and_map(struct xdp_server *xdp);
 
 static int unload_xdp_program(struct xdp_server *xdp);
 
@@ -165,8 +165,7 @@ static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame) {
 	xsk->umem->umem_frame_addr[xsk->umem->umem_frame_free++] = frame;
 }
 
-/* TODO: rename or split up functionality (cause of map assignment and attaching) */
-static int load_xdp_program(struct xdp_server *xdp) {
+static int load_xdp_program_and_map(struct xdp_server *xdp) {
 	struct bpf_map *map;
 	char errmsg[512];
 	int err, ret;
@@ -394,7 +393,7 @@ int xdp_server_init(struct xdp_server *xdp) {
 	}
 
 	/* (optionally) load xdp program and (definitely) set xsks_map_fd */
-	if (load_xdp_program(xdp)) {
+	if (load_xdp_program_and_map(xdp)) {
 		log_msg(LOG_ERR, "xdp: failed to load/pin xdp program/map");
 		return -1;
 	}
