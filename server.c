@@ -3252,7 +3252,7 @@ add_xdp_handler(struct nsd *nsd,
 	data->server = xdp;
 
 	memset(handler, 0, sizeof(*handler));
-	int sock = xsk_socket__fd(xdp->xsk->xsk);
+	int sock = xsk_socket__fd(xdp->xsks[xdp->queue_index].xsk);
 	if (sock < 0) {
 		log_msg(LOG_ERR, "xdp: xsk socket file descriptor is invalid: %s",
 		        strerror(errno));
@@ -3563,19 +3563,13 @@ server_child(struct nsd *nsd)
 			nsd->xdp.xdp_server.queries = xdp_queries;
 
 			log_msg(LOG_INFO,
-			        "xdp: binding socket to queue_id %d on interface %s",
+			        "xdp: using socket with queue_id %d on interface %s",
 			        nsd->xdp.xdp_server.queue_index,
 			        nsd->xdp.xdp_server.interface_name);
 
-			/* attempt binding the AF_XDP socket */
-			if (xdp_socket_init(&nsd->xdp.xdp_server)) {
-				log_msg(LOG_ERR, "xdp: failed to setup xdp socket");
-				/* Not quitting the child server, as it would just be restarted */
-			} else {
-				struct xdp_handler_data *data;
-				data = region_alloc_zero(nsd->server_region, sizeof(*data));
-				add_xdp_handler(nsd, &nsd->xdp.xdp_server, data);
-			}
+			struct xdp_handler_data *data;
+			data = region_alloc_zero(nsd->server_region, sizeof(*data));
+			add_xdp_handler(nsd, &nsd->xdp.xdp_server, data);
 
 			const int scratch_data_len = 1;
 			void *scratch_data = region_alloc_zero(nsd->server_region,
