@@ -28,6 +28,7 @@ BUG FIXES:
 	- Fix link of xfr-inspect for libssl dependency.
 	- Initialize tls_auth_port and tls_auth_xfr_only options.
 	- Merge #358: Fix Hurd build error due to log_err.
+	- Update simdzone to fix detection of AVX2 support.
 
 4.10.0
 ================

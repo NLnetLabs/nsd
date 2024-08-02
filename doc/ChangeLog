@@ -1,4 +1,14 @@
-25 July 2025: Jeroen
+2 August 2024: Jeroen
+	- Update simdzone to fix detection of AVX2 support.
+
+31 July 2024: Jeroen
+	- Merge #367: Specify protocols used in NOTIFY.
+	- Merge #368: Various manpage fixes.
+
+30 July 2024: Jeroen
+	- Merge #366: Be consistent in naming primary/secondary zones.
+
+25 July 2024: Jeroen
 	- Merge #358 from @jas4711: Fix Hurd build error due to log_Err.
 
 23 July 2024: Jeroen
