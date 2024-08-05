@@ -57,6 +57,13 @@ struct xdp_config {
 	__u16 xsk_bind_flags;
 };
 
+struct umem_ptr {
+	uint64_t addr;
+	uint32_t len;
+};
+
+static struct umem_ptr umem_ptrs[XDP_RX_BATCH_SIZE];
+
 /*
  * Allocate memory for UMEM and setup rings
  */
@@ -410,6 +417,11 @@ int xdp_server_init(struct xdp_server *xdp) {
 	if (xdp_sockets_init(xdp))
 		return -1;
 
+	for (int i = 0; i < XDP_RX_BATCH_SIZE; ++i) {
+		umem_ptrs[i].addr = XDP_INVALID_UMEM_FRAME;
+		umem_ptrs[i].len = 0;
+	}
+
 	return 0;
 }
 
@@ -664,7 +676,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 
 void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 	struct xsk_socket_info *xsk = &xdp->xsks[xdp->queue_index];
-	unsigned int recvd, stock_frames, i;
+	unsigned int recvd, stock_frames, i, to_send = 0;
 	uint32_t idx_rx = 0, idx_fq = 0;
 	int ret;
 
@@ -701,27 +713,17 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 		if (!process_packet(xdp, pkt, addr, &len, xdp->queries[i])) {
 			/* drop packet */
 			xsk_free_umem_frame(xsk, addr);
-			// TODO: also move query in queries around and recvd--? Maybe, or track query indices?
 		} else {
-			// TODO: send packet
-			/* "Here we sent the packet out of the receive port. Note that
-			 * we allocate one entry and schedule it. Your design would be
-			 * faster if you do batch processing/transmission" -- xdp-tutorial */
-
-			uint32_t tx_idx = 0;
-			ret = xsk_ring_prod__reserve(&xsk->tx, 1, &tx_idx);
-			if (ret != 1) {
-				// no more tx slots available, drop packet
-				xsk_free_umem_frame(xsk, addr);
-				query_reset(xdp->queries[i], UDP_MAX_MESSAGE_LEN, 0);
-				continue;
-			}
-
-			xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
-			xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->len = len;
-			xsk_ring_prod__submit(&xsk->tx, 1);
-			xsk->outstanding_tx++;
+			umem_ptrs[to_send].addr = addr;
+			umem_ptrs[to_send].len = len;
+			++to_send;
 		}
+		/* we can reset the query directly after each packet processing,
+		 * because the reset does not delete the underlying buffer/data.
+		 * However, if we, in future, need to access data from the query
+		 * struct when sending the answer, this needs to change.
+		 * This also means, that currently a single query instance (and
+		 * not an array) would suffice for this implementation. */
 		query_reset(xdp->queries[i], UDP_MAX_MESSAGE_LEN, 0);
 
 		/* xsk->stats.rx_bytes += len; */
@@ -729,6 +731,32 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 
 	xsk_ring_cons__release(&xsk->rx, recvd);
 	/* xsk->stats.rx_packets += rcvd; */
+
+	/* Process sending packets */
+
+	uint32_t tx_idx = 0;
+
+	/* TODO: at least send as many packets as slots are available */
+	ret = xsk_ring_prod__reserve(&xsk->tx, to_send, &tx_idx);
+	if (ret != to_send) {
+		// not enough tx slots available, drop packets
+		for (i = 0; i < to_send; ++i) {
+			xsk_free_umem_frame(xsk, umem_ptrs[to_send].addr);
+		}
+	}
+
+	for (i = 0; i < to_send; ++i) {
+		uint64_t addr = umem_ptrs[i].addr;
+		uint32_t len = umem_ptrs[i].len;
+		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
+		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->len = len;
+		tx_idx++;
+		xsk->outstanding_tx++;
+		umem_ptrs[i].addr = XDP_INVALID_UMEM_FRAME;
+		umem_ptrs[i].len = 0;
+	}
+
+	xsk_ring_prod__submit(&xsk->tx, to_send);
 
 	/* wake up kernel for tx if needed and collect completed tx buffers */
 	handle_tx(xsk);
