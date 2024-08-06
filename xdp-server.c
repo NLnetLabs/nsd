@@ -668,7 +668,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 		return 0;
 	}
 
-	log_msg(LOG_INFO, "xdp: parsed done with processing the packet");
+	log_msg(LOG_INFO, "xdp: done with processing the packet");
 
 	*len = data_before_dnshdr_len + dnslen;
 	return 1;
