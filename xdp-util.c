@@ -72,15 +72,15 @@ int ethtool_channels_get(char const *ifname) {
 /* CAPABILITY SHENANIGANS */
 
 void set_caps(int unset_setid_caps) {
-#define NUM_CAPS_ALL 7
-#define NUM_CAPS_NEEDED 5
+#define NUM_CAPS_ALL 4
+#define NUM_CAPS_NEEDED 2
 	cap_t caps;
 	const cap_value_t cap_list[NUM_CAPS_ALL] = {
 		CAP_BPF,
-		CAP_SYS_ADMIN, /* SYS_ADMIN needed for xdp_multiprog__get_from_ifindex */
-		CAP_SYS_RESOURCE,
+		/* CAP_SYS_ADMIN, [> SYS_ADMIN needed for xdp_multiprog__get_from_ifindex <] */
+		/* CAP_SYS_RESOURCE, */
 		CAP_NET_ADMIN,
-		CAP_NET_RAW,
+		/* CAP_NET_RAW, */
 		CAP_SETUID,
 		CAP_SETGID
 	};

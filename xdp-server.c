@@ -12,6 +12,7 @@
  */
 
 #include "config.h"
+#include <bpf/libbpf.h>
 
 #ifdef USE_XDP
 
@@ -194,13 +195,17 @@ static int load_xdp_program_and_map(struct xdp_server *xdp) {
 	}
 
 	if (xdp->bpf_prog_should_load) {
-		err = xdp_program__attach(xdp->bpf_prog, xdp->interface_index, attach_mode, 0);
+		/* err = xdp_program__attach(xdp->bpf_prog, xdp->interface_index, attach_mode, 0); */
+		err = xdp_program__attach_single(xdp->bpf_prog, xdp->interface_index, attach_mode);
 		if (err) {
 			libxdp_strerror(err, errmsg, sizeof(errmsg));
 			log_msg(LOG_ERR, "xdp: could not attach xdp program to interface '%s' : %s\n", 
 					xdp->interface_name, errmsg);
 			return err;
 		}
+
+		xdp->bpf_prog_fd = xdp_program__fd(xdp->bpf_prog);
+		xdp->bpf_prog_id = xdp_program__id(xdp->bpf_prog);
 
 		/* We also need to get the file descriptor to the xsks_map */
 		map = bpf_object__find_map_by_name(xdp_program__bpf_obj(xdp->bpf_prog), "xsks_map");
@@ -448,36 +453,17 @@ int xdp_server_cleanup(struct xdp_server *xdp) {
 }
 
 static int unload_xdp_program(struct xdp_server *xdp) {
-	struct xdp_multiprog *mp = NULL;
-	struct xdp_program *prog = NULL;
-	int ret = 0;
-
-	mp = xdp_multiprog__get_from_ifindex(xdp->interface_index);
-	if (!mp || libxdp_get_error(mp)) {
-		log_msg(LOG_ERR, "xdp: unable to get xdp bpf prog handle: %s\n",
-		        strerror(errno));
-		return -1;
-	}
-
-	if (xdp_multiprog__is_legacy(mp)) {
-		prog = xdp_multiprog__main_prog(mp);
-	} else {
-		while ((prog = xdp_multiprog__next_prog(prog, mp))) {
-			if (xdp_program__id(prog) == xdp_program__id(xdp->bpf_prog)) {
-				break;
-			}
-		}
-	}
+	DECLARE_LIBBPF_OPTS(bpf_xdp_attach_opts, bpf_opts,
+	                    .old_prog_fd = xdp->bpf_prog_fd);
 
 	log_msg(LOG_INFO, "xdp: detaching xdp program %u from %s\n",
-	        xdp_program__id(prog), xdp->interface_name);
-	ret = xdp_program__detach(prog, xdp->interface_index, XDP_MODE_UNSPEC, 0);
-	if (ret) {
+			xdp->bpf_prog_id, xdp->interface_name);
+
+	int ret = bpf_xdp_detach(xdp->interface_index, 0, &bpf_opts);
+	if (ret)
 		log_msg(LOG_ERR, "xdp: failed to detach xdp program: %s\n",
 		        strerror(-ret));
-	}
 
-	xdp_multiprog__close(mp);
 	return ret;
 }
 

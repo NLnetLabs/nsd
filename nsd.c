@@ -1755,6 +1755,17 @@ main(int argc, char *argv[])
 			nsd.pidfile, strerror(errno));
 	}
 
+#ifdef USE_XDP
+	if (nsd.options->xdp_interface) {
+		/* initializing xdp needs the CAP_SYS_ADMIN, therefore doing it
+		 * before privilege drop (and not keeping CAP_SYS_ADMIN) */
+		if (xdp_server_init(&nsd.xdp.xdp_server)) {
+			log_msg(LOG_ERR, "failed to initialize XDP... disabling XDP.");
+			nsd.options->xdp_interface = NULL;
+		}
+	}
+#endif
+
 	/* Drop the permissions */
 #ifdef HAVE_GETPWNAM
 	if (*nsd.username) {
@@ -1812,17 +1823,6 @@ main(int argc, char *argv[])
 #endif /* USE_XDP */
 	}
 #endif /* HAVE_GETPWNAM */
-
-#ifdef USE_XDP
-	if (nsd.options->xdp_interface) {
-		/* initializing xdp needs successful capability set with
-		 * privilege drop or nsd running as root */
-		if (xdp_server_init(&nsd.xdp.xdp_server)) {
-			log_msg(LOG_ERR, "failed to initialize XDP... disabling XDP.");
-			nsd.options->xdp_interface = NULL;
-		}
-	}
-#endif
 
 	xfrd_make_tempdir(&nsd);
 #ifdef USE_ZONE_STATS
