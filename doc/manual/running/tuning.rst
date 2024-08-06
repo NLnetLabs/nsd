@@ -11,8 +11,8 @@ to ensure the most efficient event mechanism is used on a given platform. e.g.
 ``epoll`` on Linux and ``kqueue`` on FreeBSD. Switches are available for
 operators who know the implementation on their system behaves correctly, like
 enabling the use of ``recvmmsg`` at the configure stage
-(:option:`--enable-recvmmsg`) to read multiple messages from a socket in one
-system call.
+(`--enable-recvmmsg`) to read multiple messages from a socket in one system
+call.
 
 By default NSD forks (only) one server. Modern computer systems however, may
 have more than one processor, and usually have more than one core per processor.
@@ -24,9 +24,7 @@ packets evenly across server processes to balance the load.
 
 A couple of other options that the operator may want to consider:
 
-1. Memory usage can be lowered (around 50%) by using zone files and disable
-   the on-disk database by setting ``database: ""``.
-2. TCP capacity can be significantly increased by setting ``tcp-count: 1000``
+1. TCP capacity can be significantly increased by setting ``tcp-count: 1000``
    and ``tcp-timeout: 3``. Set ``tcp-reject-overflow: yes`` to prevent the
    kernel connection queue from growing.
 

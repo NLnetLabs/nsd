@@ -37,8 +37,6 @@ Here is an example config for ``example.com``:
         server:
             # use this number of cpu cores
             server-count: 1
-            # We recommend leaving this empty, otherwise use "/var/db/nsd/nsd.db"
-            database: ""
             #  the default file used for the nsd-control addzone and delzone commands
             # zonelistfile: "/var/db/nsd/zone.list"
             # The unprivileged user that will run NSD, can also be set to "" if
@@ -71,7 +69,7 @@ Here is an example config for ``example.com``:
             name: example.com
             zonefile: /etc/nsd/example.com.zone
 
-We recommend not using the database (so using ``database: ""``) as this is will slow down NSD operation. Depending on your needs, we also recommend keeping the ``server-count`` lower or equal to the number of CPU cores your system has.
+We recommend keeping the ``server-count`` lower or equal to the number of CPU cores your system has.
 
 Optionally, you can control NSD (from the same or even a different device) by using the entries under the `remote-control` clause in the config. Using this tool, NSD can be controlled (find the reference of all the options :doc:`here<manpages/nsd-control>`) which makes controlling NSD much easier. If your install does not come with the keys needed for remote-control use pre-made, you can generate the keys using the :command:`nsd-control-setup` command, which will create them for you. In the section below we will go into more detail about this option.
 
@@ -232,8 +230,7 @@ When you are done with the configuration file, check the syntax using
 
     nsd-checkconf <name of configfile>
 
-The zone files are read by the daemon, which builds :file:`nsd.db` with their
-contents. You can start the daemon in a number of ways:
+You can start the daemon in a number of ways:
 
 .. code-block:: text
 
@@ -280,9 +277,8 @@ NSD will automatically keep track of secondary zones and update them when
 needed. When primary zones are updated and reloaded notifications are sent to
 secondary servers.
 
-The zone transfers are applied to :file:`nsd.db` by the daemon.  To write
-changed contents of the zone files for secondary zones to disk in the text-based
-zone file format, issue :command:`nsd-control` write.
+To write changed contents of the zone files for secondary zones to disk in the
+text-based zone file format, issue :command:`nsd-control write`.
 
 NSD will send notifications to secondary zones if a primary zone is updated. NSD
 will check for updates at primary servers periodically and transfer the updated

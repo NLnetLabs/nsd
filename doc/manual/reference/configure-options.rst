@@ -59,9 +59,6 @@ LIBS=libs
     Pathname to the NSD pidfile, default is platform specific, mostly
     :file:`/var/run/nsd.pid`.
 
---with-dbfile=path
-    Pathname to the NSD database, default is :file:`/etc/nsd/nsd.db`.
-
 --with-zonesdir=dir
     NSD default location for master zone files, default :file:`/etc/nsd/`.
 

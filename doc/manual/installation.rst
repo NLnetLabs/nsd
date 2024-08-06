@@ -14,21 +14,15 @@ version and all the compile-time options you desire.
 Introduction
 ============
 
-NSD consists of two programs: the zone compiler ``zonec`` and the name server
-``nsd`` itself. The name server works with an intermediate database prepared by
-the zone compiler from standard zone files.
-
-For NSD operation this means that zones have to be compiled by ``zonec`` before
-NSD can use them. All this can be controlled via ``rc.d`` (SIGTERM,  SIGHUP) or
-:command:`nsd-control`, and uses a simple configuration file  ``nsd.conf``.
+NSD can be controlled via ``rc.d`` (SIGTERM,  SIGHUP) or
+:program:`nsd-control`, and uses a simple configuration file ``nsd.conf``.
 
 Installing with a package manager
 =================================
 
-Most package managers maintain a version of NSD, although this version can be
+Most distributions maintain a version of NSD, although this version can be
 outdated if this package has not been updated recently. If you like to upgrade
-to the latest version, we recommend :ref:`compiling NSD yourself<Building from
-source/Compiling>`.
+to the latest version, we recommend compiling NSD yourself.
 
 
 Debian/Ubuntu
@@ -45,20 +39,21 @@ This gives you a compiled and running version of NSD ready to :doc:`be
 configured<configuration>`.
 
 
-Building from source/Compiling
-==============================
+Building from source
+====================
 
 Ubuntu 20.04 LTS
 *************
 
 First of all, we need our copy of the NSD code. `On our website
-<https://nlnetlabs.nl/projects/nsd/about/>`_ you can find the latest version and
-the changelog. In this example we'll use version 4.3.7. Please note that this is not the latest version currently.
+<https://nlnetlabs.nl/projects/nsd/about/>`_ you can find the latest version
+and the changelog. In this example we'll use version 4.10.1. Please note
+that this may not be the latest version currently.
 
 .. code-block:: bash
 
-    wget https://nlnetlabs.nl/downloads/nsd/nsd-4.3.7.tar.gz
-    tar xzf nsd-4.3.7.tar.gz
+    wget https://nlnetlabs.nl/downloads/nsd/nsd-4.10.1.tar.gz
+    tar xzf nsd-4.10.1.tar.gz
 
 
 We'll need some tools, such as a compiler and the :command:`make` program.
@@ -89,7 +84,7 @@ download as well.
 
 
 With all the requirements met, we can now start the compilation process in the
-NSD directory.  The first step here is configuring. With :option:`./configure
+NSD directory.  The first step here is configuring. With :command:`./configure
 -h` you can look at the extensive list of configurables for NSD. A nice
 feature is that :command:`configure` will tell you what it's missing during
 configuration.
@@ -133,7 +128,7 @@ instance.
 
 Another handy trick you can use during testing is to run NSD in the foreground
 using the :option:`-d` option and increase the verbosity level using the
-:option:`-V 3` option. This allows you to see steps NSD takes and also where it
+:option:`-V` option. This allows you to see steps NSD takes and also where it
 fails.
 
 Now that NSD is installed we can :doc:`continue to configuring
