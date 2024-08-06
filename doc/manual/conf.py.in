@@ -23,15 +23,15 @@ import requests
 
 # -- Project information -----------------------------------------------------
 
-project = 'NSD'
+project = '@project@'
 year = datetime.datetime.now().year
 copyright = f'2001–{year}, NLnet Labs'
 author = 'NLnet Labs'
 
 # The short X.Y version
-version = '4.3.9'
+version = '@version@'
 # The full version, including alpha/beta/rc tags
-release = '4.3.9'
+release = '@version@'
 
 try:
     response_versions = requests.get(
