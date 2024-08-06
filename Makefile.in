@@ -102,7 +102,27 @@ all: $(TARGETS) $(MANUALS)
 doc/manual/conf.py: doc/manual/conf.py.in
 	$(EDIT) $(srcdir)/doc/manual/conf.py.in > $@
 
-html: doc/manual/conf.py
+doc/manual/manpages/nsd.conf.5.html: nsd.conf.5
+	mandoc -T html -O fragment nsd.conf.5 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd.8.html: nsd.8
+	mandoc -T html -O fragment nsd.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd-checkconf.8.html: nsd-checkconf.8
+	mandoc -T html -O fragment nsd-checkconf.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd-checkzone.8.html: nsd-checkzone.8
+	mandoc -T html -O fragment nsd-checkzone.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd-control.8.html: nsd-control.8
+	mandoc -T html -O fragment nsd-control.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+html: doc/manual/conf.py doc/manual/manpages/nsd.conf.5.html doc/manual/manpages/nsd.8.html doc/manual/manpages/nsd-checkconf.8.html doc/manual/manpages/nsd-checkzone.8.html doc/manual/manpages/nsd-control.8.html
 	sphinx-build -M html $(srcdir)/doc/manual doc/manual -N -q
 
 $(ALL_OBJ):
@@ -213,7 +233,7 @@ audit: nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem checksec
 
 .clean:
 	rm -f *.o $(TARGETS) $(MANUALS) cutest popen3_echo xfr-inspect nsd-mem
-	rm -f doc/manual/conf.py
+	rm -f doc/manual/conf.py doc/manual/manpages/nsd.conf.5.html doc/manual/manpages/nsd.8.html doc/manual/manpages/nsd-checkconf.8.html doc/manual/manpages/nsd-checkzone.8.html doc/manual/manpages/nsd-control.8.html
 	rm -rf doc/manual/doctrees doc/manual/html
 
 .distclean: .clean
