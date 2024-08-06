@@ -440,12 +440,11 @@ int xdp_server_cleanup(struct xdp_server *xdp) {
 		if (xdp->xsk_map && bpf_map__is_pinned(xdp->xsk_map)) {
 			if (bpf_map__unpin(xdp->xsk_map, NULL)) {
 				log_msg(LOG_ERR, "xdp: failed to unpin bpf map during cleanup: \"%s\"\n",
-						strerror(errno));
+				        strerror(errno));
 				ret = -1;
 			}
 		}
 
-		log_msg(LOG_INFO, "xdp: unloading xdp program");
 		unload_xdp_program(xdp);
 	}
 
