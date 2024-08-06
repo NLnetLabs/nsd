@@ -54,20 +54,15 @@ inline void csum16_replace(__sum16 *sum, __be16 old, __be16 new) {
  */
 inline void csum_add_data(uint32_t *result,
                           const void *_data,
-                          uint32_t _data_len) {
-	uint32_t len = 0;
-	if (_data_len & 1) {
-		len = (_data_len - 1) / 2;
-	} else {
-		len = _data_len / 2;
-	}
+                          uint32_t len) {
 	const uint16_t *data = _data;
-	while (len-- > 0) {
+	while (len > 1) {
 		*result += *data++;
+		len -= 2;
 	}
-	if (_data_len & 1) {
-		*result += (*data) << 8;
-	}
+	if (len)
+		*result += *data & 0xff;
+		// *result += *(uint8_t *)data;
 }
 
 /*
