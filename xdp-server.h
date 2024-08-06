@@ -54,6 +54,8 @@ struct xdp_server {
 
 	/* track bpf objects and file descriptors */
 	int xsk_map_fd;
+	int bpf_prog_fd;
+	int bpf_prog_id;
 	struct bpf_map *xsk_map;
 	struct xdp_program *bpf_prog;
 
