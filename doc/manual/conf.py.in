@@ -287,3 +287,12 @@ def setup(app):
     app.add_css_file('css/dark.css')
     app.add_css_file('css/light.css')
 
+
+# -- Export variables to be used in RST --------------------------------------
+
+rst_epilog = ".. |pidfile| replace:: @pidfile@\n" \
+             ".. |configdir| replace:: @configdir@\n" \
+             ".. |configfile| replace:: @nsdconfigfile@\n" \
+             ".. |logfile| replace:: @logfile@\n" \
+             ".. |xfrdfile| replace:: @xfrdfile@\n" \
+             ".. |zonelistfile| replace:: @zonelistfile@\n"

@@ -56,7 +56,6 @@ attribution to NLnet Labs.
    manpages/nsd-checkconf
    manpages/nsd-checkzone
    manpages/nsd.conf
-   manpages/nsd.conf.new
    manpages/nsd-control
 
 .. toctree::
@@ -65,7 +64,6 @@ attribution to NLnet Labs.
 
    reference/configure-options
    reference/log-diagnosis
-   reference/grammar
 
 .. history
 .. authors
