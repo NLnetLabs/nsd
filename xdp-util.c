@@ -84,8 +84,6 @@ void set_caps(int unset_setid_caps) {
 		CAP_SETUID,
 		CAP_SETGID
 	};
-	/* maybe need CAP_IPC_LOCK for mmap and alike used for umem creation?
-	 * so far not, maybe because of rlimit increase? */
 
 	if (!(caps = cap_init()))
 		goto out;
