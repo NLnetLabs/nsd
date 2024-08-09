@@ -116,6 +116,7 @@ struct nsd_options {
 	const char* zonelistfile;
 	const char* nsid;
 	int xfrd_reload_timeout;
+	int reload_config;
 	int zonefiles_check;
 	int zonefiles_write;
 	int log_time_ascii;

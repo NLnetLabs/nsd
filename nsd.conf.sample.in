@@ -216,6 +216,9 @@ server:
 	# default is 3600.
 	# zonefiles-write: 3600
 
+	# Reload nsd.conf and update TSIG keys and zones on SIGHUP.
+	# reload-config: no
+
 	# RRLconfig
 	# Response Rate Limiting, size of the hashtable. Default 1000000.
 	# rrl-size: 1000000

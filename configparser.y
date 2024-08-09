@@ -115,6 +115,7 @@ struct component {
 %token VAR_MINIMAL_RESPONSES
 %token VAR_CONFINE_TO_ZONE
 %token VAR_REFUSE_ANY
+%token VAR_RELOAD_CONFIG
 %token VAR_ZONEFILES_CHECK
 %token VAR_ZONEFILES_WRITE
 %token VAR_RRL_SIZE
@@ -445,6 +446,8 @@ server_option:
       cfg_parser->opt->rrl_whitelist_ratelimit = (size_t)$2;
 #endif
     }
+  | VAR_RELOAD_CONFIG boolean
+    { cfg_parser->opt->reload_config = $2; }
   | VAR_ZONEFILES_CHECK boolean
     { cfg_parser->opt->zonefiles_check = $2; }
   | VAR_ZONEFILES_WRITE number
