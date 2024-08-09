@@ -1,0 +1,16 @@
+# #-- reload-config.pre --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+NSD_PORT=$RND_PORT
+
+NSD_PID="nsd.pid.$$"
+
+# share the vars
+echo "export NSD_PORT=$NSD_PORT" >> .tpkg.var.test
+echo "export NSD_PID=$NSD_PID" >> .tpkg.var.test
