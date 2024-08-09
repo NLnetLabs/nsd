@@ -1,0 +1,19 @@
+# #-- reload-config.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+. ../common.sh
+
+cat nsd.log
+
+rm -f nsd.log
+rm -f xfrd.state
+rm -f nsd.zonelist
+
+if test -f $NSD_PID; then
+	# the test must have failed
+	kill_pid `cat $NSD_PID`
+fi

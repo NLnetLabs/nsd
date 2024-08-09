@@ -137,6 +137,7 @@ nsd_options_create(region_type* region)
 	opt->dnstap_log_auth_query_messages = 0;
 	opt->dnstap_log_auth_response_messages = 0;
 #endif
+	opt->reload_config = 0;
 	opt->zonefiles_check = 1;
 	opt->zonefiles_write = ZONEFILES_WRITE_INTERVAL;
 	opt->xfrd_reload_timeout = 1;

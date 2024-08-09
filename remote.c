@@ -71,7 +71,6 @@
 #else
 #  include "mini_event.h"
 #endif
-#include "remote.h"
 #include "util.h"
 #include "xfrd.h"
 #include "xfrd-catalog-zones.h"
@@ -81,6 +80,7 @@
 #include "options.h"
 #include "difffile.h"
 #include "ipc.h"
+#include "remote.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>
@@ -2036,6 +2036,46 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 	zonestat_inc_ifneeded(xfrd);
 	send_ok(ssl);
 	region_destroy(region);
+}
+
+static void print_cfg_err(void *unused, const char *message)
+{
+	(void)unused;
+	log_msg(LOG_ERR, "%s", message);
+}
+
+/* mostly identical to do_repattern */
+void xfrd_reload_config(xfrd_state_type *xfrd)
+{
+	const char *chrootdir = xfrd->nsd->chrootdir;
+	const char *file = xfrd->nsd->options->configfile;
+
+	if (chrootdir && !file_inside_chroot(file, chrootdir))
+	{
+		log_msg(LOG_ERR, "%s is not relative to %s: %s",
+			xfrd->nsd->options->configfile, xfrd->nsd->chrootdir,
+			"chroot prevents reread of config");
+		goto error_chroot;
+	}
+
+	region_type *region = region_create(xalloc, free);
+	struct nsd_options *options = nsd_options_create(region);
+
+	if (!parse_options_file(
+		options, file, print_cfg_err, NULL, xfrd->nsd->options))
+	{
+		goto error_parse;
+	}
+
+	repat_keys(xfrd, options);
+	repat_patterns(xfrd, options); /* adds/deletes zones too */
+	repat_options(xfrd, options);
+	zonestat_inc_ifneeded(xfrd);
+
+error_parse:
+	region_destroy(region);
+error_chroot:
+	return;
 }
 
 /** do the serverpid command: printout pid of server process */
