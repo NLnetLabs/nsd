@@ -44,6 +44,11 @@ struct xsk_socket_info {
 	uint32_t outstanding_tx;
 };
 
+struct xdp_ip_address {
+	struct xdp_ip_address *next;
+	struct sockaddr_storage addr;
+};
+
 struct xdp_server {
 	/* NSD global settings */
 	region_type *region;
@@ -62,6 +67,8 @@ struct xdp_server {
 	int interface_index;
 	int queue_count;
 	uint32_t queue_index;
+
+	struct xdp_ip_address *ip_addresses;
 
 	struct query **queries;
 	void *nsd;

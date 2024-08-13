@@ -43,6 +43,11 @@
 #include <linux/udp.h>
 #include <net/if.h>
 
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <linux/if_link.h>
+
 #include "query.h"
 #include "dns.h"
 #include "util.h"
@@ -100,6 +105,11 @@ static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame);
 static int load_xdp_program_and_map(struct xdp_server *xdp);
 
 static int unload_xdp_program(struct xdp_server *xdp);
+
+/*
+ * Figure out IP addresses to listen to.
+ */
+static int figure_ip_addresses(struct xdp_server *xdp);
 
 /*
  * Setup XDP sockets
@@ -427,6 +437,9 @@ int xdp_server_init(struct xdp_server *xdp) {
 		umem_ptrs[i].len = 0;
 	}
 
+	if (!xdp->ip_addresses)
+		figure_ip_addresses(xdp);
+
 	return 0;
 }
 
@@ -463,6 +476,90 @@ static int unload_xdp_program(struct xdp_server *xdp) {
 		log_msg(LOG_ERR, "xdp: failed to detach xdp program: %s\n",
 		        strerror(-ret));
 
+	return ret;
+}
+
+static int dest_ip_allowed6(struct xdp_server *xdp, struct ipv6hdr *ipv6) {
+	struct xdp_ip_address *ip = xdp->ip_addresses;
+	if (!ip)
+		// no IPs available, allowing all
+		return 1;
+
+	while (ip) {
+		if (!memcmp(&((struct sockaddr_in6 *) &ip->addr)->sin6_addr,
+		            &ipv6->daddr,
+		            sizeof(struct in6_addr)))
+			return 1;
+		ip = ip->next;
+	}
+
+	return 0;
+}
+
+static int dest_ip_allowed4(struct xdp_server *xdp, struct iphdr *ipv4) {
+	struct xdp_ip_address *ip = xdp->ip_addresses;
+	if (!ip)
+		// no IPs available, allowing all
+		return 1;
+
+	while (ip) {
+		if (ipv4->daddr == ((struct sockaddr_in *) &ip->addr)->sin_addr.s_addr)
+			return 1;
+		ip = ip->next;
+	}
+
+	return 0;
+}
+
+static void
+add_ip_address(struct xdp_server *xdp, struct sockaddr_storage *addr) {
+	struct xdp_ip_address *ip = xdp->ip_addresses;
+	if (!ip) {
+		xdp->ip_addresses = region_alloc_zero(xdp->region,
+		                                      sizeof(struct xdp_ip_address));
+		ip = xdp->ip_addresses;
+	} else {
+		while (ip->next)
+			ip = ip->next;
+
+		ip->next = region_alloc_zero(xdp->region,
+		                             sizeof(struct xdp_ip_address));
+		ip = ip->next;
+	}
+
+	memcpy(&ip->addr, addr, sizeof(struct sockaddr_storage));
+}
+
+static int figure_ip_addresses(struct xdp_server *xdp) {
+	struct ifaddrs *ifaddr;
+	int family, s, ret = 0;
+
+	if (getifaddrs(&ifaddr) == -1) {
+		log_msg(LOG_ERR, "xdp: couldn't determine local IP addresses. "
+		                 "Serving all IP addresses now");
+		return -1;
+	}
+
+	for (struct ifaddrs *ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		if (ifa->ifa_addr == NULL)
+			continue;
+
+		if (strcmp(ifa->ifa_name, xdp->interface_name))
+			continue;
+
+		family = ifa->ifa_addr->sa_family;
+
+		switch (family) {
+			default:
+				continue;
+			case AF_INET:
+			case AF_INET6:
+				add_ip_address(xdp, (struct sockaddr_storage *) ifa->ifa_addr);
+		}
+	}
+
+out:
+	freeifaddrs(ifaddr);
 	return ret;
 }
 
@@ -568,7 +665,6 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 
 	data_before_dnshdr_len = sizeof(*eth) + sizeof(*udp);
 
-	/* TODO: implement only accepting IP traffic to actual server ip? */
 	switch (ntohs(eth->h_proto)) {
 	case ETH_P_IPV6: {
 		ipv6 = (struct ipv6hdr *)(eth + 1);
@@ -581,6 +677,9 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 		dnslen -= (sizeof(*eth) + sizeof(*ipv6) + sizeof(*udp));
 		data_before_dnshdr_len += sizeof(*ipv6);
 
+		if (!dest_ip_allowed6(xdp, ipv6))
+			return 0;
+
 		break;
 	} case ETH_P_IP: {
 		ipv4 = (struct iphdr *)(eth + 1);
@@ -590,6 +689,9 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 
 		dnslen -= (sizeof(*eth) + sizeof(*ipv4) + sizeof(*udp));
 		data_before_dnshdr_len += sizeof(*ipv4);
+
+		if (!dest_ip_allowed4(xdp, ipv4))
+			return 0;
 
 		break;
 	}
