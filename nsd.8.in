@@ -204,13 +204,15 @@ to standard error and exit.
 reacts to the following signals:
 .TP
 SIGTERM
+.br
 Stop answering queries, shutdown, and exit normally.
 .TP 
 SIGHUP
-Reload.  Scans zone files and if changed (mtime) reads
-them in.  Also reopens the logfile (assists logrotation).
+.br
+Reopen logfile (assists rotation) and optionally update TSIG keys and zones.
 .TP
 SIGUSR1
+.br
 Dump BIND8\-style statistics into the log. Ignored otherwise.
 .SH "FILES"
 .TP
