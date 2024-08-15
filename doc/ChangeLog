@@ -1,3 +1,6 @@
+15 August 2024: Jeroen
+	- Support reloading configuration on SIGHUP.
+
 2 August 2024: Jeroen
 	- Update simdzone to fix detection of AVX2 support.
 
