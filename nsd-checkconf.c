@@ -411,6 +411,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_BIN(hide_version, o);
 		SERV_GET_BIN(hide_identity, o);
 		SERV_GET_BIN(drop_updates, o);
+		SERV_GET_BIN(reload_config, o);
 		SERV_GET_BIN(zonefiles_check, o);
 		SERV_GET_BIN(log_time_ascii, o);
 		SERV_GET_BIN(round_robin, o);
@@ -706,6 +707,7 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\trrl-ipv6-prefix-length: %d\n", (int)opt->rrl_ipv6_prefix_length);
 	printf("\trrl-whitelist-ratelimit: %d\n", (int)opt->rrl_whitelist_ratelimit);
 #endif
+	printf("\treload-config: %s\n", opt->reload_config?"yes":"no");
 	printf("\tzonefiles-check: %s\n", opt->zonefiles_check?"yes":"no");
 	printf("\tzonefiles-write: %d\n", opt->zonefiles_write);
 	print_string_var("tls-service-key:", opt->tls_service_key);
