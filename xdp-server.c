@@ -12,7 +12,6 @@
  */
 
 #include "config.h"
-#include <bpf/libbpf.h>
 
 #ifdef USE_XDP
 
@@ -34,6 +33,7 @@
 /* #include <bpf/bpf.h> */
 #include <xdp/xsk.h>
 #include <xdp/libxdp.h>
+#include <bpf/libbpf.h>
 
 #include <arpa/inet.h>
 #include <linux/icmpv6.h>
@@ -98,6 +98,11 @@ static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk);
  * Free a frame in UMEM
  */
 static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame);
+
+/*
+ * Fill fill ring with as many frames as possible
+ */
+static void fill_fq(struct xsk_socket_info *xsk);
 
 /*
  * Load eBPF program to forward traffic to our socket
@@ -181,6 +186,26 @@ static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk) {
 static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame) {
 	assert(xsk->umem_frame_free < XDP_NUM_FRAMES);
 	xsk->umem->umem_frame_addr[xsk->umem->umem_frame_free++] = frame;
+}
+
+static void fill_fq(struct xsk_socket_info *xsk) {
+	uint32_t stock_frames;
+	uint32_t idx_fq = 0;
+	/* fill the fill ring with as many frames as are available */
+	/* get number of spots available in fq */
+	stock_frames = xsk_prod_nb_free(&xsk->umem->fq, xsk_umem_free_frames(xsk));
+	if (stock_frames > 0) {
+		/* ignoring prod__reserve return value, because we got stock_frames
+		 * from xsk_prod_nb_free(), which are therefore available */
+		xsk_ring_prod__reserve(&xsk->umem->fq, stock_frames, &idx_fq);
+
+		for (int i = 0; i < stock_frames; ++i) {
+			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) =
+				xsk_alloc_umem_frame(xsk);
+		}
+
+		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
+	}
 }
 
 static int load_xdp_program_and_map(struct xdp_server *xdp) {
@@ -763,8 +788,8 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 
 void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 	struct xsk_socket_info *xsk = &xdp->xsks[xdp->queue_index];
-	unsigned int recvd, stock_frames, i, to_send = 0;
-	uint32_t idx_rx = 0, idx_fq = 0;
+	unsigned int recvd, i, to_send = 0;
+	uint32_t idx_rx = 0;
 	int ret;
 
 	recvd = xsk_ring_cons__peek(&xsk->rx, XDP_RX_BATCH_SIZE, &idx_rx);
@@ -773,23 +798,7 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 		return;
 	}
 
-	/* TODO: maybe put in it's own function and call after tx too? */
-
-	/* fill the fill ring with as many frames as are available */
-	/* get number of spots available in fq */
-	stock_frames = xsk_prod_nb_free(&xsk->umem->fq, xsk_umem_free_frames(xsk));
-	if (stock_frames > 0) {
-		/* ignoring prod__reserve return value, because we got stock_frames
-		 * from xsk_prod_nb_free(), which are therefore available */
-		xsk_ring_prod__reserve(&xsk->umem->fq, stock_frames, &idx_fq);
-
-		for (i = 0; i < stock_frames; ++i) {
-			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) =
-				xsk_alloc_umem_frame(xsk);
-		}
-
-		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
-	}
+	fill_fq(xsk);
 
 	/* Process received packets */
 	for (i = 0; i < recvd; ++i) {
@@ -847,6 +856,7 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 
 	/* wake up kernel for tx if needed and collect completed tx buffers */
 	handle_tx(xsk);
+	/* TODO: maybe call fill_fq(xsk) here as well? */
 }
 
 static void handle_tx(struct xsk_socket_info *xsk) {
