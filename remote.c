@@ -2049,6 +2049,8 @@ void xfrd_reload_config(xfrd_state_type *xfrd)
 {
 	const char *chrootdir = xfrd->nsd->chrootdir;
 	const char *file = xfrd->nsd->options->configfile;
+	region_type* region;
+	struct nsd_options* options;
 
 	if (chrootdir && !file_inside_chroot(file, chrootdir))
 	{
@@ -2058,8 +2060,8 @@ void xfrd_reload_config(xfrd_state_type *xfrd)
 		goto error_chroot;
 	}
 
-	region_type *region = region_create(xalloc, free);
-	struct nsd_options *options = nsd_options_create(region);
+	region = region_create(xalloc, free);
+	options = nsd_options_create(region);
 
 	if (!parse_options_file(
 		options, file, print_cfg_err, NULL, xfrd->nsd->options))

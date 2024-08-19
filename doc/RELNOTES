@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- Support reloading configuration on SIGHUP.
+BUG FIXES:
+	- Fix title underline and declaration after statement warnings.
 
 4.10.1
 ================

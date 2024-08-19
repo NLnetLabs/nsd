@@ -43,7 +43,7 @@ Building from source
 ====================
 
 Ubuntu 20.04 LTS
-*************
+****************
 
 First of all, we need our copy of the NSD code. `On our website
 <https://nlnetlabs.nl/projects/nsd/about/>`_ you can find the latest version
