@@ -308,7 +308,6 @@ xsk_configure_socket(struct xdp_server *xdp, struct xsk_socket_info *xsk_info,
 	int i, ret;
 
 	xsk_info->umem = umem;
-	/* TODO: maybe move rx/tx sizes to xdp_config too? */
 	xsk_cfg.rx_size = XSK_RING_CONS__NUM_DESCS;
 	xsk_cfg.tx_size = XSK_RING_PROD__NUM_DESCS;
 	xsk_cfg.xdp_flags = cfg.xdp_flags;
@@ -340,24 +339,20 @@ xsk_configure_socket(struct xdp_server *xdp, struct xsk_socket_info *xsk_info,
 
 	xsk_info->umem->umem_frame_free = XDP_NUM_FRAMES;
 
-	/* TODO: maybe move this ring size to xdp_config too? */
 	ret = xsk_ring_prod__reserve(&xsk_info->umem->fq,
 	                             XSK_RING_PROD__NUM_DESCS,
 	                             &idx);
 
-	/* TODO: maybe move this ring size to xdp_config too? */
 	if (ret != XSK_RING_PROD__NUM_DESCS) {
 		log_msg(LOG_ERR, "xdp: amount of reserved addr not as expected");
 		goto error_exit;
 	}
 
-	/* TODO: maybe move this ring size to xdp_config too? */
 	for (i = 0; i < XSK_RING_PROD__NUM_DESCS; ++i) {
 		*xsk_ring_prod__fill_addr(&xsk_info->umem->fq, idx++) =
 			xsk_alloc_umem_frame(xsk_info);
 	}
 
-	/* TODO: maybe move this ring size to xdp_config too? */
 	xsk_ring_prod__submit(&xsk_info->umem->fq, XSK_RING_PROD__NUM_DESCS);
 
 	return 0;
@@ -670,7 +665,7 @@ static int parse_dns(struct nsd* nsd, void *dnshdr, uint32_t dnslen, struct quer
 static int
 process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
                uint32_t *len, struct query *query) {
-	log_msg(LOG_INFO, "xdp: received packet with len %d", *len);
+	/* log_msg(LOG_INFO, "xdp: received packet with len %d", *len); */
 
 	uint32_t dnslen = *len;
 	uint32_t data_before_dnshdr_len = 0;
@@ -780,7 +775,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 		return 0;
 	}
 
-	log_msg(LOG_INFO, "xdp: done with processing the packet");
+	/* log_msg(LOG_INFO, "xdp: done with processing the packet"); */
 
 	*len = data_before_dnshdr_len + dnslen;
 	return 1;

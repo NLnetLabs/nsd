@@ -22,6 +22,7 @@
 /* TODO: check if number is sensible */
 #define XDP_RX_BATCH_SIZE 64
 #define XDP_INVALID_UMEM_FRAME UINT64_MAX
+/* TODO: maybe make these ring sizes configurable? */
 #define XSK_RING_PROD__NUM_DESCS XSK_RING_PROD__DEFAULT_NUM_DESCS
 #define XSK_RING_CONS__NUM_DESCS XSK_RING_CONS__DEFAULT_NUM_DESCS
 
