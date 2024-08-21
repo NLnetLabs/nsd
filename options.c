@@ -151,7 +151,7 @@ nsd_options_create(region_type* region)
 	opt->proxy_protocol_port = NULL;
 	opt->answer_cookie = 0;
 	opt->cookie_secret = NULL;
-	opt->cookie_secret_file = CONFIGDIR"/nsd_cookiesecrets.txt";
+	opt->cookie_secret_file = NULL;
 	opt->control_enable = 0;
 	opt->control_interface = NULL;
 	opt->control_port = NSD_CONTROL_PORT;

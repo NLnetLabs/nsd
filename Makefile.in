@@ -24,6 +24,7 @@ logfile = @logfile@
 xfrdir = @xfrdir@
 xfrdfile = @xfrdfile@
 zonelistfile = @zonelistfile@
+cookiesecretsfile = @cookiesecretsfile@
 nsdconfigfile = @nsd_conf_file@
 zonesdir = @zonesdir@
 chrootdir= @chrootdir@
@@ -73,6 +74,7 @@ EDIT		= $(SED) \
 			-e 's,@xfrdir\@,$(xfrdir),g' \
 			-e 's,@xfrdfile\@,$(xfrdfile),g' \
 			-e 's,@zonelistfile\@,$(zonelistfile),g' \
+			-e 's,@cookiesecretsfile\@,$(cookiesecretsfile),g' \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@ratelimit_default\@,@ratelimit_default@,g' \
@@ -167,6 +169,7 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(xfrdir)
 	$(INSTALL) -d `dirname $(DESTDIR)$(xfrdfile)`
 	$(INSTALL) -d `dirname $(DESTDIR)$(zonelistfile)`
+	$(INSTALL) -d `dirname $(DESTDIR)$(cookiesecretsfile)`
 	$(INSTALL) -d $(DESTDIR)$(mandir)
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man8
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man5
@@ -189,7 +192,7 @@ uninstall:
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkzone.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
 	rm -f -- $(DESTDIR)$(pidfile)
 	@echo
-	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(xfrdfile), $(DESTDIR)$(zonelistfile) directory by hand."
+	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(xfrdfile), $(DESTDIR)$(zonelistfile) $(DESTDIR)$(cookiesecretsfile) directory by hand."
 
 test: 
 

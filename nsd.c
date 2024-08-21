@@ -905,12 +905,12 @@ bind8_stats (struct nsd *nsd)
 static
 int cookie_secret_file_read(nsd_type* nsd) {
 	char secret[NSD_COOKIE_SECRET_SIZE * 2 + 2/*'\n' and '\0'*/];
-	char const* file = nsd->options->cookie_secret_file;
+	char const* file = nsd->options->cookie_secret_file
+	                 ? nsd->options->cookie_secret_file : COOKIESECRETSFILE;
 	FILE* f;
 	int corrupt = 0;
 	size_t count;
 
-	assert( nsd->options->cookie_secret_file != NULL );
 	f = fopen(file, "r");
 	/* a non-existing cookie file is not an error */
 	if( f == NULL ) { return errno != EPERM; }
@@ -1592,7 +1592,7 @@ main(int argc, char *argv[])
 	}
 #endif /* HAVE_SSL */
 
-	if(nsd.options->cookie_secret_file && nsd.options->cookie_secret_file[0]
+	if((!nsd.options->cookie_secret_file || nsd.options->cookie_secret_file[0])
 	   && !cookie_secret_file_read(&nsd) ) {
 		log_msg(LOG_ERR, "cookie secret file corrupt or not readable");
 	}

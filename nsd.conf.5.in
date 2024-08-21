@@ -490,7 +490,7 @@ calculations.
 File from which the secrets are read used in DNS Cookie calculations. When this
 file exists, the secrets in this file are used and the secret specified by the
 \fBcookie-secret\fR option is ignored.
-Default is @configdir@/nsd_cookiesecrets.txt
+Default is @cookiesecretsfile@
 .sp
 The content of this file must be manipulated with the \fBadd_cookie_secret\fR,
 \fBdrop_cookie_secret\fR and \fBactivate_cookie_secret\fR commands to the
