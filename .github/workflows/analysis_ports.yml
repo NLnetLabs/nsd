@@ -45,7 +45,7 @@ jobs:
             cross_platform_os: "netbsd"
             cross_platform_arch: "x86-64"
             cross_platform_version: "10.0"
-            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
+            cross_platform_config: "--enable-checking --disable-flto --with-libevent=no"
  
     steps:
       - uses: actions/checkout@v4
@@ -68,16 +68,12 @@ jobs:
             set -e -x
             if test "$CROSS_PLATFORM_OS" = "freebsd"; then sudo pkg install -y autoconf libtool openssl libevent; fi
             if test "$CROSS_PLATFORM_OS" = "openbsd"; then sudo pkg_add autoconf-2.71 libtool libevent; export AUTOCONF_VERSION="2.71"; fi
-            if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install autoconf libtool libevent; fi
+            if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install autoconf libtool; fi
             echo "::group::configure"
             autoconf && autoheader
             (cd simdzone && autoconf && autoheader)
             libtoolize -c -i || glibtoolize -c -i
-            echo "debug ls"
-            ls -l /usr/pkg/lib/*event*
-            ls -l /usr/pkg/lib64/*event*
-            ./configure ${{ matrix.cross_platform_config }} || cat config.log
-            echo "debug fail"; exit 1
+            ./configure ${{ matrix.cross_platform_config }}
             echo "::endgroup::"
             echo "::group::make"
             make -j2
