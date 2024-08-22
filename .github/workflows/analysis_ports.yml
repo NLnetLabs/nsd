@@ -86,6 +86,7 @@ jobs:
         if: ${{ matrix.config != 'no' }}
         run: |
           set -e -x
+          if test `uname` = "Linux"; then sudo apt-get install libevent-dev; fi
           autoconf && autoheader
           (cd simdzone && autoconf && autoheader)
           libtoolize -c -i || glibtoolize -c -i
