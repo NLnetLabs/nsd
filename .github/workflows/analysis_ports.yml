@@ -14,29 +14,29 @@ jobs:
     strategy:
       matrix:
         include:
-#          - name: Linux and clang-analyzer
-#            os: ubuntu-latest
-#            config: "--enable-checking --disable-flto"
-#            make_test: "yes"
-#            clang_analysis: "yes"
-#          - name: FreeBSD
-#            os: ubuntu-latest
-#            config: "no"
-#            make: "no"
-#            with_cross_platform_action: "yes"
-#            cross_platform_os: "freebsd"
-#            cross_platform_arch: "x86-64"
-#            cross_platform_version: "14.1"
-#            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
-#          - name: OpenBSD
-#            os: ubuntu-latest
-#            config: "no"
-#            make: "no"
-#            with_cross_platform_action: "yes"
-#            cross_platform_os: "openbsd"
-#            cross_platform_arch: "x86-64"
-#            cross_platform_version: "7.5"
-#            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
+          - name: Linux and clang-analyzer
+            os: ubuntu-latest
+            config: "--enable-checking --disable-flto"
+            make_test: "yes"
+            clang_analysis: "yes"
+          - name: FreeBSD
+            os: ubuntu-latest
+            config: "no"
+            make: "no"
+            with_cross_platform_action: "yes"
+            cross_platform_os: "freebsd"
+            cross_platform_arch: "x86-64"
+            cross_platform_version: "14.1"
+            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
+          - name: OpenBSD
+            os: ubuntu-latest
+            config: "no"
+            make: "no"
+            with_cross_platform_action: "yes"
+            cross_platform_os: "openbsd"
+            cross_platform_arch: "x86-64"
+            cross_platform_version: "7.5"
+            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
           - name: NetBSD
             os: ubuntu-latest
             config: "no"
@@ -70,8 +70,7 @@ jobs:
             if test "$CROSS_PLATFORM_OS" = "openbsd"; then sudo pkg_add autoconf-2.71 libtool libevent; export AUTOCONF_VERSION="2.71"; fi
             if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install autoconf libtool; fi
             echo "::group::configure"
-            echo "patch up simdzone for test"
-            (cd simdzone; patch -p1 < ../simdzone_patch_endiandecl.diff)
+            if test "$CROSS_PLATFORM_OS" = "netbsd"; then (cd simdzone; patch -p1 < ../simdzone_patch_endiandecl.diff); fi
             autoconf && autoheader
             (cd simdzone && autoconf && autoheader)
             libtoolize -c -i || glibtoolize -c -i
