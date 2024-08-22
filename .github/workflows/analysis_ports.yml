@@ -70,6 +70,9 @@ jobs:
             if test "$CROSS_PLATFORM_OS" = "openbsd"; then sudo pkg_add libevent; fi
             if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install libevent; fi
             echo "::group::configure"
+            autoconf && autoheader
+            (cd simdzone && autoconf && autoheader)
+            libtoolize -c -i || glibtoolize -c -i
             ./configure ${{ matrix.cross_platform_config }}
             echo "::endgroup::"
             echo "::group::make"
@@ -81,7 +84,11 @@ jobs:
             echo "::endgroup::"
       - name: configure
         if: ${{ matrix.config != 'no' }}
-        run: ./configure ${{ matrix.config }}
+        run: |
+          autoconf && autoheader
+          (cd simdzone && autoconf && autoheader)
+          libtoolize -c -i || glibtoolize -c -i
+          ./configure ${{ matrix.config }}
       - name: make
         if: ${{ matrix.make != 'no' }}
         run: make
