@@ -71,7 +71,7 @@ jobs:
             if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install autoconf libtool; fi
             echo "::group::configure"
             echo "patch up simdzone for test"
-cat <<EOF | (cd simdzone; patch -p1)
+            cat <<EOF | (cd simdzone; patch -p1)
 diff --git a/configure.ac b/configure.ac
 index 20c2e55..4c8423d 100644
 --- a/configure.ac
