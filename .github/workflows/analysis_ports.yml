@@ -73,6 +73,9 @@ jobs:
             autoconf && autoheader
             (cd simdzone && autoconf && autoheader)
             libtoolize -c -i || glibtoolize -c -i
+            echo "debug ls"
+            ls -l /usr/pkg/lib/*event*
+            ls -l /usr/pkg/lib64/*event*
             ./configure ${{ matrix.cross_platform_config }} || cat config.log
             echo "debug fail"; exit 1
             echo "::endgroup::"
