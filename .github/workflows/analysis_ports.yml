@@ -19,24 +19,24 @@ jobs:
 #            config: "--enable-checking --disable-flto"
 #            make_test: "yes"
 #            clang_analysis: "yes"
-          - name: FreeBSD
-            os: ubuntu-latest
-            config: "no"
-            make: "no"
-            with_cross_platform_action: "yes"
-            cross_platform_os: "freebsd"
-            cross_platform_arch: "x86-64"
-            cross_platform_version: "14.1"
-            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
-#          - name: OpenBSD
+#          - name: FreeBSD
 #            os: ubuntu-latest
 #            config: "no"
 #            make: "no"
 #            with_cross_platform_action: "yes"
-#            cross_platform_os: "openbsd"
+#            cross_platform_os: "freebsd"
 #            cross_platform_arch: "x86-64"
-#            cross_platform_version: "7.5"
+#            cross_platform_version: "14.1"
 #            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
+          - name: OpenBSD
+            os: ubuntu-latest
+            config: "no"
+            make: "no"
+            with_cross_platform_action: "yes"
+            cross_platform_os: "openbsd"
+            cross_platform_arch: "x86-64"
+            cross_platform_version: "7.5"
+            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
 #          - name: NetBSD
 #            os: ubuntu-latest
 #            config: "no"
