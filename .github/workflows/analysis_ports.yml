@@ -14,20 +14,20 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: Linux and clang-analyzer
-            os: ubuntu-latest
-            config: "--enable-checking --disable-flto"
-            make_test: "yes"
-            clang_analysis: "yes"
-#          - name: FreeBSD
+#          - name: Linux and clang-analyzer
 #            os: ubuntu-latest
-#            config: "no"
-#            make: "no"
-#            with_cross_platform_action: "yes"
-#            cross_platform_os: "freebsd"
-#            cross_platform_arch: "x86-64"
-#            cross_platform_version: "14.1"
-#            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
+#            config: "--enable-checking --disable-flto"
+#            make_test: "yes"
+#            clang_analysis: "yes"
+          - name: FreeBSD
+            os: ubuntu-latest
+            config: "no"
+            make: "no"
+            with_cross_platform_action: "yes"
+            cross_platform_os: "freebsd"
+            cross_platform_arch: "x86-64"
+            cross_platform_version: "14.1"
+            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
 #          - name: OpenBSD
 #            os: ubuntu-latest
 #            config: "no"
@@ -66,9 +66,9 @@ jobs:
           cpu_count: 2
           run: |
             set -e -x
-            if test "$CROSS_PLATFORM_OS" = "freebsd"; then sudo pkg install -y openssl libevent; fi
-            if test "$CROSS_PLATFORM_OS" = "openbsd"; then sudo pkg_add libevent; fi
-            if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install libevent; fi
+            if test "$CROSS_PLATFORM_OS" = "freebsd"; then sudo pkg install -y autoconf libtool openssl libevent; fi
+            if test "$CROSS_PLATFORM_OS" = "openbsd"; then sudo pkg_add autoconf libtool libevent; fi
+            if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install autoconf libtool libevent; fi
             echo "::group::configure"
             autoconf && autoheader
             (cd simdzone && autoconf && autoheader)
