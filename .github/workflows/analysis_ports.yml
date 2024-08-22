@@ -28,24 +28,24 @@ jobs:
 #            cross_platform_arch: "x86-64"
 #            cross_platform_version: "14.1"
 #            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
-          - name: OpenBSD
-            os: ubuntu-latest
-            config: "no"
-            make: "no"
-            with_cross_platform_action: "yes"
-            cross_platform_os: "openbsd"
-            cross_platform_arch: "x86-64"
-            cross_platform_version: "7.5"
-            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
-#          - name: NetBSD
+#          - name: OpenBSD
 #            os: ubuntu-latest
 #            config: "no"
 #            make: "no"
 #            with_cross_platform_action: "yes"
-#            cross_platform_os: "netbsd"
+#            cross_platform_os: "openbsd"
 #            cross_platform_arch: "x86-64"
-#            cross_platform_version: "10.0"
+#            cross_platform_version: "7.5"
 #            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
+          - name: NetBSD
+            os: ubuntu-latest
+            config: "no"
+            make: "no"
+            with_cross_platform_action: "yes"
+            cross_platform_os: "netbsd"
+            cross_platform_arch: "x86-64"
+            cross_platform_version: "10.0"
+            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
  
     steps:
       - uses: actions/checkout@v4
