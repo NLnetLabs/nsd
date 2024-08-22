@@ -1,5 +1,8 @@
 22 August 2024: Wouter
 	- Add cross platform freebsd, openbsd and netbsd to github ci.
+	- Update simdzone to include fix for netbsd double bswap declarations,
+	  and also semantic checks for DS and ZONEMD. And CFLAGS has -march
+	  prepended to fix detection.
 
 19 August 2024: Wouter
 	- Fix title underline and declaration after statement warnings.

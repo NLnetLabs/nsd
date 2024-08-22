@@ -7,6 +7,9 @@ FEATURES:
 BUG FIXES:
 	- Fix title underline and declaration after statement warnings.
 	- Add cross platform freebsd, openbsd and netbsd to github ci.
+	- Update simdzone to include fix for netbsd double bswap declarations,
+	  and also semantic checks for DS and ZONEMD. And CFLAGS has -march
+	  prepended to fix detection.
 
 4.10.1
 ================
