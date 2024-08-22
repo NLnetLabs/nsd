@@ -73,7 +73,8 @@ jobs:
             autoconf && autoheader
             (cd simdzone && autoconf && autoheader)
             libtoolize -c -i || glibtoolize -c -i
-            ./configure ${{ matrix.cross_platform_config }}
+            ./configure ${{ matrix.cross_platform_config }} || cat config.log
+            echo "debug fail"; exit 1
             echo "::endgroup::"
             echo "::group::make"
             make -j2
