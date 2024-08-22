@@ -50,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: false
+          submodules: recursive
       - name: cross-platform-action on ${{ matrix.cross_platform_os }} ${{ matrix.cross_platform_version }}
         if: ${{ matrix.with_cross_platform_action == 'yes' }}
         uses: cross-platform-actions/action@v0.25.0
@@ -76,27 +76,28 @@ jobs:
             ./configure ${{ matrix.cross_platform_config }}
             echo "::endgroup::"
             echo "::group::make"
-            make
+            make -j2
             echo "::endgroup::"
             echo "::group::make cutest; ./cutest"
-            make cutest
+            make -j2 cutest
             ./cutest
             echo "::endgroup::"
       - name: configure
         if: ${{ matrix.config != 'no' }}
         run: |
+          set -e -x
           autoconf && autoheader
           (cd simdzone && autoconf && autoheader)
           libtoolize -c -i || glibtoolize -c -i
           ./configure ${{ matrix.config }}
       - name: make
         if: ${{ matrix.make != 'no' }}
-        run: make
+        run: make -j2
       - name: make cutest; ./cutest
         if: ${{ matrix.make_test == 'yes' }}
         run: |
           set -e -x
-          make cutest
+          make -j2 cutest
           ./cutest
       - name: clang-analysis
         if: ${{ matrix.clang_analysis == 'yes' }}
