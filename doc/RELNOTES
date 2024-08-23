@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- Support reloading configuration on SIGHUP.
+
 BUG FIXES:
 	- Fix title underline and declaration after statement warnings.
 	- Add cross platform freebsd, openbsd and netbsd to github ci.
@@ -12,6 +13,7 @@ BUG FIXES:
 	  prepended to fix detection.
 	- Merge #376: Point the user towards tcpdump for logging individual
 	  queries.
+	- Track $INCLUDEs in zone files.
 
 4.10.1
 ================
