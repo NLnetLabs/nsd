@@ -10,6 +10,8 @@ BUG FIXES:
 	- Update simdzone to include fix for netbsd double bswap declarations,
 	  and also semantic checks for DS and ZONEMD. And CFLAGS has -march
 	  prepended to fix detection.
+	- Merge #376: Point the user towards tcpdump for logging individual
+	  queries.
 
 4.10.1
 ================
