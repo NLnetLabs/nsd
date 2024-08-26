@@ -195,6 +195,7 @@ struct component {
 %token VAR_ANSWER_COOKIE
 %token VAR_COOKIE_SECRET
 %token VAR_COOKIE_SECRET_FILE
+%token VAR_COOKIE_STAGING_SECRET
 %token VAR_MAX_REFRESH_TIME
 %token VAR_MIN_REFRESH_TIME
 %token VAR_MAX_RETRY_TIME
@@ -512,7 +513,27 @@ server_option:
   | VAR_ANSWER_COOKIE boolean
     { cfg_parser->opt->answer_cookie = $2; }
   | VAR_COOKIE_SECRET STRING
-    { cfg_parser->opt->cookie_secret = region_strdup(cfg_parser->opt->region, $2); }
+    {
+      uint8_t secret[32];
+      ssize_t len = hex_pton($2, secret, NSD_COOKIE_SECRET_SIZE);
+
+      if(len != NSD_COOKIE_SECRET_SIZE) {
+        yyerror("expected a 128 bit hex string");
+      } else {
+        cfg_parser->opt->cookie_secret = region_strdup(cfg_parser->opt->region, $2);
+      }
+    }
+  | VAR_COOKIE_STAGING_SECRET STRING
+    {
+      uint8_t secret[32];
+      ssize_t len = hex_pton($2, secret, NSD_COOKIE_SECRET_SIZE);
+
+      if(len != NSD_COOKIE_SECRET_SIZE) {
+        yyerror("expected a 128 bit hex string");
+      } else {
+        cfg_parser->opt->cookie_staging_secret = region_strdup(cfg_parser->opt->region, $2);
+      }
+    }
   | VAR_COOKIE_SECRET_FILE STRING
     { cfg_parser->opt->cookie_secret_file = region_strdup(cfg_parser->opt->region, $2); }
   | VAR_XFRD_TCP_MAX number

@@ -2342,7 +2342,7 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 
 /* returns `0` on failure */
 static int
-cookie_secret_file_dump(RES* ssl, nsd_type const* nsd) {
+cookie_secret_file_dump(RES* ssl, nsd_type* const nsd) {
 	char const* secret_file = nsd->options->cookie_secret_file;
 	char secret_hex[NSD_COOKIE_SECRET_SIZE * 2 + 1];
 	FILE* f;
@@ -2372,25 +2372,41 @@ cookie_secret_file_dump(RES* ssl, nsd_type const* nsd) {
 static void
 do_activate_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	nsd_type* nsd = xrfd->nsd;
+	size_t backup_cookie_count;
+	cookie_secrets_type backup_cookie_secrets;
 	(void)arg;
 
+	if(nsd->cookie_secrets_source == COOKIE_SECRETS_FROM_CONFIG) {
+		(void)ssl_printf(ssl, "error: cookie secrets already configured.");
+		(void)ssl_printf(ssl, " Remove \"cookie-secret:\" and "
+			"\"cookie-staging-secret:\" entries from configuration "
+			"first (and reconfig) before managing cookies with "
+			"nsd-control\n");
+		return;
+	}
 	if(nsd->cookie_count <= 1 ) {
 		(void)ssl_printf(ssl, "error: no staging cookie secret to activate\n");
 		return;
 	}
-	if(!nsd->options->cookie_secret_file || !nsd->options->cookie_secret_file[0]) {
+	if(nsd->options->cookie_secret_file && !nsd->options->cookie_secret_file[0]) {
 		(void)ssl_printf(ssl, "error: no cookie secret file configured\n");
 		return;
 	}
+	backup_cookie_count = nsd->cookie_count;
+	memcpy( backup_cookie_secrets, nsd->cookie_secrets
+	      , sizeof(cookie_secrets_type));
+	activate_cookie_secret(nsd);
 	if(!cookie_secret_file_dump(ssl, nsd)) {
 		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n",
 				nsd->options->cookie_secret_file);
+		memcpy( nsd->cookie_secrets, backup_cookie_secrets
+		      , sizeof(cookie_secrets_type));
+		nsd->cookie_count = backup_cookie_count;
 		return;
 	}
-	activate_cookie_secret(nsd);
-	(void)cookie_secret_file_dump(ssl, nsd);
-	task_new_activate_cookie_secret(xfrd->nsd->task[xfrd->nsd->mytask],
-	    xfrd->last_task);
+	nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
+	task_new_cookies(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
+		nsd->do_answer_cookie, nsd->cookie_count, nsd->cookie_secrets);
 	xfrd_set_reload_now(xfrd);
 	send_ok(ssl);
 }
@@ -2398,25 +2414,41 @@ do_activate_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 static void
 do_drop_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	nsd_type* nsd = xrfd->nsd;
+	size_t backup_cookie_count;
+	cookie_secrets_type backup_cookie_secrets;
 	(void)arg;
 
+	if(nsd->cookie_secrets_source == COOKIE_SECRETS_FROM_CONFIG) {
+		(void)ssl_printf(ssl, "error: cookie secrets already configured.");
+		(void)ssl_printf(ssl, " Remove \"cookie-secret:\" and "
+			"\"cookie-staging-secret:\" entries from configuration "
+			"first (and reconfig) before managing cookies with "
+			"nsd-control\n");
+		return;
+	}
 	if(nsd->cookie_count <= 1 ) {
 		(void)ssl_printf(ssl, "error: can not drop the currently active cookie secret\n");
 		return;
 	}
-	if(!nsd->options->cookie_secret_file || !nsd->options->cookie_secret_file[0]) {
+	if(nsd->options->cookie_secret_file && !nsd->options->cookie_secret_file[0]) {
 		(void)ssl_printf(ssl, "error: no cookie secret file configured\n");
 		return;
 	}
+	backup_cookie_count = nsd->cookie_count;
+	memcpy( backup_cookie_secrets, nsd->cookie_secrets
+	      , sizeof(cookie_secrets_type));
+	drop_cookie_secret(nsd);
 	if(!cookie_secret_file_dump(ssl, nsd)) {
 		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n",
 				nsd->options->cookie_secret_file);
+		memcpy( nsd->cookie_secrets, backup_cookie_secrets
+		      , sizeof(cookie_secrets_type));
+		nsd->cookie_count = backup_cookie_count;
 		return;
 	}
-	drop_cookie_secret(nsd);
-	(void)cookie_secret_file_dump(ssl, nsd);
-	task_new_drop_cookie_secret(xfrd->nsd->task[xfrd->nsd->mytask],
-	    xfrd->last_task);
+	nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
+	task_new_cookies(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
+		nsd->do_answer_cookie, nsd->cookie_count, nsd->cookie_secrets);
 	xfrd_set_reload_now(xfrd);
 	send_ok(ssl);
 }
@@ -2425,7 +2457,17 @@ static void
 do_add_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	nsd_type* nsd = xrfd->nsd;
 	uint8_t secret[NSD_COOKIE_SECRET_SIZE];
+	size_t backup_cookie_count;
+	cookie_secrets_type backup_cookie_secrets;
 
+	if(nsd->cookie_secrets_source == COOKIE_SECRETS_FROM_CONFIG) {
+		(void)ssl_printf(ssl, "error: cookie secrets already configured.");
+		(void)ssl_printf(ssl, " Remove \"cookie-secret:\" and "
+			"\"cookie-staging-secret:\" entries from configuration "
+			"first (and reconfig) before managing cookies with "
+			"nsd-control\n");
+		return;
+	}
 	if(*arg == '\0') {
 		(void)ssl_printf(ssl, "error: missing argument (cookie_secret)\n");
 		return;
@@ -2443,24 +2485,32 @@ do_add_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		(void)ssl_printf(ssl, "please provide a 128bit hex encoded secret\n");
 		return;
 	}
-	if(!nsd->options->cookie_secret_file || !nsd->options->cookie_secret_file[0]) {
+	if(nsd->options->cookie_secret_file && !nsd->options->cookie_secret_file[0]) {
 		explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
 		explicit_bzero(arg, strlen(arg));
 		(void)ssl_printf(ssl, "error: no cookie secret file configured\n");
 		return;
 	}
-	if(!cookie_secret_file_dump(ssl, nsd)) {
-		explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
-		explicit_bzero(arg, strlen(arg));
-		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n",
-				nsd->options->cookie_secret_file);
-		return;
+	backup_cookie_count = nsd->cookie_count;
+	memcpy( backup_cookie_secrets, nsd->cookie_secrets
+	      , sizeof(cookie_secrets_type));
+	if(nsd->cookie_secrets_source < COOKIE_SECRETS_FROM_FILE) {
+		nsd->cookie_count = 0;
 	}
 	add_cookie_secret(nsd, secret);
 	explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
-	(void)cookie_secret_file_dump(ssl, nsd);
-	task_new_add_cookie_secret(xfrd->nsd->task[xfrd->nsd->mytask],
-	    xfrd->last_task, arg);
+	if(!cookie_secret_file_dump(ssl, nsd)) {
+		explicit_bzero(arg, strlen(arg));
+		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n",
+				nsd->options->cookie_secret_file);
+		memcpy( nsd->cookie_secrets, backup_cookie_secrets
+		      , sizeof(cookie_secrets_type));
+		nsd->cookie_count = backup_cookie_count;
+		return;
+	}
+	nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
+	task_new_cookies(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
+		nsd->do_answer_cookie, nsd->cookie_count, nsd->cookie_secrets);
 	explicit_bzero(arg, strlen(arg));
 	xfrd_set_reload_now(xfrd);
 	send_ok(ssl);
@@ -2473,7 +2523,25 @@ do_print_cookie_secrets(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	int i;
 	(void)arg;
 
-	/* (void)ssl_printf(ssl, "cookie_secret_count=%zu\n", nsd->cookie_count); */
+	switch(nsd->cookie_secrets_source){
+	case COOKIE_SECRETS_NONE:
+		break;
+	case COOKIE_SECRETS_GENERATED:
+		ssl_printf(ssl, "source : random generated\n");
+		break;
+	case COOKIE_SECRETS_FROM_FILE:
+		ssl_printf( ssl, "source : \"%s\"\n"
+		          , nsd->options->cookie_secret_file
+		          ? nsd->options->cookie_secret_file
+		          : COOKIESECRETSFILE);
+		break;
+	case COOKIE_SECRETS_FROM_CONFIG:
+		ssl_printf(ssl, "source : configuration\n");
+		break;
+	default:
+		ssl_printf(ssl, "source : unknown\n");
+		break;
+	}
 	for(i = 0; (size_t)i < nsd->cookie_count; i++) {
 		struct cookie_secret const* cs = &nsd->cookie_secrets[i];
 		ssize_t const len = hex_ntop(cs->cookie_secret, NSD_COOKIE_SECRET_SIZE,

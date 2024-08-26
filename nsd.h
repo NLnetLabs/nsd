@@ -206,11 +206,20 @@ struct nsd_child
 #define NSD_COOKIE_HISTORY_SIZE 2
 #define NSD_COOKIE_SECRET_SIZE 16
 
-typedef struct cookie_secret cookie_secret_type;
 struct cookie_secret {
 	/** cookie secret */
 	uint8_t cookie_secret[NSD_COOKIE_SECRET_SIZE];
 };
+typedef struct cookie_secret cookie_secret_type;
+typedef cookie_secret_type cookie_secrets_type[NSD_COOKIE_HISTORY_SIZE];
+
+enum cookie_secrets_source {
+	COOKIE_SECRETS_NONE        = 0,
+	COOKIE_SECRETS_GENERATED   = 1,
+	COOKIE_SECRETS_FROM_FILE   = 2,
+	COOKIE_SECRETS_FROM_CONFIG = 3
+};
+typedef enum cookie_secrets_source cookie_secrets_source_type;
 
 /* NSD configuration and run-time variables */
 typedef struct nsd nsd_type;
@@ -367,7 +376,11 @@ struct	nsd
 
 	/* keep track of the last `NSD_COOKIE_HISTORY_SIZE`
 	 * cookies as per rfc requirement .*/
-	cookie_secret_type cookie_secrets[NSD_COOKIE_HISTORY_SIZE];
+	cookie_secrets_type cookie_secrets;
+
+	/* From where came the configured cookies
+	 */
+	cookie_secrets_source_type cookie_secrets_source;
 
 	struct nsd_options* options;
 

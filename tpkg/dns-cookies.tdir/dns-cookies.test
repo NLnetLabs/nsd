@@ -8,6 +8,11 @@ if test ! -x "`which unshare 2>&1`"; then
 	echo "no unshare (from util-linux package) available, skip test"
 	exit 0
 fi
+if test ! -x "`which faketime 2>&1`"; then
+	echo "no faketime available, skip test"
+	exit 0
+fi
+
 
 echo "Starting test A1"
 unshare -rUn bash dns-cookies.test.A1 || exit 1

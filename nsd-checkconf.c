@@ -166,13 +166,23 @@ usage(void)
 }
 
 static void
+print_string_var_default(const char* varname, const char* value,
+		const char* default_value)
+{
+	if (value) {
+		printf("\t%s \"%s\"\n", varname, value);
+	} else if (default_value) {
+		printf("\t#%s \"%s\"\n", varname, default_value);
+	} else {
+		printf("\t#%s\n", varname);
+	}
+
+}
+
+static void
 print_string_var(const char* varname, const char* value)
 {
-	if (!value) {
-		printf("\t#%s\n", varname);
-	} else {
-		printf("\t%s \"%s\"\n", varname, value);
-	}
+	print_string_var_default(varname, value, NULL);
 }
 
 static void
@@ -439,6 +449,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_STR(tls_port, o);
 		SERV_GET_STR(tls_cert_bundle, o);
 		SERV_GET_STR(cookie_secret, o);
+		SERV_GET_STR(cookie_staging_secret, o);
 		SERV_GET_STR(cookie_secret_file, o);
 		SERV_GET_BIN(answer_cookie, o);
 		/* int */
@@ -716,10 +727,9 @@ config_test_print_server(nsd_options_type* opt)
 	print_string_var("tls-port:", opt->tls_port);
 	print_string_var("tls-cert-bundle:", opt->tls_cert_bundle);
 	printf("\tanswer-cookie: %s\n", opt->answer_cookie?"yes":"no");
-	if (opt->cookie_secret)
-		print_string_var("cookie-secret:", opt->cookie_secret);
-	if (opt->cookie_secret_file)
-		print_string_var("cookie-secret-file:", opt->cookie_secret_file);
+	print_string_var("cookie-secret:", opt->cookie_secret);
+	print_string_var("cookie-staging-secret:", opt->cookie_staging_secret);
+	print_string_var_default("cookie-secret-file:", opt->cookie_secret_file, COOKIESECRETSFILE);
 	if(opt->proxy_protocol_port) {
 		struct proxy_protocol_port_list* p;
 		for(p = opt->proxy_protocol_port; p; p = p->next)

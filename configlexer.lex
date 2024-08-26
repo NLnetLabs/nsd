@@ -312,6 +312,7 @@ proxy-protocol-port{COLON} { LEXOUT(("v(%s) ", yytext)); return VAR_PROXY_PROTOC
 answer-cookie{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ANSWER_COOKIE;}
 cookie-secret{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_COOKIE_SECRET;}
 cookie-secret-file{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_COOKIE_SECRET_FILE;}
+cookie-staging-secret{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_COOKIE_STAGING_SECRET;}
 xfrd-tcp-max{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_XFRD_TCP_MAX;}
 xfrd-tcp-pipeline{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_XFRD_TCP_PIPELINE;}
 verify{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFY; }

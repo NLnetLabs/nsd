@@ -208,6 +208,8 @@ struct nsd_options {
 	int answer_cookie;
 	/** cookie secret */
 	char *cookie_secret;
+	/** cookie staging secret */
+	char *cookie_staging_secret;
 	/** path to cookie secret store */
 	char const* cookie_secret_file;
 	/** enable verify */

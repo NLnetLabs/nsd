@@ -904,18 +904,17 @@ bind8_stats (struct nsd *nsd)
 
 static
 int cookie_secret_file_read(nsd_type* nsd) {
+	cookie_secret_type cookie_secrets[NSD_COOKIE_HISTORY_SIZE];
 	char secret[NSD_COOKIE_SECRET_SIZE * 2 + 2/*'\n' and '\0'*/];
 	char const* file = nsd->options->cookie_secret_file
 	                 ? nsd->options->cookie_secret_file : COOKIESECRETSFILE;
 	FILE* f;
-	int corrupt = 0;
-	size_t count;
+	size_t count = 0;
 
 	f = fopen(file, "r");
 	/* a non-existing cookie file is not an error */
 	if( f == NULL ) { return errno != EPERM; }
 	/* cookie secret file exists and is readable */
-	nsd->cookie_count = 0;
 	for( count = 0; count < NSD_COOKIE_HISTORY_SIZE; count++ ) {
 		size_t secret_len = 0;
 		ssize_t decoded_len = 0;
@@ -924,16 +923,26 @@ int cookie_secret_file_read(nsd_type* nsd) {
 		if( secret_len == 0 ) { break; }
 		assert( secret_len <= sizeof(secret) );
 		secret_len = secret[secret_len - 1] == '\n' ? secret_len - 1 : secret_len;
-		if( secret_len != NSD_COOKIE_SECRET_SIZE * 2 ) { corrupt++; break; }
+		if( secret_len != NSD_COOKIE_SECRET_SIZE * 2 ) {
+			fclose(f);
+			return 0;
+		}
 		/* needed for `hex_pton`; stripping potential `\n` */
 		secret[secret_len] = '\0';
-		decoded_len = hex_pton(secret, nsd->cookie_secrets[count].cookie_secret,
+		decoded_len = hex_pton(secret, cookie_secrets[count].cookie_secret,
 		                       NSD_COOKIE_SECRET_SIZE);
-		if( decoded_len != NSD_COOKIE_SECRET_SIZE ) { corrupt++; break; }
-		nsd->cookie_count++;
+		if( decoded_len != NSD_COOKIE_SECRET_SIZE ) {
+			fclose(f);
+			return 0;
+		}
 	}
 	fclose(f);
-	return corrupt == 0;
+	if(count && nsd->cookie_secrets_source <= COOKIE_SECRETS_FROM_FILE) {
+		nsd->cookie_count = count;
+		memcpy(nsd->cookie_secrets, cookie_secrets, sizeof(cookie_secrets));
+		nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
+	}
+	return 1;
 }
 
 extern char *optarg;
@@ -978,6 +987,7 @@ main(int argc, char *argv[])
 	nsd.nsid 	= NULL;
 	nsd.nsid_len 	= 0;
 	nsd.cookie_count = 0;
+	nsd.cookie_secrets_source = COOKIE_SECRETS_NONE;
 
 	nsd.child_count = 0;
 	nsd.maximum_tcp_count = 0;
@@ -1262,17 +1272,25 @@ main(int argc, char *argv[])
 #endif /* defined(INET6) */
 
 	nsd.do_answer_cookie = nsd.options->answer_cookie;
-	if (nsd.cookie_count > 0)
-		; /* pass */
-
-	else if (nsd.options->cookie_secret) {
+	if(nsd.options->cookie_secret) {
 		ssize_t len = hex_pton(nsd.options->cookie_secret,
-			nsd.cookie_secrets[0].cookie_secret, NSD_COOKIE_SECRET_SIZE);
+				nsd.cookie_secrets[0].cookie_secret,
+				NSD_COOKIE_SECRET_SIZE);
 		if (len != NSD_COOKIE_SECRET_SIZE ) {
-			error("A cookie secret must be a "
-			      "128 bit hex string");
+			error("A cookie secret must be a 128 bit hex string");
 		}
 		nsd.cookie_count = 1;
+		nsd.cookie_secrets_source = COOKIE_SECRETS_FROM_CONFIG;
+		if(nsd.options->cookie_staging_secret) {
+			len = hex_pton(nsd.options->cookie_staging_secret,
+					nsd.cookie_secrets[1].cookie_secret,
+					NSD_COOKIE_SECRET_SIZE);
+			if (len != NSD_COOKIE_SECRET_SIZE ) {
+				error("A (staging) cookie secret must be a "
+				      "128 bit hex string");
+			} else
+				nsd.cookie_count = 2;
+		}
 	} else {
 		size_t j;
 		size_t const cookie_secret_len = NSD_COOKIE_SECRET_SIZE;
@@ -1287,8 +1305,8 @@ main(int argc, char *argv[])
 			for (i = 0; i < cookie_secret_len; i++)
 				nsd.cookie_secrets[j].cookie_secret[i] = random_generate(256);
 		}
-		// XXX: all we have is a random cookie, still pretend we have one
 		nsd.cookie_count = 1;
+		nsd.cookie_secrets_source = COOKIE_SECRETS_GENERATED;
 	}
 
 	if (nsd.nsid_len == 0 && nsd.options->nsid) {
@@ -1592,11 +1610,11 @@ main(int argc, char *argv[])
 	}
 #endif /* HAVE_SSL */
 
-	if((!nsd.options->cookie_secret_file || nsd.options->cookie_secret_file[0])
-	   && !cookie_secret_file_read(&nsd) ) {
+	if(nsd.cookie_secrets_source < COOKIE_SECRETS_FROM_FILE
+	&& (!nsd.options->cookie_secret_file || nsd.options->cookie_secret_file[0])
+	&& !cookie_secret_file_read(&nsd) ) {
 		log_msg(LOG_ERR, "cookie secret file corrupt or not readable");
 	}
-
 	/* Unless we're debugging, fork... */
 	if (!nsd.debug) {
 		int fd;
