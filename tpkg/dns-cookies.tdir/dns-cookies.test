@@ -25,3 +25,8 @@ unshare -rUn bash dns-cookies.test.A3 || exit 1
 
 echo "Starting test A4"
 unshare -rUn bash dns-cookies.test.A4 || exit 1
+
+echo "Starting test C1"
+unshare -rUn bash dns-cookies.test.C1 || exit 1
+
+

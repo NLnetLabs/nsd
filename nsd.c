@@ -902,49 +902,6 @@ bind8_stats (struct nsd *nsd)
 }
 #endif /* BIND8_STATS */
 
-static
-int cookie_secret_file_read(nsd_type* nsd) {
-	cookie_secret_type cookie_secrets[NSD_COOKIE_HISTORY_SIZE];
-	char secret[NSD_COOKIE_SECRET_SIZE * 2 + 2/*'\n' and '\0'*/];
-	char const* file = nsd->options->cookie_secret_file
-	                 ? nsd->options->cookie_secret_file : COOKIESECRETSFILE;
-	FILE* f;
-	size_t count = 0;
-
-	f = fopen(file, "r");
-	/* a non-existing cookie file is not an error */
-	if( f == NULL ) { return errno != EPERM; }
-	/* cookie secret file exists and is readable */
-	for( count = 0; count < NSD_COOKIE_HISTORY_SIZE; count++ ) {
-		size_t secret_len = 0;
-		ssize_t decoded_len = 0;
-		if( fgets(secret, sizeof(secret), f) == NULL ) { break; }
-		secret_len = strlen(secret);
-		if( secret_len == 0 ) { break; }
-		assert( secret_len <= sizeof(secret) );
-		secret_len = secret[secret_len - 1] == '\n' ? secret_len - 1 : secret_len;
-		if( secret_len != NSD_COOKIE_SECRET_SIZE * 2 ) {
-			fclose(f);
-			return 0;
-		}
-		/* needed for `hex_pton`; stripping potential `\n` */
-		secret[secret_len] = '\0';
-		decoded_len = hex_pton(secret, cookie_secrets[count].cookie_secret,
-		                       NSD_COOKIE_SECRET_SIZE);
-		if( decoded_len != NSD_COOKIE_SECRET_SIZE ) {
-			fclose(f);
-			return 0;
-		}
-	}
-	fclose(f);
-	if(count && nsd->cookie_secrets_source <= COOKIE_SECRETS_FROM_FILE) {
-		nsd->cookie_count = count;
-		memcpy(nsd->cookie_secrets, cookie_secrets, sizeof(cookie_secrets));
-		nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
-	}
-	return 1;
-}
-
 extern char *optarg;
 extern int optind;
 
@@ -986,6 +943,7 @@ main(int argc, char *argv[])
 	nsd.chrootdir	= 0;
 	nsd.nsid 	= NULL;
 	nsd.nsid_len 	= 0;
+	nsd.do_answer_cookie = 0;
 	nsd.cookie_count = 0;
 	nsd.cookie_secrets_source = COOKIE_SECRETS_NONE;
 
@@ -994,7 +952,6 @@ main(int argc, char *argv[])
 	nsd.current_tcp_count = 0;
 	nsd.file_rotation_ok = 0;
 
-	nsd.do_answer_cookie = 1;
 
 	/* Set up our default identity to gethostname(2) */
 	if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {
@@ -1271,43 +1228,7 @@ main(int argc, char *argv[])
 #endif /* IPV6 MTU) */
 #endif /* defined(INET6) */
 
-	nsd.do_answer_cookie = nsd.options->answer_cookie;
-	if(nsd.options->cookie_secret) {
-		ssize_t len = hex_pton(nsd.options->cookie_secret,
-				nsd.cookie_secrets[0].cookie_secret,
-				NSD_COOKIE_SECRET_SIZE);
-		if (len != NSD_COOKIE_SECRET_SIZE ) {
-			error("A cookie secret must be a 128 bit hex string");
-		}
-		nsd.cookie_count = 1;
-		nsd.cookie_secrets_source = COOKIE_SECRETS_FROM_CONFIG;
-		if(nsd.options->cookie_staging_secret) {
-			len = hex_pton(nsd.options->cookie_staging_secret,
-					nsd.cookie_secrets[1].cookie_secret,
-					NSD_COOKIE_SECRET_SIZE);
-			if (len != NSD_COOKIE_SECRET_SIZE ) {
-				error("A (staging) cookie secret must be a "
-				      "128 bit hex string");
-			} else
-				nsd.cookie_count = 2;
-		}
-	} else {
-		size_t j;
-		size_t const cookie_secret_len = NSD_COOKIE_SECRET_SIZE;
-		/* Calculate a new random secret */
-		srandom(getpid() ^ time(NULL));
-
-		for( j = 0; j < NSD_COOKIE_HISTORY_SIZE; j++) {
-#if defined(HAVE_SSL)
-			if (!RAND_status()
-			    || !RAND_bytes(nsd.cookie_secrets[j].cookie_secret, cookie_secret_len))
-#endif
-			for (i = 0; i < cookie_secret_len; i++)
-				nsd.cookie_secrets[j].cookie_secret[i] = random_generate(256);
-		}
-		nsd.cookie_count = 1;
-		nsd.cookie_secrets_source = COOKIE_SECRETS_GENERATED;
-	}
+	reconfig_cookies(&nsd, nsd.options);
 
 	if (nsd.nsid_len == 0 && nsd.options->nsid) {
 		if (strlen(nsd.options->nsid) % 2 != 0) {
@@ -1610,11 +1531,6 @@ main(int argc, char *argv[])
 	}
 #endif /* HAVE_SSL */
 
-	if(nsd.cookie_secrets_source < COOKIE_SECRETS_FROM_FILE
-	&& (!nsd.options->cookie_secret_file || nsd.options->cookie_secret_file[0])
-	&& !cookie_secret_file_read(&nsd) ) {
-		log_msg(LOG_ERR, "cookie secret file corrupt or not readable");
-	}
 	/* Unless we're debugging, fork... */
 	if (!nsd.debug) {
 		int fd;

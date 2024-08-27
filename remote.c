@@ -1969,19 +1969,78 @@ repat_options_changed(xfrd_state_type* xfrd, struct nsd_options* newopt)
 	return 0;
 }
 
+static int opt_str_changed(const char* old, const char* new)
+{ return !old ? ( !new ? 0 : 1 ) : ( !new ? 1 : strcasecmp(old, new) ); }
+
+/** true if cookie options are different that can be set via repat. */
+static int
+repat_cookie_options_changed(struct nsd_options* old, struct nsd_options* new)
+{
+	return old->answer_cookie != new->answer_cookie
+	    || opt_str_changed( old->cookie_secret
+	                      , new->cookie_secret)
+	    || opt_str_changed( old->cookie_staging_secret
+	                      , new->cookie_staging_secret)
+	    || opt_str_changed( old->cookie_secret_file
+	                      , new->cookie_secret_file);
+}
+
+static void opt_strcpy(region_type* region, char** dst, const char* src)
+{
+	assert(dst);
+
+	if(!*dst) {
+		if(src)
+			*dst = region_strdup(region, src);
+
+	} else if(!src) {
+		region_recycle(region, *dst, strlen(*dst)+1);
+		*dst = NULL;
+
+	} else if(strcasecmp(*dst, src)) {
+		region_recycle(region, *dst, strlen(*dst)+1);
+		*dst = region_strdup(region, src);
+	}
+}
+
 /** check if global options have changed */
 static void
 repat_options(xfrd_state_type* xfrd, struct nsd_options* newopt)
 {
+	struct nsd_options* oldopt = xfrd->nsd->options;
+
 	if(repat_options_changed(xfrd, newopt)) {
 		/* update our options */
 #ifdef RATELIMIT
-		xfrd->nsd->options->rrl_ratelimit = newopt->rrl_ratelimit;
-		xfrd->nsd->options->rrl_whitelist_ratelimit = newopt->rrl_whitelist_ratelimit;
-		xfrd->nsd->options->rrl_slip = newopt->rrl_slip;
+		oldopt->rrl_ratelimit = newopt->rrl_ratelimit;
+		oldopt->rrl_whitelist_ratelimit = newopt->rrl_whitelist_ratelimit;
+		oldopt->rrl_slip = newopt->rrl_slip;
 #endif
 		task_new_opt_change(xfrd->nsd->task[xfrd->nsd->mytask],
 			xfrd->last_task, newopt);
+		xfrd_set_reload_now(xfrd);
+	}
+	if(repat_cookie_options_changed(oldopt, newopt)) {
+		/* update our options */
+		oldopt->answer_cookie = newopt->answer_cookie;
+		opt_strcpy(  oldopt->region
+		          , &oldopt->cookie_secret
+		          ,  newopt->cookie_secret);
+		opt_strcpy(  oldopt->region
+		          , &oldopt->cookie_staging_secret
+		          ,  newopt->cookie_staging_secret);
+		opt_strcpy(  oldopt->region
+		          , &oldopt->cookie_secret_file
+		          ,  newopt->cookie_secret_file);
+
+		xfrd->nsd->cookie_count = 0;
+		xfrd->nsd->cookie_secrets_source = COOKIE_SECRETS_NONE;
+		reconfig_cookies(xfrd->nsd, newopt);
+		task_new_cookies( xfrd->nsd->task[xfrd->nsd->mytask]
+		                , xfrd->last_task
+		                , xfrd->nsd->do_answer_cookie
+		                , xfrd->nsd->cookie_count
+		                , xfrd->nsd->cookie_secrets);
 		xfrd_set_reload_now(xfrd);
 	}
 }

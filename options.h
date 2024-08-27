@@ -211,7 +211,7 @@ struct nsd_options {
 	/** cookie staging secret */
 	char *cookie_staging_secret;
 	/** path to cookie secret store */
-	char const* cookie_secret_file;
+	char *cookie_secret_file;
 	/** enable verify */
 	int verify_enable;
 	/** list of ip addresses used to serve zones for verification */
