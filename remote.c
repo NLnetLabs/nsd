@@ -2402,7 +2402,9 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 /* returns `0` on failure */
 static int
 cookie_secret_file_dump(RES* ssl, nsd_type* const nsd) {
-	char const* secret_file = nsd->options->cookie_secret_file;
+	char const* secret_file = nsd->options->cookie_secret_file
+	                        ? nsd->options->cookie_secret_file
+				: COOKIESECRETSFILE;
 	char secret_hex[NSD_COOKIE_SECRET_SIZE * 2 + 1];
 	FILE* f;
 	size_t i;
@@ -2410,7 +2412,7 @@ cookie_secret_file_dump(RES* ssl, nsd_type* const nsd) {
 
 	/* open write only and truncate */
 	if((f = fopen(secret_file, "w")) == NULL ) {
-		(void)ssl_printf(ssl, "unable to open cookie secret file %s: %s",
+		(void)ssl_printf(ssl, "unable to open cookie secret file %s: %s\n",
 		                 secret_file, strerror(errno));
 		return 0;
 	}
@@ -2456,8 +2458,10 @@ do_activate_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	      , sizeof(cookie_secrets_type));
 	activate_cookie_secret(nsd);
 	if(!cookie_secret_file_dump(ssl, nsd)) {
-		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n",
-				nsd->options->cookie_secret_file);
+		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n"
+		                , nsd->options->cookie_secret_file
+		                ? nsd->options->cookie_secret_file
+		                : COOKIESECRETSFILE);
 		memcpy( nsd->cookie_secrets, backup_cookie_secrets
 		      , sizeof(cookie_secrets_type));
 		nsd->cookie_count = backup_cookie_count;
@@ -2498,8 +2502,10 @@ do_drop_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	      , sizeof(cookie_secrets_type));
 	drop_cookie_secret(nsd);
 	if(!cookie_secret_file_dump(ssl, nsd)) {
-		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n",
-				nsd->options->cookie_secret_file);
+		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n"
+		                , nsd->options->cookie_secret_file
+		                ? nsd->options->cookie_secret_file
+		                : COOKIESECRETSFILE);
 		memcpy( nsd->cookie_secrets, backup_cookie_secrets
 		      , sizeof(cookie_secrets_type));
 		nsd->cookie_count = backup_cookie_count;
@@ -2560,8 +2566,10 @@ do_add_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
 	if(!cookie_secret_file_dump(ssl, nsd)) {
 		explicit_bzero(arg, strlen(arg));
-		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n",
-				nsd->options->cookie_secret_file);
+		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n"
+		                , nsd->options->cookie_secret_file
+		                ? nsd->options->cookie_secret_file
+		                : COOKIESECRETSFILE);
 		memcpy( nsd->cookie_secrets, backup_cookie_secrets
 		      , sizeof(cookie_secrets_type));
 		nsd->cookie_count = backup_cookie_count;

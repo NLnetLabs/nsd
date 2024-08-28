@@ -1161,7 +1161,19 @@ int cookie_secret_file_read(nsd_type* nsd, const char* cookie_secret_file) {
 
 	f = fopen(file, "r");
 	/* a non-existing cookie file is not an error */
-	if( f == NULL ) { return errno != EPERM; }
+	if(f != NULL)
+		; /* pass */
+
+	else if(errno != ENOENT) {
+		log_msg( LOG_ERR
+		       , "error reading cookie secret file \"%s\": \"%s\""
+		       , file, strerror(errno));
+		return 0;
+	}
+	else if(cookie_secret_file != NULL
+	     ||!(f = fopen((file = CONFIGDIR"/nsd_cookiesecrets.txt"), "r")))
+		return 1;
+
 	/* cookie secret file exists and is readable */
 	for( count = 0; count < NSD_COOKIE_HISTORY_SIZE; count++ ) {
 		size_t secret_len = 0;
@@ -1173,6 +1185,9 @@ int cookie_secret_file_read(nsd_type* nsd, const char* cookie_secret_file) {
 		secret_len = secret[secret_len - 1] == '\n' ? secret_len - 1 : secret_len;
 		if( secret_len != NSD_COOKIE_SECRET_SIZE * 2 ) {
 			fclose(f);
+			log_msg( LOG_ERR
+			       , "error parsing cookie secret file \"%s\""
+			       , file);
 			return 0;
 		}
 		/* needed for `hex_pton`; stripping potential `\n` */
@@ -1181,6 +1196,9 @@ int cookie_secret_file_read(nsd_type* nsd, const char* cookie_secret_file) {
 		                       NSD_COOKIE_SECRET_SIZE);
 		if( decoded_len != NSD_COOKIE_SECRET_SIZE ) {
 			fclose(f);
+			log_msg( LOG_ERR
+			       , "error parsing cookie secret file \"%s\""
+			       , file);
 			return 0;
 		}
 	}
@@ -1189,6 +1207,7 @@ int cookie_secret_file_read(nsd_type* nsd, const char* cookie_secret_file) {
 		nsd->cookie_count = count;
 		memcpy(nsd->cookie_secrets, cookie_secrets, sizeof(cookie_secrets));
 		nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
+
 	}
 	return 1;
 }
@@ -1230,14 +1249,8 @@ void reconfig_cookies(struct nsd* nsd, struct nsd_options* options)
 		}
 		nsd->cookie_count = 1;
 		nsd->cookie_secrets_source = COOKIE_SECRETS_GENERATED;
-		if((!options->cookie_secret_file || options->cookie_secret_file[0])
-		&&  !cookie_secret_file_read(nsd, options->cookie_secret_file)) {
-			log_msg( LOG_ERR, "cookie secret file \"%s\" corrupt "
-			                  "or not readable"
-			       , options->cookie_secret_file
-		               ? options->cookie_secret_file
-			       : COOKIESECRETSFILE);
-		}
+		if((!options->cookie_secret_file || options->cookie_secret_file[0]))
+			(void)cookie_secret_file_read(nsd, options->cookie_secret_file);
 	}
 }
 
