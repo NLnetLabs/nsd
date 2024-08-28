@@ -477,25 +477,56 @@ With the value 0 the rate is unlimited.
 .B answer\-cookie:\fR <yes or no>
 Enable to answer to requests containing DNS Cookies as specified in RFC7873.
 Default is no.
+.sp
+DNS Cookies increase transaction security and provide limited protection 
+against denial-off-service amplification attacks. Server cookies will be
+created and included in responses. Server cookies are created based on the
+client cookie in the request, the current time, the client's IP address and
+a secret. When a client includes a valid server cookie in successive requests,
+the client will not be subjected to Request Rate Limiting (see \fBrrl\-ratelimit\fR).
+.sp
+Servers in an anycast deployment need to be able to verify each other's server
+cookies. For this they need to share the secret used to construct and verify
+the cookies. These cookie secrets can be specified in the configuration files
+with the \fBcookie\-secret\fR and \fBcookie\-staging\-secret\fR options.
+.sp
+If no cookie secrets are provided via configuration file, server cookie secrets
+can be added, dropped and activated with the \fInsd\-control\fR(8) tool.
+These secrets will be stored persistently in the cookie secret file for which
+the location can be specified with the \fBcookie\-secret\-file\fR option.
+.sp
+If no cookie secrets are provided via configuration file, and there is no or an
+empty cookie secret file, a random cookie secret is generated.
 .TP
 .B cookie\-secret:\fR <128 bit hex string>
-Servers in an anycast deployment need to be able to  verify  each other's DNS
-Server Cookies.  For  this they need to share the secret used to construct and
-verify the DNS Cookies.  Default is a 128 bits random secret generated at
-startup time.  This option is ignored if a \fBcookie\-secret\-file\fR is
-present.  In that case the secrets from that file are used in DNS Cookie
-calculations.
+The cookie secret with which server cookies are created and can be verified.
+If a \fBcookie\-secret\fR is specified via configuration file, cookie secrets
+from the cookie secret file will be ignored. 
+.TP
+.B cookie\-staging\-secret:\fR <128 bit hex string>
+A cookie secret with which server cookies can be verified, but will not be
+created. This is helpful in rolling cookie secrets in anycast setups.
+.sp
+A \fBcookie\-staging\-secret\fR can only be configured when there is also a
+\fBcookie\-secret\fR configured.
 .TP
 .B cookie\-secret\-file:\fR <filename>
-File from which the secrets are read used in DNS Cookie calculations. When this
-file exists, the secrets in this file are used and the secret specified by the
-\fBcookie-secret\fR option is ignored.
-Default is @cookiesecretsfile@
+File from which the secrets are read used in DNS Cookie calculations. Secrets
+will only be read from this file if no cookie secrets are given in the
+configuration file via the \fBcookie\-secret\fR and
+\fBcookie\-staging\-secret\fR options.
+Default is "@cookiesecretsfile@"
 .sp
-The content of this file must be manipulated with the \fBadd_cookie_secret\fR,
-\fBdrop_cookie_secret\fR and \fBactivate_cookie_secret\fR commands to the
-\fInsd\-control\fR(8) tool. Please see that manpage how to perform a safe
-cookie secret rollover.
+In NSD version 4.10.1 and earlier, the default location of the cookie secret
+file was "@configdir@/nsd_cookiesecrets.txt". For migration purposes, cookie
+secrets will be read from that location if no value is given for the
+\fBcookie\-secret\-file\fR option and when the current default location
+("@cookiesecretsfile@") does not exist.
+.sp
+The content of the cookie secret file must be manipulated with the
+\fBadd_cookie_secret\fR, \fBdrop_cookie_secret\fR and
+\fBactivate_cookie_secret\fR commands to the \fInsd\-control\fR(8) tool.
+Please see that manpage how to perform a safe cookie secret rollover.
 .TP
 .B tls\-service\-key:\fR <filename>
 If enabled, the server provides TLS service on TCP sockets with the TLS
