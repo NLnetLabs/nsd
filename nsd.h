@@ -368,19 +368,22 @@ struct	nsd
 	/* ratelimit for errors, packet count */
 	unsigned int err_limit_count;
 
-	/** do answer with server cookie when request contained cookie option */
+	/* do answer with server cookie when request contained cookie option */
 	int do_answer_cookie;
 
-	/** how many cookies are there in the cookies array */
+	/* how many cookies are there in the cookies array */
 	size_t cookie_count;
 
 	/* keep track of the last `NSD_COOKIE_HISTORY_SIZE`
 	 * cookies as per rfc requirement .*/
 	cookie_secrets_type cookie_secrets;
 
-	/* From where came the configured cookies
-	 */
+	/* From where came the configured cookies */
 	cookie_secrets_source_type cookie_secrets_source;
+
+	/* The cookie secrets filename when they came from file; when
+	 * cookie_secrets_source == COOKIE_SECRETS_FROM_FILE */
+	char* cookie_secrets_filename;
 
 	struct nsd_options* options;
 

@@ -1151,27 +1151,28 @@ void drop_cookie_secret(struct nsd* nsd)
 }
 
 static
-int cookie_secret_file_read(nsd_type* nsd, const char* cookie_secret_file) {
+int cookie_secret_file_read(nsd_type* nsd) {
 	cookie_secret_type cookie_secrets[NSD_COOKIE_HISTORY_SIZE];
 	char secret[NSD_COOKIE_SECRET_SIZE * 2 + 2/*'\n' and '\0'*/];
-	char const* file = cookie_secret_file
-	                 ? cookie_secret_file : COOKIESECRETSFILE;
 	FILE* f;
 	size_t count = 0;
+	const char* fn;
 
-	f = fopen(file, "r");
-	/* a non-existing cookie file is not an error */
-	if(f != NULL)
+	if(!(fn = cookie_secret_file(nsd->options)))
+		return 1; /* Explicitely disabled with empty filename */
+
+	else if((f = fopen(fn, "r")) != NULL)
 		; /* pass */
 
+	/* a non-existing cookie file is not an error */
 	else if(errno != ENOENT) {
 		log_msg( LOG_ERR
 		       , "error reading cookie secret file \"%s\": \"%s\""
-		       , file, strerror(errno));
+		       , fn, strerror(errno));
 		return 0;
 	}
-	else if(cookie_secret_file != NULL
-	     ||!(f = fopen((file = CONFIGDIR"/nsd_cookiesecrets.txt"), "r")))
+	else if(nsd->options->cookie_secret_file != NULL /* explicit name */
+	     ||!(f = fopen((fn = CONFIGDIR"/nsd_cookiesecrets.txt"), "r")))
 		return 1;
 
 	/* cookie secret file exists and is readable */
@@ -1187,7 +1188,7 @@ int cookie_secret_file_read(nsd_type* nsd, const char* cookie_secret_file) {
 			fclose(f);
 			log_msg( LOG_ERR
 			       , "error parsing cookie secret file \"%s\""
-			       , file);
+			       , fn);
 			return 0;
 		}
 		/* needed for `hex_pton`; stripping potential `\n` */
@@ -1198,7 +1199,7 @@ int cookie_secret_file_read(nsd_type* nsd, const char* cookie_secret_file) {
 			fclose(f);
 			log_msg( LOG_ERR
 			       , "error parsing cookie secret file \"%s\""
-			       , file);
+			       , fn);
 			return 0;
 		}
 	}
@@ -1207,7 +1208,8 @@ int cookie_secret_file_read(nsd_type* nsd, const char* cookie_secret_file) {
 		nsd->cookie_count = count;
 		memcpy(nsd->cookie_secrets, cookie_secrets, sizeof(cookie_secrets));
 		nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
-
+		region_str_replace(  nsd->region
+		                  , &nsd->cookie_secrets_filename, fn );
 	}
 	return 1;
 }
@@ -1249,8 +1251,8 @@ void reconfig_cookies(struct nsd* nsd, struct nsd_options* options)
 		}
 		nsd->cookie_count = 1;
 		nsd->cookie_secrets_source = COOKIE_SECRETS_GENERATED;
-		if((!options->cookie_secret_file || options->cookie_secret_file[0]))
-			(void)cookie_secret_file_read(nsd, options->cookie_secret_file);
+		if(cookie_secret_file(nsd->options))
+			cookie_secret_file_read(nsd);
 	}
 }
 

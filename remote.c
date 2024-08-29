@@ -1985,24 +1985,6 @@ repat_cookie_options_changed(struct nsd_options* old, struct nsd_options* new)
 	                      , new->cookie_secret_file);
 }
 
-static void opt_strcpy(region_type* region, char** dst, const char* src)
-{
-	assert(dst);
-
-	if(!*dst) {
-		if(src)
-			*dst = region_strdup(region, src);
-
-	} else if(!src) {
-		region_recycle(region, *dst, strlen(*dst)+1);
-		*dst = NULL;
-
-	} else if(strcasecmp(*dst, src)) {
-		region_recycle(region, *dst, strlen(*dst)+1);
-		*dst = region_strdup(region, src);
-	}
-}
-
 /** check if global options have changed */
 static void
 repat_options(xfrd_state_type* xfrd, struct nsd_options* newopt)
@@ -2023,15 +2005,15 @@ repat_options(xfrd_state_type* xfrd, struct nsd_options* newopt)
 	if(repat_cookie_options_changed(oldopt, newopt)) {
 		/* update our options */
 		oldopt->answer_cookie = newopt->answer_cookie;
-		opt_strcpy(  oldopt->region
-		          , &oldopt->cookie_secret
-		          ,  newopt->cookie_secret);
-		opt_strcpy(  oldopt->region
-		          , &oldopt->cookie_staging_secret
-		          ,  newopt->cookie_staging_secret);
-		opt_strcpy(  oldopt->region
-		          , &oldopt->cookie_secret_file
-		          ,  newopt->cookie_secret_file);
+		region_str_replace(  oldopt->region
+		                  , &oldopt->cookie_secret
+		                  ,  newopt->cookie_secret);
+		region_str_replace(  oldopt->region
+		                  , &oldopt->cookie_staging_secret
+		                  ,  newopt->cookie_staging_secret);
+		region_str_replace(  oldopt->region
+		                  , &oldopt->cookie_secret_file
+		                  ,  newopt->cookie_secret_file);
 
 		xfrd->nsd->cookie_count = 0;
 		xfrd->nsd->cookie_secrets_source = COOKIE_SECRETS_NONE;
@@ -2399,21 +2381,42 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 	send_ok(ssl);
 }
 
+
+static int
+can_dump_cookie_secrets(RES* ssl, nsd_type* const nsd)
+{
+	if(!cookie_secret_file(nsd->options))
+		(void)ssl_printf(ssl, "error: empty cookie-secret-file\n");
+
+	else if(nsd->cookie_secrets_source > COOKIE_SECRETS_FROM_FILE)
+		(void)ssl_printf(ssl, "error: cookie secrets are already "
+			"configured. Remove \"cookie-secret:\" and "
+			"\"cookie-staging-secret:\" entries from configuration "
+			"first (and reconfig) before managing cookies with "
+			"nsd-control\n");
+	else
+		return 1;
+	return 0;
+	
+}
+
 /* returns `0` on failure */
 static int
-cookie_secret_file_dump(RES* ssl, nsd_type* const nsd) {
-	char const* secret_file = nsd->options->cookie_secret_file
-	                        ? nsd->options->cookie_secret_file
-				: COOKIESECRETSFILE;
+cookie_secret_file_dump_and_reload(RES* ssl, nsd_type* const nsd) {
 	char secret_hex[NSD_COOKIE_SECRET_SIZE * 2 + 1];
 	FILE* f;
 	size_t i;
-	assert( secret_file != NULL );
 
 	/* open write only and truncate */
-	if((f = fopen(secret_file, "w")) == NULL ) {
-		(void)ssl_printf(ssl, "unable to open cookie secret file %s: %s\n",
-		                 secret_file, strerror(errno));
+	if(!cookie_secret_file(nsd->options)) {
+		(void)ssl_printf(ssl, "cookie-secret-file empty\n");
+		return 0;
+	}
+	else if((f = fopen(cookie_secret_file(nsd->options), "w")) == NULL ) {
+		(void)ssl_printf( ssl
+		                , "unable to open cookie secret file %s: %s\n"
+		                , cookie_secret_file(nsd->options)
+		                , strerror(errno));
 		return 0;
 	}
 	for(i = 0; i < nsd->cookie_count; i++) {
@@ -2427,6 +2430,13 @@ cookie_secret_file_dump(RES* ssl, nsd_type* const nsd) {
 	}
 	explicit_bzero(secret_hex, sizeof(secret_hex));
 	fclose(f);
+	nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
+	region_str_replace(nsd->region, &nsd->cookie_secrets_filename
+	                              , cookie_secret_file(nsd->options));
+	task_new_cookies(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
+		nsd->do_answer_cookie, nsd->cookie_count, nsd->cookie_secrets);
+	xfrd_set_reload_now(xfrd);
+	send_ok(ssl);
 	return 1;
 }
 
@@ -2437,41 +2447,22 @@ do_activate_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	cookie_secrets_type backup_cookie_secrets;
 	(void)arg;
 
-	if(nsd->cookie_secrets_source == COOKIE_SECRETS_FROM_CONFIG) {
-		(void)ssl_printf(ssl, "error: cookie secrets already configured.");
-		(void)ssl_printf(ssl, " Remove \"cookie-secret:\" and "
-			"\"cookie-staging-secret:\" entries from configuration "
-			"first (and reconfig) before managing cookies with "
-			"nsd-control\n");
+	if(!can_dump_cookie_secrets(ssl, xfrd->nsd))
 		return;
-	}
+
 	if(nsd->cookie_count <= 1 ) {
 		(void)ssl_printf(ssl, "error: no staging cookie secret to activate\n");
-		return;
-	}
-	if(nsd->options->cookie_secret_file && !nsd->options->cookie_secret_file[0]) {
-		(void)ssl_printf(ssl, "error: no cookie secret file configured\n");
 		return;
 	}
 	backup_cookie_count = nsd->cookie_count;
 	memcpy( backup_cookie_secrets, nsd->cookie_secrets
 	      , sizeof(cookie_secrets_type));
 	activate_cookie_secret(nsd);
-	if(!cookie_secret_file_dump(ssl, nsd)) {
-		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n"
-		                , nsd->options->cookie_secret_file
-		                ? nsd->options->cookie_secret_file
-		                : COOKIESECRETSFILE);
+	if(!cookie_secret_file_dump_and_reload(ssl, nsd)) {
 		memcpy( nsd->cookie_secrets, backup_cookie_secrets
 		      , sizeof(cookie_secrets_type));
 		nsd->cookie_count = backup_cookie_count;
-		return;
 	}
-	nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
-	task_new_cookies(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
-		nsd->do_answer_cookie, nsd->cookie_count, nsd->cookie_secrets);
-	xfrd_set_reload_now(xfrd);
-	send_ok(ssl);
 }
 
 static void
@@ -2481,41 +2472,22 @@ do_drop_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	cookie_secrets_type backup_cookie_secrets;
 	(void)arg;
 
-	if(nsd->cookie_secrets_source == COOKIE_SECRETS_FROM_CONFIG) {
-		(void)ssl_printf(ssl, "error: cookie secrets already configured.");
-		(void)ssl_printf(ssl, " Remove \"cookie-secret:\" and "
-			"\"cookie-staging-secret:\" entries from configuration "
-			"first (and reconfig) before managing cookies with "
-			"nsd-control\n");
+	if(!can_dump_cookie_secrets(ssl, xfrd->nsd))
 		return;
-	}
+
 	if(nsd->cookie_count <= 1 ) {
 		(void)ssl_printf(ssl, "error: can not drop the currently active cookie secret\n");
-		return;
-	}
-	if(nsd->options->cookie_secret_file && !nsd->options->cookie_secret_file[0]) {
-		(void)ssl_printf(ssl, "error: no cookie secret file configured\n");
 		return;
 	}
 	backup_cookie_count = nsd->cookie_count;
 	memcpy( backup_cookie_secrets, nsd->cookie_secrets
 	      , sizeof(cookie_secrets_type));
 	drop_cookie_secret(nsd);
-	if(!cookie_secret_file_dump(ssl, nsd)) {
-		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n"
-		                , nsd->options->cookie_secret_file
-		                ? nsd->options->cookie_secret_file
-		                : COOKIESECRETSFILE);
+	if(!cookie_secret_file_dump_and_reload(ssl, nsd)) {
 		memcpy( nsd->cookie_secrets, backup_cookie_secrets
 		      , sizeof(cookie_secrets_type));
 		nsd->cookie_count = backup_cookie_count;
-		return;
 	}
-	nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
-	task_new_cookies(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
-		nsd->do_answer_cookie, nsd->cookie_count, nsd->cookie_secrets);
-	xfrd_set_reload_now(xfrd);
-	send_ok(ssl);
 }
 
 static void
@@ -2525,14 +2497,9 @@ do_add_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	size_t backup_cookie_count;
 	cookie_secrets_type backup_cookie_secrets;
 
-	if(nsd->cookie_secrets_source == COOKIE_SECRETS_FROM_CONFIG) {
-		(void)ssl_printf(ssl, "error: cookie secrets already configured.");
-		(void)ssl_printf(ssl, " Remove \"cookie-secret:\" and "
-			"\"cookie-staging-secret:\" entries from configuration "
-			"first (and reconfig) before managing cookies with "
-			"nsd-control\n");
+	if(!can_dump_cookie_secrets(ssl, xfrd->nsd))
 		return;
-	}
+
 	if(*arg == '\0') {
 		(void)ssl_printf(ssl, "error: missing argument (cookie_secret)\n");
 		return;
@@ -2550,12 +2517,8 @@ do_add_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		(void)ssl_printf(ssl, "please provide a 128bit hex encoded secret\n");
 		return;
 	}
-	if(nsd->options->cookie_secret_file && !nsd->options->cookie_secret_file[0]) {
-		explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
-		explicit_bzero(arg, strlen(arg));
-		(void)ssl_printf(ssl, "error: no cookie secret file configured\n");
-		return;
-	}
+	explicit_bzero(arg, strlen(arg));
+
 	backup_cookie_count = nsd->cookie_count;
 	memcpy( backup_cookie_secrets, nsd->cookie_secrets
 	      , sizeof(cookie_secrets_type));
@@ -2564,23 +2527,14 @@ do_add_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	}
 	add_cookie_secret(nsd, secret);
 	explicit_bzero(secret, NSD_COOKIE_SECRET_SIZE);
-	if(!cookie_secret_file_dump(ssl, nsd)) {
+	if(!cookie_secret_file_dump_and_reload(ssl, nsd)) {
 		explicit_bzero(arg, strlen(arg));
 		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n"
-		                , nsd->options->cookie_secret_file
-		                ? nsd->options->cookie_secret_file
-		                : COOKIESECRETSFILE);
+		                , cookie_secret_file(nsd->options));
 		memcpy( nsd->cookie_secrets, backup_cookie_secrets
 		      , sizeof(cookie_secrets_type));
 		nsd->cookie_count = backup_cookie_count;
-		return;
 	}
-	nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
-	task_new_cookies(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
-		nsd->do_answer_cookie, nsd->cookie_count, nsd->cookie_secrets);
-	explicit_bzero(arg, strlen(arg));
-	xfrd_set_reload_now(xfrd);
-	send_ok(ssl);
 }
 
 static void
@@ -2598,9 +2552,7 @@ do_print_cookie_secrets(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		break;
 	case COOKIE_SECRETS_FROM_FILE:
 		ssl_printf( ssl, "source : \"%s\"\n"
-		          , nsd->options->cookie_secret_file
-		          ? nsd->options->cookie_secret_file
-		          : COOKIESECRETSFILE);
+		          , nsd->cookie_secrets_filename);
 		break;
 	case COOKIE_SECRETS_FROM_CONFIG:
 		ssl_printf(ssl, "source : configuration\n");

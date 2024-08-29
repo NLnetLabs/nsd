@@ -946,6 +946,7 @@ main(int argc, char *argv[])
 	nsd.do_answer_cookie = 0;
 	nsd.cookie_count = 0;
 	nsd.cookie_secrets_source = COOKIE_SECRETS_NONE;
+	nsd.cookie_secrets_filename = NULL;
 
 	nsd.child_count = 0;
 	nsd.maximum_tcp_count = 0;

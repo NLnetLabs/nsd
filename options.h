@@ -492,6 +492,15 @@ int nsd_options_insert_zone(struct nsd_options* opt, struct zone_options* zone);
 int nsd_options_insert_pattern(struct nsd_options* opt,
 	struct pattern_options* pat);
 
+/* return the configured cookie secrets filename or NULL if disabled */
+static inline const char* cookie_secret_file(struct nsd_options* opt)
+{
+	/* NULL means the default of COOKIESECRETSFILE, "" means disabled */
+	return opt->cookie_secret_file
+	     ? ( *opt->cookie_secret_file ? opt->cookie_secret_file : NULL )
+	     : COOKIESECRETSFILE;
+}
+
 /* parses options file. Returns false on failure. callback, if nonNULL,
  * gets called with error strings, default prints. */
 int parse_options_file(struct nsd_options* opt, const char* file,
