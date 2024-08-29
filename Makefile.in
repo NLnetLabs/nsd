@@ -14,6 +14,7 @@ exec_prefix = @exec_prefix@
 sbindir	= @sbindir@
 mandir = @mandir@
 datarootdir = @datarootdir@
+runstatedir = @runstatedir@
 
 # NSD specific pathnames
 configdir = @configdir@
@@ -29,9 +30,6 @@ chrootdir= @chrootdir@
 user = @user@
 DNSTAP_SRC=@DNSTAP_SRC@
 DNSTAP_OBJ=@DNSTAP_OBJ@
-
-# GNU Make provides MAKECMDGOALS, BSD Make provides .TARGETS
-MAKECMDGOALS ?= $(.TARGETS)
 
 # override $U variable which is used by autotools for deansification (for
 # K&R C compilers), but causes problems if $U is defined in the env).
@@ -56,6 +54,10 @@ YACC 	= @YACC@
 LEX		= @LEX@
 PROTOC_C	= @PROTOC_C@
 
+DATE != date +'%b %e, %y'
+PROJECT = @PACKAGE_NAME@
+VERSION = @PACKAGE_VERSION@
+
 COMPILE		= $(CC) $(CPPFLAGS) $(CFLAGS)
 LINK		= $(CC) $(CFLAGS) $(LDFLAGS)
 EDIT		= $(SED) \
@@ -65,6 +67,7 @@ EDIT		= $(SED) \
 			-e 's,@configdir\@,$(configdir),g' \
 			-e 's,@zonesdir\@,$(zonesdir),g' \
 			-e 's,@chrootdir\@,$(chrootdir),g' \
+			-e 's,@runstatedir\@,$(runstatedir),g' \
 			-e 's,@pidfile\@,$(pidfile),g' \
 			-e 's,@logfile\@,$(logfile),g' \
 			-e 's,@xfrdir\@,$(xfrdir),g' \
@@ -74,9 +77,12 @@ EDIT		= $(SED) \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@ratelimit_default\@,@ratelimit_default@,g' \
 			-e 's,@dnstap_socket_path\@,@opt_dnstap_socket_path@,g' \
-			-e 's,@user\@,$(user),g'
+			-e 's,@user\@,$(user),g' \
+			-e 's/@project\@/$(PROJECT)/g' \
+			-e 's/@version\@/$(VERSION)/g' \
+			-e 's/@date\@/$(DATE)/g'
 
-TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh
+TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf
 MANUALS=nsd.8 nsd-checkconf.8 nsd-checkzone.8 nsd-control.8 nsd.conf.5
 
 COMMON_OBJ=answer.o axfr.o ixfr.o ixfrcreate.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o rrl.o siphash.o tsig.o tsig-openssl.o udb.o util.o bitset.o popen3.o proxy_protocol.o
@@ -88,7 +94,36 @@ NSD_CHECKZONE_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc
 NSD_CONTROL_OBJ=$(COMMON_OBJ) nsd-control.o
 CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o verify.o zonec.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_rrl.o cutest_udb.o cutest_util.o cutest_bitset.o cutest_popen3.o cutest_iter.o cutest_event.o cutest.o qtest.o
 NSD_MEM_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o verify.o server.o zonec.o nsd-mem.o
-all:	$(TARGETS) $(MANUALS)
+
+.PHONY: all html
+
+all: $(TARGETS) $(MANUALS)
+
+doc/manual/conf.py: doc/manual/conf.py.in
+	$(EDIT) $(srcdir)/doc/manual/conf.py.in > $@
+
+doc/manual/manpages/nsd.conf.5.html: nsd.conf.5
+	mandoc -T html -O fragment nsd.conf.5 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd.8.html: nsd.8
+	mandoc -T html -O fragment nsd.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd-checkconf.8.html: nsd-checkconf.8
+	mandoc -T html -O fragment nsd-checkconf.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd-checkzone.8.html: nsd-checkzone.8
+	mandoc -T html -O fragment nsd-checkzone.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd-control.8.html: nsd-control.8
+	mandoc -T html -O fragment nsd-control.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+html: doc/manual/conf.py doc/manual/manpages/nsd.conf.5.html doc/manual/manpages/nsd.8.html doc/manual/manpages/nsd-checkconf.8.html doc/manual/manpages/nsd-checkzone.8.html doc/manual/manpages/nsd-control.8.html
+	sphinx-build -M html $(srcdir)/doc/manual doc/manual -N -q
 
 $(ALL_OBJ):
 	$(COMPILE) -c $<
@@ -102,25 +137,28 @@ nsd.conf.sample:	$(srcdir)/nsd.conf.sample.in config.h
 	rm -f nsd.conf.sample
 	$(EDIT) $(srcdir)/nsd.conf.sample.in | $(AWK) '/RRLconfig'@ratelimit@'/ { while($$0 !~ /.*RRLend.*/) { getline; } getline; } {print} ' > nsd.conf.sample
 
-nsd.conf.5:	$(srcdir)/nsd.conf.5.in config.h
-	rm -f nsd.conf.5
-	$(EDIT) $(srcdir)/nsd.conf.5.in | $(AWK) '/rrlstart'@ratelimit@'/ { while($$0 !~ /.*rrlend.*/) { getline; } getline; } {print} ' > nsd.conf.5
+nsd.conf.5: $(srcdir)/nsd.conf.5.in config.h
+	$(EDIT) $(srcdir)/nsd.conf.5.in | $(AWK) '/rrlstart'@ratelimit@'/ { while($$0 !~ /.*rrlend.*/) { getline; } getline; } {print} ' > $@
 
-nsd.8:	$(srcdir)/nsd.8.in config.h
-	rm -f nsd.8
-	$(EDIT) $(srcdir)/nsd.8.in > nsd.8
+nsd.8: $(srcdir)/nsd.8.in config.h
+	$(EDIT) $(srcdir)/nsd.8.in > $@
 
-nsd-checkconf.8:	$(srcdir)/nsd-checkconf.8.in config.h
-	rm -f nsd-checkconf.8
-	$(EDIT) $(srcdir)/nsd-checkconf.8.in > nsd-checkconf.8
+nsd-checkconf.8: $(srcdir)/nsd-checkconf.8.in config.h
+	$(EDIT) $(srcdir)/nsd-checkconf.8.in > $@
 
-nsd-checkzone.8:	$(srcdir)/nsd-checkzone.8.in config.h
-	rm -f nsd-checkzone.8
-	$(EDIT) $(srcdir)/nsd-checkzone.8.in > nsd-checkzone.8
+nsd-checkzone.8: $(srcdir)/nsd-checkzone.8.in config.h
+	$(EDIT) $(srcdir)/nsd-checkzone.8.in > $@
 
-nsd-control.8:	$(srcdir)/nsd-control.8.in config.h
-	rm -f nsd-control.8
-	$(EDIT) $(srcdir)/nsd-control.8.in > nsd-control.8
+nsd-control.8: $(srcdir)/nsd-control.8.in config.h
+	$(EDIT) $(srcdir)/nsd-control.8.in > $@
+
+contrib/nsd.openrc: $(srcdir)/contrib/nsd.openrc.in
+	mkdir -p contrib
+	$(EDIT) $(srcdir)/contrib/nsd.openrc.in > $@
+
+contrib/nsd-tmpfiles.conf: $(srcdir)/contrib/nsd-tmpfiles.conf.in
+	mkdir -p contrib
+	$(EDIT) $(srcdir)/contrib/nsd-tmpfiles.conf.in > $@
 
 install: all
 	$(INSTALL) -d $(DESTDIR)$(sbindir)
@@ -162,7 +200,7 @@ nsd:	simdzone/libzone.a $(NSD_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) simdzone/libzone.a $(SSL_LIBS) $(LIBS)
 
 nsd-checkconf:	simdzone/libzone.a $(NSD_CHECKCONF_OBJ) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_CHECKCONF_OBJ) simdzone/libzone.a $(LIBOBJS) $(LIBS)
+	$(LINK) -o $@ $(NSD_CHECKCONF_OBJ) simdzone/libzone.a $(LIBOBJS) $(SSL_LIBS) $(LIBS)
 
 nsd-checkzone:	simdzone/libzone.a $(NSD_CHECKZONE_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_CHECKZONE_OBJ) $(LIBOBJS) simdzone/libzone.a $(SSL_LIBS) $(LIBS)
@@ -177,7 +215,7 @@ cutest:	simdzone/libzone.a $(CUTEST_OBJ) $(LIBOBJS) popen3_echo
 	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) simdzone/libzone.a $(SSL_LIBS) $(LIBS)
 
 xfr-inspect:	simdzone/libzone.a xfr-inspect.o $(COMMON_OBJ) zonec.o $(LIBOBJS)
-	$(LINK) -o $@ xfr-inspect.o $(COMMON_OBJ) zonec.o $(LIBOBJS) simdzone/libzone.a $(LIBS)
+	$(LINK) -o $@ xfr-inspect.o $(COMMON_OBJ) zonec.o $(LIBOBJS) simdzone/libzone.a $(SSL_LIBS) $(LIBS)
 
 popen3_echo: popen3.o popen3_echo.o
 	$(LINK) -o $@ popen3.o popen3_echo.o
@@ -193,21 +231,33 @@ audit: nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem checksec
 	./checksec --file=nsd-control
 	./checksec --file=nsd-mem
 
-clean:
+.clean:
 	rm -f *.o $(TARGETS) $(MANUALS) cutest popen3_echo xfr-inspect nsd-mem
-	make -C simdzone $(MAKECMDGOALS)
+	rm -f doc/manual/conf.py doc/manual/manpages/nsd.conf.5.html doc/manual/manpages/nsd.8.html doc/manual/manpages/nsd-checkconf.8.html doc/manual/manpages/nsd-checkzone.8.html doc/manual/manpages/nsd-control.8.html
+	rm -rf doc/manual/doctrees doc/manual/html
 
-distclean: clean
+.distclean: .clean
 	rm -f Makefile config.h config.log config.status dnstap/dnstap_config.h
 
-realclean: distclean
+.realclean: .distclean
 	rm -rf autom4te*
 	rm -f configlexer.c configparser.h configparser.c configparser.stamp
 
+clean: .clean
+	$(MAKE) -C simdzone clean
+
+distclean: .distclean
+	$(MAKE) -C simdzone distclean
+
+realclean: .realclean
+	$(MAKE) -C simdzone realclean
+
 maintainer-clean: realclean
 
-devclean: realclean
+devclean: .realclean
 	rm -f config.h.in configure
+	$(MAKE) -C simdzone devclean
+
 
 basename.o:	$(srcdir)/compat/basename.c
 	$(COMPILE) -c $(srcdir)/compat/basename.c

@@ -1,0 +1,37 @@
+# #-- reload-config.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+NSD="../../nsd"
+
+cp reload-config.1.conf nsd.conf
+$NSD -p $NSD_PORT -P $NSD_PID -V 5 -c nsd.conf > nsd.log 2>&1
+wait_nsd_up nsd.log
+
+dig @127.0.0.1 -p $NSD_PORT example.com. SOA | tee result
+if ! grep hostmaster.example.com result; then
+	echo "zone example.com should be available" >&2
+	exit 1
+fi
+
+dig @127.0.0.1 -p $NSD_PORT example.net. SOA | tee result
+if grep hostmaster.example.net result; then
+	echo "zone example.net should not be available" >&2
+	exit 1
+fi
+
+cp reload-config.2.conf nsd.conf
+kill -SIGHUP $(head -n1 ${NSD_PID})
+
+wait_logfile nsd.log "zone example.net read"
+
+dig @127.0.0.1 -p $NSD_PORT example.net. SOA | tee result
+if ! grep hostmaster.example.net result; then
+	echo "zone example.net should be available" >&2
+	exit 1
+fi
+
+exit 0

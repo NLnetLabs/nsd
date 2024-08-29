@@ -1,0 +1,5 @@
+; common nameservers
+	NS ns1
+	NS ns2
+ns1 IN A 1.2.3.6
+ns2 IN A 1.2.3.7

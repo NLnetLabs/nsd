@@ -71,7 +71,6 @@
 #else
 #  include "mini_event.h"
 #endif
-#include "remote.h"
 #include "util.h"
 #include "xfrd.h"
 #include "xfrd-catalog-zones.h"
@@ -81,6 +80,7 @@
 #include "options.h"
 #include "difffile.h"
 #include "ipc.h"
+#include "remote.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>
@@ -2038,6 +2038,48 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 	region_destroy(region);
 }
 
+static void print_cfg_err(void *unused, const char *message)
+{
+	(void)unused;
+	log_msg(LOG_ERR, "%s", message);
+}
+
+/* mostly identical to do_repattern */
+void xfrd_reload_config(xfrd_state_type *xfrd)
+{
+	const char *chrootdir = xfrd->nsd->chrootdir;
+	const char *file = xfrd->nsd->options->configfile;
+	region_type* region;
+	struct nsd_options* options;
+
+	if (chrootdir && !file_inside_chroot(file, chrootdir))
+	{
+		log_msg(LOG_ERR, "%s is not relative to %s: %s",
+			xfrd->nsd->options->configfile, xfrd->nsd->chrootdir,
+			"chroot prevents reread of config");
+		goto error_chroot;
+	}
+
+	region = region_create(xalloc, free);
+	options = nsd_options_create(region);
+
+	if (!parse_options_file(
+		options, file, print_cfg_err, NULL, xfrd->nsd->options))
+	{
+		goto error_parse;
+	}
+
+	repat_keys(xfrd, options);
+	repat_patterns(xfrd, options); /* adds/deletes zones too */
+	repat_options(xfrd, options);
+	zonestat_inc_ifneeded(xfrd);
+
+error_parse:
+	region_destroy(region);
+error_chroot:
+	return;
+}
+
 /** do the serverpid command: printout pid of server process */
 static void
 do_serverpid(RES* ssl, xfrd_state_type* xfrd)
@@ -2669,7 +2711,11 @@ remote_control_callback(int fd, short event, void* arg)
 		VERBOSITY(3, (LOG_INFO, "unauthenticated remote control connection"));
 #ifdef HAVE_SSL
 	} else if(SSL_get_verify_result(s->ssl) == X509_V_OK) {
+#  ifdef HAVE_SSL_GET1_PEER_CERTIFICATE
+		X509* x = SSL_get1_peer_certificate(s->ssl);
+#  else
 		X509* x = SSL_get_peer_certificate(s->ssl);
+#  endif
 		if(!x) {
 			VERBOSITY(2, (LOG_INFO, "remote control connection "
 				"provided no client certificate"));

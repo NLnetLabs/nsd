@@ -162,6 +162,7 @@ struct tcp_accept_handler_data {
 #ifdef HAVE_SSL
 	/* handler accepts TLS connections on the dedicated port */
 	int                tls_accept;
+	int                tls_auth_accept;
 #endif
 	/* if set, PROXYv2 is expected on this connection */
 	int pp2_enabled;
@@ -285,9 +286,10 @@ struct tcp_handler_data
 
 #ifdef HAVE_SSL
 	/*
-	 * TLS object.
+	 * TLS objects.
 	 */
 	SSL* tls;
+	SSL* tls_auth;
 
 	/*
 	 * TLS handshake state.
@@ -1612,6 +1614,8 @@ server_shutdown(struct nsd *nsd)
 #ifdef HAVE_SSL
 	if (nsd->tls_ctx)
 		SSL_CTX_free(nsd->tls_ctx);
+	if (nsd->tls_auth_ctx)
+		SSL_CTX_free(nsd->tls_auth_ctx);
 #endif
 
 #ifdef MEMCLEAN /* OS collects memory pages */
@@ -2144,7 +2148,7 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 			return NULL;
 		}
 		SSL_CTX_set_client_CA_list(ctx, SSL_load_client_CA_file(verifypem));
-		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
+		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 	}
 	return ctx;
 }
@@ -3244,10 +3248,24 @@ add_tcp_handler(
 		if(verbosity >= 2) {
 			char buf[48];
 			addrport2str((void*)(struct sockaddr_storage*)&sock->addr.ai_addr, buf, sizeof(buf));
-			VERBOSITY(4, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
+			VERBOSITY(5, (LOG_NOTICE, "setup TCP for TLS service on interface %s", buf));
 		}
 	} else {
 		data->tls_accept = 0;
+	}
+	if (nsd->tls_auth_ctx &&
+	    nsd->options->tls_auth_port &&
+	    using_tls_port((struct sockaddr *)&sock->addr.ai_addr, nsd->options->tls_auth_port))
+	{
+		data->tls_auth_accept = 1;
+		if(verbosity >= 2) {
+			char buf[48];
+			addrport2str((void*)(struct sockaddr_storage*)&sock->addr.ai_addr, buf, sizeof(buf));
+			VERBOSITY(4, (LOG_NOTICE, "setup TCP for TLS-AUTH service on interface %s", buf));
+		}
+
+	} else {
+		data->tls_auth_accept = 0;
 	}
 #endif
 
@@ -3624,7 +3642,7 @@ service_remaining_tcp(struct nsd* nsd)
 	/* check if it is needed */
 	if(nsd->current_tcp_count == 0 || tcp_active_list == NULL)
 		return;
-	VERBOSITY(4, (LOG_INFO, "service remaining TCP connections"));
+	VERBOSITY(5, (LOG_INFO, "service remaining TCP connections"));
 #ifdef USE_DNSTAP
 	/* remove dnstap collector, we cannot write there because the new
 	 * child process is using the file descriptor, or the child
@@ -3650,6 +3668,10 @@ service_remaining_tcp(struct nsd* nsd)
 		void (*fn)(int, short, void*);
 #ifdef HAVE_SSL
 		if(p->tls) {
+			if((event&EV_READ))
+				fn = handle_tls_reading;
+			else	fn = handle_tls_writing;
+		} else if(p->tls_auth) {
 			if((event&EV_READ))
 				fn = handle_tls_reading;
 			else	fn = handle_tls_writing;
@@ -3712,7 +3734,7 @@ service_remaining_tcp(struct nsd* nsd)
 			event_del(&timeout);
 		} else {
 			/* timed out, quit */
-			VERBOSITY(4, (LOG_INFO, "service remaining TCP connections: timed out, quit"));
+			VERBOSITY(5, (LOG_INFO, "service remaining TCP connections: timed out, quit"));
 			break;
 		}
 	}
@@ -4159,6 +4181,11 @@ cleanup_tcp_handler(struct tcp_handler_data* data)
 		SSL_shutdown(data->tls);
 		SSL_free(data->tls);
 		data->tls = NULL;
+	}
+	if(data->tls_auth) {
+		SSL_shutdown(data->tls_auth);
+		SSL_free(data->tls_auth);
+		data->tls_auth = NULL;
 	}
 #endif
 	data->pp2_header_state = pp2_header_none;
@@ -4708,10 +4735,17 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 
 	/* (continue to) setup the TLS connection */
 	ERR_clear_error();
-	r = SSL_do_handshake(data->tls);
+	if(data->tls_auth)
+		r = SSL_do_handshake(data->tls_auth);
+	else
+		r = SSL_do_handshake(data->tls);
 
 	if(r != 1) {
-		int want = SSL_get_error(data->tls, r);
+		int want;
+		if(data->tls_auth)
+			want = SSL_get_error(data->tls_auth, r);
+		else
+			want = SSL_get_error(data->tls, r);
 		if(want == SSL_ERROR_WANT_READ) {
 			if(data->shake_state == tls_hs_read) {
 				/* try again later */
@@ -4732,7 +4766,7 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 			return 1;
 		} else {
 			if(r == 0)
-				VERBOSITY(3, (LOG_ERR, "TLS handshake: connection closed prematurely"));
+				VERBOSITY(5, (LOG_ERR, "TLS handshake: connection closed prematurely"));
 			else {
 				unsigned long err = ERR_get_error();
 				if(!squelch_err_ssl_handshake(err)) {
@@ -4748,7 +4782,10 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 	}
 
 	/* Use to log successful upgrade for testing - could be removed*/
-	VERBOSITY(3, (LOG_INFO, "TLS handshake succeeded."));
+	if(data->tls_auth)
+		VERBOSITY(5, (LOG_INFO, "TLS-AUTH handshake succeeded."));
+	else
+		VERBOSITY(5, (LOG_INFO, "TLS handshake succeeded."));
 	/* set back to the event we need to have when reading (or writing) */
 	if(data->shake_state == tls_hs_read && writing) {
 		tcp_handler_setup_event(data, handle_tls_writing, fd, EV_PERSIST|EV_TIMEOUT|EV_WRITE);
@@ -4766,9 +4803,18 @@ static int
 more_read_buf_tls(int fd, struct tcp_handler_data* data, void* bufpos,
 	size_t add_amount, ssize_t* received)
 {
+	int r;
 	ERR_clear_error();
-	if((*received=SSL_read(data->tls, bufpos, add_amount)) <= 0) {
-		int want = SSL_get_error(data->tls, *received);
+	if(data->tls_auth)
+		r = (*received=SSL_read(data->tls_auth, bufpos, add_amount));
+	else
+		r = (*received=SSL_read(data->tls, bufpos, add_amount));
+	if(r <= 0) {
+		int want;
+		if(data->tls_auth)
+			want = SSL_get_error(data->tls_auth, *received);
+		else
+			want = SSL_get_error(data->tls, *received);
 		if(want == SSL_ERROR_ZERO_RETURN) {
 			cleanup_tcp_handler(data);
 			return 0; /* shutdown, closed */
@@ -5088,7 +5134,10 @@ handle_tls_writing(int fd, short event, void* arg)
 			return;
 	}
 
-	(void)SSL_set_mode(data->tls, SSL_MODE_ENABLE_PARTIAL_WRITE);
+	if(data->tls_auth)
+		(void)SSL_set_mode(data->tls_auth, SSL_MODE_ENABLE_PARTIAL_WRITE);
+	else
+		(void)SSL_set_mode(data->tls, SSL_MODE_ENABLE_PARTIAL_WRITE);
 
 	/* If we are writing the start of a message, we must include the length
 	 * this is done with a copy into write_buffer. */
@@ -5115,9 +5164,16 @@ handle_tls_writing(int fd, short event, void* arg)
 
 	/* Write the response */
 	ERR_clear_error();
-	sent = SSL_write(data->tls, buffer_current(write_buffer), buffer_remaining(write_buffer));
+	if(data->tls_auth)
+		sent = SSL_write(data->tls_auth, buffer_current(write_buffer), buffer_remaining(write_buffer));
+	else
+		sent = SSL_write(data->tls, buffer_current(write_buffer), buffer_remaining(write_buffer));
 	if(sent <= 0) {
-		int want = SSL_get_error(data->tls, sent);
+		int want;
+		if(data->tls_auth)
+			want = SSL_get_error(data->tls_auth, sent);
+		else
+			want = SSL_get_error(data->tls, sent);
 		if(want == SSL_ERROR_ZERO_RETURN) {
 			cleanup_tcp_handler(data);
 			/* closed */
@@ -5318,7 +5374,9 @@ handle_tcp_accept(int fd, short event, void* arg)
 	tcp_data->query_count = 0;
 #ifdef HAVE_SSL
 	tcp_data->shake_state = tls_hs_none;
+	/* initialize both incase of dangling pointers */
 	tcp_data->tls = NULL;
+	tcp_data->tls_auth = NULL;
 #endif
 	tcp_data->query_needs_reset = 1;
 	tcp_data->pp2_enabled = data->pp2_enabled;
@@ -5358,6 +5416,18 @@ handle_tcp_accept(int fd, short event, void* arg)
 			close(s);
 			return;
 		}
+		tcp_data->query->tls = tcp_data->tls;
+		tcp_data->shake_state = tls_hs_read;
+		memset(&tcp_data->event, 0, sizeof(tcp_data->event));
+		event_set(&tcp_data->event, s, EV_PERSIST | EV_READ | EV_TIMEOUT,
+			  handle_tls_reading, tcp_data);
+	} else if (data->tls_auth_accept) {
+		tcp_data->tls_auth = incoming_ssl_fd(tcp_data->nsd->tls_auth_ctx, s);
+		if(!tcp_data->tls_auth) {
+			close(s);
+			return;
+		}
+		tcp_data->query->tls_auth = tcp_data->tls_auth;
 		tcp_data->shake_state = tls_hs_read;
 		memset(&tcp_data->event, 0, sizeof(tcp_data->event));
 		event_set(&tcp_data->event, s, EV_PERSIST | EV_READ | EV_TIMEOUT,
