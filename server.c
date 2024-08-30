@@ -2267,6 +2267,21 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 	return total;
 }
 
+static size_t
+reload_count_non_xfr_tasks(udb_base* u)
+{
+	udb_ptr t;
+	size_t count = 0;
+
+	udb_ptr_new(&t, u, udb_base_get_userdata(u));
+	while(!udb_ptr_is_null(&t)) {
+		if(TASKLIST(&t)->task_type != task_apply_xfr)
+			count += 1;
+		udb_ptr_set_rptr(&t, u, &TASKLIST(&t)->next);
+	}
+	return count;
+}
+
 static void
 reload_process_non_xfr_tasks(struct nsd* nsd, udb_ptr* xfrs2process,
 		udb_ptr* last_task)
@@ -2681,6 +2696,8 @@ server_main(struct nsd *nsd)
 	udb_ptr xfrs2process;
 	/* pointer to results of task processing */
 	udb_ptr last_task;
+	/* number of non xfr tasks to process */
+	size_t n_non_xfr_tasks;
 	struct timespec timeout_spec;
 	int status;
 	pid_t child_pid;
@@ -2907,15 +2924,92 @@ server_main(struct nsd *nsd)
 #ifdef USE_LOG_PROCESS_ROLE
 			log_set_process_role("load");
 #endif
+
 			/* Already process the non xfr tasks, so that a failed
 			 * transfer (which can exit) will not nullify the
 			 * effects of the other tasks that will not exit.
 			 */
 			task_remap(nsd->task[nsd->mytask]);
+			n_non_xfr_tasks = reload_count_non_xfr_tasks(
+					nsd->task[nsd->mytask]);
+			if(n_non_xfr_tasks == 0)
+				; /* pass */
+
+			else if ((reload_pid = fork()) == -1) {
+				log_msg(LOG_ERR, "fork failed: %s"
+				               , strerror(errno));
+				break;
+
+			} else if (reload_pid == 0) {
+				/* CHILD - keep listening to serve processes
+				 * for passing on the notifies to xfrd
+				 * until NSD_QUIT_NOTIFIER
+				 */
+				close(reload_sockets[1]);
+#ifdef HAVE_SETPROCTITLE
+				setproctitle("ntfy");
+#endif
+#ifdef USE_LOG_PROCESS_ROLE
+				log_set_process_role("ntfy");
+#endif
+				reload_listener.fd = reload_sockets[0];
+				reload_listener.timeout = NULL;
+				reload_listener.user_data = nsd;
+				reload_listener.event_types = NETIO_EVENT_READ;
+				/* listens to Quit */
+				reload_listener.event_handler =
+					parent_handle_reload_command;
+				netio_add_handler(netio, &reload_listener);
+				reload_pid = getppid();
+				break; /* Breaks into server_main loop */
+			} else {
+				/* PARENT - load */
+				close(reload_sockets[0]);
+#if 0
+				/* Sleep used to test that notifies are
+				 * actually passed through (and they did).
+				 * Alternatively we could make a sleep task
+				 * and compagnion sleep command to nsd-control
+				 * to create a unit test for this. Maybe only
+				 * if enabled by a configure option.
+				 */
+				sleep(10);
+#endif
+			}
 			udb_ptr_init(&xfrs2process, nsd->task[nsd->mytask]);
 			udb_ptr_init(&last_task   , nsd->task[nsd->mytask]);
 			reload_process_non_xfr_tasks(nsd, &xfrs2process
-			                                , &last_task);
+							, &last_task);
+			if(n_non_xfr_tasks) {
+				sig_atomic_t cmd;
+
+				/* Send quit command to notifier, not waiting
+				 * for comfirmation. 
+				 */
+				DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: "
+					"ipc send immediate quit to main"));
+				cmd = NSD_QUIT_NOTIFIER;
+				if (!write_socket(reload_sockets[1],
+							&cmd, sizeof(cmd))) {
+					log_msg(LOG_ERR, "problems sending "
+						"immediate quit to notifier: "
+						"%s", strerror(errno));
+				}
+				close(reload_sockets[1]);
+				/* Create a new reload socket pair, for
+				 * communications with old-main while applying
+				 * possible remaining transfer tasks and while
+				 * spawning the new serve childs.
+				 */
+				if (socketpair(AF_UNIX, SOCK_STREAM, 0,
+							reload_sockets) == -1) {
+					log_msg(LOG_ERR,"reload failed on "
+						"socketpair: %s",
+						strerror(errno));
+					reload_pid = -1;
+					break;
+				}
+			}
 			/* Do actual reload */
 			reload_pid = fork();
 			switch (reload_pid) {
@@ -3014,6 +3108,19 @@ server_main(struct nsd *nsd)
 			/* only quit children after xfrd has acked */
 			send_children_quit(nsd);
 
+#ifdef MEMCLEAN /* OS collects memory pages */
+			region_destroy(server_region);
+#endif
+			server_shutdown(nsd);
+
+			/* ENOTREACH */
+			break;
+		case NSD_QUIT_NOTIFIER:
+			/* silent shutdown of this "notifier" process,
+			 * leaving all other processes undisturbed */
+			assert(reload_listener.fd != -1);
+			close(reload_listener.fd);
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "server_main: shutdown sequence"));
 #ifdef MEMCLEAN /* OS collects memory pages */
 			region_destroy(server_region);
 #endif
