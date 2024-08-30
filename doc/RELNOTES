@@ -1,5 +1,48 @@
 NSD RELEASE NOTES
 
+4.10.2
+================
+FEATURES:
+	- Support reloading configuration on SIGHUP.
+BUG FIXES:
+	- Fix title underline and declaration after statement warnings.
+	- Add cross platform freebsd, openbsd and netbsd to github ci.
+	- Update simdzone to include fix for netbsd double bswap declarations,
+	  and also semantic checks for DS and ZONEMD. And CFLAGS has -march
+	  prepended to fix detection.
+	- Merge #376: Point the user towards tcpdump for logging individual
+	  queries.
+
+4.10.1
+================
+FEATURES:
+	- Merge #352 from orlitzky: contrib: add OpenRC service script, config
+	  file, and tmpfiles entry.
+	- Merge #337 from bilias: Mutual TLS-AUTH.
+
+BUG FIXES:
+	- Fix incorrect punctuation of log messages.
+	- Fix for #317, document more text on pidfile permissions.
+	- Fix #334: RFC8482 behavior documentation.
+	- Fix for OpenSSL 3.0 deprecated functions.
+	- Merge #341: Fix allow-query wording in nsd.conf.5.in.
+	- Fix test script from making spurious output.
+	- Fix cpu_affinity and socket_partitioning tests for --enable-log-role.
+	- Fix #344: Update simdzone.
+	- Fix #347: Adjust verbosity for TLS (+TCP) to be 5.
+	- Merge #348: Move TLS logging to verbosity level 5.
+	- For #347: Also adjust verbosity of log message for remaining TCP
+	  connections.
+	- Merge #349: log file name before loading.
+	- Use MAKE variable rather than make command directly in Makefile.
+	- Serialize WKS RRs using numeric values rather than names.
+	- Fix propagation of Makefile targets to simdzone.
+	- Do not log ACL mismatch on followed CNAMEs.
+	- Fix link of xfr-inspect for libssl dependency.
+	- Initialize tls_auth_port and tls_auth_xfr_only options.
+	- Merge #358: Fix Hurd build error due to log_err.
+	- Update simdzone to fix detection of AVX2 support.
+
 4.10.0
 ================
 FEATURES:
@@ -31,6 +74,7 @@ BUG FIXES:
 	- Fix error output of makedist.sh.
 	- Use simdzone version with name parser fix.
 	- Bump simdzone version to fix OpenBSD build issues.
+	- Bump simdzone to include minor fixes.
 
 4.9.1
 ================

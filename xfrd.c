@@ -272,6 +272,9 @@ xfrd_sig_process(void)
 	} else if(xfrd->nsd->signal_hint_reload_hup) {
 		log_msg(LOG_WARNING, "SIGHUP received, reloading...");
 		xfrd->nsd->signal_hint_reload_hup = 0;
+		if(xfrd->nsd->options->reload_config) {
+			xfrd_reload_config(xfrd);
+		}
 		if(xfrd->nsd->options->zonefiles_check) {
 			task_new_check_zonefiles(xfrd->nsd->task[
 				xfrd->nsd->mytask], xfrd->last_task, NULL);
@@ -316,6 +319,7 @@ xfrd_main(void)
 	xfrd->shutdown = 0;
 	while(!xfrd->shutdown)
 	{
+		/* xfrd_sig_process takes care of reading zones on SIGHUP */
 		xfrd_process_catalog_producer_zones();
 		xfrd_process_catalog_consumer_zones();
 		/* process activated zones before blocking in select again */

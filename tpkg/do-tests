@@ -44,7 +44,7 @@ NEED_NC="tcp_underrun"
 NEED_PCAT="query_diff_root"
 NEED_CPU_AFFINITY="bad_cpu_affinity no_cpu_affinity cpu_affinity"
 NEED_FAKETIME="dnscookies"
-NEED_DEBUG="verify_again nsec3_ixfr_neg ixfrout-add-delete ixfr_badformat"
+NEED_DEBUG="verify_again nsec3_ixfr_neg ixfrout-add-delete ixfr_badformat cpu_affinity ixfr_superlong"
 
 # do we have dig9?
 DIG9=no
@@ -64,8 +64,7 @@ if [ -n "$(cpu_count)" ] && [ "$(cpu_count)" -gt 1 ]; then CPU_AFFINITY=yes; fi
 HAVE_FAKETIME=no
 if test -f "`which faketime 2>&1`"; then HAVE_FAKETIME=yes; fi
 HAVE_DEBUG=no
-if $NSD -h 2>&1 | grep -- '-L'; then HAVE_DEBUG=yes; fi
-
+if $NSD -h 2>&1 | grep -- '-L' >/dev/null; then HAVE_DEBUG=yes; fi
 
 # run the tests
 tdir -a ../../ $tdirarg fake 0000_nsd-compile.tdir

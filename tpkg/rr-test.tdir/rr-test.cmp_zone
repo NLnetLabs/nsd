@@ -8,8 +8,8 @@ blaat	3600	IN	SOA	elektron.atoom.net. miekg.atoom.net. (
 	3600	IN	MB	mb.atoom.net.
 	3600	IN	MG	mg.atoom.net.
 	3600	IN	MR	mr.atoom.net.
-	3600	IN	WKS	192.168.1.2 tcp ssh smtp domain ntp
-	3600	IN	WKS	192.168.1.2 udp domain
+	3600	IN	WKS	192.168.1.2 6 22 25 53 123
+	3600	IN	WKS	192.168.1.2 17 53
 	3600	IN	PTR	ptr.atoom.net.
 	3600	IN	HINFO	"host" "info"
 	3600	IN	MINFO	machine.atoom.net. info.atoom.net.

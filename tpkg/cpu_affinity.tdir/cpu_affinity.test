@@ -16,9 +16,16 @@ wait_logfile nsd.log "child process started"
 cat nsd.log
 
 # retrieve pid of main, xfrd and server processes
-main_pid=$(sed -n 's/^.* nsd.\([0-9]\{1,\}\).: notice: nsd started.*$/\1/p' nsd.log)
-child_pid=$(sed -n 's/^.* nsd.\([0-9]\{1,\}\).: info: child .*$/\1/p' nsd.log)
-xfrd_pid=$(sed -n 's/^.* nsd.\([0-9]\{1,\}\).: info: xfrd startup.*$/\1/p' nsd.log)
+if grep "define USE_LOG_PROCESS_ROLE" $PRE/config.h >/dev/null; then
+	# log role uses different process names
+	main_pid=$(sed -n 's/^.* main.\([0-9]\{1,\}\).: notice: nsd started.*$/\1/p' nsd.log)
+	child_pid=$(sed -n 's/^.* srv1.\([0-9]\{1,\}\).: info: child .*$/\1/p' nsd.log)
+	xfrd_pid=$(sed -n 's/^.* xfrd.\([0-9]\{1,\}\).: info: xfrd startup.*$/\1/p' nsd.log)
+else
+	main_pid=$(sed -n 's/^.* nsd.\([0-9]\{1,\}\).: notice: nsd started.*$/\1/p' nsd.log)
+	child_pid=$(sed -n 's/^.* nsd.\([0-9]\{1,\}\).: info: child .*$/\1/p' nsd.log)
+	xfrd_pid=$(sed -n 's/^.* nsd.\([0-9]\{1,\}\).: info: xfrd startup.*$/\1/p' nsd.log)
+fi
 
 main_cpus=$(process_cpu_list ${main_pid})
 child_cpus=$(process_cpu_list ${child_pid})
