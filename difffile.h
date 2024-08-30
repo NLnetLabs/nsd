@@ -117,6 +117,8 @@ struct task_list_d {
 		task_drop_cookie_secret,
 		/** make staging cookie secret active */
 		task_activate_cookie_secret,
+		/** refresh a zone (set mtime to value of yesno) */
+		task_refresh,
 	} task_type;
 	uint32_t size; /* size of this struct */
 
@@ -157,6 +159,8 @@ void task_new_drop_cookie_secret(udb_base* udb, udb_ptr* last);
 void task_new_activate_cookie_secret(udb_base* udb, udb_ptr* last);
 int task_new_apply_xfr(udb_base* udb, udb_ptr* last, const dname_type* zone,
 	uint32_t old_serial, uint32_t new_serial, uint64_t filenumber);
+void task_new_refresh(udb_base* udb, udb_ptr* last, const dname_type* zone,
+	uint64_t acquired);
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	udb_ptr* task);
 void task_process_expire(namedb_type* db, struct task_list_d* task);

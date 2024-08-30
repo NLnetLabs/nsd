@@ -1051,6 +1051,16 @@ xfrd_set_timer_refresh(xfrd_zone_type* zone)
 	xfrd_set_timer(zone, within_refresh_bounds(zone,
 		  set > xfrd_time()
 		? set - xfrd_time() : XFRD_LOWERBOUND_REFRESH));
+
+#if 0
+	if(zone->soa_disk_acquired) {
+		task_new_refresh( xfrd->nsd->task[xfrd->nsd->mytask]
+				, xfrd->last_task
+				, zone->apex
+				, zone->soa_disk_acquired);
+		xfrd_set_reload_now(xfrd);
+	}
+#endif
 }
 
 static void
@@ -2391,7 +2401,8 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 	if(done == 0)
 		return xfrd_packet_more;
 	if(zone->master->key_options) {
-		if(zone->latest_xfr->tsig.updates_since_last_prepare != 0) {
+		if(zone->latest_xfr
+		&& zone->latest_xfr->tsig.updates_since_last_prepare != 0) {
 			log_msg(LOG_INFO, "xfrd: last packet of reply has no "
 					 		  "TSIG");
 			return xfrd_packet_bad;
