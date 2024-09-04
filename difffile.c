@@ -1976,6 +1976,7 @@ task_process_cookies(struct nsd* nsd, struct task_list_d* task) {
 	nsd->do_answer_cookie = (int) task->newserial;
 	nsd->cookie_count = (size_t) task->yesno;
 	memmove(nsd->cookie_secrets, task->zname, sizeof(nsd->cookie_secrets));
+	explicit_bzero(task->zname, sizeof(nsd->cookie_secrets));
 }
 
 static void

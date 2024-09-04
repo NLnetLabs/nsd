@@ -2463,6 +2463,7 @@ do_activate_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		      , sizeof(cookie_secrets_type));
 		nsd->cookie_count = backup_cookie_count;
 	}
+	explicit_bzero(backup_cookie_secrets, sizeof(cookie_secrets_type));
 }
 
 static void
@@ -2488,6 +2489,7 @@ do_drop_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		      , sizeof(cookie_secrets_type));
 		nsd->cookie_count = backup_cookie_count;
 	}
+	explicit_bzero(backup_cookie_secrets, sizeof(cookie_secrets_type));
 }
 
 static void
@@ -2535,6 +2537,7 @@ do_add_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 		      , sizeof(cookie_secrets_type));
 		nsd->cookie_count = backup_cookie_count;
 	}
+	explicit_bzero(backup_cookie_secrets, sizeof(cookie_secrets_type));
 }
 
 static void

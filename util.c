@@ -1189,6 +1189,8 @@ int cookie_secret_file_read(nsd_type* nsd) {
 			log_msg( LOG_ERR
 			       , "error parsing cookie secret file \"%s\""
 			       , fn);
+			explicit_bzero(cookie_secrets, sizeof(cookie_secrets));
+			explicit_bzero(secret, sizeof(secret));
 			return 0;
 		}
 		/* needed for `hex_pton`; stripping potential `\n` */
@@ -1200,7 +1202,10 @@ int cookie_secret_file_read(nsd_type* nsd) {
 			log_msg( LOG_ERR
 			       , "error parsing cookie secret file \"%s\""
 			       , fn);
+			explicit_bzero(cookie_secrets, sizeof(cookie_secrets));
+			explicit_bzero(secret, sizeof(secret));
 			return 0;
+		explicit_bzero(secret, sizeof(secret));
 		}
 	}
 	fclose(f);
@@ -1211,6 +1216,7 @@ int cookie_secret_file_read(nsd_type* nsd) {
 		region_str_replace(  nsd->region
 		                  , &nsd->cookie_secrets_filename, fn );
 	}
+	explicit_bzero(cookie_secrets, sizeof(cookie_secrets));
 	return 1;
 }
 
