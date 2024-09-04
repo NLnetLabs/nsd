@@ -2984,7 +2984,7 @@ server_main(struct nsd *nsd)
 				sig_atomic_t cmd;
 
 				/* Send quit command to notifier, not waiting
-				 * for comfirmation. 
+				 * for confirmation. 
 				 */
 				DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: "
 					"ipc send immediate quit to main"));
