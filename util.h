@@ -303,6 +303,9 @@ extern int nsd_debug_level;
 /* set to true to log time prettyprinted, or false to print epoch */
 extern int log_time_asc;
 
+/* set to true to log time in iso format */
+extern int log_time_iso;
+
 /*
  * Timespec functions.
  */
