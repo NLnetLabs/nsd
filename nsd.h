@@ -76,6 +76,15 @@ struct dt_collector;
  */
 #define NSD_RELOAD_FAILED 14
 
+/*
+ * QUIT_NOTIFIER is sent to the "notifier" process that is responsible for
+ * channeling incoming notifies from the server processes to the transfer
+ * daemon (via NSD_PASS_TO_XFRD), when the "reload" process is applying non-xfr
+ * tasks (like writing zone files which may take long).
+ */
+#define NSD_QUIT_NOTIFIER 15
+
+
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U
 #define NSD_SERVER_TCP  0x2U

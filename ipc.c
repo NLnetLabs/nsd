@@ -516,6 +516,16 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 		}
 		parent_check_all_children_exited(nsd);
 		break;
+	case NSD_QUIT_NOTIFIER:
+		/* This process only served as pass through for notifies (from
+		 * the serve processes). When this signal is received, this
+		 * process should quit immediately.
+		 */
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "parent_handle_reload_command: "
+					"quit notifier"));
+		/* Do silent shutdown in server_main */
+		nsd->mode = NSD_QUIT_NOTIFIER;
+		break;
 	default:
 		log_msg(LOG_ERR, "handle_reload_command: bad mode %d",
 			(int) mode);
