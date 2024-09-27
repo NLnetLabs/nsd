@@ -21,26 +21,13 @@ extern lookup_table_type dns_certificate_types[];
 extern lookup_table_type dns_algorithms[];
 extern const char *svcparamkey_strs[];
 
-int rdata_atom_to_string(buffer_type *output, rdata_zoneformat_type type,
-			 rdata_atom_type rdata, rr_type *rr);
-
-/*
- * Calculate the maximum size of the rdata assuming domain names are
- * not compressed.
- */
-size_t rdata_maximum_wireformat_size(rrtype_descriptor_type *descriptor,
-				     size_t rdata_count,
-				     rdata_atom_type *rdatas);
-
-int rdata_atoms_to_unknown_string(buffer_type *out,
-				  rrtype_descriptor_type *descriptor,
-				  size_t rdata_count,
-				  rdata_atom_type *rdatas);
+int print_unknown_rdata(
+	buffer_type *output, rrtype_descriptor_type *descriptor, const rr_type *rr);
 
 /* print rdata to a text string (as for a zone file) returns 0
   on a failure (bufpos is reset to original position).
   returns 1 on success, bufpos is moved. */
-int print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
-            rr_type *record);
+int print_rdata(
+	buffer_type *output, rrtype_descriptor_type *descriptor, const rr_type *rr);
 
 #endif /* RDATA_H */

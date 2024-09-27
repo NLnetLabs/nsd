@@ -126,15 +126,13 @@ rdata_dns_name_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
-rdata_text_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_text_to_string(
+	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	const uint8_t *data = rdata_atom_data(rdata);
-	uint8_t length = data[0];
-	size_t i;
+	uint8_t length = rdata[offset];
 
 	buffer_printf(output, "\"");
-	for (i = 1; i <= length; ++i) {
+	for (size_t i = offset + 1; i <= length; ++i) {
 		char ch = (char) data[i];
 		if (isprint((unsigned char)ch)) {
 			if (ch == '"' || ch == '\\') {
@@ -142,7 +140,7 @@ rdata_text_to_string(buffer_type *output, rdata_atom_type rdata,
 			}
 			buffer_printf(output, "%c", ch);
 		} else {
-			buffer_printf(output, "\\%03u", (unsigned) data[i]);
+			buffer_printf(output, "\\%03u", (unsigned) rdata[i]);
 		}
 	}
 	buffer_printf(output, "\"");
@@ -150,17 +148,14 @@ rdata_text_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
-rdata_texts_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_texts_to_string(
+	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	uint16_t pos = 0;
-	const uint8_t *data = rdata_atom_data(rdata);
-	uint16_t length = rdata_atom_size(rdata);
-	size_t i;
+	uint16_t pos = offset;
 
-	while (pos < length && pos + data[pos] < length) {
+	while (pos < rdlength && pos + rdata[pos] < rdlength) {
 		buffer_printf(output, "\"");
-		for (i = 1; i <= data[pos]; ++i) {
+		for (size_t i = 1; i <= data[pos]; ++i) {
 			char ch = (char) data[pos + i];
 			if (isprint((unsigned char)ch)) {
 				if (ch == '"' || ch == '\\') {
@@ -174,31 +169,27 @@ rdata_texts_to_string(buffer_type *output, rdata_atom_type rdata,
 		pos += data[pos]+1;
 		buffer_printf(output, pos < length?"\" ":"\"");
 	}
-	return 1;
+	return pos - offset;
 }
 
 static int
-rdata_long_text_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_long_text_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	const uint8_t *data = rdata_atom_data(rdata);
-	uint16_t length = rdata_atom_size(rdata);
-	size_t i;
-
 	buffer_printf(output, "\"");
-	for (i = 0; i < length; ++i) {
-		char ch = (char) data[i];
+	for (size_t i = offset; i < length; ++i) {
+		char ch = (char) rdata[i];
 		if (isprint((unsigned char)ch)) {
 			if (ch == '"' || ch == '\\') {
 				buffer_printf(output, "\\");
 			}
 			buffer_printf(output, "%c", ch);
 		} else {
-			buffer_printf(output, "\\%03u", (unsigned) data[i]);
+			buffer_printf(output, "\\%03u", (unsigned) rdata[i]);
 		}
 	}
 	buffer_printf(output, "\"");
-	return 1;
+	return rdlength - offset;
 }
 
 static int
@@ -253,64 +244,60 @@ rdata_unquoteds_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
-rdata_tag_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_tag_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	const uint8_t *data = rdata_atom_data(rdata);
-	uint8_t length = data[0];
-	size_t i;
-	for (i = 1; i <= length; ++i) {
-		char ch = (char) data[i];
+	size_t length = offset + rdata[offset];
+	for (size_t i = offset; i <= length; ++i) {
+		char ch = (char) rdata[i];
 		if (isdigit((unsigned char)ch) || islower((unsigned char)ch))
 			buffer_printf(output, "%c", ch);
-		else	return 0;
+		else	return -1;
 	}
+	return 1 + rdata[offset];
+}
+
+static int
+rdata_byte_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+{
+	buffer_printf(output, "%lu", (unsigned long) rdata[offset]);
 	return 1;
 }
 
 static int
-rdata_byte_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_short_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	uint8_t data = *rdata_atom_data(rdata);
+	uint16_t data = read_uint16(rdata + offset);
 	buffer_printf(output, "%lu", (unsigned long) data);
-	return 1;
+	return 2;
 }
 
 static int
-rdata_short_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_long_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	uint16_t data = read_uint16(rdata_atom_data(rdata));
+	uint32_t data = read_uint32(rdata + offset);
 	buffer_printf(output, "%lu", (unsigned long) data);
-	return 1;
+	return 4;
 }
 
 static int
-rdata_long_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_a_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	uint32_t data = read_uint32(rdata_atom_data(rdata));
-	buffer_printf(output, "%lu", (unsigned long) data);
-	return 1;
-}
-
-static int
-rdata_a_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
-{
-	int result = 0;
 	char str[200];
-	if (inet_ntop(AF_INET, rdata_atom_data(rdata), str, sizeof(str))) {
+	if (inet_ntop(AF_INET, rdata + offset, str, sizeof(str))) {
 		buffer_printf(output, "%s", str);
-		result = 1;
+		return 4;
 	}
-	return result;
+	return -1;
 }
 
 static int
-rdata_aaaa_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_aaaa_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
 	int result = 0;
 	char str[200];
@@ -322,78 +309,74 @@ rdata_aaaa_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
-rdata_ilnp64_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_ilnp64_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	uint8_t* data = rdata_atom_data(rdata);
-	uint16_t a1 = read_uint16(data);
-	uint16_t a2 = read_uint16(data+2);
-	uint16_t a3 = read_uint16(data+4);
-	uint16_t a4 = read_uint16(data+6);
+	uint16_t a1 = read_uint16(rdata + offset);
+	uint16_t a2 = read_uint16(rdata + offset + 2);
+	uint16_t a3 = read_uint16(rdata + offset + 4);
+	uint16_t a4 = read_uint16(rdata + offset + 6);
 
 	buffer_printf(output, "%.4x:%.4x:%.4x:%.4x", a1, a2, a3, a4);
-	return 1;
+	return 8;
 }
 
 static int
-rdata_eui48_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_eui48_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	uint8_t* data = rdata_atom_data(rdata);
-	uint8_t a1 = data[0];
-	uint8_t a2 = data[1];
-	uint8_t a3 = data[2];
-	uint8_t a4 = data[3];
-	uint8_t a5 = data[4];
-	uint8_t a6 = data[5];
+	uint8_t a1 = rdata[offset];
+	uint8_t a2 = rdata[offset+1];
+	uint8_t a3 = rdata[offset+2];
+	uint8_t a4 = rdata[offset+3];
+	uint8_t a5 = rdata[offset+4];
+	uint8_t a6 = rdata[offset+5];
 
 	buffer_printf(output, "%.2x-%.2x-%.2x-%.2x-%.2x-%.2x",
 		a1, a2, a3, a4, a5, a6);
-	return 1;
+	return 6;
 }
 
 static int
-rdata_eui64_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_eui64_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	uint8_t* data = rdata_atom_data(rdata);
-	uint8_t a1 = data[0];
-	uint8_t a2 = data[1];
-	uint8_t a3 = data[2];
-	uint8_t a4 = data[3];
-	uint8_t a5 = data[4];
-	uint8_t a6 = data[5];
-	uint8_t a7 = data[6];
-	uint8_t a8 = data[7];
+	uint8_t a1 = rdata[offset];
+	uint8_t a2 = rdata[offset+1];
+	uint8_t a3 = rdata[offset+2];
+	uint8_t a4 = rdata[offset+3];
+	uint8_t a5 = rdata[offset+4];
+	uint8_t a6 = rdata[offset+5];
+	uint8_t a7 = rdata[offset+6];
+	uint8_t a8 = rdata[offset+7];
 
 	buffer_printf(output, "%.2x-%.2x-%.2x-%.2x-%.2x-%.2x-%.2x-%.2x",
 		a1, a2, a3, a4, a5, a6, a7, a8);
-	return 1;
+	return 8;
 }
 
 static int
-rdata_rrtype_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_rrtype_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	uint16_t type = read_uint16(rdata_atom_data(rdata));
+	uint16_t type = read_uint16(rdata + offset);
 	buffer_printf(output, "%s", rrtype_to_string(type));
+	return 2;
+}
+
+static int
+rdata_algorithm_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+{
+	buffer_printf(output, "%u", (unsigned)rdata[offset]);
 	return 1;
 }
 
 static int
-rdata_algorithm_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_certificate_type_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	uint8_t id = *rdata_atom_data(rdata);
-	buffer_printf(output, "%u", (unsigned) id);
-	return 1;
-}
-
-static int
-rdata_certificate_type_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
-{
-	uint16_t id = read_uint16(rdata_atom_data(rdata));
+	uint16_t id = read_uint16(rdata + offset);
 	lookup_table_type *type
 		= lookup_by_id(dns_certificate_types, id);
 	if (type) {
@@ -401,76 +384,74 @@ rdata_certificate_type_to_string(buffer_type *output, rdata_atom_type rdata,
 	} else {
 		buffer_printf(output, "%u", (unsigned) id);
 	}
-	return 1;
+	return 2;
 }
 
 static int
-rdata_period_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_period_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	uint32_t period = read_uint32(rdata_atom_data(rdata));
+	uint32_t period = read_uint32(rdata + offset);
 	buffer_printf(output, "%lu", (unsigned long) period);
-	return 1;
+	return 4;
 }
 
 static int
-rdata_time_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_time_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	int result = 0;
-	time_t time = (time_t) read_uint32(rdata_atom_data(rdata));
+	time_t time = (time_t) read_uint32(rdata + offset);
 	struct tm *tm = gmtime(&time);
 	char buf[15];
 	if (strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", tm)) {
 		buffer_printf(output, "%s", buf);
-		result = 1;
+		return 4;
 	}
-	return result;
+	return -1;
 }
 
 static int
-rdata_base32_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_base32_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
 	int length;
-	size_t size = rdata_atom_size(rdata);
+	size_t size = rdata[offset];
 	if(size == 0) {
 		buffer_write(output, "-", 1);
 		return 1;
 	}
-	size -= 1; /* remove length byte from count */
 	buffer_reserve(output, size * 2 + 1);
-	length = b32_ntop(rdata_atom_data(rdata)+1, size,
-			  (char *) buffer_current(output), size * 2);
-	if (length > 0) {
-		buffer_skip(output, length);
-	}
-	return length != -1;
+	length = b32_ntop(rdata + offset + 1, size,
+			  (char *)buffer_current(output), size * 2);
+	if (length == -1)
+		return -1;
+	buffer_skip(output, length);
+	return 1 + size;
 }
 
 static int
-rdata_base64_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_base64_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
 	int length;
-	size_t size = rdata_atom_size(rdata);
+	size_t size = rdlength - offset;
 	if(size == 0) {
 		/* single zero represents empty buffer */
 		buffer_write(output, "0", 1);
-		return 1;
+		return 0;
 	}
 	buffer_reserve(output, size * 2 + 1);
-	length = b64_ntop(rdata_atom_data(rdata), size,
+	length = b64_ntop(rdata + offset, size,
 			  (char *) buffer_current(output), size * 2);
-	if (length > 0) {
-		buffer_skip(output, length);
-	}
-	return length != -1;
+	if (length == -1)
+		return -1;
+	buffer_skip(output, length);
+	return size;
 }
 
 static void
 hex_to_string(buffer_type *output, const uint8_t *data, size_t size)
-{
+{ 
 	static const char hexdigits[] = {
 		'0', '1', '2', '3', '4', '5', '6', '7',
 		'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
@@ -486,8 +467,8 @@ hex_to_string(buffer_type *output, const uint8_t *data, size_t size)
 }
 
 static int
-rdata_hex_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_hex_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
 	if(rdata_atom_size(rdata) == 0) {
 		/* single zero represents empty buffer, such as CDS deletes */
@@ -499,41 +480,38 @@ rdata_hex_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
-rdata_hexlen_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_hexlen_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	if(rdata_atom_size(rdata) <= 1) {
+	size_t size = rdata[offset];
+	if(size == 0) {
 		/* NSEC3 salt hex can be empty */
 		buffer_printf(output, "-");
 		return 1;
 	}
-	hex_to_string(output, rdata_atom_data(rdata)+1, rdata_atom_size(rdata)-1);
-	return 1;
+	hex_to_string(output, rdata + offset + 1, size);
+	return 1 + size;
 }
 
 static int
-rdata_nsap_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_nsap_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
 	buffer_printf(output, "0x");
-	hex_to_string(output, rdata_atom_data(rdata), rdata_atom_size(rdata));
-	return 1;
+	hex_to_string(output, rdata + offset, rdlength - offset);
+	return rdlength - offset;
 }
 
 static int
-rdata_apl_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_apl_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	int result = 0;
-	buffer_type packet;
+	size_t size = rdlength - offset;
 
-	buffer_create_from(
-		&packet, rdata_atom_data(rdata), rdata_atom_size(rdata));
-
-	if (buffer_available(&packet, 4)) {
-		uint16_t address_family = buffer_read_u16(&packet);
-		uint8_t prefix = buffer_read_u8(&packet);
-		uint8_t length = buffer_read_u8(&packet);
+	if (size >= 4) {
+		uint16_t address_family = read_uin16(rdata + offset);
+		uint8_t prefix = rdata[offset + 2];
+		uint8_t length = rdata[offset + 3];
 		int negated = length & APL_NEGATION_MASK;
 		int af = -1;
 
@@ -542,22 +520,22 @@ rdata_apl_to_string(buffer_type *output, rdata_atom_type rdata,
 		case 1: af = AF_INET; break;
 		case 2: af = AF_INET6; break;
 		}
-		if (af != -1 && buffer_available(&packet, length)) {
+		if (af != -1 && (size - 4) >= length) {
 			char text_address[1000];
 			uint8_t address[128];
 			memset(address, 0, sizeof(address));
-			buffer_read(&packet, address, length);
+			memmove(address, rdata + offset + 4, length);
 			if (inet_ntop(af, address, text_address, sizeof(text_address))) {
 				buffer_printf(output, "%s%d:%s/%d",
 					      negated ? "!" : "",
 					      (int) address_family,
 					      text_address,
 					      (int) prefix);
-				result = 1;
+				return 4 + length;
 			}
 		}
 	}
-	return result;
+	return -1;
 }
 
 /*
@@ -577,19 +555,13 @@ rdata_apl_to_string(buffer_type *output, rdata_atom_type rdata,
  * (see simdzone/generic/wks.h for details).
  */
 static int
-rdata_services_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_services_to_string(
+	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	int result = 0;
-	buffer_type packet;
-
-	buffer_create_from(
-		&packet, rdata_atom_data(rdata), rdata_atom_size(rdata));
-
-	if (buffer_available(&packet, 1)) {
-		uint8_t protocol_number = buffer_read_u8(&packet);
-		ssize_t bitmap_size = buffer_remaining(&packet);
-		uint8_t *bitmap = buffer_current(&packet);
+	if (rdlength - offset > 0) {
+		uint8_t protocol_number = rdata[offset];
+		ssize_t bitmap_size = (rdlength - offset) - 1;
+		uint8_t *bitmap = rdata + offset + 1;
 
 		buffer_printf(output, "%" PRIu8, protocol_number);
 
@@ -599,24 +571,24 @@ rdata_services_to_string(buffer_type *output, rdata_atom_type rdata,
 			}
 		}
 		buffer_skip(&packet, bitmap_size);
-		result = 1;
+		return rdlength - offset;
 	}
-	return result;
+	return -1;
 }
 
 static int
-rdata_ipsecgateway_to_string(buffer_type *output, rdata_atom_type rdata, rr_type* rr)
+rdata_ipsecgateway_to_string(
+	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	int gateway_type = rdata_atom_data(rr->rdatas[1])[0];
-	switch(gateway_type) {
+	assert(rdlength > 2);
+	switch(rdata[1]) {
 	case IPSECKEY_NOGATEWAY:
 		buffer_printf(output, ".");
 		break;
 	case IPSECKEY_IP4:
-		rdata_a_to_string(output, rdata, rr);
-		break;
+		return rdata_a_to_string(output, rdlength, rdata, rr);
 	case IPSECKEY_IP6:
-		rdata_aaaa_to_string(output, rdata, rr);
+		return rdata_aaaa_to_string(output, rdlengt, rdata, rr);
 		break;
 	case IPSECKEY_DNAME:
 		{
@@ -632,18 +604,17 @@ rdata_ipsecgateway_to_string(buffer_type *output, rdata_atom_type rdata, rr_type
 		}
 		break;
 	default:
-		return 0;
+		return -1;
 	}
-	return 1;
 }
 
 static int
-rdata_nxt_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_nxt_to_string(
+	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
 {
 	size_t i;
-	uint8_t *bitmap = rdata_atom_data(rdata);
-	size_t bitmap_size = rdata_atom_size(rdata);
+	uint8_t *bitmap = rdata + offset;
+	size_t bitmap_size = rdlength - offset;
 
 	for (i = 0; i < bitmap_size * 8; ++i) {
 		if (get_bit(bitmap, i)) {
@@ -657,15 +628,14 @@ rdata_nxt_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
-rdata_nsec_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_nsec_to_string(
+	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
 {
 	size_t saved_position = buffer_position(output);
 	buffer_type packet;
 	int insert_space = 0;
 
-	buffer_create_from(
-		&packet, rdata_atom_data(rdata), rdata_atom_size(rdata));
+	buffer_create_from(&packet, rdata + offset, rdlength - offset);
 
 	while (buffer_available(&packet, 2)) {
 		uint8_t window = buffer_read_u8(&packet);
@@ -975,13 +945,13 @@ rdata_hip_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
-rdata_unknown_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_unknown_to_string(
+	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
 {
- 	uint16_t size = rdata_atom_size(rdata);
- 	buffer_printf(output, "\\# %lu ", (unsigned long) size);
-	hex_to_string(output, rdata_atom_data(rdata), size);
-	return 1;
+ 	size_t size = rdlength - offset;
+ 	buffer_printf(output, "\\# %lu ", (unsigned long)size);
+	hex_to_string(output, rdata + offset, size);
+	return size;
 }
 
 static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
@@ -1021,13 +991,6 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_hip_to_string,
 	rdata_unknown_to_string
 };
-
-int
-rdata_atom_to_string(buffer_type *output, rdata_zoneformat_type type,
-		     rdata_atom_type rdata, rr_type* record)
-{
-	return rdata_to_string_table[type](output, rdata, record);
-}
 
 int print_unknown_rdata(
 	buffer_type *output, rrtype_descriptor_type *descriptor, rr_type *rr)
@@ -1248,34 +1211,30 @@ rdata_atoms_to_unknown_string(buffer_type *output,
 	return 1;
 }
 
-int
-print_rdata(
-	buffer_type *output, rrtype_descriptor_type *descriptor, rr_type *record)
+int print_rdata(
+	buffer_type *output, rrtype_descriptor_type *descriptor, rr_type *rr)
 {
-	size_t i;
 	size_t saved_position = buffer_position(output);
+	size_t rdlength = 0;
 
-	for (i = 0; i < record->rdata_count; ++i) {
+	for (size_t i = 0; rdlength < rr->rdlength && i < descriptor->maximum; i++) {
+		ssize_t length;
+		rdata_zoneformat_type format;
 		if (i == 0) {
 			buffer_printf(output, "\t");
-		} else if (descriptor->type == TYPE_SOA && i == 2) {
-			buffer_printf(output, " (\n\t\t");
 		} else {
 			buffer_printf(output, " ");
 		}
-//		if (!rdata_atom_to_string(
-//			    output,
-//			    (rdata_zoneformat_type) descriptor->zoneformat[i],
-//			    record->rdatas[i], record))
-//		{
-//			buffer_set_position(output, saved_position);
-//			return 0;
-//		}
-	}
-	if (descriptor->type == TYPE_SOA) {
-		buffer_printf(output, " )");
+		format = descriptor->zoneformat[i];
+		assert(format < sizeof(rdata_to_string_table)/sizeof(rdata_to_string_table[0]));
+		to_string = rdata_to_string_table[ format ];
+		if ((length = to_string(output, rr->rdlength, rr->rdata, rdlength)) < 0) {
+			buffer_set_position(output, saved_position);
+			return 0;
+		}
+		rdlength += (size_t)length;
 	}
 
+	assert(rdlength == rr->rdlength);
 	return 1;
 }
-

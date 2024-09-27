@@ -1959,33 +1959,6 @@ static int ixfr_write_file_header(struct zone* zone, struct ixfr_data* data,
 	return 1;
 }
 
-/* print rdata on one line */
-static int
-oneline_print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
-	rr_type* record)
-{
-	size_t i;
-	size_t saved_position = buffer_position(output);
-
-	for (i = 0; i < record->rdata_count; ++i) {
-		if (i == 0) {
-			buffer_printf(output, "\t");
-		} else {
-			buffer_printf(output, " ");
-		}
-		if (!rdata_atom_to_string(
-			    output,
-			    (rdata_zoneformat_type) descriptor->zoneformat[i],
-			    record->rdatas[i], record))
-		{
-			buffer_set_position(output, saved_position);
-			return 0;
-		}
-	}
-
-	return 1;
-}
-
 //
 // FIXME: i have a strong suspicion this is better handled differently
 //
@@ -2044,12 +2017,9 @@ static int print_rr_oneline(struct buffer* rr_buffer, const dname_type* dname,
 	buffer_printf(rr_buffer, "%s", dname_to_string(dname, NULL));
 	buffer_printf(rr_buffer, "\t%lu\t%s\t%s", (unsigned long)rr->ttl,
 		rrclass_to_string(rr->klass), rrtype_to_string(rr->type));
-	if(!oneline_print_rdata(rr_buffer, descriptor, rr)) {
-		if(!rdata_atoms_to_unknown_string(rr_buffer,
-			descriptor, rr->rdata_count, rr->rdatas)) {
-			return 0;
-		}
-	}
+	if (!print_rdata(rr_buffer, descriptor, rr)
+	    !print_unknown_rdata(rr_buffer, descriptor, rr))
+		return 0;
 	return 1;
 }
 
