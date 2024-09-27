@@ -25,21 +25,6 @@ int rdata_atom_to_string(buffer_type *output, rdata_zoneformat_type type,
 			 rdata_atom_type rdata, rr_type *rr);
 
 /*
- * Split the wireformat RDATA into an array of rdata atoms. Domain
- * names are inserted into the OWNERS table. The number of rdata atoms
- * is returned and the array itself is allocated in REGION and stored
- * in RDATAS.
- *
- * Returns -1 on failure.
- */
-ssize_t rdata_wireformat_to_rdata_atoms(region_type *region,
-					domain_table_type *owners,
-					uint16_t rrtype,
-					uint16_t rdata_size,
-					buffer_type *packet,
-					rdata_atom_type **rdatas);
-
-/*
  * Calculate the maximum size of the rdata assuming domain names are
  * not compressed.
  */

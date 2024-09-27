@@ -1029,15 +1029,10 @@ rdata_atom_to_string(buffer_type *output, rdata_zoneformat_type type,
 	return rdata_to_string_table[type](output, rdata, record);
 }
 
-ssize_t
-rdata_wireformat_to_rdata_atoms(region_type *region,
-				domain_table_type *owners,
-				uint16_t rrtype,
-				uint16_t data_size,
-				buffer_type *packet,
-				rdata_atom_type **rdatas)
+int print_unknown_rdata(
+	buffer_type *output, rrtype_descriptor_type *descriptor, rr_type *rr)
 {
-	size_t end = buffer_position(packet) + data_size;
+	// get descriptor, make sure domains are printed correctly!
 	size_t i;
 	rdata_atom_type temp_rdatas[MAXRDATALEN];
 	rrtype_descriptor_type *descriptor = rrtype_descriptor_by_type(rrtype);
@@ -1237,8 +1232,7 @@ rdata_atoms_to_unknown_string(buffer_type *output,
 			      rdata_atom_type *rdatas)
 {
 	size_t i;
-	size_t size =
-		rdata_maximum_wireformat_size(descriptor, rdata_count, rdatas);
+	size_t size = rr_marshal_rdata_length(rr);
 	buffer_printf(output, " \\# %lu ", (unsigned long) size);
 	for (i = 0; i < rdata_count; ++i) {
 		if (rdata_atom_is_domain(descriptor->type, i)) {
@@ -1255,8 +1249,8 @@ rdata_atoms_to_unknown_string(buffer_type *output,
 }
 
 int
-print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
-	    rr_type *record)
+print_rdata(
+	buffer_type *output, rrtype_descriptor_type *descriptor, rr_type *record)
 {
 	size_t i;
 	size_t saved_position = buffer_position(output);
@@ -1269,14 +1263,14 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 		} else {
 			buffer_printf(output, " ");
 		}
-		if (!rdata_atom_to_string(
-			    output,
-			    (rdata_zoneformat_type) descriptor->zoneformat[i],
-			    record->rdatas[i], record))
-		{
-			buffer_set_position(output, saved_position);
-			return 0;
-		}
+//		if (!rdata_atom_to_string(
+//			    output,
+//			    (rdata_zoneformat_type) descriptor->zoneformat[i],
+//			    record->rdatas[i], record))
+//		{
+//			buffer_set_position(output, saved_position);
+//			return 0;
+//		}
 	}
 	if (descriptor->type == TYPE_SOA) {
 		buffer_printf(output, " )");
