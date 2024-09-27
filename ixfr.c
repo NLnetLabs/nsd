@@ -1256,15 +1256,8 @@ static int ixfr_putrr(const struct dname* dname, uint16_t type, uint16_t klass,
 	int i;
 
 	/* find rdatalen */
-	rdlen_uncompressed = 0;
-	for(i=0; i<rdata_num; i++) {
-		if(rdata_atom_is_domain(type, i)) {
-			rdlen_uncompressed += domain_dname(rdatas[i].domain)
-				->name_size;
-		} else {
-			rdlen_uncompressed += rdatas[i].data[0];
-		}
-	}
+	rdlen_uncompressed = rr_marshal_rdata_length(rr);
+
 	sz = dname->name_size + 2 /*type*/ + 2 /*class*/ + 4 /*ttl*/ +
 		2 /*rdlen*/ + rdlen_uncompressed;
 
@@ -1286,16 +1279,7 @@ static int ixfr_putrr(const struct dname* dname, uint16_t type, uint16_t klass,
 	sp += 4;
 	write_uint16(sp, rdlen_uncompressed);
 	sp += 2;
-	for(i=0; i<rdata_num; i++) {
-		if(rdata_atom_is_domain(type, i)) {
-			memmove(sp, dname_name(domain_dname(rdatas[i].domain)),
-				domain_dname(rdatas[i].domain)->name_size);
-			sp += domain_dname(rdatas[i].domain)->name_size;
-		} else {
-			memmove(sp, &rdatas[i].data[1], rdatas[i].data[0]);
-			sp += rdatas[i].data[0];
-		}
-	}
+	(void)rr_marshal_rdata(rr, sp, *rrs_capacity - *rrs_len);
 	return 1;
 }
 
@@ -1305,7 +1289,8 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	size_t* rrs_len, size_t* rrs_capacity)
 {
 	domain_table_type *temptable;
-	rdata_atom_type *rdatas;
+	rr_type *rr;
+	const rrtype_descriptor_type *descriptor;
 	ssize_t rdata_num;
 	size_t oldpos;
 
@@ -1327,53 +1312,56 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	/* parse rdata */
 	oldpos = buffer_position(packet);
 	temptable = domain_table_create(temp_region);
-	rdata_num = rdata_wireformat_to_rdata_atoms(temp_region, temptable,
-		type, rrlen, packet, &rdatas);
+	descriptor = rrtype_descriptor_by_type(type);
+	descriptor->read_rdata(temptable, packet, &rr);
+	rr->owner = dname;
+	rr->type = type;
+	rr->klass = klass;
+	rr->ttl = ttl;
+//	rr->rdlength
+	// >> we need the descriptor here!!!!
+//	rdata_num = rdata_wireformat_to_rdata_atoms(temp_region, temptable,
+//		type, rrlen, packet, &rdatas);
 	buffer_set_position(packet, oldpos);
-	if(rdata_num == -1) {
-		log_msg(LOG_ERR, "ixfr_store addrr: cannot parse packet");
-		ixfr_store_cancel(ixfr_store);
-		return;
-	}
+//	if(rdata_num == -1) {
+//		log_msg(LOG_ERR, "ixfr_store addrr: cannot parse packet");
+//		ixfr_store_cancel(ixfr_store);
+//		return;
+//	}
 
-	if(!ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
-		rrs, rrs_len, rrs_capacity)) {
+	if(!ixfr_putrr(rr, rrs, rrs_len, rrs_capacity)) {
 		log_msg(LOG_ERR, "ixfr_store addrr: cannot allocate space");
 		ixfr_store_cancel(ixfr_store);
 		return;
 	}
 }
 
-void ixfr_store_delrr(struct ixfr_store* ixfr_store, const struct dname* dname,
-	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
-	uint16_t rrlen, struct region* temp_region)
+void ixfr_store_delrr(struct ixfr_store* ixfr_store, const rr_type *rr)
 {
-	ixfr_store_putrr(ixfr_store, dname, type, klass, ttl, packet, rrlen,
-		temp_region, &ixfr_store->data->del,
+	ixfr_store_putrr(ixfr_store, rr,
+		&ixfr_store->data->del,
 		&ixfr_store->data->del_len, &ixfr_store->del_capacity);
 }
 
-void ixfr_store_addrr(struct ixfr_store* ixfr_store, const struct dname* dname,
-	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
-	uint16_t rrlen, struct region* temp_region)
+void ixfr_store_addrr(struct ixfr_store* ixfr_store, const rr_type *rr)
 {
-	ixfr_store_putrr(ixfr_store, dname, type, klass, ttl, packet, rrlen,
-		temp_region, &ixfr_store->data->add,
+	ixfr_store_putrr(ixfr_store, rr,
+		&ixfr_store->data->add,
 		&ixfr_store->data->add_len, &ixfr_store->add_capacity);
 }
 
-int ixfr_store_addrr_rdatas(struct ixfr_store* ixfr_store,
-	const struct dname* dname, uint16_t type, uint16_t klass,
-	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num)
-{
-	if(ixfr_store->cancelled)
-		return 1;
-	if(type == TYPE_SOA)
-		return 1;
-	return ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
-		&ixfr_store->data->add, &ixfr_store->data->add_len,
-		&ixfr_store->add_capacity);
-}
+//int ixfr_store_addrr_rdatas(struct ixfr_store* ixfr_store,
+//	const struct dname* dname, uint16_t type, uint16_t klass,
+//	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num)
+//{
+//	if(ixfr_store->cancelled)
+//		return 1;
+//	if(type == TYPE_SOA)
+//		return 1;
+//	return ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
+//		&ixfr_store->data->add, &ixfr_store->data->add_len,
+//		&ixfr_store->add_capacity);
+//}
 
 int ixfr_store_add_newsoa_rdatas(struct ixfr_store* ixfr_store,
 	const struct dname* dname, uint16_t type, uint16_t klass,
@@ -1998,6 +1986,9 @@ oneline_print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 	return 1;
 }
 
+//
+// FIXME: i have a strong suspicion this is better handled differently
+//
 /* parse wireformat RR into a struct RR in temp region */
 static int parse_wirerr_into_temp(struct zone* zone, char* fname,
 	struct region* temp, uint8_t* buf, size_t len,
@@ -2526,6 +2517,9 @@ static int32_t ixfr_data_accept(
 	domain = domain_table_insert(state->temptable, dname);
 	assert(domain);
 
+	//
+	// we'll leave this intact... we need the input checks...
+	//
 	rdata_count = rdata_wireformat_to_rdata_atoms(
 		state->tempregion, state->temptable, type, rdlength, &buffer, &rdatas);
 	assert(rdata_count > 0);

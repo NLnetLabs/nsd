@@ -23,7 +23,6 @@ struct udb_ptr;
 struct nsd;
 struct zone_ixfr;
 
-typedef union rdata_atom rdata_atom_type;
 typedef struct rrset rrset_type;
 typedef struct rr rr_type;
 
@@ -160,11 +159,11 @@ struct zone
 /* a RR in DNS */
 struct rr {
 	domain_type*     owner;
-	rdata_atom_type* rdatas;
 	uint32_t         ttl;
 	uint16_t         type;
 	uint16_t         klass;
-	uint16_t         rdata_count;
+	uint16_t         rdlength;
+	uint8_t          rdata[]; // c99 flexible array
 } ATTR_PACKED;
 
 /*
@@ -175,23 +174,9 @@ struct rrset
 {
 	rrset_type* next;
 	zone_type*  zone;
-	rr_type*    rrs;
+	rr_type*    rrs; // << FIXME: need to update this too!!!!
 	uint16_t    rr_count;
 } ATTR_PACKED;
-
-/*
- * The field used is based on the wireformat the atom is stored in.
- * The allowed wireformats are defined by the rdata_wireformat_type
- * enumeration.
- */
-union rdata_atom
-{
-	/* RDATA_WF_COMPRESSED_DNAME, RDATA_WF_UNCOMPRESSED_DNAME */
-	domain_type* domain;
-
-	/* Default. */
-	uint16_t*    data;
-};
 
 /*
  * Create a new domain_table containing only the root domain.
@@ -345,28 +330,6 @@ struct namedb
 	off_t		  diff_pos;
 };
 
-static inline int rdata_atom_is_domain(uint16_t type, size_t index);
-static inline int rdata_atom_is_literal_domain(uint16_t type, size_t index);
-
-static inline domain_type *
-rdata_atom_domain(rdata_atom_type atom)
-{
-	return atom.domain;
-}
-
-static inline uint16_t
-rdata_atom_size(rdata_atom_type atom)
-{
-	return *atom.data;
-}
-
-static inline uint8_t *
-rdata_atom_data(rdata_atom_type atom)
-{
-	return (uint8_t *) (atom.data + 1);
-}
-
-
 /* Find the zone for the specified dname in DB. */
 zone_type *namedb_find_zone(namedb_type *db, const dname_type *dname);
 /*
@@ -379,8 +342,14 @@ void domain_table_deldomain(namedb_type* db, domain_type* domain);
 
 /** dbcreate.c */
 int print_rrs(FILE* out, struct zone* zone);
-/** marshal rdata into buffer, must be MAX_RDLENGTH in size */
+
+/** marshal rdata into buffer */
+/* if buffer is not sufficiently large enough, the number of bytes that
+ * would have been required is returned! */
 size_t rr_marshal_rdata(rr_type* rr, uint8_t* rdata, size_t sz);
+/** determine size of buffer needed to marshal rdata */
+size_t rr_marshal_rdata_length(rr_type* rr);
+
 /* dbaccess.c */
 int namedb_lookup (struct namedb* db,
 		   const dname_type* dname,
@@ -413,33 +382,32 @@ int create_dirs(const char* path);
 int file_get_mtime(const char* file, struct timespec* mtime, int* nonexist);
 void allocate_domain_nsec3(domain_table_type *table, domain_type *result);
 
-static inline int
-rdata_atom_is_domain(uint16_t type, size_t index)
-{
-	const rrtype_descriptor_type *descriptor
-		= rrtype_descriptor_by_type(type);
-	return (index < descriptor->maximum
-		&& (descriptor->wireformat[index] == RDATA_WF_COMPRESSED_DNAME
-		    || descriptor->wireformat[index] == RDATA_WF_UNCOMPRESSED_DNAME));
-}
-
-static inline int
-rdata_atom_is_literal_domain(uint16_t type, size_t index)
-{
-	const rrtype_descriptor_type *descriptor
-		= rrtype_descriptor_by_type(type);
-	return (index < descriptor->maximum
-		&& (descriptor->wireformat[index] == RDATA_WF_LITERAL_DNAME));
-}
-
-static inline rdata_wireformat_type
-rdata_atom_wireformat_type(uint16_t type, size_t index)
-{
-	const rrtype_descriptor_type *descriptor
-		= rrtype_descriptor_by_type(type);
-	assert(index < descriptor->maximum);
-	return (rdata_wireformat_type) descriptor->wireformat[index];
-}
+//rdata_atom_is_domain(uint16_t type, size_t index)
+//{
+//	const rrtype_descriptor_type *descriptor
+//		= rrtype_descriptor_by_type(type);
+//	return (index < descriptor->maximum
+//		&& (descriptor->wireformat[index] == RDATA_WF_COMPRESSED_DNAME
+//		    || descriptor->wireformat[index] == RDATA_WF_UNCOMPRESSED_DNAME));
+//}
+//
+//static inline int
+//rdata_atom_is_literal_domain(uint16_t type, size_t index)
+//{
+//	const rrtype_descriptor_type *descriptor
+//		= rrtype_descriptor_by_type(type);
+//	return (index < descriptor->maximum
+//		&& (descriptor->wireformat[index] == RDATA_WF_LITERAL_DNAME));
+//}
+//
+//static inline rdata_wireformat_type
+//rdata_atom_wireformat_type(uint16_t type, size_t index)
+//{
+//	const rrtype_descriptor_type *descriptor
+//		= rrtype_descriptor_by_type(type);
+//	assert(index < descriptor->maximum);
+//	return (rdata_wireformat_type) descriptor->wireformat[index];
+//}
 
 static inline uint16_t
 rrset_rrtype(rrset_type* rrset)

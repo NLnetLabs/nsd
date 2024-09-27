@@ -1225,24 +1225,22 @@ axfr:
 		if(*delete_mode) {
 			assert(!*is_axfr);
 			/* delete this rr */
-			if(ixfr_store)
-				ixfr_store_delrr(ixfr_store, owner, type,
-					klass, ttl, packet, rrlen, region);
 			if(!delete_RR(nsd->db, owner, type, klass, packet,
 				rrlen, zone, region, softfail)) {
 				region_destroy(region);
 				return 0;
 			}
+			if(ixfr_store)
+				ixfr_store_delrr(ixfr_store, rr);
 		} else {
 			/* add this rr */
-			if(ixfr_store)
-				ixfr_store_addrr(ixfr_store, owner, type,
-					klass, ttl, packet, rrlen, region);
-			if(!add_RR(nsd->db, owner, type, klass, ttl, packet,
-				rrlen, zone, softfail)) {
+			if(!(rr = add_RR(nsd->db, owner, type, klass, ttl, packet,
+				rrlen, zone, softfail))) {
 				region_destroy(region);
 				return 0;
 			}
+			if (ixfr_store)
+				ixfr_store_addrr(ixfr_store, rr);
 		}
 	}
 	region_destroy(region);

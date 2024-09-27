@@ -47,21 +47,22 @@ static int spool_dname(FILE* out, dname_type* dname)
 	return 1;
 }
 
+// FIXME: replace rr_marshal_rdata_size
 /* calculate the rdatalen of an RR */
-static size_t rr_rdatalen_uncompressed(rr_type* rr)
-{
-	int i;
-	size_t rdlen_uncompressed = 0;
-	for(i=0; i<rr->rdata_count; i++) {
-		if(rdata_atom_is_domain(rr->type, i)) {
-			rdlen_uncompressed += domain_dname(rr->rdatas[i].domain)
-				->name_size;
-		} else {
-			rdlen_uncompressed += rr->rdatas[i].data[0];
-		}
-	}
-	return rdlen_uncompressed;
-}
+//static size_t rr_rdatalen_uncompressed(rr_type* rr)
+//{
+//	int i;
+//	size_t rdlen_uncompressed = 0;
+//	for(i=0; i<rr->rdata_count; i++) {
+//		if(rdata_atom_is_domain(rr->type, i)) {
+//			rdlen_uncompressed += domain_dname(rr->rdatas[i].domain)
+//				->name_size;
+//		} else {
+//			rdlen_uncompressed += rr->rdatas[i].data[0];
+//		}
+//	}
+//	return rdlen_uncompressed;
+//}
 
 /* spool the data for one rr into the file */
 static int spool_rr_data(FILE* out, rr_type* rr)

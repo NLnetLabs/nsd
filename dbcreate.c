@@ -26,42 +26,144 @@
 /* pathname directory separator character */
 #define PATHSEP '/'
 
-/** add an rdata (uncompressed) to the destination */
-static size_t
-add_rdata(rr_type* rr, unsigned i, uint8_t* buf, size_t buflen)
+#define NAME (1u + UINT16_MAX)
+#define STRING (2u + UINT16_MAX)
+#define REMAINDER (3u + UINT16_MAX)
+
+static const int32_t field_lengths[] = {
+	[RDATA_WF_COMPRESSED_DNAME] = DOMAIN,
+	[RDATA_WF_UNCOMPRESSED_DNAME] = REMAINDER,
+	[RDATA_WF_LITERAL_DNAME] = REMAINDER,
+	[RDATA_WF_BYTE] = 1,
+	[RDATA_WF_SHORT] = 2,
+	[RDATA_WF_LONG] = REMAINDER,
+	[RDATA_WF_TEXT] = STRING,
+	[RDATA_WF_TEXTS] = REMAINDER,
+	[RDATA_WF_A] = REMAINDER,
+	[RDATA_WF_AAAA] = REMAINDER,
+	[RDATA_WF_BINARY] = REMAINDER,
+	[RDATA_WF_BINARYWITHLENGTH] = STRING,
+	[RDATA_WF_APL] = REMAINDER,
+	[RDATA_WF_IPSECGATEWAY] = REMAINDER,
+	[RDATA_WF_ILNP64] = REMAINDER,
+	[RDATA_WF_EUI48] = REMAINDER,
+	[RDATA_WF_EUI64] = REMAINDER,
+	[RDATA_WF_LONG_TEXT] = REMAINDER,
+	[RDATA_WF_SVCPARAM] = REMAINDER
+};
+
+//
+// we use an array of int32_t so we can easily determine the length of a
+// given field if it's fixed length or if we can skip the rest of the
+// processing.
+//
+// for types that require inspection, i.e. names and strings. we do that
+// if so required
+//
+// IPSECKEY gateway can be a literal domain name, but
+// << we can probably just return remainder
+//    because it's either an address (ip4 or ip6)
+//    or a literal name, so we don't have to resolve
+//
+/*
+ * this function is far from ideal, there are better ways to do this. i'd
+ * have to alter the descriptor table though, which can be done later. the
+ * point is to get the functions in place. we go from there!
+ */
+
+static always_inline void
+copy_rdata(
+	uint8_t *rdata, size_t rdlength, const uint8_t *data, size_t length, size_t *left)
 {
-	switch(rdata_atom_wireformat_type(rr->type, i)) {
-		case RDATA_WF_COMPRESSED_DNAME:
-		case RDATA_WF_UNCOMPRESSED_DNAME:
-		{
-			const dname_type* dname = domain_dname(
-				rdata_atom_domain(rr->rdatas[i]));
-			if(dname->name_size > buflen)
-				return 0;
-			memmove(buf, dname_name(dname), dname->name_size);
-			return dname->name_size;
-		}
-		default:
-			break;
-	}
-	if(rdata_atom_size(rr->rdatas[i]) > buflen)
-		return 0;
-	memmove(buf, rdata_atom_data(rr->rdatas[i]),
-		rdata_atom_size(rr->rdatas[i]));
-	return rdata_atom_size(rr->rdatas[i]);
+	if (*left == 0)
+		return;
+	if (*left < length)
+		length = *left;
+	memcpy(rdata + rdlength, data, length);
+	*left -= length;
 }
 
-/* marshal rdata into buffer, must be MAX_RDLENGTH in size */
+/* marshal rdata into buffer */
 size_t
-rr_marshal_rdata(rr_type* rr, uint8_t* rdata, size_t sz)
+rr_marshal_rdata(const rr_type *rr, uint8_t *rdata, size_t size)
 {
-	size_t len = 0;
-	unsigned i;
-	assert(rr);
-	for(i=0; i<rr->rdata_count; i++) {
-		len += add_rdata(rr, i, rdata+len, sz-len);
+	const rrtype_descriptor_type *descriptor;
+	size_t rdlength = 0, offset = 0;
+
+	descriptor = rrtype_descriptor_by_type(rr->type);
+	for (size_t i=0; offset < rr->rdlength && i < descriptor->maximum; i++) {
+		size_t length = field_lengths[ descriptor->wireformat[i] ];
+		if (length <= UINT16_MAX) {
+			copy_rdata(rdata, rdlength, rr->rdata + offset, length, &size);
+			rdlength += length;
+			offset += length;
+		} else if (length == NAME) {
+			const struct dname *dname;
+			const struct domain *domain;
+			assert(offset < (size_t)rr->rdlength + sizeof(void*));
+			memcpy(&domain, rr->rdata + offset, sizeof(void*));
+			dname = domain_dname(domain);
+			copy_rdata(rdata, rdlength, dname_name(dname), dname->name_size, &size);
+			rdlength += dname->name_size;
+			offset += sizeof(void*);
+		} else if (length == STRING) {
+			length = 1 + rr->rdata[offset];
+			assert(offset + length <= (size_t)rr->rdlength);
+			copy_rdata(rdata, rdlength, rr->rdata + offset, length, &size);
+			rdlength += length;
+			offset += length;
+		} else {
+			assert(length == REMAINDER);
+			length = (size_t)rr->rdlength - offset;
+			copy_rdata(rdata, rdlength, rr->rdata + offset, length, &size);
+			rdlength += length;
+			offset = rr->rdlength;
+			break;
+		}
 	}
-	return len;
+
+	assert(offset == length);
+	assert(rdlength <= UINT16_MAX);
+	return length;
+}
+
+uint16_t
+rr_marshal_rdata_length(const rr_type *rr)
+{
+	const rrtype_descriptor_type *descriptor;
+	size_t rdlength = 0, offset = 0;
+
+	descriptor = rrtype_descriptor_by_type(rr->type);
+	for (size_t i=0; offset < rr->rdlength && i < descriptor->maximum; i++) {
+		size_t length = field_lengths[ descriptor->wireformat[i] ];
+		if (length <= UINT16_MAX) {
+			rdlength += length;
+			offset += length;
+		} else if (length == NAME) {
+			const struct dname *dname;
+			const struct domain *domain;
+			assert(offset <= rr->rdlength + sizeof(void*));
+			memcpy(&domain, rr->rdata + offset, sizeof(void*));
+			dname = domain_dname(domain);
+			rdlength += dname->name_size;
+			offset += sizeof(void*);
+		} else if (length == STRING) {
+			length = 1 + rr->rdata[offset];
+			assert(offset + length <= (size_t)rr->rdlength);
+			rdlength += length;
+			offset += length;
+		} else {
+			assert(length == REMAINDER);
+			length = (size_t)rr->rdlength - offset;
+			rdlength += length;
+			offset += length;
+			break;
+		}
+	}
+
+	assert(offset == length);
+	assert(rdlength <= UINT16_MAX);
+	return (uint16_t)rdlength;
 }
 
 int

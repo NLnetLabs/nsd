@@ -686,7 +686,7 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 	assert(query);
 	assert(answer);
 	assert(master_rrset);
-	assert(rdata_atom_is_domain(rrset_rrtype(master_rrset), rdata_index));
+	//assert(rdata_atom_is_domain(rrset_rrtype(master_rrset), rdata_index));
 
 	for (i = 0; i < master_rrset->rr_count; ++i) {
 		int j;

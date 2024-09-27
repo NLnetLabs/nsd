@@ -649,11 +649,11 @@ zone_is_secure(zone_type* zone)
 uint16_t
 rr_rrsig_type_covered(rr_type* rr)
 {
+	uint16_t type;
 	assert(rr->type == TYPE_RRSIG);
-	assert(rr->rdata_count > 0);
-	assert(rdata_atom_size(rr->rdatas[0]) == sizeof(uint16_t));
-
-	return ntohs(* (uint16_t *) rdata_atom_data(rr->rdatas[0]));
+	assert(rr->rdlength > 2);
+	memcpy(&type, rr->rdata, sizeof(type));
+	return ntohs(type);
 }
 
 zone_type *
