@@ -18,6 +18,7 @@ struct query;
 #define OPT_RDATA 2                     /* holds the rdata length comes after OPT_LEN */
 #define OPT_HDR 4U                      /* NSID opt header length */
 #define NSID_CODE       3               /* nsid option code */
+#define EXPIRE_CODE     9               /* RFC 7314 */
 #define COOKIE_CODE    10               /* COOKIE option code */
 #define EDE_CODE       15               /* Extended DNS Errors option code */
 #define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
@@ -65,6 +66,8 @@ struct edns_record
 	int                ede; /* RFC 8914 - Extended DNS Errors */
 	char*              ede_text; /* RFC 8914 - Extended DNS Errors text*/
 	uint16_t           ede_text_len;
+	char               expire_option_seen;
+	uint32_t           expire_option_value;
 };
 typedef struct edns_record edns_record_type;
 
@@ -103,4 +106,9 @@ void edns_init_nsid(edns_data_type *data, uint16_t nsid_len);
 void cookie_verify(struct query *q, struct nsd* nsd, uint32_t *now_p);
 void cookie_create(struct query *q, struct nsd* nsd, uint32_t *now_p);
 
+/* packet position must point to the additional section (and the OPT RR)
+ * Returns 1 when the OPT RR contains an EXPIRE option, 0 otherwise.
+ * When an EXPIRE option is seen, expire_option_value is filled with the value
+ */
+int process_expire_option(buffer_type* packet, uint32_t* expire_option_value);
 #endif /* EDNS_H */

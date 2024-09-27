@@ -1051,6 +1051,16 @@ xfrd_set_timer_refresh(xfrd_zone_type* zone)
 	xfrd_set_timer(zone, within_refresh_bounds(zone,
 		  set > xfrd_time()
 		? set - xfrd_time() : XFRD_LOWERBOUND_REFRESH));
+
+#if 0
+	if(zone->soa_disk_acquired) {
+		task_new_refresh( xfrd->nsd->task[xfrd->nsd->mytask]
+				, xfrd->last_task
+				, zone->apex
+				, zone->soa_disk_acquired);
+		xfrd_set_reload_now(xfrd);
+	}
+#endif
 }
 
 static void
@@ -1904,6 +1914,9 @@ xfrd_send_ixfr_request_udp(xfrd_zone_type* zone)
         NSCOUNT_SET(xfrd->packet, 1);
 	xfrd_write_soa_buffer(xfrd->packet, zone->apex, &zone->soa_disk,
 		apex_compress);
+	xfrd_write_request_edns_expire_option(xfrd->packet,
+		zone->master->is_ipv6 ? xfrd->nsd->options->ipv6_edns_size
+		                      : xfrd->nsd->options->ipv4_edns_size);
 	/* if we have tsig keys, sign the ixfr query */
 	if(zone->master->key_options && zone->master->key_options->tsig_key) {
 		xfrd_tsig_sign_request(
@@ -2121,6 +2134,24 @@ xfrd_xfr_process_tsig(xfrd_zone_type* zone, buffer_type* packet)
 	return 1;
 }
 
+static time_t
+xfrd_time_adjusted_for_expire_option_value(xfrd_zone_type* zone)
+{
+	uint32_t soa_expire = ntohl(zone->soa_disk.expire);
+
+	log_msg(LOG_INFO, "(%d) time adjusted with %d for zone %s"
+	       , (int)zone->latest_xfr->msg_has_expire_option
+	       , (int)zone->latest_xfr->msg_expire_option_value
+	       , zone->apex_str);
+
+	if(!zone->latest_xfr->msg_has_expire_option
+	||  soa_expire <= zone->latest_xfr->msg_expire_option_value)
+		return xfrd_time();
+	/* Pretend we got it earlier with the to be adjusted amount */
+	return xfrd_time() -
+		(soa_expire - zone->latest_xfr->msg_expire_option_value);
+}
+
 /* parse the received packet. returns xfrd packet result code. */
 static enum xfrd_packet_result
 xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
@@ -2130,6 +2161,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 	size_t qdcount = QDCOUNT(packet);
 	size_t ancount = ANCOUNT(packet), ancount_todo;
 	size_t nscount = NSCOUNT(packet);
+	size_t arcount = ARCOUNT(packet);
 	int done = 0;
 	region_type* tempregion = NULL;
 	assert(zone->master);
@@ -2267,13 +2299,26 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 						       "update indicating "
 						       "current serial",
 				zone->apex_str));
+			if(arcount > 0) {
+				int i;
+				for(i = ancount - 1 + nscount; i > 0; i--) {
+					if(!packet_skip_rr(packet, 0))
+						break;
+				}
+				if(i == 0 && zone->latest_xfr) {
+					zone->latest_xfr->msg_has_expire_option
+						= process_expire_option(packet,
+							&zone->latest_xfr->msg_expire_option_value);
+				}
+			}
 			/* (even if notified) the lease on the current soa is renewed */
-			zone->soa_disk_acquired = xfrd_time();
+			zone->soa_disk_acquired =
+				xfrd_time_adjusted_for_expire_option_value(zone);
 			if(zone->soa_nsd.serial == soa->serial)
-				zone->soa_nsd_acquired = xfrd_time();
-			xfrd_set_zone_state(zone, xfrd_zone_ok);
- 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s is ok",
+				zone->soa_nsd_acquired = zone->soa_disk_acquired;
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s is ok",
 				zone->apex_str));
+			xfrd_set_zone_state(zone, xfrd_zone_ok);
 			if(zone->zone_options->pattern->multi_primary_check) {
 				region_destroy(tempregion);
 				return xfrd_packet_drop;
@@ -2336,6 +2381,18 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 		region_destroy(tempregion);
 		return xfrd_packet_bad;
 	}
+	if(arcount > 0) {
+		int i;
+		for(i = nscount; i > 0; i--) {
+			if(!packet_skip_rr(packet, 0))
+				break;
+		}
+		if(i == 0 && zone->latest_xfr) {
+			zone->latest_xfr->msg_has_expire_option
+				= process_expire_option(packet,
+					&zone->latest_xfr->msg_expire_option_value);
+		}
+	}
 	region_destroy(tempregion);
 	if(zone->tcp_conn == -1 && done == 0) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: udp reply incomplete"));
@@ -2344,7 +2401,8 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 	if(done == 0)
 		return xfrd_packet_more;
 	if(zone->master->key_options) {
-		if(zone->latest_xfr->tsig.updates_since_last_prepare != 0) {
+		if(zone->latest_xfr
+		&& zone->latest_xfr->tsig.updates_since_last_prepare != 0) {
 			log_msg(LOG_INFO, "xfrd: last packet of reply has no "
 					 		  "TSIG");
 			return xfrd_packet_bad;
@@ -2494,9 +2552,20 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 
 	/* done. we are completely sure of this */
 	buffer_clear(packet);
-	buffer_printf(packet, "received update to serial %u at %s from %s",
-		(unsigned)zone->latest_xfr->msg_new_serial, xfrd_pretty_time(xfrd_time()),
-		zone->master->ip_address_spec);
+	if(zone->latest_xfr->msg_has_expire_option)
+		buffer_printf( packet
+		             , "received update to serial %u at %s from %s, "
+			       "set to expire in %u seconds"
+		             , (unsigned)zone->latest_xfr->msg_new_serial
+		             , xfrd_pretty_time(xfrd_time())
+		             , zone->master->ip_address_spec
+			     , zone->latest_xfr->msg_expire_option_value);
+	else
+		buffer_printf( packet
+		             , "received update to serial %u at %s from %s"
+		             , (unsigned)zone->latest_xfr->msg_new_serial
+		             , xfrd_pretty_time(xfrd_time())
+		             , zone->master->ip_address_spec);
 	if(zone->master->key_options) {
 		buffer_printf(packet, " TSIG verified with key %s",
 			zone->master->key_options->name);
@@ -2522,8 +2591,9 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 	/* reset msg seq nr, so if that is nonnull we know xfr file exists */
 	zone->latest_xfr->msg_seq_nr = 0;
 	/* update the disk serial no. */
-	zone->soa_disk_acquired = zone->latest_xfr->acquired = xfrd_time();
 	zone->soa_disk = soa;
+	zone->soa_disk_acquired = zone->latest_xfr->acquired =
+		xfrd_time_adjusted_for_expire_option_value(zone);
 	if(zone->soa_notified_acquired && (
 		zone->soa_notified.serial == 0 ||
 		compare_serial(ntohl(zone->soa_disk.serial),

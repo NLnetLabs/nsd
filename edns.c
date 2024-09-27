@@ -75,6 +75,8 @@ edns_init_record(edns_record_type *edns)
 	edns->ede = -1; /* -1 means no Extended DNS Error */
 	edns->ede_text = NULL;
 	edns->ede_text_len = 0;
+	edns->expire_option_seen = 0;
+	edns->expire_option_value = 0;
 }
 
 /** handle a single edns option in the query */
@@ -97,6 +99,13 @@ edns_handle_option(uint16_t optcode, uint16_t optlen, buffer_type* packet,
 			/* ignore option */
 			buffer_skip(packet, optlen);
 		}
+		break;
+	case EXPIRE_CODE:
+		edns->expire_option_seen = 1;
+		/* we have to check optlen, and move the buffer along */
+		buffer_skip(packet, optlen);
+		/* in the reply we need space for optcode+optlen+time*/
+		edns->opt_reserved_space += OPT_HDR + sizeof(uint32_t);
 		break;
 	case COOKIE_CODE:
 		/* Cookies enabled? */
@@ -337,5 +346,49 @@ void cookie_create(query_type *q, struct nsd* nsd, uint32_t *now_p)
 	siphash(q->edns.cookie, 20, nsd->cookie_secrets[0].cookie_secret, hash, 8);
 #endif
 	memcpy(q->edns.cookie + 16, hash, 8);
+}
+
+int
+process_expire_option(buffer_type* packet, uint32_t* expire_option_value)
+{
+	size_t mempos = buffer_position(packet);
+	uint16_t rdlen;
+
+	/* len(dname) + len(type) + len(class) + len(ttl) + len(rdlen) =
+	 *          1 +         2 +          2 +        4 +          2 = 11
+	 *
+	 * len(option_code) + len(option_len) + len(expire_option) =
+	 *                2 +               2 +                  4 = 8
+	 */
+	if(!buffer_available(packet, 19)
+        ||  buffer_read_u8(packet) != 0
+	||  buffer_read_u16(packet) != TYPE_OPT) {
+		buffer_set_position(packet, mempos);
+		return 0;
+	}
+	/* skip UDP payload, rcode, version, flags (or class and ttl) */
+	buffer_skip(packet, 6);
+	rdlen = buffer_read_u16(packet);
+	while(rdlen >= 8) {
+		uint16_t option_code, option_len;
+
+		if(!buffer_available(packet, 8))
+			break;
+		option_code = buffer_read_u16(packet);
+		option_len = buffer_read_u16(packet);
+		rdlen -= 4;
+		if(option_code == EXPIRE_CODE && option_len == 4) {
+			*expire_option_value = buffer_read_u32(packet);
+			return 1;
+		}
+		/* skip option */
+		if (option_len > rdlen
+		|| !buffer_available(packet, option_len))
+			break;
+		buffer_skip(packet, option_len);
+		rdlen -= option_len;
+	}
+	buffer_set_position(packet, mempos);
+	return 0;
 }
 

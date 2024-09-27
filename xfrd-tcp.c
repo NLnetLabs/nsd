@@ -471,6 +471,25 @@ xfrd_acl_sockaddr_frm(acl_options_type* acl, struct sockaddr_in *frm)
 }
 
 void
+xfrd_write_request_edns_expire_option(struct buffer* packet, uint16_t sz)
+{
+	/* TODO: Track whether a transfer failed with this option (for an 
+	 *       upstream), and then retry without the option.
+	 */
+	/* . OPT */
+	ARCOUNT_SET(packet, 1);
+	buffer_write_u8(packet, 0);
+	buffer_write_u16(packet, TYPE_OPT);
+	buffer_write_u16(packet, sz);
+	buffer_write_u8(packet, 0); /* rcode */
+	buffer_write_u8(packet, 0); /* version */
+	buffer_write_u16(packet, 0x8000); /* DO flag */
+	buffer_write_u16(packet, 2 * sizeof(uint16_t)); /* rdlength */
+	buffer_write_u16(packet, EXPIRE_CODE); /* option code */
+	buffer_write_u16(packet, 0); /* option length */
+}
+
+void
 xfrd_write_soa_buffer(struct buffer* packet,
 	const dname_type* apex, struct xfrd_soa* soa, int apex_compress)
 {
@@ -1022,6 +1041,7 @@ xfrd_tcp_setup_write_packet(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 		xfrd_setup_packet(tcp->packet, TYPE_AXFR, CLASS_IN, zone->apex,
 			zone->query_id, NULL);
 		xfrd_prepare_zone_xfr(zone, TYPE_AXFR);
+		xfrd_write_request_edns_expire_option(tcp->packet, 65535);
 	} else {
 		int apex_compress = 0;
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request incremental zone "
@@ -1034,6 +1054,7 @@ xfrd_tcp_setup_write_packet(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 		NSCOUNT_SET(tcp->packet, 1);
 		xfrd_write_soa_buffer(tcp->packet, zone->apex, &zone->soa_disk,
 			apex_compress);
+		xfrd_write_request_edns_expire_option(tcp->packet, 65535);
 	}
 	if(zone->master->key_options && zone->master->key_options->tsig_key) {
 		xfrd_tsig_sign_request(

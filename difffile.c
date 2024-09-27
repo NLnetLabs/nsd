@@ -995,10 +995,11 @@ apply_ixfr(nsd_type* nsd, FILE *in, uint32_t serialno,
 	uint32_t seq_nr, uint32_t seq_total,
 	int* is_axfr, int* delete_mode, int* rr_count,
 	struct zone* zone, int* bytes,
-	int* softfail, struct ixfr_store* ixfr_store)
+	int* softfail, struct ixfr_store* ixfr_store,
+	char* expire_option_seen, uint32_t* expire_option_value)
 {
 	uint32_t msglen, checklen, pkttype;
-	int qcount, ancount;
+	int qcount, ancount, nscount, arcount;
 	buffer_type* packet;
 	region_type* region;
 
@@ -1054,6 +1055,8 @@ apply_ixfr(nsd_type* nsd, FILE *in, uint32_t serialno,
 	   authority section RRs are skipped */
 	qcount = QDCOUNT(packet);
 	ancount = ANCOUNT(packet);
+	nscount = NSCOUNT(packet);
+	arcount = ARCOUNT(packet);
 	buffer_skip(packet, QHEADERSZ);
 	/* qcount should be 0 or 1 really, ancount limited by 64k packet */
 	if(qcount > 64 || ancount > 65530) {
@@ -1245,6 +1248,15 @@ axfr:
 			}
 		}
 	}
+	if(arcount > 0) {
+		for(; nscount > 0; nscount--) {
+			if(!packet_skip_rr(packet, 0))
+				break;
+		}
+		if(nscount == 0)
+			*expire_option_seen = process_expire_option(
+					packet, expire_option_value);
+	}
 	region_destroy(region);
 	return 1;
 }
@@ -1356,6 +1368,8 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 	{
 		int is_axfr=0, delete_mode=0, rr_count=0, softfail=0;
 		struct ixfr_store* ixfr_store = NULL, ixfr_store_mem;
+		char     expire_option_seen = 0;
+		uint32_t expire_option_value = 0;
 
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s", zone_buf));
 		if(zone_is_ixfr_enabled(zone))
@@ -1367,7 +1381,8 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 			ret = apply_ixfr(nsd, in, new_serial,
 				i, num_parts, &is_axfr, &delete_mode,
 				&rr_count, zone,
-				&num_bytes, &softfail, ixfr_store);
+				&num_bytes, &softfail, ixfr_store,
+				&expire_option_seen, &expire_option_value);
 			if(ret == 0) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d in diff file for %s", (int)i, zone_buf);
 				diff_update_commit(
@@ -1392,6 +1407,20 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 		zone->is_checked = (committed == DIFF_VERIFIED);
 		zone->mtime.tv_sec = time_end_0;
 		zone->mtime.tv_nsec = time_end_1*1000;
+		if(expire_option_seen && zone->soa_rrset && zone->soa_rrset->rrs
+		&& zone->soa_rrset->rrs->type == TYPE_SOA
+		&& zone->soa_rrset->rrs->rdata_count == 7) {
+			uint32_t expire_value;
+
+			memcpy(&expire_value, rdata_atom_data(
+				zone->soa_rrset->rrs->rdatas[5])
+			      , sizeof(uint32_t));
+			expire_value = ntohl(expire_value);
+			if(expire_option_value < expire_value) {
+				zone->mtime.tv_sec -=
+					(expire_value - expire_option_value);
+			}
+		}
 		if(zone->logstr)
 			region_recycle(nsd->db->region, zone->logstr,
 				strlen(zone->logstr)+1);
@@ -1852,6 +1881,24 @@ task_new_apply_xfr(udb_base* udb, udb_ptr* last, const dname_type* dname,
 }
 
 void
+task_new_refresh(udb_base* udb, udb_ptr* last, const dname_type* dname,
+		uint64_t acquired)
+{
+	udb_ptr e;
+
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task refresh %s %d",
+				dname_to_string(dname, 0), (int)acquired));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)
+		+dname_total_size(dname), dname)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add refresh");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_refresh;
+	TASKLIST(&e)->yesno = acquired;
+	udb_ptr_unlink(&e, udb);
+}
+
+void
 task_process_expire(namedb_type* db, struct task_list_d* task)
 {
 	uint8_t ok;
@@ -2133,6 +2180,20 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	fclose(df);
 }
 
+static void
+task_process_refresh(struct nsd* nsd, struct task_list_d* task)
+{
+	zone_type* zone;
+
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "refresh task %s %d", dname_to_string(
+		task->zname, NULL), (int)task->yesno));
+	zone = namedb_find_zone(nsd->db, task->zname);
+	if(!zone)
+		return;
+
+	zone->mtime.tv_sec = task->yesno;
+	zone->mtime.tv_nsec = 0;
+}
 
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
         udb_ptr* task)
@@ -2187,6 +2248,9 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_activate_cookie_secret:
 		task_process_activate_cookie_secret(nsd, TASKLIST(task));
+		break;
+	case task_refresh:
+		task_process_refresh(nsd, TASKLIST(task));
 		break;
 	default:
 		log_msg(LOG_WARNING, "unhandled task in reload type %d",
