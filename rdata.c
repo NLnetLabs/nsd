@@ -593,14 +593,15 @@ rdata_ipsecgateway_to_string(
 	case IPSECKEY_DNAME:
 		{
 			region_type* temp = region_create(xalloc, free);
-			const dname_type* d = dname_make(temp,
-				rdata_atom_data(rdata), 0);
+			const dname_type* d = dname_make(temp, rdata + offset, 0);
 			if(!d) {
 				region_destroy(temp);
 				return 0;
 			}
 			buffer_printf(output, "%s", dname_to_string(d, NULL));
+			size_t size = d->name_size;
 			region_destroy(temp);
+			return size;
 		}
 		break;
 	default:
@@ -843,22 +844,20 @@ rdata_svcparam_tls_supported_groups_to_string(buffer_type *output,
 }
 
 static int
-rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+rdata_svcparam_to_string(
+	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
 {
-	uint16_t  size = rdata_atom_size(rdata);
-	uint16_t* data = (uint16_t *)rdata_atom_data(rdata);
 	uint16_t  svcparamkey, val_len;
-	uint8_t*  dp; 
+	uint8_t*  data;
 	size_t i;
 
-	if (size < 4)
-		return 0;
-	svcparamkey = ntohs(data[0]);
+	if (rdlength - offset < 4)
+		return -1;
+	svcparamkey = ntohs(read_uint16(rdata+offset));
 
 	buffer_print_svcparamkey(output, svcparamkey);
-	val_len = ntohs(data[1]);
-	if (size != val_len + 4)
+	val_len = ntohs(read_uin16(rdata+offset+2));
+	if (rdlength - offset <= val_len + 4)
 		return 0; /* wireformat error */
 	if (!val_len) {
 		/* Some SvcParams MUST have values */
@@ -875,21 +874,22 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 			return 1;
 		}
 	}
+	data = rdata + rdlength +4;
 	switch (svcparamkey) {
 	case SVCB_KEY_PORT:
-		return rdata_svcparam_port_to_string(output, val_len, data+2);
+		return rdata_svcparam_port_to_string(output, val_len, data);
 	case SVCB_KEY_IPV4HINT:
-		return rdata_svcparam_ipv4hint_to_string(output, val_len, data+2);
+		return rdata_svcparam_ipv4hint_to_string(output, val_len, data);
 	case SVCB_KEY_IPV6HINT:
-		return rdata_svcparam_ipv6hint_to_string(output, val_len, data+2);
+		return rdata_svcparam_ipv6hint_to_string(output, val_len, data);
 	case SVCB_KEY_MANDATORY:
-		return rdata_svcparam_mandatory_to_string(output, val_len, data+2);
+		return rdata_svcparam_mandatory_to_string(output, val_len, data);
 	case SVCB_KEY_NO_DEFAULT_ALPN:
 		return 0; /* wireformat error, should not have a value */
 	case SVCB_KEY_ALPN:
-		return rdata_svcparam_alpn_to_string(output, val_len, data+2);
+		return rdata_svcparam_alpn_to_string(output, val_len, data);
 	case SVCB_KEY_ECH:
-		return rdata_svcparam_ech_to_string(output, val_len, data+2);
+		return rdata_svcparam_ech_to_string(output, val_len, data);
 	case SVCB_KEY_OHTTP:
 		return 0; /* wireformat error, should not have a value */
 	case SVCB_KEY_TLS_SUPPORTED_GROUPS:
@@ -913,7 +913,7 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		buffer_write_u8(output, '"');
 		break;
 	}
-	return 1;
+	return val_len + 4;
 }
 
 static int
