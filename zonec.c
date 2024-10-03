@@ -187,6 +187,7 @@ int32_t zonec_accept(
 	int priority;
 	union rdata_atom *rdatas;
 	ssize_t rdata_count;
+	const struct rrtype_descriptor *descriptor;
 	struct zonec_state *state = (struct zonec_state *)user_data;
 
 	assert(state);
@@ -205,8 +206,9 @@ int32_t zonec_accept(
 	assert(domain);
 
 	rdatas = NULL;
-	rdata_count = rdata_wireformat_to_rdata_atoms(
-		state->database->region, state->domains, type, rdlength, &buffer, &rdatas);
+	//
+	//rdata_count = rdata_wireformat_to_rdata_atoms(
+	//	state->database->region, state->domains, type, rdlength, &buffer, &rdatas);
 	// number of atoms must not exceed maximum of 65535 (all empty strings)
 	assert(rdata_count >= 0);
 	assert(rdata_count <= MAX_RDLENGTH);
@@ -302,18 +304,19 @@ int32_t zonec_accept(
 
 		/* Add it... */
 		rrs = rrset->rrs;
-		rrset->rrs = region_alloc_array(state->database->region, rrset->rr_count + 1, sizeof(*rr));
-		memcpy(rrset->rrs, rrs, rrset->rr_count * sizeof(*rr));
+		rrset->rrs = region_alloc_array(state->database->region, rrset->rr_count + 1, sizeof(rr));
+		memcpy(rrset->rrs, rrs, rrset->rr_count * sizeof(rr));
 		region_recycle(state->database->region, rrs, rrset->rr_count * sizeof(*rr));
 	}
 
-	rr = &rrset->rrs[rrset->rr_count++];
+	descriptor = rrtype_descriptor_by_type(type);
+	descriptor->read_rdata(state->domains, buffer, &rr);
+	// handle possible error from the above operation
+	rrset->rrs[rrset->rr_count++] = rr;
 	rr->owner = domain;
-	rr->rdatas = rdatas;
-	rr->ttl = ttl;
 	rr->type = type;
 	rr->klass = class;
-	rr->rdata_count = rdata_count;
+	rr->ttl = ttl;
 
 	/* Check we have SOA */
 	if (rr->owner == state->zone->apex)

@@ -73,66 +73,48 @@ const char *svcparamkey_strs[] = {
 		"tls-supported-groups"
 	};
 
-typedef int (*rdata_to_string_type)(buffer_type *output,
-				    rdata_atom_type rdata,
-				    rr_type *rr);
 
-static int
-rdata_dname_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+static int32_t print_name(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	buffer_printf(output,
-		      "%s",
-		      dname_to_string(domain_dname(rdata_atom_domain(rdata)),
-				      NULL));
+	assert(rdlength >= *offset);
+	if (rdlength - *offset == 0)
+		return 0;
+
+  const uint8_t *name = rdata + *offset;
+  const uint8_t *label = name;
+  const uint8_t *limit = rdata + rdlength;
+
+  do {
+    if (label - name > 255 || *label > 63 || limit - label < 1 + *label)
+      return 0;
+    label += 1 + *label;
+  } while (*label);
+
+  buffer_printf(output, "%s", wiredname2str(name));
+  *offset += label - name;
 	return 1;
 }
 
-static int
-rdata_dns_name_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+static int32_t print_domain(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	const uint8_t *data = rdata_atom_data(rdata);
-	size_t offset = 0;
-	uint8_t length = data[offset];
-	size_t i;
-
-	while (length > 0)
-	{
-		if (offset) /* concat label */
-			buffer_printf(output, ".");
-
-		for (i = 1; i <= length; ++i) {
-			uint8_t ch = data[i+offset];
-
-			if (ch=='.' || ch==';' || ch=='(' || ch==')' || ch=='\\') {
-				buffer_printf(output, "\\%c", (char) ch);
-			} else if (!isgraph((unsigned char) ch)) {
-				buffer_printf(output, "\\%03u", (unsigned int) ch);
-			} else if (isprint((unsigned char) ch)) {
-				buffer_printf(output, "%c", (char) ch);
-			} else {
-				buffer_printf(output, "\\%03u", (unsigned int) ch);
-			}
-		}
-		/* next label */
-		offset = offset+length+1;
-		length = data[offset];
-	}
-
-	/* root label */
-	buffer_printf(output, ".");
+	uint16_t length = 0;
+	const struct dname *dname;
+	const struct domain *domain;
+	memcpy(&domain, rdata, sizeof(void*));
+	dname = domain_dname(domain);
+  buffer_printf(output, "%s", wiredname2str(name));
+	*offset += sizeof(void*);
 	return 1;
 }
 
-static int
-rdata_text_to_string(
-	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t print_string(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	uint8_t length = rdata[offset];
-
+	size_t n = data[0];
 	buffer_printf(output, "\"");
-	for (size_t i = offset + 1; i <= length; ++i) {
+	for (size_t i = 1; i <= n; i++) {
 		char ch = (char) data[i];
 		if (isprint((unsigned char)ch)) {
 			if (ch == '"' || ch == '\\') {
@@ -140,41 +122,15 @@ rdata_text_to_string(
 			}
 			buffer_printf(output, "%c", ch);
 		} else {
-			buffer_printf(output, "\\%03u", (unsigned) rdata[i]);
+			buffer_printf(output, "\\%03u", (unsigned) data[i]);
 		}
 	}
 	buffer_printf(output, "\"");
-	return 1;
+	return 1 + (int32_t)n;
 }
 
-static int
-rdata_texts_to_string(
-	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	uint16_t pos = offset;
-
-	while (pos < rdlength && pos + rdata[pos] < rdlength) {
-		buffer_printf(output, "\"");
-		for (size_t i = 1; i <= data[pos]; ++i) {
-			char ch = (char) data[pos + i];
-			if (isprint((unsigned char)ch)) {
-				if (ch == '"' || ch == '\\') {
-					buffer_printf(output, "\\");
-				}
-				buffer_printf(output, "%c", ch);
-			} else {
-				buffer_printf(output, "\\%03u", (unsigned) data[pos+i]);
-			}
-		}
-		pos += data[pos]+1;
-		buffer_printf(output, pos < length?"\" ":"\"");
-	}
-	return pos - offset;
-}
-
-static int
-rdata_long_text_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t print_text(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
 	buffer_printf(output, "\"");
 	for (size_t i = offset; i < length; ++i) {
@@ -243,183 +199,104 @@ rdata_unquoteds_to_string(buffer_type *output, rdata_atom_type rdata,
 	return 1;
 }
 
-static int
-rdata_tag_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t print_ip4(
+	struct buffer *output, size_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	size_t length = offset + rdata[offset];
-	for (size_t i = offset; i <= length; ++i) {
-		char ch = (char) rdata[i];
-		if (isdigit((unsigned char)ch) || islower((unsigned char)ch))
-			buffer_printf(output, "%c", ch);
-		else	return -1;
-	}
-	return 1 + rdata[offset];
-}
-
-static int
-rdata_byte_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	buffer_printf(output, "%lu", (unsigned long) rdata[offset]);
+	assert(rdlength >= *offset);
+	if (rdlength - *offset < 4)
+		return 0;
+	char str[INET_ADDRSTRLEN + 1];
+	if (!inet_ntop(AF_INET, rdata + *offset, str, sizeof(str)))
+		return 0;
+	buffer_printf(output, "%s", str);
+	*offset += 4;
 	return 1;
 }
 
-static int
-rdata_short_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t print_ip6(
+	struct buffer *output, size_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	uint16_t data = read_uint16(rdata + offset);
-	buffer_printf(output, "%lu", (unsigned long) data);
-	return 2;
+	assert(rdlength >= *offset);
+	if (rdlength - *offset < 16)
+		return 0;
+	char str[INET6_ADDRSTRLEN + 1];
+	if (!inet_ntop(AF_INET6, rdata + *offset, str, sizeof(str)))
+		return 0;
+	buffer_printf(output, "%s", str);
+	*offset += 16;
+	return 1;
 }
 
-static int
-rdata_long_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t print_ilnp64(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	uint32_t data = read_uint32(rdata + offset);
-	buffer_printf(output, "%lu", (unsigned long) data);
-	return 4;
-}
-
-static int
-rdata_a_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	char str[200];
-	if (inet_ntop(AF_INET, rdata + offset, str, sizeof(str))) {
-		buffer_printf(output, "%s", str);
-		return 4;
-	}
-	return -1;
-}
-
-static int
-rdata_aaaa_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	int result = 0;
-	char str[200];
-	if (inet_ntop(AF_INET6, rdata_atom_data(rdata), str, sizeof(str))) {
-		buffer_printf(output, "%s", str);
-		result = 1;
-	}
-	return result;
-}
-
-static int
-rdata_ilnp64_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	uint16_t a1 = read_uint16(rdata + offset);
-	uint16_t a2 = read_uint16(rdata + offset + 2);
-	uint16_t a3 = read_uint16(rdata + offset + 4);
-	uint16_t a4 = read_uint16(rdata + offset + 6);
+	assert(rdlength >= *offset);
+	if (rdlength - *offset < 8)
+		return 0;
+	uint16_t a1 = read_uint16(rdata + *offset);
+	uint16_t a2 = read_uint16(rdata + *offset + 2);
+	uint16_t a3 = read_uint16(rdata + *offset + 4);
+	uint16_t a4 = read_uint16(rdata + *offset + 6);
 
 	buffer_printf(output, "%.4x:%.4x:%.4x:%.4x", a1, a2, a3, a4);
-	return 8;
-}
-
-static int
-rdata_eui48_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	uint8_t a1 = rdata[offset];
-	uint8_t a2 = rdata[offset+1];
-	uint8_t a3 = rdata[offset+2];
-	uint8_t a4 = rdata[offset+3];
-	uint8_t a5 = rdata[offset+4];
-	uint8_t a6 = rdata[offset+5];
-
-	buffer_printf(output, "%.2x-%.2x-%.2x-%.2x-%.2x-%.2x",
-		a1, a2, a3, a4, a5, a6);
-	return 6;
-}
-
-static int
-rdata_eui64_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	uint8_t a1 = rdata[offset];
-	uint8_t a2 = rdata[offset+1];
-	uint8_t a3 = rdata[offset+2];
-	uint8_t a4 = rdata[offset+3];
-	uint8_t a5 = rdata[offset+4];
-	uint8_t a6 = rdata[offset+5];
-	uint8_t a7 = rdata[offset+6];
-	uint8_t a8 = rdata[offset+7];
-
-	buffer_printf(output, "%.2x-%.2x-%.2x-%.2x-%.2x-%.2x-%.2x-%.2x",
-		a1, a2, a3, a4, a5, a6, a7, a8);
-	return 8;
-}
-
-static int
-rdata_rrtype_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	uint16_t type = read_uint16(rdata + offset);
-	buffer_printf(output, "%s", rrtype_to_string(type));
-	return 2;
-}
-
-static int
-rdata_algorithm_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	buffer_printf(output, "%u", (unsigned)rdata[offset]);
+	*offset += 8;
 	return 1;
 }
 
-static int
-rdata_certificate_type_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t print_certificate_type(
+	struct buffer *output, size_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	uint16_t id = read_uint16(rdata + offset);
-	lookup_table_type *type
-		= lookup_by_id(dns_certificate_types, id);
-	if (type) {
+	if (rdlength < *offset || rdlength - *offset > 2)
+		return 0;
+	uint16_t id = read_uint16(rdata + *offset);
+	lookup_table_type *type = lookup_by_id(dns_certificate_types, id);
+	if (type)
 		buffer_printf(output, "%s", type->name);
-	} else {
+	else
 		buffer_printf(output, "%u", (unsigned) id);
-	}
 	return 2;
 }
 
-static int
-rdata_period_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t print_ttl(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	uint32_t period = read_uint32(rdata + offset);
-	buffer_printf(output, "%lu", (unsigned long) period);
-	return 4;
+	assert(rdlength >= *offset);
+	if (rdlength - *offset < 4)
+		return 0;
+	buffer_printf(output, "%" PRIu32, read_uint32(rdata + *offset));
+	*offset += 4;
+	return 1;
 }
 
-static int
-rdata_time_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t print_time(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	time_t time = (time_t) read_uint32(rdata + offset);
+	assert(rdlength >= *offset);
+	if (rdlength - *offset < 4)
+		return 0;
+	time_t time = (time_t)read_uint32(rdata + *offset);
 	struct tm *tm = gmtime(&time);
 	char buf[15];
-	if (strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", tm)) {
-		buffer_printf(output, "%s", buf);
-		return 4;
-	}
-	return -1;
+	if (!strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", tm))
+		return 0;
+	buffer_printf(output, "%s", buf);
+	*offset += 4;
+	return 1;
 }
 
-static int
-rdata_base32_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t print_base32(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	int length;
-	size_t size = rdata[offset];
-	if(size == 0) {
+	uint8_t length = rdata[*offset];
+	if (rdlength < *offset || rdlength - *offset > 1 + length)
+		return 0;
+
+	if (length == 0) {
 		buffer_write(output, "-", 1);
 		return 1;
+	} else {
 	}
+	//
 	buffer_reserve(output, size * 2 + 1);
 	length = b32_ntop(rdata + offset + 1, size,
 			  (char *)buffer_current(output), size * 2);
@@ -429,9 +306,8 @@ rdata_base32_to_string(
 	return 1 + size;
 }
 
-static int
-rdata_base64_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t print_base64(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
 	int length;
 	size_t size = rdlength - offset;
@@ -493,150 +369,24 @@ rdata_hexlen_to_string(
 	return 1 + size;
 }
 
-static int
-rdata_nsap_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t print_salt(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	buffer_printf(output, "0x");
-	hex_to_string(output, rdata + offset, rdlength - offset);
-	return rdlength - offset;
+	//
+	// implement
+	//
 }
 
-static int
-rdata_apl_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	size_t size = rdlength - offset;
-
-	if (size >= 4) {
-		uint16_t address_family = read_uin16(rdata + offset);
-		uint8_t prefix = rdata[offset + 2];
-		uint8_t length = rdata[offset + 3];
-		int negated = length & APL_NEGATION_MASK;
-		int af = -1;
-
-		length &= APL_LENGTH_MASK;
-		switch (address_family) {
-		case 1: af = AF_INET; break;
-		case 2: af = AF_INET6; break;
-		}
-		if (af != -1 && (size - 4) >= length) {
-			char text_address[1000];
-			uint8_t address[128];
-			memset(address, 0, sizeof(address));
-			memmove(address, rdata + offset + 4, length);
-			if (inet_ntop(af, address, text_address, sizeof(text_address))) {
-				buffer_printf(output, "%s%d:%s/%d",
-					      negated ? "!" : "",
-					      (int) address_family,
-					      text_address,
-					      (int) prefix);
-				return 4 + length;
-			}
-		}
-	}
-	return -1;
-}
-
-/*
- * Print protocol and service numbers rather than names for Well-Know Services
- * (WKS) RRs. WKS RRs are deprecated, though not technically, and should not
- * be used. The parser supports tcp/udp for protocols and a small subset of
- * services because getprotobyname and/or getservbyname are marked MT-Unsafe
- * and locale. getprotobyname_r and getservbyname_r exist on some platforms,
- * but are still marked locale (meaning the locale object is used without
- * synchonization, which is a problem for a library). Failure to load a zone
- * on a primary server because of an unknown protocol or service name is
- * acceptable as the operator can opt to use the numeric value. Failure to
- * load a zone on a secondary server is problematic because "unsupported"
- * protocols and services might be written. Print the numeric value for
- * maximum compatibility.
- *
- * (see simdzone/generic/wks.h for details).
- */
-static int
-rdata_services_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	if (rdlength - offset > 0) {
-		uint8_t protocol_number = rdata[offset];
-		ssize_t bitmap_size = (rdlength - offset) - 1;
-		uint8_t *bitmap = rdata + offset + 1;
-
-		buffer_printf(output, "%" PRIu8, protocol_number);
-
-		for (int i = 0; i < bitmap_size * 8; ++i) {
-			if (get_bit(bitmap, i)) {
-				buffer_printf(output, " %d", i);
-			}
-		}
-		buffer_skip(&packet, bitmap_size);
-		return rdlength - offset;
-	}
-	return -1;
-}
-
-static int
-rdata_ipsecgateway_to_string(
-	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	assert(rdlength > 2);
-	switch(rdata[1]) {
-	case IPSECKEY_NOGATEWAY:
-		buffer_printf(output, ".");
-		break;
-	case IPSECKEY_IP4:
-		return rdata_a_to_string(output, rdlength, rdata, rr);
-	case IPSECKEY_IP6:
-		return rdata_aaaa_to_string(output, rdlengt, rdata, rr);
-		break;
-	case IPSECKEY_DNAME:
-		{
-			region_type* temp = region_create(xalloc, free);
-			const dname_type* d = dname_make(temp, rdata + offset, 0);
-			if(!d) {
-				region_destroy(temp);
-				return 0;
-			}
-			buffer_printf(output, "%s", dname_to_string(d, NULL));
-			size_t size = d->name_size;
-			region_destroy(temp);
-			return size;
-		}
-		break;
-	default:
-		return -1;
-	}
-}
-
-static int
-rdata_nxt_to_string(
-	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	size_t i;
-	uint8_t *bitmap = rdata + offset;
-	size_t bitmap_size = rdlength - offset;
-
-	for (i = 0; i < bitmap_size * 8; ++i) {
-		if (get_bit(bitmap, i)) {
-			buffer_printf(output, "%s ", rrtype_to_string(i));
-		}
-	}
-
-	buffer_skip(output, -1);
-
-	return 1;
-}
-
-static int
-rdata_nsec_to_string(
-	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
+static int32_t
+print_nsec(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
 	size_t saved_position = buffer_position(output);
 	buffer_type packet;
 	int insert_space = 0;
 
-	buffer_create_from(&packet, rdata + offset, rdlength - offset);
+// not going to use this...
+//	buffer_create_from(&packet, rdata + offset, rdlength - offset);
 
 	while (buffer_available(&packet, 2)) {
 		uint8_t window = buffer_read_u8(&packet);
@@ -954,44 +704,6 @@ rdata_unknown_to_string(
 	return size;
 }
 
-static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
-	rdata_dname_to_string,
-	rdata_dns_name_to_string,
-	rdata_text_to_string,
-	rdata_texts_to_string,
-	rdata_byte_to_string,
-	rdata_short_to_string,
-	rdata_long_to_string,
-	rdata_a_to_string,
-	rdata_aaaa_to_string,
-	rdata_rrtype_to_string,
-	rdata_algorithm_to_string,
-	rdata_certificate_type_to_string,
-	rdata_period_to_string,
-	rdata_time_to_string,
-	rdata_base64_to_string,
-	rdata_base32_to_string,
-	rdata_hex_to_string,
-	rdata_hexlen_to_string,
-	rdata_nsap_to_string,
-	rdata_apl_to_string,
-	rdata_ipsecgateway_to_string,
-	rdata_services_to_string,
-	rdata_nxt_to_string,
-	rdata_nsec_to_string,
-	rdata_loc_to_string,
-	rdata_ilnp64_to_string,
-	rdata_eui48_to_string,
-	rdata_eui64_to_string,
-	rdata_long_text_to_string,
-	rdata_unquoted_to_string,
-	rdata_unquoteds_to_string,
-	rdata_tag_to_string,
-	rdata_svcparam_to_string,
-	rdata_hip_to_string,
-	rdata_unknown_to_string
-};
-
 int print_unknown_rdata(
 	buffer_type *output, rrtype_descriptor_type *descriptor, rr_type *rr)
 {
@@ -1211,30 +923,702 @@ rdata_atoms_to_unknown_string(buffer_type *output,
 	return 1;
 }
 
-int print_rdata(
-	buffer_type *output, rrtype_descriptor_type *descriptor, rr_type *rr)
-{
-	size_t saved_position = buffer_position(output);
-	size_t rdlength = 0;
 
-	for (size_t i = 0; rdlength < rr->rdlength && i < descriptor->maximum; i++) {
-		ssize_t length;
-		rdata_zoneformat_type format;
-		if (i == 0) {
-			buffer_printf(output, "\t");
-		} else {
-			buffer_printf(output, " ");
+int32_t print_a_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	assert(rr->rdlength == 4);
+	return print_ip4(output, rr->rdlength, rr->rdata, &length);
+}
+
+int32_t print_ns_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	assert(rr->rdlength == sizeof(void*));
+	return print_domain(output, rr->rdlength, rr->rdata, &length);
+}
+
+int32_t print_soa_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	uint32_t serial, refresh, retry, expire, minimum;
+	assert(rr->rdlength == 2 * sizeof(void*) + 20);
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(buffer, " ");
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+
+	assert(length == 2 * sizeof(void*));
+	serial = read_uint32(rr->rdata + length);
+	refresh = read_uint32(rr->rdata + length + 4);
+	retry = read_uint32(rr->rdata + length + 8);
+	expire = read_uint32(rr->rdata + length + 12);
+	minimum = read_uint32(rr->rdata + length + 16);
+
+	buffer_printf(
+		buffer, " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32,
+		serial, refresh, retry, expire, minimum);
+	return 1;
+}
+
+/*
+ * Print protocol and service numbers rather than names for Well-Know Services
+ * (WKS) RRs. WKS RRs are deprecated, though not technically, and should not
+ * be used. The parser supports tcp/udp for protocols and a small subset of
+ * services because getprotobyname and/or getservbyname are marked MT-Unsafe
+ * and locale. getprotobyname_r and getservbyname_r exist on some platforms,
+ * but are still marked locale (meaning the locale object is used without
+ * synchonization, which is a problem for a library). Failure to load a zone
+ * on a primary server because of an unknown protocol or service name is
+ * acceptable as the operator can opt to use the numeric value. Failure to
+ * load a zone on a secondary server is problematic because "unsupported"
+ * protocols and services might be written. Print the numeric value for
+ * maximum compatibility.
+ *
+ * (see simdzone/generic/wks.h for details).
+ */
+int32_t print_wks_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	uint8_t protocol;
+
+	assert(rr->rdlength >= 5);
+	if (!print_ip4(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+
+	protocol = rr->rdata[4];
+	buffer_printf(buffer, "%s %" PRIu8, address, protocol);
+
+	int bits = (rr->rdlength - 5) * 8;
+	const uint8_t *bitmap = rr->rdata + 5;
+	for (int service = 0; service < bits; service++) {
+		if (get_bit(bitmap, service))
+			buffer_printf(buffer, " %d", service);
+	}
+	return 1;
+}
+
+int32_t print_hinfo_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	if (!print_string(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if (!print_string(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_minfo_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	assert(rr->rdlength == 2 * sizeof(void*));
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_mx_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 2;
+	assert(rr->rdlength > length);
+	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_txt_rdata(struct buffer *output, const struct rr *rr)
+{
+	int32_t code;
+	uint16_t offset = 0;
+	if (offset < rr->rdlength) {
+		if ((code = print_string(buffer, rr->rdata+offset, rr->rdlength-offset)) < 0)
+			return code;
+		assert(code <= rr->rdlength);
+		offset += (uint16_t)code;
+		while (offset < rr->rdlength) {
+			buffer_printf(buffer, " ");
+			if ((code = print_string(buffer, rr->rdata+offset, rr->rdlength-offset)) < 0)
+				return code;
+			assert(code <= rr->rdlength);
+			offset += (uint16_t)code;
 		}
-		format = descriptor->zoneformat[i];
-		assert(format < sizeof(rdata_to_string_table)/sizeof(rdata_to_string_table[0]));
-		to_string = rdata_to_string_table[ format ];
-		if ((length = to_string(output, rr->rdlength, rr->rdata, rdlength)) < 0) {
-			buffer_set_position(output, saved_position);
-			return 0;
-		}
-		rdlength += (size_t)length;
+	}
+	return 0;
+}
+
+static int32_t print_afsdb_rdata(struct buffer *output, const struct rr *rr)
+{
+	int32_t code;
+	uint16_t subtype;
+	assert(rr->rdlength == 2 + sizeof(void*));
+	memcpy(&subtype, rr->rdata, sizeof(subtype));
+	subtype = ntohs(subtype);
+	buffer_printf(buffer, "%" PRIu16 " ", subtype);
+	if ((code = print_domain(buffer, rr->rdata + 2, rr->rdlength - 2)) < 0)
+		return code;
+	return 0;
+}
+
+int32_t print_x25_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	if (!print_string(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_isdn_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	if (!print_string(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(buffer, " ");
+	if (!print_string(buffer, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_nsap_rdata(struct buffer *output, const struct rr *rr)
+{
+	buffer_printf(output, "0x");
+	hex_to_string(output, rr->rdata, rr->rdlength);
+	return 0;
+}
+
+int32_t print_key_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 4;
+	assert(rr->rdata > length);
+	buffer_printf(
+		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
+		read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3]);
+	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_px_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 2;
+	assert(rr->rdlength > 3);
+	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_aaaa_rdata(struct buffer *output, const struct rr *rr);
+{
+	assert(rr->rdlength == 16);
+	return print_ip6(output, rr->rdlength, rr->rdata, &length);
+}
+
+int32_t print_nxt_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 0;
+
+	assert(rr->rdlength > sizeof(void*));
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+
+	int bits = rdlength - length;
+	const uint8_t *bitmap = rr->rdata + length;
+	for (int type = 0; type < bitmap_size * 8; type++)
+		if (get_bit(bitmap, type)) {
+			buffer_printf(output, "%s ", rrtype_to_string(type));
+
+	buffer_skip(output, -1);
+	return 1;
+}
+
+int32_t print_srv_rdata(struct buffer *output, const struct rr *rr);
+{
+	int16_t length = 6;
+	assert(rr->rdlength > length);
+	buffer_printf(
+		output, "%" PRIu16 " %" PRIu16 " %" PRIu16 " ",
+		read_uint16(rr->rdata), read_uint16(rr->rdata+2),
+	 	read_uint16(rr->rdata+4));
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_naptr_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 4;
+
+	assert(rr->rdlength > 4);
+	buffer_printf(
+		output, "%" PRIu16 " %" PRIu16 " ",
+	 	read_uint16(rr->rdata), read_uint16(rr->rdata+2));
+	if (!print_string(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if (!print_string(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if (!print_string(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_cert_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 5;
+	assert(rr->rdlength > length);
+	buffer_printf(
+		output, "%" PRIu16 " %" PRIu16 " %" PRIu8 " ",
+		read_uint16(rr->rdata), read_uint16(rr->rdata+2), rr->rdata[4]);
+	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_a6_rdata(struct buffer *output, const struct rr *rr);
+{
+	//
+}
+
+int32_t print_dname_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 0;
+
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+static int32_t print_apl(
+	struct buffer *output, size_t rdlength, const uint8_t *rdata, uint16_t *offset)
+{
+	size_t size = rdlength - *offset;
+
+	if (size < 4)
+		return 0;
+
+	uint16_t address_family = read_uint16(rdata + *offset);
+	uint8_t prefix = rdata[*offset + 2];
+	uint8_t length = rdata[*offset + 3] & APL_LENGTH_MASK;
+	uint8_t negated = rdata[*offset + 3] & APL_NEGATION_MASK;
+	int af = -1;
+
+	switch (address_family) {
+	case 1: af = AF_INET; break;
+	case 2: af = AF_INET6; break;
 	}
 
-	assert(rdlength == rr->rdlength);
+	if (af == -1 || size - 4 < length)
+		return 0;
+
+	char text_address[INET6_ADDRSTRLEN + 1];
+	uint8_t address[16];
+	memset(address, 0, sizeof(address));
+	memmove(address, rdata + *offset + 4, length);
+
+	if (!inet_ntop(af, address, text_address, sizeof(text_address)))
+		return 0;
+
+	buffer_printf(
+		output, "%s%" PRIu16 ":%s/%" PRIu8,
+		negated ? "!" : "", address_family, text_address, prefix);
+	*offset += 4 + length;
+	return 1;
+}
+
+int32_t print_apl_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 0;
+
+	while (length < rr->rdlength) {
+		if (!print_apl(output, rr->rdlength, rr->rdata, &length))
+			return 0;
+	}
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_ds_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 4;
+
+	assert(rr->rdlength > 4);
+	buffer_printf(
+		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
+		read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3]);
+	if (!print_base16(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_sshfp_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 2;
+	uint8_t algorithm, ftype;
+
+	assert(rr->rdlength > length);
+	algorithm = rr->rdata[0];
+	ftype = rr->rdata[1];
+
+	buffer_printf(output, "%" PRIu8 " %" PRIu8 " ", algorithm, ftype);
+	if (!print_base16(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_ipseckey_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 3;
+
+	assert(rdlength >= length);
+	buffer_printf(
+		output, "%" PRIu8 " %" PRIu8 " %" PRIu8 " ",
+		rr->rdata[0], rr->rdata[1], rr->rdata[2]);
+	switch (gateway_type) {
+	case IPSECKEY_NOGATEWAY:
+		buffer_printf(output, ".");
+		break;
+	case IPSECKEY_IP4:
+		if (!print_ip4(output, rr->rdlength, rr->rdata, &length))
+			return 0;
+		break;
+	case IPSECKEY_IP6:
+		if (!print_ip6(output, rr->rdlength, rr->rdata, &length))
+			return 0;
+		break;
+	case IPSECKEY_DNAME:
+		if (!print_name(output, rr->rdlength, rr->rdata, &length))
+			return 0;
+		break;
+	default:
+		return 0;
+	}
+
+	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_rrsig_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 4;
+	uint8_t algorithm, labels;
+	uint16_t sigtype, keytag;
+	uint32_t origttl, expire, inception;
+
+	assert(rr->rdlength > length);
+	sigtype = read_uint16(rr->rdata);
+	algorithm = rr->rdata[2];
+	labels = rr->rdata[3];
+
+	buffer_printf(
+		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
+		sigtype, algorithm, labels);
+
+	if (!print_ttl(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if (!print_time(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if (!print_time(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+
+	keytag = read_uint16(rr->rdata+length);
+	buffer_printf(output, " %" PRIu16 " ", keytag);
+	length += 2;
+
+	if (!print_name(output, rr->rdlength, rr-rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_nsec_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 0;
+
+	assert(rr->rdlength > length);
+	if (!print_name(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	if (!print_nsec(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_dnskey_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 4;
+	uint8_t protocol, algorithm;
+	uint16_t flags;
+
+	assert(rr->rdlength > length);
+	flags = read_uint16(rr->rdata);
+	protocol = rr->rdata[2];
+	algorithm = rr->rdata[3];
+
+	buffer_printf(
+		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
+		flags, protocol, algorithm);
+	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_dhcid_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 0;
+
+	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_nsec3_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 4;
+
+	assert(rr->rdlength > length);
+	buffer_printf(
+		output, "%" PRIu8 " %" PRIu8 " %" PRIu16 " ",
+		rr->rdata[0], rr->rdata[1], read_uint16(rr->rdata + 2));
+	if (!print_salt(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if (!print_base32(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if (!print_nsec(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_nsec3param_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 4;
+
+	assert(rr->rdlength > length);
+	buffer_printf(
+		output, "%" PRIu8 " %" PRIu8 " %" PRIu16 " ",
+		rr->rdata[0], rr->rdata[1], read_uint16(rr->rdata + 2));
+
+	if (!print_salt(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_tlsa_rdata(struct buffer *buffer, const struct rr *rr);
+{
+	uint16_t length = 3;
+
+	assert(rr->rdlength > length);
+	buffer_printf(
+		output, "%" PRIu8 " %" PRIu8 " %" PRIu8 " ",
+		rr->rdata[0], rr->rdata[1], rr->rdata[2]);
+
+	if (!print_base16(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_openpgpkey_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 0;
+
+	assert(rr->rdlength > 0);
+	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_csync_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 6;
+
+	assert(rr->rdlength > length);
+	buffer_printf(
+		output, "%" PRIu32 " %" PRIu16 " ",
+		read_uint32(rr->rdata), read_uint16(rr->rdata + 4));
+	if (!print_nsec(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_zonemd_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 6;
+
+	assert(rr->rdlength > length);
+	buffer_printf(
+		output, "%" PRIu32 " %" PRIu8 " %" PRIu8 " ",
+		read_uint32(rr->rdata), rr->rdata[4], rr->rdata[5]);
+	if (!print_base16(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength != length);
+	return 1;
+}
+
+int32_t print_svcb_rdata(struct buffer *output, const struct rr *rr);
+{
+	// implement
+}
+
+int32_t print_nid_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 2;
+
+	assert(rr->rdlength == 10);
+	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
+	if (!print_ilpn64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+static int32_t print_l32_rdata(
+	struct buffer *buffer, const struct rr *rr);
+{
+	uint16_t length = 2;
+
+	assert(rr->rdlength == 6);
+	buffer_output(output, "%" PRIu16 " ", read_uint16(rr->rdata));
+	if (!print_ip4(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+static int32_t print_l64_rdata(
+	struct buffer *buffer, const struct rr *rr);
+{
+	uint16_t length = 2;
+
+	assert(rr->rdlength == 10);
+	buffer_output(output, "%" PRIu16 " ", read_uint16(rr->rdata));
+	if (!print_ilpn64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+static int32_t print_lp_rdata(
+	struct buffer *buffer, const struct rr *rr);
+{
+	uint16_t length = 2;
+
+	assert(rr->rdlength > 2);
+	buffer_output(output, "%" PRIu16 " ", read_uint16(rr->rdata));
+	if (!print_name(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_eui48_rdata(struct buffer *output, const struct rr *rr);
+{
+	assert(rr->rdlength == 6);
+	const uint8_t *x = rr->rdata;
+	buffer_printf(output, "%.2x-%.2x-%.2x-%.2x-%.2x-%.2x",
+		x[0], x[1], x[2], x[3], x[4], x[5]);
+	return 1;
+}
+
+int32_t print_eui64_rdata(struct buffer *buffer, const struct rr *rr);
+{
+	assert(rr->rdlength == 8);
+	const uint8_t *x = rr->rdata;
+	buffer_printf(output, "%.2x-%.2x-%.2x-%.2x-%.2x-%.2x-%.2x-%.2x",
+		x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7]);
+	return 1;
+}
+
+int32_t print_uri_rdata(struct buffer *output, const struct rr *rr);
+{
+	uint16_t length = 4;
+
+	assert(rr->rdlength > length);
+	buffer_printf(
+		output, "%" PRIu16 " %" PRIu16 " ",
+		read_uint16(rr->rdata), read_uint16(rr->rdata + 2));
+	if (!print_string(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+static int32_t print_caa_rdata(
+	struct buffer *buffer, const struct rr *rr);
+{
+	uint16_t length = 1;
+
+	assert(rr->rdlength > length);
+	buffer_printf(output, "%" PRIu8 " ", rr->rdata[0]);
+
+	length = 1 + rr->rdata[1];
+	if (rr->rdlength < length)
+		return 0;
+
+	for (uint16_t i = 2; i <= length; ++i) {
+		char ch = (char) rr->rdata[i];
+		if (isdigit((unsigned char)ch) || islower((unsigned char)ch))
+			buffer_printf(output, "%c", ch);
+		else	return 0;
+	}
+
+	buffer_printf(output, " ");
+	if (!print_text(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+static int32_t print_dlv_rdata(
+	struct buffer *buffer, const struct rr *rr);
+{
+	uint16_t length = 4;
+
+	assert(rr->rdlength > length);
+	buffer_printf(
+		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
+		read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3]);
+	if (!print_base16(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
 	return 1;
 }

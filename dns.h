@@ -203,87 +203,75 @@ typedef enum nsd_rc nsd_rc_type;
 
 #define NSEC3_HASH_LEN 20
 
-/*
- * The different types of RDATA wireformat data.
- */
-enum rdata_wireformat
-{
-	RDATA_WF_COMPRESSED_DNAME,   /* Possibly compressed domain name.  */
-	RDATA_WF_UNCOMPRESSED_DNAME, /* Uncompressed domain name.  */
-	RDATA_WF_LITERAL_DNAME,      /* Literal (not downcased) dname.  */
-	RDATA_WF_BYTE,               /* 8-bit integer.  */
-	RDATA_WF_SHORT,              /* 16-bit integer.  */
-	RDATA_WF_LONG,               /* 32-bit integer.  */
-	RDATA_WF_TEXT,               /* Text string.  */
-	RDATA_WF_TEXTS,              /* Text string sequence.  */
-	RDATA_WF_A,                  /* 32-bit IPv4 address.  */
-	RDATA_WF_AAAA,               /* 128-bit IPv6 address.  */
-	RDATA_WF_BINARY,             /* Binary data (unknown length).  */
-	RDATA_WF_BINARYWITHLENGTH,   /* Binary data preceded by 1 byte length */
-	RDATA_WF_APL,                /* APL data.  */
-	RDATA_WF_IPSECGATEWAY,       /* IPSECKEY gateway ip4, ip6 or dname. */
-	RDATA_WF_ILNP64,             /* 64-bit uncompressed IPv6 address.  */
-	RDATA_WF_EUI48,              /* 48-bit address.  */
-	RDATA_WF_EUI64,              /* 64-bit address.  */
-	RDATA_WF_LONG_TEXT,          /* Long (>255) text string. */
-	RDATA_WF_SVCPARAM,           /* SvcParam <key>[=<value>] */
-	RDATA_WF_HIP                 /* HIP rdata up to the Rendezvous Servers */
-};
-typedef enum rdata_wireformat rdata_wireformat_type;
+//
+// the maximum value of rdata is always 65535 (UINT16_MAX), so if
+// we define the values below to be above that we really should never
+// clash. describe here that we don't use the previous way of configuring
+// field length... because well... we don't really need it. only with
+// printing
+//
+#define RDATA_COMPRESSED_NAME ((1u<<16) + 1)
+#define RDATA_UNCOMPRESSED_NAME ((1u<<16) + 2)
+#define RDATA_LITERAL_DNAME ((1u<<16) + 3)
+#define RDATA_STRING ((1u<<16) + 4)
+#define RDATA_IPSECGATEWAY ((1u<<16) + 5)
+#define RDATA_BINARY ((1u<<16) + 6)
 
-/*
- * The different types of RDATA that can appear in the zone file.
- */
-enum rdata_zoneformat
-{
-	RDATA_ZF_DNAME,		/* Domain name.  */
-	RDATA_ZF_LITERAL_DNAME,	/* DNS name (not lowercased domain name).  */
-	RDATA_ZF_TEXT,		/* Text string.  */
-	RDATA_ZF_TEXTS,		/* Text string sequence.  */
-	RDATA_ZF_BYTE,		/* 8-bit integer.  */
-	RDATA_ZF_SHORT,		/* 16-bit integer.  */
-	RDATA_ZF_LONG,		/* 32-bit integer.  */
-	RDATA_ZF_A,		/* 32-bit IPv4 address.  */
-	RDATA_ZF_AAAA,		/* 128-bit IPv6 address.  */
-	RDATA_ZF_RRTYPE,	/* RR type.  */
-	RDATA_ZF_ALGORITHM,	/* Cryptographic algorithm.  */
-	RDATA_ZF_CERTIFICATE_TYPE,
-	RDATA_ZF_PERIOD,	/* Time period.  */
-	RDATA_ZF_TIME,
-	RDATA_ZF_BASE64,	/* Base-64 binary data.  */
-	RDATA_ZF_BASE32,	/* Base-32 binary data.  */
-	RDATA_ZF_HEX,		/* Hexadecimal binary data.  */
-	RDATA_ZF_HEX_LEN,	/* Hexadecimal binary data. Skip initial length byte. */
-	RDATA_ZF_NSAP,		/* NSAP.  */
-	RDATA_ZF_APL,		/* APL.  */
-	RDATA_ZF_IPSECGATEWAY,	/* IPSECKEY gateway ip4, ip6 or dname. */
-	RDATA_ZF_SERVICES,	/* Protocol and port number bitmap.  */
-	RDATA_ZF_NXT,		/* NXT type bitmap.  */
-	RDATA_ZF_NSEC,		/* NSEC type bitmap.  */
-	RDATA_ZF_LOC,		/* Location data.  */
-	RDATA_ZF_ILNP64,	/* 64-bit uncompressed IPv6 address.  */
-	RDATA_ZF_EUI48,		/* EUI48 address.  */
-	RDATA_ZF_EUI64,		/* EUI64 address.  */
-	RDATA_ZF_LONG_TEXT,	/* Long (>255) text string. */
-	RDATA_ZF_UNQUOTED,	/* Unquoted text string. */
-	RDATA_ZF_UNQUOTEDS,	/* A sequence of unquoted text strings. */
-	RDATA_ZF_TAG,		/* A sequence of letters and numbers. */
-	RDATA_ZF_SVCPARAM,	/* SvcParam <key>[=<value>] */
-	RDATA_ZF_HIP,		/* HIP rdata up to the Rendezvous Servers */
-	RDATA_ZF_UNKNOWN	/* Unknown data.  */
-};
-typedef enum rdata_zoneformat rdata_zoneformat_type;
 
-struct rrtype_descriptor
-{
-	uint16_t    type;	/* RR type */
-	const char *name;	/* Textual name.  */
-	uint32_t    minimum;	/* Minimum number of RDATAs.  */
-	uint32_t    maximum;	/* Maximum number of RDATAs.  */
-	uint8_t     wireformat[MAXRDATALEN]; /* rdata_wireformat_type */
-	uint8_t     zoneformat[MAXRDATALEN]; /* rdata_zoneformat_type  */
+// function signature to determine length will take
+// uint8_t pointer + offset + length
+typedef int32_t(*nsd_rdata_length_t)(
+	uint16_t rdlength,
+	const uint8_t *rdata,
+	uint16_t offset);
+// offset is required for the ipsecgateway where we need to read a couple
+// bytes back
+
+typedef struct nsd_rdata_descriptor nsd_rdata_descriptor_t;
+// the descriptor table shouldn't be used for validation.
+// the read function will take care of that. it's used for
+// implementing copy functions that are very specific, but where
+// the data has already been checked for validity..
+struct nsd_rdata_descriptor {
+	const char *name;
+	int32_t optional; // << whether or not this field is optional...
+	int32_t length; // << will be set to a specialized value if
+								//    the length function should be used. i.e.
+								//    for any type where the length depends on a value
+								//    in the rdata itself.
+	nsd_rdata_length_t rdata_length; // << determine size of rdata field (uncompressed)
+																 //    for scenarios where rdata has a different
+																 //    format (internal names/possibly compressed names)
+																 //    implement your own!
 };
-typedef struct rrtype_descriptor rrtype_descriptor_type;
+
+typedef struct nsd_type_descriptor nsd_type_descriptor_t;
+struct nsd_type_descriptor;
+
+typedef int32_t(*nsd_read_rdata_t)(
+	struct domain_table *domains, struct buffer *packet, struct rr **rr);
+
+typedef int32_t(*nsd_write_rdata_t)(
+	struct query *query, const struct rr *rr);
+
+typedef int32_t(*nsd_print_rdata_t)(
+	struct buffer *buffer, const struct rr *rr);
+
+
+struct nsd_type_descriptor {
+	uint16_t type;
+	const char *name;
+	// the read and write functions are optimized for reading zone data in
+	// and writing zone data out.
+	nsd_read_rdata_t read_rdata;
+	nsd_write_rdata_t write_data;
+	nsd_print_rdata_t print_rdata;
+	struct {
+		size_t length;
+		struct nsd_rdata_descriptor *fields;
+	} rdata;
+};
+
 
 /*
  * Indexed by type.  The special type "0" can be used to get a
