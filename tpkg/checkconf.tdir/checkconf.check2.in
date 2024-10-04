@@ -57,7 +57,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no
@@ -192,7 +194,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no
@@ -270,7 +274,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no
@@ -357,7 +363,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no
@@ -488,7 +496,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no
@@ -617,7 +627,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no
