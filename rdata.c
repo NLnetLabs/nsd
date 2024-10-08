@@ -257,17 +257,6 @@ static int32_t print_certificate_type(
 	return 2;
 }
 
-static int32_t print_ttl(
-	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
-{
-	assert(rdlength >= *offset);
-	if (rdlength - *offset < 4)
-		return 0;
-	buffer_printf(output, "%" PRIu32, read_uint32(rdata + *offset));
-	*offset += 4;
-	return 1;
-}
-
 static int32_t print_time(
 	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
@@ -342,43 +331,38 @@ hex_to_string(buffer_type *output, const uint8_t *data, size_t size)
 	}
 }
 
-static int
-rdata_hex_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
+static int print_base16(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	if(rdata_atom_size(rdata) == 0) {
-		/* single zero represents empty buffer, such as CDS deletes */
-		buffer_printf(output, "0");
-	} else {
-		hex_to_string(output, rdata_atom_data(rdata), rdata_atom_size(rdata));
-	}
-	return 1;
-}
-
-static int
-rdata_hexlen_to_string(
-	buffer_type *output, size_t rdlength, const uint8_t *rdata, size_t offset)
-{
-	size_t size = rdata[offset];
-	if(size == 0) {
-		/* NSEC3 salt hex can be empty */
-		buffer_printf(output, "-");
-		return 1;
-	}
-	hex_to_string(output, rdata + offset + 1, size);
-	return 1 + size;
+//	if(rdata_atom_size(rdata) == 0) {
+//		/* single zero represents empty buffer, such as CDS deletes */
+//		buffer_printf(output, "0");
+//	} else {
+//		hex_to_string(output, rdata_atom_data(rdata), rdata_atom_size(rdata));
+//	}
+//	return 1;
 }
 
 static int32_t print_salt(
 	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	//
-	// implement
-	//
+	assert(rdlength >= *offset);
+	if (rdlength - *offset == 0)
+		return 0;
+
+	uint8_t length = rdata[*offset];
+	if (rdlength - *offset < 1 + length)
+		return 0;
+	if (!length)
+		/* NSEC3 salt hex can be empty */
+		buffer_printf(output, "-");
+	else
+		hex_to_string(output, rdata + *offset + 1, length);
+	*offset += 1 + length;
+	return 1;
 }
 
-static int32_t
-print_nsec(
+static int32_t print_nsec(
 	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
 	size_t saved_position = buffer_position(output);
@@ -425,15 +409,6 @@ rdata_loc_to_string(buffer_type *ATTR_UNUSED(output),
 	 * format.
 	 */
 	return 0;
-}
-
-static void
-buffer_print_svcparamkey(buffer_type *output, uint16_t svcparamkey)
-{
-	if (svcparamkey < SVCPARAMKEY_COUNT)
-		buffer_printf(output, "%s", svcparamkey_strs[svcparamkey]);
-	else
-		buffer_printf(output, "key%d", (int)svcparamkey);
 }
 
 static int
@@ -500,9 +475,10 @@ rdata_svcparam_ipv6hint_to_string(buffer_type *output, uint16_t val_len,
 		return 0;
 }
 
-static int
-rdata_svcparam_mandatory_to_string(buffer_type *output, uint16_t val_len,
-	uint16_t *data)
+static int32_t print_svcparam_mandatory(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
+//rdata_svcparam_mandatory_to_string(buffer_type *output, uint16_t val_len,
+//	uint16_t *data)
 {
 	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
 
@@ -593,23 +569,74 @@ rdata_svcparam_tls_supported_groups_to_string(buffer_type *output,
 	return 1;
 }
 
-static int
-rdata_svcparam_to_string(
-	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
+typedef struct nsd_svcparam_descriptor nsd_svcparam_descriptor_t;
+struct nsd_svcparam_descriptor {
+	uint16_t key;
+	const char *name;
+	nsd_print_svcparam_rdata_t print_rdata;
+};
+
+static const nsd_svcparam_descriptor_t svcparams[] = {
+	{ SVCB_KEY_MANDATORY, "mandatory", print_svcparam_mandatory },
+	{ SVCB_KEY_ALPN, "alpn", print_svcparam_alpn },
+	{ SVCB_KEY_NO_DEFAULT_ALPN, "no-default-alpn", print_svcparam_no_default_alpn },
+	{ SVCB_KEY_PORT, "port", print_svcparam_port },
+	{ SVCB_KEY_IPV4HINT, "ipv4hint", print_svcparam_ipv4hint },
+	{ SVCB_KEY_ECH, "ech", print_svcparam_ech },
+	{ SVCB_KEY_IPV6HINT, "ipv6hint", print_svcparam_ipv6hint },
+	{ SVCB_KEY_DOHPATH, "dohpath", print_svcparam_dohpath },
+};
+
+static int32_t print_svcparam(
+	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
-	uint16_t  svcparamkey, val_len;
-	uint8_t*  data;
-	size_t i;
+	uint16_t key, length;
 
-	if (rdlength - offset < 4)
-		return -1;
-	svcparamkey = ntohs(read_uint16(rdata+offset));
+	assert(rdlength >= *offset);
+	if (rdlength - *offset < 4)
+		return 0;
 
-	buffer_print_svcparamkey(output, svcparamkey);
-	val_len = ntohs(read_uin16(rdata+offset+2));
-	if (rdlength - offset <= val_len + 4)
+	key = read_uint16(rdata + *offset);
+	length = read_uint16(rdata + *offset + 2);
+
+	if (rdlength - *offset <= length + 4)
 		return 0; /* wireformat error */
-	if (!val_len) {
+
+	if (key < svcparams/svcparams[0])
+		return svcparams[key].print_rdata(output, rdlength, rdata, offset);
+
+	buffer_printf(output, "key%" PRIu16, key);
+	if (!length)
+		return 1;
+
+	buffer_write(output, "=\"", 2);
+		dp = (void*) (data + 2);
+
+		for (i = 0; i < val_len; i++) {
+			if (dp[i] == '"' || dp[i] == '\\')
+				buffer_printf(output, "\\%c", dp[i]);
+
+			else if (!isprint(dp[i]))
+				buffer_printf(output, "\\%03u", (unsigned) dp[i]);
+
+			else
+				buffer_write_u8(output, dp[i]);
+		}
+		buffer_write_u8(output, '"');
+
+
+//static void
+//buffer_print_svcparamkey(buffer_type *output, uint16_t svcparamkey)
+//{
+//	if (svcparamkey < SVCPARAMKEY_COUNT)
+//		buffer_printf(output, "%s", svcparamkey_strs[svcparamkey]);
+//	else
+//}
+
+//	buffer_print_svcparamkey(output, key);
+//	val_len = ntohs(read_uin16(rdata + *offset + 2));
+
+	if (!length) {
 		/* Some SvcParams MUST have values */
 		switch (svcparamkey) {
 		case SVCB_KEY_ALPN:
@@ -647,21 +674,6 @@ rdata_svcparam_to_string(
 	case SVCB_KEY_DOHPATH:
 		/* fallthrough */
 	default:
-		buffer_write(output, "=\"", 2);
-		dp = (void*) (data + 2);
-
-		for (i = 0; i < val_len; i++) {
-			if (dp[i] == '"' || dp[i] == '\\')
-				buffer_printf(output, "\\%c", dp[i]);
-
-			else if (!isprint(dp[i]))
-				buffer_printf(output, "\\%03u", (unsigned) dp[i]);
-
-			else
-				buffer_write_u8(output, dp[i]);
-		}
-		buffer_write_u8(output, '"');
-		break;
 	}
 	return val_len + 4;
 }
@@ -1327,30 +1339,19 @@ int32_t print_ipseckey_rdata(struct buffer *output, const struct rr *rr);
 int32_t print_rrsig_rdata(struct buffer *output, const struct rr *rr);
 {
 	uint16_t length = 4;
-	uint8_t algorithm, labels;
-	uint16_t sigtype, keytag;
-	uint32_t origttl, expire, inception;
 
 	assert(rr->rdlength > length);
-	sigtype = read_uint16(rr->rdata);
-	algorithm = rr->rdata[2];
-	labels = rr->rdata[3];
-
 	buffer_printf(
-		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
-		sigtype, algorithm, labels);
-
-	if (!print_ttl(output, rr->rdlength, rr->rdata, &length))
-		return 0;
-	buffer_printf(output, " ");
+		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " %" PRIu32 " ",
+		read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3],
+		read_uint32(rr->rdata+4));
 	if (!print_time(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	buffer_printf(output, " ");
 	if (!print_time(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 
-	keytag = read_uint16(rr->rdata+length);
-	buffer_printf(output, " %" PRIu16 " ", keytag);
+	buffer_printf(output, " %" PRIu16 " ", read_uint16(rr->rdata+length));
 	length += 2;
 
 	if (!print_name(output, rr->rdlength, rr-rdata, &length))
@@ -1378,17 +1379,11 @@ int32_t print_nsec_rdata(struct buffer *output, const struct rr *rr);
 int32_t print_dnskey_rdata(struct buffer *output, const struct rr *rr);
 {
 	uint16_t length = 4;
-	uint8_t protocol, algorithm;
-	uint16_t flags;
 
 	assert(rr->rdlength > length);
-	flags = read_uint16(rr->rdata);
-	protocol = rr->rdata[2];
-	algorithm = rr->rdata[3];
-
 	buffer_printf(
 		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
-		flags, protocol, algorithm);
+		read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3]);
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
@@ -1496,7 +1491,17 @@ int32_t print_zonemd_rdata(struct buffer *output, const struct rr *rr);
 
 int32_t print_svcb_rdata(struct buffer *output, const struct rr *rr);
 {
-	// implement
+	uint16_t length = 2;
+
+	assert(rr->rdlength > length);
+	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	while (length < rr->rdlength)
+		if (!print_svcparam(output, rr->rdlength, rr->rdata, &length))
+			return 0;
+	assert(rr->rdlength == length);
+	return 1;
 }
 
 int32_t print_nid_rdata(struct buffer *output, const struct rr *rr);
