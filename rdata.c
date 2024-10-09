@@ -73,15 +73,6 @@ const char *svcparamkey_strs[] = {
 		"tls-supported-groups"
 	};
 
-nsd_nonnull((1,3))
-static nsd_always_inline int32_t
-skip_name(struct buffer *packet, uint16_t *offset)
-{
-	if (length >= *offset)
-		return MALFORMED;
-	//
-}
-
 static int32_t print_name(
 	struct buffer *output, uint16_t rdlength, const uint8_t *rdata, uint16_t *offset)
 {
@@ -390,8 +381,8 @@ static int32_t print_salt(
 }
 
 nsd_nonnull((1))
-static nsd_always_inline int32_t
-skip_nsec(struct buffer *packet, uint16_t rdlength)
+static nsd_always_inline int32_t skip_nsec(
+	struct buffer *packet, uint16_t rdlength)
 {
 	uint16_t length = 0;
 	uint8_t last_window;
@@ -450,18 +441,6 @@ static int32_t print_nsec(
 	}
 
 	return 1;
-}
-
-static int
-rdata_loc_to_string(buffer_type *ATTR_UNUSED(output),
-		    rdata_atom_type ATTR_UNUSED(rdata),
-		    rr_type* ATTR_UNUSED(rr))
-{
-	/*
-	 * Returning 0 forces the record to be printed in unknown
-	 * format.
-	 */
-	return 0;
 }
 
 nsd_nonnull_all
@@ -1220,11 +1199,11 @@ int32_t print_soa_rdata(struct buffer *output, const struct rr *rr)
 }
 
 int32_t read_wks_rdata(
-	struct domain_table *domains, struct buffer *packet, struct rr **rr)
+	struct domain_table *domains, uint16_t rdlength, struct buffer *packet, struct rr **rr)
 {
-	//
-	// implement
-	//
+	if (rdlength < 5)
+		return MALFORMED;
+	return read_rdata(domains, rdlength, packet, rr);
 }
 
 /*
