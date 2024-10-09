@@ -671,6 +671,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 {
 	domain_type *domain;
 	rrset_type *rrset;
+	const nsd_type_descriptor_t *descriptor = rrtype_descriptor_by_type(type);
 	domain = domain_table_find(db->domains, dname);
 	if(!domain) {
 		log_msg(LOG_WARNING, "diff: domain %s does not exist",
@@ -689,15 +690,16 @@ delete_RR(namedb_type* db, const dname_type* dname,
 	} else {
 		/* find the RR in the rrset */
 		domain_table_type *temptable;
-		rdata_atom_type *rdatas;
-		ssize_t rdata_num;
+//		rdata_atom_type *rdatas;
+//		ssize_t rdata_num;
 		int rrnum;
 		temptable = domain_table_create(temp_region);
 		/* This will ensure that the dnames in rdata are
 		 * normalized, conform RFC 4035, section 6.2
 		 */
-		rdata_num = rdata_wireformat_to_rdata_atoms(
-			temp_region, temptable, type, rdatalen, packet, &rdatas);
+		rdata_num =
+		//rdata_num = rdata_wireformat_to_rdata_atoms(
+		//	temp_region, temptable, type, rdatalen, packet, &rdatas);
 		if(rdata_num == -1) {
 			log_msg(LOG_ERR, "diff: bad rdata for %s",
 				dname_to_string(dname,0));
@@ -785,10 +787,12 @@ add_RR(namedb_type* db, const dname_type* dname,
 {
 	domain_type* domain;
 	rrset_type* rrset;
-	rdata_atom_type *rdatas;
-	rr_type *rrs_old;
-	ssize_t rdata_num;
+//	rdata_atom_type *rdatas;
+	rr_type *rrs_old, *rr;
+	int32_t rdata_num;
 	int rrnum;
+	uint8_t *rdata;
+	const nsd_type_descriptor_t *descriptor;
 #ifdef NSEC3
 	int rrset_added = 0;
 #endif
@@ -817,13 +821,19 @@ add_RR(namedb_type* db, const dname_type* dname,
 	/* dnames in rdata are normalized, conform RFC 4035,
 	 * Section 6.2
 	 */
-	rdata_num = rdata_wireformat_to_rdata_atoms(
-		db->region, db->domains, type, rdatalen, packet, &rdatas);
+	descriptor = rrtype_descriptor_by_type(type);
+	rdata_num = descriptor->read_rdata(
+		db->domains, rdatalen, packet, &rr);
 	if(rdata_num == -1) {
 		log_msg(LOG_ERR, "diff: bad rdata for %s",
 			dname_to_string(dname,0));
 		return 0;
 	}
+	rr->type = type;
+	rr->klass = klass;
+	rr->ttl = ttl;
+	rr->rdlength = (uint16_t)rdatalen;
+
 	rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num, 1);
 	if(rrnum != -1) {
 		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR <%s, %s> already exists",
@@ -852,11 +862,12 @@ add_RR(namedb_type* db, const dname_type* dname,
 	rrset->rr_count ++;
 
 	rrset->rrs[rrset->rr_count - 1].owner = domain;
-	rrset->rrs[rrset->rr_count - 1].rdatas = rdatas;
+//	rrset->rrs[rrset->rr_count - 1].rdatas = rdatas;
 	rrset->rrs[rrset->rr_count - 1].ttl = ttl;
 	rrset->rrs[rrset->rr_count - 1].type = type;
 	rrset->rrs[rrset->rr_count - 1].klass = klass;
-	rrset->rrs[rrset->rr_count - 1].rdata_count = rdata_num;
+	rrset->rrs[rrset->rr_count - 1].rdlength = (uint16_t)rdlength;
+//	rrset->rrs[rrset->rr_count - 1].rdata_count = rdata_num;
 
 	/* see if it is a SOA */
 	if(domain == zone->apex) {

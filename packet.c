@@ -246,10 +246,13 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 	       buffer_type *packet, int question_section)
 {
 	const dname_type *owner;
-	uint16_t rdlength;
-	ssize_t rdata_count;
-	rdata_atom_type *rdatas;
-	rr_type *result = (rr_type *) region_alloc(region, sizeof(rr_type));
+	uint16_t type, class, rdlength;
+	uint32_t ttl;
+	struct rr *rr;
+	//ssize_t rdata_count;
+	//rdata_atom_type *rdatas;
+	// we will first read the rdata so we know how much to allocate!
+//	rr_type *result = (rr_type *) region_alloc(region, sizeof(rr_type));
 
 	owner = dname_make_from_packet(region, packet, 1, 1);
 	if (!owner || !buffer_available(packet, 2*sizeof(uint16_t))) {
@@ -257,13 +260,12 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 	}
 
 	result->owner = domain_table_insert(owners, owner);
-	result->type = buffer_read_u16(packet);
-	result->klass = buffer_read_u16(packet);
+	type = buffer_read_u16(packet);
+	class = buffer_read_u16(packet);
 
 	if (question_section) {
 		result->ttl = 0;
-		result->rdata_count = 0;
-		result->rdatas = NULL;
+		result->rdlength = 0;
 		return result;
 	} else if (!buffer_available(packet, sizeof(uint32_t) + sizeof(uint16_t))) {
 		return NULL;
@@ -276,13 +278,13 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 		return NULL;
 	}
 
-	rdata_count = rdata_wireformat_to_rdata_atoms(
-		region, owners, result->type, rdlength, packet, &rdatas);
-	if (rdata_count == -1) {
-		return NULL;
-	}
-	result->rdata_count = rdata_count;
-	result->rdatas = rdatas;
+//	rdata_count = rdata_wireformat_to_rdata_atoms(
+//		region, owners, result->type, rdlength, packet, &rdatas);
+//	if (rdata_count == -1) {
+//		return NULL;
+//	}
+//	result->rdata_count = rdata_count;
+//	result->rdatas = rdatas;
 
 	return result;
 }

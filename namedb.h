@@ -175,6 +175,7 @@ struct rrset
 	rrset_type* next;
 	zone_type*  zone;
 	rr_type*    rrs; // << FIXME: need to update this too!!!!
+									 // >>        actually... no...
 	uint16_t    rr_count;
 } ATTR_PACKED;
 
