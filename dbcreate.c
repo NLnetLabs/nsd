@@ -26,32 +26,6 @@
 /* pathname directory separator character */
 #define PATHSEP '/'
 
-#define NAME (1u + UINT16_MAX)
-#define STRING (2u + UINT16_MAX)
-#define REMAINDER (3u + UINT16_MAX)
-
-static const int32_t field_lengths[] = {
-	[RDATA_WF_COMPRESSED_DNAME] = DOMAIN,
-	[RDATA_WF_UNCOMPRESSED_DNAME] = REMAINDER,
-	[RDATA_WF_LITERAL_DNAME] = REMAINDER,
-	[RDATA_WF_BYTE] = 1,
-	[RDATA_WF_SHORT] = 2,
-	[RDATA_WF_LONG] = REMAINDER,
-	[RDATA_WF_TEXT] = STRING,
-	[RDATA_WF_TEXTS] = REMAINDER,
-	[RDATA_WF_A] = REMAINDER,
-	[RDATA_WF_AAAA] = REMAINDER,
-	[RDATA_WF_BINARY] = REMAINDER,
-	[RDATA_WF_BINARYWITHLENGTH] = STRING,
-	[RDATA_WF_APL] = REMAINDER,
-	[RDATA_WF_IPSECGATEWAY] = REMAINDER,
-	[RDATA_WF_ILNP64] = REMAINDER,
-	[RDATA_WF_EUI48] = REMAINDER,
-	[RDATA_WF_EUI64] = REMAINDER,
-	[RDATA_WF_LONG_TEXT] = REMAINDER,
-	[RDATA_WF_SVCPARAM] = REMAINDER
-};
-
 //
 // we use an array of int32_t so we can easily determine the length of a
 // given field if it's fixed length or if we can skip the rest of the

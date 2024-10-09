@@ -52,6 +52,7 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr, uint32_t ttl)
 	size_t truncation_mark;
 	uint16_t rdlength = 0;
 	size_t rdlength_pos;
+	const nsd_type_descriptor_t *descriptor;
 	uint16_t j;
 
 	assert(q);
@@ -73,26 +74,7 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr, uint32_t ttl)
 	rdlength_pos = buffer_position(q->packet);
 	buffer_skip(q->packet, sizeof(rdlength));
 
-	for (j = 0; j < rr->rdata_count; ++j) {
-		switch (rdata_atom_wireformat_type(rr->type, j)) {
-		case RDATA_WF_COMPRESSED_DNAME:
-			encode_dname(q, rdata_atom_domain(rr->rdatas[j]));
-			break;
-		case RDATA_WF_UNCOMPRESSED_DNAME:
-		{
-			const dname_type *dname = domain_dname(
-				rdata_atom_domain(rr->rdatas[j]));
-			buffer_write(q->packet,
-				     dname_name(dname), dname->name_size);
-			break;
-		}
-		default:
-			buffer_write(q->packet,
-				     rdata_atom_data(rr->rdatas[j]),
-				     rdata_atom_size(rr->rdatas[j]));
-			break;
-		}
-	}
+	descriptor->write_rdata(query, rr);
 
 	if (!query_overflow(q)) {
 		rdlength = (buffer_position(q->packet) - rdlength_pos

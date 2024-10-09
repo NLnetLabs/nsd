@@ -188,7 +188,6 @@ typedef enum nsd_rc nsd_rc_type;
 #define MAXLABELLEN	63
 #define MAXDOMAINLEN	255
 
-#define MAXRDATALEN	64      /* This is more than enough, think multiple TXT. */
 #define MAX_RDLENGTH	65535
 
 /* Maximum size of a single RR.  */
@@ -248,26 +247,29 @@ typedef struct nsd_type_descriptor nsd_type_descriptor_t;
 struct nsd_type_descriptor;
 
 typedef int32_t(*nsd_read_rdata_t)(
-	struct domain_table *domains, struct buffer *packet, struct rr **rr);
+	struct domain_table *domains,
+	uint16_t rdlength,
+	struct buffer *packet,
+	struct rr **rr);
 
 typedef int32_t(*nsd_write_rdata_t)(
-	struct query *query, const struct rr *rr);
+	struct query *query,
+	const struct rr *rr);
 
 typedef int32_t(*nsd_print_rdata_t)(
-	struct buffer *buffer, const struct rr *rr);
+	struct buffer *buffer,
+	const struct rr *rr);
 
 
 struct nsd_type_descriptor {
 	uint16_t type;
 	const char *name;
-	// the read and write functions are optimized for reading zone data in
-	// and writing zone data out.
 	nsd_read_rdata_t read_rdata;
 	nsd_write_rdata_t write_data;
 	nsd_print_rdata_t print_rdata;
 	struct {
 		size_t length;
-		struct nsd_rdata_descriptor *fields;
+		nsd_rdata_descriptor_t *fields;
 	} rdata;
 };
 
