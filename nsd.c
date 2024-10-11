@@ -1199,19 +1199,21 @@ main(int argc, char *argv[])
 	 * selected network device, otherwise traffic to these queues will take
 	 * the non-af_xdp path */
 	if (nsd.options->xdp_interface) {
-		nsd.xdp.xdp_server.queue_count = ethtool_channels_get(nsd.options->xdp_interface);
-		if (nsd.xdp.xdp_server.queue_count <= 0) {
+		int res = ethtool_channels_get(nsd.options->xdp_interface);
+		if (res <= 0) {
 			log_msg(LOG_ERR,
 			        "xdp: could not determine netdev queue count: %s. "
 			        "(attempting to continue with 1 queue)",
 			        strerror(errno));
 			nsd.xdp.xdp_server.queue_count = 1;
+		} else {
+			nsd.xdp.xdp_server.queue_count = res;
 		}
 
 		if (nsd.child_count < nsd.xdp.xdp_server.queue_count) {
 			log_msg(LOG_NOTICE,
 			        "xdp configured but server-count not high enough to serve "
-			        "all netdev queues, raising server-count to %d",
+			        "all netdev queues, raising server-count to %u",
 			        nsd.xdp.xdp_server.queue_count);
 			nsd.child_count = nsd.xdp.xdp_server.queue_count;
 		}
