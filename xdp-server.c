@@ -697,7 +697,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt,
 	 * a udp header.
 	 */
 	if (*len < (sizeof(*eth) + sizeof(struct iphdr) + sizeof(*udp)))
-		return 0;
+		return -1;
 
 	data_before_dnshdr_len = sizeof(*eth) + sizeof(*udp);
 
@@ -706,28 +706,28 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt,
 		ipv6 = (struct ipv6hdr *)(eth + 1);
 
 		if (*len < (sizeof(*eth) + sizeof(*ipv6) + sizeof(*udp)))
-			return 0;
+			return -2;
 		if (!(udp = parse_ipv6(ipv6)))
-			return 0;
+			return -3;
 
 		dnslen -= (uint32_t) (sizeof(*eth) + sizeof(*ipv6) + sizeof(*udp));
 		data_before_dnshdr_len += sizeof(*ipv6);
 
 		if (!dest_ip_allowed6(xdp, ipv6))
-			return 0;
+			return -4;
 
 		break;
 	} case ETH_P_IP: {
 		ipv4 = (struct iphdr *)(eth + 1);
 
 		if (!(udp = parse_ipv4(ipv4)))
-			return 0;
+			return -5;
 
 		dnslen -= (uint32_t) (sizeof(*eth) + sizeof(*ipv4) + sizeof(*udp));
 		data_before_dnshdr_len += sizeof(*ipv4);
 
 		if (!dest_ip_allowed4(xdp, ipv4))
-			return 0;
+			return -6;
 
 		break;
 	}
@@ -737,11 +737,11 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt,
 	/*     if (*len < (sizeof(*eth) + sizeof(*vlan))) */
 	/*         break; */
 	default:
-		return 0;
+		return -7;
 	}
 
 	if (!(dnshdr = parse_udp(udp)))
-		return 0;
+		return -8;
 
 	query_set_buffer_data(query, dnshdr, XDP_FRAME_SIZE - data_before_dnshdr_len);
 
@@ -768,7 +768,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt,
 
 	dnslen = parse_dns(xdp->nsd, dnslen, query);
 	if (!dnslen) {
-		return 0;
+		return -9;
 	}
 
 	// should the packet be too long in the end... well...
