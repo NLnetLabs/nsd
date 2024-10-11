@@ -97,7 +97,7 @@ static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk);
 /*
  * Free a frame in UMEM
  */
-static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame);
+static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint64_t frame);
 
 /*
  * Fill fill ring with as many frames as possible
@@ -183,7 +183,7 @@ static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk) {
 	return xsk->umem->umem_frame_free;
 }
 
-static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint16_t frame) {
+static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint64_t frame) {
 	assert(xsk->umem_frame_free < XDP_NUM_FRAMES);
 	xsk->umem->umem_frame_addr[xsk->umem->umem_frame_free++] = frame;
 }
