@@ -63,12 +63,12 @@ struct xdp_server {
 	/* track bpf objects and file descriptors */
 	int xsk_map_fd;
 	int bpf_prog_fd;
-	int bpf_prog_id;
+	uint32_t bpf_prog_id;
 	struct bpf_map *xsk_map;
 	struct xdp_program *bpf_prog;
 
-	int interface_index;
-	int queue_count;
+	uint32_t interface_index;
+	uint32_t queue_count;
 	uint32_t queue_index;
 
 	struct xdp_ip_address *ip_addresses;

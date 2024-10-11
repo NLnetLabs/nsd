@@ -144,7 +144,6 @@ static void handle_tx(struct xsk_socket_info *xsk);
 static int
 process_packet(struct xdp_server *xdp,
                uint8_t *pkt,
-               uint64_t addr,
                uint32_t *len,
                struct query *query);
 
@@ -159,10 +158,9 @@ static inline void *parse_ipv4(struct iphdr *ipv4);
 /*
  * Parse dns message and return new length of dns message
  */
-static int parse_dns(struct nsd* nsd,
-                     void *dnshdr,
-                     uint32_t dnslen,
-                     struct query *q);
+static uint32_t parse_dns(struct nsd* nsd,
+                          uint32_t dnslen,
+                          struct query *q);
 
 /* *************** */
 /* Implementations */
@@ -193,13 +191,17 @@ static void fill_fq(struct xsk_socket_info *xsk) {
 	uint32_t idx_fq = 0;
 	/* fill the fill ring with as many frames as are available */
 	/* get number of spots available in fq */
-	stock_frames = xsk_prod_nb_free(&xsk->umem->fq, xsk_umem_free_frames(xsk));
+	stock_frames = xsk_prod_nb_free(&xsk->umem->fq, (uint32_t) xsk_umem_free_frames(xsk));
 	if (stock_frames > 0) {
 		/* ignoring prod__reserve return value, because we got stock_frames
 		 * from xsk_prod_nb_free(), which are therefore available */
 		xsk_ring_prod__reserve(&xsk->umem->fq, stock_frames, &idx_fq);
 
-		for (int i = 0; i < stock_frames; ++i) {
+		for (uint32_t i = 0; i < stock_frames; ++i) {
+			// TODO: handle lack of available frames?
+			/* uint64_t frame = xsk_alloc_umem_frame(xsk); */
+			/* if (frame == XDP_INVALID_UMEM_FRAME) */
+			/*     printf("xdp: trying to fill_addr INVALID UMEM FRAME"); */
 			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) =
 				xsk_alloc_umem_frame(xsk);
 		}
@@ -222,7 +224,9 @@ static int load_xdp_program_and_map(struct xdp_server *xdp) {
 	/* for now our xdp program should contain just one program section */
 	// TODO: look at xdp_program__create because it can take a pinned prog
 	xdp->bpf_prog = xdp_program__open_file(xdp->bpf_prog_filename, NULL, &opts);
-	err = libxdp_get_error(xdp->bpf_prog);
+
+	// should be fine, libxdp errors shouldn't exceed (int), also libxdp_strerr takes int anyway...
+	err = (int) libxdp_get_error(xdp->bpf_prog);
 	if (err) {
 		libxdp_strerror(err, errmsg, sizeof(errmsg));
 		log_msg(LOG_ERR, "xdp: could not open xdp program: %s\n", errmsg);
@@ -233,7 +237,7 @@ static int load_xdp_program_and_map(struct xdp_server *xdp) {
 		/* TODO: I find setting environment variables from within a program
 		 * not a good thing to do, but for the meantime this helps... */
 		putenv("LIBXDP_SKIP_DISPATCHER=1");
-		err = xdp_program__attach(xdp->bpf_prog, xdp->interface_index, attach_mode, 0);
+		err = xdp_program__attach(xdp->bpf_prog, (int) xdp->interface_index, attach_mode, 0);
 		/* err = xdp_program__attach_single(xdp->bpf_prog, xdp->interface_index, attach_mode); */
 		if (err) {
 			libxdp_strerror(err, errmsg, sizeof(errmsg));
@@ -313,9 +317,8 @@ xsk_configure_socket(struct xdp_server *xdp, struct xsk_socket_info *xsk_info,
 	};
 
 	struct xsk_socket_config xsk_cfg;
-	uint32_t idx;
-	uint32_t prog_id;
-	int i, ret;
+	uint32_t idx, reserved;
+	int ret;
 
 	xsk_info->umem = umem;
 	xsk_cfg.rx_size = XSK_RING_CONS__NUM_DESCS;
@@ -343,22 +346,23 @@ xsk_configure_socket(struct xdp_server *xdp, struct xsk_socket_info *xsk_info,
 	}
 
 	/* Initialize umem frame allocation */
-	for (i = 0; i < XDP_NUM_FRAMES; ++i) {
+	for (uint32_t i = 0; i < XDP_NUM_FRAMES; ++i) {
 		xsk_info->umem->umem_frame_addr[i] = i * XDP_FRAME_SIZE;
 	}
 
 	xsk_info->umem->umem_frame_free = XDP_NUM_FRAMES;
 
-	ret = xsk_ring_prod__reserve(&xsk_info->umem->fq,
+	reserved = xsk_ring_prod__reserve(&xsk_info->umem->fq,
 	                             XSK_RING_PROD__NUM_DESCS,
 	                             &idx);
 
-	if (ret != XSK_RING_PROD__NUM_DESCS) {
-		log_msg(LOG_ERR, "xdp: amount of reserved addr not as expected");
+	if (reserved != XSK_RING_PROD__NUM_DESCS) {
+		log_msg(LOG_ERR,
+		        "xdp: amount of reserved addr not as expected (is %d)", reserved);
 		goto error_exit;
 	}
 
-	for (i = 0; i < XSK_RING_PROD__NUM_DESCS; ++i) {
+	for (uint32_t i = 0; i < XSK_RING_PROD__NUM_DESCS; ++i) {
 		*xsk_ring_prod__fill_addr(&xsk_info->umem->fq, idx++) =
 			xsk_alloc_umem_frame(xsk_info);
 	}
@@ -397,7 +401,7 @@ static int xdp_sockets_init(struct xdp_server *xdp) {
 		return -1;
 	}
 
-	for (int q_idx = 0; q_idx < xdp->queue_count; ++q_idx) {
+	for (uint32_t q_idx = 0; q_idx < xdp->queue_count; ++q_idx) {
 		/* mmap is supposedly page-aligned, so should be fine */
 		xdp->umems[q_idx].buffer = alloc_shared_mem(XDP_BUFFER_SIZE);
 
@@ -418,7 +422,7 @@ static int xdp_sockets_init(struct xdp_server *xdp) {
 	return 0;
 
 out_err_xsk:
-	for (int i = 0; i < xdp->queue_count; ++i)
+	for (uint32_t i = 0; i < xdp->queue_count; ++i)
 		xsk_umem__delete(xdp->umems[i].umem);
 
 out_err_umem:
@@ -426,7 +430,7 @@ out_err_umem:
 }
 
 static int xdp_sockets_cleanup(struct xdp_server *xdp) {
-	for (int i = 0; i < xdp->queue_count; ++i) {
+	for (uint32_t i = 0; i < xdp->queue_count; ++i) {
 		xsk_socket__delete(xdp->xsks[i].xsk);
 		xsk_umem__delete(xdp->umems[i].umem);
 	}
@@ -501,7 +505,7 @@ static int unload_xdp_program(struct xdp_server *xdp) {
 	log_msg(LOG_INFO, "xdp: detaching xdp program %u from %s\n",
 			xdp->bpf_prog_id, xdp->interface_name);
 
-	int ret = bpf_xdp_detach(xdp->interface_index, 0, &bpf_opts);
+	int ret = bpf_xdp_detach((int) xdp->interface_index, 0, &bpf_opts);
 	if (ret)
 		log_msg(LOG_ERR, "xdp: failed to detach xdp program: %s\n",
 		        strerror(-ret));
@@ -562,7 +566,7 @@ add_ip_address(struct xdp_server *xdp, struct sockaddr_storage *addr) {
 
 static int figure_ip_addresses(struct xdp_server *xdp) {
 	struct ifaddrs *ifaddr;
-	int family, s, ret = 0;
+	int family, ret = 0;
 
 	if (getifaddrs(&ifaddr) == -1) {
 		log_msg(LOG_ERR, "xdp: couldn't determine local IP addresses. "
@@ -588,7 +592,6 @@ static int figure_ip_addresses(struct xdp_server *xdp) {
 		}
 	}
 
-out:
 	freeifaddrs(ifaddr);
 	return ret;
 }
@@ -642,10 +645,9 @@ static inline void *parse_ipv4(struct iphdr *ipv4) {
 	return (void *)(ipv4 + 1);
 }
 
-static int parse_dns(struct nsd* nsd, void *dnshdr, uint32_t dnslen, struct query *q) {
+static uint32_t parse_dns(struct nsd* nsd, uint32_t dnslen, struct query *q) {
 	/* TODO: implement RATELIMIT, BIND8_STATS, DNSTAP, PROXY, ...? */
 	uint32_t now = 0;
-	uint32_t new_dnslen = 0;
 
 	/* set the size of the dns message and move position to start */
 	buffer_skip(q->packet, dnslen);
@@ -661,7 +663,7 @@ static int parse_dns(struct nsd* nsd, void *dnshdr, uint32_t dnslen, struct quer
 
 		buffer_flip(q->packet);
 		/* return new dns message length */
-		return buffer_remaining(q->packet);
+		return (uint32_t) buffer_remaining(q->packet);
 	} else {
 		/* TODO: we might need somewhere to track whether the current query's
 		 * buffer is usable/allowed to be used? */
@@ -673,7 +675,7 @@ static int parse_dns(struct nsd* nsd, void *dnshdr, uint32_t dnslen, struct quer
 }
 
 static int
-process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
+process_packet(struct xdp_server *xdp, uint8_t *pkt,
                uint32_t *len, struct query *query) {
 	/* log_msg(LOG_INFO, "xdp: received packet with len %d", *len); */
 
@@ -704,7 +706,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 		if (!(udp = parse_ipv6(ipv6)))
 			return 0;
 
-		dnslen -= (sizeof(*eth) + sizeof(*ipv6) + sizeof(*udp));
+		dnslen -= (uint32_t) (sizeof(*eth) + sizeof(*ipv6) + sizeof(*udp));
 		data_before_dnshdr_len += sizeof(*ipv6);
 
 		if (!dest_ip_allowed6(xdp, ipv6))
@@ -717,7 +719,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 		if (!(udp = parse_ipv4(ipv4)))
 			return 0;
 
-		dnslen -= (sizeof(*eth) + sizeof(*ipv4) + sizeof(*udp));
+		dnslen -= (uint32_t) (sizeof(*eth) + sizeof(*ipv4) + sizeof(*udp));
 		data_before_dnshdr_len += sizeof(*ipv4);
 
 		if (!dest_ip_allowed4(xdp, ipv4))
@@ -760,12 +762,14 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 	query->client_addrlen = query->remote_addrlen;
 	query->is_proxied = 0;
 
-	dnslen = parse_dns(xdp->nsd, dnshdr, dnslen, query);
+	dnslen = parse_dns(xdp->nsd, dnslen, query);
 	if (!dnslen) {
 		return 0;
 	}
 
-	udp->len = htons(sizeof(*udp) + dnslen);
+	// should the packet be too long in the end... well...
+	// TODO: check if packet lengths (dns and other headers) are ok?
+	udp->len = htons((uint16_t) (sizeof(*udp) + dnslen));
 
 	swap_eth(eth);
 	swap_udp(udp);
@@ -793,7 +797,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt, uint64_t addr,
 
 void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 	struct xsk_socket_info *xsk = &xdp->xsks[xdp->queue_index];
-	unsigned int recvd, i, to_send = 0;
+	unsigned int recvd, i, reserved, to_send = 0;
 	uint32_t idx_rx = 0;
 	int ret;
 
@@ -811,7 +815,7 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
 
 		uint8_t *pkt = xsk_umem__get_data(xsk->umem->buffer, addr);
-		if (!process_packet(xdp, pkt, addr, &len, xdp->queries[i])) {
+		if ((ret = process_packet(xdp, pkt, &len, xdp->queries[i])) <= 0) {
 			/* drop packet */
 			xsk_free_umem_frame(xsk, addr);
 		} else {
@@ -838,12 +842,14 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 	uint32_t tx_idx = 0;
 
 	/* TODO: at least send as many packets as slots are available */
-	ret = xsk_ring_prod__reserve(&xsk->tx, to_send, &tx_idx);
-	if (ret != to_send) {
+	reserved = xsk_ring_prod__reserve(&xsk->tx, to_send, &tx_idx);
+	if (reserved != to_send) {
 		// not enough tx slots available, drop packets
+		printf("TX: not enough frames available");
 		for (i = 0; i < to_send; ++i) {
 			xsk_free_umem_frame(xsk, umem_ptrs[to_send].addr);
 		}
+		to_send = 0;
 	}
 
 	for (i = 0; i < to_send; ++i) {
@@ -880,7 +886,7 @@ static void handle_tx(struct xsk_socket_info *xsk) {
 	                                &idx_cq);
 
 	if (completed > 0) {
-		for (int i = 0; i < completed; i++) {
+		for (uint32_t i = 0; i < completed; i++) {
 			xsk_free_umem_frame(xsk, *xsk_ring_cons__comp_addr(&xsk->umem->cq,
 			                                                   idx_cq++));
 		}

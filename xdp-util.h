@@ -92,12 +92,13 @@ static inline uint16_t calc_csum_udp6(struct udphdr *udp, struct ipv6hdr *ipv6) 
 	csum_add_data(&sum, udp, ntohs(udp->len));
 	/* maybe restore previous checksum to remove side effects? */
 
+	// reduces sum to 16bit
 	csum_reduce(&sum);
 
 	if (sum != 0xffff)
-		return ~sum;
+		return (uint16_t) ~sum;
 	else
-		return sum;
+		return (uint16_t) sum;
 }
 
 /*
@@ -114,12 +115,13 @@ static inline uint16_t calc_csum_udp4(struct udphdr *udp, struct iphdr *ipv4) {
 	csum_add_data(&sum, udp, ntohs(udp->len));
 	/* maybe restore previous checksum to remove side effects? */
 
+	// reduces sum to 16bit
 	csum_reduce(&sum);
 
 	if (sum != 0xffff)
-		return ~sum;
+		return (uint16_t) ~sum;
 	else
-		return sum;
+		return (uint16_t) sum;
 }
 
 #endif /* XDP_UTIL_H */

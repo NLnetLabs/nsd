@@ -29,7 +29,7 @@ int ethtool_channels_get(char const *ifname) {
 	struct ethtool_channels channels;
 	struct ifreq ifr;
 	int fd, rc;
-	int queue_count = 0;
+	uint32_t queue_count = 0;
 
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (fd < 0) {
@@ -66,7 +66,7 @@ int ethtool_channels_get(char const *ifname) {
 	}
 
 	close(fd);
-	return queue_count;
+	return (int) queue_count;
 }
 
 /* CAPABILITY SHENANIGANS */
