@@ -446,8 +446,9 @@ int xdp_server_init(struct xdp_server *xdp) {
 
 	/* check if interface name exists */
 	xdp->interface_index = if_nametoindex(xdp->interface_name);
-	if (xdp->interface_index == -1) {
-		log_msg(LOG_ERR, "xdp: configured xdp-interface is unknown: %s", strerror(errno));
+	if (xdp->interface_index == 0) {
+		log_msg(LOG_ERR, "xdp: configured xdp-interface (%s) is unknown: %s",
+		        xdp->interface_name, strerror(errno));
 		return -1;
 	}
 
