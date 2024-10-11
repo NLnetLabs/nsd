@@ -109,6 +109,9 @@ static void fill_fq(struct xsk_socket_info *xsk);
  */
 static int load_xdp_program_and_map(struct xdp_server *xdp);
 
+/*
+ * Unload eBPF/XDP program
+ */
 static int unload_xdp_program(struct xdp_server *xdp);
 
 /*
@@ -138,8 +141,8 @@ static void handle_tx(struct xsk_socket_info *xsk);
 
 /*
  * Process packet and indicate if it should be dropped
- * return 0 => drop
- * return non-zero => use for tx
+ * return 0 or less => drop
+ * return greater than 0 => use for tx
  */
 static int
 process_packet(struct xdp_server *xdp,
@@ -878,7 +881,6 @@ static void handle_tx(struct xsk_socket_info *xsk) {
 
 	if (xsk_ring_prod__needs_wakeup(&xsk->tx))
 		sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
-		/* maybe use while (sendto() < 0) and if ==EAGAIN clear completion queue */
 
 	/* free completed TX buffers */
 	completed = xsk_ring_cons__peek(&xsk->umem->cq,
