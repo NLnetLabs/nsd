@@ -286,8 +286,15 @@ static int load_xdp_program_and_map(struct xdp_server *xdp) {
 static int
 xsk_configure_umem(struct xsk_umem_info *umem_info, uint64_t size) {
 	int ret;
+	struct xsk_umem_config umem_config = {
+		.fill_size = XSK_RING_PROD__NUM_DESCS,
+		.comp_size = XSK_RING_CONS__NUM_DESCS,
+		.frame_size = XDP_FRAME_SIZE,
+		.frame_headroom = XSK_UMEM_FRAME_HEADROOM,
+		.flags = XSK_UMEM_FLAGS,
+	};
 
-	ret = xsk_umem__create(&umem_info->umem, umem_info->buffer, size, &umem_info->fq, &umem_info->cq, NULL);
+	ret = xsk_umem__create(&umem_info->umem, umem_info->buffer, size, &umem_info->fq, &umem_info->cq, &umem_config);
 	if (ret) {
 		errno = -ret;
 		return -ret;

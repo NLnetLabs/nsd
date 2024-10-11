@@ -25,6 +25,8 @@
 /* TODO: maybe make these ring sizes configurable? */
 #define XSK_RING_PROD__NUM_DESCS XSK_RING_PROD__DEFAULT_NUM_DESCS
 #define XSK_RING_CONS__NUM_DESCS XSK_RING_CONS__DEFAULT_NUM_DESCS
+#define XSK_UMEM_FRAME_HEADROOM XSK_UMEM__DEFAULT_FRAME_HEADROOM
+#define XSK_UMEM_FLAGS XSK_UMEM__DEFAULT_FLAGS
 
 struct xsk_umem_info {
 	struct xsk_ring_prod fq;
