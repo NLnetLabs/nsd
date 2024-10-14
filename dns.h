@@ -208,12 +208,21 @@ typedef enum nsd_rc nsd_rc_type;
 // field length... because well... we don't really need it. only with
 // printing
 //
-#define RDATA_COMPRESSED_NAME ((1u<<16) + 1)
-#define RDATA_UNCOMPRESSED_NAME ((1u<<16) + 2)
-#define RDATA_LITERAL_DNAME ((1u<<16) + 3)
-#define RDATA_STRING ((1u<<16) + 4)
-#define RDATA_IPSECGATEWAY ((1u<<16) + 5)
-#define RDATA_BINARY ((1u<<16) + 6)
+
+// >> we could choose to use a single bit
+//    and reuse that >> we'll at least require the values to be a positive
+//    value! that way if we try insert it into rdata, we usually check if
+//    the limit is not exceeded. if we use negative values that may lead to
+//    unexpected results
+
+#define RDATA_COMPRESSED_NAME (-1)
+#define RDATA_UNCOMPRESSED_NAME (-2)
+#define RDATA_LITERAL_DNAME (-3)
+#define RDATA_STRING (-4)
+//#define RDATA_IPSECGATEWAY (-5) // << this is really, REALLY, cancelled
+                                  //    upon getting the type descriptor the dev
+																	//    is required to pass a reference to the rdata!
+#define RDATA_REMAINDER (1u<<16) // << we just use 0 to indicate we take the remainder!
 
 
 // function signature to determine length will take
@@ -232,15 +241,20 @@ typedef struct nsd_rdata_descriptor nsd_rdata_descriptor_t;
 // the data has already been checked for validity..
 struct nsd_rdata_descriptor {
 	const char *name;
-	int32_t optional; // << whether or not this field is optional...
+	bool is_optional; // << whether or not this field is optional...
 	int32_t length; // << will be set to a specialized value if
 								//    the length function should be used. i.e.
 								//    for any type where the length depends on a value
 								//    in the rdata itself.
-	nsd_rdata_length_t rdata_length; // << determine size of rdata field (uncompressed)
-																 //    for scenarios where rdata has a different
-																 //    format (internal names/possibly compressed names)
-																 //    implement your own!
+	// this function isn't actually all that useful!
+	// >> actually... it kinda is...
+	//
+	nsd_rdata_field_length_t calculate_length; // << determine size of rdata field (uncompressed)
+	//															 //    for scenarios where rdata has a different
+	//															 //    format (internal names/possibly compressed names)
+	//															 //    implement your own!
+	nsd_print_rdata_field_t print; // << not sure if I want to use this one
+																			 //    >> we'll see!
 };
 
 typedef struct nsd_type_descriptor nsd_type_descriptor_t;
@@ -263,11 +277,17 @@ typedef int32_t(*nsd_print_rdata_t)(
 
 struct nsd_type_descriptor {
 	uint16_t type;
+	/** Mnemonic. */
 	const char *name;
+	/** Whether internal RDATA contains direct pointers. */
+	bool has_references;
+	/** Whether RDATA contains compressible names. */
+	bool is_compressible;
 	nsd_read_rdata_t read_rdata;
 	nsd_write_rdata_t write_data;
 	nsd_print_rdata_t print_rdata;
 	struct {
+		uint32_t flags; // << e.g. COMPRESSED_NAME
 		size_t length;
 		nsd_rdata_descriptor_t *fields;
 	} rdata;
@@ -281,7 +301,6 @@ struct nsd_type_descriptor {
  * CLA + 1
  */
 #define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_CLA + 1)
-rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 rrtype_descriptor_type *rrtype_descriptor_by_type(uint16_t type);
 
 const char *rrtype_to_string(uint16_t rrtype);

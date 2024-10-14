@@ -36,7 +36,7 @@ static lookup_table_type dns_rrclasses[] = {
 	{ format }
 
 static const struct rdata_descriptor generic_rdata_fields[] = {
-	FIELD("", 0, RDATA_BINARY, binary_length, 0)
+	FIELD("", 0, RDATA_BINARY)
 };
 
 static const struct rdata_descriptor a_rdata_fields[] = {
@@ -44,137 +44,137 @@ static const struct rdata_descriptor a_rdata_fields[] = {
 };
 
 static const struct rdata_descriptor ns_rdata_fields[] = {
-	FIELD("host", 0, RDATA_COMPRESSED_DNAME, name_length)
+	FIELD("host", 0, RDATA_COMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor md_rdata_fields[] = {
-	FIELD("madname", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
+	FIELD("madname", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor mf_rdata_fields[] = {
-	FIELD("madname", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
+	FIELD("madname", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor cname_rdata_fields[] = {
-	FIELD("host", 0, RDATA_COMPRESSED_DNAME, name_length)
+	FIELD("host", 0, RDATA_COMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor soa_rdata_fields[] = {
-	FIELD("primary", 0, RDATA_COMPRESSED_DNAME, name_length),
-	FIELD("mailbox", 0, RDATA_COMPRESSED_DNAME, name_length),
-	FIELD("serial", 0, 4, 0),
-	FIELD("refresh", 0, 4, 0),
-	FIELD("retry", 0, 4, 0),
-	FIELD("expire", 0, 4, 0),
-	FIELD("minimum", 0, 4, 0)
+	FIELD("primary", RDATA_COMPRESSED_DNAME, false),
+	FIELD("mailbox", RDATA_COMPRESSED_DNAME, false),
+	FIELD("serial", 4, false),
+	FIELD("refresh", 4, false),
+	FIELD("retry", 4, false),
+	FIELD("expire", 4, false),
+	FIELD("minimum", 4, false)
 };
 
 static const struct nsd_rdata_descriptor mb_rdata_fields[] = {
-	FIELD("madname", 0, RDATA_COMPRESSED_DNAME, name_length)
+	FIELD("madname", 0, RDATA_COMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor mg_rdata_fields[] = {
-	FIELD("mgmname", 0, RDATA_COMPRESSED_DNAME, name_length)
+	FIELD("mgmname", 0, RDATA_COMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor mr_rdata_fields[] = {
-	FIELD("newname", 0, RDATA_COMPRESSED_DNAME, name_length)
+	FIELD("newname", 0, RDATA_COMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor wks_rdata_fields[] = {
-	FIELD("address", 0, 4, 0),
-	FIELD("protocol", 0, 1, 0),
-	FIELD("bitmap", 0, RDATA_BINARY, services_size)
+	FIELD("address", 0, 4),
+	FIELD("protocol", 0, 1),
+	FIELD("bitmap", 0, RDATA_REMAINDER)
 };
 
 static const struct rdata_descriptor ptr_rdata_fields[] = {
-	FIELD("ptrdname", 0, RDATA_COMPRESSED_DNAME, name_size)
+	FIELD("ptrdname", 0, RDATA_COMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor hinfo_rdata_fields[] = {
-	FIELD("cpu", 0, RDATA_STRING, string_length),
-	FIELD("os", 0, RDATA_STRING, string_length)
+	FIELD("cpu", 0, RDATA_STRING),
+	FIELD("os", 0, RDATA_STRING)
 };
 
 static const struct rdata_descriptor minfo_rdata_fields[] = {
-	FIELD("rmailbx", 0, RDATA_COMPRESSED_DNAME, name_length),
-	FIELD("emailbx", 0, RDATA_COMPRESSED_DNAME, name_length)
+	FIELD("rmailbx", 0, RDATA_COMPRESSED_DNAME),
+	FIELD("emailbx", 0, RDATA_COMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor mx_rdata_fields[] = {
-	FIELD("priority", 0, 2, 0),
-	FIELD("hostname", 0, RDATA_COMPRESSED_DNAME, name_length)
+	FIELD("priority", 0, 2),
+	FIELD("hostname", 0, RDATA_COMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor txt_rdata_fields[] = {
-	FIELD("text", 0, RDATA_REMAINDER, strings_length)
+	FIELD("text", 0, 0)
 };
 
 static const struct rdata_descriptor rp_rdata_fields[] = {
-	FIELD("mailbox", 0, RDATA_UNCOMPRESSED_DNAME, name_length),
-	FIELD("text", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
+	FIELD("mailbox", 0, RDATA_UNCOMPRESSED_DNAME),
+	FIELD("text", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor afsdb_rdata_fields[] = {
-	FIELD("subtype", 0, 2, 0),
-	FIELD("hostname", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
+	FIELD("subtype", 0, 2),
+	FIELD("hostname", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor x25_rdata_fields[] = {
-	FIELD("address", 0, RDATA_STRING, string_length)
+	FIELD("address", 0, RDATA_STRING)
 };
 
 static const struct rdata_descriptor isdn_rdata_fields[] = {
-	FIELD("address", 0, RDATA_STRING, string_length),
-	FIELD("subaddress", 1, RDATA_STRING, string_length)
+	FIELD("address", 0, RDATA_STRING),
+	FIELD("subaddress", 1, RDATA_STRING)
 };
 
 static const struct rdata_descriptor rt_rdata_fields[] = {
-	FIELD("preference", 0, 2, 0),
-	FIELD("hostname", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
+	FIELD("preference", 0, 2),
+	FIELD("hostname", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor nsap_rdata_fields[] = {
-	FIELD("address", 0, RDATA_BINARY, 0)
+	FIELD("address", 0, RDATA_REMAINDER)
 };
 
 static const struct rdata_descriptor sig_rdata_fields[] = {
-	FIELD("sigtype", 0, 2, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("labels", 0, 1, 0),
-	FIELD("origttl", 0, 4, 0),
-	FIELD("expire", 0, 4, 0),
-	FIELD("inception", 0, 4, 0),
-	FIELD("keytag", 0, 2, 0),
-	FIELD("signer", 0, RDATA_LITERAL_DNAME, name_length),
-	FIELD("signature", 0, RDATA_BINARY, binary_length)
+	FIELD("sigtype", 0, 2),
+	FIELD("algorithm", 0, 1),
+	FIELD("labels", 0, 1),
+	FIELD("origttl", 0, 4),
+	FIELD("expire", 0, 4),
+	FIELD("inception", 0, 4),
+	FIELD("keytag", 0, 2),
+	FIELD("signer", 0, RDATA_LITERAL_DNAME),
+	FIELD("signature", 0, RDATA_REMAINDER)
 };
 
 static const struct rdata_descriptor key_rdata_fields[] = {
-	FIELD("flags", 0, 2, 0),
-	FIELD("protocol", 0, 1, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("publickey", 0, RDATA_BINARY, binary_length)
+	FIELD("flags", 0, 2),
+	FIELD("protocol", 0, 1),
+	FIELD("algorithm", 0, 1),
+	FIELD("publickey", 0, RDATA_BINARY)
 };
 
 static const struct rdata_descriptor px_rdata_fields[] = {
-	FIELD("preference", 0, 2, 0),
-	FIELD("map822", 0, RDATA_UNCOMPRESSED_DNAME, name_length),
-	FIELD("mapx400", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
+	FIELD("preference", 0, 2),
+	FIELD("map822", 0, RDATA_UNCOMPRESSED_DNAME),
+	FIELD("mapx400", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct rdata_descriptor aaaa_rdata_fields[] = {
-	FIELD("address", 0, 16, 0)
+	FIELD("address", 0, 16)
 };
 
 static const struct rdata_descriptor loc_rdata_fields[] = {
-	FIELD("version", 0, 1, 0),
-	FIELD("size", 0, 1, 0),
-	FIELD("horizontal precision", 0, 1, 0),
-	FIELD("vertical precision", 0, 1, 0),
-	FIELD("latitude", 0, 4, 0),
-	FIELD("longitude", 0, 4, 0),
-	FIELD("altitude", 0, 4, 0),
+	FIELD("version", 0, 1),
+	FIELD("size", 0, 1),
+	FIELD("horizontal precision", 0, 1),
+	FIELD("vertical precision", 0, 1),
+	FIELD("latitude", 0, 4),
+	FIELD("longitude", 0, 4),
+	FIELD("altitude", 0, 4),
 };
 
 static const struct rdata_descriptor nxt_rdata_fields[] = {
@@ -240,20 +240,20 @@ static const struct rdata_descriptor ipseckey_rdata_fields[] = {
 };
 
 static const struct rdata_descriptor rrsig_rdata_fields[] = {
-	FIELD("rrtype", 0, 2, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("labels", 0, 1, 0),
-	FIELD("origttl", 0, 4, 0),
-	FIELD("expire", 0, 4, 0),
-	FIELD("inception", 0, 4, 0),
-	FIELD("keytag", 0, 2, 0),
-	FIELD("signer", 0, RDATA_LITERAL_DNAME, name_length),
-	FIELD("signature", 0, RDATA_BINARY, binary_length)
+	FIELD("rrtype", 0, 2),
+	FIELD("algorithm", 0, 1),
+	FIELD("labels", 0, 1),
+	FIELD("origttl", 0, 4),
+	FIELD("expire", 0, 4),
+	FIELD("inception", 0, 4),
+	FIELD("keytag", 0, 2),
+	FIELD("signer", 0, RDATA_LITERAL_DNAME),
+	FIELD("signature", 0, RDATA_REMAINDER)
 };
 
 static const struct rdata_descriptor nsec_rdata_fields[] = {
-	FIELD("next", 0, RDATA_LITERAL_DNAME, name_length),
-	FIELD("types", 0, RDATA_BINARY, nsec_length)
+	FIELD("next", 0, RDATA_LITERAL_DNAME),
+	FIELD("types", 0, RDATA_REMAINDER)
 };
 
 static const struct rdata_descriptor dnskey_rdata_fields[] = {
@@ -392,19 +392,19 @@ static const struct rdata_descriptor dlv_rdata_fields[] = {
 	FIELD("key", 0, 2, 0),
 	FIELD("algorithm", 0, 1, 0),
 	FIELD("type", 0, 1, 0),
-	FIELD("digest", 0, RDATA_BINARY, binary_length)
+	FIELD("digest", 0, RDATA_BINARY)
 };
 
 #undef FIELD
 
 
-#define TYPE(name, code, read, write, print) \
-  { code, name, read, write, print }
+#define TYPE(name, code, read, write, print, fields) \
+  { code, name, read, write, print, { sizeof(fields)/sizeof(fields[0]), fields } }
 
 #define UNKNOWN_TYPE(code) \
   { code, NULL, read_generic_rdata, write_generic_rdata, print_generic_rdata }
 
-static const struct type_descriptor type_descriptors[] = {
+static const nsd_type_descriptor_t type_descriptors[] = {
 	UNKNOWN_TYPE(0),
 
 	TYPE("A", TYPE_A,
@@ -814,16 +814,76 @@ static const struct type_descriptor type_descriptors[] = {
 		print_dlv_rdata, dlv_rdata_fields)
 };
 
+// the rdata states the type of field... very inconvenient!
+
+static const nsd_rdata_descriptor_t ipseckey_ip4_rdata_fields[] = {
+	FIELD("precedence", 0, 1, 0),
+	FIELD("gateway type", 0, 1, 0),
+	FIELD("algorithm", 0, 1, 0),
+	FIELD("gateway", 0, 4, 0),
+	FIELD("public key", 1, RDATA_BINARY, binary_length, print_base64)
+};
+
+static const nsd_type_descriptor_t ipseckey_ip4_descriptor[] = {
+	TYPE("IPSECKEY", TYPE_IPSECKEY,
+		read_ipseckey_rdata, write_generic_rdata,
+		print_ipseckey_rdata, ipseckey_ip4_rdata_fields)
+};
+
+static const nsd_rdata_descriptor_t ipseckey_ip6_rdata_fields[] = {
+	FIELD("precedence", 0, 1, 0),
+	FIELD("gateway type", 0, 1, 0),
+	FIELD("algorithm", 0, 1, 0),
+	FIELD("gateway", 0, 16, 0),
+	FIELD("public key", 1, RDATA_BINARY, binary_length, print_base64)
+};
+
+static const nsd_type_descriptor_t ipseckey_ip6_descriptor[] = {
+	TYPE("IPSECKEY", TYPE_IPSECKEY,
+		read_ipseckey_rdata, write_generic_rdata,
+		print_ipseckey_rdata, ipseckey_ip6_rdata_fields)
+};
+
+static const nsd_rdata_descriptor_t ipseckey_name_rdata_fields[] = {
+	FIELD("precedence", 0, 1, 0),
+	FIELD("gateway type", 0, 1, 0),
+	FIELD("algorithm", 0, 1, 0),
+	FIELD("gateway", 0, RDATA_LITERAL_DNAME, name_length),
+	FIELD("public key", 1, RDATA_BINARY, binary_length, print_base64)
+};
+
+static const nsd_type_descriptor_t ipseckey_name_descriptor[] = {
+	TYPE("IPSECKEY", TYPE_IPSECKEY,
+		read_ipseckey_rdata, write_generic_rdata,
+		print_ipseckey_rdata, ipseckey_name_rdata_fields)
+};
+
 #undef UNKNOWN_TYPE
 #undef TYPE
 
-const rrtype_descriptor_type *
-rrtype_descriptor_by_type(uint16_t type)
+
+nsd_nonnull((2))
+static nsd_always_inline const nsd_type_descriptor_t *
+nsd_type_descriptor(uint16_t type, uint16_t rdlength const uint8_t *rdata)
 {
-	if (type < TYPE_AVC)
-		return &descriptors[type];
+	/* IPSECKEY RDATA schema is determined by the gateway type */
+	if (type == TYPE_IPSECKEY && rdata && rdlength >= 2)
+		switch (rdata[1]) {
+			case 0: /* no gateway */
+				break;
+			case 1: /* ipv4 address */
+				return &ipseckey_ip4_descriptor[0];
+			case 2: /* ipv6 address */
+				return &ipseckey_ip6_descriptor[0];
+			case 3: /* domain name */
+				return &ipseckey_name_descriptor[0];
+			default:
+				break;
+		}
 	if (type == TYPE_DLV)
 		return &descriptors[TYPE_AVC + 1];
+	if (type < TYPE_AVC)
+		return &descriptors[type];
 	return &descriptors[0];
 }
  
@@ -1000,3 +1060,104 @@ rrclass_from_string(const char *name)
 
 	return (uint16_t) rrclass;
 }
+
+int32_t compare_rdata(
+	const struct type_descriptor *descriptor,
+	const struct rr *rr1,
+	const struct rr *rr2)
+{
+}
+
+
+// we want to merge the zrdatacmp code below
+// and the rdatas_equal from difffile.c????
+// >> why are we implementing the same thing over and over...
+
+
+/*
+ * Compares two rdata arrays.
+ *
+ * Returns:
+ *
+ *	zero if they are equal
+ *	non-zero if not
+ *
+ */
+static int
+zrdatacmp(uint16_t type, const union rdata_atom *rdatas, size_t rdata_count, rr_type *b)
+{
+	assert(rdatas);
+	assert(b);
+
+	/* One is shorter than another */
+	if (rdata_count != b->rdata_count)
+		return 1;
+
+	/* Compare element by element */
+	for (size_t i = 0; i < rdata_count; ++i) {
+		if (rdata_atom_is_domain(type, i)) {
+			if (rdata_atom_domain(rdatas[i])
+			    != rdata_atom_domain(b->rdatas[i]))
+			{
+				return 1;
+			}
+		} else if(rdata_atom_is_literal_domain(type, i)) {
+			if (rdata_atom_size(rdatas[i])
+			    != rdata_atom_size(b->rdatas[i]))
+				return 1;
+			if (!dname_equal_nocase(rdata_atom_data(rdatas[i]),
+				   rdata_atom_data(b->rdatas[i]),
+				   rdata_atom_size(rdatas[i])))
+				return 1;
+		} else {
+			if (rdata_atom_size(rdatas[i])
+			    != rdata_atom_size(b->rdatas[i]))
+			{
+				return 1;
+			}
+			if (memcmp(rdata_atom_data(rdatas[i]),
+				   rdata_atom_data(b->rdatas[i]),
+				   rdata_atom_size(rdatas[i])) != 0)
+			{
+				return 1;
+			}
+		}
+	}
+
+	/* Otherwise they are equal */
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -45,60 +45,6 @@
 #include "zone.h"
 
 /*
- * Compares two rdata arrays.
- *
- * Returns:
- *
- *	zero if they are equal
- *	non-zero if not
- *
- */
-static int
-zrdatacmp(uint16_t type, const union rdata_atom *rdatas, size_t rdata_count, rr_type *b)
-{
-	assert(rdatas);
-	assert(b);
-
-	/* One is shorter than another */
-	if (rdata_count != b->rdata_count)
-		return 1;
-
-	/* Compare element by element */
-	for (size_t i = 0; i < rdata_count; ++i) {
-		if (rdata_atom_is_domain(type, i)) {
-			if (rdata_atom_domain(rdatas[i])
-			    != rdata_atom_domain(b->rdatas[i]))
-			{
-				return 1;
-			}
-		} else if(rdata_atom_is_literal_domain(type, i)) {
-			if (rdata_atom_size(rdatas[i])
-			    != rdata_atom_size(b->rdatas[i]))
-				return 1;
-			if (!dname_equal_nocase(rdata_atom_data(rdatas[i]),
-				   rdata_atom_data(b->rdatas[i]),
-				   rdata_atom_size(rdatas[i])))
-				return 1;
-		} else {
-			if (rdata_atom_size(rdatas[i])
-			    != rdata_atom_size(b->rdatas[i]))
-			{
-				return 1;
-			}
-			if (memcmp(rdata_atom_data(rdatas[i]),
-				   rdata_atom_data(b->rdatas[i]),
-				   rdata_atom_size(rdatas[i])) != 0)
-			{
-				return 1;
-			}
-		}
-	}
-
-	/* Otherwise they are equal */
-	return 0;
-}
-
-/*
  * Find rrset type for any zone
  */
 static rrset_type*
@@ -162,7 +108,6 @@ has_soa(domain_type* domain)
 struct zonec_state {
 	struct namedb *database;
 	struct domain_table *domains;
-	struct region *rr_region;
 	struct zone *zone;
 	struct domain *domain;
 	size_t errors;
@@ -181,18 +126,15 @@ int32_t zonec_accept(
 {
 	struct rr *rr;
 	struct rrset *rrset;
-	const struct dname *dname;
+	struct dname_buffer dname;
 	struct domain *domain;
 	struct buffer buffer;
 	int priority;
-	union rdata_atom *rdatas;
-	ssize_t rdata_count;
 	const struct rrtype_descriptor *descriptor;
 	struct zonec_state *state = (struct zonec_state *)user_data;
 
 	assert(state);
 
-	// emulate packet buffer to leverage rdata_wireformat_to_rdata_atoms
 	buffer_create_from(&buffer, rdata, rdlength);
 
 	priority = parser->options.secondary ? ZONE_WARNING : ZONE_ERROR;
@@ -200,18 +142,16 @@ int32_t zonec_accept(
 	if (class != CLASS_IN)
 		zone_log(parser, priority, "only class IN is supported");
 
-	dname = dname_make(state->rr_region, owner->octets, 1);
-	assert(dname);
-	domain = domain_table_insert(state->domains, dname);
+	dname_make_buffered(&dname, owner->octets, 1);
+	domain = domain_table_insert(state->domains, &dname);
 	assert(domain);
 
-	rdatas = NULL;
-	//
-	//rdata_count = rdata_wireformat_to_rdata_atoms(
-	//	state->database->region, state->domains, type, rdlength, &buffer, &rdatas);
-	// number of atoms must not exceed maximum of 65535 (all empty strings)
-	assert(rdata_count >= 0);
-	assert(rdata_count <= MAX_RDLENGTH);
+	descriptor = rrtype_descriptor_by_type(type);
+	descriptor->read_rdata(state->domains, buffer, &rr);
+	rr->owner = domain;
+	rr->type = type;
+	rr->klass = class;
+	rr->ttl = ttl;
 
 	/* we have the zone already */
 	if (type == TYPE_SOA) {
@@ -232,7 +172,6 @@ int32_t zonec_accept(
 		zone_log(parser, priority, "out of zone data: %s is outside the zone for fqdn %s",
 		         s, domain_to_string(domain));
 		if (!parser->options.secondary) {
-			region_free_all(state->rr_region);
 			return ZONE_SEMANTIC_ERROR;
 		}
 	}
@@ -268,26 +207,21 @@ int32_t zonec_accept(
 		domain_add_rrset(domain, rrset);
 	} else {
 		struct rr *rrs;
-		if (type != TYPE_RRSIG && ttl != rrset->rrs[0].ttl) {
+		if (type != TYPE_RRSIG && ttl != rrset->rrs[0]->ttl) {
 			zone_log(parser, ZONE_WARNING, "%s TTL %"PRIu32" does not match TTL %u of %s RRset",
-				domain_to_string(domain), ttl, rrset->rrs[0].ttl,
+				domain_to_string(domain), ttl, rrset->rrs[0]->ttl,
 					rrtype_to_string(type));
 		}
 
 		/* Search for possible duplicates... */
 		for (int i = 0; i < rrset->rr_count; i++) {
-			if (zrdatacmp(type, rdatas, rdata_count, &rrset->rrs[i]) != 0)
+			if (rdata_compare(descriptor, rr, &rrset->rrs[i]) != 0)
 				continue;
 			/* Discard the duplicates... */
-			for (size_t j = 0; j < (size_t)rdata_count; j++) {
-				size_t size;
-				if (rdata_atom_is_domain(type, j))
-					continue;
-				size = rdata_atom_size(rdatas[j]) + sizeof(uint16_t);
-				region_recycle(state->database->region, rdatas[j].data, size);
-			}
-			region_recycle(state->database->region, rdatas, sizeof(*rdatas) * rdata_count);
-			region_free_all(state->rr_region);
+			// FIXME: The usage counter for any domains isn't lowered...
+			//        That might be a problem (wasn't that way before either)?
+			// FIXME: We could do something like an rdata_recycle or something.
+			region_recycle(state->database->region, rr, sizeof(*rr) + rr->rdlength);
 			return 0;
 		}
 
@@ -304,26 +238,19 @@ int32_t zonec_accept(
 
 		/* Add it... */
 		rrs = rrset->rrs;
-		rrset->rrs = region_alloc_array(state->database->region, rrset->rr_count + 1, sizeof(rr));
-		memcpy(rrset->rrs, rrs, rrset->rr_count * sizeof(rr));
-		region_recycle(state->database->region, rrs, rrset->rr_count * sizeof(*rr));
+		rrset->rrs = region_alloc_array(
+			state->database->region, rrset->rr_count + 1, sizeof(*rrs));
+		memcpy(rrset->rrs, rrs, rrset->rr_count * sizeof(*rrs));
+		region_recycle(state->database->region, rrs, rrset->rr_count * sizeof(*rrs));
 	}
 
-	descriptor = rrtype_descriptor_by_type(type);
-	descriptor->read_rdata(state->domains, buffer, &rr);
-	// handle possible error from the above operation
 	rrset->rrs[rrset->rr_count++] = rr;
-	rr->owner = domain;
-	rr->type = type;
-	rr->klass = class;
-	rr->ttl = ttl;
 
 	/* Check we have SOA */
 	if (rr->owner == state->zone->apex)
 		apex_rrset_checks(state->database, rrset, rr->owner);
 
 	state->records++;
-	region_free_all(state->rr_region);
 	return 0;
 }
 

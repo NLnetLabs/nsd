@@ -339,96 +339,135 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 }
 
 static int
-rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type,
+rdatas_equal(const rr_type *rr1, const rr_type *rr2, uint16_t type,
 	int* rdnum, char** reason)
 {
-	int k, start, end;
-	start = 0;
-	end = num;
+	size_t offset = 0;
+	const rrtype_descriptor_type *descriptor;
+
+	assert(rr1->rdlength == rr2->rdlength);
+
 	/**
 	 * SOA RDATA comparisons in XFR are more lenient,
 	 * only serial rdata is checked.
 	 **/
 	if (type == TYPE_SOA) {
-		start = 2;
-		end = 3;
+		offset = 2 * sizeof(void*);
+		assert(rr1->rdlength == offset + 20);
+		if (memcpy(rr1->rdata + offset, rr2->rdata + offset, 4) == 0)
+			return 1;
+		*rdnum = 2
+		*reason = "rdata data";
+		return 0;
 	}
-	for(k = start; k < end; k++)
-	{
-		if(rdata_atom_is_domain(type, k)) {
-			if(dname_compare(domain_dname(a[k].domain),
-				domain_dname(b[k].domain))!=0) {
-				*rdnum = k;
-				*reason = "dname data";
-				return 0;
-			}
-		} else if(rdata_atom_is_literal_domain(type, k)) {
-			/* literal dname, but compare case insensitive */
-			if(a[k].data[0] != b[k].data[0]) {
-				*rdnum = k;
-				*reason = "literal dname len";
-				return 0; /* uncompressed len must be equal*/
-			}
-			if(!dname_equal_nocase((uint8_t*)(a[k].data+1),
-				(uint8_t*)(b[k].data+1), a[k].data[0])) {
-				*rdnum = k;
-				*reason = "literal dname data";
-				return 0;
-			}
-		} else {
-			/* check length */
-			if(a[k].data[0] != b[k].data[0]) {
-				*rdnum = k;
-				*reason = "rdata len";
-				return 0;
-			}
-			/* check data */
-			if(memcmp(a[k].data+1, b[k].data+1, a[k].data[0])!=0) {
-				*rdnum = k;
-				*reason = "rdata data";
-				return 0;
-			}
+
+	if (memcmp(rr1->rdata, rr2->rdata, rr1->rdlength) == 0)
+		return 1;
+
+	descriptor = rrtype_descriptor_by_type(type);
+	for (size_t i=0; i < descriptor->rdata.length && offset < rr1->rdlength; i++) {
+		int32_t length = descriptor->rdata.fields[i].length;
+		switch (length) {
+			case RDATA_COMPRESSED_NAME:
+			case RDATA_UNCOMPRESSED_DNAME:
+				{
+					const struct dname *dname1, *dname2;
+					const struct domain *domain1, *domain2;
+					memcpy(&domain1, rr1->rdata + offset, sizeof(void*));
+					memcpy(&domain2, rr2->rdata + offset, sizeof(void*));
+					dname1 = domain_dname(domain1);
+					dname2 = domain_dname(domain2);
+					// FIXME: check if enough data is available!!!!
+					if (dname_compare(dname1, dname2) != 0) {
+						*rdnum = i;
+						*reason = "dname data";
+						return 0;
+					}
+					offset += sizeof(void*);
+				}
+				continue;
+			case RDATA_LITERAL_DNAME:
+				{
+					uint8_t length1, length2;
+					const uint8_t *name1 = rr1->rdata + offset;
+					const uint8_t *name2 = rr2->rdata + offset;
+					length1 = name_length(name1, rr1->rdlength - offset);
+					length2 = name_length(name2, rr2->rdlength - offset);
+
+					if (!length1 || !length2 || length1 != length2) {
+						*rdnum = i;
+						*reason = "literal dname len";
+						return 0;
+					}
+					if (!dname_equal_nocase(name1, name2, length1)) {
+						*rdnum = i;
+						*reason = "literal dname data";
+						return 0;
+					}
+					offset += length1;
+				}
+				continue;
+			case RDATA_STRING:
+				length = 1 + rr1->rdata[offset];
+				break;
+			case RDATA_REMAINDER:
+				length = rr1->rdlength - offset;
+				break;
 		}
+
+    assert(length >= 0);
+		if (rr1->rdlength - offset < (uint16_t)length) {
+			*rdnum = i;
+			*reason = "rdata len";
+			return 0;
+		}
+		if (memcpy(rr1->rdata+offset, rr2->rdata+offset, length) != 0) {
+			*rdnum = i;
+			*reason = "rdata data";
+			return 0;
+		}
+		offset += (uint16_t)length;
 	}
+
 	return 1;
 }
 
 static void
 debug_find_rr_num(rrset_type* rrset, uint16_t type, uint16_t klass,
-	rdata_atom_type *rdatas, ssize_t rdata_num)
+	rr_type *rr)
 {
 	int i, rd;
 	char* reason = "";
 
 	for(i=0; i < rrset->rr_count; ++i) {
-		if (rrset->rrs[i].type != type) {
+		if (rrset->rrs[i]->type != type) {
 			log_msg(LOG_WARNING, "diff: RR <%s, %s> does not match "
 				"RR num %d type %s",
-				dname_to_string(domain_dname(rrset->rrs[i].owner),0),
+				dname_to_string(domain_dname(rrset->rrs[i]->owner),0),
 				rrtype_to_string(type),	i,
-				rrtype_to_string(rrset->rrs[i].type));
+				rrtype_to_string(rrset->rrs[i]->type));
 		}
-		if (rrset->rrs[i].klass != klass) {
+		if (rrset->rrs[i]->klass != klass) {
 			log_msg(LOG_WARNING, "diff: RR <%s, %s> class %d "
 				"does not match RR num %d class %d",
-				dname_to_string(domain_dname(rrset->rrs[i].owner),0),
+				dname_to_string(domain_dname(rrset->rrs[i]->owner),0),
 				rrtype_to_string(type),
 				klass, i,
-				rrset->rrs[i].klass);
+				rrset->rrs[i]->klass);
 		}
-		if (rrset->rrs[i].rdata_count != rdata_num) {
+		if (rrset->rrs[i]->rdlength != rr->rdlength) {
 			log_msg(LOG_WARNING, "diff: RR <%s, %s> rdlen %u "
 				"does not match RR num %d rdlen %d",
-				dname_to_string(domain_dname(rrset->rrs[i].owner),0),
+				dname_to_string(domain_dname(rrset->rrs[i]->owner),0),
 				rrtype_to_string(type),
 				(unsigned) rdata_num, i,
-				(unsigned) rrset->rrs[i].rdata_count);
+				(unsigned) rrset->rrs[i]->rdlength);
 		}
-		if (!rdatas_equal(rdatas, rrset->rrs[i].rdatas, rdata_num, type,
+		if (!rdatas_equal(rr, rrset->rrs[i], type,
 			&rd, &reason)) {
 			log_msg(LOG_WARNING, "diff: RR <%s, %s> rdata element "
 				"%d differs from RR num %d rdata (%s)",
-				dname_to_string(domain_dname(rrset->rrs[i].owner),0),
+				dname_to_string(domain_dname(rrset->rrs[i]->owner),0),
 				rrtype_to_string(type),
 				rd, i, reason);
 		}
@@ -437,16 +476,16 @@ debug_find_rr_num(rrset_type* rrset, uint16_t type, uint16_t klass,
 
 static int
 find_rr_num(rrset_type* rrset, uint16_t type, uint16_t klass,
-	rdata_atom_type *rdatas, ssize_t rdata_num, int add)
+	rr_type *rr, int add)
 {
 	int i, rd;
 	char* reason;
 
 	for(i=0; i < rrset->rr_count; ++i) {
-		if(rrset->rrs[i].type == type &&
-		   rrset->rrs[i].klass == klass &&
-		   rrset->rrs[i].rdata_count == rdata_num &&
-		   rdatas_equal(rdatas, rrset->rrs[i].rdatas, rdata_num, type,
+		if(rrset->rrs[i]->type == type &&
+		   rrset->rrs[i]->klass == klass &&
+		   rrset->rrs[i]->rdlength == rr->rdlength &&
+		   rdatas_equal(rrset->rrs[i], rr, type,
 			&rd, &reason))
 		{
 			return i;
@@ -454,7 +493,7 @@ find_rr_num(rrset_type* rrset, uint16_t type, uint16_t klass,
 	}
 	/* this is odd. Log why rr cannot be found. */
 	if (!add) {
-		debug_find_rr_num(rrset, type, klass, rdatas, rdata_num);
+		debug_find_rr_num(rrset, type, klass, rr);
 	}
 	return -1;
 }
@@ -690,22 +729,19 @@ delete_RR(namedb_type* db, const dname_type* dname,
 	} else {
 		/* find the RR in the rrset */
 		domain_table_type *temptable;
-//		rdata_atom_type *rdatas;
-//		ssize_t rdata_num;
-		int rrnum;
+		int32_t rrnum, rdata_num;
+		struct rr *rr;
 		temptable = domain_table_create(temp_region);
 		/* This will ensure that the dnames in rdata are
 		 * normalized, conform RFC 4035, section 6.2
 		 */
-		rdata_num =
-		//rdata_num = rdata_wireformat_to_rdata_atoms(
-		//	temp_region, temptable, type, rdatalen, packet, &rdatas);
+		rdata_num = descriptor->read_rdata(temptable, rdatalen, packet, &rr);
 		if(rdata_num == -1) {
 			log_msg(LOG_ERR, "diff: bad rdata for %s",
 				dname_to_string(dname,0));
 			return 0;
 		}
-		rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num, 0);
+		rrnum = find_rr_num(rrset, type, klass, rr, 0);
 		if(rrnum == -1 && type == TYPE_SOA && domain == zone->apex
 			&& rrset->rr_count != 0)
 			rrnum = 0; /* replace existing SOA if no match */
@@ -717,7 +753,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		}
 #ifdef NSEC3
 		/* process triggers for RR deletions */
-		nsec3_delete_rr_trigger(db, &rrset->rrs[rrnum], zone);
+		nsec3_delete_rr_trigger(db, rrset->rrs[rrnum], zone);
 #endif
 		/* lower usage (possibly deleting other domains, and thus
 		 * invalidating the current RR's domain pointers) */
@@ -742,13 +778,13 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			memset(&rrset->rrs[rrset->rr_count-1], 0, sizeof(rr_type));
 			/* realloc the rrs array one smaller */
 			rrset->rrs = region_alloc_array_init(db->region, rrs_orig,
-				(rrset->rr_count-1), sizeof(rr_type));
+				(rrset->rr_count-1), sizeof(rr_type*));
 			if(!rrset->rrs) {
 				log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
 				exit(1);
 			}
 			region_recycle(db->region, rrs_orig,
-				sizeof(rr_type) * rrset->rr_count);
+				sizeof(rr_type*) * rrset->rr_count);
 #ifdef NSEC3
 			if(type == TYPE_NSEC3PARAM && zone->nsec3_param) {
 				/* fixup nsec3_param pointer to same RR */
@@ -829,12 +865,13 @@ add_RR(namedb_type* db, const dname_type* dname,
 			dname_to_string(dname,0));
 		return 0;
 	}
+	rr->owner = domain;
 	rr->type = type;
 	rr->klass = klass;
 	rr->ttl = ttl;
-	rr->rdlength = (uint16_t)rdatalen;
+	rr->rdlength = (uint16_t)rdata_num;
 
-	rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num, 1);
+	rrnum = find_rr_num(rrset, type, klass, rr, 1);
 	if(rrnum != -1) {
 		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR <%s, %s> already exists",
 			dname_to_string(dname,0), rrtype_to_string(type)));
@@ -851,7 +888,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	/* re-alloc the rrs and add the new */
 	rrs_old = rrset->rrs;
 	rrset->rrs = region_alloc_array(db->region,
-		(rrset->rr_count+1), sizeof(rr_type));
+		(rrset->rr_count+1), sizeof(rr_type*));
 	if(!rrset->rrs) {
 		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
 		exit(1);
@@ -860,20 +897,16 @@ add_RR(namedb_type* db, const dname_type* dname,
 		memcpy(rrset->rrs, rrs_old, rrset->rr_count * sizeof(rr_type));
 	region_recycle(db->region, rrs_old, sizeof(rr_type) * rrset->rr_count);
 	rrset->rr_count ++;
-
-	rrset->rrs[rrset->rr_count - 1].owner = domain;
-//	rrset->rrs[rrset->rr_count - 1].rdatas = rdatas;
-	rrset->rrs[rrset->rr_count - 1].ttl = ttl;
-	rrset->rrs[rrset->rr_count - 1].type = type;
-	rrset->rrs[rrset->rr_count - 1].klass = klass;
-	rrset->rrs[rrset->rr_count - 1].rdlength = (uint16_t)rdlength;
-//	rrset->rrs[rrset->rr_count - 1].rdata_count = rdata_num;
+	rrset->rrs[rrset->rr_count - 1] = rr;
 
 	/* see if it is a SOA */
 	if(domain == zone->apex) {
 		apex_rrset_checks(db, rrset, domain);
 #ifdef NSEC3
 		if(type == TYPE_NSEC3PARAM && zone->nsec3_param) {
+			//
+			// FIXME: This cannot be correct!!!!
+			//
 			/* the pointer just changed, fix it up to point
 			 * to the same record */
 			assert(zone->nsec3_param >= rrs_old &&
@@ -896,7 +929,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 			p = p->parent;
 		}
 	}
-	nsec3_add_rr_trigger(db, &rrset->rrs[rrset->rr_count - 1], zone);
+	nsec3_add_rr_trigger(db, rrset->rrs[rrset->rr_count - 1], zone);
 #endif /* NSEC3 */
 	return 1;
 }

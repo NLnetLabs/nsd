@@ -259,6 +259,63 @@ static int pktcompression_write_dname(struct buffer* packet,
 	return wirelen;
 }
 
+static void ixfr_write_rdata_pkt(
+	struct query* query, struct buffer* packet,
+	struct pktcompression* pcomp, const uint8_t* rr, size_t rdlen)
+{
+	//
+	// we don't have to verify the rdata anymore. it's verified when
+	// it's written. we do have to apply packet compression though...
+	//
+	descriptor = nsd_type_descriptor(tp, rr, rdlen);
+	if (!descriptor->is_compressible) {
+		// we'll check if something is wrong in the
+		if (!buffer_available(packet, rdlen))
+			return 0;
+		buffer_write(packet, rr, rdlen);
+		//rr += rdlen;
+	}
+
+	uint16_t field = 0;
+
+	for(i=0; i < descriptor->rdata.length && rdlen; i++) {
+		const nsd_rdata_descriptor_t *field = descriptor->rdata.fields[i].length;
+		//
+		if (copy_len > MAX_RDLENGTH) {
+			if (copy_len == RDATA_COMPRESSED_DNAME) {
+				dname_len = pktcompression_write_dname(packet, pcomp,
+					rr, rdlen);
+				if(dname_len == -1)
+					return 1; /* attempt to skip malformed rr */
+				if(dname_len == 0) {
+					buffer_set_position(packet, oldpos);
+					return 0;
+				}
+				rr += dname_len;
+				rdlen -= dname_len;
+				// pretty sure we'd need to set copy_len here somewhere
+			} else if (copy_len == RDATA_STRING) {
+				copy_len = 1;
+				if(rdlen > copy_len)
+					copy_len += rr[0];
+			} else {
+				copy_len = rdlen;
+			}
+		}
+		if(copy_len) {
+			if(!buffer_available(packet, copy_len)) {
+				buffer_set_position(packet, oldpos);
+				return 0;
+			}
+			if(copy_len > rdlen)
+				return 1; /* assert of skip malformed */
+			buffer_write(packet, rr, copy_len);
+			rr += copy_len;
+			rdlen -= copy_len;
+		}
+	}
+}
+
 /* write an RR into the packet with compression for domain names,
  * return 0 and resets position if it does not fit in the packet. */
 static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
@@ -321,43 +378,8 @@ static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
 		return 1; /* attempt to skip this malformed rr, could assert */
 
 	/* rdata */
-	descriptor = rrtype_descriptor_by_type(tp);
-	for(i=0; i < descriptor->rdata.length && rdlen; i++) {
-		size_t copy_len;
+	ixfr_write_rdata_pkt(xxx);
 
-		copy_len = descriptor->rdata.fields[i].length;
-		if (copy_len > MAX_RDLENGTH) {
-			if (copy_len == RDATA_COMPRESSED_DNAME) {
-				dname_len = pktcompression_write_dname(packet, pcomp,
-					rr, rdlen);
-				if(dname_len == -1)
-					return 1; /* attempt to skip malformed rr */
-				if(dname_len == 0) {
-					buffer_set_position(packet, oldpos);
-					return 0;
-				}
-				rr += dname_len;
-				rdlen -= dname_len;
-			} else if (copy_len == RDATA_STRING) {
-				copy_len = 1;
-				if(rdlen > copy_len)
-					copy_len += rr[0];
-			} else {
-				copy_len = rdlen;
-			}
-		}
-		if(copy_len) {
-			if(!buffer_available(packet, copy_len)) {
-							buffer_set_position(packet, oldpos);
-				return 0;
-			}
-			if(copy_len > rdlen)
-				return 1; /* assert of skip malformed */
-			buffer_write(packet, rr, copy_len);
-			rr += copy_len;
-			rdlen -= copy_len;
-		}
-	}
 	/* write compressed rdata length */
 	buffer_write_u16_at(packet, rdpos, buffer_position(packet)-rdpos-2);
 	if(total_added == 0) {
@@ -1192,17 +1214,128 @@ void ixfr_store_add_oldsoa(struct ixfr_store* ixfr_store, uint32_t ttl,
 	buffer_set_position(packet, oldpos);
 }
 
+static inline int32_t figure_rdata_length(
+	const nsd_type_descriptor_t *type, uint16_t rdlength, struct buffer *packet)
+{
+	size_t index = 0;
+	size_t length = 0;
+	size_t uncompressed_length = 0;
+
+	for (; index < type->rdata.length && length < rdlength; index++) {
+		const nsd_rdata_descriptor_t *field = &type->rdata.fields[field];
+
+		if (field->calculate_length) {
+			if (field->length == NSD_RDATA_COMPRESSED_NAME ||
+			    field->length == NSD_RDATA_UNCOMPRESSED_NAME)
+			{
+				struct dname_buffer dname;
+				const size_t mark = buffer_position(packet);
+				int32_t allow_pointers = field->length == NSD_RDATA_COMPRESSED_NAME;
+				// no need to normalize, we can do that later on!
+				if (!dname_make_from_packet_buffered(&dname, packet, allow_pointers, 0))
+					return -1; /* malformed */
+				length += buffer_position(packet) - mark;
+				uncompressed_length += dname.dname.name_size;
+			} else {
+				length = field->figure_length(
+					rdlength - offset, buffer_current(packet));
+				if (length < 0)
+					return length;
+				uncompressed_length += (uint16_t)length;
+				buffer_skip(packet, (size_t)length);
+			}
+		} else {
+			assert(field->length < NSD_RDATA_REMAINDER);
+			if (rdlength - length < field->length)
+				return -1; /* malformed */
+			length += field->length;
+			uncompressed_length += field->length;
+			buffer_skip(packet, field->length);
+		}
+	}
+
+	//
+	// right... check if we read all fields here
+	//
+
+	return uncompressed_length;
+}
+
+//
+// at this point, we know the rdata is good...
+// so what we do here is simply copy it if it's not compressible!!!!
+//
+static inline void write_rdata(
+	const nsd_type_descriptor_t *type, uint16_t rdlength, struct buffer *packet,
+	uint8_t *rrs, size_t rrs_capacity)
+{
+	uint8_t *rdata = rrs;
+
+	/* short circuit if rdata does not contain names to normalize */
+	if (!type->is_compressible) { // << not quite right... need to know if it has names that
+																//    should be normalized. we'll get there though...
+		memmove(sp, buffer_current(packet), rdlength);
+		return;
+	}
+
+	size_t index = 0;
+	size_t length = 0;
+
+	for (; index < type->rdata.length && length < rdlength; index++) {
+		const nsd_rdata_descriptor_t *field = &type->rdata.fields[field];
+
+		if (field->calculate_length) {
+			if (field->length == NSD_RDATA_COMPRESSED_NAME ||
+			    field->length == NSD_RDATA_UNCOMPRESSED_NAME)
+			{
+				struct dname_buffer dname;
+				const size_t mark = buffer_position(packet);
+				int32_t pointers = field->length == NSD_RDATA_COMPRESSED_NAME;
+				if (!dname_make_from_packet_buffered(&dname, packet, pointers, 1))
+					return -1; /* malformed */
+				memmove(sp, dname_name(&dname), dname.dname.name_size);
+				length += buffer_position(packet) - mark;
+				//uncompressed_length += dname.dname.name_size;
+			} else {
+				int32_t field_length = field->figure_length(
+					rdlength - length, buffer_current(packet));
+				assert(field_length >= 0);
+				memcpy(rdata+uncompressed_length, buffer_current(packet), field_length);
+				length += (uint16_t)field_length;
+				uncompressed_length += (uint16_t)field_length;
+				buffer_skip(packet, (size_t)field_length);
+			}
+		} else {
+			assert(field->length < NSD_RDATA_REMAINDER);
+			assert(field->length <= rdlength - length);
+			memcpy(rdata+uncompressed_length, buffer_current(packet), field->length);
+			buffer_skip(packet, field->length);
+		}
+	}
+
+	//
+	// implement
+	//
+}
+
 /* store RR in data segment */
 static int ixfr_putrr(const struct dname* dname, uint16_t type, uint16_t klass,
-	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num,
+	uint32_t ttl, uint16_t rrlen, struct buffer *packet,
 	uint8_t** rrs, size_t* rrs_len, size_t* rrs_capacity)
 {
-	size_t rdlen_uncompressed, sz;
+	int32_t rdlen_uncompressed;
+	size_t sz;
 	uint8_t* sp;
 	int i;
+	const nsd_type_descriptor_t *descriptor;
+	const size_t oldpos = buffer_position(packet);
 
-	/* find rdatalen */
-	rdlen_uncompressed = rr_marshal_rdata_length(rr);
+	descriptor = nsd_type_descriptor(type, buffer_current(packet), rrlen);
+	/* figure uncompressed rdata length and validate rdata. input source
+	 * is a network packet or on-disk storage */
+	rdlen_uncompressed = figure_rdata_length(descriptor, rrlen, packet);
+	if (rdlen_uncompressed < 0)
+		return -1; /* malformed */
 
 	sz = dname->name_size + 2 /*type*/ + 2 /*class*/ + 4 /*ttl*/ +
 		2 /*rdlen*/ + rdlen_uncompressed;
@@ -1218,26 +1351,29 @@ static int ixfr_putrr(const struct dname* dname, uint16_t type, uint16_t klass,
 	memmove(sp, dname_name(dname), dname->name_size);
 	sp += dname->name_size;
 	write_uint16(sp, type);
-	sp += 2;
-	write_uint16(sp, klass);
-	sp += 2;
-	write_uint32(sp, ttl);
-	sp += 4;
-	write_uint16(sp, rdlen_uncompressed);
-	sp += 2;
-	(void)rr_marshal_rdata(rr, sp, *rrs_capacity - *rrs_len);
+	//sp += 2;
+	write_uint16(sp + 2, klass);
+	//sp += 2;
+	write_uint32(sp + 4, ttl);
+	//sp += 4;
+	write_uint16(sp + 8, rdlen_uncompressed);
+	//sp += 2;
+	write_rdata(descriptor, packet, sp + 10, *rrs_capacity - *rrs_len);
+	//
+	// we probably have to update some sort of counter here?!?!
+	// >> we'll get to that!
+	//
 	return 1;
 }
 
 void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
-	uint16_t rrlen, struct region* temp_region, uint8_t** rrs,
-	size_t* rrs_len, size_t* rrs_capacity)
+	uint16_t rrlen, uint8_t** rrs, size_t* rrs_len, size_t* rrs_capacity)
 {
-	domain_table_type *temptable;
-	rr_type *rr;
-	const rrtype_descriptor_type *descriptor;
-	ssize_t rdata_num;
+//	domain_table_type *temptable;
+//	rr_type *rr;
+//	const rrtype_descriptor_type *descriptor;
+//	ssize_t rdata_num;
 	size_t oldpos;
 
 	if(ixfr_store->cancelled)
@@ -1256,42 +1392,34 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 		return;
 
 	/* parse rdata */
-	oldpos = buffer_position(packet);
-	temptable = domain_table_create(temp_region);
-	descriptor = rrtype_descriptor_by_type(type);
-	descriptor->read_rdata(temptable, packet, &rr);
-	rr->owner = dname;
-	rr->type = type;
-	rr->klass = klass;
-	rr->ttl = ttl;
-//	rr->rdlength
-	// >> we need the descriptor here!!!!
-//	rdata_num = rdata_wireformat_to_rdata_atoms(temp_region, temptable,
-//		type, rrlen, packet, &rdatas);
+	const size_t oldpos = buffer_position(packet);
+	int32_t code = ixfr_putrr(dname, type, klass, ttl, rrlen, packet, rrs, rrs_len, rrs_capacity);
 	buffer_set_position(packet, oldpos);
-//	if(rdata_num == -1) {
-//		log_msg(LOG_ERR, "ixfr_store addrr: cannot parse packet");
-//		ixfr_store_cancel(ixfr_store);
-//		return;
-//	}
 
-	if(!ixfr_putrr(rr, rrs, rrs_len, rrs_capacity)) {
-		log_msg(LOG_ERR, "ixfr_store addrr: cannot allocate space");
+	if (rdata_num < 0) {
+		if (rdata_num == -1)
+			log_msg(LOG_ERR, "ixfr_store addrr: cannot parse packet");
+		else
+			log_msg(LOG_ERR, "ixfr_store addrr: cannot allocate space");
 		ixfr_store_cancel(ixfr_store);
 		return;
 	}
 }
 
-void ixfr_store_delrr(struct ixfr_store* ixfr_store, const rr_type *rr)
+void ixfr_store_delrr(struct ixfr_store* ixfr_store,
+	const struct dname* dname, uint16_t type, uint16_t klass, uint32_t ttl,
+	struct buffer* packet, uint16_t rrlen)
 {
-	ixfr_store_putrr(ixfr_store, rr,
+	ixfr_store_putrr(ixfr_store, dname, type, klass, ttl, packet, rrlen,
 		&ixfr_store->data->del,
 		&ixfr_store->data->del_len, &ixfr_store->del_capacity);
 }
 
-void ixfr_store_addrr(struct ixfr_store* ixfr_store, const rr_type *rr)
+void ixfr_store_addrr(struct ixfr_store* ixfr_store,
+	const struct dname *dname, uint16_t type, uint16_t klass, uint32_t ttl,
+	struct buffer *packet, uint16_t rrlen)
 {
-	ixfr_store_putrr(ixfr_store, rr,
+	ixfr_store_putrr(ixfr_store, dname, type, klass, ttl, packet, rrlen,
 		&ixfr_store->data->add,
 		&ixfr_store->data->add_len, &ixfr_store->add_capacity);
 }
@@ -1955,19 +2083,19 @@ static int parse_wirerr_into_temp(struct zone* zone, char* fname,
 
 /* print RR on one line in output buffer. caller must zeroterminate, if
  * that is needed. */
-static int print_rr_oneline(struct buffer* rr_buffer, const dname_type* dname,
-	struct rr* rr)
-{
-	rrtype_descriptor_type *descriptor;
-	descriptor = rrtype_descriptor_by_type(rr->type);
-	buffer_printf(rr_buffer, "%s", dname_to_string(dname, NULL));
-	buffer_printf(rr_buffer, "\t%lu\t%s\t%s", (unsigned long)rr->ttl,
-		rrclass_to_string(rr->klass), rrtype_to_string(rr->type));
-	if (!print_rdata(rr_buffer, descriptor, rr)
-	    !print_unknown_rdata(rr_buffer, descriptor, rr))
-		return 0;
-	return 1;
-}
+//static int print_rr_oneline(struct buffer* rr_buffer, const dname_type* dname,
+//	struct rr* rr)
+//{
+//	rrtype_descriptor_type *descriptor;
+//	descriptor = rrtype_descriptor_by_type(rr->type);
+//	buffer_printf(rr_buffer, "%s", dname_to_string(dname, NULL));
+//	buffer_printf(rr_buffer, "\t%lu\t%s\t%s", (unsigned long)rr->ttl,
+//		rrclass_to_string(rr->klass), rrtype_to_string(rr->type));
+//	if (!print_rdata(rr_buffer, descriptor, rr)
+//	    !print_unknown_rdata(rr_buffer, descriptor, rr))
+//		return 0;
+//	return 1;
+//}
 
 /* write one RR to file, on one line */
 static int ixfr_write_rr(struct zone* zone, FILE* out, char* fname,
@@ -1982,7 +2110,7 @@ static int ixfr_write_rr(struct zone* zone, FILE* out, char* fname,
 	}
 
 	buffer_clear(rr_buffer);
-	if(!print_rr_oneline(rr_buffer, dname, &rr)) {
+	if(!print_rr(rr_buffer, dname, &rr)) {
 		log_msg(LOG_ERR, "failed to write zone %s IXFR data %s: cannot spool RR string into buffer", zone->opts->name, fname);
 		region_free_all(temp);
 		return 0;
@@ -2398,8 +2526,9 @@ static int ixfr_data_readadd(struct ixfr_data* data, struct zone* zone,
 struct ixfr_data_state {
 	struct zone *zone;
 	struct ixfr_data *data;
-	struct region *tempregion, *stayregion;
-	struct domain_table *temptable;
+	struct region *stayregion;
+//	struct region *tempregion; // << pretty sure we don't need this anymore?!?!
+//	struct domain_table *temptable; // << pretty sure we don't need this anymore?!?!
 	struct zone *tempzone;
 	uint32_t *dest_serial;
 	size_t rr_count, soa_rr_count;
@@ -2435,11 +2564,12 @@ static int32_t ixfr_data_accept(
 
 	//
 	// we'll leave this intact... we need the input checks...
+	// >> actually ixfr_putrr will do the input checks!
 	//
-	rdata_count = rdata_wireformat_to_rdata_atoms(
-		state->tempregion, state->temptable, type, rdlength, &buffer, &rdatas);
-	assert(rdata_count > 0);
-	rr = region_alloc(state->tempregion, sizeof(*rr));
+	//rdata_count = rdata_wireformat_to_rdata_atoms(
+	//	state->tempregion, state->temptable, type, rdlength, &buffer, &rdatas);
+	//assert(rdata_count > 0);
+	//rr = region_alloc(state->tempregion, sizeof(*rr));
 	assert(rr);
 	rr->owner = domain;
 	rr->rdatas = rdatas;
