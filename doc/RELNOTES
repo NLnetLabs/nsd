@@ -4,6 +4,9 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 	- Support reloading configuration on SIGHUP.
+	- Fix #383: log timestamps in ISO8601 format with timezone.
+	  This adds the option `log-time-iso: yes` that logs in ISO8601
+	  format.
 BUG FIXES:
 	- Fix title underline and declaration after statement warnings.
 	- Add cross platform freebsd, openbsd and netbsd to github ci.

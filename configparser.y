@@ -111,6 +111,7 @@ struct component {
 %token VAR_STATISTICS
 %token VAR_XFRD_RELOAD_TIMEOUT
 %token VAR_LOG_TIME_ASCII
+%token VAR_LOG_TIME_ISO
 %token VAR_ROUND_ROBIN
 %token VAR_MINIMAL_RESPONSES
 %token VAR_CONFINE_TO_ZONE
@@ -456,6 +457,11 @@ server_option:
     {
       cfg_parser->opt->log_time_ascii = $2;
       log_time_asc = cfg_parser->opt->log_time_ascii;
+    }
+  | VAR_LOG_TIME_ISO boolean
+    {
+      cfg_parser->opt->log_time_iso = $2;
+      log_time_iso = cfg_parser->opt->log_time_iso;
     }
   | VAR_ROUND_ROBIN boolean
     {

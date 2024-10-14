@@ -1,3 +1,9 @@
+25 September 2024: Wouter
+	- Fix #383: log timestamps in ISO8601 format with timezone.
+	  This adds the option `log-time-iso: yes` that logs in ISO8601
+	  format.
+	- Fix to initialize log_time_iso value in options.
+
 23 August 2024: Wouter
 	- Merge #376: Point the user towards tcpdump for logging individual
 	  queries.
