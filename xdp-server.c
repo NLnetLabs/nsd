@@ -864,8 +864,8 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 	uint32_t tx_idx = 0;
 
 	/* TODO: at least send as many packets as slots are available */
-	// FIXME: if reserved != to_send && reserved > 0 also release reserved frames
 	reserved = xsk_ring_prod__reserve(&xsk->tx, to_send, &tx_idx);
+	// if we can't reserve to_send frames, we'll get 0 frames, so no need to "un-reserve"
 	if (reserved != to_send) {
 		// not enough tx slots available, drop packets
 		log_msg(LOG_ERR, "xdp: not enough TX frames available, dropping whole batch");
