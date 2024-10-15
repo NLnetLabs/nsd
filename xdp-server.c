@@ -540,7 +540,8 @@ static int dest_ip_allowed6(struct xdp_server *xdp, struct ipv6hdr *ipv6) {
 		return 1;
 
 	while (ip) {
-		if (!memcmp(&((struct sockaddr_in6 *) &ip->addr)->sin6_addr,
+		if (ip->addr.ss_family == AF_INET6 &&
+		    !memcmp(&(((struct sockaddr_in6 *) &ip->addr)->sin6_addr),
 		            &ipv6->daddr,
 		            sizeof(struct in6_addr)))
 			return 1;
@@ -557,7 +558,8 @@ static int dest_ip_allowed4(struct xdp_server *xdp, struct iphdr *ipv4) {
 		return 1;
 
 	while (ip) {
-		if (ipv4->daddr == ((struct sockaddr_in *) &ip->addr)->sin_addr.s_addr)
+		if (ip->addr.ss_family == AF_INET &&
+		    ipv4->daddr == ((struct sockaddr_in *) &ip->addr)->sin_addr.s_addr)
 			return 1;
 		ip = ip->next;
 	}
