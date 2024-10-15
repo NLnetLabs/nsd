@@ -864,12 +864,15 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 	uint32_t tx_idx = 0;
 
 	/* TODO: at least send as many packets as slots are available */
+	// FIXME: if reserved != to_send && reserved > 0 also release reserved frames
 	reserved = xsk_ring_prod__reserve(&xsk->tx, to_send, &tx_idx);
 	if (reserved != to_send) {
 		// not enough tx slots available, drop packets
-		printf("TX: not enough frames available");
+		log_msg(LOG_ERR, "xdp: not enough TX frames available, dropping whole batch");
 		for (i = 0; i < to_send; ++i) {
-			xsk_free_umem_frame(xsk, umem_ptrs[to_send].addr);
+			xsk_free_umem_frame(xsk, umem_ptrs[i].addr);
+			umem_ptrs[i].addr = XDP_INVALID_UMEM_FRAME;
+			umem_ptrs[i].len = 0;
 		}
 		to_send = 0;
 	}
