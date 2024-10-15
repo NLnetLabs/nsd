@@ -94,7 +94,7 @@ int xdp_dns_redirect(struct xdp_md *ctx) {
   struct ipv6hdr *ipv6;
   struct udphdr *udp;
 
-  int index = ctx->rx_queue_index;
+  __u32 index = ctx->rx_queue_index;
 
   cursor_init(&c, ctx);
 
@@ -126,7 +126,7 @@ int xdp_dns_redirect(struct xdp_md *ctx) {
 
 redirect_map:
   if (bpf_map_lookup_elem(&xsks_map, &index)) {
-    return bpf_redirect_map(&xsks_map, index, XDP_PASS);
+    return (int) bpf_redirect_map(&xsks_map, index, XDP_PASS);
   }
 
   return XDP_PASS;

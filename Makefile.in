@@ -62,8 +62,7 @@ VERSION = @PACKAGE_VERSION@
 # BPF/XDP settings
 CLANG	= @CLANG@
 LLC		= @LLC@
-BPF_CFLAGS ?= -Wno-visibility -Wall -Wno-unused-value -Wno-pointer-sign -Wno-compare-distinct-pointer-types -Werror
-# BPF_CFLAGS ?= -Wno-visibility -DBPF_DIR_MNT=/sys/fs/bpf -DBPF_OBJECT_PATH=/usr/lib/bpf
+BPF_CFLAGS ?= -Wall -Wextra -Wconversion -Werror
 
 COMPILE		= $(CC) $(CPPFLAGS) $(CFLAGS)
 LINK		= $(CC) $(CFLAGS) $(LDFLAGS)
@@ -428,7 +427,6 @@ dnstap/dnstap.pb-c.c dnstap/dnstap.pb-c.h: $(srcdir)/dnstap/dnstap.proto
 	$(PROTOC_C) --c_out=. --proto_path=$(srcdir) $(srcdir)/dnstap/dnstap.proto
 
 # eBPF XDP program
-# TODO: check compiler flags for production deployment/better performance
 xdp-dns-redirect_kern.o: $(srcdir)/xdp-dns-redirect_kern.c
 	$(CLANG) -S -target bpf $(BPF_CFLAGS) -O2 -emit-llvm -c -g -o ${@:.o=.ll} $<
 	$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
