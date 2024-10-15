@@ -1167,8 +1167,8 @@ case "$enable_xdp" in
 	AC_ARG_VAR(LLC, [location of LLVM static compiler (only needed for xdp)])
 	AC_CHECK_PROG(CLANG, clang, clang)
 	AC_CHECK_PROG(LLC, llc, llc)
-	CLANG=clang
-	LLC=llc
+	test "$CLANG" = "" && CLANG=clang
+	test "$LLC" = "" && LLC=llc
 	xdp="xx"
 	;;
 	no|*)
