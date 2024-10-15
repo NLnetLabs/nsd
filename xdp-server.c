@@ -120,6 +120,22 @@ static int unload_xdp_program(struct xdp_server *xdp);
 static int figure_ip_addresses(struct xdp_server *xdp);
 
 /*
+ * Add IP address to allowed destination addresses for incoming packets
+ */
+static void add_ip_address(struct xdp_server *xdp,
+                           struct sockaddr_storage *addr);
+
+/*
+ * Check whether destination IPv4 is in allowed IPs list
+ */
+static int dest_ip_allowed4(struct xdp_server *xdp, struct iphdr *ipv4);
+
+/*
+ * Check whether destination IPv6 is in allowed IPs list
+ */
+static int dest_ip_allowed6(struct xdp_server *xdp, struct ipv6hdr *ipv6);
+
+/*
  * Setup XDP sockets
  */
 static int xdp_sockets_init(struct xdp_server *xdp);
