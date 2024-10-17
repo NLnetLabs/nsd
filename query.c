@@ -466,8 +466,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 	if((acl_num = acl_check_incoming(zone_opt->pattern->allow_notify, query,
 		&why)) != -1)
 	{
-		sig_atomic_t mode = NSD_PASS_TO_XFRD;
-		int s = nsd->this_child->parent_fd;
+		ssize_t r;
 		uint16_t sz;
 		uint32_t acl_send = htonl(acl_num);
 		uint32_t acl_xfr;
@@ -488,17 +487,30 @@ answer_notify(struct nsd* nsd, struct query *query)
 		sz = buffer_limit(query->packet);
 		if(buffer_limit(query->packet) > MAX_PACKET_SIZE)
 			return query_error(query, NSD_RC_SERVFAIL);
-		/* forward to xfrd for processing
-		   Note. Blocking IPC I/O, but acl is OK. */
-		sz = htons(sz);
-		if(!write_socket(s, &mode, sizeof(mode)) ||
-			!write_socket(s, &sz, sizeof(sz)) ||
-			!write_socket(s, buffer_begin(query->packet),
-				buffer_limit(query->packet)) ||
-			!write_socket(s, &acl_send, sizeof(acl_send)) ||
-			!write_socket(s, &acl_xfr, sizeof(acl_xfr))) {
-			log_msg(LOG_ERR, "error in IPC notify server2main, %s",
+		/* Temporary append acl_send and acl_xfr after the NOTIFY
+		 * message in the buffer, for sending along to the xfrd */
+		assert(buffer_capacity(query->packet) >
+		                  sz + sizeof(acl_send) + sizeof(acl_xfr));
+		buffer_set_limit( query->packet
+		                , sz + sizeof(acl_send) + sizeof(acl_xfr));
+		buffer_write_u32_at(query->packet, sz, acl_send);
+		buffer_write_u32_at(query->packet, sz + sizeof(acl_send)
+		                                 , acl_xfr);
+		r = send( nsd->serve2xfrd_fd_send[nsd->this_child->child_num]
+		        , buffer_begin(query->packet)
+		        , buffer_limit(query->packet)
+		        , MSG_DONTWAIT | MSG_NOSIGNAL
+			);
+		/* Restore query->packet buffer by removing the earlier
+		 * appended acl_send and acl_xfr again*/
+		buffer_set_limit(query->packet, sz);
+		if(r < 0) {
+			log_msg(LOG_ERR, "error in IPC notify serve2xfrd, %s",
 				strerror(errno));
+			return query_error(query, NSD_RC_SERVFAIL);
+		} else if(r == 0) {
+			log_msg(LOG_ERR, "error in IPC notify serve2xfrd, %s",
+				"xfrd closed the channel");
 			return query_error(query, NSD_RC_SERVFAIL);
 		}
 		if(verbosity >= 1) {
@@ -506,12 +518,13 @@ answer_notify(struct nsd* nsd, struct query *query)
 			char address[128];
 			addr2str(&query->client_addr, address, sizeof(address));
 			if(packet_find_notify_serial(query->packet, &serial))
-			  VERBOSITY(1, (LOG_INFO, "notify for %s from %s serial %u",
+			  VERBOSITY(1, (LOG_INFO, "notify for %s from %s serial %u size %u",
 				dname_to_string(query->qname, NULL), address,
-				(unsigned)serial));
+				(unsigned)serial, (unsigned)sz));
 			else
-			  VERBOSITY(1, (LOG_INFO, "notify for %s from %s",
-				dname_to_string(query->qname, NULL), address));
+			  VERBOSITY(1, (LOG_INFO, "notify for %s from %s size %u",
+				dname_to_string(query->qname, NULL), address,
+					  (unsigned)sz));
 		}
 
 		/* create notify reply - keep same query contents */

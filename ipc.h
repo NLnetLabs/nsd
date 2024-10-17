@@ -84,6 +84,9 @@ void child_handle_parent_command(int fd, short event, void* arg);
  */
 void xfrd_handle_ipc(int fd, short event, void* arg);
 
+/* receive incoming notifies received by and from the serve processes */
+void xfrd_handle_notify(int fd, short event, void* arg);
+
 /* check if all children have exited in an orderly fashion and set mode */
 void parent_check_all_children_exited(struct nsd* nsd);
 

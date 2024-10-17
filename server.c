@@ -1640,6 +1640,7 @@ void
 server_prepare_xfrd(struct nsd* nsd)
 {
 	char tmpfile[256];
+	size_t i;
 	/* create task mmaps */
 	nsd->mytask = 0;
 	snprintf(tmpfile, sizeof(tmpfile), "%snsd-xfr-%d/nsd.%u.task.0",
@@ -1683,6 +1684,47 @@ server_prepare_xfrd(struct nsd* nsd)
 		nsd;
 	((struct ipc_handler_conn_data*)nsd->xfrd_listener->user_data)->conn =
 		xfrd_tcp_create(nsd->region, QIOBUFSZ);
+	/* setup sockets to pass NOTIFY messages from the serve processes */
+	nsd->serve2xfrd_fd_send = region_alloc_array(
+			nsd->region, 2 * nsd->child_count, sizeof(int));
+	nsd->serve2xfrd_fd_recv= region_alloc_array(
+			nsd->region, 2 * nsd->child_count, sizeof(int));
+	for(i=0; i < 2 * nsd->child_count; i++) {
+		int sv[2];
+		int bufsz = QIOBUFSZ;
+		sv[0] = -1; /* For receiving by parent (xfrd) */
+		sv[1] = -1; /* For sending   by child  (server childs) */
+		if(socketpair(AF_UNIX, SOCK_DGRAM
+#ifdef SOCK_NONBLOCK
+                        | SOCK_NONBLOCK
+#endif
+                        , 0, sv) < 0) {
+                        log_msg(LOG_ERR, "fatal error: cannot create NOTIFY "
+				"communication channel: %s", strerror(errno));
+			exit(1);
+                }
+#ifndef SOCK_NONBLOCK
+                if (fcntl(sv[0], F_SETFL, O_NONBLOCK) == -1) {
+                        log_msg(LOG_ERR, "serve2xfrd receive fd fcntl "
+                                "failed: %s", strerror(errno));
+                }
+                if (fcntl(sv[1], F_SETFL, O_NONBLOCK) == -1) {
+                        log_msg(LOG_ERR, "serve2xfrd send fd fcntl "
+                                "failed: %s", strerror(errno));
+                }
+#endif
+                if(setsockopt(sv[0], SOL_SOCKET, SO_RCVBUF, &bufsz, sizeof(bufsz))) {
+                        log_msg(LOG_ERR, "setting serve2xfrd "
+                                "receive buffer size failed: %s", strerror(errno));
+                }
+                if(setsockopt(sv[1], SOL_SOCKET, SO_SNDBUF, &bufsz, sizeof(bufsz))) {
+                        log_msg(LOG_ERR, "setting serve2xfrd "
+                                "send buffer size failed: %s", strerror(errno));
+                }
+                nsd->serve2xfrd_fd_recv[i] = sv[0];
+                nsd->serve2xfrd_fd_send[i] = sv[1];
+	}
+	nsd->serve2xfrd_fd_swap = nsd->serve2xfrd_fd_send + nsd->child_count;
 }
 
 
@@ -1692,6 +1734,7 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 	pid_t pid;
 	int sockets[2] = {0,0};
 	struct ipc_handler_conn_data *data;
+	size_t i;
 
 	if(nsd->xfrd_listener->fd != -1)
 		close(nsd->xfrd_listener->fd);
@@ -1728,6 +1771,14 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		 * restarted, the reload is using nsd->mytask */
 		nsd->mytask = 1 - nsd->mytask;
 
+		/* close the send site of the serve2xfrd fds */
+		assert(nsd->serve2xfrd_fd_send < nsd->serve2xfrd_fd_swap);
+		for(i = 0; i < 2 * nsd->child_count; i++) {
+			if(nsd->serve2xfrd_fd_send[i] != -1) {
+				close(nsd->serve2xfrd_fd_send[i]);
+				nsd->serve2xfrd_fd_send[i] = -1;
+			}
+		}
 #ifdef HAVE_SETPROCTITLE
 		setproctitle("xfrd");
 #endif
@@ -1750,6 +1801,13 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 			log_msg(LOG_ERR, "cannot fcntl pipe: %s", strerror(errno));
 		}
 		nsd->xfrd_listener->fd = sockets[0];
+		/* close the receive site of the serve2xfrd fds */
+		for(i = 0; i < 2 * nsd->child_count; i++) {
+			if(nsd->serve2xfrd_fd_recv[i] != -1) {
+				close(nsd->serve2xfrd_fd_recv[i]);
+				nsd->serve2xfrd_fd_recv[i] = -1;
+			}
+		}
 #ifdef HAVE_SETPROCTITLE
 		setproctitle("main");
 #endif
@@ -2404,6 +2462,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	struct quit_sync_event_data cb_data;
 	struct event signal_event, cmd_event;
 	struct timeval reload_sync_timeout;
+	/* For swapping filedescriptors from the serve childs to the xfrd
+	 * and/or the dnstap collector */
+	int *swap_fd_send;
 
 	/* ignore SIGCHLD from the previous server_main that used this pid */
 	memset(&ign_sigchld, 0, sizeof(ign_sigchld));
@@ -2491,7 +2552,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	sigaction(SIGCHLD, &old_sigchld, NULL);
 #ifdef USE_DNSTAP
 	if (nsd->dt_collector) {
-		int *swap_fd_send;
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: swap dnstap collector pipes"));
 		/* Swap fd_send with fd_swap so old serve child and new serve
 		 * childs will not write to the same pipe ends simultaneously */
@@ -2501,6 +2561,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	}
 #endif
+	swap_fd_send = nsd->serve2xfrd_fd_send;
+	nsd->serve2xfrd_fd_send = nsd->serve2xfrd_fd_swap;
+	nsd->serve2xfrd_fd_swap = swap_fd_send;
 	/* Start new child processes */
 	if (server_start_children(nsd, server_region, netio, &nsd->
 		xfrd_listener->fd) != 0) {

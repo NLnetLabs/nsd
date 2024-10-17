@@ -777,3 +777,47 @@ xfrd_handle_ipc_read(struct event* handler, xfrd_state_type* xfrd)
 		buffer_clear(xfrd->ipc_conn->packet);
 	}
 }
+
+void
+xfrd_handle_notify(int fd, short event, void* arg)
+{
+	xfrd_state_type* xfrd = (xfrd_state_type*)arg;
+	ssize_t r;
+	uint32_t acl_num;
+	int32_t acl_xfr;
+
+	if (!(event & EV_READ))
+		return;
+
+	/* xfrd->notify_message is really local to the scope of this function,
+	 * but allocated beforehand anyway to prevent claiming more than
+	 * QIOBUFSZ on the stack. There is only a single xfrd event loop,
+	 * therefore it is safe to use this semi global variable.
+	 */
+	buffer_clear(xfrd->notify_message);
+	r = recv(fd, buffer_current( xfrd->notify_message)
+	           , buffer_capacity(xfrd->notify_message), MSG_DONTWAIT);
+	if(r == -1) {
+		if(errno != EAGAIN && errno != EINTR && errno != EMSGSIZE) {
+			log_msg( LOG_ERR
+			       , "xfrd_handle_notify receive failed: %s"
+			       , strerror(errno));
+		}
+		return;
+	} else if(r == 0) {
+		log_msg(LOG_ERR, "xfrd_handle_notify remote closed connection");
+		return;
+	} else if(r < (ssize_t)(sizeof(acl_xfr) + sizeof(acl_num))) {
+		log_msg(LOG_ERR, "xfrd_handle_notify invalid message size");
+		return;
+	}
+	/* acl_num and acl_xfr are appended to the NOTIFY message */
+	acl_num = buffer_read_u32_at(xfrd->notify_message,
+			r - sizeof(acl_xfr) - sizeof(acl_num));
+	acl_xfr = (int32_t)buffer_read_u32_at(xfrd->notify_message,
+			r - sizeof(acl_xfr));
+	buffer_skip(xfrd->notify_message, r - sizeof(acl_xfr) - sizeof(acl_num));
+	buffer_flip(xfrd->notify_message);
+	xfrd_handle_passed_packet(xfrd->notify_message, acl_num, acl_xfr);
+}
+

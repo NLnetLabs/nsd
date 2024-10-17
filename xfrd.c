@@ -131,6 +131,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	pid_t nsd_pid)
 {
 	region_type* region;
+	size_t i;
 
 	assert(xfrd == 0);
 	/* to setup signalhandling */
@@ -189,6 +190,20 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	xfrd->need_to_send_reload = 0;
 	xfrd->need_to_send_shutdown = 0;
 	xfrd->need_to_send_stats = 0;
+
+	xfrd->serve2xfrd = (struct event *) region_alloc_array_zero(
+		xfrd->region, nsd->child_count * 2, sizeof(struct event));
+	for(i = 0; i < 2 * nsd->child_count; i++) {
+		memset(&xfrd->serve2xfrd[i], 0, sizeof(struct event));
+		event_set(&xfrd->serve2xfrd[i], nsd->serve2xfrd_fd_recv[i],
+				EV_PERSIST|EV_READ, xfrd_handle_notify, xfrd);
+		if(event_base_set(xfrd->event_base, &xfrd->serve2xfrd[i]) != 0)
+			log_msg( LOG_ERR
+			       , "xfrd serve2xfrd: event_base_set failed");
+		if(event_add(&xfrd->serve2xfrd[i], NULL) != 0)
+			log_msg(LOG_ERR, "xfrd serve2xfrd: event_add failed");
+	}
+	xfrd->notify_message = buffer_create(xfrd->region, QIOBUFSZ);
 
 	xfrd->write_zonefile_needed = 0;
 	if(nsd->options->zonefiles_write)

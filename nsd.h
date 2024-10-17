@@ -354,6 +354,15 @@ struct	nsd
 	 * simultaneous with new serve childs. */
 	int *dt_collector_fd_swap;
 #endif /* USE_DNSTAP */
+	/* the pipes from the serve processes to xfrd, for passing through
+	 * NOTIFY messages, arrays of size child_count * 2.
+	 * Kept open for (re-)forks. */
+	int *serve2xfrd_fd_send, *serve2xfrd_fd_recv;
+	/* the pipes from the serve processes to the xfrd. Initially
+	 * these point halfway into serve2xfrd_fd_send, but during reload
+	 * the pointer is swapped with serve2xfrd_fd_send so that only one
+	 * serve child will write to the same fd simultaneously. */
+	int *serve2xfrd_fd_swap;
 	/* ratelimit for errors, time value */
 	time_t err_limit_time;
 	/* ratelimit for errors, packet count */
