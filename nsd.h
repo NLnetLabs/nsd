@@ -42,13 +42,6 @@ struct dt_collector;
 #define	NSD_REAP_CHILDREN 4
 #define	NSD_QUIT 5
 /*
- * PASS_TO_XFRD is followed by the u16(len in network order) and
- * then network packet contents.  packet is a notify(acl checked), or
- * xfr reply from a master(acl checked).
- * followed by u32(acl number that matched from notify/xfr acl).
- */
-#define NSD_PASS_TO_XFRD 6
-/*
  * RELOAD_REQ is sent when parent receives a SIGHUP and tells
  * xfrd that it wants to initiate a reload (and thus task swap).
  */

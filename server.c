@@ -437,7 +437,6 @@ static int
 restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 	int* xfrd_sock_p)
 {
-	struct main_ipc_handler_data *ipc_data;
 	size_t i;
 	int sv[2];
 
@@ -463,17 +462,11 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				}
 				if(!nsd->children[i].handler)
 				{
+					struct main_ipc_handler_data *ipc_data;
 					ipc_data = (struct main_ipc_handler_data*) region_alloc(
 						region, sizeof(struct main_ipc_handler_data));
 					ipc_data->nsd = nsd;
 					ipc_data->child = &nsd->children[i];
-					ipc_data->child_num = i;
-					ipc_data->xfrd_sock = xfrd_sock_p;
-					ipc_data->packet = buffer_create(region, QIOBUFSZ);
-					ipc_data->forward_mode = 0;
-					ipc_data->got_bytes = 0;
-					ipc_data->total_bytes = 0;
-					ipc_data->acl_num = 0;
 					nsd->children[i].handler = (struct netio_handler*) region_alloc(
 						region, sizeof(struct netio_handler));
 					nsd->children[i].handler->fd = nsd->children[i].child_fd;
@@ -483,10 +476,6 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 					nsd->children[i].handler->event_handler = parent_handle_child_command;
 					netio_add_handler(netio, nsd->children[i].handler);
 				}
-				/* clear any ongoing ipc */
-				ipc_data = (struct main_ipc_handler_data*)
-					nsd->children[i].handler->user_data;
-				ipc_data->forward_mode = 0;
 				/* restart - update fd */
 				nsd->children[i].handler->fd = nsd->children[i].child_fd;
 				break;

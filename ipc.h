@@ -27,16 +27,6 @@ struct main_ipc_handler_data
 {
 	struct nsd	*nsd;
 	struct nsd_child *child;
-	int		child_num;
-
-	/* pointer to the socket, as it may change if it is restarted */
-	int		*xfrd_sock;
-	struct buffer	*packet;
-	int		forward_mode;
-	size_t		got_bytes;
-	uint16_t	total_bytes;
-	uint32_t	acl_num;
-	int32_t		acl_xfr;
 };
 
 /*

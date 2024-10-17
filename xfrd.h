@@ -97,8 +97,6 @@ struct xfrd_state {
 	/* communication channel with server_main */
 	struct event ipc_handler;
 	int ipc_handler_flags;
-	struct xfrd_tcp *ipc_conn;
-	struct buffer* ipc_pass;
 
 	/* 2 * nsd->child_count communication channels with the serve childs */
 	struct event* serve2xfrd;
