@@ -16,7 +16,7 @@ jobs:
             cc: clang
             cflags: -g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all
             packages: autoconf automake libtool make libevent-dev libssl-dev flex bison
-          - os: macos-12
+          - os: macos-15
             cflags: -g2 -O0 -fsanitize=address,undefined -fno-sanitize-recover=all
             packages: autoconf automake libtool openssl libevent flex bison
     steps:
