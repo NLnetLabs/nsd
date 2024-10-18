@@ -48,7 +48,7 @@ jobs:
           (cd simdzone && autoconf && autoheader)
           libtoolize -c -i || glibtoolize -c -i
           if test ${{runner.os}} = 'macOS'; then
-            ./configure --enable-checking --disable-flto --with-ssl=yes --with-libevent=/opt/homebrew/opt/libevent
+            ./configure --enable-checking --disable-flto --with-ssl=/opt/homebrew/opt/openssl --with-libevent=/opt/homebrew/opt/libevent
           else
             ./configure --enable-checking --disable-flto --with-ssl=yes --with-libevent=yes
           fi
