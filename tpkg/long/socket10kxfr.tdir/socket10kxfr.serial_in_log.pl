@@ -21,7 +21,7 @@ my $t = 0;
 while (time() - $start <= 180) {
 	open(LOG, $filenm) || die "could not open $filenm\n";
 	while (<LOG>) {
-		if (/Zone (\d+)\.tld serial \d+ is updated to $serial/
+		if (/zone (\d+)\.tld serial \d+ is updated to $serial/
 		    and $1 >= 0 and $1 < $nzones and $seen[$1] == 0) {
 
 			$seen[$1] = 1;

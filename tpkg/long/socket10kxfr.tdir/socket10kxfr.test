@@ -23,7 +23,7 @@ else
 	i=0
 	while test $i -le $NUMZONES; do
 		echo wait for $i.tld
-		wait_logfile log.slave "Zone $i.tld serial 0 is updated to 1" 1000
+		wait_logfile log.slave "zone $i.tld serial 0 is updated to 1" 1000
 		i=`expr $i + 1`
 	done
 fi
@@ -92,7 +92,7 @@ else
 	i=0
 	while test $i -le $NUMZONES; do
 		echo wait for $i.tld
-		wait_logfile log.slave "Zone $i.tld serial 1 is updated to 2" 1000
+		wait_logfile log.slave "zone $i.tld serial 1 is updated to 2" 1000
 		i=`expr $i + 1`
 	done
 fi
