@@ -15,6 +15,7 @@ BUG FIXES:
 	  prepended to fix detection.
 	- Merge #376: Point the user towards tcpdump for logging individual
 	  queries.
+	- Fix ci to update macos-12 to the macos-15 runner image.
 
 4.10.1
 ================

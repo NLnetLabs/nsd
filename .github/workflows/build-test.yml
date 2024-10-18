@@ -16,9 +16,10 @@ jobs:
             cc: clang
             cflags: -g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all
             packages: autoconf automake libtool make libevent-dev libssl-dev flex bison
-          - os: macos-12
+          - os: macos-15
             cflags: -g2 -O0 -fsanitize=address,undefined -fno-sanitize-recover=all
-            packages: autoconf automake libtool openssl libevent flex bison
+            packages: autoconf automake libtool flex bison
+            # The libevent and openssl packages are already installed.
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,7 +48,11 @@ jobs:
           autoconf && autoheader
           (cd simdzone && autoconf && autoheader)
           libtoolize -c -i || glibtoolize -c -i
-          ./configure --enable-checking --disable-flto --with-ssl=yes --with-libevent=yes
+          if test "${{runner.os}}" = 'macOS'; then
+            ./configure --enable-checking --disable-flto --with-ssl=/opt/homebrew/opt/openssl --with-libevent=/opt/homebrew/opt/libevent
+          else
+            ./configure --enable-checking --disable-flto --with-ssl=yes --with-libevent=yes
+          fi
           make -j 2
       - name: 'Run tests'
         id: test

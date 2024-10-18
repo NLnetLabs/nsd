@@ -1,3 +1,6 @@
+18 October 2024: Wouter
+	- Fix ci to update macos-12 to the macos-15 runner image.
+
 25 September 2024: Wouter
 	- Fix #383: log timestamps in ISO8601 format with timezone.
 	  This adds the option `log-time-iso: yes` that logs in ISO8601
