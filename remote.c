@@ -2388,7 +2388,7 @@ can_dump_cookie_secrets(RES* ssl, nsd_type* const nsd)
 	if(!cookie_secret_file(nsd->options))
 		(void)ssl_printf(ssl, "error: empty cookie-secret-file\n");
 
-	else if(nsd->cookie_secrets_source > COOKIE_SECRETS_FROM_FILE)
+	else if(nsd->cookie_secrets_source == COOKIE_SECRETS_FROM_CONFIG)
 		(void)ssl_printf(ssl, "error: cookie secrets are already "
 			"configured. Remove \"cookie-secret:\" and "
 			"\"cookie-staging-secret:\" entries from configuration "
@@ -2524,7 +2524,8 @@ do_add_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	backup_cookie_count = nsd->cookie_count;
 	memcpy( backup_cookie_secrets, nsd->cookie_secrets
 	      , sizeof(cookie_secrets_type));
-	if(nsd->cookie_secrets_source < COOKIE_SECRETS_FROM_FILE) {
+	if(nsd->cookie_secrets_source != COOKIE_SECRETS_FROM_FILE
+	&& nsd->cookie_secrets_source != COOKIE_SECRETS_FROM_CONFIG) {
 		nsd->cookie_count = 0;
 	}
 	add_cookie_secret(nsd, secret);
