@@ -66,6 +66,7 @@ static const char *global_ident = NULL;
 static log_function_type *current_log_function = log_file;
 static FILE *current_log_file = NULL;
 int log_time_asc = 1;
+int log_time_iso = 0;
 
 #ifdef USE_LOG_PROCESS_ROLE
 void
@@ -164,15 +165,39 @@ log_file(int priority, const char *message)
 		char tmbuf[32];
 		tmbuf[0]=0;
 		tv.tv_usec = 0;
-		if(gettimeofday(&tv, NULL) == 0) {
-			struct tm tm;
-			time_t now = (time_t)tv.tv_sec;
-			strftime(tmbuf, sizeof(tmbuf), "%Y-%m-%d %H:%M:%S",
-				localtime_r(&now, &tm));
+		if(log_time_iso) {
+			char tzbuf[16];
+			tzbuf[0]=0;
+			/* log time in iso format */
+			if(gettimeofday(&tv, NULL) == 0) {
+				struct tm tm, *tm_p;
+				time_t now = (time_t)tv.tv_sec;
+				tm_p = localtime_r(&now, &tm);
+				strftime(tmbuf, sizeof(tmbuf), "%Y-%m-%dT%H:%M:%S",
+					tm_p);
+				if(strftime(tzbuf, sizeof(tzbuf), "%z", tm_p) == 5) {
+					/* put ':' in "+hh:mm" */
+					tzbuf[5] = tzbuf[4];
+					tzbuf[4] = tzbuf[3];
+					tzbuf[3] = ':';
+					tzbuf[6] = 0;
+				}
+			}
+			fprintf(current_log_file, "%s.%3.3d%s %s[%d]: %s: %s",
+				tmbuf, (int)tv.tv_usec/1000, tzbuf,
+				global_ident, (int) getpid(), priority_text, message);
+		} else {
+			/* log time in ascii format */
+			if(gettimeofday(&tv, NULL) == 0) {
+				struct tm tm;
+				time_t now = (time_t)tv.tv_sec;
+				strftime(tmbuf, sizeof(tmbuf), "%Y-%m-%d %H:%M:%S",
+					localtime_r(&now, &tm));
+			}
+			fprintf(current_log_file, "[%s.%3.3d] %s[%d]: %s: %s",
+				tmbuf, (int)tv.tv_usec/1000,
+				global_ident, (int) getpid(), priority_text, message);
 		}
-		fprintf(current_log_file, "[%s.%3.3d] %s[%d]: %s: %s",
-			tmbuf, (int)tv.tv_usec/1000,
-			global_ident, (int) getpid(), priority_text, message);
  	} else
 #endif /* have time functions */
 		fprintf(current_log_file, "[%d] %s[%d]: %s: %s",

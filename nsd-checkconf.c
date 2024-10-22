@@ -424,6 +424,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_BIN(reload_config, o);
 		SERV_GET_BIN(zonefiles_check, o);
 		SERV_GET_BIN(log_time_ascii, o);
+		SERV_GET_BIN(log_time_iso, o);
 		SERV_GET_BIN(round_robin, o);
 		SERV_GET_BIN(minimal_responses, o);
 		SERV_GET_BIN(confine_to_zone, o);
@@ -683,6 +684,7 @@ config_test_print_server(nsd_options_type* opt)
 	print_string_var("xfrdir:", opt->xfrdir);
 	printf("\txfrd-reload-timeout: %d\n", opt->xfrd_reload_timeout);
 	printf("\tlog-time-ascii: %s\n", opt->log_time_ascii?"yes":"no");
+	printf("\tlog-time-iso: %s\n", opt->log_time_iso?"yes":"no");
 	printf("\tround-robin: %s\n", opt->round_robin?"yes":"no");
 	printf("\tminimal-responses: %s\n", opt->minimal_responses?"yes":"no");
 	printf("\tconfine-to-zone: %s\n",

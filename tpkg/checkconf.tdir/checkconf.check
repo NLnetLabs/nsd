@@ -40,6 +40,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -178,6 +179,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -257,6 +259,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: no
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -345,6 +348,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -477,6 +481,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -607,6 +612,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no

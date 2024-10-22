@@ -1,3 +1,22 @@
+18 October 2024: Wouter
+	- Fix ci to update macos-12 to the macos-15 runner image.
+
+25 September 2024: Wouter
+	- Fix #383: log timestamps in ISO8601 format with timezone.
+	  This adds the option `log-time-iso: yes` that logs in ISO8601
+	  format.
+	- Fix to initialize log_time_iso value in options.
+
+23 August 2024: Wouter
+	- Merge #376: Point the user towards tcpdump for logging individual
+	  queries.
+
+22 August 2024: Wouter
+	- Add cross platform freebsd, openbsd and netbsd to github ci.
+	- Update simdzone to include fix for netbsd double bswap declarations,
+	  and also semantic checks for DS and ZONEMD. And CFLAGS has -march
+	  prepended to fix detection.
+
 19 August 2024: Wouter
 	- Fix title underline and declaration after statement warnings.
 

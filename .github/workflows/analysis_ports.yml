@@ -1,0 +1,105 @@
+name: Analysis and Ports
+
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: 'Start analysis and port workflow'
+        default: 'yes'
+        required: true
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - name: Linux and clang-analyzer
+            os: ubuntu-latest
+            config: "--enable-checking --disable-flto"
+            make_test: "yes"
+            clang_analysis: "yes"
+          - name: FreeBSD
+            os: ubuntu-latest
+            config: "no"
+            make: "no"
+            with_cross_platform_action: "yes"
+            cross_platform_os: "freebsd"
+            cross_platform_arch: "x86-64"
+            cross_platform_version: "14.1"
+            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
+          - name: OpenBSD
+            os: ubuntu-latest
+            config: "no"
+            make: "no"
+            with_cross_platform_action: "yes"
+            cross_platform_os: "openbsd"
+            cross_platform_arch: "x86-64"
+            cross_platform_version: "7.5"
+            cross_platform_config: "--enable-checking --disable-flto --with-libevent"
+          - name: NetBSD
+            os: ubuntu-latest
+            config: "no"
+            make: "no"
+            with_cross_platform_action: "yes"
+            cross_platform_os: "netbsd"
+            cross_platform_arch: "x86-64"
+            cross_platform_version: "10.0"
+            cross_platform_config: "--enable-checking --disable-flto --with-libevent=no"
+ 
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: cross-platform-action on ${{ matrix.cross_platform_os }} ${{ matrix.cross_platform_version }}
+        if: ${{ matrix.with_cross_platform_action == 'yes' }}
+        uses: cross-platform-actions/action@v0.25.0
+        env:
+          CROSS_PLATFORM_OS: ${{ matrix.cross_platform_os }}
+        with:
+          environment_variables: CROSS_PLATFORM_OS
+          operating_system: ${{ matrix.cross_platform_os }}
+          architecture: ${{ matrix.cross_platform_arch }}
+          version: ${{ matrix.cross_platform_version }}
+          shell: bash
+          memory: 4G
+          cpu_count: 2
+          run: |
+            set -e -x
+            if test "$CROSS_PLATFORM_OS" = "freebsd"; then sudo pkg install -y autoconf libtool openssl libevent; fi
+            if test "$CROSS_PLATFORM_OS" = "openbsd"; then sudo pkg_add autoconf-2.71 libtool libevent; export AUTOCONF_VERSION="2.71"; fi
+            if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install autoconf libtool; fi
+            echo "::group::configure"
+            autoconf && autoheader
+            (cd simdzone && autoconf && autoheader)
+            libtoolize -c -i || glibtoolize -c -i
+            ./configure ${{ matrix.cross_platform_config }}
+            echo "::endgroup::"
+            echo "::group::make"
+            make -j2
+            echo "::endgroup::"
+            echo "::group::make cutest; ./cutest"
+            make -j2 cutest
+            ./cutest
+            echo "::endgroup::"
+      - name: configure
+        if: ${{ matrix.config != 'no' }}
+        run: |
+          set -e -x
+          if test `uname` = "Linux"; then sudo apt-get install libevent-dev; fi
+          autoconf && autoheader
+          (cd simdzone && autoconf && autoheader)
+          libtoolize -c -i || glibtoolize -c -i
+          ./configure ${{ matrix.config }}
+      - name: make
+        if: ${{ matrix.make != 'no' }}
+        run: make -j2
+      - name: make cutest; ./cutest
+        if: ${{ matrix.make_test == 'yes' }}
+        run: |
+          set -e -x
+          make -j2 cutest
+          ./cutest
+      - name: clang-analysis
+        if: ${{ matrix.clang_analysis == 'yes' }}
+        run: (cd tpkg/clang-analysis.tdir; bash clang-analysis.test)
