@@ -1209,7 +1209,7 @@ int cookie_secret_file_read(nsd_type* nsd) {
 		}
 	}
 	fclose(f);
-	if(count && nsd->cookie_secrets_source <= COOKIE_SECRETS_FROM_FILE) {
+	if(count && nsd->cookie_secrets_source != COOKIE_SECRETS_FROM_FILE) {
 		nsd->cookie_count = count;
 		memcpy(nsd->cookie_secrets, cookie_secrets, sizeof(cookie_secrets));
 		nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
