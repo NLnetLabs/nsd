@@ -7,7 +7,6 @@
 . ../common.sh
 PRE="../.."
 TPKG_NSD_CONTROL="$PRE/nsd-control"
-PRIMARY_CONTROL="$PRE/nsd-control -c primary.conf"
 SECONDARY_CONTROL="$PRE/nsd-control -c secondary.conf"
 
 wait_logfile secondary.log 'zone zone2fail.invalid serial 0 is updated to 1'
