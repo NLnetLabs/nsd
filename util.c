@@ -1175,30 +1175,69 @@ void drop_cookie_secret(struct nsd* nsd)
 	nsd->cookie_count -= 1;
 }
 
-static
-int cookie_secret_file_read(nsd_type* nsd) {
+void reconfig_cookies(struct nsd* nsd, struct nsd_options* options)
+{
 	cookie_secret_type cookie_secrets[NSD_COOKIE_HISTORY_SIZE];
 	char secret[NSD_COOKIE_SECRET_SIZE * 2 + 2/*'\n' and '\0'*/];
-	FILE* f;
+	FILE* f = NULL;
 	size_t count = 0;
 	const char* fn;
+	size_t i, j;
 
-	if(!(fn = cookie_secret_file(nsd->options)))
-		return 1; /* Explicitely disabled with empty filename */
+	nsd->do_answer_cookie = options->answer_cookie;
+
+	/* Cookie secrets in the configuration file take precedence */
+	if(options->cookie_secret) {
+		ssize_t len = hex_pton(options->cookie_secret,
+				nsd->cookie_secrets[0].cookie_secret,
+				NSD_COOKIE_SECRET_SIZE);
+
+		/* Cookie length guaranteed in configparser.y */
+		assert(len == NSD_COOKIE_SECRET_SIZE);
+		nsd->cookie_count = 1;
+		if(options->cookie_staging_secret) {
+			len = hex_pton(options->cookie_staging_secret,
+					nsd->cookie_secrets[1].cookie_secret,
+					NSD_COOKIE_SECRET_SIZE);
+			/* Cookie length guaranteed in configparser.y */
+			assert(len == NSD_COOKIE_SECRET_SIZE);
+			nsd->cookie_count = 2;
+		}
+		/*************************************************************/
+		nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_CONFIG;
+		return;
+		/*************************************************************/
+	}
+	/* Are cookies from file explicitly disabled? */
+	if(!(fn = nsd->options->cookie_secret_file))
+		goto generate_cookie_secrets;
 
 	else if((f = fopen(fn, "r")) != NULL)
 		; /* pass */
 
-	/* a non-existing cookie file is not an error */
+	/* a non-existing cookie file is not necessarily an error */
 	else if(errno != ENOENT) {
 		log_msg( LOG_ERR
 		       , "error reading cookie secret file \"%s\": \"%s\""
 		       , fn, strerror(errno));
-		return 0;
-	}
-	else if(nsd->options->cookie_secret_file != NULL /* explicit name */
-	     ||!(f = fopen((fn = CONFIGDIR"/nsd_cookiesecrets.txt"), "r")))
-		return 1;
+		goto generate_cookie_secrets;
+
+	/* Only at startup cookie_secrets_source == COOKIE_SECRETS_NONE.
+	 * Only then the previous default file location will be tried
+	 * when the current default file location didn't exist.
+	 */
+	} else if(nsd->cookie_secrets_source == COOKIE_SECRETS_NONE
+	       && nsd->options->cookie_secret_file_is_default
+	       && (f = fopen((fn = CONFIGDIR"/nsd_cookiesecrets.txt"),"r")))
+		; /* pass */
+
+	else if(errno != ENOENT) {
+		log_msg( LOG_ERR
+		       , "error reading cookie secret file \"%s\": \"%s\""
+		       , fn, strerror(errno));
+		goto generate_cookie_secrets;
+	} else
+		goto generate_cookie_secrets;
 
 	/* cookie secret file exists and is readable */
 	for( count = 0; count < NSD_COOKIE_HISTORY_SIZE; count++ ) {
@@ -1216,7 +1255,7 @@ int cookie_secret_file_read(nsd_type* nsd) {
 			       , fn);
 			explicit_bzero(cookie_secrets, sizeof(cookie_secrets));
 			explicit_bzero(secret, sizeof(secret));
-			return 0;
+			goto generate_cookie_secrets;
 		}
 		/* needed for `hex_pton`; stripping potential `\n` */
 		secret[secret_len] = '\0';
@@ -1229,61 +1268,39 @@ int cookie_secret_file_read(nsd_type* nsd) {
 			       , fn);
 			explicit_bzero(cookie_secrets, sizeof(cookie_secrets));
 			explicit_bzero(secret, sizeof(secret));
-			return 0;
-		explicit_bzero(secret, sizeof(secret));
+			goto generate_cookie_secrets;
 		}
+		explicit_bzero(secret, sizeof(secret));
 	}
 	fclose(f);
-	if(count && nsd->cookie_secrets_source != COOKIE_SECRETS_FROM_FILE) {
+	if(count) {
 		nsd->cookie_count = count;
 		memcpy(nsd->cookie_secrets, cookie_secrets, sizeof(cookie_secrets));
-		nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
 		region_str_replace(  nsd->region
 		                  , &nsd->cookie_secrets_filename, fn );
+		explicit_bzero(cookie_secrets, sizeof(cookie_secrets));
+		/*************************************************************/
+		nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
+		return;
+		/*************************************************************/
 	}
 	explicit_bzero(cookie_secrets, sizeof(cookie_secrets));
-	return 1;
-}
 
+generate_cookie_secrets:
+	/* Calculate a new random secret */
+	srandom(getpid() ^ time(NULL));
 
-void reconfig_cookies(struct nsd* nsd, struct nsd_options* options)
-{
-	nsd->do_answer_cookie = options->answer_cookie;
-	if(options->cookie_secret) {
-		ssize_t len = hex_pton(options->cookie_secret,
-				nsd->cookie_secrets[0].cookie_secret,
-				NSD_COOKIE_SECRET_SIZE);
-
-		/* Cookie length guaranteed in configparser.y */
-		assert(len == NSD_COOKIE_SECRET_SIZE);
-		nsd->cookie_count = 1;
-		nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_CONFIG;
-		if(options->cookie_staging_secret) {
-			len = hex_pton(options->cookie_staging_secret,
-					nsd->cookie_secrets[1].cookie_secret,
-					NSD_COOKIE_SECRET_SIZE);
-			/* Cookie length guaranteed in configparser.y */
-			assert(len == NSD_COOKIE_SECRET_SIZE);
-			nsd->cookie_count = 2;
-		}
-	} else {
-		size_t i, j;
-
-		/* Calculate a new random secret */
-		srandom(getpid() ^ time(NULL));
-
-		for( j = 0; j < NSD_COOKIE_HISTORY_SIZE; j++) {
+	for( j = 0; j < NSD_COOKIE_HISTORY_SIZE; j++) {
 #if defined(HAVE_SSL)
-			if (!RAND_status()
-			||  !RAND_bytes(nsd->cookie_secrets[j].cookie_secret, NSD_COOKIE_SECRET_SIZE))
+		if (!RAND_status()
+		||  !RAND_bytes(nsd->cookie_secrets[j].cookie_secret, NSD_COOKIE_SECRET_SIZE))
 #endif
-			for (i = 0; i < NSD_COOKIE_SECRET_SIZE; i++)
-				nsd->cookie_secrets[j].cookie_secret[i] = random_generate(256);
-		}
-		nsd->cookie_count = 1;
-		nsd->cookie_secrets_source = COOKIE_SECRETS_GENERATED;
-		if(cookie_secret_file(nsd->options))
-			cookie_secret_file_read(nsd);
+		for (i = 0; i < NSD_COOKIE_SECRET_SIZE; i++)
+			nsd->cookie_secrets[j].cookie_secret[i] = random_generate(256);
 	}
+	nsd->cookie_count = 1;
+	/*********************************************************************/
+	nsd->cookie_secrets_source = COOKIE_SECRETS_GENERATED;
+	/*********************************************************************/
 }
 

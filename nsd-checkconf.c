@@ -166,23 +166,13 @@ usage(void)
 }
 
 static void
-print_string_var_default(const char* varname, const char* value,
-		const char* default_value)
-{
-	if (value) {
-		printf("\t%s \"%s\"\n", varname, value);
-	} else if (default_value) {
-		printf("\t#%s \"%s\"\n", varname, default_value);
-	} else {
-		printf("\t#%s\n", varname);
-	}
-
-}
-
-static void
 print_string_var(const char* varname, const char* value)
 {
-	print_string_var_default(varname, value, NULL);
+	if (!value) {
+		printf("\t#%s\n", varname);
+	} else {
+		printf("\t%s \"%s\"\n", varname, value);
+	}
 }
 
 static void
@@ -731,7 +721,13 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\tanswer-cookie: %s\n", opt->answer_cookie?"yes":"no");
 	print_string_var("cookie-secret:", opt->cookie_secret);
 	print_string_var("cookie-staging-secret:", opt->cookie_staging_secret);
-	print_string_var_default("cookie-secret-file:", opt->cookie_secret_file, COOKIESECRETSFILE);
+	if(opt->cookie_secret_file_is_default) {
+		print_string_var("#cookie-secret-file:", opt->cookie_secret_file);
+	} else if(opt->cookie_secret_file) {
+		print_string_var("cookie-secret-file:", opt->cookie_secret_file);
+	} else {
+		print_string_var("cookie-secret-file:", "");
+	}
 	if(opt->proxy_protocol_port) {
 		struct proxy_protocol_port_list* p;
 		for(p = opt->proxy_protocol_port; p; p = p->next)

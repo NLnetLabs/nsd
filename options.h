@@ -213,6 +213,8 @@ struct nsd_options {
 	char *cookie_staging_secret;
 	/** path to cookie secret store */
 	char *cookie_secret_file;
+	/** set when the cookie_secret_file whas not explicitely configured */
+	uint8_t cookie_secret_file_is_default;
 	/** enable verify */
 	int verify_enable;
 	/** list of ip addresses used to serve zones for verification */
@@ -492,15 +494,6 @@ int nsd_options_insert_zone(struct nsd_options* opt, struct zone_options* zone);
 /* insert a pattern into the main options tree, returns 0 on error */
 int nsd_options_insert_pattern(struct nsd_options* opt,
 	struct pattern_options* pat);
-
-/* return the configured cookie secrets filename or NULL if disabled */
-static inline const char* cookie_secret_file(struct nsd_options* opt)
-{
-	/* NULL means the default of COOKIESECRETSFILE, "" means disabled */
-	return opt->cookie_secret_file
-	     ? ( *opt->cookie_secret_file ? opt->cookie_secret_file : NULL )
-	     : COOKIESECRETSFILE;
-}
 
 /* parses options file. Returns false on failure. callback, if nonNULL,
  * gets called with error strings, default prints. */

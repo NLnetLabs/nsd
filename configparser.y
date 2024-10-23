@@ -541,7 +541,17 @@ server_option:
       }
     }
   | VAR_COOKIE_SECRET_FILE STRING
-    { cfg_parser->opt->cookie_secret_file = region_strdup(cfg_parser->opt->region, $2); }
+    {
+      /* Empty filename means explicitly disabled cookies from file, internally
+       * represented as NULL.
+       * Note that after parsing, if no value was configured, then
+       * cookie_secret_file_is_default is still 1, then the default cookie
+       * secret file value will be assigned to cookie_secret_file.
+       */
+      if(*$2) cfg_parser->opt->cookie_secret_file = region_strdup(cfg_parser->opt->region, $2);
+      cfg_parser->opt->cookie_secret_file_is_default = 0;
+    }
+    
   | VAR_XFRD_TCP_MAX number
     { cfg_parser->opt->xfrd_tcp_max = (int)$2; }
   | VAR_XFRD_TCP_PIPELINE number

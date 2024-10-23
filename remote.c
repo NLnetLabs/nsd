@@ -1981,6 +1981,8 @@ repat_cookie_options_changed(struct nsd_options* old, struct nsd_options* new)
 	                      , new->cookie_secret)
 	    || opt_str_changed( old->cookie_staging_secret
 	                      , new->cookie_staging_secret)
+	    || old->cookie_secret_file_is_default !=
+	       new->cookie_secret_file_is_default
 	    || opt_str_changed( old->cookie_secret_file
 	                      , new->cookie_secret_file);
 }
@@ -2011,6 +2013,8 @@ repat_options(xfrd_state_type* xfrd, struct nsd_options* newopt)
 		region_str_replace(  oldopt->region
 		                  , &oldopt->cookie_staging_secret
 		                  ,  newopt->cookie_staging_secret);
+		oldopt->cookie_secret_file_is_default =
+			newopt->cookie_secret_file_is_default;
 		region_str_replace(  oldopt->region
 		                  , &oldopt->cookie_secret_file
 		                  ,  newopt->cookie_secret_file);
@@ -2385,7 +2389,7 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 static int
 can_dump_cookie_secrets(RES* ssl, nsd_type* const nsd)
 {
-	if(!cookie_secret_file(nsd->options))
+	if(!nsd->options->cookie_secret_file)
 		(void)ssl_printf(ssl, "error: empty cookie-secret-file\n");
 
 	else if(nsd->cookie_secrets_source == COOKIE_SECRETS_FROM_CONFIG)
@@ -2408,14 +2412,14 @@ cookie_secret_file_dump_and_reload(RES* ssl, nsd_type* const nsd) {
 	size_t i;
 
 	/* open write only and truncate */
-	if(!cookie_secret_file(nsd->options)) {
+	if(!nsd->options->cookie_secret_file) {
 		(void)ssl_printf(ssl, "cookie-secret-file empty\n");
 		return 0;
 	}
-	else if((f = fopen(cookie_secret_file(nsd->options), "w")) == NULL ) {
+	else if((f = fopen(nsd->options->cookie_secret_file, "w")) == NULL ) {
 		(void)ssl_printf( ssl
 		                , "unable to open cookie secret file %s: %s\n"
-		                , cookie_secret_file(nsd->options)
+		                , nsd->options->cookie_secret_file
 		                , strerror(errno));
 		return 0;
 	}
@@ -2432,7 +2436,7 @@ cookie_secret_file_dump_and_reload(RES* ssl, nsd_type* const nsd) {
 	fclose(f);
 	nsd->cookie_secrets_source = COOKIE_SECRETS_FROM_FILE;
 	region_str_replace(nsd->region, &nsd->cookie_secrets_filename
-	                              , cookie_secret_file(nsd->options));
+	                              , nsd->options->cookie_secret_file);
 	task_new_cookies(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
 		nsd->do_answer_cookie, nsd->cookie_count, nsd->cookie_secrets);
 	xfrd_set_reload_now(xfrd);
@@ -2533,7 +2537,7 @@ do_add_cookie_secret(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	if(!cookie_secret_file_dump_and_reload(ssl, nsd)) {
 		explicit_bzero(arg, strlen(arg));
 		(void)ssl_printf(ssl, "error: writing to cookie secret file: \"%s\"\n"
-		                , cookie_secret_file(nsd->options));
+		                , nsd->options->cookie_secret_file);
 		memcpy( nsd->cookie_secrets, backup_cookie_secrets
 		      , sizeof(cookie_secrets_type));
 		nsd->cookie_count = backup_cookie_count;
