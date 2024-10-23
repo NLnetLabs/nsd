@@ -466,8 +466,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 	if((acl_num = acl_check_incoming(zone_opt->pattern->allow_notify, query,
 		&why)) != -1)
 	{
-		sig_atomic_t mode = NSD_PASS_TO_XFRD;
-		int s = nsd->this_child->parent_fd;
+		int s = nsd->serve2xfrd_fd_send[nsd->this_child->child_num];
 		uint16_t sz;
 		uint32_t acl_send = htonl(acl_num);
 		uint32_t acl_xfr;
@@ -485,14 +484,14 @@ answer_notify(struct nsd* nsd, struct query *query)
 			why->ip_address_spec,
 			why->nokey?"NOKEY":
 			(why->blocked?"BLOCKED":why->key_name)));
-		sz = buffer_limit(query->packet);
 		if(buffer_limit(query->packet) > MAX_PACKET_SIZE)
 			return query_error(query, NSD_RC_SERVFAIL);
 		/* forward to xfrd for processing
 		   Note. Blocking IPC I/O, but acl is OK. */
+		sz = buffer_limit(query->packet)
+		   + sizeof(acl_send) + sizeof(acl_xfr);
 		sz = htons(sz);
-		if(!write_socket(s, &mode, sizeof(mode)) ||
-			!write_socket(s, &sz, sizeof(sz)) ||
+		if(!write_socket(s, &sz, sizeof(sz)) ||
 			!write_socket(s, buffer_begin(query->packet),
 				buffer_limit(query->packet)) ||
 			!write_socket(s, &acl_send, sizeof(acl_send)) ||

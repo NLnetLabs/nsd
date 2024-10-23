@@ -42,13 +42,6 @@ struct dt_collector;
 #define	NSD_REAP_CHILDREN 4
 #define	NSD_QUIT 5
 /*
- * PASS_TO_XFRD is followed by the u16(len in network order) and
- * then network packet contents.  packet is a notify(acl checked), or
- * xfr reply from a master(acl checked).
- * followed by u32(acl number that matched from notify/xfr acl).
- */
-#define NSD_PASS_TO_XFRD 6
-/*
  * RELOAD_REQ is sent when parent receives a SIGHUP and tells
  * xfrd that it wants to initiate a reload (and thus task swap).
  */
@@ -363,6 +356,15 @@ struct	nsd
 	 * simultaneous with new serve childs. */
 	int *dt_collector_fd_swap;
 #endif /* USE_DNSTAP */
+	/* the pipes from the serve processes to xfrd, for passing through
+	 * NOTIFY messages, arrays of size child_count * 2.
+	 * Kept open for (re-)forks. */
+	int *serve2xfrd_fd_send, *serve2xfrd_fd_recv;
+	/* the pipes from the serve processes to the xfrd. Initially
+	 * these point halfway into serve2xfrd_fd_send, but during reload
+	 * the pointer is swapped with serve2xfrd_fd_send so that only one
+	 * serve child will write to the same fd simultaneously. */
+	int *serve2xfrd_fd_swap;
 	/* ratelimit for errors, time value */
 	time_t err_limit_time;
 	/* ratelimit for errors, packet count */

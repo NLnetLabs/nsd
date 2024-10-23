@@ -1276,8 +1276,7 @@ check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
 
 int
 apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
-	struct nsd_options* ATTR_UNUSED(opt), udb_base* taskudb, udb_ptr* last_task,
-	uint32_t xfrfilenr)
+	struct nsd_options* ATTR_UNUSED(opt), udb_base* taskudb, uint32_t xfrfilenr)
 {
 	char zone_buf[3072];
 	char log_buf[5120];
@@ -1289,7 +1288,6 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 	uint8_t committed;
 	uint32_t i;
 	int num_bytes = 0;
-	(void)last_task;
 	assert(zone);
 
 	/* read zone name and serial */
@@ -2027,9 +2025,8 @@ task_process_zonestat_inc(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 }
 #endif
 
-static void
-task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
-	udb_ptr* task)
+void
+task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr* task)
 {
 	/* we have to use an udb_ptr task here, because the apply_xfr procedure
 	 * appends soa_info which may remap and change the pointer. */
@@ -2041,6 +2038,7 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	if(!zone) {
 		/* assume the zone has been deleted and a zone transfer was
 		 * still waiting to be processed */
+		udb_ptr_free_space(task, udb, TASKLIST(task)->size);
 		return;
 	}
 
@@ -2052,10 +2050,11 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		/* soainfo_gone will be communicated from server_reload, unless
 		   preceding updates have been applied */
 		zone->is_skipped = 1;
+		udb_ptr_free_space(task, udb, TASKLIST(task)->size);
 		return;
 	}
 	/* read and apply zone transfer */
-	switch(apply_ixfr_for_zone(nsd, zone, df, nsd->options, udb, last_task,
+	switch(apply_ixfr_for_zone(nsd, zone, df, nsd->options, udb,
 				TASKLIST(task)->yesno)) {
 	case 1: /* Success */
 		break;
@@ -2073,6 +2072,7 @@ task_process_apply_xfr(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	default:break;
 	}
 	fclose(df);
+	udb_ptr_free_space(task, udb, TASKLIST(task)->size);
 }
 
 
@@ -2118,9 +2118,6 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		task_process_zonestat_inc(nsd, udb, last_task, TASKLIST(task));
 		break;
 #endif
-	case task_apply_xfr:
-		task_process_apply_xfr(nsd, udb, last_task, task);
-		break;
 	case task_cookies:
 		task_process_cookies(nsd, TASKLIST(task));
 		break;
