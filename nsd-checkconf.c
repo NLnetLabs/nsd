@@ -440,6 +440,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_STR(tls_port, o);
 		SERV_GET_STR(tls_cert_bundle, o);
 		SERV_GET_STR(cookie_secret, o);
+		SERV_GET_STR(cookie_staging_secret, o);
 		SERV_GET_STR(cookie_secret_file, o);
 		SERV_GET_BIN(answer_cookie, o);
 		/* int */
@@ -718,10 +719,15 @@ config_test_print_server(nsd_options_type* opt)
 	print_string_var("tls-port:", opt->tls_port);
 	print_string_var("tls-cert-bundle:", opt->tls_cert_bundle);
 	printf("\tanswer-cookie: %s\n", opt->answer_cookie?"yes":"no");
-	if (opt->cookie_secret)
-		print_string_var("cookie-secret:", opt->cookie_secret);
-	if (opt->cookie_secret_file)
+	print_string_var("cookie-secret:", opt->cookie_secret);
+	print_string_var("cookie-staging-secret:", opt->cookie_staging_secret);
+	if(opt->cookie_secret_file_is_default) {
+		print_string_var("#cookie-secret-file:", opt->cookie_secret_file);
+	} else if(opt->cookie_secret_file) {
 		print_string_var("cookie-secret-file:", opt->cookie_secret_file);
+	} else {
+		print_string_var("cookie-secret-file:", "");
+	}
 	if(opt->proxy_protocol_port) {
 		struct proxy_protocol_port_list* p;
 		for(p = opt->proxy_protocol_port; p; p = p->next)

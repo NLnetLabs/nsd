@@ -1,0 +1,89 @@
+# #-- dns-cookies.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+mkdir -p var/db/nsd
+mkdir -p var/run
+mkdir -p var/log
+mkdir -p etc/nsd
+
+mount --bind var /var
+mount --bind etc /etc
+
+cp -p dns-cookies.nsd_control.key /etc/nsd/nsd_control.key
+cp -p dns-cookies.nsd_control.pem /etc/nsd/nsd_control.pem
+cp -p dns-cookies.nsd_server.key /etc/nsd/nsd_server.key
+cp -p dns-cookies.nsd_server.pem /etc/nsd/nsd_server.pem
+
+cat << EOF > /etc/nsd/nsd_cookiesecrets.txt
+dd3bdf9344b678b185a6f5cb60fca715
+445536bcd2513298075a5d379663c962
+EOF
+
+# set environment interfaces
+ip address add 198.51.100.100 dev lo
+ip link set dev lo up
+
+# set NSD environment variables
+PRE="../.."
+TPKG_NSD_PID=`grep '^#define PIDFILE ' ../../config.h | sed -e 's/^[^"]*"//g' -e 's/"[^"]*$//g'`
+TPKG_NSD="$PRE/nsd"
+TPKG_NSD_CONTROL="$PRE/nsd-control"
+
+
+# start nsd with faketime
+TZ=UTC faketime -f '2024-08-28 14:49:05' $TPKG_NSD -c dns-cookies.defaults.conf &
+sleep .1
+
+echo "faketime nsd instance C2 running"
+
+dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c2.1
+
+$TPKG_NSD_CONTROL -c dns-cookies.defaults.conf activate_cookie_secret
+
+sleep .1
+
+dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c2.2
+
+kill `cat /var/run/nsd.pid`
+sleep .1
+
+TZ=UTC faketime -f '2024-08-28 14:49:05' $TPKG_NSD -c dns-cookies.defaults.conf &
+sleep .1
+
+dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c2.3
+
+kill `cat /var/run/nsd.pid`
+sleep .1
+rm -fr etc
+rm -fr var
+ERRORS=0
+
+if grep -q "2464c4abcf10c9570100000066cf38e136666f01c0260ed1" dig.output.c2.1
+then
+	echo "C.2.1 Old location cookie matched"
+else
+	echo "C.2.1 Old location cookie failed to match"
+	cat dig.output.c2.1
+	ERRORS=1
+fi
+if grep -q "2464c4abcf10c9570100000066cf38e1a75842528f29e33d" dig.output.c2.2
+then
+	echo "C.2.2 Automatic cookie secret file migration worked"
+else
+	echo "C.2.2 Automatic cookie secret file migration did not worked"
+	cat dig.output.c2.2
+	ERRORS=1
+fi
+if grep -q "2464c4abcf10c9570100000066cf38e1a75842528f29e33d" dig.output.c2.3
+then
+	echo "C.2.3 Restart read cookies from new default secret file location"
+else
+	echo "C.2.3 Restart did not read cookies from new default secret file location"
+	cat dig.output.c2.3
+	ERRORS=1
+fi
+exit $ERRORS

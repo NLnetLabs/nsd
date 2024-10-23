@@ -18,6 +18,7 @@ struct rr;
 struct buffer;
 struct region;
 struct nsd;
+struct nsd_options;
 
 #ifdef HAVE_SYSLOG_H
 #  include <syslog.h>
@@ -438,4 +439,7 @@ void activate_cookie_secret(struct nsd* nsd);
 /* Drop a cookie secret. Drops the staging secret. An active secret will not
  * be dropped. */
 void drop_cookie_secret(struct nsd* nsd);
+/* Configure nsd struct with how to respond to DNS Cookies based on options */
+void reconfig_cookies(struct nsd* nsd, struct nsd_options* options);
+
 #endif /* UTIL_H */
