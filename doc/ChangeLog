@@ -1,5 +1,5 @@
 23 October 2024: Willem
-	- Fix #196 and merg #378: Updated cookie secrets management.
+	- Fix #196 and merge #378: Updated cookie secrets management.
 	  The default cookie secret file location can be set at compile time
 	  with the --with-cookiesecretsfile=path option to configure. The
 	  default location is changed to {dbdir}/cookiesecrets.txt. The
@@ -10,6 +10,13 @@
 	  precedence over those read from file.
 	  All DNS related setting in the configuration file will be reevaluated
 	  and effectuated after nsd-control reconfig.
+	- Merge #390: Apply non-xfr tasks before xfr tasks.
+	  This fixes an issue where non-xfr tasks are lost when they are
+	  batch processed together with non-xfr tasks.
+	  This merge also changes that notifies are passed on from the serve
+	  processes to the xfrd directly instead of via main. This was
+	  necessary to allow applying the non-xfr tasks without forking a
+	  backup-main for the sole purpose of forwarding notifies.
 
 23 October 2024: Wouter
 	- Merge #391: Update copyright lines (in version output).
