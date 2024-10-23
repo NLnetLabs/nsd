@@ -1,3 +1,16 @@
+23 October 2024: Willem
+	- Fix #196 and merg #378: Updated cookie secrets management.
+	  The default cookie secret file location can be set at compile time
+	  with the --with-cookiesecretsfile=path option to configure. The
+	  default location is changed to {dbdir}/cookiesecrets.txt. The
+	  previous default location will be checked at startup when there is
+	  no cookie secrets file at the new default location.
+	  A staging cookie can now also be configured in the configuration
+	  file and secrets configured in the configuration file now take
+	  precedence over those read from file.
+	  All DNS related setting in the configuration file will be reevaluated
+	  and effectuated after nsd-control reconfig.
+
 23 October 2024: Wouter
 	- Merge #391: Update copyright lines (in version output).
 
