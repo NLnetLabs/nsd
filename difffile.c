@@ -1394,10 +1394,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 			region_recycle(nsd->db->region, zone->logstr,
 				strlen(zone->logstr)+1);
 		zone->logstr = region_strdup(nsd->db->region, log_buf);
-		if(zone->filename)
-			region_recycle(nsd->db->region, zone->filename,
-				strlen(zone->filename)+1);
-		zone->filename = NULL;
+		namedb_zone_free_filenames(nsd->db, zone);
 		if(softfail && taskudb && !is_axfr) {
 			log_msg(LOG_ERR, "Failed to apply IXFR cleanly "
 				"(deletes nonexistent RRs, adds existing RRs). "

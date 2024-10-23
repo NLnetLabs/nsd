@@ -30,6 +30,9 @@
 	  format.
 	- Fix to initialize log_time_iso value in options.
 
+23 August 2024: Jeroen
+	- Fix #57: Track $INCLUDEs in zone files
+
 23 August 2024: Wouter
 	- Merge #376: Point the user towards tcpdump for logging individual
 	  queries.

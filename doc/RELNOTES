@@ -7,6 +7,7 @@ FEATURES:
 	- Fix #383: log timestamps in ISO8601 format with timezone.
 	  This adds the option `log-time-iso: yes` that logs in ISO8601
 	  format.
+
 BUG FIXES:
 	- Fix title underline and declaration after statement warnings.
 	- Add cross platform freebsd, openbsd and netbsd to github ci.
@@ -15,6 +16,7 @@ BUG FIXES:
 	  prepended to fix detection.
 	- Merge #376: Point the user towards tcpdump for logging individual
 	  queries.
+	- Track $INCLUDEs in zone files.
 	- Fix ci to update macos-12 to the macos-15 runner image.
 	- Merge #391: Update copyright lines (in version output).
 

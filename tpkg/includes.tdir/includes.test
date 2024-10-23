@@ -1,0 +1,60 @@
+#!/bin/bash
+# #-- includes.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+get_random_port 1
+
+# start NSD
+PRE="../.."
+NSD="$PRE/nsd"
+
+example_com="
+\$ORIGIN example.com.
+\$INCLUDE example.com.soa
+\$INCLUDE example.com.data
+"
+
+soa="@ IN SOA ns hostmaster 2024082300 6h 2h 7h 1h"
+
+data="\$INCLUDE example.com.hosts"
+
+hosts="www A 192.0.2.2"
+
+echo "$example_com" > example.com
+echo "$soa" > example.com.soa
+echo "$data" > example.com.data
+echo "$hosts" > example.com.hosts
+
+$NSD -c includes.conf -p $RND_PORT
+wait_nsd_up nsd.log
+dig @127.0.0.1 -p $RND_PORT www.example.com
+if dig @127.0.0.1 -p $RND_PORT www.example.com A | grep 192.0.2.2; then
+	echo "started successfully"
+else
+	cat nsd.log
+	echo "failed to start"
+	kill_from_pidfile nsd.pid
+	exit 1
+fi
+
+hosts="www A 192.0.2.3"
+echo "$hosts" > example.com.hosts
+kill -1 `cat nsd.pid`
+
+wait_logfile nsd.log "SIGHUP received, reloading..."
+sleep 1
+dig @127.0.0.1 -p $RND_PORT www.example.com
+if dig @127.0.0.1 -p $RND_PORT www.example.com A | grep 192.0.2.3; then
+	echo "reloaded successfully"
+else
+	cat nsd.log
+	echo "failed to reload"
+	kill_from_pidfile nsd.pid
+	exit 1
+fi
+
+kill_from_pidfile nsd.pid
+rm -f example.com example.com.soa example.com.data example.com.hosts
