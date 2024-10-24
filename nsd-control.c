@@ -146,7 +146,7 @@ usage()
 /** exit with ssl error */
 static void ssl_err(const char* s)
 {
-	fprintf(stderr, "error: %s\n", s);
+	fprintf(stderr, "nsd-control: error: %s\n", s);
 	ERR_print_errors_fp(stderr);
 	exit(1);
 }
@@ -157,7 +157,7 @@ static void ssl_path_err(const char* s, const char *path)
 	unsigned long err;
 	err = ERR_peek_error();
 	if (ERR_GET_LIB(err) == ERR_LIB_SYS) {
-		fprintf(stderr, "error: %s\n%s: %s\n",
+		fprintf(stderr, "nsd-control: error: %s\n%s: %s\n",
 			s, path, ERR_reason_error_string(err));
 		exit(1);
 	} else {
@@ -222,9 +222,9 @@ setup_ctx(struct nsd_options* cfg)
 static void
 checkconnecterr(int err, const char* svr, int port, int statuscmd)
 {
-	if(!port) fprintf(stderr, "error: connect (%s): %s\n", svr,
+	if(!port) fprintf(stderr, "nsd-control: error: connect (%s): %s\n", svr,
 		strerror(err));
-	else fprintf(stderr, "error: connect (%s@%d): %s\n", svr, port,
+	else fprintf(stderr, "nsd-control: error: connect (%s@%d): %s\n", svr, port,
 		strerror(err));
 	if(err == ECONNREFUSED && statuscmd) {
 		printf("nsd is stopped\n");
@@ -269,7 +269,7 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 		*ps++ = 0;
 		port = atoi(ps);
 		if(!port) {
-			fprintf(stderr, "could not parse port %s\n", ps);
+			fprintf(stderr, "nsd-control: error: could not parse port %s\n", ps);
 			exit(1);
 		}
 	} 
@@ -293,7 +293,7 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 		sa.sin6_family = AF_INET6;
 		sa.sin6_port = (in_port_t)htons((uint16_t)port);
 		if(inet_pton((int)sa.sin6_family, svr, &sa.sin6_addr) <= 0) {
-			fprintf(stderr, "could not parse IP: %s\n", svr);
+			fprintf(stderr, "nsd-control: error: could not parse IP: %s\n", svr);
 			exit(1);
 		}
 		memcpy(&addr, &sa, addrlen);
@@ -306,7 +306,7 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 		sa.sin_family = AF_INET;
 		sa.sin_port = (in_port_t)htons((uint16_t)port);
 		if(inet_pton((int)sa.sin_family, svr, &sa.sin_addr) <= 0) {
-			fprintf(stderr, "could not parse IP: %s\n", svr);
+			fprintf(stderr, "nsd-control: error: could not parse IP: %s\n", svr);
 			exit(1);
 		}
 		memcpy(&addr, &sa, addrlen);
@@ -315,11 +315,11 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 
 	fd = socket(addrfamily, SOCK_STREAM, 0);
 	if(fd == -1) {
-		fprintf(stderr, "socket: %s\n", strerror(errno));
+		fprintf(stderr, "nsd-control: error: socket: %s\n", strerror(errno));
 		exit(1);
 	}
 	if(fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
-		fprintf(stderr, "error: set nonblocking: fcntl: %s",
+		fprintf(stderr, "nsd-control: error: set nonblocking: fcntl: %s",
 			strerror(errno));
 	}
 	if(connect(fd, (struct sockaddr*)&addr, addrlen) < 0) {
@@ -339,12 +339,12 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 		tv.tv_sec = NSD_CONTROL_CONNECT_TIMEOUT/1000;
 		tv.tv_usec= (NSD_CONTROL_CONNECT_TIMEOUT%1000)*1000;
 		if(select(fd+1, &rset, &wset, &eset, &tv) == -1) {
-			fprintf(stderr, "select: %s\n", strerror(errno));
+			fprintf(stderr, "nsd-control: error: select: %s\n", strerror(errno));
 			exit(1);
 		}
 		if(!FD_ISSET(fd, &rset) && !FD_ISSET(fd, &wset) &&
 			!FD_ISSET(fd, &eset)) {
-			fprintf(stderr, "timeout: could not connect to server\n");
+			fprintf(stderr, "nsd-control: error: could not connect to server: timeout\n");
 			exit(1);
 		} else {
 			/* check nonblocking connect error */
@@ -363,7 +363,7 @@ contact_server(const char* svr, struct nsd_options* cfg, int statuscmd)
 		break;
 	}
 	if(fcntl(fd, F_SETFL, 0) == -1) {
-		fprintf(stderr, "error: set blocking: fcntl: %s",
+		fprintf(stderr, "nsd-control: error: set blocking: fcntl: %s",
 			strerror(errno));
 	}
 	return fd;
@@ -435,7 +435,7 @@ remote_read(SSL* ssl, int fd, char* buf, size_t len)
 				/* EOF */
 				return 0;
 			}
-			fprintf(stderr, "could not read: %s\n",
+			fprintf(stderr, "nsd-control: error: could not read: %s\n",
 				strerror(errno));
 			exit(1);
 		}
@@ -455,7 +455,7 @@ remote_write(SSL* ssl, int fd, const char* buf, size_t len)
 #endif /* HAVE_SSL */
 	} else {
 		if(write(fd, buf, len) < (ssize_t)len) {
-			fprintf(stderr, "could not write: %s\n",
+			fprintf(stderr, "nsd-control: error: could not write: %s\n",
 				strerror(errno));
 			exit(1);
 		}
@@ -523,22 +523,22 @@ go(const char* cfgfile, char* svr, int argc, char* argv[])
 
 	/* read config */
 	if(!(opt = nsd_options_create(region_create(xalloc, free)))) {
-		fprintf(stderr, "out of memory\n");
+		fprintf(stderr, "nsd-control: error: out of memory\n");
 		exit(1);
 	}
 	tsig_init(opt->region);
 	if(!parse_options_file(opt, cfgfile, NULL, NULL, NULL)) {
-		fprintf(stderr, "could not read config file\n");
+		fprintf(stderr, "nsd-control: error: could not read config file\n");
 		exit(1);
 	}
 	if(!opt->control_enable)
-		fprintf(stderr, "warning: control-enable is 'no' in the config file.\n");
+		fprintf(stderr, "nsd-control: warning: control-enable is 'no' in the config file.\n");
 	resolve_interface_names(opt);
 #ifdef HAVE_SSL
 	ctx = setup_ctx(opt);
 #else
 	if(options_remote_is_address(opt)) {
-		fprintf(stderr, "error: NSD was compiled without SSL.\n");
+		fprintf(stderr, "nsd-control: error: NSD was compiled without SSL.\n");
 		exit(1);
 	}
 #endif /* HAVE_SSL */
@@ -607,7 +607,7 @@ int main(int argc, char* argv[])
                         v = v*seed + (unsigned int)i;
                 }
                 RAND_seed(buf, 256);
-		fprintf(stderr, "warning: no entropy, seeding openssl PRNG with time\n");
+		fprintf(stderr, "nsd-control: warning: no entropy, seeding openssl PRNG with time\n");
 	}
 #endif /* HAVE_SSL */
 
@@ -636,7 +636,7 @@ int main(int argc, char* argv[])
 			path = NSD_START_PATH;
 		}
 		if(execl(path, "nsd", "-c", cfgfile, (char*)NULL) < 0) {
-			fprintf(stderr, "could not exec %s: %s\n",
+			fprintf(stderr, "nsd-control: error: could not exec %s: %s\n",
 				NSD_START_PATH, strerror(errno));
 			exit(1);
 		}
