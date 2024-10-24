@@ -21,6 +21,7 @@ BUG FIXES:
 	- Merge #391: Update copyright lines (in version output).
 	- Fix #392: Inconsistent documentation about control-interface.
 	- Merge #395: Explain the zonefile example better.
+	- Merge #394: Fix the path to use doc/manual/.
 
 4.10.1
 ================
