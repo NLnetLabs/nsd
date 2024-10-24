@@ -1,3 +1,6 @@
+24 October 2024: Wouter
+	- Fix #392: Inconsistent documentation about control-interface.
+
 23 October 2024: Willem
 	- Fix #196 and merge #378: Updated cookie secrets management.
 	  The default cookie secret file location can be set at compile time

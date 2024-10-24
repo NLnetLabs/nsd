@@ -57,7 +57,7 @@ Here is an example config for ``example.com``:
         remote-control:
             # this allows the use of 'nsd-control' to control NSD. The default is "no"
             control-enable: yes
-            # the interface NSD listens to for nsd-control. The default is 127.0.0.1
+            # the interface NSD listens to for nsd-control. The default is 127.0.0.1 and ::1
             control-interface: 127.0.0.1
             # the key files that allow the use of 'nsd-control'. The default path is "/etc/nsd/". Create these using the 'nsd-control-setup' utility
             server-key-file: /etc/nsd/nsd_server.key

@@ -19,6 +19,7 @@ BUG FIXES:
 	- Track $INCLUDEs in zone files.
 	- Fix ci to update macos-12 to the macos-15 runner image.
 	- Merge #391: Update copyright lines (in version output).
+	- Fix #392: Inconsistent documentation about control-interface.
 
 4.10.1
 ================
