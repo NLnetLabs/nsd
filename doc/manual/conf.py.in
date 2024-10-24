@@ -157,7 +157,7 @@ html_context = {
         'rtd_language': language,
         'canonical_url': html_baseurl,
 
-        'conf_py_path': "/source/",
+        'conf_py_path': "/doc/manual/",
 
         'github_user': "NLnetLabs",
         'github_repo': "nsd",
