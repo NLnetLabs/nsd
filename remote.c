@@ -2556,17 +2556,21 @@ do_print_cookie_secrets(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	case COOKIE_SECRETS_NONE:
 		break;
 	case COOKIE_SECRETS_GENERATED:
-		ssl_printf(ssl, "source : random generated\n");
+		if(!ssl_printf(ssl, "source : random generated\n"))
+			return;
 		break;
 	case COOKIE_SECRETS_FROM_FILE:
-		ssl_printf( ssl, "source : \"%s\"\n"
-		          , nsd->cookie_secrets_filename);
+		if(!ssl_printf( ssl, "source : \"%s\"\n"
+		          , nsd->cookie_secrets_filename))
+			return;
 		break;
 	case COOKIE_SECRETS_FROM_CONFIG:
-		ssl_printf(ssl, "source : configuration\n");
+		if(!ssl_printf(ssl, "source : configuration\n"))
+			return;
 		break;
 	default:
-		ssl_printf(ssl, "source : unknown\n");
+		if(!ssl_printf(ssl, "source : unknown\n"))
+			return;
 		break;
 	}
 	for(i = 0; (size_t)i < nsd->cookie_count; i++) {

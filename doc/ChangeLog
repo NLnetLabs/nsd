@@ -2,6 +2,7 @@
 	- Fix #392: Inconsistent documentation about control-interface.
 	- Merge #395: Explain the zonefile example better.
 	- Merge #394: Fix the path to use doc/manual/.
+	- Fix analyzer issue in do_print_cookie_secrets to check for failure.
 
 23 October 2024: Willem
 	- Fix #196 and merge #378: Updated cookie secrets management.
