@@ -493,7 +493,12 @@ apex_rrset_checks(namedb_type* db, rrset_type* rrset, domain_type* domain)
 		zone->ns_rrset = rrset;
 	} else if (rrset_rrtype(rrset) == TYPE_RRSIG) {
 		for (i = 0; i < rrset->rr_count; ++i) {
-			if(rr_rrsig_type_covered(&rrset->rrs[i])==TYPE_DNSKEY){
+			if(rr_rrsig_type_covered(&rrset->rrs[i])==TYPE_DNSKEY
+#ifdef MTL_MODE_FULL_CODE
+			|| (rr_rrsig_type_covered(&rrset->rrs[i])==TYPE_SOA &&
+			    rr_rrsig_algorithm(&rrset->rrs[i])==MTL_DNSSEC_ALG)
+#endif
+			){
 				zone->is_secure = 1;
 				break;
 			}

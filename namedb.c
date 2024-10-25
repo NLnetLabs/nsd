@@ -656,6 +656,28 @@ rr_rrsig_type_covered(rr_type* rr)
 	return ntohs(* (uint16_t *) rdata_atom_data(rr->rdatas[0]));
 }
 
+#ifdef MTL_MODE_FULL_CODE
+uint8_t
+rr_rrsig_algorithm(rr_type* rr)
+{
+	assert(rr->type == TYPE_RRSIG);
+	assert(rr->rdata_count > 1);
+	assert(rdata_atom_size(rr->rdatas[1]) == sizeof(uint8_t));
+
+	return *(uint8_t*)rdata_atom_data(rr->rdatas[1]);
+}
+
+uint16_t
+rr_rrsig_keytag(rr_type* rr)
+{
+	assert(rr->type == TYPE_RRSIG);
+	assert(rr->rdata_count > 6);
+	assert(rdata_atom_size(rr->rdatas[6]) == sizeof(uint16_t));
+
+	return *(uint16_t*)rdata_atom_data(rr->rdatas[6]);
+}
+#endif
+
 zone_type *
 namedb_find_zone(namedb_type* db, const dname_type* dname)
 {
