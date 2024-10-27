@@ -1817,7 +1817,8 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 						+ sizeof(uint32_t));
 				buffer_write_u8(q->packet,
 				    domain_dname(q->zone->apex)->label_count - 1);
-				buffer_write_u8(q->packet, 0);
+				buffer_write_u8( q->packet
+				               , ZONEVERSION_SOA_SERIAL);
 				buffer_write_u32(q->packet,
 				    read_uint32(rdata_atom_data(
 				    q->zone->soa_rrset->rrs->rdatas[2])));

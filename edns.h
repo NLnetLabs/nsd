@@ -23,6 +23,9 @@ struct query;
 #define ZONEVERSION_CODE 19             /* ZONEVERSION option code */
 #define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
 
+/* https://iana.org/assignments/dns-parameters/#zoneversion-type-values */
+#define ZONEVERSION_SOA_SERIAL 0
+
 struct edns_data
 {
 	char ok[OPT_LEN];
