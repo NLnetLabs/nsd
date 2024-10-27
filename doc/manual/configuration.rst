@@ -163,7 +163,7 @@ value with:
 Zone transfers can be secured with TSIG keys, replace NOKEY with the name of the
 TSIG key to use. See :doc:`Using TSIG<running/using-tsig>` for details.
 
-Since NSD is written to be run on the root name servers, the config file  can to
+Since NSD is written to be run on root name servers, the config file can 
 contain something like:
 
 .. code-block:: text
