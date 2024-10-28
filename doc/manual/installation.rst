@@ -51,7 +51,7 @@ and the changelog. In this example we'll use version |version|. Please note
 that this may not be the latest version currently.
 
 .. code-block:: bash
-  :substitutions:
+   :substitutions:
 
     wget https://nlnetlabs.nl/downloads/nsd/nsd-|version|.tar.gz
     tar xzf nsd-|version|.tar.gz
