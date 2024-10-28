@@ -1,3 +1,10 @@
+28 October 2024: Melroy
+	- Merge #404: Introducing Sphinx substitution in code blocks.
+	  As well as other fixes with Sphinx build.
+	- Update Copyright lines in help output
+	- Merge #395: Explain zonefile example better
+	- Merge #394: Fix doc path (fixes "Edit on GitHub" button in the docs)
+
 24 October 2024: Wouter
 	- Fix #392: Inconsistent documentation about control-interface.
 	- Merge #395: Explain the zonefile example better.
