@@ -295,6 +295,9 @@ rst_epilog = ".. |pidfile| replace:: @pidfile@\n" \
              ".. |configfile| replace:: @nsdconfigfile@\n" \
              ".. |logfile| replace:: @logfile@\n" \
              ".. |xfrdfile| replace:: @xfrdfile@\n" \
-             ".. |zonelistfile| replace:: @zonelistfile@\n" \
-             ".. |version| replace:: @version@"
+             ".. |zonelistfile| replace:: @zonelistfile@\n"
 
+
+# -- Options for substitution extension --------------------------------------
+
+rst_prolog = ".. |version| replace:: {version}".format(version = version)
