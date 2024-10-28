@@ -5,4 +5,3 @@ sphinx-copybutton==0.5.2
 sphinx-rtd-theme
 sphinx-notfound-page
 requests
-Sphinx-Substitution-Extensions
