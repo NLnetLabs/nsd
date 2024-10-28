@@ -300,4 +300,4 @@ rst_epilog = ".. |pidfile| replace:: @pidfile@\n" \
 
 # -- Options for substitution extension --------------------------------------
 
-rst_prolog = ".. |version| replace:: {version}".format(version = version)
+rst_prolog = ".. |version| replace:: @version@"
