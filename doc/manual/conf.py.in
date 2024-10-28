@@ -295,4 +295,6 @@ rst_epilog = ".. |pidfile| replace:: @pidfile@\n" \
              ".. |configfile| replace:: @nsdconfigfile@\n" \
              ".. |logfile| replace:: @logfile@\n" \
              ".. |xfrdfile| replace:: @xfrdfile@\n" \
-             ".. |zonelistfile| replace:: @zonelistfile@\n"
+             ".. |zonelistfile| replace:: @zonelistfile@\n" \
+             ".. |version| replace:: @version@"
+
