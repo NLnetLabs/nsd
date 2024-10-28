@@ -63,7 +63,8 @@ extensions = [
     'sphinx.ext.autosectionlabel',
     'notfound.extension',
     'sphinxcontrib.jquery',
-    'sphinx_rtd_theme',
+    'sphinx_rtd_theme',    
+    'sphinx_substitution_extensions',
 ]
 
 intersphinx_mapping = {
