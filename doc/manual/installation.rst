@@ -99,7 +99,7 @@ NSD using :command:`make`; compilation might take a while.
 
 .. code-block:: bash
 
-    make
+    make -j4
 
 After successfully compiling, we can install NSD to make it available for
 the machine.
