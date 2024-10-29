@@ -4,6 +4,7 @@
 	- Merge #391: Update Copyright lines in help output
 	- Merge #395: Explain zonefile example better
 	- Merge #394: Fix doc path (fixes "Edit on GitHub" button in the docs)
+	- Many thanks to Melroy van den Berg for the documentation improvements and fixes in PRs #391, #394, #395 and #404
 
 24 October 2024: Wouter
 	- Fix #392: Inconsistent documentation about control-interface.
