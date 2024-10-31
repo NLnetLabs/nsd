@@ -65,6 +65,9 @@ struct edns_record
 	int                ede; /* RFC 8914 - Extended DNS Errors */
 	char*              ede_text; /* RFC 8914 - Extended DNS Errors text*/
 	uint16_t           ede_text_len;
+#ifdef MTL_MODE_FULL_CODE
+	int                mtl_mode_full;
+#endif
 };
 typedef struct edns_record edns_record_type;
 

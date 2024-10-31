@@ -70,6 +70,9 @@ edns_init_record(edns_record_type *edns)
 	edns->opt_reserved_space = 0;
 	edns->dnssec_ok = 0;
 	edns->nsid = 0;
+#ifdef MTL_MODE_FULL_CODE
+	edns->mtl_mode_full = 0;
+#endif
 	edns->cookie_status = COOKIE_NOT_PRESENT;
 	edns->cookie_len = 0;
 	edns->ede = -1; /* -1 means no Extended DNS Error */
@@ -116,6 +119,11 @@ edns_handle_option(uint16_t optcode, uint16_t optlen, buffer_type* packet,
 			buffer_skip(packet, optlen);
 		}
 		break;
+#ifdef MTL_MODE_FULL_CODE
+	case MTL_MODE_FULL_CODE:
+		edns->mtl_mode_full = 1;
+		break;
+#endif
 	default:
 		buffer_skip(packet, optlen);
 		break;

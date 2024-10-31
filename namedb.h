@@ -333,6 +333,18 @@ static inline const char* domain_to_string_buf(domain_type* domain, char *buf)
  */
 uint16_t rr_rrsig_type_covered(rr_type* rr);
 
+#ifdef MTL_MODE_FULL_CODE
+/*
+ * The algorithm field of the specified RRSIG RR
+ */
+uint8_t rr_rrsig_algorithm(rr_type* rr);
+
+/*
+ * The keytag field of the specified RRSIG RR
+ */
+uint16_t rr_rrsig_keytag(rr_type* rr);
+#endif
+
 struct namedb
 {
 	region_type*       region;

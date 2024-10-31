@@ -74,6 +74,66 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr, uint32_t ttl)
 	buffer_skip(q->packet, sizeof(rdlength));
 
 	for (j = 0; j < rr->rdata_count; ++j) {
+#ifdef MTL_MODE_FULL_CODE
+		rrset_type *apex_rrsigs;
+
+		if(rr->type == TYPE_RRSIG
+		&& j == 8 /* The signature data */
+		&& q->edns.mtl_mode_full
+		&& rr_rrsig_type_covered(rr) != TYPE_SOA
+		&& rr_rrsig_algorithm(rr) == MTL_DNSSEC_ALG
+		&& (apex_rrsigs = domain_find_rrset(
+				q->zone->apex, q->zone, TYPE_RRSIG))) {
+			size_t k;
+
+			buffer_write_u8(q->packet, 1); /* Full signature */
+			/* First the condensed signature */
+			buffer_write(q->packet,
+				rdata_atom_data(rr->rdatas[j])+1,
+				rdata_atom_size(rr->rdatas[j])-1);
+
+			for(k = 0; k < apex_rrsigs->rr_count; k++) {
+				rr_type* rrsig = &apex_rrsigs->rrs[k];
+				uint16_t sibling_count;
+
+				if(rrsig->rdata_count < 9
+				|| rr_rrsig_type_covered(rrsig) != TYPE_SOA
+				|| rr_rrsig_algorithm(rrsig) != MTL_DNSSEC_ALG
+				|| rr_rrsig_keytag(rrsig)!=rr_rrsig_keytag(rr))
+					continue;
+				/* MTL-Type = 1
+				 * Randomizer = 16
+				 * Flags = 2
+				 * Series Identifier = 8
+				 * Leaf Index = 4
+				 * Target Rung Left Index = 4
+				 * Target Rung Right Index = 4
+				 * 1 + 16 + 2 + 8 + 4 + 4 + 4 = 39
+				 * Next 2 (uint16_t) is Sibling Count
+				 */
+				if(rdata_atom_size(rrsig->rdatas[8]) < 41)
+					continue;
+				sibling_count = ntohs(*(uint16_t *)(
+				   rdata_atom_data(rrsig->rdatas[8]) + 39));
+				/* Each sibling is 16 bytes, skipping them
+				 * skips the complete Authentication Path
+				 * and takes us to the remainder that needs
+				 * to be appended to the RRSIG signature data.
+				 */
+				if(rdata_atom_size(rrsig->rdatas[8]) < 41 +
+						16 * sibling_count)
+					continue;
+				buffer_write(q->packet,
+					rdata_atom_data(rrsig->rdatas[8]) +
+						41 + 16 * sibling_count,
+					rdata_atom_size(rrsig->rdatas[8]) -
+						41 - 16 * sibling_count);
+				break;
+			}
+			if(k == apex_rrsigs->rr_count) {
+			}
+		} else
+#endif
 		switch (rdata_atom_wireformat_type(rr->type, j)) {
 		case RDATA_WF_COMPRESSED_DNAME:
 			encode_dname(q, rdata_atom_domain(rr->rdatas[j]));

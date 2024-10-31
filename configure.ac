@@ -988,6 +988,24 @@ case "$enable_log_role" in
                 ;;
 esac
 
+AC_ARG_ENABLE(draft-slh-dsa-mtl, AS_HELP_STRING([--enable-draft-slh-dsa-mtl[=optcode]],[Enables responding with SLH-DSA-MTL signatures as described in draft-fregly-dnsop-slh-dsa-mtl-dnssec. Opcode defaults to 65050]))
+mtl_mode_full_code=""
+case "$enable_draft_slh_dsa_mtl" in
+	""|no)
+		;;
+	yes)
+		AC_DEFINE_UNQUOTED([MTL_MODE_FULL_CODE], [65050], [Define this to enable answering with the full SLH-DSA-MTL signatures when queried with this EDNS opcode])
+		;;
+	*)
+		AC_DEFINE_UNQUOTED([MTL_MODE_FULL_CODE], [$enable_draft_slh_dsa_mtl], [Define this to enable answering with the full SLH-DSA-MTL signatures when queried with this EDNS opcode])
+		;;
+esac
+mtl_dnssec_alg=50
+AC_ARG_WITH([slh-dsa-mtl-dnssec-alg],
+	AS_HELP_STRING([--with-slh-dsa-mtl-dnssec-alg=alg],[The algorithm used for SLH-DSA-MTL keys and signatures. Only relevant with draft-slh-dsa-mtl enabled. Defaults to 50.]),
+	[mtl_dnssec_alg=$withval])
+AC_SUBST(mtl_dnssec_alg)
+AC_DEFINE_UNQUOTED(MTL_DNSSEC_ALG, [$mtl_dnssec_alg], [The algorithm used for SLH-DSA-MTL keys and signatures. Default 50.])
 
 AC_ARG_ENABLE(memclean, AS_HELP_STRING([--enable-memclean],[Cleanup memory (at exit) for eg. valgrind, memcheck]))
 if test "$enable_memclean" = "yes"; then AC_DEFINE_UNQUOTED([MEMCLEAN], [1], [Define this to cleanup memory at exit (eg. for valgrind, etc.)])
