@@ -588,6 +588,7 @@ add_ip_address(struct xdp_server *xdp, struct sockaddr_storage *addr) {
 }
 
 static int figure_ip_addresses(struct xdp_server *xdp) {
+	// TODO: if using VLANs, also find appropriate IP addresses?
 	struct ifaddrs *ifaddr;
 	int family, ret = 0;
 
@@ -814,8 +815,8 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt,
 		return -9;
 	}
 
-	// should the packet be too long in the end... well...
-	// TODO: check if packet lengths (dns and other headers) are ok?
+	// Not verifying the packet length (that it fits in an IP packet), as
+	// parse_dns truncates too long response messages.
 	udp->len = htons((uint16_t) (sizeof(*udp) + dnslen));
 
 	swap_eth(eth);
