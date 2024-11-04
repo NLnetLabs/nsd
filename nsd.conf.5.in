@@ -584,7 +584,9 @@ of network device queues.
 channels/queues of the selected interface. As many processes as there are
 combined channels on the specified interface will receive traffic via XDP.
 \fBserver-count\fR will be increased if necessary. If \fBserver-count\fR is
-higher, the excess processes will not interact with XDP.
+higher, the excess processes will not use XDP.
+.br
+\(bu The PROXYv2 protocol is currently not supported via XDP.
 .TP
 .B xdp\-program\-path:\fR <string>
 The eBPF XDP program to extract the XSKMAP from. Specify your own program here,
