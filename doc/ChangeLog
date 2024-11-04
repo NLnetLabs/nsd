@@ -1,3 +1,6 @@
+4 November 2024: Wouter
+	- Fix Makefile for parallel build failure around bison rule.
+
 28 October 2024: Jeroen
 	- Merge #404: Introducing Sphinx substitution in code blocks.
 	  As well as other fixes with Sphinx build.

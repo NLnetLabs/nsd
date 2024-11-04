@@ -28,6 +28,7 @@ BUG FIXES:
 	- Update Copyright lines in help output
 	- Merge #395: Explain zonefile example better
 	- Merge #394: Fix doc path (fixes "Edit on GitHub" button in the docs)
+	- Fix Makefile for parallel build failure around bison rule.
 
 4.10.1
 ================
