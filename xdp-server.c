@@ -179,7 +179,8 @@ static inline void *parse_ipv4(struct iphdr *ipv4);
  */
 static uint32_t parse_dns(struct nsd* nsd,
                           uint32_t dnslen,
-                          struct query *q);
+                          struct query *q,
+                          sa_family_t ai_family);
 
 /* *************** */
 /* Implementations */
@@ -667,8 +668,9 @@ static inline void *parse_ipv4(struct iphdr *ipv4) {
 	return (void *)(ipv4 + 1);
 }
 
-static uint32_t parse_dns(struct nsd* nsd, uint32_t dnslen, struct query *q) {
-	/* TODO: implement RATELIMIT, BIND8_STATS, DNSTAP, PROXY, ...? */
+static uint32_t parse_dns(struct nsd* nsd, uint32_t dnslen,
+                          struct query *q, sa_family_t ai_family) {
+	/* TODO: implement DNSTAP, PROXYv2, ...? */
 	uint32_t now = 0;
 
 	/* set the size of the dns message and move position to start */
@@ -681,14 +683,31 @@ static uint32_t parse_dns(struct nsd* nsd, uint32_t dnslen, struct query *q) {
 			ZTATUP(nsd, q->zone, nona);
 		}
 
+#ifdef USE_ZONE_STATS
+		if (ai_family == AF_INET) {
+			ZTATUP(nsd, q->zone, qudp);
+		} else if (ai_family == AF_INET6) {
+			ZTATUP(nsd, q->zone, qudp6);
+		}
+#endif /* USE_ZONE_STATS */
+
 		query_add_optional(q, nsd, &now);
 
 		buffer_flip(q->packet);
+
+#ifdef BIND8_STATS
+			/* Account the rcode & TC... */
+			STATUP2(nsd, rcode, RCODE(q->packet));
+			ZTATUP2(nsd, q->zone, rcode, RCODE(q->packet));
+			if (TC(q->packet)) {
+				STATUP(nsd, truncated);
+				ZTATUP(nsd, q->zone, truncated);
+			}
+#endif /* BIND8_STATS */
+
 		/* return new dns message length */
 		return (uint32_t) buffer_remaining(q->packet);
 	} else {
-		/* TODO: we might need somewhere to track whether the current query's
-		 * buffer is usable/allowed to be used? */
 		query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
 		STATUP(nsd, dropped);
 		ZTATUP(nsd, q->zone, dropped);
@@ -771,12 +790,18 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt,
 		memcpy(&sock6->sin6_addr, &ipv6->saddr, sizeof(ipv6->saddr));
 #else
 		return 0; /* no inet6 no network */
-#endif
+#endif /* INET6 */
+#ifdef BIND8_STATS
+		STATUP(xdp->nsd, qudp6);
+#endif /* BIND8_STATS */
 	} else {
 		struct sockaddr_in* sock4 = (struct sockaddr_in*)&query->remote_addr;
 		sock4->sin_family = AF_INET;
 		sock4->sin_port = udp->dest;
 		sock4->sin_addr.s_addr = ipv4->saddr;
+#ifdef BIND8_STATS
+		STATUP(xdp->nsd, qudp);
+#endif /* BIND8_STATS */
 	}
 
 	query->remote_addrlen = (socklen_t)sizeof(query->remote_addr);
@@ -784,7 +809,7 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt,
 	query->client_addrlen = query->remote_addrlen;
 	query->is_proxied = 0;
 
-	dnslen = parse_dns(xdp->nsd, dnslen, query);
+	dnslen = parse_dns(xdp->nsd, dnslen, query, query->remote_addr.ss_family);
 	if (!dnslen) {
 		return -9;
 	}
@@ -874,6 +899,9 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 			umem_ptrs[i].addr = XDP_INVALID_UMEM_FRAME;
 			umem_ptrs[i].len = 0;
 		}
+#ifdef BIND8_STATS
+		xdp->nsd->st->txerr += to_send;
+#endif /* BIND8_STATS */
 		to_send = 0;
 	}
 

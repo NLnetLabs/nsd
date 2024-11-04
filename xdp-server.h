@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <xdp/xsk.h>
 
+#include "nsd.h"
 #include "region-allocator.h"
 
 /* TODO: check if number is sensible */
@@ -72,7 +73,7 @@ struct xdp_server {
 	struct xdp_ip_address *ip_addresses;
 
 	struct query **queries;
-	void *nsd;
+	struct nsd *nsd;
 
 	/* these items/arrays are shared between processes */
 	/* the number of sockets corresponds to the queue_count */
