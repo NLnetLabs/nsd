@@ -580,12 +580,11 @@ Considerations:
 \(bu If \fBcpu-affinity\fR is configured, please be aware of the cpu affinity
 of network device queues.
 .br
-\(bu It is assumed that the interface only uses combined rx/tx channels/queues.
-.br
-\(bu As many processes as there are combined channels on the specified
-interface will receive traffic via XDP. \fBserver-count\fR will be increased if
-necessary. If \fBserver-count\fR is higher, the excess processes will not
-interact with XDP.
+\(bu The number of spawned servers depends on the number of combined rx/tx
+channels/queues of the selected interface. As many processes as there are
+combined channels on the specified interface will receive traffic via XDP.
+\fBserver-count\fR will be increased if necessary. If \fBserver-count\fR is
+higher, the excess processes will not interact with XDP.
 .TP
 .B xdp\-program\-path:\fR <string>
 The eBPF XDP program to extract the XSKMAP from. Specify your own program here,
