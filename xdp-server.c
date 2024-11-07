@@ -282,11 +282,7 @@ static int load_xdp_program_and_map(struct xdp_server *xdp) {
 		char map_path[PATH_MAX];
 		int fd;
 
-		if (xdp->bpf_bpffs_path)
-			snprintf(map_path, PATH_MAX, "%s/%s", xdp->bpf_bpffs_path, "xsks_map");
-		else
-			/* document this behaviour, as the current documentation states that bpffs path is chosen by libbpf */
-			snprintf(map_path, PATH_MAX, "%s", "/sys/fs/bpf/xsks_map");
+		snprintf(map_path, PATH_MAX, "%s/%s", xdp->bpf_bpffs_path, "xsks_map");
 
 		fd = bpf_obj_get(map_path);
 		if (fd < 0) {
@@ -507,7 +503,13 @@ int xdp_server_cleanup(struct xdp_server *xdp) {
 	if (xdp->bpf_prog_should_load) {
 		if (xdp->xsk_map && bpf_map__is_pinned(xdp->xsk_map)) {
 			if (bpf_map__unpin(xdp->xsk_map, NULL)) {
-				log_msg(LOG_ERR, "xdp: failed to unpin bpf map during cleanup: \"%s\"\n",
+				/* We currently ship an XDP program that doesn't pin the map. So
+				 * if this error happens, it is because the user specified their
+				 * custom XDP program to load by NSD. Therefore they should know
+				 * about the pinned map and be able to unlink it themselves.
+				 */
+				log_msg(LOG_ERR, "xdp: failed to unpin bpf map during cleanup: \"%s\". "
+				        "This is usually ok, but you need to unpin the map yourself.\n",
 				        strerror(errno));
 				ret = -1;
 			}
