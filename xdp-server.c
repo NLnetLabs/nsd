@@ -256,6 +256,9 @@ static int load_xdp_program_and_map(struct xdp_server *xdp) {
 	if (xdp->bpf_prog_should_load) {
 		/* TODO: I find setting environment variables from within a program
 		 * not a good thing to do, but for the meantime this helps... */
+		/* This is done to allow unloading the XDP program we load without
+		 * needing the SYS_ADMIN capability, and libxdp doesn't allow skipping
+		 * the dispatcher through different means. */
 		putenv("LIBXDP_SKIP_DISPATCHER=1");
 		err = xdp_program__attach(xdp->bpf_prog, (int) xdp->interface_index, attach_mode, 0);
 		/* err = xdp_program__attach_single(xdp->bpf_prog, xdp->interface_index, attach_mode); */
