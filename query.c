@@ -1780,6 +1780,17 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 				6 + ( q->edns.ede_text_len
 			            ? q->edns.ede_text_len : 0);
 
+		if(q->edns.zoneversion
+		&& q->zone
+		&& q->zone->soa_rrset
+		&& q->zone->soa_rrset->rrs
+		&& q->zone->soa_rrset->rrs->rdata_count >= 3)
+			q->edns.opt_reserved_space += sizeof(uint16_t)
+			                           +  sizeof(uint16_t)
+			                           +  sizeof(uint8_t)
+			                           +  sizeof(uint8_t)
+			                           +  sizeof(uint32_t);
+
 		if(q->edns.opt_reserved_space == 0 || !buffer_available(
 			q->packet, 2+q->edns.opt_reserved_space)) {
 			/* fill with NULLs */
@@ -1793,6 +1804,24 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 				buffer_write(q->packet, edns->nsid, OPT_HDR);
 				/* nsid payload */
 				buffer_write(q->packet, nsd->nsid, nsd->nsid_len);
+			}
+			if(q->edns.zoneversion
+			&& q->zone
+			&& q->zone->soa_rrset
+			&& q->zone->soa_rrset->rrs
+			&& q->zone->soa_rrset->rrs->rdata_count >= 3) {
+				buffer_write_u16(q->packet, ZONEVERSION_CODE);
+				buffer_write_u16( q->packet
+				                , sizeof(uint8_t)
+						+ sizeof(uint8_t)
+						+ sizeof(uint32_t));
+				buffer_write_u8(q->packet,
+				    domain_dname(q->zone->apex)->label_count - 1);
+				buffer_write_u8( q->packet
+				               , ZONEVERSION_SOA_SERIAL);
+				buffer_write_u32(q->packet,
+				    read_uint32(rdata_atom_data(
+				    q->zone->soa_rrset->rrs->rdatas[2])));
 			}
 			if(q->edns.cookie_status != COOKIE_NOT_PRESENT) {
 				/* cookie opt header */
