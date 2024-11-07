@@ -13,7 +13,6 @@
 #include <stdint.h>
 #include <xdp/xsk.h>
 
-#include "nsd.h"
 #include "region-allocator.h"
 
 /* TODO: check if number is sensible */
@@ -26,6 +25,8 @@
 #define XSK_RING_CONS__NUM_DESCS XSK_RING_CONS__DEFAULT_NUM_DESCS
 #define XSK_UMEM_FRAME_HEADROOM XSK_UMEM__DEFAULT_FRAME_HEADROOM
 #define XSK_UMEM_FLAGS XSK_UMEM__DEFAULT_FLAGS
+
+struct nsd; /* avoid recursive header include */
 
 struct xsk_umem_info {
 	struct xsk_ring_prod fq;
