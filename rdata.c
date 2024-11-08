@@ -69,7 +69,8 @@ lookup_table_type dns_algorithms[] = {
 
 const char *svcparamkey_strs[] = {
 		"mandatory", "alpn", "no-default-alpn", "port",
-		"ipv4hint", "ech", "ipv6hint", "dohpath"
+		"ipv4hint", "ech", "ipv6hint", "dohpath", "ohttp",
+		"tls-supported-groups"
 	};
 
 typedef int (*rdata_to_string_type)(buffer_type *output,
@@ -806,6 +807,21 @@ rdata_svcparam_alpn_to_string(buffer_type *output, uint16_t val_len,
 }
 
 static int
+rdata_svcparam_tls_supported_groups_to_string(buffer_type *output,
+		uint16_t val_len, uint16_t *data)
+{
+	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
+
+	if ((val_len % sizeof(uint16_t)) == 0)
+		return 0; /* A series of uint16_t is an even number of bytes */
+
+	buffer_printf(output, "=%d", (int)ntohs(*data++));
+	while ((val_len -= sizeof(uint16_t)) > 0) 
+		buffer_printf(output, ",%d", (int)ntohs(*data++));
+	return 1;
+}
+
+static int
 rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -832,6 +848,7 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		case SVCB_KEY_IPV6HINT:
 		case SVCB_KEY_MANDATORY:
 		case SVCB_KEY_DOHPATH:
+		case SVCB_KEY_TLS_SUPPORTED_GROUPS:
 			return 0;
 		default:
 			return 1;
@@ -852,6 +869,10 @@ rdata_svcparam_to_string(buffer_type *output, rdata_atom_type rdata,
 		return rdata_svcparam_alpn_to_string(output, val_len, data+2);
 	case SVCB_KEY_ECH:
 		return rdata_svcparam_ech_to_string(output, val_len, data+2);
+	case SVCB_KEY_OHTTP:
+		return 0; /* wireformat error, should not have a value */
+	case SVCB_KEY_TLS_SUPPORTED_GROUPS:
+		return rdata_svcparam_tls_supported_groups_to_string(output, val_len, data+2);
 	case SVCB_KEY_DOHPATH:
 		/* fallthrough */
 	default:

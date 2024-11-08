@@ -1,0 +1,10 @@
+$ORIGIN failure-cases.
+$TTL 3600
+
+@       SOA     primary admin 0 0 0 0 0
+
+; From RFC9540 Section 4:                                                      
+;   Both the presentation and wire-format values for the "ohttp" parameter     
+;   MUST be empty. 
+
+ohttp-f1 HTTPS 1 . ( alpn=h2 ohttp=hopsa )
