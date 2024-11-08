@@ -812,7 +812,7 @@ rdata_svcparam_tls_supported_groups_to_string(buffer_type *output,
 {
 	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
 
-	if ((val_len % sizeof(uint16_t)) == 0)
+	if ((val_len % sizeof(uint16_t)) == 1)
 		return 0; /* A series of uint16_t is an even number of bytes */
 
 	buffer_printf(output, "=%d", (int)ntohs(*data++));
