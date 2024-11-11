@@ -1018,6 +1018,9 @@ xfrd_tcp_setup_write_packet(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request full zone transfer "
 						"(AXFR) for %s to %s",
 			zone->apex_str, zone->master->ip_address_spec));
+		VERBOSITY(3, (LOG_INFO, "request full zone transfer "
+						"(AXFR) for %s to %s",
+			zone->apex_str, zone->master->ip_address_spec));
 
 		xfrd_setup_packet(tcp->packet, TYPE_AXFR, CLASS_IN, zone->apex,
 			zone->query_id, NULL);
@@ -1025,6 +1028,9 @@ xfrd_tcp_setup_write_packet(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 	} else {
 		int apex_compress = 0;
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request incremental zone "
+						"transfer (IXFR) for %s to %s",
+			zone->apex_str, zone->master->ip_address_spec));
+		VERBOSITY(3, (LOG_INFO, "request incremental zone "
 						"transfer (IXFR) for %s to %s",
 			zone->apex_str, zone->master->ip_address_spec));
 
