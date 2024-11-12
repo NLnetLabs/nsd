@@ -15,7 +15,7 @@ TPKG_NSD_PID="nsd.pid.$$"
 TPKG_NSD="$PRE/nsd"
 
 # start nsd with faketime
-TZ=UTC faketime -f '2019-06-05 11:33:05' $TPKG_NSD -c dns-cookies.test.conf -P $TPKG_NSD_PID &
+TZ=UTC faketime -f '2019-06-05 11:33:05' $TPKG_NSD -c dns-cookies.conf -P $TPKG_NSD_PID &
 
 wait_nsd_up nsd.log
 echo "faketime nsd instance A2 running"

@@ -1,0 +1,38 @@
+# #-- bad_xfr_with_other_tasks.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+TPKG_NSD_CONTROL="$PRE/nsd-control"
+SECONDARY_CONTROL="$PRE/nsd-control -c secondary.conf"
+
+wait_logfile secondary.log 'zone zone2fail.invalid serial 0 is updated to 1'
+ldns-notify -z zone2fail.invalid. -p ${SECONDARY_PORT} -s 2 127.0.0.1
+wait_logfile secondary.log 'zone zone2fail.invalid committed "received update to serial 2'
+${SECONDARY_CONTROL} addzone absent-zone.invalid secondary
+wait_logfile secondary.log 'diff file zone2fail.invalid. was inconsistent'
+${SECONDARY_CONTROL} force_transfer absent-zone.invalid
+${SECONDARY_CONTROL} force_transfer zone2fail.invalid
+${SECONDARY_CONTROL} reload
+wait_logfile secondary.log 'zone zone2fail.invalid serial is updated to 1'
+
+# We are now in a state where zone2fail.invalid just works, but
+# absent-zone.invalid is configured in the transfer daemon, but not in the
+# serve processes (when this bug is triggered).
+
+if [ `drill -Q -ord @127.0.0.1 -p ${SECONDARY_PORT} zone2fail.invalid SOA|wc -l` != 1 ]; then
+	drill -b 1232 -ord @127.0.0.1 -p ${SECONDARY_PORT} zone2fail.invalid SOA
+	${SECONDARY_CONTROL} zonestatus
+	echo "zone2fail.invalid should have been served"
+	exit 1
+fi
+if [ `drill -Q -ord @127.0.0.1 -p ${SECONDARY_PORT} absent-zone.invalid SOA|wc -l` != 1 ]; then
+	drill -b 1232 -ord @127.0.0.1 -p ${SECONDARY_PORT} absent-zone.invalid SOA
+	${SECONDARY_CONTROL} zonestatus
+	echo "absent-zone.invalid should have been served"
+	exit 1
+fi
+

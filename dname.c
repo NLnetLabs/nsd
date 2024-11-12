@@ -307,11 +307,15 @@ dname_is_subdomain(const dname_type *left, const dname_type *right)
 
 
 int
-dname_compare(const dname_type *left, const dname_type *right)
+dname_compare(const void *a, const void *b)
 {
 	int result;
 	uint8_t label_count;
 	uint8_t i;
+	const dname_type *left, *right;
+
+	left = a;
+	right = b;
 
 	assert(left);
 	assert(right);

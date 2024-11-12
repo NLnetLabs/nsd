@@ -20,21 +20,21 @@ TPKG_NSD_CONTROL="$PRE/nsd-control"
 # option in the config file, but no cookies configured.
 touch cookiesecrets.txt
 # start nsd with faketime
-TZ=UTC faketime -f '2019-06-05 13:39:21' $TPKG_NSD -c dns-cookies.test.conf -P $TPKG_NSD_PRI_PID &
+TZ=UTC faketime -f '2019-06-05 13:39:21' $TPKG_NSD -c dns-cookies.by-nsd-control.conf -P $TPKG_NSD_PRI_PID &
 
 wait_nsd_up nsd.log
 echo "faketime nsd instance A4 running"
 
 # add secret
-$TPKG_NSD_CONTROL -c dns-cookies.test.conf add_cookie_secret dd3bdf9344b678b185a6f5cb60fca715
-$TPKG_NSD_CONTROL -c dns-cookies.test.conf add_cookie_secret 445536bcd2513298075a5d379663c962
+$TPKG_NSD_CONTROL -c dns-cookies.by-nsd-control.conf add_cookie_secret dd3bdf9344b678b185a6f5cb60fca715
+$TPKG_NSD_CONTROL -c dns-cookies.by-nsd-control.conf add_cookie_secret 445536bcd2513298075a5d379663c962
 
-$TPKG_NSD_CONTROL -c dns-cookies.test.conf print_cookie_secrets > cookie_secrets.a4-1
+$TPKG_NSD_CONTROL -c dns-cookies.by-nsd-control.conf print_cookie_secrets > cookie_secrets.a4-1
 if ! grep -q "445536bcd2513298075a5d379663c962" cookie_secrets.a4-1 \
 || ! grep -q "dd3bdf9344b678b185a6f5cb60fca715" cookie_secrets.a4-1
 then
 	sleep 1
-	$TPKG_NSD_CONTROL -c dns-cookies.test.conf print_cookie_secrets > cookie_secrets.a4-1
+	$TPKG_NSD_CONTROL -c dns-cookies.by-nsd-control.conf print_cookie_secrets > cookie_secrets.a4-1
 	if ! grep -q "445536bcd2513298075a5d379663c962" cookie_secrets.a4-1 \
 	|| ! grep -q "dd3bdf9344b678b185a6f5cb60fca715" cookie_secrets.a4-1
 	then
@@ -56,13 +56,13 @@ else
 fi
 
 # secret rollover
-$TPKG_NSD_CONTROL -c dns-cookies.test.conf activate_cookie_secret
+$TPKG_NSD_CONTROL -c dns-cookies.by-nsd-control.conf activate_cookie_secret
 
-$TPKG_NSD_CONTROL -c dns-cookies.test.conf print_cookie_secrets > cookie_secrets.a4-2
+$TPKG_NSD_CONTROL -c dns-cookies.by-nsd-control.conf print_cookie_secrets > cookie_secrets.a4-2
 if ! grep -q "^active.*445536bcd2513298075a5d379663c962" cookie_secrets.a4-2
 then
 	sleep 1
-	$TPKG_NSD_CONTROL -c dns-cookies.test.conf print_cookie_secrets > cookie_secrets.a4-2
+	$TPKG_NSD_CONTROL -c dns-cookies.by-nsd-control.conf print_cookie_secrets > cookie_secrets.a4-2
 	if ! grep -q "^active.*445536bcd2513298075a5d379663c962" cookie_secrets.a4-2 
 	then
 		cat cookie_secrets.a4-2

@@ -24,6 +24,7 @@ logfile = @logfile@
 xfrdir = @xfrdir@
 xfrdfile = @xfrdfile@
 zonelistfile = @zonelistfile@
+cookiesecretsfile = @cookiesecretsfile@
 nsdconfigfile = @nsd_conf_file@
 zonesdir = @zonesdir@
 chrootdir= @chrootdir@
@@ -54,6 +55,10 @@ YACC 	= @YACC@
 LEX		= @LEX@
 PROTOC_C	= @PROTOC_C@
 
+DATE != date +'%b %e, %y'
+PROJECT = @PACKAGE_NAME@
+VERSION = @PACKAGE_VERSION@
+
 COMPILE		= $(CC) $(CPPFLAGS) $(CFLAGS)
 LINK		= $(CC) $(CFLAGS) $(LDFLAGS)
 EDIT		= $(SED) \
@@ -69,11 +74,15 @@ EDIT		= $(SED) \
 			-e 's,@xfrdir\@,$(xfrdir),g' \
 			-e 's,@xfrdfile\@,$(xfrdfile),g' \
 			-e 's,@zonelistfile\@,$(zonelistfile),g' \
+			-e 's,@cookiesecretsfile\@,$(cookiesecretsfile),g' \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@ratelimit_default\@,@ratelimit_default@,g' \
 			-e 's,@dnstap_socket_path\@,@opt_dnstap_socket_path@,g' \
-			-e 's,@user\@,$(user),g'
+			-e 's,@user\@,$(user),g' \
+			-e 's/@project\@/$(PROJECT)/g' \
+			-e 's/@version\@/$(VERSION)/g' \
+			-e 's/@date\@/$(DATE)/g'
 
 TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf
 MANUALS=nsd.8 nsd-checkconf.8 nsd-checkzone.8 nsd-control.8 nsd.conf.5
@@ -87,7 +96,36 @@ NSD_CHECKZONE_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc
 NSD_CONTROL_OBJ=$(COMMON_OBJ) nsd-control.o
 CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o verify.o zonec.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_rrl.o cutest_udb.o cutest_util.o cutest_bitset.o cutest_popen3.o cutest_iter.o cutest_event.o cutest.o qtest.o
 NSD_MEM_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o verify.o server.o zonec.o nsd-mem.o
-all:	$(TARGETS) $(MANUALS)
+
+.PHONY: all html
+
+all: $(TARGETS) $(MANUALS)
+
+doc/manual/conf.py: doc/manual/conf.py.in
+	$(EDIT) $(srcdir)/doc/manual/conf.py.in > $@
+
+doc/manual/manpages/nsd.conf.5.html: nsd.conf.5
+	mandoc -T html -O fragment nsd.conf.5 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd.8.html: nsd.8
+	mandoc -T html -O fragment nsd.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd-checkconf.8.html: nsd-checkconf.8
+	mandoc -T html -O fragment nsd-checkconf.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd-checkzone.8.html: nsd-checkzone.8
+	mandoc -T html -O fragment nsd-checkzone.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+doc/manual/manpages/nsd-control.8.html: nsd-control.8
+	mandoc -T html -O fragment nsd-control.8 > $@
+	sed -i '/<table class="\(head\|foot\)">/,/<\/table>/ d' $@
+
+html: doc/manual/conf.py doc/manual/manpages/nsd.conf.5.html doc/manual/manpages/nsd.8.html doc/manual/manpages/nsd-checkconf.8.html doc/manual/manpages/nsd-checkzone.8.html doc/manual/manpages/nsd-control.8.html
+	sphinx-build -M html $(srcdir)/doc/manual doc/manual -N -q
 
 $(ALL_OBJ):
 	$(COMPILE) -c $<
@@ -101,25 +139,20 @@ nsd.conf.sample:	$(srcdir)/nsd.conf.sample.in config.h
 	rm -f nsd.conf.sample
 	$(EDIT) $(srcdir)/nsd.conf.sample.in | $(AWK) '/RRLconfig'@ratelimit@'/ { while($$0 !~ /.*RRLend.*/) { getline; } getline; } {print} ' > nsd.conf.sample
 
-nsd.conf.5:	$(srcdir)/nsd.conf.5.in config.h
-	rm -f nsd.conf.5
-	$(EDIT) $(srcdir)/nsd.conf.5.in | $(AWK) '/rrlstart'@ratelimit@'/ { while($$0 !~ /.*rrlend.*/) { getline; } getline; } {print} ' > nsd.conf.5
+nsd.conf.5: $(srcdir)/nsd.conf.5.in config.h
+	$(EDIT) $(srcdir)/nsd.conf.5.in | $(AWK) '/rrlstart'@ratelimit@'/ { while($$0 !~ /.*rrlend.*/) { getline; } getline; } {print} ' > $@
 
-nsd.8:	$(srcdir)/nsd.8.in config.h
-	rm -f nsd.8
-	$(EDIT) $(srcdir)/nsd.8.in > nsd.8
+nsd.8: $(srcdir)/nsd.8.in config.h
+	$(EDIT) $(srcdir)/nsd.8.in > $@
 
-nsd-checkconf.8:	$(srcdir)/nsd-checkconf.8.in config.h
-	rm -f nsd-checkconf.8
-	$(EDIT) $(srcdir)/nsd-checkconf.8.in > nsd-checkconf.8
+nsd-checkconf.8: $(srcdir)/nsd-checkconf.8.in config.h
+	$(EDIT) $(srcdir)/nsd-checkconf.8.in > $@
 
-nsd-checkzone.8:	$(srcdir)/nsd-checkzone.8.in config.h
-	rm -f nsd-checkzone.8
-	$(EDIT) $(srcdir)/nsd-checkzone.8.in > nsd-checkzone.8
+nsd-checkzone.8: $(srcdir)/nsd-checkzone.8.in config.h
+	$(EDIT) $(srcdir)/nsd-checkzone.8.in > $@
 
-nsd-control.8:	$(srcdir)/nsd-control.8.in config.h
-	rm -f nsd-control.8
-	$(EDIT) $(srcdir)/nsd-control.8.in > nsd-control.8
+nsd-control.8: $(srcdir)/nsd-control.8.in config.h
+	$(EDIT) $(srcdir)/nsd-control.8.in > $@
 
 contrib/nsd.openrc: $(srcdir)/contrib/nsd.openrc.in
 	mkdir -p contrib
@@ -136,6 +169,7 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(xfrdir)
 	$(INSTALL) -d `dirname $(DESTDIR)$(xfrdfile)`
 	$(INSTALL) -d `dirname $(DESTDIR)$(zonelistfile)`
+	$(INSTALL) -d `dirname $(DESTDIR)$(cookiesecretsfile)`
 	$(INSTALL) -d $(DESTDIR)$(mandir)
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man8
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man5
@@ -158,7 +192,7 @@ uninstall:
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkzone.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
 	rm -f -- $(DESTDIR)$(pidfile)
 	@echo
-	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(xfrdfile), $(DESTDIR)$(zonelistfile) directory by hand."
+	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(xfrdfile), $(DESTDIR)$(zonelistfile) $(DESTDIR)$(cookiesecretsfile) directory by hand."
 
 test: 
 
@@ -202,6 +236,8 @@ audit: nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem checksec
 
 .clean:
 	rm -f *.o $(TARGETS) $(MANUALS) cutest popen3_echo xfr-inspect nsd-mem
+	rm -f doc/manual/conf.py doc/manual/manpages/nsd.conf.5.html doc/manual/manpages/nsd.8.html doc/manual/manpages/nsd-checkconf.8.html doc/manual/manpages/nsd-checkzone.8.html doc/manual/manpages/nsd-control.8.html
+	rm -rf doc/manual/doctrees doc/manual/html
 
 .distclean: .clean
 	rm -f Makefile config.h config.log config.status dnstap/dnstap_config.h
@@ -356,8 +392,13 @@ configlexer.c:	$(srcdir)/configlexer.lex
 	fi
 	@if test ! -f $@; then echo "No $@ : need flex and bison to compile from source repository"; exit 1; fi
 
-configparser.c configparser.h:	$(srcdir)/configparser.y
+# Builds both util/configparser.c and util/configparser.h.
+# To avoid double-building we split one target out.
+configparser.c:	$(srcdir)/configparser.y
 	$(YACC) -d -p c_ -o configparser.c $(srcdir)/configparser.y
+
+configparser.h: configparser.c
+	touch $@
 
 # for build to run flex and bison before compiling code that needs the headers
 configlexer.o: configlexer.c config.h configparser.h

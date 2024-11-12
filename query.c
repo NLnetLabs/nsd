@@ -466,8 +466,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 	if((acl_num = acl_check_incoming(zone_opt->pattern->allow_notify, query,
 		&why)) != -1)
 	{
-		sig_atomic_t mode = NSD_PASS_TO_XFRD;
-		int s = nsd->this_child->parent_fd;
+		int s = nsd->serve2xfrd_fd_send[nsd->this_child->child_num];
 		uint16_t sz;
 		uint32_t acl_send = htonl(acl_num);
 		uint32_t acl_xfr;
@@ -485,14 +484,14 @@ answer_notify(struct nsd* nsd, struct query *query)
 			why->ip_address_spec,
 			why->nokey?"NOKEY":
 			(why->blocked?"BLOCKED":why->key_name)));
-		sz = buffer_limit(query->packet);
 		if(buffer_limit(query->packet) > MAX_PACKET_SIZE)
 			return query_error(query, NSD_RC_SERVFAIL);
 		/* forward to xfrd for processing
 		   Note. Blocking IPC I/O, but acl is OK. */
+		sz = buffer_limit(query->packet)
+		   + sizeof(acl_send) + sizeof(acl_xfr);
 		sz = htons(sz);
-		if(!write_socket(s, &mode, sizeof(mode)) ||
-			!write_socket(s, &sz, sizeof(sz)) ||
+		if(!write_socket(s, &sz, sizeof(sz)) ||
 			!write_socket(s, buffer_begin(query->packet),
 				buffer_limit(query->packet)) ||
 			!write_socket(s, &acl_send, sizeof(acl_send)) ||
@@ -1781,6 +1780,17 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 				6 + ( q->edns.ede_text_len
 			            ? q->edns.ede_text_len : 0);
 
+		if(q->edns.zoneversion
+		&& q->zone
+		&& q->zone->soa_rrset
+		&& q->zone->soa_rrset->rrs
+		&& q->zone->soa_rrset->rrs->rdata_count >= 3)
+			q->edns.opt_reserved_space += sizeof(uint16_t)
+			                           +  sizeof(uint16_t)
+			                           +  sizeof(uint8_t)
+			                           +  sizeof(uint8_t)
+			                           +  sizeof(uint32_t);
+
 		if(q->edns.opt_reserved_space == 0 || !buffer_available(
 			q->packet, 2+q->edns.opt_reserved_space)) {
 			/* fill with NULLs */
@@ -1794,6 +1804,24 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 				buffer_write(q->packet, edns->nsid, OPT_HDR);
 				/* nsid payload */
 				buffer_write(q->packet, nsd->nsid, nsd->nsid_len);
+			}
+			if(q->edns.zoneversion
+			&& q->zone
+			&& q->zone->soa_rrset
+			&& q->zone->soa_rrset->rrs
+			&& q->zone->soa_rrset->rrs->rdata_count >= 3) {
+				buffer_write_u16(q->packet, ZONEVERSION_CODE);
+				buffer_write_u16( q->packet
+				                , sizeof(uint8_t)
+						+ sizeof(uint8_t)
+						+ sizeof(uint32_t));
+				buffer_write_u8(q->packet,
+				    domain_dname(q->zone->apex)->label_count - 1);
+				buffer_write_u8( q->packet
+				               , ZONEVERSION_SOA_SERIAL);
+				buffer_write_u32(q->packet,
+				    read_uint32(rdata_atom_data(
+				    q->zone->soa_rrset->rrs->rdatas[2])));
 			}
 			if(q->edns.cookie_status != COOKIE_NOT_PRESENT) {
 				/* cookie opt header */

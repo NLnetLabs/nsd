@@ -14,7 +14,7 @@ TPKG_NSD="$PRE/nsd"
 # slave server too
 TPKG_PORT2=$(($TPKG_PORT + 1))
 TPKG_NSD_PID2="nsd.pid2.$$"
-NUMZONES=1000
+NUMZONES=10000
 if which perl
 then
 	TPKG_HAVE_PERL=1

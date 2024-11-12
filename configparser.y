@@ -111,10 +111,12 @@ struct component {
 %token VAR_STATISTICS
 %token VAR_XFRD_RELOAD_TIMEOUT
 %token VAR_LOG_TIME_ASCII
+%token VAR_LOG_TIME_ISO
 %token VAR_ROUND_ROBIN
 %token VAR_MINIMAL_RESPONSES
 %token VAR_CONFINE_TO_ZONE
 %token VAR_REFUSE_ANY
+%token VAR_RELOAD_CONFIG
 %token VAR_ZONEFILES_CHECK
 %token VAR_ZONEFILES_WRITE
 %token VAR_RRL_SIZE
@@ -194,6 +196,7 @@ struct component {
 %token VAR_ANSWER_COOKIE
 %token VAR_COOKIE_SECRET
 %token VAR_COOKIE_SECRET_FILE
+%token VAR_COOKIE_STAGING_SECRET
 %token VAR_MAX_REFRESH_TIME
 %token VAR_MIN_REFRESH_TIME
 %token VAR_MAX_RETRY_TIME
@@ -445,6 +448,8 @@ server_option:
       cfg_parser->opt->rrl_whitelist_ratelimit = (size_t)$2;
 #endif
     }
+  | VAR_RELOAD_CONFIG boolean
+    { cfg_parser->opt->reload_config = $2; }
   | VAR_ZONEFILES_CHECK boolean
     { cfg_parser->opt->zonefiles_check = $2; }
   | VAR_ZONEFILES_WRITE number
@@ -453,6 +458,11 @@ server_option:
     {
       cfg_parser->opt->log_time_ascii = $2;
       log_time_asc = cfg_parser->opt->log_time_ascii;
+    }
+  | VAR_LOG_TIME_ISO boolean
+    {
+      cfg_parser->opt->log_time_iso = $2;
+      log_time_iso = cfg_parser->opt->log_time_iso;
     }
   | VAR_ROUND_ROBIN boolean
     {
@@ -509,9 +519,39 @@ server_option:
   | VAR_ANSWER_COOKIE boolean
     { cfg_parser->opt->answer_cookie = $2; }
   | VAR_COOKIE_SECRET STRING
-    { cfg_parser->opt->cookie_secret = region_strdup(cfg_parser->opt->region, $2); }
+    {
+      uint8_t secret[32];
+      ssize_t len = hex_pton($2, secret, NSD_COOKIE_SECRET_SIZE);
+
+      if(len != NSD_COOKIE_SECRET_SIZE) {
+        yyerror("expected a 128 bit hex string");
+      } else {
+        cfg_parser->opt->cookie_secret = region_strdup(cfg_parser->opt->region, $2);
+      }
+    }
+  | VAR_COOKIE_STAGING_SECRET STRING
+    {
+      uint8_t secret[32];
+      ssize_t len = hex_pton($2, secret, NSD_COOKIE_SECRET_SIZE);
+
+      if(len != NSD_COOKIE_SECRET_SIZE) {
+        yyerror("expected a 128 bit hex string");
+      } else {
+        cfg_parser->opt->cookie_staging_secret = region_strdup(cfg_parser->opt->region, $2);
+      }
+    }
   | VAR_COOKIE_SECRET_FILE STRING
-    { cfg_parser->opt->cookie_secret_file = region_strdup(cfg_parser->opt->region, $2); }
+    {
+      /* Empty filename means explicitly disabled cookies from file, internally
+       * represented as NULL.
+       * Note that after parsing, if no value was configured, then
+       * cookie_secret_file_is_default is still 1, then the default cookie
+       * secret file value will be assigned to cookie_secret_file.
+       */
+      if(*$2) cfg_parser->opt->cookie_secret_file = region_strdup(cfg_parser->opt->region, $2);
+      cfg_parser->opt->cookie_secret_file_is_default = 0;
+    }
+    
   | VAR_XFRD_TCP_MAX number
     { cfg_parser->opt->xfrd_tcp_max = (int)$2; }
   | VAR_XFRD_TCP_PIPELINE number

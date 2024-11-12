@@ -181,8 +181,9 @@ dname_label(const dname_type *dname, uint8_t label)
  * RIGHT.  The comparison is case sensitive.
  *
  * Pre: left != NULL && right != NULL
+ * left and right are dname_type*.
  */
-int dname_compare(const dname_type *left, const dname_type *right);
+int dname_compare(const void *left, const void *right);
 
 
 /*

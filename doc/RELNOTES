@@ -1,5 +1,35 @@
 NSD RELEASE NOTES
 
+4.10.2
+================
+FEATURES:
+	- Support reloading configuration on SIGHUP.
+	- Fix #383: log timestamps in ISO8601 format with timezone.
+	  This adds the option `log-time-iso: yes` that logs in ISO8601
+	  format.
+
+BUG FIXES:
+	- Fix title underline and declaration after statement warnings.
+	- Add cross platform freebsd, openbsd and netbsd to github ci.
+	- Update simdzone to include fix for netbsd double bswap declarations,
+	  and also semantic checks for DS and ZONEMD. And CFLAGS has -march
+	  prepended to fix detection.
+	- Merge #376: Point the user towards tcpdump for logging individual
+	  queries.
+	- Track $INCLUDEs in zone files.
+	- Fix ci to update macos-12 to the macos-15 runner image.
+	- Merge #391: Update copyright lines (in version output).
+	- Fix #392: Inconsistent documentation about control-interface.
+	- Merge #395: Explain the zonefile example better.
+	- Merge #394: Fix the path to use doc/manual/.
+	- Fix analyzer issue in do_print_cookie_secrets to check for failure.
+	- Merge #404: Introducing Sphinx substitution in code blocks.
+	  As well as other fixes with Sphinx build.
+	- Update Copyright lines in help output
+	- Merge #395: Explain zonefile example better
+	- Merge #394: Fix doc path (fixes "Edit on GitHub" button in the docs)
+	- Fix Makefile for parallel build failure around bison rule.
+
 4.10.1
 ================
 FEATURES:

@@ -80,6 +80,7 @@ nsd_options_create(region_type* region)
 	opt->logfile = 0;
 	opt->log_only_syslog = 0;
 	opt->log_time_ascii = 1;
+	opt->log_time_iso = 0;
 	opt->round_robin = 0; /* also packet.h::round_robin */
 	opt->minimal_responses = 0; /* also packet.h::minimal_responses */
 	opt->confine_to_zone = 0;
@@ -137,6 +138,7 @@ nsd_options_create(region_type* region)
 	opt->dnstap_log_auth_query_messages = 0;
 	opt->dnstap_log_auth_response_messages = 0;
 #endif
+	opt->reload_config = 0;
 	opt->zonefiles_check = 1;
 	opt->zonefiles_write = ZONEFILES_WRITE_INTERVAL;
 	opt->xfrd_reload_timeout = 1;
@@ -150,7 +152,9 @@ nsd_options_create(region_type* region)
 	opt->proxy_protocol_port = NULL;
 	opt->answer_cookie = 0;
 	opt->cookie_secret = NULL;
-	opt->cookie_secret_file = CONFIGDIR"/nsd_cookiesecrets.txt";
+	opt->cookie_staging_secret = NULL;
+	opt->cookie_secret_file = NULL;
+	opt->cookie_secret_file_is_default = 1;
 	opt->control_enable = 0;
 	opt->control_interface = NULL;
 	opt->control_port = NSD_CONTROL_PORT;
@@ -255,6 +259,16 @@ parse_options_file(struct nsd_options* opt, const char* file,
 
 	opt->configfile = region_strdup(opt->region, file);
 
+	/* Set default cookie_secret_file value */
+	if(opt->cookie_secret_file_is_default && !opt->cookie_secret_file) {
+		opt->cookie_secret_file =
+			region_strdup(opt->region, COOKIESECRETSFILE);
+	}
+	/* Semantic errors */
+	if(opt->cookie_staging_secret && !opt->cookie_secret) {
+		c_error("a cookie-staging-secret cannot be configured without "
+		        "also providing a cookie-secret");
+	}
 	RBTREE_FOR(pat, struct pattern_options*, opt->patterns)
 	{
 		struct pattern_options* old_pat =

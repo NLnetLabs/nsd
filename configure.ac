@@ -126,6 +126,12 @@ AC_ARG_WITH([zonelistfile], AS_HELP_STRING([--with-zonelistfile=path],[Pathname 
 AC_DEFINE_UNQUOTED(ZONELISTFILE, ["`eval echo $zonelistfile`"], [Pathname to the NSD zone list file.])
 AC_SUBST(zonelistfile)
 
+# default cookiesecrets file location.
+cookiesecretsfile=${dbdir}/cookiesecrets.txt
+AC_ARG_WITH([cookiesecretsfile], AS_HELP_STRING([--with-cookiesecretsfile=path],[Pathname to the NSD cookie secrets file]), [cookiesecretsfile=$withval])
+AC_DEFINE_UNQUOTED(COOKIESECRETSFILE, ["`eval echo $cookiesecretsfile`"], [Pathname to the NSD cookies secrets file.])
+AC_SUBST(cookiesecretsfile)
+
 # default xfr dir location.
 xfrdir="/tmp"
 AC_ARG_WITH([xfrdir], AS_HELP_STRING([--with-xfrdir=path],[Pathname to where the NSD transfer dir is created]), [xfrdir=$withval])

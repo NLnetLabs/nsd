@@ -40,6 +40,7 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -47,6 +48,7 @@ server:
 	verbosity: 0
 	ip-address: 127.0.0.1
 	ip-address: 10.1.2.3
+	reload-config: no
 	zonefiles-check: yes
 	zonefiles-write: 3600
 	#tls-service-key:
@@ -55,7 +57,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no
@@ -175,11 +179,13 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
 	refuse-any: no
 	verbosity: 0
+	reload-config: no
 	zonefiles-check: yes
 	zonefiles-write: 3600
 	#tls-service-key:
@@ -188,7 +194,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no
@@ -251,11 +259,13 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: no
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
 	refuse-any: no
 	verbosity: 0
+	reload-config: no
 	zonefiles-check: yes
 	zonefiles-write: 3600
 	#tls-service-key:
@@ -264,7 +274,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no
@@ -336,11 +348,13 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
 	refuse-any: no
 	verbosity: 0
+	reload-config: no
 	zonefiles-check: yes
 	zonefiles-write: 3600
 	#tls-service-key:
@@ -349,7 +363,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no
@@ -465,11 +481,13 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
 	refuse-any: no
 	verbosity: 0
+	reload-config: no
 	zonefiles-check: yes
 	zonefiles-write: 3600
 	#tls-service-key:
@@ -478,7 +496,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no
@@ -592,11 +612,13 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
 	refuse-any: no
 	verbosity: 0
+	reload-config: no
 	zonefiles-check: yes
 	zonefiles-write: 3600
 	#tls-service-key:
@@ -605,7 +627,9 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
 
 remote-control:
 	control-enable: no

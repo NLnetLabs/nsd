@@ -131,6 +131,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	pid_t nsd_pid)
 {
 	region_type* region;
+	size_t i;
 
 	assert(xfrd == 0);
 	/* to setup signalhandling */
@@ -158,7 +159,6 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	xfrd->zonestat_safe = nsd->zonestatdesired;
 #endif
 	xfrd->activated_first = NULL;
-	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
 	xfrd->last_task = region_alloc(xfrd->region, sizeof(*xfrd->last_task));
 	udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
 	assert(shortsoa || udb_base_get_userdata(xfrd->nsd->task[xfrd->nsd->mytask])->data == 0);
@@ -182,10 +182,22 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	if(event_add(&xfrd->ipc_handler, NULL) != 0)
 		log_msg(LOG_ERR, "xfrd ipc handler: event_add failed");
 	xfrd->ipc_handler_flags = EV_PERSIST|EV_READ;
-	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region, QIOBUFSZ);
-	/* not reading using ipc_conn yet */
-	xfrd->ipc_conn->is_reading = 0;
-	xfrd->ipc_conn->fd = socket;
+	xfrd->notify_events = (struct event *) region_alloc_array_zero(
+		xfrd->region, nsd->child_count * 2, sizeof(struct event));
+	xfrd->notify_pipes = (struct xfrd_tcp *) region_alloc_array_zero(
+		xfrd->region, nsd->child_count * 2, sizeof(struct xfrd_tcp));
+	for(i = 0; i < 2 * nsd->child_count; i++) {
+		int fd = nsd->serve2xfrd_fd_recv[i];
+		xfrd->notify_pipes[i].fd = fd;
+		xfrd->notify_pipes[i].packet = buffer_create(xfrd->region, QIOBUFSZ);
+		event_set(&xfrd->notify_events[i], fd,
+				EV_PERSIST|EV_READ, xfrd_handle_notify, &xfrd->notify_pipes[i]);
+		if(event_base_set(xfrd->event_base, &xfrd->notify_events[i]) != 0)
+			log_msg( LOG_ERR
+			       , "xfrd notify_event: event_base_set failed");
+		if(event_add(&xfrd->notify_events[i], NULL) != 0)
+			log_msg(LOG_ERR, "xfrd notify_event: event_add failed");
+	}
 	xfrd->need_to_send_reload = 0;
 	xfrd->need_to_send_shutdown = 0;
 	xfrd->need_to_send_stats = 0;
@@ -272,6 +284,9 @@ xfrd_sig_process(void)
 	} else if(xfrd->nsd->signal_hint_reload_hup) {
 		log_msg(LOG_WARNING, "SIGHUP received, reloading...");
 		xfrd->nsd->signal_hint_reload_hup = 0;
+		if(xfrd->nsd->options->reload_config) {
+			xfrd_reload_config(xfrd);
+		}
 		if(xfrd->nsd->options->zonefiles_check) {
 			task_new_check_zonefiles(xfrd->nsd->task[
 				xfrd->nsd->mytask], xfrd->last_task, NULL);
@@ -316,6 +331,7 @@ xfrd_main(void)
 	xfrd->shutdown = 0;
 	while(!xfrd->shutdown)
 	{
+		/* xfrd_sig_process takes care of reading zones on SIGHUP */
 		xfrd_process_catalog_producer_zones();
 		xfrd_process_catalog_consumer_zones();
 		/* process activated zones before blocking in select again */
@@ -636,7 +652,7 @@ apply_xfr:
 		       (long long)xfr->xfrfilenumber, strerror(errno));
 
 	} else if(0 >= apply_ixfr_for_zone(xfrd->nsd, dbzone, df,
-			xfrd->nsd->options, NULL, NULL, xfr->xfrfilenumber)) {
+			xfrd->nsd->options, NULL, xfr->xfrfilenumber)) {
 		make_catalog_consumer_invalid(consumer_zone,
 			"error processing transfer file %lld",
 			(long long)xfr->xfrfilenumber);

@@ -116,9 +116,11 @@ struct nsd_options {
 	const char* zonelistfile;
 	const char* nsid;
 	int xfrd_reload_timeout;
+	int reload_config;
 	int zonefiles_check;
 	int zonefiles_write;
 	int log_time_ascii;
+	int log_time_iso;
 	int round_robin;
 	int minimal_responses;
 	int refuse_any;
@@ -207,8 +209,12 @@ struct nsd_options {
 	int answer_cookie;
 	/** cookie secret */
 	char *cookie_secret;
+	/** cookie staging secret */
+	char *cookie_staging_secret;
 	/** path to cookie secret store */
-	char const* cookie_secret_file;
+	char *cookie_secret_file;
+	/** set when the cookie_secret_file whas not explicitely configured */
+	uint8_t cookie_secret_file_is_default;
 	/** enable verify */
 	int verify_enable;
 	/** list of ip addresses used to serve zones for verification */
