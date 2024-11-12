@@ -141,9 +141,9 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_CDNSKEY	60	/* RFC 7344 */
 #define TYPE_OPENPGPKEY 61	/* RFC 7929 */
 #define TYPE_CSYNC	62	/* RFC 7477 */
-#define TYPE_ZONEMD	63	/* draft-ietf-dnsop-dns-zone-digest */
-#define TYPE_SVCB	64	/* draft-ietf-dnsop-svcb-https-03 */
-#define TYPE_HTTPS	65	/* draft-ietf-dnsop-svcb-https-03 */
+#define TYPE_ZONEMD	63	/* RFC 8976 */
+#define TYPE_SVCB	64	/* RFC 9460 */
+#define TYPE_HTTPS	65	/* RFC 9460 */
 
 #define TYPE_SPF        99      /* RFC 4408 */
 
@@ -172,10 +172,12 @@ typedef enum nsd_rc nsd_rc_type;
 #define SVCB_KEY_NO_DEFAULT_ALPN	2
 #define SVCB_KEY_PORT			3
 #define SVCB_KEY_IPV4HINT		4
-#define SVCB_KEY_ECH		5
+#define SVCB_KEY_ECH			5
 #define SVCB_KEY_IPV6HINT		6
 #define SVCB_KEY_DOHPATH		7
-#define SVCPARAMKEY_COUNT 8
+#define SVCB_KEY_OHTTP			8
+#define SVCB_KEY_TLS_SUPPORTED_GROUPS	9
+#define SVCPARAMKEY_COUNT 10
 
 #define MAXLABELLEN	63
 #define MAXDOMAINLEN	255

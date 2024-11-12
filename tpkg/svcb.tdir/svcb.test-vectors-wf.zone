@@ -230,3 +230,29 @@ v20	HTTPS	\# 35 (
 68 32                                              ; alpn value
 )
 
+ohttp-s1	HTTPS	\# 14 (
+00 01                ; priority
+00                   ; target
+00 01 00 03 02 68 32 ; alpn=h2
+00 08 00 00          ; ohttp
+)
+ohttp-s2	HTTPS	\# 13 (
+00 01                ; priority
+00                   ; target
+00 00 00 02 00 08    ; mandatory=ohttp                      
+00 08 00 00          ; ohttp
+)
+ohttp-s3	SVCB	\# 50 (
+00 01                                                       ; priority
+03 64 6f 68 07 65 78 61 6d 70 6c 65 03 6e 65 74 00          ; target
+00 01 00 03 02 68 32                                        ; alpn=h2
+00 07 00 10 2f 64 6e 73 2d 71 75 65 72 79 7b 3f 64 6e 73 7d ; dohpath=/dns-query{?dns}
+00 08 00 00                                                 ; ohttp
+)
+tsg-s1	7200	IN	SVCB	\# 36 (
+00 03                                                       ; priority
+06 73 65 72 76 65 72 07 65 78 61 6d 70 6c 65 03 6e 65 74 00 ; target
+00 03 00 02 1f 44                                           ; port="8004"
+00 09 00 04 00 1d 00 17                                     ; tls-supported-groups=2923
+)
+

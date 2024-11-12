@@ -90,3 +90,9 @@ v18	HTTPS	16 foo.example.org. (alpn=h2,h3-19 mandatory=ipv4hint,alpn
 v19	HTTPS	16 foo.example.org. alpn="f\\\\oo\\,bar,h2"
 v20	HTTPS	16 foo.example.org. alpn=f\\\092oo\092,bar,h2
 
+ohttp-s1	HTTPS	1 . ( alpn=h2 ohttp )
+ohttp-s2	HTTPS	1 . ( mandatory=ohttp ohttp )
+ohttp-s3 	SVCB	1 doh.example.net. ( alpn=h2 dohpath=/dns-query{?dns} ohttp )
+tsg-s1	7200	IN	SVCB	3 server.example.net. (
+	port="8004" tls-supported-groups=29,23 )
+
