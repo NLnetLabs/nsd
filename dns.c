@@ -32,7 +32,7 @@ static lookup_table_type dns_rrclasses[] = {
 	{ 0, NULL }
 };
 
-static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+1)] = {
+static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+2)] = {
 	/* 0 */
 	{ 0, NULL, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 1 */
@@ -287,9 +287,14 @@ static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+1)] 
 	/* 55 - HIP [RFC 5205] */
 	{ 55, NULL, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 56 - NINFO */
-	{ 56, NULL, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
+	{ TYPE_NINFO, "NINFO", 1, 1,
+	  { RDATA_WF_TEXTS },
+	  { RDATA_ZF_TEXTS } },
 	/* 57 - RKEY */
-	{ 57, NULL, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
+	{ TYPE_RKEY, "RKEY", 4, 4,
+	  { RDATA_WF_SHORT, RDATA_WF_BYTE, RDATA_WF_BYTE, RDATA_WF_BINARY },
+	  { RDATA_ZF_SHORT, RDATA_ZF_BYTE, RDATA_ZF_ALGORITHM,
+	    RDATA_ZF_BASE64 } },
 	/* 58 - TALINK */
 	{ 58, NULL, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 59 - CDS */
@@ -846,8 +851,21 @@ static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+1)] 
 	{ TYPE_AVC, "AVC", 1, 1,
 	  { RDATA_WF_TEXTS },
 	  { RDATA_ZF_TEXTS } },
+	/* 259 - DOA */
+	{ 259, NULL, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
+	/* 260 - AMTRELAY */
+	{ 260, NULL, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
+	/* 261 - RESINFO */
+	{ TYPE_RESINFO, "RESINFO", 1, 1, { RDATA_WF_TEXTS }, { RDATA_ZF_TEXTS } },
+	/* 262 - WALLET */
+	{ TYPE_WALLET, "WALLET", 1, 1, { RDATA_WF_TEXTS }, { RDATA_ZF_TEXTS } },
+	/* 263 - CLA */
+	{ TYPE_CLA, "CLA", 1, 1, { RDATA_WF_TEXTS }, { RDATA_ZF_TEXTS } },
 
 	/* 32768 - TA */
+	{ TYPE_TA, "TA", 4, 4,
+	  { RDATA_WF_SHORT, RDATA_WF_BYTE, RDATA_WF_BYTE, RDATA_WF_BINARY },
+	  { RDATA_ZF_SHORT, RDATA_ZF_ALGORITHM, RDATA_ZF_BYTE, RDATA_ZF_HEX } },
 	/* 32769 */
 	{ TYPE_DLV, "DLV", 4, 4,
 	  { RDATA_WF_SHORT, RDATA_WF_BYTE, RDATA_WF_BYTE, RDATA_WF_BINARY },
@@ -861,6 +879,8 @@ rrtype_descriptor_by_type(uint16_t type)
 		return &rrtype_descriptors[type];
 	else if (type == TYPE_DLV)
 		return &rrtype_descriptors[PSEUDO_TYPE_DLV];
+	else if (type == TYPE_TA)
+		return &rrtype_descriptors[PSEUDO_TYPE_TA];
 	return &rrtype_descriptors[0];
 }
 
