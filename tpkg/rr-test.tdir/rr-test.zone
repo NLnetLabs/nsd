@@ -143,3 +143,21 @@ wallet	IN	WALLET	BTC 1H6WkSHdqVahBKczJrs9bBfFYhUHrP5R2F
 cla	IN	CLA	CP-V4-V6 TCP-V6-V7
 ta	IN	TA	56039 13 2 4104805B43928FC573F0704A2C1B5A10BAA2878DE26B8535DDE77517 C154CE9F
 dlv	IN	DLV	56039 13 2 4104805B43928FC573F0704A2C1B5A10BAA2878DE26B8535DDE77517C154CE9F
+
+; GPOS examples from RFC1712
+marsh.gpos	IN	GPOS	-32.6882 116.8652 10.0
+lillee.gpos	IN	GPOS	-32.6882 116.8652 10.0
+hinault.gpos	IN	GPOS	-22.6882 116.8652 250.0
+ambrose.gpos	IN	GPOS	-32.6882 116.8652 10.0
+
+hip1		IN	HIP	( 2 200100107B1A74DF365639CC39F1D578
+                                  AwEAAbdxyhNuSutc5EMzxTs9LBPCIkOFH8cIvM4p9+LrV4e19WzK00+CI6zBCQTdtWsuxKbWIy87UOoJTwkUs7lBu+Upr1gsNrut79ryra+bSRGQb1slImA8YVJyuIDsj7kwzG7jnERNqnWxZ48AWkskmdHaVDP4BcelrTI3rMXdXF5D )
+hip2		IN	HIP	( 2 200100107B1A74DF365639CC39F1D578
+                                  AwEAAbdxyhNuSutc5EMzxTs9LBPCIkOFH8cIvM4p9+LrV4e19WzK00+CI6zBCQTdtWsuxKbWIy87UOoJTwkUs7lBu+Upr1gsNrut79ryra+bSRGQb1slImA8YVJyuIDsj7kwzG7jnERNqnWxZ48AWkskmdHaVDP4BcelrTI3rMXdXF5D
+                                  rvs.example.com. )
+
+hip3		IN	HIP	( 2 200100107B1A74DF365639CC39F1D578
+                                  AwEAAbdxyhNuSutc5EMzxTs9LBPCIkOFH8cIvM4p9+LrV4e19WzK00+CI6zBCQTdtWsuxKbWIy87UOoJTwkUs7lBu+Upr1gsNrut79ryra+bSRGQb1slImA8YVJyuIDsj7kwzG7jnERNqnWxZ48AWkskmdHaVDP4BcelrTI3rMXdXF5D
+                                  rvs1.example.com.
+                                  rvs2.example.com. )
+
