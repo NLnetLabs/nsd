@@ -103,12 +103,12 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_X25	19	/* RFC1183 */
 #define TYPE_ISDN	20	/* RFC1183 */
 #define TYPE_RT		21	/* RFC1183 */
-#define TYPE_NSAP	22	/* RFC1706 */
-
+#define TYPE_NSAP	22	/* RFC1706 (deprecated by RFC9121) */
+#define TYPE_NSAP_PTR	23	/* RFC1348  (deprecated by RFC9121)*/
 #define TYPE_SIG	24	/* 2535typecode */
 #define TYPE_KEY	25	/* 2535typecode */
 #define TYPE_PX		26	/* RFC2163 */
-
+#define TYPE_GPOS	27	/* RFC1712 */
 #define TYPE_AAAA	28	/* ipv6 address */
 #define TYPE_LOC	29	/* LOC record  RFC1876 */
 #define TYPE_NXT	30	/* 2535typecode */
@@ -134,7 +134,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_NSEC3PARAM 51	/* NSEC3PARAM at zone apex nsec3 parameters */
 #define TYPE_TLSA	52	/* RFC 6698 */
 #define TYPE_SMIMEA	53	/* RFC 8162 */
-
+#define TYPE_HIP	55	/* RFC 8005 */
 #define TYPE_NINFO	56	/* NINFO/ninfo-completed-template */
 #define TYPE_RKEY	57	/* RKEY/rkey-completed-template */
 
@@ -223,10 +223,11 @@ enum rdata_wireformat
 	RDATA_WF_APL,                /* APL data.  */
 	RDATA_WF_IPSECGATEWAY,       /* IPSECKEY gateway ip4, ip6 or dname. */
 	RDATA_WF_ILNP64,             /* 64-bit uncompressed IPv6 address.  */
-	RDATA_WF_EUI48,	             /* 48-bit address.  */
+	RDATA_WF_EUI48,              /* 48-bit address.  */
 	RDATA_WF_EUI64,              /* 64-bit address.  */
 	RDATA_WF_LONG_TEXT,          /* Long (>255) text string. */
-	RDATA_WF_SVCPARAM            /* SvcParam <key>[=<value>] */
+	RDATA_WF_SVCPARAM,           /* SvcParam <key>[=<value>] */
+	RDATA_WF_HIP                 /* HIP rdata up to the Rendezvous Servers */
 };
 typedef enum rdata_wireformat rdata_wireformat_type;
 
@@ -264,8 +265,11 @@ enum rdata_zoneformat
 	RDATA_ZF_EUI48,		/* EUI48 address.  */
 	RDATA_ZF_EUI64,		/* EUI64 address.  */
 	RDATA_ZF_LONG_TEXT,	/* Long (>255) text string. */
-	RDATA_ZF_TAG,		/* Text string without quotes. */
+	RDATA_ZF_UNQUOTED,	/* Unquoted text string. */
+	RDATA_ZF_UNQUOTEDS,	/* A sequence of unquoted text strings. */
+	RDATA_ZF_TAG,		/* A sequence of letters and numbers. */
 	RDATA_ZF_SVCPARAM,	/* SvcParam <key>[=<value>] */
+	RDATA_ZF_HIP,		/* HIP rdata up to the Rendezvous Servers */
 	RDATA_ZF_UNKNOWN	/* Unknown data.  */
 };
 typedef enum rdata_zoneformat rdata_zoneformat_type;
