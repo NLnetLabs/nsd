@@ -1,3 +1,6 @@
+26 November 2024: Jeroen
+	- Fix #405: Fix typo in documentation. Thanks to @uplime for reporting.
+
 19 November 2024: Willem
 	- Merge #409: Writing of NSAP-PTR, GPOS and HIP RR types
 
