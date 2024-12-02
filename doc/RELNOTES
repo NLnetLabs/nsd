@@ -30,6 +30,7 @@ BUG FIXES:
 	- Merge #394: Fix doc path (fixes "Edit on GitHub" button in the docs)
 	- Fix Makefile for parallel build failure around bison rule.
 	- Fix #405: Fix typo in documentation.
+	- Treat a mismatch in RRset TTLs as a warning.
 
 4.10.1
 ================

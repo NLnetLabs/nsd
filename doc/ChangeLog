@@ -25,6 +25,9 @@
 	- Many thanks to Melroy van den Berg for the documentation improvements
 	  and fixes in PRs #391, #394, #395 and #404
 
+28 October 2024: Jeroen
+	- Fix #396: Treat a mismatch in RRset TTLs as a warning.
+
 24 October 2024: Wouter
 	- Fix #392: Inconsistent documentation about control-interface.
 	- Merge #395: Explain the zonefile example better.

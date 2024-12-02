@@ -267,7 +267,7 @@ int32_t zonec_accept(
 	} else {
 		struct rr *rrs;
 		if (type != TYPE_RRSIG && ttl != rrset->rrs[0].ttl) {
-			zone_log(parser, priority, "%s TTL %"PRIu32" does not match TTL %u of %s RRset",
+			zone_log(parser, ZONE_WARNING, "%s TTL %"PRIu32" does not match TTL %u of %s RRset",
 				domain_to_string(domain), ttl, rrset->rrs[0].ttl,
 					rrtype_to_string(type));
 		}
