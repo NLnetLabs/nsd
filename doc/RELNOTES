@@ -7,6 +7,22 @@ FEATURES:
 	- Fix #383: log timestamps in ISO8601 format with timezone.
 	  This adds the option `log-time-iso: yes` that logs in ISO8601
 	  format.
+	- Updated cookie secrets management.
+	  The default cookie secret file location can be set at compile time
+	  with the --with-cookiesecretsfile=path option to configure. The
+	  default location is changed to {dbdir}/cookiesecrets.txt. The
+	  previous default location will be checked at startup when there is
+	  no cookie secrets file at the new default location.
+	  A staging cookie can now also be configured in the configuration
+	  file and secrets configured in the configuration file now take
+	  precedence over those read from file.
+	  All DNS related setting in the configuration file will be reevaluated
+	  and effectuated after nsd-control reconfig.
+	- Merge #398: RFC 9660 The DNS Zone Version (ZONEVERSION) Option
+	- Merge #406: ohttp and tls-supported-groups SvcParam suppor
+	- Merge #408: NINFO, RKEY, RESINFO, WALLET, CLA and TA RR types
+	- Merge #409: Writing of NSAP-PTR, GPOS and HIP RR types
+	- Merge #407: Better balanced verbosity levels for logging.
 
 BUG FIXES:
 	- Fix title underline and declaration after statement warnings.
@@ -18,6 +34,13 @@ BUG FIXES:
 	  queries.
 	- Track $INCLUDEs in zone files.
 	- Fix ci to update macos-12 to the macos-15 runner image.
+	- Merge #390: Apply non-xfr tasks before xfr tasks.
+	  This fixes an issue where non-xfr tasks are lost when they are
+	  batch processed together with non-xfr tasks.
+	  This merge also changes that notifies are passed on from the serve
+	  processes to the xfrd directly instead of via main. This was
+	  necessary to allow applying the non-xfr tasks without forking a
+	  backup-main for the sole purpose of forwarding notifies.
 	- Merge #391: Update copyright lines (in version output).
 	- Fix #392: Inconsistent documentation about control-interface.
 	- Merge #395: Explain the zonefile example better.
