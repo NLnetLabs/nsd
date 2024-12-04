@@ -659,7 +659,9 @@ readpid(const char *file)
 	}
 
 	if (((l = read(fd, pidbuf, sizeof(pidbuf)))) == -1) {
+		int errno_bak = errno;
 		close(fd);
+		errno = errno_bak;
 		return -1;
 	}
 

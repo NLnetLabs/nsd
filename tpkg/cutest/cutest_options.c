@@ -7,7 +7,7 @@
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif
-
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -369,6 +369,13 @@ check_zonelist_file(CuTest *tc, struct nsd_options* opt, const char* s)
 	size_t delcount = 0;
 	fflush(opt->zonelist);
 	in = fopen(opt->zonelistfile, "r");
+	if(in == NULL) {
+		printf("Error opening zonelistfile \"%s\": %s\n",
+			(opt->zonelistfile ? opt->zonelistfile : "<nil>"),
+			strerror(errno));
+		CuAssertTrue(tc, 0);
+		return;
+	}
 	while(fgets(buf, sizeof(buf), in)) {
 		line++;
 		if(strncmp(buf, s, strlen(buf)) != 0) {
@@ -388,6 +395,13 @@ check_zonelist_file(CuTest *tc, struct nsd_options* opt, const char* s)
 			delcount ++;
 		}
 		s += strlen(buf);
+	}
+	if(ferror(in)) {
+		printf("Error reading zonelistfile \"%s\": %s\n",
+			(opt->zonelistfile ? opt->zonelistfile : "<nil>"),
+			strerror(errno));
+		CuAssertTrue(tc, 0);
+		return;
 	}
 	if(*s != 0) {
 		printf("zonelist fail: expected more at EOF\n");
