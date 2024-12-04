@@ -2484,10 +2484,20 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 		zone->latest_xfr->msg_seq_nr,
 		buffer_begin(packet), buffer_limit(packet), xfrd->nsd,
 		zone->latest_xfr->xfrfilenumber);
-	VERBOSITY(3, (LOG_INFO,
-		"xfrd: zone %s written received XFR packet from %s with serial %u to "
-		"disk", zone->apex_str, zone->master->ip_address_spec,
-		(int)zone->latest_xfr->msg_new_serial));
+
+	if(verbosity < 4 || zone->latest_xfr->msg_seq_nr == 0)
+		; /* pass */
+
+	else if((verbosity >= 6)
+	     || (verbosity >= 5 && zone->latest_xfr->msg_seq_nr %  1000 == 0)
+	     || (verbosity >= 4 && zone->latest_xfr->msg_seq_nr % 10000 == 0)) {
+		VERBOSITY(4, (LOG_INFO,
+			"xfrd: zone %s written received XFR packet %u from %s "
+			"with serial %u to disk", zone->apex_str,
+			zone->latest_xfr->msg_seq_nr,
+			zone->master->ip_address_spec,
+			(int)zone->latest_xfr->msg_new_serial));
+	}
 	zone->latest_xfr->msg_seq_nr++;
 
 	xfrfile_size = xfrd_get_xfrfile_size(
