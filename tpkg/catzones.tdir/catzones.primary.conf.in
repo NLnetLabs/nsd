@@ -2,7 +2,7 @@ server:
 	zonesdir: "."
 	username: ""
 	database: ""
-	verbosity: 2
+	verbosity: 3
 	ip-address: 127.0.0.1
 	port: @PRIMARY_PORT@
 	pidfile: "primary.pid"
