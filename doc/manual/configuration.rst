@@ -91,7 +91,7 @@ The example for a secondary looks like this:
         zone:
             # this server is the primary, 192.0.2.1 is the secondary.
             name: primaryzone.com
-            zonefile: /etc/nsd/primaryone.com.zone
+            zonefile: /etc/nsd/primaryzone.com.zone
             notify: 192.0.2.1 NOKEY # NOKEY for testing purposes only
             provide-xfr: 192.0.2.1 NOKEY # NOKEY for testing purposes only
 
