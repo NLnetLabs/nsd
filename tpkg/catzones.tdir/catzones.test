@@ -145,14 +145,14 @@ for TEST in 1.1 1.2 1.3 1.4 2.1 2.2 3 4; do
 done
 
 cp primary.conf primary.conf.bak
-sed -i 's/-zone: "catalog2.invalid"/-zone: "catalog3.invalid"/' primary.conf
+sed -i.orig1 's/-zone: "catalog2.invalid"/-zone: "catalog3.invalid"/' primary.conf
 if $PRIMARY_CONTROL reconfig | tail -1 | grep '^ok$'; then
 	echo "Should not be able to change catalog producer member zones"
 	exit 1
 fi
 
 cp primary.conf.bak primary.conf
-sed -i 's/catalog-producer-zone: "catalog2.invalid"//' primary.conf
+sed -i.orig2 's/catalog-producer-zone: "catalog2.invalid"//' primary.conf
 if $PRIMARY_CONTROL reconfig | tail -1 | grep '^ok$'; then
 	echo "Should not be able to remove catalog producer member zones"
 	exit 1
@@ -179,7 +179,7 @@ if ! $PRIMARY_CONTROL reconfig | tail -1 | grep '^ok$'; then
 fi
 
 cp primary.conf primary.conf.bak
-sed -i 's/#catalog-producer-zone:/catalog-producer-zone:/' primary.conf
+sed -i.orig3 's/#catalog-producer-zone:/catalog-producer-zone:/' primary.conf
 if $PRIMARY_CONTROL reconfig | tail -1 | grep '^ok$'; then
 	echo "An existing pattern may not become cat producer member zone pat"
 	exit 1
