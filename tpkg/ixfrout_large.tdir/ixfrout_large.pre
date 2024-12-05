@@ -49,7 +49,7 @@ cat >>edit.testns <<EOF
 ENTRY_END
 EOF
 
-ldns-testns -p $TESTNS_PORT edit.testns &
+ldns-testns -p $TESTNS_PORT edit.testns >testns.log 2>&1 &
 TESTNS_PID=$!
 sleep 1
 

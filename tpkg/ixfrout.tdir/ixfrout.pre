@@ -15,7 +15,7 @@ TPKG_NSD="$PRE/nsd"
 
 sed -e "s/TESTNS_PORT/"$TESTNS_PORT"/" < ixfrout.conf > edit.conf
 
-ldns-testns -p $TESTNS_PORT ixfrout.testns &
+ldns-testns -p $TESTNS_PORT ixfrout.testns >testns.log 2>&1 &
 TESTNS_PID=$!
 
 # share the vars

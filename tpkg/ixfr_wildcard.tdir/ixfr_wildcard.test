@@ -24,7 +24,7 @@ if grep CNAME out1; then echo OK; else echo noCNAME; exit 1; fi
 
 # next ixfr datafile.
 kill_pid $TESTNS_PID
-ldns-testns -p $LDNS_PORT ixfr_wildcard.datafile2 &
+ldns-testns -p $LDNS_PORT ixfr_wildcard.datafile2 >testns2.log 2>&1 &
 TESTNS_PID=$!
 echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
 sleep 1
@@ -37,7 +37,7 @@ if grep foo.dom out2; then echo OK; else echo noNS; exit 1; fi
 
 # next ixfr datafile.
 kill_pid $TESTNS_PID
-ldns-testns -p $LDNS_PORT ixfr_wildcard.datafile3 &
+ldns-testns -p $LDNS_PORT ixfr_wildcard.datafile3 >testns3.log 2>&1 &
 TESTNS_PID=$!
 echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
 sleep 1
