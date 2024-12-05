@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.10.2
+4.11.0
 ================
 FEATURES:
 	- Support reloading configuration on SIGHUP.
