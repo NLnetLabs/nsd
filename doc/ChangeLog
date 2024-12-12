@@ -1,3 +1,8 @@
+5 December 2024: Willem
+	- The tag for the 4.11.0rc1 release became the release 4.11.0,
+	  on 12 December 2024, the code repository continues with 4.11.1 under
+	  development.
+
 4 December 2024: Willem
 	- Merge #407: Better balanced verbosity levels for logging.
 
