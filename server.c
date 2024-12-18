@@ -2079,6 +2079,20 @@ add_ocsp_data_cb(SSL *s, void* ATTR_UNUSED(arg))
 	}
 }
 
+static int
+server_alpn_cb(SSL* ATTR_UNUSED(s),
+		const unsigned char** out, unsigned char* outlen,
+		const unsigned char* in, unsigned int inlen,
+		void* ATTR_UNUSED(arg))
+{
+	static const unsigned char alpns[] = { 3, 'd', 'o', 't' };
+	unsigned char* tmp_out;
+
+	SSL_select_next_proto(&tmp_out, outlen, alpns, sizeof(alpns), in, inlen);
+	*out = tmp_out;
+	return SSL_TLSEXT_ERR_OK;
+}
+
 SSL_CTX*
 server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 {
@@ -2174,6 +2188,7 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 		SSL_CTX_set_client_CA_list(ctx, SSL_load_client_CA_file(verifypem));
 		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 	}
+	SSL_CTX_set_alpn_select_cb(ctx, server_alpn_cb, NULL);
 	return ctx;
 }
 
