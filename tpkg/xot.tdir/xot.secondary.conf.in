@@ -12,10 +12,10 @@ remote-control:
 	control-enable: @TPKG_CONTROL_ENABLE@
 	control-interface: 127.0.0.1
 	control-port: @TPKG_SEC_PORT_CTL@
-	server-key-file: "nsd_server.key"
-	server-cert-file: "nsd_server.pem"
-	control-key-file: "nsd_control.key"
-	control-cert-file: "nsd_control.pem"
+	server-key-file: "xot.nsd_server.key"
+	server-cert-file: "xot.nsd_server.pem"
+	control-key-file: "xot.nsd_control.key"
+	control-cert-file: "xot.nsd_control.pem"
 
 include: "xot.tsig"
 
