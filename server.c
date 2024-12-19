@@ -1898,23 +1898,29 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 
 #ifdef HAVE_SSL
 static void
-log_crypto_from_err(const char* str, unsigned long err)
+log_crypto_from_err(int level, const char* str, unsigned long err)
 {
 	/* error:[error code]:[library name]:[function name]:[reason string] */
 	char buf[128];
 	unsigned long e;
 	ERR_error_string_n(err, buf, sizeof(buf));
-	log_msg(LOG_ERR, "%s crypto %s", str, buf);
+	log_msg(level, "%s crypto %s", str, buf);
 	while( (e=ERR_get_error()) ) {
 		ERR_error_string_n(e, buf, sizeof(buf));
-		log_msg(LOG_ERR, "and additionally crypto %s", buf);
+		log_msg(level, "and additionally crypto %s", buf);
 	}
 }
 
 void
 log_crypto_err(const char* str)
 {
-	log_crypto_from_err(str, ERR_get_error());
+	log_crypto_from_err(LOG_ERR, str, ERR_get_error());
+}
+
+void
+log_crypto_warning(const char* str)
+{
+	log_crypto_from_err(LOG_WARNING, str, ERR_get_error());
 }
 
 /** true if the ssl handshake error has to be squelched from the logs */
@@ -2140,6 +2146,13 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 		log_crypto_err("could not set SSL_OP_NO_RENEGOTIATION");
 		SSL_CTX_free(ctx);
 		return 0;
+	}
+#endif
+#if defined(SSL_OP_IGNORE_UNEXPECTED_EOF)
+	/* disable client renegotiation */
+	if((SSL_CTX_set_options(ctx, SSL_OP_IGNORE_UNEXPECTED_EOF) &
+		SSL_OP_IGNORE_UNEXPECTED_EOF) != SSL_OP_IGNORE_UNEXPECTED_EOF) {
+		log_crypto_warning("could not set SSL_OP_IGNORE_UNEXPECTED_EOF");
 	}
 #endif
 #if defined(SHA256_DIGEST_LENGTH) && defined(SSL_TXT_CHACHA20)
@@ -4817,7 +4830,7 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 					char a[64], s[256];
 					addr2str(&data->query->remote_addr, a, sizeof(a));
 					snprintf(s, sizeof(s), "TLS handshake failed from %s", a);
-					log_crypto_from_err(s, err);
+					log_crypto_from_err(LOG_ERR, s, err);
 				}
 			}
 			cleanup_tcp_handler(data);
