@@ -1,3 +1,6 @@
+23 December 2024: Willem
+	- Fix #415: Fix out of tree builds. Thanks Florian Obser (@fobser).
+
 5 December 2024: Willem
 	- The tag for the 4.11.0rc1 release became the release 4.11.0,
 	  on 12 December 2024, the code repository continues with 4.11.1 under
