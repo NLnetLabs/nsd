@@ -1,3 +1,6 @@
+3 January 2025: Willem
+	- Fix #414: XoT interoperability with BIND and Knot
+
 23 December 2024: Willem
 	- Fix #415: Fix out of tree builds. Thanks Florian Obser (@fobser).
 
