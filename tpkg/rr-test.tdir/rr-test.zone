@@ -65,6 +65,9 @@ $ORIGIN blaat.nl.
 @	IN LOC   32   7 19 S 116 2 25.999 E 10m
 @	IN LOC   42 21 28.764 N 71 00 51.617 W -44.99m 2000m
 
+*._dsync	IN	DSYNC	CDS	1 5359 cds-scanner.example.net.
+*._dsync	IN	DSYNC	CSYNC	1 5360 csync-scanner.example.net.
+
 $ORIGIN blaat.nl.
 
 dotted\.label IN MX 10 foo\ bar\.nl

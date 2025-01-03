@@ -37,6 +37,9 @@ blaat	3600	IN	SOA	elektron.atoom.net. miekg.atoom.net. (
 	3600	IN	LOC \# 16 001216138b3556c88008165000989a89
 	3600	IN	LOC \# 16 00121613791b7d2898e64c4f00989a68
 	3600	IN	LOC \# 16 002516138916cb3c70c310df009884ed
+$ORIGIN _dsync.blaat.nl.
+*	3600	IN	DSYNC	CDS 1 5359 cds-scanner.example.net.
+	3600	IN	DSYNC	CSYNC 1 5360 csync-scanner.example.net.
 $ORIGIN blaat.nl.
 caa	3600	IN	CAA 0 issue "ca.example.net"
 	3600	IN	CAA 0 iodef "mailto:security@example.com"
