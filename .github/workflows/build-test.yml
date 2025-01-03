@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          persist-credentials: false
       - name: 'Workaround for actions/runner-images#9491'
         if: runner.os == 'Linux'
         run: sudo sysctl vm.mmap_rnd_bits=28

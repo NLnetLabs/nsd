@@ -37,7 +37,7 @@ DNSTAP_OBJ=@DNSTAP_OBJ@
 U=
 
 CC		= @CC@
-CPPFLAGS	= @CPPFLAGS@ -I@srcdir@/simdzone/include
+CPPFLAGS	= @CPPFLAGS@ -Isimdzone/include -I@srcdir@/simdzone/include
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
