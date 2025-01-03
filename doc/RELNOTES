@@ -1,5 +1,10 @@
 NSD RELEASE NOTES
 
+4.11.1
+================
+BUG FIXES:
+        - Fix #415: Fix out of tree builds. Thanks Florian Obser (@fobser).
+
 4.11.0
 ================
 FEATURES:
