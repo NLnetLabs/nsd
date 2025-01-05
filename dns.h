@@ -112,7 +112,8 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_AAAA	28	/* ipv6 address */
 #define TYPE_LOC	29	/* LOC record  RFC1876 */
 #define TYPE_NXT	30	/* 2535typecode */
-
+#define TYPE_EID	31	/* draft-ietf-nimrod-dns-01 */
+#define TYPE_NIMLOC	32	/* draft-ietf-nimrod-dns-01 */
 #define TYPE_SRV	33	/* SRV record RFC2782 */
 
 #define TYPE_NAPTR	35	/* RFC2915 */

@@ -164,3 +164,12 @@ hip3		IN	HIP	( 2 200100107B1A74DF365639CC39F1D578
                                   rvs1.example.com.
                                   rvs2.example.com. )
 
+; EID and NIMLOC examples from draft-ietf-nimrod-dns-01
+VENERA	EID	813F 4B7C DAB3 4217
+	NIMLOC	( 3227 45
+		  0A 01 00 34 )
+	NIMLOC	752341 59EAC4 5780 0920
+
+VAXA	EID	3141 5926 5358 9793
+	NIMLOC	752341 59EAC4 5780 0921
+
