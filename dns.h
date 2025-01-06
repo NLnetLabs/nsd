@@ -121,7 +121,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_CERT	37	/* RFC2538 */
 #define TYPE_A6		38	/* RFC2874 */
 #define TYPE_DNAME	39	/* RFC2672 */
-
+#define TYPE_SINK	40	/* draft-eastlake-kitchen-sink */
 #define TYPE_OPT	41	/* Pseudo OPT record... */
 #define TYPE_APL	42	/* RFC3123 */
 #define TYPE_DS		43	/* RFC 4033, 4034, and 4035 */
@@ -138,7 +138,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_HIP	55	/* RFC 8005 */
 #define TYPE_NINFO	56	/* NINFO/ninfo-completed-template */
 #define TYPE_RKEY	57	/* RKEY/rkey-completed-template */
-
+#define TYPE_TALINK	58	/* draft-iet5f-dnsop-dnssec-trust-history */
 #define TYPE_CDS	59	/* RFC 7344 */
 #define TYPE_CDNSKEY	60	/* RFC 7344 */
 #define TYPE_OPENPGPKEY 61	/* RFC 7929 */
@@ -166,7 +166,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_URI	256	/* RFC 7553 */
 #define TYPE_CAA	257	/* RFC 6844 */
 #define TYPE_AVC	258	/* AVC/avc-completed-template */
-
+#define TYPE_DOA	259	/* draft-durand-doa-over-dns */
 #define TYPE_RESINFO	261	/* RFC 9606 */
 #define TYPE_WALLET	262	/* WALLET/wallet-completed-template */
 #define TYPE_CLA	263	/* CLA/cla-completed-template */

@@ -65,6 +65,19 @@ $ORIGIN blaat.nl.
 @	IN LOC   32   7 19 S 116 2 25.999 E 10m
 @	IN LOC   42 21 28.764 N 71 00 51.617 W -44.99m 2000m
 
+; draft-eastlake-kitchen-sink
+@	IN SINK 64 1 TkxuZXRMYWJzLm5s
+
+; draft-ietf-dnsop-dnssec-trust-history
+@	IN TALINK h0 h2
+h0	IN TALINK .  h1
+h1	IN TALINK h0 h2
+h2	IN TALINK h1 .
+
+; draft-durand-doa-over-dns
+@	IN DOA 0 1 2 "" bWFpbHRvOmxhYnNAbmxuZXRsYWJzLm5s
+	IN DOA 0 100000 200 example/nothing -
+
 *._dsync	IN	DSYNC	CDS	1 5359 cds-scanner.example.net.
 *._dsync	IN	DSYNC	CSYNC	1 5360 csync-scanner.example.net.
 

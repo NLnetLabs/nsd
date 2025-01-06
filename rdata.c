@@ -450,13 +450,13 @@ rdata_base32_to_string(buffer_type *output, rdata_atom_type rdata,
 
 static int
 rdata_base64_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+	rr_type* rr)
 {
 	int length;
 	size_t size = rdata_atom_size(rdata);
 	if(size == 0) {
 		/* single zero represents empty buffer */
-		buffer_write(output, "0", 1);
+		buffer_write(output, (rr->type == TYPE_DOA ? "-" : "0"), 1);
 		return 1;
 	}
 	buffer_reserve(output, size * 2 + 1);
