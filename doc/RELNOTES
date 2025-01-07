@@ -5,6 +5,9 @@ NSD RELEASE NOTES
 BUG FIXES:
         - Fix #415: Fix out of tree builds. Thanks Florian Obser (@fobser).
 	- Fix #414: XoT interoperability with BIND and Knot
+	- Fix #421: old-main can quit before the reload process received        
+	  from old-main that it is done on the reload_listener pipe.            
+	  Thanks Otto Retter. 
 
 4.11.0
 ================
