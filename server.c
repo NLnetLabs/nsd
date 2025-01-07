@@ -2447,7 +2447,8 @@ static void server_reload_handle_quit_sync_ack(int cmdsocket, short event,
 	r = read(cmdsocket, cb_data->to_read.buf + cb_data->read,
 			sizeof(cb_data->to_read.cmd) - cb_data->read);
 	if(r == 0) {
-		log_msg(LOG_ERR, "reload: old-main quit during quit sync");
+		DEBUG(DEBUG_IPC, 1, (LOG_WARNING,
+			"reload: old-main quit during quit sync"));
 		cb_data->to_read.cmd = NSD_RELOAD;
 
 	} else if(r == -1) {
