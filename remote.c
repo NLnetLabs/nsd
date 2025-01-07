@@ -1123,8 +1123,13 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 		return 1;
 	}
 	if(!ssl_printf(ssl, "	state: %s\n",
-		(xz->state == xfrd_zone_ok)?"ok":(
-		(xz->state == xfrd_zone_expired)?"expired":"refreshing")))
+	     xz->state == xfrd_zone_expired                  ? "expired"
+	   : xz->state != xfrd_zone_ok                       ? "refreshing"
+	   : !xz->soa_nsd_acquired || !xz->soa_disk_acquired
+	   || xz->soa_nsd.serial   ==  xz->soa_disk.serial   ? "ok"
+	   : compare_serial( ntohl(xz->soa_nsd.serial)
+	                   , ntohl(xz->soa_disk.serial)) < 0 ? "old-serial"
+	                                                     : "future-serial"))
 		return 0;
 	if(!print_soa_status(ssl, "served-serial", &xz->soa_nsd,
 		xz->soa_nsd_acquired))
