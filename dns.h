@@ -145,6 +145,9 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_ZONEMD	63	/* RFC 8976 */
 #define TYPE_SVCB	64	/* RFC 9460 */
 #define TYPE_HTTPS	65	/* RFC 9460 */
+#ifdef USE_DELEG
+#define TYPE_DELEG	66	/* IETF DELEG draft*/
+#endif
 
 #define TYPE_SPF        99      /* RFC 4408 */
 
