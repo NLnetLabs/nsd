@@ -923,8 +923,8 @@ static int ixfr_create_store_newsoa(struct ixfr_store* store,
 	}
 	if(!ixfr_store_add_newsoa_rdatas(store, domain_dname(zone->apex),
 		zone->soa_rrset->rrs[0].type, zone->soa_rrset->rrs[0].klass,
-		zone->soa_rrset->rrs[0].ttl, zone->soa_rrset->rrs[0].rdatas,
-		zone->soa_rrset->rrs[0].rdata_count)) {
+		zone->soa_rrset->rrs[0].ttl, zone->soa_rrset->rrs[0].rdata,
+		zone->soa_rrset->rrs[0].rdlength)) {
 		log_msg(LOG_ERR, "out of memory");
 		return 0;
 	}

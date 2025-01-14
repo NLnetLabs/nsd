@@ -197,7 +197,7 @@ int ixfr_store_delrr_uncompressed(struct ixfr_store* ixfr_store,
 	uint32_t ttl, uint8_t* rdata, size_t rdata_len);
 int ixfr_store_add_newsoa_rdatas(struct ixfr_store* ixfr_store,
 	const struct dname* dname, uint16_t type, uint16_t klass,
-	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num);
+	uint32_t ttl, uint8_t* rdata, uint16_t rdlength);
 int ixfr_store_oldsoa_uncompressed(struct ixfr_store* ixfr_store,
 	uint8_t* dname, size_t dname_len, uint16_t type, uint16_t klass,
 	uint32_t ttl, uint8_t* rdata, size_t rdata_len);

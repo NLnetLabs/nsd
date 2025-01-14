@@ -1439,13 +1439,13 @@ void ixfr_store_addrr(struct ixfr_store* ixfr_store,
 
 int ixfr_store_add_newsoa_rdatas(struct ixfr_store* ixfr_store,
 	const struct dname* dname, uint16_t type, uint16_t klass,
-	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num)
+	uint32_t ttl, uint8_t* rdatas, uint16_t rdlength)
 {
 	size_t capacity = 0;
 	uint32_t serial;
 	if(ixfr_store->cancelled)
 		return 1;
-	if(rdata_num < 2 || rdata_atom_size(rdatas[2]) < 4)
+	if(rdlength < 1+1+4*5)
 		return 0;
 	memcpy(&serial, rdata_atom_data(rdatas[2]), sizeof(serial));
 	ixfr_store->data->newserial = ntohl(serial);
