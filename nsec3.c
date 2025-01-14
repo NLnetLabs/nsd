@@ -1098,9 +1098,9 @@ domain_has_only_NSEC3(struct domain* domain, struct zone* zone)
 	{
 		if(!zone || rrset->zone == zone)
 		{
-			if(rrset->rrs[0].type == TYPE_NSEC3)
+			if(rrset->rrs[0]->type == TYPE_NSEC3)
 				nsec3_seen = 1;
-			else if(rrset->rrs[0].type != TYPE_RRSIG)
+			else if(rrset->rrs[0]->type != TYPE_RRSIG)
 				return 0;
 		}
 		rrset = rrset->next;

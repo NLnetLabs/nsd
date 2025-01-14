@@ -282,8 +282,6 @@ struct nsd_rdata_descriptor {
 };
 
 /*
-RDATA minimization is outlined in https://github.com/k0ekk0ek/database-case.
-
 The basic premise is that RDATA is directly allocated with the RR structure
 and that pointers to domains are directly stored (likely unaligned) in the
 RDATA. We do this primarily to save memory, but as the RDATA is directly

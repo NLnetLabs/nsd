@@ -95,14 +95,14 @@ static int spool_rrset(FILE* out, rrset_type* rrset)
 	int i;
 	if(rrset->rr_count == 0)
 		return 1;
-	if(!spool_u16(out, rrset->rrs[0].type))
+	if(!spool_u16(out, rrset->rrs[0]->type))
 		return 0;
-	if(!spool_u16(out, rrset->rrs[0].klass))
+	if(!spool_u16(out, rrset->rrs[0]->klass))
 		return 0;
 	if(!spool_u16(out, rrset->rr_count))
 		return 0;
 	for(i=0; i<rrset->rr_count; i++) {
-		if(!spool_rr_data(out, &rrset->rrs[i]))
+		if(!spool_rr_data(out, rrset->rrs[i]))
 			return 0;
 	}
 	return 1;
@@ -922,9 +922,9 @@ static int ixfr_create_store_newsoa(struct ixfr_store* store,
 		return 0;
 	}
 	if(!ixfr_store_add_newsoa_rdatas(store, domain_dname(zone->apex),
-		zone->soa_rrset->rrs[0].type, zone->soa_rrset->rrs[0].klass,
-		zone->soa_rrset->rrs[0].ttl, zone->soa_rrset->rrs[0].rdata,
-		zone->soa_rrset->rrs[0].rdlength)) {
+		zone->soa_rrset->rrs[0]->type, zone->soa_rrset->rrs[0]->klass,
+		zone->soa_rrset->rrs[0]->ttl, zone->soa_rrset->rrs[0]->rdata,
+		zone->soa_rrset->rrs[0]->rdlength)) {
 		log_msg(LOG_ERR, "out of memory");
 		return 0;
 	}

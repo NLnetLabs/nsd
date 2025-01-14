@@ -155,12 +155,12 @@ packet_encode_rrset(query_type *query,
 	    (rrsig = domain_find_rrset(owner, rrset->zone, TYPE_RRSIG)))
 	{
 		for (i = 0; i < rrsig->rr_count; ++i) {
-			if (rr_rrsig_type_covered(&rrsig->rrs[i])
+			if (rr_rrsig_type_covered(rrsig->rrs[i])
 			    == rrset_rrtype(rrset))
 			{
 				if (packet_encode_rr(query, owner,
-					&rrsig->rrs[i],
-					rrset_rrtype(rrset)==TYPE_SOA?rrset->rrs[0].ttl:rrsig->rrs[i].ttl))
+					rrsig->rrs[i],
+					rrset_rrtype(rrset)==TYPE_SOA?rrset->rrs[0]->ttl:rrsig->rrs[i]->ttl))
 				{
 					++added;
 				} else {

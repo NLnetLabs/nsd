@@ -828,10 +828,10 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 	for(j=0; j<answer->rrset_count; ++j) {
 		if(answer->section[j] == ANSWER_SECTION &&
 			answer->rrsets[j]->rr_count == 1 &&
-			answer->rrsets[j]->rrs[0].type == TYPE_CNAME &&
-			dname_compare(domain_dname(answer->rrsets[j]->rrs[0].owner), from_name) == 0 &&
-			answer->rrsets[j]->rrs[0].rdata_count == 1 &&
-			dname_compare(domain_dname(answer->rrsets[j]->rrs[0].rdatas->domain), to_name) == 0) {
+			answer->rrsets[j]->rrs[0]->type == TYPE_CNAME &&
+			dname_compare(domain_dname(answer->rrsets[j]->rrs[0]->owner), from_name) == 0 &&
+			answer->rrsets[j]->rrs[0].rdlength >= 1 &&
+			dname_compare(domain_dname(answer->rrsets[j]->rrs[0]->rdatas->domain), to_name) == 0) {
 			DEBUG(DEBUG_QUERY,2, (LOG_INFO, "loop for synthesized CNAME rrset for query %s", dname_to_string(q->qname, NULL)));
 			return 0;
 		}

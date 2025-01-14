@@ -263,6 +263,7 @@ static void ixfr_write_rdata_pkt(
 	struct query* query, struct buffer* packet,
 	struct pktcompression* pcomp, const uint8_t* rr, size_t rdlen)
 {
+	struct nsd_type_descriptor descriptor;
 	//
 	// we don't have to verify the rdata anymore. it's verified when
 	// it's written. we do have to apply packet compression though...
@@ -447,14 +448,18 @@ static int parse_qserial(struct buffer* packet, uint32_t* qserial,
 	return 0;
 }
 
+/* get serial from SOA rdata */
+static uint32_t soa_rdata_get_serial(uint8_t* rdata, uint16_t rdlength)
+{
+	if(rdlength < 2*sizeof(void*) /* name ptr */ + 4 /* serial */)
+		return 0;
+	return read_uint32(rdata+2*sizeof(void*));
+}
+
 /* get serial from SOA RR */
 static uint32_t soa_rr_get_serial(struct rr* rr)
 {
-	if(rr->rdata_count < 3)
-		return 0;
-	if(rr->rdatas[2].data[0] < 4)
-		return 0;
-	return read_uint32(&rr->rdatas[2].data[1]);
+	return soa_rdata_get_serial(rr->rdata, rr->rdlength);
 }
 
 /* get the current serial from the zone */
@@ -464,11 +469,7 @@ uint32_t zone_get_current_serial(struct zone* zone)
 		return 0;
 	if(zone->soa_rrset->rr_count == 0)
 		return 0;
-	if(zone->soa_rrset->rrs[0].rdata_count < 3)
-		return 0;
-	if(zone->soa_rrset->rrs[0].rdatas[2].data[0] < 4)
-		return 0;
-	return read_uint32(&zone->soa_rrset->rrs[0].rdatas[2].data[1]);
+	return soa_rr_get_serial(zone->soa_rrset->rrs[0]);
 }
 
 /* iterator over ixfr data. find first element, eg. oldest zone version
@@ -772,8 +773,8 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 			query_add_compression_domain(query, zone->apex,
 				QHEADERSZ);
 			if(packet_encode_rr(query, zone->apex,
-				&zone->soa_rrset->rrs[0],
-				zone->soa_rrset->rrs[0].ttl)) {
+				zone->soa_rrset->rrs[0],
+				zone->soa_rrset->rrs[0]->ttl)) {
 				ANCOUNT_SET(query->packet, 1);
 			} else {
 				RCODE_SET(query->packet, RCODE_SERVFAIL);
