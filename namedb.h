@@ -387,7 +387,7 @@ rrset_rrtype(rrset_type* rrset)
 {
 	assert(rrset);
 	assert(rrset->rr_count > 0);
-	return rrset->rrs[0].type;
+	return rrset->rrs[0]->type;
 }
 
 static inline uint16_t
@@ -395,7 +395,7 @@ rrset_rrclass(rrset_type* rrset)
 {
 	assert(rrset);
 	assert(rrset->rr_count > 0);
-	return rrset->rrs[0].klass;
+	return rrset->rrs[0]->klass;
 }
 
 /*

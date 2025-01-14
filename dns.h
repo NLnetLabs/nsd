@@ -9,6 +9,10 @@
 
 #ifndef DNS_H
 #define DNS_H
+struct rr;
+struct buffer;
+struct domain_table;
+struct query;
 
 enum rr_section {
 	QUESTION_SECTION,
@@ -234,6 +238,26 @@ typedef int32_t(*nsd_rdata_length_t)(
 // offset is required for the ipsecgateway where we need to read a couple
 // bytes back
 
+/**
+ * Function signature to determine field length
+ * @param rdlength: remaining length of rdata.
+ * @param rdata: current byte position in rdata.
+ * @return a length or NSD_COMPRESSED_NAME and such.
+ */
+typedef int32_t(*nsd_rdata_field_length_t)(
+	uint16_t rdlength,
+	const uint8_t *rdata);
+
+/**
+ * Function signature to print RR
+ * @param buffer: output buffer for text string.
+ * @param rr: the resource record to print.
+ * @return length, or MALFORMED.
+ */
+typedef int32_t(*nsd_print_rdata_field_t)(
+	struct buffer* buffer,
+	const struct rr* rr);
+
 typedef struct nsd_rdata_descriptor nsd_rdata_descriptor_t;
 // the descriptor table shouldn't be used for validation.
 // the read function will take care of that. it's used for
@@ -241,7 +265,7 @@ typedef struct nsd_rdata_descriptor nsd_rdata_descriptor_t;
 // the data has already been checked for validity..
 struct nsd_rdata_descriptor {
 	const char *name;
-	bool is_optional; // << whether or not this field is optional...
+	int is_optional; // << whether or not this field is optional...
 	int32_t length; // << will be set to a specialized value if
 								//    the length function should be used. i.e.
 								//    for any type where the length depends on a value
@@ -332,9 +356,9 @@ struct nsd_type_descriptor {
 	/** Mnemonic. */
 	const char *name;
 	/** Whether internal RDATA contains direct pointers. */
-	bool has_references;
+	int has_references;
 	/** Whether RDATA contains compressible names. */
-	bool is_compressible;
+	int is_compressible;
 	nsd_read_rdata_t read_rdata;
 	nsd_write_rdata_t write_data;
 	nsd_print_rdata_t print_rdata;
@@ -353,7 +377,7 @@ struct nsd_type_descriptor {
  * CLA + 1
  */
 #define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_CLA + 1)
-rrtype_descriptor_type *rrtype_descriptor_by_type(uint16_t type);
+nsd_type_descriptor_t *rrtype_descriptor_by_type(uint16_t type);
 
 const char *rrtype_to_string(uint16_t rrtype);
 
