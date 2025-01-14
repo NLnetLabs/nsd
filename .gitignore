@@ -43,8 +43,12 @@
 /tpkg/long/result.*
 /tpkg/long/.done-*
 /tpkg/long/*.log
+build/
 
 # Eclipse IDE Project Settings
 .cproject
 .project
 .settings/
+
+# IDEA Project settings
+.idea/
