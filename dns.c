@@ -398,11 +398,11 @@ static const struct nsd_rdata_descriptor dlv_rdata_fields[] = {
 #undef FIELD
 
 
-#define TYPE(name, code, read, write, print, fields) \
-  { code, name, read, write, print, { sizeof(fields)/sizeof(fields[0]), fields } }
+#define TYPE(name, code, has_references, is_compressible, read, write, print, fields) \
+  { code, name, has_references, is_compressible, read, write, print, { sizeof(fields)/sizeof(fields[0]), fields } }
 
 #define UNKNOWN_TYPE(code) \
-  { code, NULL, read_generic_rdata, write_generic_rdata, print_generic_rdata }
+  { code, NULL /* mnemonic */, 0 /* has_references */, 0 /* is_compressible */, read_generic_rdata, write_generic_rdata, print_generic_rdata, { 0 /* length of fields */, NULL /* fields */} }
 
 static const nsd_type_descriptor_t type_descriptors[] = {
 	UNKNOWN_TYPE(0),

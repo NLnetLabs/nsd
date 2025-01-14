@@ -267,18 +267,18 @@ struct nsd_rdata_descriptor {
 	const char *name;
 	int is_optional; // << whether or not this field is optional...
 	int32_t length; // << will be set to a specialized value if
-								//    the length function should be used. i.e.
-								//    for any type where the length depends on a value
-								//    in the rdata itself.
+			//    the length function should be used. i.e.
+			//    for any type where the length depends on a value
+			//    in the rdata itself.
 	// this function isn't actually all that useful!
 	// >> actually... it kinda is...
 	//
 	nsd_rdata_field_length_t calculate_length; // << determine size of rdata field (uncompressed)
-	//															 //    for scenarios where rdata has a different
-	//															 //    format (internal names/possibly compressed names)
-	//															 //    implement your own!
+	//	 //    for scenarios where rdata has a different
+	//	 //    format (internal names/possibly compressed names)
+	//	 //    implement your own!
 	nsd_print_rdata_field_t print; // << not sure if I want to use this one
-																			 //    >> we'll see!
+					 //    >> we'll see!
 };
 
 /*
@@ -348,8 +348,9 @@ typedef int32_t(*nsd_print_rdata_t)(
 	struct buffer *buffer,
 	const struct rr *rr);
 
-
+/** Descriptor for a DNS resource record type. */
 struct nsd_type_descriptor {
+	/** The RRType number */
 	uint16_t type;
 	/** Mnemonic. */
 	const char *name;
