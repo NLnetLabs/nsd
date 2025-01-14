@@ -32,30 +32,30 @@ static lookup_table_type dns_rrclasses[] = {
 	{ 0, NULL }
 };
 
-#define FIELD(name, size, ) \
-	{ format }
+#define FIELD(name, is_optional, size /*, calc_len, print*/ ) \
+	{ name, is_optional, size, NULL, NULL /* ,calc_len, print*/ }
 
-static const struct rdata_descriptor generic_rdata_fields[] = {
-	FIELD("", 0, RDATA_BINARY)
+static const struct nsd_rdata_descriptor generic_rdata_fields[] = {
+	FIELD("", 0, RDATA_REMAINDER)
 };
 
-static const struct rdata_descriptor a_rdata_fields[] = {
-	FIELD("address", 0, 4, 0)
+static const struct nsd_rdata_descriptor a_rdata_fields[] = {
+	FIELD("address", 0, 4)
 };
 
-static const struct rdata_descriptor ns_rdata_fields[] = {
+static const struct nsd_rdata_descriptor ns_rdata_fields[] = {
 	FIELD("host", 0, RDATA_COMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor md_rdata_fields[] = {
+static const struct nsd_rdata_descriptor md_rdata_fields[] = {
 	FIELD("madname", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor mf_rdata_fields[] = {
+static const struct nsd_rdata_descriptor mf_rdata_fields[] = {
 	FIELD("madname", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor cname_rdata_fields[] = {
+static const struct nsd_rdata_descriptor cname_rdata_fields[] = {
 	FIELD("host", 0, RDATA_COMPRESSED_DNAME)
 };
 
@@ -77,68 +77,68 @@ static const struct nsd_rdata_descriptor mg_rdata_fields[] = {
 	FIELD("mgmname", 0, RDATA_COMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor mr_rdata_fields[] = {
+static const struct nsd_rdata_descriptor mr_rdata_fields[] = {
 	FIELD("newname", 0, RDATA_COMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor wks_rdata_fields[] = {
+static const struct nsd_rdata_descriptor wks_rdata_fields[] = {
 	FIELD("address", 0, 4),
 	FIELD("protocol", 0, 1),
 	FIELD("bitmap", 0, RDATA_REMAINDER)
 };
 
-static const struct rdata_descriptor ptr_rdata_fields[] = {
+static const struct nsd_rdata_descriptor ptr_rdata_fields[] = {
 	FIELD("ptrdname", 0, RDATA_COMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor hinfo_rdata_fields[] = {
+static const struct nsd_rdata_descriptor hinfo_rdata_fields[] = {
 	FIELD("cpu", 0, RDATA_STRING),
 	FIELD("os", 0, RDATA_STRING)
 };
 
-static const struct rdata_descriptor minfo_rdata_fields[] = {
+static const struct nsd_rdata_descriptor minfo_rdata_fields[] = {
 	FIELD("rmailbx", 0, RDATA_COMPRESSED_DNAME),
 	FIELD("emailbx", 0, RDATA_COMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor mx_rdata_fields[] = {
+static const struct nsd_rdata_descriptor mx_rdata_fields[] = {
 	FIELD("priority", 0, 2),
 	FIELD("hostname", 0, RDATA_COMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor txt_rdata_fields[] = {
+static const struct nsd_rdata_descriptor txt_rdata_fields[] = {
 	FIELD("text", 0, 0)
 };
 
-static const struct rdata_descriptor rp_rdata_fields[] = {
+static const struct nsd_rdata_descriptor rp_rdata_fields[] = {
 	FIELD("mailbox", 0, RDATA_UNCOMPRESSED_DNAME),
 	FIELD("text", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor afsdb_rdata_fields[] = {
+static const struct nsd_rdata_descriptor afsdb_rdata_fields[] = {
 	FIELD("subtype", 0, 2),
 	FIELD("hostname", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor x25_rdata_fields[] = {
+static const struct nsd_rdata_descriptor x25_rdata_fields[] = {
 	FIELD("address", 0, RDATA_STRING)
 };
 
-static const struct rdata_descriptor isdn_rdata_fields[] = {
+static const struct nsd_rdata_descriptor isdn_rdata_fields[] = {
 	FIELD("address", 0, RDATA_STRING),
 	FIELD("subaddress", 1, RDATA_STRING)
 };
 
-static const struct rdata_descriptor rt_rdata_fields[] = {
+static const struct nsd_rdata_descriptor rt_rdata_fields[] = {
 	FIELD("preference", 0, 2),
 	FIELD("hostname", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor nsap_rdata_fields[] = {
+static const struct nsd_rdata_descriptor nsap_rdata_fields[] = {
 	FIELD("address", 0, RDATA_REMAINDER)
 };
 
-static const struct rdata_descriptor sig_rdata_fields[] = {
+static const struct nsd_rdata_descriptor sig_rdata_fields[] = {
 	FIELD("sigtype", 0, 2),
 	FIELD("algorithm", 0, 1),
 	FIELD("labels", 0, 1),
@@ -150,24 +150,24 @@ static const struct rdata_descriptor sig_rdata_fields[] = {
 	FIELD("signature", 0, RDATA_REMAINDER)
 };
 
-static const struct rdata_descriptor key_rdata_fields[] = {
+static const struct nsd_rdata_descriptor key_rdata_fields[] = {
 	FIELD("flags", 0, 2),
 	FIELD("protocol", 0, 1),
 	FIELD("algorithm", 0, 1),
 	FIELD("publickey", 0, RDATA_BINARY)
 };
 
-static const struct rdata_descriptor px_rdata_fields[] = {
+static const struct nsd_rdata_descriptor px_rdata_fields[] = {
 	FIELD("preference", 0, 2),
 	FIELD("map822", 0, RDATA_UNCOMPRESSED_DNAME),
 	FIELD("mapx400", 0, RDATA_UNCOMPRESSED_DNAME)
 };
 
-static const struct rdata_descriptor aaaa_rdata_fields[] = {
+static const struct nsd_rdata_descriptor aaaa_rdata_fields[] = {
 	FIELD("address", 0, 16)
 };
 
-static const struct rdata_descriptor loc_rdata_fields[] = {
+static const struct nsd_rdata_descriptor loc_rdata_fields[] = {
 	FIELD("version", 0, 1),
 	FIELD("size", 0, 1),
 	FIELD("horizontal precision", 0, 1),
@@ -177,19 +177,19 @@ static const struct rdata_descriptor loc_rdata_fields[] = {
 	FIELD("altitude", 0, 4),
 };
 
-static const struct rdata_descriptor nxt_rdata_fields[] = {
+static const struct nsd_rdata_descriptor nxt_rdata_fields[] = {
 	FIELD("next domain name", 0, RDATA_UNCOMPRESSED_DNAME, name_length),
 	FIELD("type bit map", 0, RDATA_BINARY, nxt_length)
 };
 
-static const struct rdata_descriptor srv_rdata_fields[] = {
+static const struct nsd_rdata_descriptor srv_rdata_fields[] = {
 	FIELD("priority", 0, 2, 0),
 	FIELD("weight", 0, 2, 0),
 	FIELD("port", 0, 2, 0),
 	FIELD("target", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
 };
 
-static const struct rdata_descriptor naptr_rdata_fields[] = {
+static const struct nsd_rdata_descriptor naptr_rdata_fields[] = {
 	FIELD("order", 0, 2, 0),
 	FIELD("preference", 0, 2, 0),
 	FIELD("flags", 0, RDATA_STRING, string_length),
@@ -198,40 +198,40 @@ static const struct rdata_descriptor naptr_rdata_fields[] = {
 	FIELD("replacement", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
 };
 
-static const struct rdata_descriptor kx_rdata_fields[] = {
+static const struct nsd_rdata_descriptor kx_rdata_fields[] = {
 	FIELD("preference", 0, 2, 0),
 	FIELD("exchanger", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
 };
 
-static const struct rdata_descriptor cert_rdata_fields[] = {
+static const struct nsd_rdata_descriptor cert_rdata_fields[] = {
 	FIELD("type", 0, 2, 0),
 	FIELD("key tag", 0, 2, 0),
 	FIELD("algorithm", 0, 1, 0),
 	FIELD("certificate", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor dname_rdata_fields[] = {
+static const struct nsd_rdata_descriptor dname_rdata_fields[] = {
 	FIELD("source", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
 };
 
-static const struct rdata_descriptor apl_rdata_fields[] = {
+static const struct nsd_rdata_descriptor apl_rdata_fields[] = {
 	FIELD("prefix", 1, RDATA_BINARY, apl_length)
 };
 
-static const struct rdata_descriptor ds_rdata_fields[] = {
+static const struct nsd_rdata_descriptor ds_rdata_fields[] = {
 	FIELD("keytag", 0, 2, 0),
 	FIELD("algorithm", 0, 1, 0),
 	FIELD("digtype", 0, 1, 0),
 	FIELD("digest", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor sshfp_rdata_fields[] = {
+static const struct nsd_rdata_descriptor sshfp_rdata_fields[] = {
 	FIELD("algorithm", 0, 1, 0),
 	FIELD("ftype", 0, 1, 0),
 	FIELD("fingerprint", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor ipseckey_rdata_fields[] = {
+static const struct nsd_rdata_descriptor ipseckey_rdata_fields[] = {
 	FIELD("precedence", 0, 1, 0),
 	FIELD("gateway type", 0, 1, 0),
 	FIELD("algorithm", 0, 1, 0),
@@ -239,7 +239,7 @@ static const struct rdata_descriptor ipseckey_rdata_fields[] = {
 	FIELD("public key", 1, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor rrsig_rdata_fields[] = {
+static const struct nsd_rdata_descriptor rrsig_rdata_fields[] = {
 	FIELD("rrtype", 0, 2),
 	FIELD("algorithm", 0, 1),
 	FIELD("labels", 0, 1),
@@ -251,23 +251,23 @@ static const struct rdata_descriptor rrsig_rdata_fields[] = {
 	FIELD("signature", 0, RDATA_REMAINDER)
 };
 
-static const struct rdata_descriptor nsec_rdata_fields[] = {
+static const struct nsd_rdata_descriptor nsec_rdata_fields[] = {
 	FIELD("next", 0, RDATA_LITERAL_DNAME),
 	FIELD("types", 0, RDATA_REMAINDER)
 };
 
-static const struct rdata_descriptor dnskey_rdata_fields[] = {
+static const struct nsd_rdata_descriptor dnskey_rdata_fields[] = {
 	FIELD("flags", 0, 2, 0),
 	FIELD("protocol", 0, 1, 0),
 	FIELD("algorithm", 0, 1, 0),
 	FIELD("publickey", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor dhcid_rdata_fields[] = {
+static const struct nsd_rdata_descriptor dhcid_rdata_fields[] = {
 	FIELD("dhcpinfo", RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor nsec3_rdata_fields[] = {
+static const struct nsd_rdata_descriptor nsec3_rdata_fields[] = {
 	FIELD("algorithm", 0, 1, 0),
 	FIELD("flags", 0, 1, 0),
 	FIELD("iterations", 0, 2, 0),
@@ -276,119 +276,119 @@ static const struct rdata_descriptor nsec3_rdata_fields[] = {
 	FIELD("types", 0, RDATA_BINARY, nsec_length)
 };
 
-static const struct rdata_descriptor nsec3param_rdata_fields[] = {
+static const struct nsd_rdata_descriptor nsec3param_rdata_fields[] = {
 	FIELD("algorithm", 0, 1, 0),
 	FIELD("flags", 0, 1, 0),
 	FIELD("iterations", 0, 2, 0),
 	FIELD("salt", 0, RDATA_STRING, string_length)
 };
 
-static const struct rdata_descriptor tlsa_rdata_fields[] = {
+static const struct nsd_rdata_descriptor tlsa_rdata_fields[] = {
 	FIELD("usage", 0, 1, 0),
 	FIELD("selector", 0, 1, 0),
 	FIELD("matching type", 0, 1, 0),
 	FIELD("certificate association data", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor smimea_rdata_fields[] = {
+static const struct nsd_rdata_descriptor smimea_rdata_fields[] = {
 	FIELD("usage", 0, 1, 0),
 	FIELD("selector", 0, 1, 0),
 	FIELD("matching type", 0, 1, 0),
 	FIELD("certificate association data", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor cds_rdata_fields[] = {
+static const struct nsd_rdata_descriptor cds_rdata_fields[] = {
 	FIELD("keytag", 0, 2, 0),
 	FIELD("algorithm", 0, 1, 0),
 	FIELD("digtype", 0, 1, 0),
 	FIELD("digest", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor cdnskey_rdata_fields[] = {
+static const struct nsd_rdata_descriptor cdnskey_rdata_fields[] = {
 	FIELD("flags", 0, 2, 0),
 	FIELD("protocol", 0, 1, 0),
 	FIELD("algorithm", 0, 1, 0),
 	FIELD("publickey", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor openpgpkey_rdata_fields[] = {
+static const struct nsd_rdata_descriptor openpgpkey_rdata_fields[] = {
 	FIELD("key", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor csync_rdata_fields[] = {
+static const struct nsd_rdata_descriptor csync_rdata_fields[] = {
 	FIELD("serial", 0, 4, 0),
 	FIELD("flags", 0, 2, 0),
 	FIELD("types", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor zonemd_rdata_fields[] = {
+static const struct nsd_rdata_descriptor zonemd_rdata_fields[] = {
 	FIELD("serial", 0, 4, 0),
 	FIELD("scheme", 0, 1, 0),
 	FIELD("algorithm", 0, 1, 0),
 	FIELD("digest", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor svcb_rdata_fields[] = {
+static const struct nsd_rdata_descriptor svcb_rdata_fields[] = {
 	FIELD("priority", 0, 2, 0),
 	FIELD("target", 0, RDATA_UNCOMPRESSED_DNAME, name_length),
 	FIELD("params", 0, RDATA_BINARY, svcparams_length)
 };
 
-static const struct rdata_descriptor https_rdata_fields[] = {
+static const struct nsd_rdata_descriptor https_rdata_fields[] = {
 	FIELD("priority", 0, 2, 0),
 	FIELD("target", 0, RDATA_UNCOMPRESSED_DNAME, name_length),
 	FIELD("params", 0, RDATA_BINARY, svcparams_length)
 };
 
-static const struct rdata_descriptor spf_rdata_fields[] = {
+static const struct nsd_rdata_descriptor spf_rdata_fields[] = {
 	FIELD("text", 0, RDATA_BINARY, strings_length)
 };
 
-static const struct rdata_descriptor nid_rdata_fields[] = {
+static const struct nsd_rdata_descriptor nid_rdata_fields[] = {
 	FIELD("nid", 0, 2, 0),
 	FIELD("locator", 0, 8, 0)
 };
 
-static const struct rdata_descriptor l32_rdata_fields[] = {
+static const struct nsd_rdata_descriptor l32_rdata_fields[] = {
 	FIELD("preference", 0, 2, 0),
 	FIELD("locator", 0, 8, 0)
 };
 
-static const struct rdata_descriptor l64_rdata_fields[] = {
+static const struct nsd_rdata_descriptor l64_rdata_fields[] = {
 	FIELD("preference", 0, 2, 0),
 	FIELD("locator", 0, 8, 0)
 };
 
-static const struct rdata_descriptor lp_rdata_fields[] = {
+static const struct nsd_rdata_descriptor lp_rdata_fields[] = {
 	FIELD("preference", 0, 2, 0),
 	FIELD("pointer", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
 };
 
-static const struct rdata_descriptor eui48_rdata_fields[] = {
+static const struct nsd_rdata_descriptor eui48_rdata_fields[] = {
 	FIELD("address", 0, 6, 0)
 };
 
-static const struct rdata_descriptor eui64_rdata_fields[] = {
+static const struct nsd_rdata_descriptor eui64_rdata_fields[] = {
 	FIELD("address", 0, 8, 0)
 };
 
-static const struct rdata_descriptor uri_rdata_fields[] = {
+static const struct nsd_rdata_descriptor uri_rdata_fields[] = {
 	FIELD("priority", 0, 2, 0),
 	FIELD("weight", 0, 2, 0),
 	FIELD("target", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor caa_rdata_fields[] = {
+static const struct nsd_rdata_descriptor caa_rdata_fields[] = {
 	FIELD("flags", 0, 1, 0),
 	FIELD("tag", 0, RDATA_STRING, string_length),
 	FIELD("value", 0, RDATA_BINARY, binary_length)
 };
 
-static const struct rdata_descriptor avc_rdata_fields[] = {
+static const struct nsd_rdata_descriptor avc_rdata_fields[] = {
 	FIELD("text", 0, RDATA_BINARY, strings_length)
 };
 
-static const struct rdata_descriptor dlv_rdata_fields[] = {
+static const struct nsd_rdata_descriptor dlv_rdata_fields[] = {
 	FIELD("key", 0, 2, 0),
 	FIELD("algorithm", 0, 1, 0),
 	FIELD("type", 0, 1, 0),
@@ -406,7 +406,6 @@ static const struct rdata_descriptor dlv_rdata_fields[] = {
 
 static const nsd_type_descriptor_t type_descriptors[] = {
 	UNKNOWN_TYPE(0),
-
 	TYPE("A", TYPE_A,
 		read_a_rdata, write_generic_rdata,
 		print_a_rdata, a_rdata_fields),

@@ -219,8 +219,8 @@ typedef enum nsd_rc nsd_rc_type;
 //    the limit is not exceeded. if we use negative values that may lead to
 //    unexpected results
 
-#define RDATA_COMPRESSED_NAME (-1)
-#define RDATA_UNCOMPRESSED_NAME (-2)
+#define RDATA_COMPRESSED_DNAME (-1)
+#define RDATA_UNCOMPRESSED_DNAME (-2)
 #define RDATA_LITERAL_DNAME (-3)
 #define RDATA_STRING (-4)
 //#define RDATA_IPSECGATEWAY (-5) // << this is really, REALLY, cancelled
