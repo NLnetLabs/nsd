@@ -535,7 +535,7 @@ static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+2)] 
 	  , RDATA_ZF_SVCPARAM, RDATA_ZF_SVCPARAM, RDATA_ZF_SVCPARAM
 	  } },
 #else
-	{ 60, NULL, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
+	{ 66, NULL, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 #endif
 	/* 67 */
 	{ 67, NULL, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
