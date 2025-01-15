@@ -8,6 +8,7 @@ BUG FIXES:
 	- Fix #421: old-main can quit before the reload process received        
 	  from old-main that it is done on the reload_listener pipe.            
 	  Thanks Otto Retter. 
+	- Fix whitespace in comment.
 
 4.11.0
 ================
