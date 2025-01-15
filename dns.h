@@ -104,7 +104,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_ISDN	20	/* RFC1183 */
 #define TYPE_RT		21	/* RFC1183 */
 #define TYPE_NSAP	22	/* RFC1706 (deprecated by RFC9121) */
-#define TYPE_NSAP_PTR	23	/* RFC1348  (deprecated by RFC9121)*/
+#define TYPE_NSAP_PTR	23	/* RFC1348 (deprecated by RFC9121) */
 #define TYPE_SIG	24	/* 2535typecode */
 #define TYPE_KEY	25	/* 2535typecode */
 #define TYPE_PX		26	/* RFC2163 */

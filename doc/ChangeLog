@@ -1,3 +1,6 @@
+15 January 2025: Wouter
+	- Fix whitespace in comment.
+
 7 January 2025: Willem
 	- Fix #421: old-main can quit before the reload process received        
 	  from old-main that it is done on the reload_listener pipe.                    
