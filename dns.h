@@ -145,9 +145,6 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_ZONEMD	63	/* RFC 8976 */
 #define TYPE_SVCB	64	/* RFC 9460 */
 #define TYPE_HTTPS	65	/* RFC 9460 */
-#ifdef USE_DELEG
-#define TYPE_DELEG	66	/* IETF DELEG draft*/
-#endif
 
 #define TYPE_SPF        99      /* RFC 4408 */
 
@@ -174,6 +171,11 @@ typedef enum nsd_rc nsd_rc_type;
 
 #define TYPE_TA		32768	/* http://www.watson.org/~weiler/INI1999-19.pdf */
 #define TYPE_DLV	32769	/* RFC 4431 */
+
+#ifdef USE_DELEG
+#define TYPE_DELEG	65280	/* IETF DELEG draft*/
+#endif
+
 #define PSEUDO_TYPE_TA	RRTYPE_DESCRIPTORS_LENGTH
 #define PSEUDO_TYPE_DLV	(RRTYPE_DESCRIPTORS_LENGTH + 1)
 
@@ -294,7 +296,11 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
  *
  * CLA + 1
  */
+#ifndef USE_DELEG
 #define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_CLA + 1)
+#else
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_CLA + 2)
+#endif
 rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 rrtype_descriptor_type *rrtype_descriptor_by_type(uint16_t type);
 
