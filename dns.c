@@ -885,7 +885,7 @@ nsd_type_descriptor(uint16_t type, uint16_t rdlength const uint8_t *rdata)
 		return &descriptors[type];
 	return &descriptors[0];
 }
- 
+
 const char *
 rrtype_to_string(uint16_t rrtype)
 {
