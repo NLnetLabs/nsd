@@ -21,7 +21,7 @@
 #endif
 
 #include "dns.h"
-#include "zonec.h"
+#include "rdata.h"
 
 /* Taken from RFC 1035, section 3.2.4.  */
 static lookup_table_type dns_rrclasses[] = {
@@ -32,569 +32,628 @@ static lookup_table_type dns_rrclasses[] = {
 	{ 0, NULL }
 };
 
-#define FIELD(name, is_optional, size /*, calc_len, print*/ ) \
-	{ name, is_optional, size, NULL, NULL /* ,calc_len, print*/ }
+/* For a standard field, it is not optional, has not special functions. */
+#define FIELD(name, size) { name, 0 /* is_optional */, size, NULL /* calc_len_func */, NULL /* print_func */ }
+
+/* For a field entry with all values, for optional fields, or with defined
+ * functions. */
+#define FIELD_ENTRY(name, is_optional, size, calc_len_func, print_func ) { name, is_optional, size, calc_len_func, print_func }
 
 static const struct nsd_rdata_descriptor generic_rdata_fields[] = {
-	FIELD("", 0, RDATA_REMAINDER)
+	FIELD("", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor a_rdata_fields[] = {
-	FIELD("address", 0, 4)
+	FIELD("address", 4)
 };
 
 static const struct nsd_rdata_descriptor ns_rdata_fields[] = {
-	FIELD("host", 0, RDATA_COMPRESSED_DNAME)
+	FIELD("host", RDATA_COMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor md_rdata_fields[] = {
-	FIELD("madname", 0, RDATA_UNCOMPRESSED_DNAME)
+	FIELD("madname", RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor mf_rdata_fields[] = {
-	FIELD("madname", 0, RDATA_UNCOMPRESSED_DNAME)
+	FIELD("madname", RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor cname_rdata_fields[] = {
-	FIELD("host", 0, RDATA_COMPRESSED_DNAME)
+	FIELD("host", RDATA_COMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor soa_rdata_fields[] = {
-	FIELD("primary", RDATA_COMPRESSED_DNAME, false),
-	FIELD("mailbox", RDATA_COMPRESSED_DNAME, false),
-	FIELD("serial", 4, false),
-	FIELD("refresh", 4, false),
-	FIELD("retry", 4, false),
-	FIELD("expire", 4, false),
-	FIELD("minimum", 4, false)
+	FIELD("primary", RDATA_COMPRESSED_DNAME),
+	FIELD("mailbox", RDATA_COMPRESSED_DNAME),
+	FIELD("serial", 4),
+	FIELD("refresh", 4),
+	FIELD("retry", 4),
+	FIELD("expire", 4),
+	FIELD("minimum", 4)
 };
 
 static const struct nsd_rdata_descriptor mb_rdata_fields[] = {
-	FIELD("madname", 0, RDATA_COMPRESSED_DNAME)
+	FIELD("madname", RDATA_COMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor mg_rdata_fields[] = {
-	FIELD("mgmname", 0, RDATA_COMPRESSED_DNAME)
+	FIELD("mgmname", RDATA_COMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor mr_rdata_fields[] = {
-	FIELD("newname", 0, RDATA_COMPRESSED_DNAME)
+	FIELD("newname", RDATA_COMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor wks_rdata_fields[] = {
-	FIELD("address", 0, 4),
-	FIELD("protocol", 0, 1),
-	FIELD("bitmap", 0, RDATA_REMAINDER)
+	FIELD("address", 4),
+	FIELD("protocol", 1),
+	FIELD("bitmap", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor ptr_rdata_fields[] = {
-	FIELD("ptrdname", 0, RDATA_COMPRESSED_DNAME)
+	FIELD("ptrdname", RDATA_COMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor hinfo_rdata_fields[] = {
-	FIELD("cpu", 0, RDATA_STRING),
-	FIELD("os", 0, RDATA_STRING)
+	FIELD("cpu", RDATA_STRING),
+	FIELD("os", RDATA_STRING)
 };
 
 static const struct nsd_rdata_descriptor minfo_rdata_fields[] = {
-	FIELD("rmailbx", 0, RDATA_COMPRESSED_DNAME),
-	FIELD("emailbx", 0, RDATA_COMPRESSED_DNAME)
+	FIELD("rmailbx", RDATA_COMPRESSED_DNAME),
+	FIELD("emailbx", RDATA_COMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor mx_rdata_fields[] = {
-	FIELD("priority", 0, 2),
-	FIELD("hostname", 0, RDATA_COMPRESSED_DNAME)
+	FIELD("priority", 2),
+	FIELD("hostname", RDATA_COMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor txt_rdata_fields[] = {
-	FIELD("text", 0, 0)
+	FIELD("text", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor rp_rdata_fields[] = {
-	FIELD("mailbox", 0, RDATA_UNCOMPRESSED_DNAME),
-	FIELD("text", 0, RDATA_UNCOMPRESSED_DNAME)
+	FIELD("mailbox", RDATA_UNCOMPRESSED_DNAME),
+	FIELD("text", RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor afsdb_rdata_fields[] = {
-	FIELD("subtype", 0, 2),
-	FIELD("hostname", 0, RDATA_UNCOMPRESSED_DNAME)
+	FIELD("subtype", 2),
+	FIELD("hostname", RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor x25_rdata_fields[] = {
-	FIELD("address", 0, RDATA_STRING)
+	FIELD("address", RDATA_STRING)
 };
 
 static const struct nsd_rdata_descriptor isdn_rdata_fields[] = {
-	FIELD("address", 0, RDATA_STRING),
-	FIELD("subaddress", 1, RDATA_STRING)
+	FIELD("address", RDATA_STRING),
+	FIELD_ENTRY("subaddress", 1, RDATA_STRING, NULL, NULL)
 };
 
 static const struct nsd_rdata_descriptor rt_rdata_fields[] = {
-	FIELD("preference", 0, 2),
-	FIELD("hostname", 0, RDATA_UNCOMPRESSED_DNAME)
+	FIELD("preference", 2),
+	FIELD("hostname", RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor nsap_rdata_fields[] = {
-	FIELD("address", 0, RDATA_REMAINDER)
+	FIELD("address", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor sig_rdata_fields[] = {
-	FIELD("sigtype", 0, 2),
-	FIELD("algorithm", 0, 1),
-	FIELD("labels", 0, 1),
-	FIELD("origttl", 0, 4),
-	FIELD("expire", 0, 4),
-	FIELD("inception", 0, 4),
-	FIELD("keytag", 0, 2),
-	FIELD("signer", 0, RDATA_LITERAL_DNAME),
-	FIELD("signature", 0, RDATA_REMAINDER)
+	FIELD("sigtype", 2),
+	FIELD("algorithm", 1),
+	FIELD("labels", 1),
+	FIELD("origttl", 4),
+	FIELD("expire", 4),
+	FIELD("inception", 4),
+	FIELD("keytag", 2),
+	FIELD("signer", RDATA_LITERAL_DNAME),
+	FIELD("signature", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor key_rdata_fields[] = {
-	FIELD("flags", 0, 2),
-	FIELD("protocol", 0, 1),
-	FIELD("algorithm", 0, 1),
-	FIELD("publickey", 0, RDATA_BINARY)
+	FIELD("flags", 2),
+	FIELD("protocol", 1),
+	FIELD("algorithm", 1),
+	FIELD("publickey", RDATA_BINARY)
 };
 
 static const struct nsd_rdata_descriptor px_rdata_fields[] = {
-	FIELD("preference", 0, 2),
-	FIELD("map822", 0, RDATA_UNCOMPRESSED_DNAME),
-	FIELD("mapx400", 0, RDATA_UNCOMPRESSED_DNAME)
+	FIELD("preference", 2),
+	FIELD("map822", RDATA_UNCOMPRESSED_DNAME),
+	FIELD("mapx400", RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor aaaa_rdata_fields[] = {
-	FIELD("address", 0, 16)
+	FIELD("address", 16)
 };
 
 static const struct nsd_rdata_descriptor loc_rdata_fields[] = {
-	FIELD("version", 0, 1),
-	FIELD("size", 0, 1),
-	FIELD("horizontal precision", 0, 1),
-	FIELD("vertical precision", 0, 1),
-	FIELD("latitude", 0, 4),
-	FIELD("longitude", 0, 4),
-	FIELD("altitude", 0, 4),
+	FIELD("version", 1),
+	FIELD("size", 1),
+	FIELD("horizontal precision", 1),
+	FIELD("vertical precision", 1),
+	FIELD("latitude", 4),
+	FIELD("longitude", 4),
+	FIELD("altitude", 4),
 };
 
 static const struct nsd_rdata_descriptor nxt_rdata_fields[] = {
-	FIELD("next domain name", 0, RDATA_UNCOMPRESSED_DNAME, name_length),
-	FIELD("type bit map", 0, RDATA_BINARY, nxt_length)
+	FIELD("next domain name", RDATA_UNCOMPRESSED_DNAME),
+	FIELD("type bit map", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor srv_rdata_fields[] = {
-	FIELD("priority", 0, 2, 0),
-	FIELD("weight", 0, 2, 0),
-	FIELD("port", 0, 2, 0),
-	FIELD("target", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
+	FIELD("priority", 2),
+	FIELD("weight", 2),
+	FIELD("port", 2),
+	FIELD("target", RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor naptr_rdata_fields[] = {
-	FIELD("order", 0, 2, 0),
-	FIELD("preference", 0, 2, 0),
-	FIELD("flags", 0, RDATA_STRING, string_length),
-	FIELD("services", 0, RDATA_STRING, string_length),
-	FIELD("regex", 0, RDATA_STRING, string_length),
-	FIELD("replacement", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
+	FIELD("order", 2),
+	FIELD("preference", 2),
+	FIELD("flags", RDATA_STRING),
+	FIELD("services", RDATA_STRING),
+	FIELD("regex", RDATA_STRING),
+	FIELD("replacement", RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor kx_rdata_fields[] = {
-	FIELD("preference", 0, 2, 0),
-	FIELD("exchanger", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
+	FIELD("preference", 2),
+	FIELD("exchanger", RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor cert_rdata_fields[] = {
-	FIELD("type", 0, 2, 0),
-	FIELD("key tag", 0, 2, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("certificate", 0, RDATA_BINARY, binary_length)
+	FIELD("type", 2),
+	FIELD("key tag", 2),
+	FIELD("algorithm", 1),
+	FIELD("certificate", RDATA_BINARY)
+};
+
+static const struct nsd_rdata_descriptor a6_rdata_fields[] = {
+	FIELD("address", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor dname_rdata_fields[] = {
-	FIELD("source", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
+	FIELD("source", RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor apl_rdata_fields[] = {
-	FIELD("prefix", 1, RDATA_BINARY, apl_length)
+	FIELD_ENTRY("prefix", 1, RDATA_REMAINDER, NULL, NULL)
 };
 
 static const struct nsd_rdata_descriptor ds_rdata_fields[] = {
-	FIELD("keytag", 0, 2, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("digtype", 0, 1, 0),
-	FIELD("digest", 0, RDATA_BINARY, binary_length)
+	FIELD("keytag", 2),
+	FIELD("algorithm", 1),
+	FIELD("digtype", 1),
+	FIELD("digest", RDATA_BINARY)
 };
 
 static const struct nsd_rdata_descriptor sshfp_rdata_fields[] = {
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("ftype", 0, 1, 0),
-	FIELD("fingerprint", 0, RDATA_BINARY, binary_length)
+	FIELD("algorithm", 1),
+	FIELD("ftype", 1),
+	FIELD("fingerprint", RDATA_BINARY)
 };
 
 static const struct nsd_rdata_descriptor ipseckey_rdata_fields[] = {
-	FIELD("precedence", 0, 1, 0),
-	FIELD("gateway type", 0, 1, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("gateway", 0, RDATA_IPSECGATEWAY, gateway_length),
-	FIELD("public key", 1, RDATA_BINARY, binary_length)
+	FIELD("precedence", 1),
+	FIELD("gateway type", 1),
+	FIELD("algorithm", 1),
+	FIELD_ENTRY("gateway", 0, RDATA_IPSECGATEWAY, gateway_length, NULL),
+	FIELD_ENTRY("public key", 1, RDATA_BINARY, NULL, NULL)
 };
 
 static const struct nsd_rdata_descriptor rrsig_rdata_fields[] = {
-	FIELD("rrtype", 0, 2),
-	FIELD("algorithm", 0, 1),
-	FIELD("labels", 0, 1),
-	FIELD("origttl", 0, 4),
-	FIELD("expire", 0, 4),
-	FIELD("inception", 0, 4),
-	FIELD("keytag", 0, 2),
-	FIELD("signer", 0, RDATA_LITERAL_DNAME),
-	FIELD("signature", 0, RDATA_REMAINDER)
+	FIELD("rrtype", 2),
+	FIELD("algorithm", 1),
+	FIELD("labels", 1),
+	FIELD("origttl", 4),
+	FIELD("expire", 4),
+	FIELD("inception", 4),
+	FIELD("keytag", 2),
+	FIELD("signer", RDATA_LITERAL_DNAME),
+	FIELD("signature", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor nsec_rdata_fields[] = {
-	FIELD("next", 0, RDATA_LITERAL_DNAME),
-	FIELD("types", 0, RDATA_REMAINDER)
+	FIELD("next", RDATA_LITERAL_DNAME),
+	FIELD("types", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor dnskey_rdata_fields[] = {
-	FIELD("flags", 0, 2, 0),
-	FIELD("protocol", 0, 1, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("publickey", 0, RDATA_BINARY, binary_length)
+	FIELD("flags", 2),
+	FIELD("protocol", 1),
+	FIELD("algorithm", 1),
+	FIELD("publickey", RDATA_BINARY)
 };
 
 static const struct nsd_rdata_descriptor dhcid_rdata_fields[] = {
-	FIELD("dhcpinfo", RDATA_BINARY, binary_length)
+	FIELD("dhcpinfo", RDATA_BINARY)
 };
 
 static const struct nsd_rdata_descriptor nsec3_rdata_fields[] = {
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("flags", 0, 1, 0),
-	FIELD("iterations", 0, 2, 0),
-	FIELD("salt", 0, RDATA_STRING, string_length),
-	FIELD("next", 0, RDATA_STRING, string_length),
-	FIELD("types", 0, RDATA_BINARY, nsec_length)
+	FIELD("algorithm", 1),
+	FIELD("flags", 1),
+	FIELD("iterations", 2),
+	FIELD("salt", RDATA_BINARY),
+	FIELD("next", RDATA_BINARY),
+	FIELD("types", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor nsec3param_rdata_fields[] = {
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("flags", 0, 1, 0),
-	FIELD("iterations", 0, 2, 0),
-	FIELD("salt", 0, RDATA_STRING, string_length)
+	FIELD("algorithm", 1),
+	FIELD("flags", 1),
+	FIELD("iterations", 2),
+	FIELD("salt", RDATA_BINARY)
 };
 
 static const struct nsd_rdata_descriptor tlsa_rdata_fields[] = {
-	FIELD("usage", 0, 1, 0),
-	FIELD("selector", 0, 1, 0),
-	FIELD("matching type", 0, 1, 0),
-	FIELD("certificate association data", 0, RDATA_BINARY, binary_length)
+	FIELD("usage", 1),
+	FIELD("selector", 1),
+	FIELD("matching type", 1),
+	FIELD("certificate association data", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor smimea_rdata_fields[] = {
-	FIELD("usage", 0, 1, 0),
-	FIELD("selector", 0, 1, 0),
-	FIELD("matching type", 0, 1, 0),
-	FIELD("certificate association data", 0, RDATA_BINARY, binary_length)
+	FIELD("usage", 1),
+	FIELD("selector", 1),
+	FIELD("matching type", 1),
+	FIELD("certificate association data", RDATA_REMAINDER)
+};
+
+static const struct nsd_rdata_descriptor ninfo_rdata_fields[] = {
+	FIELD("text", RDATA_REMAINDER)
+};
+
+static const struct nsd_rdata_descriptor hip_rdata_fields[] = {
+	FIELD("hip", RDATA_REMAINDER)
+};
+
+static const struct nsd_rdata_descriptor rkey_rdata_fields[] = {
+	FIELD("flags", 2),
+	FIELD("protocol", 1),
+	FIELD("algorithm", 1),
+	FIELD("publickey", RDATA_BINARY)
 };
 
 static const struct nsd_rdata_descriptor cds_rdata_fields[] = {
-	FIELD("keytag", 0, 2, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("digtype", 0, 1, 0),
-	FIELD("digest", 0, RDATA_BINARY, binary_length)
+	FIELD("keytag", 2),
+	FIELD("algorithm", 1),
+	FIELD("digtype", 1),
+	FIELD("digest", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor cdnskey_rdata_fields[] = {
-	FIELD("flags", 0, 2, 0),
-	FIELD("protocol", 0, 1, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("publickey", 0, RDATA_BINARY, binary_length)
+	FIELD("flags", 2),
+	FIELD("protocol", 1),
+	FIELD("algorithm", 1),
+	FIELD("publickey", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor openpgpkey_rdata_fields[] = {
-	FIELD("key", 0, RDATA_BINARY, binary_length)
+	FIELD("key", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor csync_rdata_fields[] = {
-	FIELD("serial", 0, 4, 0),
-	FIELD("flags", 0, 2, 0),
-	FIELD("types", 0, RDATA_BINARY, binary_length)
+	FIELD("serial", 4),
+	FIELD("flags", 2),
+	FIELD("types", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor zonemd_rdata_fields[] = {
-	FIELD("serial", 0, 4, 0),
-	FIELD("scheme", 0, 1, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("digest", 0, RDATA_BINARY, binary_length)
+	FIELD("serial", 4),
+	FIELD("scheme", 1),
+	FIELD("algorithm", 1),
+	FIELD("digest", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor svcb_rdata_fields[] = {
-	FIELD("priority", 0, 2, 0),
-	FIELD("target", 0, RDATA_UNCOMPRESSED_DNAME, name_length),
-	FIELD("params", 0, RDATA_BINARY, svcparams_length)
+	FIELD("priority", 2),
+	FIELD("target", RDATA_UNCOMPRESSED_DNAME),
+	FIELD("params", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor https_rdata_fields[] = {
-	FIELD("priority", 0, 2, 0),
-	FIELD("target", 0, RDATA_UNCOMPRESSED_DNAME, name_length),
-	FIELD("params", 0, RDATA_BINARY, svcparams_length)
+	FIELD("priority", 2),
+	FIELD("target", RDATA_UNCOMPRESSED_DNAME),
+	FIELD("params", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor spf_rdata_fields[] = {
-	FIELD("text", 0, RDATA_BINARY, strings_length)
+	FIELD("text", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor nid_rdata_fields[] = {
-	FIELD("nid", 0, 2, 0),
-	FIELD("locator", 0, 8, 0)
+	FIELD("nid", 2),
+	FIELD("locator", 8)
 };
 
 static const struct nsd_rdata_descriptor l32_rdata_fields[] = {
-	FIELD("preference", 0, 2, 0),
-	FIELD("locator", 0, 8, 0)
+	FIELD("preference", 2),
+	FIELD("locator", 8)
 };
 
 static const struct nsd_rdata_descriptor l64_rdata_fields[] = {
-	FIELD("preference", 0, 2, 0),
-	FIELD("locator", 0, 8, 0)
+	FIELD("preference", 2),
+	FIELD("locator", 8)
 };
 
 static const struct nsd_rdata_descriptor lp_rdata_fields[] = {
-	FIELD("preference", 0, 2, 0),
-	FIELD("pointer", 0, RDATA_UNCOMPRESSED_DNAME, name_length)
+	FIELD("preference", 2),
+	FIELD("pointer", RDATA_UNCOMPRESSED_DNAME)
 };
 
 static const struct nsd_rdata_descriptor eui48_rdata_fields[] = {
-	FIELD("address", 0, 6, 0)
+	FIELD("address", 6)
 };
 
 static const struct nsd_rdata_descriptor eui64_rdata_fields[] = {
-	FIELD("address", 0, 8, 0)
+	FIELD("address", 8)
 };
 
 static const struct nsd_rdata_descriptor uri_rdata_fields[] = {
-	FIELD("priority", 0, 2, 0),
-	FIELD("weight", 0, 2, 0),
-	FIELD("target", 0, RDATA_BINARY, binary_length)
+	FIELD("priority", 2),
+	FIELD("weight", 2),
+	FIELD("target", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor caa_rdata_fields[] = {
-	FIELD("flags", 0, 1, 0),
-	FIELD("tag", 0, RDATA_STRING, string_length),
-	FIELD("value", 0, RDATA_BINARY, binary_length)
+	FIELD("flags", 1),
+	FIELD("tag", RDATA_STRING),
+	FIELD("value", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor avc_rdata_fields[] = {
-	FIELD("text", 0, RDATA_BINARY, strings_length)
+	FIELD("text", RDATA_REMAINDER)
+};
+
+static const struct nsd_rdata_descriptor resinfo_rdata_fields[] = {
+	FIELD("text", RDATA_REMAINDER)
+};
+
+static const struct nsd_rdata_descriptor wallet_rdata_fields[] = {
+	FIELD("wallet", RDATA_REMAINDER)
+};
+
+static const struct nsd_rdata_descriptor cla_rdata_fields[] = {
+	FIELD("CLA", RDATA_REMAINDER)
+};
+
+static const struct nsd_rdata_descriptor ta_rdata_fields[] = {
+	FIELD("key", 2),
+	FIELD("algorithm", 1),
+	FIELD("type", 1),
+	FIELD("digest", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor dlv_rdata_fields[] = {
-	FIELD("key", 0, 2, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("type", 0, 1, 0),
-	FIELD("digest", 0, RDATA_BINARY)
+	FIELD("key", 2),
+	FIELD("algorithm", 1),
+	FIELD("type", 1),
+	FIELD("digest", RDATA_REMAINDER)
 };
 
-#undef FIELD
-
-
-#define TYPE(name, code, has_references, is_compressible, read, write, print, fields) \
-  { code, name, has_references, is_compressible, read, write, print, { sizeof(fields)/sizeof(fields[0]), fields } }
+#define TYPE(name, code, bools, read, write, print, fields) \
+  { code, name, bools, read, write, print, { sizeof(fields)/sizeof(fields[0]), fields } }
 
 #define UNKNOWN_TYPE(code) \
-  { code, NULL /* mnemonic */, 0 /* has_references */, 0 /* is_compressible */, read_generic_rdata, write_generic_rdata, print_generic_rdata, { 0 /* length of fields */, NULL /* fields */} }
+  { code, NULL /* mnemonic */, 0 /* has_references */, 0 /* is_compressible */, 0 /* has_dnames */, read_generic_rdata, write_generic_rdata, print_generic_rdata, { 0 /* length of fields */, NULL /* fields */} }
 
-static const nsd_type_descriptor_t type_descriptors[] = {
-	UNKNOWN_TYPE(0),
-	TYPE("A", TYPE_A,
+/* The RR type has no references, it is a binary wireformat.
+ * has_references, is_compressible, has_dnames. */
+#define TYPE_HAS_NO_REFS 0, 0, 0
+/* The RR type has references, it has compressed dnames. */
+#define TYPE_HAS_COMPRESSED_DNAME 1, 1, 1
+/* The RR type has references, it has uncompressed dnames. */
+#define TYPE_HAS_UNCOMPRESSED_DNAME 1, 0, 1
+/* The RR type has no references, it has literal dnames. */
+#define TYPE_HAS_LITERAL_DNAME 0, 0, 1
+/* Set the bools, has_references, is_compressible, has_dnames. */
+#define TYPE_HAS_FLAGS(has_references, is_compressible, has_dnames) has_references, is_compressible, has_dnames
+
+const nsd_type_descriptor_t type_descriptors[] = {
+	UNKNOWN_TYPE(0), /* Type 0 - Reserved */
+	TYPE("A", TYPE_A, TYPE_HAS_NO_REFS,
 		read_a_rdata, write_generic_rdata,
 		print_a_rdata, a_rdata_fields),
-	TYPE("NS", TYPE_NS,
+	TYPE("NS", TYPE_NS, TYPE_HAS_COMPRESSED_DNAME,
 		read_compressed_name_rdata, write_compressed_name_rdata,
 		print_name_rdata, ns_rdata_fields),
-	TYPE("MD", TYPE_MD,
+	TYPE("MD", TYPE_MD, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_uncompressed_name_rdata, write_uncompressed_name_rdata,
 		print_name_rdata, md_rdata_fields),
-	TYPE("MF", TYPE_MF,
+	TYPE("MF", TYPE_MF, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_uncompressed_name_rdata, write_uncompressed_name_rdata,
 		print_name_rdata, mf_rdata_fields),
-	TYPE("CNAME", TYPE_CNAME,
+	TYPE("CNAME", TYPE_CNAME, TYPE_HAS_COMPRESSED_DNAME,
 		read_uncompressed_name_rdata, write_uncompressed_name_rdata,
 		print_name_rdata, cname_rdata_fields),
-	TYPE("SOA", TYPE_SOA,
+	TYPE("SOA", TYPE_SOA, TYPE_HAS_COMPRESSED_DNAME,
 		read_soa_rdata, write_soa_rdata,
 		print_soa_rdata, soa_rdata_fields),
-	TYPE("MB", TYPE_MB,
+	TYPE("MB", TYPE_MB, TYPE_HAS_COMPRESSED_DNAME,
 		read_compressed_name_rdata, write_compressed_name_rdata,
 		print_name_rdata, mb_rdata_fields),
-	TYPE("MG", TYPE_MG,
+	TYPE("MG", TYPE_MG, TYPE_HAS_COMPRESSED_DNAME,
 		read_compressed_name_rdata, write_compressed_name_rdata,
 		print_name_rdata, mg_rdata_fields),
-	TYPE("MR", TYPE_MR,
+	TYPE("MR", TYPE_MR, TYPE_HAS_COMPRESSED_DNAME,
 		read_compressed_name_rdata, write_compressed_name_rdata,
 		print_name_rdata, mr_rdata_fields),
-	TYPE("NULL", TYPE_NULL,
+	TYPE("NULL", TYPE_NULL, TYPE_HAS_NO_REFS,
 		read_generic_rdata, write_generic_rdata,
 		print_generic_rdata, generic_rdata_fields),
-	TYPE("WKS", TYPE_WKS,
+	TYPE("WKS", TYPE_WKS, TYPE_HAS_NO_REFS,
 		read_wks_rdata, write_generic_rdata,
 		print_wks_rdata, wks_rdata_fields),
-	TYPE("PTR", TYPE_PTR,
+	TYPE("PTR", TYPE_PTR, TYPE_HAS_COMPRESSED_DNAME,
 		read_compressed_name_rdata, write_compressed_name_rdata,
 		print_name_rdata, ptr_rdata_fields),
-	TYPE("HINFO", TYPE_HINFO,
+	TYPE("HINFO", TYPE_HINFO, TYPE_HAS_NO_REFS,
 		read_hinfo_rdata, write_generic_rdata,
 		print_hinfo_rdata, hinfo_rdata_fields),
-	TYPE("MINFO", TYPE_MINFO,
+	TYPE("MINFO", TYPE_MINFO, TYPE_HAS_COMPRESSED_DNAME,
 		read_minfo_rdata, write_minfo_rdata,
 		print_minfo_rdata, minfo_rdata_fields),
-	TYPE("MX", TYPE_MX,
+	TYPE("MX", TYPE_MX, TYPE_HAS_COMPRESSED_DNAME,
 		read_mx_rdata, write_mx_rdata,
 		print_mx_rdata, mx_rdata_fields),
-	TYPE("TXT", TYPE_TXT,
+	TYPE("TXT", TYPE_TXT, TYPE_HAS_NO_REFS,
 		read_txt_rdata, write_generic_rdata,
 		print_txt_rdata, txt_rdata_fields),
-	TYPE("RP", TYPE_RP,
+	TYPE("RP", TYPE_RP, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_rp_rdata, write_rp_rdata, print_rp_rdata,
 		rp_rdata_fields),
-	TYPE("AFSDB", TYPE_AFSDB,
+	TYPE("AFSDB", TYPE_AFSDB, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_afsdb_rdata, write_afsdb_rdata, print_afsdb_rdata,
 		afsdb_rdata_fields),
-	TYPE("X25", TYPE_X25,
+	TYPE("X25", TYPE_X25, TYPE_HAS_NO_REFS,
 		read_x25_rdata, write_generic_rdata, print_x25_rdata,
 		x25_rdata_fields),
-	TYPE("ISDN", TYPE_ISDN,
+	TYPE("ISDN", TYPE_ISDN, TYPE_HAS_NO_REFS,
 		read_isdn_rdata, write_generic_rdata, print_isdn_rdata,
 		isdn_rdata_fields),
-	TYPE("RT", TYPE_RT,
+	TYPE("RT", TYPE_RT, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_rt_rdata, write_rt_rdata, print_mx_rdata,
 		rt_rdata_fields),
-	TYPE("NSAP", TYPE_NSAP,
+	TYPE("NSAP", TYPE_NSAP, TYPE_HAS_NO_REFS,
 		read_generic_rdata, write_generic_rdata, print_nsap_rdata,
 		nsap_rdata_fields),
 
-	UNKNOWN_TYPE(23),
+	UNKNOWN_TYPE(23), /* Type 23 - NSAP-PTR */
 
-	TYPE("SIG", TYPE_SIG,
+	TYPE("SIG", TYPE_SIG, TYPE_HAS_LITERAL_DNAME,
 		read_rrsig_rdata, write_rrsig_rdata, print_rrsig_rdata,
 		sig_rdata_fields),
-	TYPE("KEY", TYPE_KEY,
+	TYPE("KEY", TYPE_KEY, TYPE_HAS_NO_REFS,
 		read_key_rdata, write_key_rdata, print_key_rdata,
 		key_rdata_fields),
-	TYPE("PX", TYPE_PX,
+	TYPE("PX", TYPE_PX, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_px_rdata, write_px_rdata, print_px_rdata,
 		px_rdata_fields),
 
-	UNKNOWN_TYPE(27),
+	UNKNOWN_TYPE(27), /* Type 27 - GPOS */
 
-	TYPE("AAAA", TYPE_AAAA,
+	TYPE("AAAA", TYPE_AAAA, TYPE_HAS_NO_REFS,
 		read_aaaa_rdata, write_generic_rdata, print_aaaa_rdata,
 		aaaa_rdata_fields),
-	TYPE("LOC", TYPE_LOC,
+	TYPE("LOC", TYPE_LOC, TYPE_HAS_NO_REFS,
 		read_loc_rdata, write_generic_rdata, print_generic_rdata,
 		loc_rdata_fields),
-	TYPE("NXT", TYPE_NXT,
+	TYPE("NXT", TYPE_NXT, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_nxt_rdata, write_nxt_rdata, print_nxt_rdata,
 		nxt_rdata_fields),
 
-	UNKNOWN_TYPE(31),
-	UNKNOWN_TYPE(32),
+	UNKNOWN_TYPE(31), /* Type 31 - EID */
+	UNKNOWN_TYPE(32), /* Type 32 - NIMLOC */
 
-	TYPE("SRV", TYPE_SRV,
+	TYPE("SRV", TYPE_SRV, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_srv_rdata, write_srv_rdata,
 		print_srv_rdata, srv_rdata_fields),
 
 	UNKNOWN_TYPE(34),
 
-	TYPE("NAPTR", TYPE_NAPTR,
+	TYPE("NAPTR", TYPE_NAPTR, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_naptr_rdata, write_naptr_rdata,
 		print_naptr_rdata, naptr_rdata_fields),
-	TYPE("KX", TYPE_KX,
+	TYPE("KX", TYPE_KX, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_kx_rdata, write_kx_rdata,
 		print_mx_rdata, kx_rdata_fields),
-	TYPE("CERT", TYPE_CERT,
+	TYPE("CERT", TYPE_CERT, TYPE_HAS_NO_REFS,
 		read_cert_rdata, write_generic_rdata,
 		print_cert_rdata, cert_rdata_fields),
-	TYPE("A6", TYPE_A6,
+	TYPE("A6", TYPE_A6, TYPE_HAS_NO_REFS,
 		read_a6_rdata, write_generic_rdata,
 		print_a6_rdata, a6_rdata_fields),
-	TYPE("DNAME", TYPE_DNAME,
+	TYPE("DNAME", TYPE_DNAME, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_uncompressed_name_rdata, write_uncompressed_name_rdata,
 		print_name_rdata, dname_rdata_fields),
 
-	UNKNOWN_TYPE(40),
-	UNKNOWN_TYPE(41),
+	UNKNOWN_TYPE(40), /* Type 40 - SINK */
+	UNKNOWN_TYPE(41), /* Type 41 - OPT */
 
-	TYPE("APL", TYPE_APL,
+	TYPE("APL", TYPE_APL, TYPE_HAS_NO_REFS,
 		read_apl_rdata, write_generic_rdata,
 		print_apl_rdata, apl_rdata_fields),
-	TYPE("DS", TYPE_DS,
+	TYPE("DS", TYPE_DS, TYPE_HAS_NO_REFS,
 		read_ds_rdata, write_generic_rdata,
 		print_ds_rdata, ds_rdata_fields),
-	TYPE("SSHFP", TYPE_SSHFP,
+	TYPE("SSHFP", TYPE_SSHFP, TYPE_HAS_NO_REFS,
 		read_sshfp_rdata, write_generic_rdata,
 		print_sshfp_rdata, sshfp_rdata_fields),
-	TYPE("IPSECKEY", TYPE_IPSECKEY,
+	TYPE("IPSECKEY", TYPE_IPSECKEY, TYPE_HAS_LITERAL_DNAME,
 		read_ipseckey_rdata, write_generic_rdata,
 		print_ipseckey_rdata, ipseckey_rdata_fields),
-	TYPE("RRSIG", TYPE_RRSIG,
+	TYPE("RRSIG", TYPE_RRSIG, TYPE_HAS_LITERAL_DNAME,
 		read_rrsig_rdata, write_generic_rdata,
 		print_rrsig_rdata, rrsig_rdata_fields),
-	TYPE("NSEC", TYPE_NSEC,
+	TYPE("NSEC", TYPE_NSEC, TYPE_HAS_LITERAL_DNAME,
 		read_nsec_rdata, write_generic_rdata,
 		print_nsec_rdata, nsec_rdata_fields),
-	TYPE("DNSKEY", TYPE_DNSKEY,
+	TYPE("DNSKEY", TYPE_DNSKEY, TYPE_HAS_NO_REFS,
 		read_dnskey_rdata, write_generic_rdata,
 		print_dnskey_rdata, dnskey_rdata_fields),
-	TYPE("DHCID", TYPE_DHCID,
+	TYPE("DHCID", TYPE_DHCID, TYPE_HAS_NO_REFS,
 		read_dhcid_rdata, write_generic_rdata,
 		print_dhcid_rdata, dhcid_rdata_fields),
-	TYPE("NSEC3", TYPE_NSEC3,
+	TYPE("NSEC3", TYPE_NSEC3, TYPE_HAS_NO_REFS,
 		read_nsec3_rdata, write_generic_rdata,
 		print_nsec3_rdata, nsec3_rdata_fields),
-	TYPE("NSEC3PARAM", TYPE_NSEC3PARAM,
+	TYPE("NSEC3PARAM", TYPE_NSEC3PARAM, TYPE_HAS_NO_REFS,
 		read_nsec3param_rdata, write_generic_rdata,
 		print_nsec3param_rdata, nsec3param_rdata_fields),
-	TYPE("TLSA", TYPE_TLSA,
+	TYPE("TLSA", TYPE_TLSA, TYPE_HAS_NO_REFS,
 		read_tlsa_rdata, write_generic_rdata,
 		print_tlsa_rdata, tlsa_rdata_fields),
-	TYPE("SMIMEA", TYPE_SMIMEA,
+	TYPE("SMIMEA", TYPE_SMIMEA, TYPE_HAS_NO_REFS,
 		read_tlsa_rdata, write_generic_rdata,
 		print_tlsa_rdata, smimea_rdata_fields),
 
 	UNKNOWN_TYPE(54),
-	UNKNOWN_TYPE(55), // HIP RFC 5305
-	UNKNOWN_TYPE(56),
-	UNKNOWN_TYPE(57),
-	UNKNOWN_TYPE(58),
 
-	TYPE("CDS", TYPE_CDS,
+	TYPE("HIP", TYPE_HIP, TYPE_HAS_LITERAL_DNAME,
+		read_hip_rdata, write_generic_rdata,
+		print_hip_rdata, hip_rdata_fields),
+	TYPE("NINFO", TYPE_NINFO, TYPE_HAS_NO_REFS,
+		read_txt_rdata, write_generic_rdata,
+		print_txt_rdata, ninfo_rdata_fields),
+	TYPE("RKEY", TYPE_RKEY, TYPE_HAS_NO_REFS,
+		read_rkey_rdata, write_generic_rdata,
+		print_rkey_rdata, rkey_rdata_fields),
+
+	UNKNOWN_TYPE(58), /* Type 58 - TALINK */
+
+	TYPE("CDS", TYPE_CDS, TYPE_HAS_NO_REFS,
 		read_ds_rdata, write_generic_rdata,
 		print_ds_rdata, cds_rdata_fields),
-	TYPE("CDNSKEY", TYPE_CDNSKEY,
+	TYPE("CDNSKEY", TYPE_CDNSKEY, TYPE_HAS_NO_REFS,
 		read_dnskey_rdata, write_generic_rdata,
 		print_dnskey_rdata, cdnskey_rdata_fields),
-	TYPE("OPENPGPKEY", TYPE_OPENPGPKEY,
+	TYPE("OPENPGPKEY", TYPE_OPENPGPKEY, TYPE_HAS_NO_REFS,
 		read_generic_rdata, write_generic_rdata,
 		print_openpgpkey_rdata, openpgpkey_rdata_fields),
-	TYPE("CSYNC", TYPE_CSYNC,
+	TYPE("CSYNC", TYPE_CSYNC, TYPE_HAS_NO_REFS,
 		read_csync_rdata, write_generic_rdata,
 		print_csync_rdata, csync_rdata_fields),
-	TYPE("ZONEMD", TYPE_ZONEMD,
+	TYPE("ZONEMD", TYPE_ZONEMD, TYPE_HAS_NO_REFS,
 		read_zonemd_rdata, write_generic_rdata,
 		print_zonemd_rdata, zonemd_rdata_fields),
-	TYPE("SVCB", TYPE_SVCB,
+	TYPE("SVCB", TYPE_SVCB, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_svcb_rdata, write_svcb_rdata,
 		print_svcb_rdata, svcb_rdata_fields),
-	TYPE("HTTPS", TYPE_HTTPS,
+	TYPE("HTTPS", TYPE_HTTPS, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_svcb_rdata, write_svcb_rdata,
-		print_svcb_rdata, svcb_rdata_fields),
+		print_svcb_rdata, https_rdata_fields),
 
-	UNKNOWN_TYPE(66),
+	UNKNOWN_TYPE(66), /* Type 66 - DSYNC */
 	UNKNOWN_TYPE(67),
-	UNKNWON_TYPE(68),
+	UNKNOWN_TYPE(68),
 	UNKNOWN_TYPE(69),
-	UNKNWON_TYPE(70),
+	UNKNOWN_TYPE(70),
 	UNKNOWN_TYPE(71),
 	UNKNOWN_TYPE(72),
 	UNKNOWN_TYPE(73),
@@ -624,31 +683,31 @@ static const nsd_type_descriptor_t type_descriptors[] = {
 	UNKNOWN_TYPE(97),
 	UNKNOWN_TYPE(98),
 
-	TYPE("SPF", TYPE_SPF,
+	TYPE("SPF", TYPE_SPF, TYPE_HAS_NO_REFS,
 		read_txt_rdata, write_generic_rdata,
 		print_txt_rdata, spf_rdata_fields),
 
-	UNKNOWN_TYPE(100),
-	UNKNOWN_TYPE(101),
-	UNKNOWN_TYPE(102),
-	UNKNOWN_TYPE(103),
+	UNKNOWN_TYPE(100), /* Type 100 - UINFO */
+	UNKNOWN_TYPE(101), /* Type 101 - UID */
+	UNKNOWN_TYPE(102), /* Type 102 - GID */
+	UNKNOWN_TYPE(103), /* Type 103 - UNSPEC */
 
-	TYPE("NID", TYPE_NID,
+	TYPE("NID", TYPE_NID, TYPE_HAS_NO_REFS,
 		read_nid_rdata, write_generic_rdata,
 		print_nid_rdata, nid_rdata_fields),
-	TYPE("L32", TYPE_L32,
+	TYPE("L32", TYPE_L32, TYPE_HAS_NO_REFS,
 		read_l32_rdata, write_generic_rdata,
 		print_l32_rdata, l32_rdata_fields),
-	TYPE("L64", TYPE_L64,
+	TYPE("L64", TYPE_L64, TYPE_HAS_NO_REFS,
 		read_l64_rdata, write_generic_rdata,
 		print_l64_rdata, l64_rdata_fields),
-	TYPE("LP", TYPE_LP,
+	TYPE("LP", TYPE_LP, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_lp_rdata, write_lp_rdata,
 		print_lp_rdata, lp_rdata_fields),
-	TYPE("EUI48", TYPE_EUI48,
+	TYPE("EUI48", TYPE_EUI48, TYPE_HAS_NO_REFS,
 		read_eui48_rdata, write_generic_rdata,
 		print_eui48_rdata, eui48_rdata_fields),
-	TYPE("EUI64", TYPE_EUI64,
+	TYPE("EUI64", TYPE_EUI64, TYPE_HAS_NO_REFS,
 		read_eui64_rdata, write_generic_rdata,
 		print_eui64_rdata, eui64_rdata_fields),
 
@@ -670,7 +729,7 @@ static const nsd_type_descriptor_t type_descriptors[] = {
 	UNKNOWN_TYPE(125),
 	UNKNOWN_TYPE(126),
 	UNKNOWN_TYPE(127),
-	UNKNOWN_TYPE(128),
+	UNKNOWN_TYPE(128), /* Type 128 - NXNAME */
 	UNKNOWN_TYPE(129),
 	UNKNOWN_TYPE(130),
 	UNKNOWN_TYPE(131),
@@ -791,106 +850,60 @@ static const nsd_type_descriptor_t type_descriptors[] = {
 	UNKNOWN_TYPE(246),
 	UNKNOWN_TYPE(247),
 	UNKNOWN_TYPE(248),
-	UNKNOWN_TYPE(249),
-	UNKNOWN_TYPE(250),
-	UNKNOWN_TYPE(251),
-	UNKNOWN_TYPE(252),
-	UNKNOWN_TYPE(253),
-	UNKNOWN_TYPE(254),
-	UNKNOWN_TYPE(255),
+	UNKNOWN_TYPE(249), /* Type 249 - TKEY */
+	UNKNOWN_TYPE(250), /* Type 250 - TSIG */
+	UNKNOWN_TYPE(251), /* Type 251 - IXFR */
+	UNKNOWN_TYPE(252), /* Type 252 - AXFR */
+	UNKNOWN_TYPE(253), /* Type 253 - MAILB */
+	UNKNOWN_TYPE(254), /* Type 254 - MAILA */
+	UNKNOWN_TYPE(255), /* Type 255 - ANY */
 
-	TYPE("URI", TYPE_URI,
+	TYPE("URI", TYPE_URI, TYPE_HAS_NO_REFS,
 		read_uri_rdata, write_generic_rdata,
 		print_uri_rdata, uri_rdata_fields),
-	TYPE("CAA", TYPE_CAA,
+	TYPE("CAA", TYPE_CAA, TYPE_HAS_NO_REFS,
 		read_caa_rdata, write_generic_rdata,
 		print_caa_rdata, caa_rdata_fields),
-	TYPE("AVC", TYPE_AVC,
+	TYPE("AVC", TYPE_AVC, TYPE_HAS_NO_REFS,
 		read_txt_rdata, write_generic_rdata,
 		print_txt_rdata, avc_rdata_fields),
-	TYPE("DLV", TYPE_DLV,
+
+	UNKNOWN_TYPE(259), /* Type 259 - DOA */
+	UNKNOWN_TYPE(260), /* Type 260 - AMTRELAY */
+
+	TYPE("RESINFO", TYPE_RESINFO, TYPE_HAS_NO_REFS,
+		read_txt_rdata, write_generic_rdata,
+		print_resinfo_rdata, resinfo_rdata_fields),
+	TYPE("WALLET", TYPE_WALLET, TYPE_HAS_NO_REFS,
+		read_txt_rdata, write_generic_rdata,
+		print_txt_rdata, wallet_rdata_fields),
+	TYPE("CLA", TYPE_CLA, TYPE_HAS_NO_REFS,
+		read_txt_rdata, write_generic_rdata,
+		print_txt_rdata, cla_rdata_fields),
+
+	TYPE("TA", TYPE_TA, TYPE_HAS_NO_REFS,
+		read_dlv_rdata, write_generic_rdata,
+		print_dlv_rdata, ta_rdata_fields),
+	TYPE("DLV", TYPE_DLV, TYPE_HAS_NO_REFS,
 		read_dlv_rdata, write_generic_rdata,
 		print_dlv_rdata, dlv_rdata_fields)
 };
 
-// the rdata states the type of field... very inconvenient!
-
-static const nsd_rdata_descriptor_t ipseckey_ip4_rdata_fields[] = {
-	FIELD("precedence", 0, 1, 0),
-	FIELD("gateway type", 0, 1, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("gateway", 0, 4, 0),
-	FIELD("public key", 1, RDATA_BINARY, binary_length, print_base64)
-};
-
-static const nsd_type_descriptor_t ipseckey_ip4_descriptor[] = {
-	TYPE("IPSECKEY", TYPE_IPSECKEY,
-		read_ipseckey_rdata, write_generic_rdata,
-		print_ipseckey_rdata, ipseckey_ip4_rdata_fields)
-};
-
-static const nsd_rdata_descriptor_t ipseckey_ip6_rdata_fields[] = {
-	FIELD("precedence", 0, 1, 0),
-	FIELD("gateway type", 0, 1, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("gateway", 0, 16, 0),
-	FIELD("public key", 1, RDATA_BINARY, binary_length, print_base64)
-};
-
-static const nsd_type_descriptor_t ipseckey_ip6_descriptor[] = {
-	TYPE("IPSECKEY", TYPE_IPSECKEY,
-		read_ipseckey_rdata, write_generic_rdata,
-		print_ipseckey_rdata, ipseckey_ip6_rdata_fields)
-};
-
-static const nsd_rdata_descriptor_t ipseckey_name_rdata_fields[] = {
-	FIELD("precedence", 0, 1, 0),
-	FIELD("gateway type", 0, 1, 0),
-	FIELD("algorithm", 0, 1, 0),
-	FIELD("gateway", 0, RDATA_LITERAL_DNAME, name_length),
-	FIELD("public key", 1, RDATA_BINARY, binary_length, print_base64)
-};
-
-static const nsd_type_descriptor_t ipseckey_name_descriptor[] = {
-	TYPE("IPSECKEY", TYPE_IPSECKEY,
-		read_ipseckey_rdata, write_generic_rdata,
-		print_ipseckey_rdata, ipseckey_name_rdata_fields)
-};
-
 #undef UNKNOWN_TYPE
 #undef TYPE
-
-
-nsd_nonnull((2))
-static nsd_always_inline const nsd_type_descriptor_t *
-nsd_type_descriptor(uint16_t type, uint16_t rdlength const uint8_t *rdata)
-{
-	/* IPSECKEY RDATA schema is determined by the gateway type */
-	if (type == TYPE_IPSECKEY && rdata && rdlength >= 2)
-		switch (rdata[1]) {
-			case 0: /* no gateway */
-				break;
-			case 1: /* ipv4 address */
-				return &ipseckey_ip4_descriptor[0];
-			case 2: /* ipv6 address */
-				return &ipseckey_ip6_descriptor[0];
-			case 3: /* domain name */
-				return &ipseckey_name_descriptor[0];
-			default:
-				break;
-		}
-	if (type == TYPE_DLV)
-		return &descriptors[TYPE_AVC + 1];
-	if (type < TYPE_AVC)
-		return &descriptors[type];
-	return &descriptors[0];
-}
+#undef FIELD
+#undef FIELD_ENTRY
+#undef TYPE_HAS_NO_REFS
+#undef TYPE_HAS_COMPRESSED_DNAME
+#undef TYPE_HAS_UNCOMPRESSED_DNAME
+#undef TYPE_HAS_LITERAL_DNAME
+#undef TYPE_HAS_FLAGS
 
 const char *
 rrtype_to_string(uint16_t rrtype)
 {
 	static char buf[20];
-	rrtype_descriptor_type *descriptor = rrtype_descriptor_by_type(rrtype);
+	const nsd_type_descriptor_t *descriptor = nsd_type_descriptor(rrtype);
 	if (descriptor->name) {
 		return descriptor->name;
 	} else {
@@ -910,7 +923,6 @@ rrtype_from_string(const char *name)
 {
 	char *end;
 	long rrtype;
-	const rrtype_descriptor_type *entry;
 
 	/* Because this routine is called during zone parse for every record,
 	 * we optimise for frequently occurring records.
@@ -991,9 +1003,9 @@ rrtype_from_string(const char *name)
 		break;
 	}
 
-	for (int i=0, n=sizeof(descriptors)/sizeof(descriptors[0]); i < n; i++) {
-		if (descriptors[i].name && strcasecmp(descriptors[i].name, name) == 0)
-			return descriptors[i].code;
+	for (int i=0, n=sizeof(type_descriptors)/sizeof(type_descriptors[0]); i < n; i++) {
+		if (type_descriptors[i].name && strcasecmp(type_descriptors[i].name, name) == 0)
+			return type_descriptors[i].type;
 	}
 
 	if (strlen(name) < 5)
@@ -1059,104 +1071,3 @@ rrclass_from_string(const char *name)
 
 	return (uint16_t) rrclass;
 }
-
-int32_t compare_rdata(
-	const struct type_descriptor *descriptor,
-	const struct rr *rr1,
-	const struct rr *rr2)
-{
-}
-
-
-// we want to merge the zrdatacmp code below
-// and the rdatas_equal from difffile.c????
-// >> why are we implementing the same thing over and over...
-
-
-/*
- * Compares two rdata arrays.
- *
- * Returns:
- *
- *	zero if they are equal
- *	non-zero if not
- *
- */
-static int
-zrdatacmp(uint16_t type, const union rdata_atom *rdatas, size_t rdata_count, rr_type *b)
-{
-	assert(rdatas);
-	assert(b);
-
-	/* One is shorter than another */
-	if (rdata_count != b->rdata_count)
-		return 1;
-
-	/* Compare element by element */
-	for (size_t i = 0; i < rdata_count; ++i) {
-		if (rdata_atom_is_domain(type, i)) {
-			if (rdata_atom_domain(rdatas[i])
-			    != rdata_atom_domain(b->rdatas[i]))
-			{
-				return 1;
-			}
-		} else if(rdata_atom_is_literal_domain(type, i)) {
-			if (rdata_atom_size(rdatas[i])
-			    != rdata_atom_size(b->rdatas[i]))
-				return 1;
-			if (!dname_equal_nocase(rdata_atom_data(rdatas[i]),
-				   rdata_atom_data(b->rdatas[i]),
-				   rdata_atom_size(rdatas[i])))
-				return 1;
-		} else {
-			if (rdata_atom_size(rdatas[i])
-			    != rdata_atom_size(b->rdatas[i]))
-			{
-				return 1;
-			}
-			if (memcmp(rdata_atom_data(rdatas[i]),
-				   rdata_atom_data(b->rdatas[i]),
-				   rdata_atom_size(rdatas[i])) != 0)
-			{
-				return 1;
-			}
-		}
-	}
-
-	/* Otherwise they are equal */
-	return 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -175,8 +175,6 @@ typedef enum nsd_rc nsd_rc_type;
 
 #define TYPE_TA		32768	/* http://www.watson.org/~weiler/INI1999-19.pdf */
 #define TYPE_DLV	32769	/* RFC 4431 */
-#define PSEUDO_TYPE_TA	RRTYPE_DESCRIPTORS_LENGTH
-#define PSEUDO_TYPE_DLV	(RRTYPE_DESCRIPTORS_LENGTH + 1)
 
 #define SVCB_KEY_MANDATORY		0
 #define SVCB_KEY_ALPN			1
@@ -205,48 +203,46 @@ typedef enum nsd_rc nsd_rc_type;
 
 #define NSEC3_HASH_LEN 20
 
-//
-// the maximum value of rdata is always 65535 (UINT16_MAX), so if
-// we define the values below to be above that we really should never
-// clash. describe here that we don't use the previous way of configuring
-// field length... because well... we don't really need it. only with
-// printing
-//
+/*
+ * The following RDATA values are used in nsd_rdata_descriptor.length to
+ * indicate a specialized value. They are negative, the normal lengths
+ * are 0..65535 and length is int32_t.
+ */
+/* The rdata is a compressed domain name. In namedb it is a reference
+ * with a pointer to struct domain. On the wire, the name can be a
+ * compressed name. The pointer is stored in line and is likely unaligned. */
+#define RDATA_COMPRESSED_DNAME -1
+/* The rdata is an uncompressed domain name. In namedb it is a reference
+ * with a pointer to struct domain. The pointer is stored in line and is
+ * likely unaligned. */
+#define RDATA_UNCOMPRESSED_DNAME -2
+/* The rdata is a literal domain name. It is not a reference to struct
+ * domain, and stored as uncompressed wireformat octets. */
+#define RDATA_LITERAL_DNAME -3
+/* The rdata is a string. It starts with a uint8_t length byte. */
+#define RDATA_STRING -4
+/* The rdata is binary. It starts with a uint8_t length byte. */
+#define RDATA_BINARY -5
+/* The rdata is of type IPSECGATEWAY because of its encoding elsewhere in
+ * the RR. */
+#define RDATA_IPSECGATEWAY -6
+/* The rdata is the remainder of the record, to the end of the bytes, possibly
+ * zero bytes. The length of the field is determined by the rdata length. */
+#define RDATA_REMAINDER -7
 
-// >> we could choose to use a single bit
-//    and reuse that >> we'll at least require the values to be a positive
-//    value! that way if we try insert it into rdata, we usually check if
-//    the limit is not exceeded. if we use negative values that may lead to
-//    unexpected results
-
-#define RDATA_COMPRESSED_DNAME (-1)
-#define RDATA_UNCOMPRESSED_DNAME (-2)
-#define RDATA_LITERAL_DNAME (-3)
-#define RDATA_STRING (-4)
-//#define RDATA_IPSECGATEWAY (-5) // << this is really, REALLY, cancelled
-                                  //    upon getting the type descriptor the dev
-																	//    is required to pass a reference to the rdata!
-#define RDATA_REMAINDER (1u<<16) // << we just use 0 to indicate we take the remainder!
-
-
-// function signature to determine length will take
-// uint8_t pointer + offset + length
-typedef int32_t(*nsd_rdata_length_t)(
-	uint16_t rdlength,
-	const uint8_t *rdata,
-	uint16_t offset);
-// offset is required for the ipsecgateway where we need to read a couple
-// bytes back
-
-/**
- * Function signature to determine field length
- * @param rdlength: remaining length of rdata.
- * @param rdata: current byte position in rdata.
- * @return a length or NSD_COMPRESSED_NAME and such.
+/*
+ * Function signature to determine length of the rdata field.
+ * @param rdlength: length of the input rdata.
+ * @param rdata: input bytes with rdata of the RR.
+ * @param offset: current byte position in rdata.
+ * 	offset is required for the ipsecgateway where we need to read
+ * 	a couple bytes back
+ * @return length in bytes.
  */
 typedef int32_t(*nsd_rdata_field_length_t)(
 	uint16_t rdlength,
-	const uint8_t *rdata);
+	const uint8_t *rdata,
+	uint16_t offset);
 
 /**
  * Function signature to print RR
@@ -259,124 +255,142 @@ typedef int32_t(*nsd_print_rdata_field_t)(
 	const struct rr* rr);
 
 typedef struct nsd_rdata_descriptor nsd_rdata_descriptor_t;
-// the descriptor table shouldn't be used for validation.
-// the read function will take care of that. it's used for
-// implementing copy functions that are very specific, but where
-// the data has already been checked for validity..
-struct nsd_rdata_descriptor {
-	const char *name;
-	int is_optional; // << whether or not this field is optional...
-	int32_t length; // << will be set to a specialized value if
-			//    the length function should be used. i.e.
-			//    for any type where the length depends on a value
-			//    in the rdata itself.
-	// this function isn't actually all that useful!
-	// >> actually... it kinda is...
-	//
-	nsd_rdata_field_length_t calculate_length; // << determine size of rdata field (uncompressed)
-	//	 //    for scenarios where rdata has a different
-	//	 //    format (internal names/possibly compressed names)
-	//	 //    implement your own!
-	nsd_print_rdata_field_t print; // << not sure if I want to use this one
-					 //    >> we'll see!
-};
 
 /*
-The basic premise is that RDATA is directly allocated with the RR structure
-and that pointers to domains are directly stored (likely unaligned) in the
-RDATA. We do this primarily to save memory, but as the RDATA is directly
-stored with the RR, it is likely that data is cached with the RR which should
-have a positive impact on performance. When paired with direct conversion
-routines we are very likely to improve performance when importing zones and
-writing RRs out to the wire.
-
-The original idea was to implement conversion routines for type, but upon
-propagating changes throughout the codebase it turns out we have to do
-convert between more formats that just wire-to-internal, internal-to-wire,
-and internal-to-text. The result is an explosion in code.
-Consider the following matrix.
-
-
-* compressed wire format
-* uncompressed wire format
-* internal format
-* presentation format
-* generic presentation format (though mostly important for loading)
-
-For incremental zone transfers we convert from presentation format to
-uncompressed wire format to internal format to uncompressed wire format on
-loading. When writing out to the network we convert from uncompressed wire
-format to compressed wire format.
-
-The idea is that we can at least skip uncompressed wire format to internal
-format on loading, though we do have to normalize the domain names in the
-data (or assume that users won't update the on-disk data in which case we
-may trust the data gets written in normalized fashion). However, the
-uncompressed wire format to compressed wire format remains necessary.
-
-For conversion from uncompressed/compressed wire format to internal we make
-the interface such that a packet buffer is required and use
-dname\_make\_from\_packet so that the same import routines can be used.
-For internal to compressed wire format we implement a specialized routine so
-that answering of queries is as optimal as can be.
-
-For all other conversions, speed is not as important so the proposal is that
-we keep the descriptor table more-or-less as-is.
-
-For converting to (generic) presentation format, I propose we move that code
-to simdzone. The benefit there being that support for everything presentation
-format is in one place. The idea is that the interface is uncompressed wire
-format, so writing data out, the internal representation must replace the
-domain pointers by the uncompressed domain name in wire format.
+ * Descriptor table. For DNS RRTypes has information on the resource record
+ * type. the descriptor table shouldn't be used for validation.
+ * the read function will take care of that. it's used for
+ * implementing copy functions that are very specific, but where
+ * the data has already been checked for validity.
  */
+struct nsd_rdata_descriptor {
+	/* Field name of the rdata, like 'primary server'. */
+	const char *name;
 
+	/* If the field is optional. When the field is not present, eg. no
+	 * bytes of rdata, and it is optional, this is fine and the rdata
+	 * is shorter. Also no following rdatas after it. Non optional
+	 * rdatas must be present. */
+	int is_optional;
+
+	/* The length, in bytes, of the rdata field. Can be set to
+	 * a specialized value, like RDATA_COMPRESSED_DNAME,
+	 * RDATA_STRING, ...
+	 * If there is a length function, that is used. That is for any type
+	 * where the length depends on a value in the rdata itself. */
+	int32_t length;
+
+	/* Determine size of rdata field. Returns the size of uncompressed
+	 * rdata on the wire. So for references this is a different number. */
+	nsd_rdata_field_length_t calculate_length;
+
+	/* Print the rdata field */
+	nsd_print_rdata_field_t print;
+};
 
 typedef struct nsd_type_descriptor nsd_type_descriptor_t;
 struct nsd_type_descriptor;
 
+/* The rdata is malformed. The wireformat is not correct.
+ * NSD cannot store a wireformat with a malformed domain name, when that
+ * name needs to become a reference to struct domain. */
+#define MALFORMED -1
+/* The rdata is not read, it is truncated, some was copied, but then
+ * an error occurred, like memory allocation failure. */
+#define TRUNCATED -2
+
+/*
+ * Function signature to read rdata. From a packet into memory.
+ * @param domains: the domain table.
+ * @param rdlength: the length of the rdata in the packet.
+ * @param packet: the packet.
+ * @param rr: an RR is returned.
+ * @return the number of bytes that are read from the packet. Or negative
+ *	for an error, like MALFORMED, TRUNCATED.
+ */
 typedef int32_t(*nsd_read_rdata_t)(
 	struct domain_table *domains,
 	uint16_t rdlength,
 	struct buffer *packet,
 	struct rr **rr);
 
-typedef int32_t(*nsd_write_rdata_t)(
+/*
+ * Function signature to write rdata. From memory to an answer.
+ * @param query: the query that is answered.
+ * @param rr: rr to add to the output, in query.packet. It prints the rdata
+ *	wireformat to the packet, compressed if needed, not including the
+ *	rdlength before the rdata.
+ */
+typedef void(*nsd_write_rdata_t)(
 	struct query *query,
 	const struct rr *rr);
 
+/*
+ * Function signature to print rdata. The string is in the buffer.
+ * The printed string starts with the rdata text. It does not have a newline
+ * at end. No space is put before it.
+ * @param buffer: buffer with string on return. The position is moved.
+ * @param rr: the record to print the rdata for.
+ * @return false on failure. The wireformat can not be printed in the
+ *	nice output format.
+ */
 typedef int32_t(*nsd_print_rdata_t)(
 	struct buffer *buffer,
 	const struct rr *rr);
 
-/** Descriptor for a DNS resource record type. */
+/*
+ * Descriptor for a DNS resource record type.
+ * There are conversion routines per type, for wire-to-internal,
+ * internal-to-wire, and internal-to-text. To stop an explosion in code,
+ * there is an rdata field descriptor array to convert between more formats.
+ * For internal to compressed wire format we implement a specialized routine so
+ * that answering of queries is as optimal as can be.
+ * Other formats are conversion from uncompressed wire format to compressed
+ * wire format. For conversion from uncompressed or compressed wire format
+ * to internal the same import routines can be used, by using a packet buffer
+ * and dname_make_from_packet.
+ */
 struct nsd_type_descriptor {
-	/** The RRType number */
+	/* The RRType number */
 	uint16_t type;
-	/** Mnemonic. */
+	/* Mnemonic. */
 	const char *name;
-	/** Whether internal RDATA contains direct pointers. */
+	/* Whether internal RDATA contains direct pointers.
+	 * This means the namedb memory contains an in line pointer to
+	 * struct domain for domain names. */
 	int has_references;
-	/** Whether RDATA contains compressible names. */
+	/* Whether RDATA contains compressible names. The output can be
+	 * compressed on the packet. If true, also has_references is true,
+	 * for the packet encode routine, that uses the references. */
 	int is_compressible;
+	/* The type has domain names, like literal dnames in the format. */
+	int has_dnames;
+	/* Read function that copies rdata for this type to struct rr. */
 	nsd_read_rdata_t read_rdata;
+	/* Write function, that copie rdata from struct rr to packet. */
 	nsd_write_rdata_t write_data;
+	/* Print function, that writes the struct rr to string. */
 	nsd_print_rdata_t print_rdata;
+	/* Description of the rdata fields. Used by functions that need
+	 * to iterate over the fields. There are binary fields and
+	 * references, and wireformat domain names. */
 	struct {
-		uint32_t flags; // << e.g. COMPRESSED_NAME
+		/* Length of the fields array. */
 		size_t length;
-		nsd_rdata_descriptor_t *fields;
+		/* The rdata field descriptors. */
+		const nsd_rdata_descriptor_t *fields;
 	} rdata;
 };
 
+/* The length of the RRTYPE descriptors arrary */
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_CLA + 2)
 
 /*
  * Indexed by type.  The special type "0" can be used to get a
  * descriptor for unknown types (with one binary rdata).
- *
- * CLA + 1
  */
-#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_CLA + 1)
-nsd_type_descriptor_t *rrtype_descriptor_by_type(uint16_t type);
+static inline const nsd_type_descriptor_t *nsd_type_descriptor(
+	uint16_t rrtype);
 
 const char *rrtype_to_string(uint16_t rrtype);
 
@@ -390,5 +404,20 @@ uint16_t rrtype_from_string(const char *name);
 
 const char *rrclass_to_string(uint16_t rrclass);
 uint16_t rrclass_from_string(const char *name);
+
+/* The type descriptors array of length RRTYPE_DESCRIPTORS_LENGTH. */
+const nsd_type_descriptor_t type_descriptors[];
+
+static inline const nsd_type_descriptor_t *
+nsd_type_descriptor(uint16_t rrtype)
+{
+	if (rrtype <= TYPE_CLA)
+		return &type_descriptors[rrtype];
+	if (rrtype == TYPE_TA)
+		return &type_descriptors[TYPE_CLA + 1];
+	if (rrtype == TYPE_DLV)
+		return &type_descriptors[TYPE_CLA + 2];
+	return &type_descriptors[0];
+}
 
 #endif /* DNS_H */

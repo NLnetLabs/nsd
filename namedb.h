@@ -156,7 +156,18 @@ struct zone
 	unsigned     is_bad : 1; /* zone failed verification */
 } ATTR_PACKED;
 
-/* a RR in DNS */
+/* a RR in DNS.
+ * The RDATA is directly allocated with the RR structure and pointers to
+ * domains are directly stored (likely unaligned) in the RDATA. We do this
+ * primarily to save memory, but as the RDATA is directly stored with the RR,
+ * it is likely that data is cached with the RR which should have a positive
+ * impact on performance. When paired with direct conversion routines we are
+ * very likely to improve performance when importing zones and writing RRs out
+ * to the wire. That is in the rr.rdata array, it contains the rdata without
+ * the rdlength bytes. The rdlength contains the length of the rr.rdata array,
+ * that includes the pointer size for names that are pointer references to
+ * struct domain.
+ */
 struct rr {
 	domain_type*     owner;
 	uint32_t         ttl;

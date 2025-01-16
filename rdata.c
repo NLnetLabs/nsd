@@ -167,14 +167,19 @@ static int32_t print_text(
 }
 
 static int
-rdata_unquoted_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+print_unquoted(buffer_type *output, uint16_t rdlength,
+	const uint8_t* rdata, uint16_t* length)
 {
-	const uint8_t *data = rdata_atom_data(rdata);
-	uint8_t length = data[0];
+	uint8_t len;
 	size_t i;
 
-	for (i = 1; i <= length; ++i) {
+	if(rdlength < 1)
+		return 0;
+	len = data[0];
+	if(pos + len + 1 > rdlength)
+		return 0;
+
+	for (i = 1; i <= (size_t)len; ++i) {
 		char ch = (char) data[i];
 		if (isprint((unsigned char)ch)) {
 			if (ch == '"' || ch == '\\'
@@ -186,33 +191,23 @@ rdata_unquoted_to_string(buffer_type *output, rdata_atom_type rdata,
 			buffer_printf(output, "\\%03u", (unsigned) data[i]);
 		}
 	}
+	*length += 1;
+	*length += len;
 	return 1;
 }
 
 static int
-rdata_unquoteds_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+print_unquoteds(buffer_type *output, uint16_t rdlength,
+	const uint8_t* rdata, uint16_t* length)
 {
 	uint16_t pos = 0;
-	const uint8_t *data = rdata_atom_data(rdata);
-	uint16_t length = rdata_atom_size(rdata);
-	size_t i;
 
-	while (pos < length && pos + data[pos] < length) {
-		for (i = 1; i <= data[pos]; ++i) {
-			char ch = (char) data[pos + i];
-			if (isprint((unsigned char)ch)) {
-				if (ch == '"' || ch == '\\'
-				||  isspace((unsigned char)ch)) {
-					buffer_printf(output, "\\");
-				}
-				buffer_printf(output, "%c", ch);
-			} else {
-				buffer_printf(output, "\\%03u", (unsigned) data[pos+i]);
-			}
-		}
-		pos += data[pos]+1;
-		buffer_printf(output, pos < length?" ":"");
+	while (pos < rdlength) {
+		if(!print_unquoted(output, rdlength, rdata+pos, length))
+			return 0;
+		pos = *length;
+		if(pos < rdlength)
+			buffer_printf(output, " ");
 	}
 	return 1;
 }
@@ -961,8 +956,7 @@ void write_soa_rdata(struct query *query, const struct rr *rr)
 	memcpy(mailbox, rr->rdata + sizeof(void*), sizeof(void*));
 	encode_dname(query, primary);
 	encode_dname(query, mailbox);
-	buffer_write(packet, rr->rdata + (2 * sizeof(void*)), 20);
-	return buffer_position(packet) - mark;
+	buffer_write(query->packet, rr->rdata + (2 * sizeof(void*)), 20);
 }
 
 int32_t print_soa_rdata(struct buffer *output, const struct rr *rr)
@@ -2101,6 +2095,71 @@ int32_t print_tlsa_rdata(struct buffer *buffer, const struct rr *rr);
 	return 1;
 }
 
+int32_t read_hip_rdata(
+	struct domain_table *domains, uint16_t rdlength, struct buffer *packet, struct rr **rr)
+{
+	/* byte (hit length) + byte (PK algorithm) + short (PK length) +
+	 * HIT(hex) + pubkey(base64) + rendezvous servers(literal dnames) */
+	if (rdlength < 4)
+		return MALFORMED;
+	return read_rdata(domains, rdlength, packet, rr);
+}
+
+int32_t print_hip_rdata(struct buffer *output, const struct rr *rr);
+{
+	/* byte (hit length) + byte (PK algorithm) + short (PK length) +
+	 * HIT(hex) + pubkey(base64) + rendezvous servers(literal dnames) */
+	uint8_t hit_length, pk_algorithm;
+	uint16_t pk_length;
+	uint16_t length = 4;
+	uint8_t* pos;
+
+        assert(rr->rdlength >= length);
+	hit_length = rr->rdata[0];
+	pk_algorithm = rr->rdata[1];
+	pk_length = read_uint16(rr->rdata+2);
+        buffer_printf(
+		output, "%" PRIu8 " ",
+			pk_algorithm);
+	if(!print_base16(output, hit_length, rr->rdata+2, &length))
+		return 0;
+	buffer_printf(output, " ");
+        if(!print_base64(output, pk_length, rr->rdata+2+hit_length, &length))
+                return 0;
+	pos = rr->rdata+2+hit_length+pk_length;
+	while(length < rr->rdlength) {
+		buffer_printf(output, " ");
+		if(!print_name(output, rr->rdlength-length, pos, &length))
+			return 0;
+		pos = length;
+	}
+        assert(rr->rdlength == length);
+        return 1;
+}
+
+int32_t read_rkey_rdata(
+	struct domain_table *domains, uint16_t rdlength, struct buffer *packet, struct rr **rr)
+{
+	/* short + byte + byte + binary */
+	if (rdlength < 5)
+		return MALFORMED;
+	return read_rdata(domains, rdlength, packet, rr);
+}
+
+int32_t print_rkey_rdata(struct buffer *output, const struct rr *rr);
+{
+        uint16_t length = 4;
+
+        assert(rr->rdlength > length);
+        buffer_printf(
+                output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
+                read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3]);
+        if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+                return 0;
+        assert(rr->rdlength == length);
+        return 1;
+}
+
 int32_t print_openpgpkey_rdata(struct buffer *output, const struct rr *rr);
 {
 	uint16_t length = 0;
@@ -2326,7 +2385,7 @@ int32_t read_eui48_rdata(
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t print_eui48_rdata(struct buffer *output, const struct rr *rr);
+int32_t print_eui48_rdata(struct buffer *output, const struct rr *rr)
 {
 	assert(rr->rdlength == 6);
 	const uint8_t *x = rr->rdata;
@@ -2343,7 +2402,7 @@ int32_t read_eui64_rdata(
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t print_eui64_rdata(struct buffer *buffer, const struct rr *rr);
+int32_t print_eui64_rdata(struct buffer *buffer, const struct rr *rr)
 {
 	assert(rr->rdlength == 8);
 	const uint8_t *x = rr->rdata;
@@ -2361,7 +2420,7 @@ int32_t read_uri_rdata(
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t print_uri_rdata(struct buffer *output, const struct rr *rr);
+int32_t print_uri_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
 
@@ -2370,6 +2429,15 @@ int32_t print_uri_rdata(struct buffer *output, const struct rr *rr);
 		output, "%" PRIu16 " %" PRIu16 " ",
 		read_uint16(rr->rdata), read_uint16(rr->rdata + 2));
 	if (!print_string(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t print_resinfo_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	if(!print_unquoteds(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
 	return 1;
@@ -2438,43 +2506,78 @@ int32_t print_dlv_rdata(struct buffer *output, const struct rr *rr);
 	return 1;
 }
 
+int print_rdata(
+	buffer_type *output, rrtype_descriptor_type *descriptor, const rr_type *rr)
+{
+	(void)output;
+	(void)descriptor;
+	(void)rr;
+	return 0;
+}
+
+int32_t compare_rdata(
+	const struct type_descriptor *descriptor,
+	const struct rr *rr1,
+	const struct rr *rr2)
+{
+}
 
 
+// we want to merge the zrdatacmp code below
+// and the rdatas_equal from difffile.c????
+// >> why are we implementing the same thing over and over...
 
 
+/*
+ * Compares two rdata arrays.
+ *
+ * Returns:
+ *
+ *	zero if they are equal
+ *	non-zero if not
+ *
+ */
+static int
+zrdatacmp(uint16_t type, const union rdata_atom *rdatas, size_t rdata_count, rr_type *b)
+{
+	assert(rdatas);
+	assert(b);
 
+	/* One is shorter than another */
+	if (rdata_count != b->rdata_count)
+		return 1;
 
+	/* Compare element by element */
+	for (size_t i = 0; i < rdata_count; ++i) {
+		if (rdata_atom_is_domain(type, i)) {
+			if (rdata_atom_domain(rdatas[i])
+			    != rdata_atom_domain(b->rdatas[i]))
+			{
+				return 1;
+			}
+		} else if(rdata_atom_is_literal_domain(type, i)) {
+			if (rdata_atom_size(rdatas[i])
+			    != rdata_atom_size(b->rdatas[i]))
+				return 1;
+			if (!dname_equal_nocase(rdata_atom_data(rdatas[i]),
+				   rdata_atom_data(b->rdatas[i]),
+				   rdata_atom_size(rdatas[i])))
+				return 1;
+		} else {
+			if (rdata_atom_size(rdatas[i])
+			    != rdata_atom_size(b->rdatas[i]))
+			{
+				return 1;
+			}
+			if (memcmp(rdata_atom_data(rdatas[i]),
+				   rdata_atom_data(b->rdatas[i]),
+				   rdata_atom_size(rdatas[i])) != 0)
+			{
+				return 1;
+			}
+		}
+	}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	/* Otherwise they are equal */
+	return 0;
+}
