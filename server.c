@@ -2657,7 +2657,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		exit(1);
 	}
 	assert(cmd == NSD_RELOAD);
-	udb_ptr_unlink(last_task, nsd->task[nsd->mytask]);
+	udb_ptr_set(last_task, nsd->task[nsd->mytask], 0);
 	task_process_sync(nsd->task[nsd->mytask]);
 #ifdef USE_ZONE_STATS
 	server_zonestat_realloc(nsd); /* realloc for next children */
@@ -2808,13 +2808,6 @@ server_main(struct nsd *nsd)
 					netio_remove_handler(netio, &reload_listener);
 					reload_listener.fd = -1;
 					reload_listener.event_types = NETIO_EVENT_NONE;
-					/* "load" failed a apply_xfr task.
-					 * "old-main" will become "main" and
-					 * MUST unlink last_task and xfrs2process.
-					 * see: UNLINKING last_task and xfrs2process
-					 */
-					udb_ptr_unlink(&last_task, nsd->task[nsd->mytask]);
-					udb_ptr_unlink(&xfrs2process, nsd->task[nsd->mytask]);
 					task_process_sync(nsd->task[nsd->mytask]);
 					/* inform xfrd reload attempt ended */
 					if(!write_socket(nsd->xfrd_listener->fd,
@@ -2919,13 +2912,6 @@ server_main(struct nsd *nsd)
 				netio_remove_handler(netio, &reload_listener);
 				reload_listener.fd = -1;
 				reload_listener.event_types = NETIO_EVENT_NONE;
-				/* "load" failed a apply_xfr task.
-				 * "old-main" will become "main" and
-				 * MUST unlink last_task and xfrs2process.
-				 * see: UNLINKING last_task and xfrs2process
-				 */
-				udb_ptr_unlink(&last_task, nsd->task[nsd->mytask]);
-				udb_ptr_unlink(&xfrs2process, nsd->task[nsd->mytask]);
 				task_process_sync(nsd->task[nsd->mytask]);
 				/* inform xfrd reload attempt ended */
 				if(!write_socket(nsd->xfrd_listener->fd,
@@ -3003,12 +2989,6 @@ server_main(struct nsd *nsd)
 			switch (reload_pid) {
 			case -1:
 				log_msg(LOG_ERR, "fork failed: %s", strerror(errno));
-				/* fork() failed. "load" will become "main" and
-				 * MUST unlink last_task and xfrs2process.
-				 * see: UNLINKING last_task and xfrs2process
-				 */
-				udb_ptr_unlink(&last_task, nsd->task[nsd->mytask]);
-				udb_ptr_unlink(&xfrs2process, nsd->task[nsd->mytask]);
 				break;
 			default:
 				/* PARENT */
@@ -3060,6 +3040,8 @@ server_main(struct nsd *nsd)
 				log_set_process_role("main");
 #endif
 			}
+			udb_ptr_set(&last_task, nsd->task[nsd->mytask], 0);
+			udb_ptr_set(&xfrs2process, nsd->task[nsd->mytask], 0);
 			break;
 		case NSD_QUIT_SYNC:
 			/* synchronisation of xfrd, parent and reload */
