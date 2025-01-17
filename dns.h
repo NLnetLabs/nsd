@@ -406,7 +406,7 @@ const char *rrclass_to_string(uint16_t rrclass);
 uint16_t rrclass_from_string(const char *name);
 
 /* The type descriptors array of length RRTYPE_DESCRIPTORS_LENGTH. */
-const nsd_type_descriptor_t type_descriptors[];
+extern const nsd_type_descriptor_t type_descriptors[];
 
 static inline const nsd_type_descriptor_t *
 nsd_type_descriptor(uint16_t rrtype)
