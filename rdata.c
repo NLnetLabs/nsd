@@ -234,22 +234,39 @@ print_unquoteds(buffer_type *output, uint16_t rdlength,
 	return 1;
 }
 
-static int32_t
+/*
+ * Print IP4 address.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
 print_ip4(struct buffer *output, size_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
 	char str[INET_ADDRSTRLEN + 1];
-	assert(rdlength >= *offset);
-	if (rdlength - *offset < 4)
+	if(*offset + 4 > rdlength)
 		return 0;
-	if (!inet_ntop(AF_INET, rdata + *offset, str, sizeof(str)))
+	if(!inet_ntop(AF_INET, rdata + *offset, str, sizeof(str)))
 		return 0;
 	buffer_printf(output, "%s", str);
 	*offset += 4;
 	return 1;
 }
 
-static int32_t
+/*
+ * Print IP6 address.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
 print_ip6(struct buffer *output, size_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
