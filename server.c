@@ -2658,7 +2658,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		exit(1);
 	}
 	assert(cmd == NSD_RELOAD);
-	udb_ptr_unlink(last_task, nsd->task[nsd->mytask]);
+	udb_ptr_set(last_task, nsd->task[nsd->mytask], 0);
 	task_process_sync(nsd->task[nsd->mytask]);
 #ifdef USE_ZONE_STATS
 	server_zonestat_realloc(nsd); /* realloc for next children */
@@ -2972,6 +2972,15 @@ server_main(struct nsd *nsd)
 			task_remap(nsd->task[nsd->mytask]);
 			udb_ptr_init(&xfrs2process, nsd->task[nsd->mytask]);
 			udb_ptr_init(&last_task   , nsd->task[nsd->mytask]);
+			/* last_task and xfrs2process MUST be unlinked in all
+			 * possible branches of the fork() below.
+			 * server_reload() will unlink them, but for failed
+			 * fork and for the "old-main" (child) process, we MUST
+			 * unlink them in the case statement below.
+			 * Unlink by setting the value to 0, because
+			 * reload_process_non_xfr_tasks() may clear (and
+			 * implicitly unlink) xfrs2process.
+			 */
 			reload_process_non_xfr_tasks(nsd, &xfrs2process
 			                                , &last_task);
 			/* Do actual reload */
@@ -2979,6 +2988,8 @@ server_main(struct nsd *nsd)
 			switch (reload_pid) {
 			case -1:
 				log_msg(LOG_ERR, "fork failed: %s", strerror(errno));
+				udb_ptr_set(&last_task, nsd->task[nsd->mytask], 0);
+				udb_ptr_set(&xfrs2process, nsd->task[nsd->mytask], 0);
 				break;
 			default:
 				/* PARENT */
@@ -3010,6 +3021,8 @@ server_main(struct nsd *nsd)
 #ifdef USE_LOG_PROCESS_ROLE
 				log_set_process_role("old-main");
 #endif
+				udb_ptr_set(&last_task, nsd->task[nsd->mytask], 0);
+				udb_ptr_set(&xfrs2process, nsd->task[nsd->mytask], 0);
 				reload_listener.fd = reload_sockets[0];
 				reload_listener.timeout = NULL;
 				reload_listener.user_data = nsd;
@@ -3030,13 +3043,6 @@ server_main(struct nsd *nsd)
 				log_set_process_role("main");
 #endif
 			}
-			/* xfrs2process and last_task need to be reset in case
-			 * "old-main" becomes "main" (due to an failed (exited)
-			 * xfr update). If needed xfrs2process gets unlinked by
-			 * "load", and last_task by the xfrd.
-			 */
-			memset(&xfrs2process, 0, sizeof(xfrs2process));
-			memset(&last_task, 0, sizeof(last_task));
 			break;
 		case NSD_QUIT_SYNC:
 			/* synchronisation of xfrd, parent and reload */
