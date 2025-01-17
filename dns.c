@@ -907,7 +907,7 @@ static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+2)] 
 	  { RDATA_ZF_SHORT, RDATA_ZF_ALGORITHM, RDATA_ZF_BYTE, RDATA_ZF_HEX } },
 	#ifdef USE_DELEG
 	/* 65280 DELEG*/
-	{ TYPE_DELEG, "DELEG", 2, MAXRDATALEN,
+	{ TYPE_DELEG, "IDELEG", 2, MAXRDATALEN,
 	  { RDATA_WF_SHORT                        /* SvcFieldPriority */
 	  , RDATA_WF_UNCOMPRESSED_DNAME           /* SvcDomainName */
 	  , RDATA_WF_SVCPARAM, RDATA_WF_SVCPARAM  /* SvcFieldValue */
