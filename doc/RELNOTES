@@ -9,6 +9,7 @@ BUG FIXES:
 	  from old-main that it is done on the reload_listener pipe.            
 	  Thanks Otto Retter. 
 	- Fix whitespace in comment.
+	- Fix #424: Stalled updates after corrupt transfer.
 
 4.11.0
 ================
