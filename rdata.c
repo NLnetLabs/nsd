@@ -67,15 +67,75 @@ lookup_table_type dns_algorithms[] = {
 	{ 0, NULL }
 };
 
-const char *svcparamkey_strs[] = {
-		"mandatory", "alpn", "no-default-alpn", "port",
-		"ipv4hint", "ech", "ipv6hint", "dohpath", "ohttp",
-		"tls-supported-groups"
-	};
+/* Print svcparam mandatory */
+static int print_svcparam_mandatory(struct buffer *output,
+	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
 
-static int32_t
-print_name(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
-	uint16_t *offset)
+/* Print svcparam alpn */
+static int print_svcparam_alpn(struct buffer *output,
+	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+
+/* Print svcparam no_default_alpn */
+static int print_svcparam_no_default_alpn(struct buffer *output,
+	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+
+/* Print svcparam port */
+static int print_svcparam_port(struct buffer *output,
+	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+
+/* Print svcparam ipv4hint */
+static int print_svcparam_ipv4hint(struct buffer *output,
+	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+
+/* Print svcparam ech */
+static int print_svcparam_ech(struct buffer *output,
+	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+
+/* Print svcparam ipv6hint */
+static int print_svcparam_ipv6hint(struct buffer *output,
+	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+
+/* Print svcparam dohpath */
+static int print_svcparam_dohpath(struct buffer *output,
+	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+
+/* Print svcparam ohttp */
+static int print_svcparam_ohttp(struct buffer *output,
+	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+
+/* Print svcparam tls-supported-groups */
+static int print_svcparam_tls_supported_groups(struct buffer *output,
+	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+
+static const nsd_svcparam_descriptor_t svcparams[] = {
+	{ SVCB_KEY_MANDATORY, "mandatory", print_svcparam_mandatory },
+	{ SVCB_KEY_ALPN, "alpn", print_svcparam_alpn },
+	{ SVCB_KEY_NO_DEFAULT_ALPN, "no-default-alpn",
+		print_svcparam_no_default_alpn },
+	{ SVCB_KEY_PORT, "port", print_svcparam_port },
+	{ SVCB_KEY_IPV4HINT, "ipv4hint", print_svcparam_ipv4hint },
+	{ SVCB_KEY_ECH, "ech", print_svcparam_ech },
+	{ SVCB_KEY_IPV6HINT, "ipv6hint", print_svcparam_ipv6hint },
+	{ SVCB_KEY_DOHPATH, "dohpath", print_svcparam_dohpath },
+	{ SVCB_KEY_OHTTP, "ohttp", print_svcparam_ohttp },
+	{ SVCB_KEY_TLS_SUPPORTED_GROUPS, "tls-supported-groups",
+		print_svcparam_tls_supported_groups },
+};
+
+/*
+ * Print domain name, as example.com. with escapes.
+ * The domain name is wireformat in the rdata. That is a literal dname
+ * in the rdata.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
+print_name_literal(struct buffer *output, uint16_t rdlength,
+	const uint8_t *rdata, uint16_t *offset)
 {
 	const uint8_t* name, *label, *limit;
 	assert(rdlength >= *offset);
@@ -98,7 +158,18 @@ print_name(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	return 1;
 }
 
-static int32_t
+/*
+ * Print domain name, as example.com. with escapes.
+ * The domain must be a reference in the rdata. That is a stored pointer
+ * to struct domain.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
 print_domain(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
@@ -142,7 +213,16 @@ skip_strings(uint16_t rdlength, const uint8_t* rdata, uint16_t *offset)
 	return olen;
 }
 
-static int32_t
+/*
+ * Print string, as "string" with escapes.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
 print_string(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
@@ -165,7 +245,9 @@ print_string(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 		}
 	}
 	buffer_printf(output, "\"");
-	return 1 + (int32_t)n;
+	*offset += 1;
+	*offset += n;
+	return 1;
 }
 
 static int32_t
@@ -493,19 +575,82 @@ print_nsec(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	return 1;
 }
 
-static inline int32_t
-skip_svcparams(struct buffer *packet, uint16_t *length)
+/* If an svcparam must have a value */
+static int
+svcparam_must_have_value(uint16_t svcparamkey)
 {
-//	const uint8_t *params = rdata + length;
-//	const uint16_t params_offset = length;
-//	while (rdlength - length >= 4) {
-//		const uint16_t count = read_uint16(rdata + length + 2);
-//		if (rdlength - (4 + length) < count)
-//			return -1;
-//		length += count;
-//	}
-//	if (length != rdlength)
-//		return -1;
+	switch (svcparamkey) {
+	case SVCB_KEY_ALPN:
+	case SVCB_KEY_PORT:
+	case SVCB_KEY_IPV4HINT:
+	case SVCB_KEY_IPV6HINT:
+	case SVCB_KEY_MANDATORY:
+	case SVCB_KEY_DOHPATH:
+	case SVCB_KEY_TLS_SUPPORTED_GROUPS:
+		return 1;
+	default:
+	}
+	return 0;
+}
+
+/* If an svcparam must not have a value */
+static int
+svcparam_must_not have_value(uint16_t svcparamkey)
+{
+	switch (svcparamkey) {
+	case SVCB_KEY_NO_DEFAULT_ALPN:
+	case SVCB_KEY_OHTTP:
+		return 1;
+	default:
+	}
+	return 0;
+};
+
+/*
+ * Skip over the svcparams in the packet. Moves position.
+ * @param packet: wire packet, position at rdata fields of svcparams.
+ * @param rdlength: remaining rdata length in the packet.
+ * @return 0 on wireformat error.
+ */
+static inline int
+skip_svcparams(struct buffer *packet, uint16_t rdlength)
+{
+	unsigned pos = 0;
+	uint16_t key, count;
+	while(pos < rdlength) {
+		if(pos+4 > (unsigned)rdlength)
+			return 0;
+		if(!buffer_available(packet, 4))
+			return 0;
+		key = buffer_read_u16(packet);
+		count = buffer_read_u16(packet);
+		if(count == 0 && svcparam_must_have_value(key))
+			return 0;
+		if(count != 0 && svcparam_must_not_have_value(key))
+			return 0;
+		pos += 4;
+		if(pos+count > (unsigned)rdlength)
+			return 0;
+		if(!buffer_available(packet, count))
+			return 0;
+		buffer_skip(packet, count);
+		pos += count;
+	}
+	return 1;
+}
+
+/*
+ * Print svcparamkey name to the buffer, or unknown as key<NUM>.
+ * @param output: printed to string.
+ * @param svcparamkey: the key to print.
+ */
+static void
+buffer_print_svcparamkey(buffer_type *output, uint16_t svcparamkey)
+{
+	if (svcparamkey < sizeof(svcparams)/sizeof(svcparams[0]))
+		buffer_printf(output, "%s", svcparams[svcparamkey]->name);
+	else
+		buffer_printf(output, "key%" PRIu16, svcparamkey);
 }
 
 static int
@@ -584,12 +729,12 @@ print_svcparam_mandatory(struct buffer *output, uint16_t rdlength,
 		return 0; /* wireformat error, val_len must be multiple of shorts */
 	buffer_write_u8(output, '=');
 	buffer_print_svcparamkey(output, ntohs(*data));
-	data += 1;
+	data += 2;
 
 	while ((val_len -= sizeof(uint16_t))) {
 		buffer_write_u8(output, ',');
 		buffer_print_svcparamkey(output, ntohs(*data));
-		data += 1;
+		data += 2;
 	}
 
 	return 1;
@@ -667,29 +812,22 @@ rdata_svcparam_tls_supported_groups_to_string(buffer_type *output,
 	return 1;
 }
 
-typedef struct nsd_svcparam_descriptor nsd_svcparam_descriptor_t;
-struct nsd_svcparam_descriptor {
-	uint16_t key;
-	const char *name;
-	nsd_print_svcparam_rdata_t print_rdata;
-};
-
-static const nsd_svcparam_descriptor_t svcparams[] = {
-	{ SVCB_KEY_MANDATORY, "mandatory", print_svcparam_mandatory },
-	{ SVCB_KEY_ALPN, "alpn", print_svcparam_alpn },
-	{ SVCB_KEY_NO_DEFAULT_ALPN, "no-default-alpn", print_svcparam_no_default_alpn },
-	{ SVCB_KEY_PORT, "port", print_svcparam_port },
-	{ SVCB_KEY_IPV4HINT, "ipv4hint", print_svcparam_ipv4hint },
-	{ SVCB_KEY_ECH, "ech", print_svcparam_ech },
-	{ SVCB_KEY_IPV6HINT, "ipv6hint", print_svcparam_ipv6hint },
-	{ SVCB_KEY_DOHPATH, "dohpath", print_svcparam_dohpath },
-};
-
-static int32_t
+/*
+ * Print svcparam.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
 print_svcparam(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
 	uint16_t key, length;
+	const uint8_t* dp;
+	unsigned i;
 
 	assert(rdlength >= *offset);
 	if (rdlength - *offset < 4)
@@ -701,37 +839,33 @@ print_svcparam(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	if (rdlength - *offset <= length + 4)
 		return 0; /* wireformat error */
 
-	if (key < svcparams/svcparams[0])
-		return svcparams[key].print_rdata(output, rdlength, rdata, offset);
+	if (key < sizeof(svcparams)/sizeof(svcparams[0]))
+		return svcparams[key].print_rdata(output, rdlength, rdata,
+			offset);
 
 	buffer_printf(output, "key%" PRIu16, key);
 	if (!length)
 		return 1;
 
 	buffer_write(output, "=\"", 2);
-		dp = (void*) (data + 2);
+	dp = rdata + *offset + 4;
 
-		for (i = 0; i < val_len; i++) {
-			if (dp[i] == '"' || dp[i] == '\\')
-				buffer_printf(output, "\\%c", dp[i]);
+	for (i = 0; i < length; i++) {
+		if (dp[i] == '"' || dp[i] == '\\')
+			buffer_printf(output, "\\%c", dp[i]);
 
-			else if (!isprint(dp[i]))
-				buffer_printf(output, "\\%03u", (unsigned) dp[i]);
+		else if (!isprint(dp[i]))
+			buffer_printf(output, "\\%03u", (unsigned) dp[i]);
 
-			else
-				buffer_write_u8(output, dp[i]);
-		}
-		buffer_write_u8(output, '"');
+		else
+			buffer_write_u8(output, dp[i]);
+	}
+	buffer_write_u8(output, '"');
+	*offset += length + 4;
+	return 1;
+}
 
-
-//static void
-//buffer_print_svcparamkey(buffer_type *output, uint16_t svcparamkey)
-//{
-//	if (svcparamkey < SVCPARAMKEY_COUNT)
-//		buffer_printf(output, "%s", svcparamkey_strs[svcparamkey]);
-//	else
-//}
-
+#if 0
 //	buffer_print_svcparamkey(output, key);
 //	val_len = ntohs(read_uin16(rdata + *offset + 2));
 
@@ -776,6 +910,7 @@ print_svcparam(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	}
 	return val_len + 4;
 }
+#endif /* 0 */
 
 static inline int32_t
 read_rdata(struct domain_table *domains, uint16_t rdlength,
@@ -930,11 +1065,12 @@ write_uncompressed_name_rdata(struct query *query, const struct rr *rr)
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
 }
 
-int32_t
+int
 print_name_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
 	assert(rr->rdlength == sizeof(void*));
+	/* This prints a reference to a name stored as a pointer. */
 	return print_domain(output, rr->rdlength, rr->rdata, &length);
 }
 
@@ -947,7 +1083,7 @@ read_a_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_a_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -998,7 +1134,7 @@ write_soa_rdata(struct query *query, const struct rr *rr)
 	buffer_write(query->packet, rr->rdata + (2 * sizeof(void*)), 20);
 }
 
-int32_t
+int
 print_soa_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -1048,7 +1184,7 @@ read_wks_rdata(struct domain_table *domains, uint16_t rdlength,
  *
  * (see simdzone/generic/wks.h for details).
  */
-int32_t
+int
 print_wks_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -1079,7 +1215,7 @@ read_hinfo_rdata(struct domain_table *domains, uint16_t rdlength,
 	//
 }
 
-int32_t
+int
 print_hinfo_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -1112,7 +1248,7 @@ write_minfo_rdata(struct query *query, const struct rr *rr)
 	encode_dname(query, emailbx);
 }
 
-int32_t
+int
 print_minfo_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -1164,7 +1300,7 @@ write_mx_rdata(struct query *query, const struct rr *rr)
 	encode_dname(query, domain);
 }
 
-int32_t
+int
 print_mx_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
@@ -1188,25 +1324,22 @@ read_txt_rdata(struct domain_table *owners, uint16_t rdlength,
 	return read_rdata(owners, rdlength, buffer, rr);
 }
 
-int32_t
+int
 print_txt_rdata(struct buffer *output, const struct rr *rr)
 {
 	int32_t code;
 	uint16_t offset = 0;
 	if (offset < rr->rdlength) {
-		if ((code = print_string(buffer, rr->rdata+offset, rr->rdlength-offset)) < 0)
-			return code;
-		assert(code <= rr->rdlength);
-		offset += (uint16_t)code;
+		if (!print_string(output, rr->rdlength, rr->rdata, &length))
+			return 0;
 		while (offset < rr->rdlength) {
 			buffer_printf(buffer, " ");
-			if ((code = print_string(buffer, rr->rdata+offset, rr->rdlength-offset)) < 0)
-				return code;
-			assert(code <= rr->rdlength);
-			offset += (uint16_t)code;
+			if (!print_string(output, rr->rdlength, rr->rdata,
+				&length))
+				return 0;
 		}
 	}
-	return 0;
+	return 1;
 }
 
 int32_t
@@ -1288,17 +1421,17 @@ write_afsdb_rdata(struct query *query, const struct rr *rr)
 	buffer_write(packet, dname_name(dname), dname->name_size);
 }
 
-int32_t
+int
 print_afsdb_rdata(struct buffer *output, const struct rr *rr)
 {
 	int32_t code;
-	uint16_t subtype;
+	uint16_t subtype, length=2;
 	assert(rr->rdlength == 2 + sizeof(void*));
 	memcpy(&subtype, rr->rdata, sizeof(subtype));
 	subtype = ntohs(subtype);
 	buffer_printf(buffer, "%" PRIu16 " ", subtype);
-	if ((code = print_domain(buffer, rr->rdata + 2, rr->rdlength - 2)) < 0)
-		return code;
+	if(!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
 	return 0;
 }
 
@@ -1314,7 +1447,7 @@ read_x25_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_x25_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -1339,7 +1472,7 @@ read_isdn_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_isdn_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -1395,7 +1528,7 @@ write_rt_rdata(struct query *query, const struct rr *rr)
 	return rdlength;
 }
 
-int32_t
+int
 print_nsap_rdata(struct buffer *output, const struct rr *rr)
 {
 	buffer_printf(output, "0x");
@@ -1403,7 +1536,7 @@ print_nsap_rdata(struct buffer *output, const struct rr *rr)
 	return 0;
 }
 
-int32_t
+int
 print_key_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
@@ -1465,7 +1598,7 @@ write_px_rdata(struct query *query, const struct rr *rr)
 	buffer_write(query->packet, dname_name(mapx400), mapx400->name_size);
 }
 
-int32_t
+int
 print_px_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
@@ -1488,7 +1621,7 @@ read_aaaa_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_aaaa_rdata(struct buffer *output, const struct rr *rr)
 {
 	assert(rr->rdlength == 16);
@@ -1539,7 +1672,7 @@ read_nxt_rdata(struct domain_table *domains, uint16_t rdlength,
 }
 
 void
-	write_nxt_rdata(struct query *query, const struct rr *rr)
+write_nxt_rdata(struct query *query, const struct rr *rr)
 {
 	const struct domain *domain;
 	const struct dname *dname;
@@ -1551,7 +1684,7 @@ void
 	buffer_write(query->packet, rr->rdata + sizeof(void*), rr->rdlength - sizeof(void*));
 }
 
-int32_t
+int
 print_nxt_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -1610,7 +1743,7 @@ write_srv_rdata(struct query *query, const struct rr *rr)
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
 }
 
-int32_t
+int
 print_srv_rdata(struct buffer *output, const struct rr *rr)
 {
 	int16_t length = 6;
@@ -1670,7 +1803,7 @@ write_naptr_rdata(struct query *query, const struct rr *rr)
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
 }
 
-int32_t
+int
 print_naptr_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
@@ -1743,7 +1876,7 @@ read_cert_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_cert_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 5;
@@ -1778,7 +1911,16 @@ read_apl_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, rdata, rr);
 }
 
-int32_t
+/*
+ * Print one ALP field.
+ * @param output: string is printed to the buffer.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata
+ * @param offset: on input the current position, adjusted on output to
+ *	increment for the rdata used.
+ * @return false on failure.
+ */
+static int
 print_apl(struct buffer *output, size_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
@@ -1816,7 +1958,7 @@ print_apl(struct buffer *output, size_t rdlength, const uint8_t *rdata,
 	return 1;
 }
 
-int32_t
+int
 print_apl_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -1839,7 +1981,7 @@ read_ds_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_ds_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
@@ -1864,7 +2006,7 @@ read_sshfp_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_sshfp_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
@@ -1932,7 +2074,7 @@ read_ipseckey_rdata(struct domain_table *domains, uint16_t rdlength,
 	return rdlength;
 }
 
-int32_t
+int
 print_ipseckey_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 3;
@@ -1954,7 +2096,8 @@ print_ipseckey_rdata(struct buffer *output, const struct rr *rr)
 			return 0;
 		break;
 	case IPSECKEY_DNAME:
-		if (!print_name(output, rr->rdlength, rr->rdata, &length))
+		if (!print_name_literal(output, rr->rdlength, rr->rdata,
+			&length))
 			return 0;
 		break;
 	default:
@@ -1991,7 +2134,7 @@ read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 	return rdlength;
 }
 
-int32_t
+int
 print_rrsig_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
@@ -2010,7 +2153,7 @@ print_rrsig_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(output, " %" PRIu16 " ", read_uint16(rr->rdata+length));
 	length += 2;
 
-	if (!print_name(output, rr->rdlength, rr-rdata, &length))
+	if (!print_name_literal(output, rr->rdlength, rr-rdata, &length))
 		return 0;
 	buffer_printf(output, " ");
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
@@ -2041,13 +2184,13 @@ read_nsec_rdata(struct domain_table *domains, uint16_t rdlength,
 	return rdlength;
 }
 
-int32_t
+int
 print_nsec_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
 
 	assert(rr->rdlength > length);
-	if (!print_name(output, rr->rdlength, rr->rdata, &length))
+	if (!print_name_literal(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	if (!print_nsec(output, rr->rdlength, rr->rdata, &length))
 		return 0;
@@ -2065,7 +2208,7 @@ read_dnskey_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_dnskey_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
@@ -2090,7 +2233,7 @@ read_dhcid_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_dhcid_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -2121,7 +2264,7 @@ read_nsec3_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_nsec3_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
@@ -2160,7 +2303,7 @@ read_nsec3param_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_nsec3param_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
@@ -2186,7 +2329,7 @@ read_tlsa_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_tlsa_rdata(struct buffer *buffer, const struct rr *rr)
 {
 	uint16_t length = 3;
@@ -2213,7 +2356,7 @@ read_hip_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_hip_rdata(struct buffer *output, const struct rr *rr)
 {
 	/* byte (hit length) + byte (PK algorithm) + short (PK length) +
@@ -2238,7 +2381,8 @@ print_hip_rdata(struct buffer *output, const struct rr *rr)
 	pos = rr->rdata+2+hit_length+pk_length;
 	while(length < rr->rdlength) {
 		buffer_printf(output, " ");
-		if(!print_name(output, rr->rdlength-length, pos, &length))
+		if(!print_name_literal(output, rr->rdlength-length, pos,
+			&length))
 			return 0;
 		pos = length;
 	}
@@ -2256,7 +2400,7 @@ read_rkey_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_rkey_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
@@ -2271,7 +2415,7 @@ print_rkey_rdata(struct buffer *output, const struct rr *rr)
 	return 1;
 }
 
-int32_t
+int
 print_openpgpkey_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -2293,7 +2437,7 @@ read_csync_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata_least(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_csync_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 6;
@@ -2318,7 +2462,7 @@ read_zonemd_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata_least(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_zonemd_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 6;
@@ -2349,9 +2493,9 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (!dname_make_from_packet_buffered(&next, packet, 0, 1))
 		return MALFORMED;
 	length += target.dname.name_size;
-	if (skip_svcparams(packet, &svcparams_length) < 0 ||
-			rdlength != length + svcparams_length)
+	if(!skip_svcparams(packet, rdlength-length))
 		return MALFORMED;
+	svcparams_length = rdlength - length;
 
 	const uint16_t size = sizeof(**rr) + 2 + sizeof(void*) + svcparams_length;
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -2380,7 +2524,7 @@ write_svcb_rdata(struct query *query, const struct rr *rr)
 	buffer_write(query->packet, rr->rdata + length, rr->rdlength - length);
 }
 
-int32_t
+int
 print_svcb_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
@@ -2405,7 +2549,7 @@ read_nid_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_nid_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
@@ -2427,7 +2571,7 @@ read_l32_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_l32_rdata(struct buffer *buffer, const struct rr *rr)
 {
 	uint16_t length = 2;
@@ -2449,7 +2593,7 @@ read_l64_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata_exact(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_l64_rdata(struct buffer *buffer, const struct rr *rr)
 {
 	uint16_t length = 2;
@@ -2488,14 +2632,14 @@ read_lp_rdata(struct domain_table *domains, uint16_t rdlength,
 	return rdlength;
 }
 
-int32_t
+int
 print_lp_rdata(struct buffer *buffer, const struct rr *rr)
 {
 	uint16_t length = 2;
 
 	assert(rr->rdlength > 2);
 	buffer_output(output, "%" PRIu16 " ", read_uint16(rr->rdata));
-	if (!print_name(output, rr->rdlength, rr->rdata, &length))
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
 	return 1;
@@ -2510,7 +2654,7 @@ read_eui48_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_eui48_rdata(struct buffer *output, const struct rr *rr)
 {
 	assert(rr->rdlength == 6);
@@ -2529,7 +2673,7 @@ read_eui64_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_eui64_rdata(struct buffer *buffer, const struct rr *rr)
 {
 	assert(rr->rdlength == 8);
@@ -2549,7 +2693,7 @@ read_uri_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_uri_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
@@ -2564,7 +2708,7 @@ print_uri_rdata(struct buffer *output, const struct rr *rr)
 	return 1;
 }
 
-int32_t
+int
 print_resinfo_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
@@ -2590,7 +2734,7 @@ read_caa_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_caa_rdata(struct buffer *buffer, const struct rr *rr)
 {
 	uint16_t length = 1;
@@ -2626,7 +2770,7 @@ read_dlv_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
-int32_t
+int
 print_dlv_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;

@@ -334,7 +334,7 @@ typedef void(*nsd_write_rdata_t)(
  * @return false on failure. The wireformat can not be printed in the
  *	nice output format.
  */
-typedef int32_t(*nsd_print_rdata_t)(
+typedef int(*nsd_print_rdata_t)(
 	struct buffer *buffer,
 	const struct rr *rr);
 

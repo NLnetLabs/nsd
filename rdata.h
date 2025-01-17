@@ -19,7 +19,34 @@
 
 extern lookup_table_type dns_certificate_types[];
 extern lookup_table_type dns_algorithms[];
-extern const char *svcparamkey_strs[];
+
+/*
+ * Function signature for svcparam print. Input offset is at key uint16_t
+ * in rdata.
+ * @param output: the string is printed to the buffer.
+ * @param rdlength: length of the rdata.
+ * @param rdata: the rdata
+ * @param offset: on input the current position in rdata, on output adjusted
+ *	for the rdata bytes used.
+ * @return false on failure.
+ */
+typedef int(*nsd_print_svcparam_rdata_t)(
+	struct buffer* output,
+	uint16_t rdlength,
+	const uint8_t* rdata,
+	uint16_t* offset);
+
+typedef struct nsd_svcparam_descriptor nsd_svcparam_descriptor_t;
+
+/* Descriptor for svcparam rdata fields. With type, name and print func. */
+struct nsd_svcparam_descriptor {
+	/* The svc param key */
+	uint16_t key;
+	/* The name of the key */
+	const char *name;
+	/* Print function that prints the key, from rdata. */
+	nsd_print_svcparam_rdata_t print_rdata;
+};
 
 int print_unknown_rdata(
 	buffer_type *output, nsd_type_descriptor_t *descriptor, const rr_type *rr);
