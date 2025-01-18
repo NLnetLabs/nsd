@@ -758,10 +758,10 @@ delete_RR(namedb_type* db, const dname_type* dname,
 					rrset->rr_count-1])
 					zone->nsec3_param = &rrset->rrs[rrnum];
 				else
-					zone->nsec3_param =
-						(void*)zone->nsec3_param
-						-(void*)rrs_orig +
-						(void*)rrset->rrs;
+					zone->nsec3_param = (void*)
+						((char*)zone->nsec3_param
+						-(char*)rrs_orig +
+						 (char*)rrset->rrs);
 			}
 #endif /* NSEC3 */
 			rrset->rr_count --;
@@ -868,8 +868,8 @@ add_RR(namedb_type* db, const dname_type* dname,
 			assert(zone->nsec3_param >= rrs_old &&
 				zone->nsec3_param < rrs_old+rrset->rr_count);
 			/* in this order to make sure no overflow/underflow*/
-			zone->nsec3_param = (void*)zone->nsec3_param - 
-				(void*)rrs_old + (void*)rrset->rrs;
+			zone->nsec3_param = (void*)((char*)zone->nsec3_param - 
+				(char*)rrs_old + (char*)rrset->rrs);
 		}
 #endif /* NSEC3 */
 	}
