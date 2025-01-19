@@ -966,6 +966,15 @@ case "$enable_zone_stats" in
 		;;
 esac
 
+AC_ARG_ENABLE(deleg, AS_HELP_STRING([--enable-deleg],[Enables the use of the draft DELEG RR type]))
+case "$enable_deleg" in
+	yes)
+		AC_DEFINE_UNQUOTED([USE_DELEG], [], [Define this to enable DELEG draft RR type])
+		;;
+	no|''|*)
+		;;
+esac
+
 AC_ARG_ENABLE(checking, AS_HELP_STRING([--enable-checking],[Enable internal runtime checks]))
 case "$enable_checking" in
         yes)
@@ -1083,7 +1092,7 @@ AC_INCLUDES_DEFAULT
 #include <openssl/x509v3.h>
 #endif
 ])
-	AC_CHECK_DECL([TLS1_3_VERSION], 
+	AC_CHECK_DECL([TLS1_3_VERSION],
 		[AC_DEFINE([HAVE_TLS_1_3], [1], [Define if TLS 1.3 is supported by OpenSSL])],
 		[AC_MSG_WARN([No TLS 1.3, therefore XFR-over-TLS is disabled])], [[#include <openssl/ssl.h>]])
 
