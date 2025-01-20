@@ -1188,15 +1188,20 @@ void reconfig_cookies(struct nsd* nsd, struct nsd_options* options)
 
 	/* Cookie secrets in the configuration file take precedence */
 	if(options->cookie_secret) {
-		ssize_t len = hex_pton(options->cookie_secret,
+#ifndef NDEBUG
+		ssize_t len =
+#endif
+		hex_pton(options->cookie_secret,
 				nsd->cookie_secrets[0].cookie_secret,
 				NSD_COOKIE_SECRET_SIZE);
-
 		/* Cookie length guaranteed in configparser.y */
 		assert(len == NSD_COOKIE_SECRET_SIZE);
 		nsd->cookie_count = 1;
 		if(options->cookie_staging_secret) {
-			len = hex_pton(options->cookie_staging_secret,
+#ifndef NDEBUG
+			len =
+#endif
+			hex_pton(options->cookie_staging_secret,
 					nsd->cookie_secrets[1].cookie_secret,
 					NSD_COOKIE_SECRET_SIZE);
 			/* Cookie length guaranteed in configparser.y */

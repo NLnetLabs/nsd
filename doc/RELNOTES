@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+4.11.2
+================
+BUG FIXES:
+        - Fix re-enable to configure dns-cookies from config file, which was
+          accidentally removed with the 4.11.1 release.
+
 4.11.1
 ================
 BUG FIXES:
