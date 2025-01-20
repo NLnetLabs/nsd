@@ -1769,9 +1769,11 @@ print_nxt_rdata(struct buffer *output, const struct rr *rr)
 
 	int bits = rdlength - length;
 	const uint8_t *bitmap = rr->rdata + length;
-	for (int type = 0; type < bitmap_size * 8; type++)
+	for (int type = 0; type < bitmap_size * 8; type++) {
 		if (get_bit(bitmap, type)) {
 			buffer_printf(output, "%s ", rrtype_to_string(type));
+		}
+	}
 
 	buffer_skip(output, -1);
 	return 1;
