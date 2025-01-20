@@ -330,7 +330,7 @@ print_ip4(struct buffer *output, size_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
 	char str[INET_ADDRSTRLEN + 1];
-	if(*offset + 4 > rdlength)
+	if(((size_t)*offset) + 4 > rdlength)
 		return 0;
 	if(!inet_ntop(AF_INET, rdata + *offset, str, sizeof(str)))
 		return 0;
@@ -363,7 +363,16 @@ print_ip6(struct buffer *output, size_t rdlength, const uint8_t *rdata,
 	return 1;
 }
 
-static int32_t
+/*
+ * Print ilnp64 field.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
 print_ilnp64(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
@@ -381,7 +390,16 @@ print_ilnp64(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	return 1;
 }
 
-static int32_t
+/*
+ * Print certificate type.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
 print_certificate_type(struct buffer *output, size_t rdlength,
 	const uint8_t *rdata, uint16_t *offset)
 {
@@ -395,14 +413,25 @@ print_certificate_type(struct buffer *output, size_t rdlength,
 		buffer_printf(output, "%s", type->name);
 	else
 		buffer_printf(output, "%u", (unsigned) id);
-	return 2;
+	*offset += 2;
+	return 1;
 }
 
-static int32_t
+/*
+ * Print time field.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
 print_time(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
 	time_t time;
+	struct tm tmbuf;
 	struct tm* tm;
 	char buf[15];
 
@@ -410,7 +439,7 @@ print_time(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	if (rdlength - *offset < 4)
 		return 0;
 	time = (time_t)read_uint32(rdata + *offset);
-	tm = gmtime(&time);
+	tm = gmtime_r(&time, &tmbuf);
 	if (!strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", tm))
 		return 0;
 	buffer_printf(output, "%s", buf);
@@ -418,30 +447,53 @@ print_time(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	return 1;
 }
 
-static int32_t
+/*
+ * Print base32 output for a b32 field length uint8_t, like for NSEC3.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
 print_base32(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
-	size_t length, size = rdata[*offset];
-	if (rdlength < *offset || rdlength - *offset > 1 + size)
+	size_t size;
+	int length;
+	if(rdlength - *offset == 0)
+		return 0;
+	size = rdata[*offset];
+	if (rdlength - ((size_t)*offset) < 1 + size)
 		return 0;
 
 	if (size == 0) {
 		buffer_write(output, "-", 1);
+		*offset += 1;
 		return 1;
-	} else {
 	}
 
 	buffer_reserve(output, length * 2 + 1);
 	length = b32_ntop(rdata + *offset + 1, size,
 			  (char *)buffer_current(output), size * 2);
 	if (length == -1)
-		return -1;
+		return 0;
 	buffer_skip(output, length);
-	return 1 + size;
+	*offset += 1 + size;
+	return 1;
 }
 
-static int32_t
+/*
+ * Print base64 output for the remainder of rdata.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
 print_base64(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
@@ -450,15 +502,16 @@ print_base64(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	if(size == 0) {
 		/* single zero represents empty buffer */
 		buffer_write(output, "0", 1);
-		return 0;
+		return 1;
 	}
 	buffer_reserve(output, size * 2 + 1);
 	length = b64_ntop(rdata + *offset, size,
 			  (char *) buffer_current(output), size * 2);
 	if (length == -1)
-		return -1;
+		return 0;
 	buffer_skip(output, length);
-	return size;
+	*offset += size;
+	return 1;
 }
 
 static void
@@ -478,20 +531,41 @@ hex_to_string(buffer_type *output, const uint8_t *data, size_t size)
 	}
 }
 
+/*
+ * Print base16 output for the remainder of rdata, in hex lowercase.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
 static int
 print_base16(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
-//	if(rdata_atom_size(rdata) == 0) {
-//		/* single zero represents empty buffer, such as CDS deletes */
-//		buffer_printf(output, "0");
-//	} else {
-//		hex_to_string(output, rdata_atom_data(rdata), rdata_atom_size(rdata));
-//	}
-//	return 1;
+	size_t size = rdlength - *offset;
+	if(size == 0) {
+		/* single zero represents empty buffer, such as CDS deletes */
+		buffer_write(output, "0", 1);
+		return 1;
+	} else {
+		hex_to_string(output, rdata+*offset, size);
+	}
+	*offset += size;
+	return 1;
 }
 
-static int32_t
+/*
+ * Print salt, for NSEC3, in hex lowercase.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
 print_salt(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
@@ -508,7 +582,7 @@ print_salt(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 		buffer_printf(output, "-");
 	else
 		hex_to_string(output, rdata + *offset + 1, length);
-	*offset += 1 + length;
+	*offset += 1 + (uint16_t)length;
 	return 1;
 }
 
@@ -1879,11 +1953,13 @@ read_cert_rdata(struct domain_table *domains, uint16_t rdlength,
 int
 print_cert_rdata(struct buffer *output, const struct rr *rr)
 {
-	uint16_t length = 5;
-	assert(rr->rdlength > length);
-	buffer_printf(
-		output, "%" PRIu16 " %" PRIu16 " %" PRIu8 " ",
-		read_uint16(rr->rdata), read_uint16(rr->rdata+2), rr->rdata[4]);
+	uint16_t length = 0;
+	assert(rr->rdlength > 5);
+	if(!print_certificate_type(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, "%" PRIu16 " %" PRIu8 " ",
+		read_uint16(rr->rdata+2), rr->rdata[4]);
+	length += 3;
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
@@ -2078,11 +2154,13 @@ int
 print_ipseckey_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 3;
+	uint8_t gateway_type;
 
 	assert(rdlength >= length);
 	buffer_printf(
 		output, "%" PRIu8 " %" PRIu8 " %" PRIu8 " ",
 		rr->rdata[0], rr->rdata[1], rr->rdata[2]);
+	gateway_type = rr->rdata[1];
 	switch (gateway_type) {
 	case IPSECKEY_NOGATEWAY:
 		buffer_printf(output, ".");
@@ -2373,12 +2451,12 @@ print_hip_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(
 		output, "%" PRIu8 " ",
 			pk_algorithm);
-	if(!print_base16(output, hit_length, rr->rdata+2, &length))
+	if(!print_base16(output, hit_length, rr->rdata+4, &length))
 		return 0;
 	buffer_printf(output, " ");
-	if(!print_base64(output, pk_length, rr->rdata+2+hit_length, &length))
+	if(!print_base64(output, pk_length, rr->rdata+4+hit_length, &length))
 		return 0;
-	pos = rr->rdata+2+hit_length+pk_length;
+	pos = rr->rdata+4+hit_length+pk_length;
 	while(length < rr->rdlength) {
 		buffer_printf(output, " ");
 		if(!print_name_literal(output, rr->rdlength-length, pos,
@@ -2556,7 +2634,7 @@ print_nid_rdata(struct buffer *output, const struct rr *rr)
 
 	assert(rr->rdlength == 10);
 	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
-	if (!print_ilpn64(output, rr->rdlength, rr->rdata, &length))
+	if (!print_ilnp64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
 	return 1;
@@ -2600,7 +2678,7 @@ print_l64_rdata(struct buffer *buffer, const struct rr *rr)
 
 	assert(rr->rdlength == 10);
 	buffer_output(output, "%" PRIu16 " ", read_uint16(rr->rdata));
-	if (!print_ilpn64(output, rr->rdlength, rr->rdata, &length))
+	if (!print_ilnp64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
 	return 1;
