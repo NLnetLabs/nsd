@@ -1,3 +1,11 @@
+20 January 2025: Willem
+	- code repository continues with 4.11.2 under development.
+	- Fix re-enable to configure dns-cookies from config file, which was
+	  accidentally removed with the 4.11.1 release.
+
+19 January 2025: Willem
+	- NSD 4.11.1 emergency quick-fix release
+
 17 January 2025: Willem
 	- Fix #424: Stalled updates after corrupt transfer.
 
