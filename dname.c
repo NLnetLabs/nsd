@@ -674,7 +674,6 @@ labels_plus_dname(const dname_type* labels, size_t amount_to_be_copied, const dn
 	for (i = 0; i < amount_to_be_copied; i++)
 	{
 		copied_label_size += label_length(dname_label(labels, labels->label_count - i - 1));
-		printf("%hhu\n", copied_label_size);
 	}
 	if ((int)dname->name_size + copied_label_size + 1 > MAXDOMAINLEN)
 		return NULL;

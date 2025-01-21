@@ -619,8 +619,7 @@ domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone, namedb
 
 	while (signatures)
 	{
-		printf("Amount found: %d\n", signatures->rr_count);
-		if (signatures->rrs->type != TYPE_RRSIG) break; // If not assertion on the next line fails
+		if (signatures->rrs->type != TYPE_RRSIG) break;
 		if (rr_rrsig_type_covered(signatures->rrs) == TYPE_DELEG)
 		{
 			signatures_found++;
