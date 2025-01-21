@@ -24,17 +24,16 @@ extern lookup_table_type dns_algorithms[];
  * Function signature for svcparam print. Input offset is at key uint16_t
  * in rdata.
  * @param output: the string is printed to the buffer.
- * @param rdlength: length of the rdata.
- * @param rdata: the rdata
- * @param offset: on input the current position in rdata, on output adjusted
- *	for the rdata bytes used.
+ * @param svcparamkey: the key that is printed.
+ * @param data: the data for the svcparam, from rdata.
+ * @param datalen: length of data in bytes.
  * @return false on failure.
  */
 typedef int(*nsd_print_svcparam_rdata_t)(
 	struct buffer* output,
-	uint16_t rdlength,
-	const uint8_t* rdata,
-	uint16_t* offset);
+	uint16_t svcparamkey,
+	const uint8_t* data,
+	uint16_t datalen);
 
 typedef struct nsd_svcparam_descriptor nsd_svcparam_descriptor_t;
 

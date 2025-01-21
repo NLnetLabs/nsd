@@ -67,57 +67,53 @@ lookup_table_type dns_algorithms[] = {
 	{ 0, NULL }
 };
 
+/* Print svcparam key without a value */
+static int print_svcparam_no_value(struct buffer *output, uint16_t svcparamkey,
+	const uint8_t* data, uint16_t datalen);
+
 /* Print svcparam mandatory */
 static int print_svcparam_mandatory(struct buffer *output,
-	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen);
 
 /* Print svcparam alpn */
 static int print_svcparam_alpn(struct buffer *output,
-	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
-
-/* Print svcparam no_default_alpn */
-static int print_svcparam_no_default_alpn(struct buffer *output,
-	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen);
 
 /* Print svcparam port */
 static int print_svcparam_port(struct buffer *output,
-	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen);
 
 /* Print svcparam ipv4hint */
 static int print_svcparam_ipv4hint(struct buffer *output,
-	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen);
 
 /* Print svcparam ech */
 static int print_svcparam_ech(struct buffer *output,
-	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen);
 
 /* Print svcparam ipv6hint */
 static int print_svcparam_ipv6hint(struct buffer *output,
-	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen);
 
 /* Print svcparam dohpath */
 static int print_svcparam_dohpath(struct buffer *output,
-	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
-
-/* Print svcparam ohttp */
-static int print_svcparam_ohttp(struct buffer *output,
-	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen);
 
 /* Print svcparam tls-supported-groups */
 static int print_svcparam_tls_supported_groups(struct buffer *output,
-	uint16_t rdlength, const uint8_t *rdata, uint16_t *offset);
+	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen);
 
 static const nsd_svcparam_descriptor_t svcparams[] = {
 	{ SVCB_KEY_MANDATORY, "mandatory", print_svcparam_mandatory },
 	{ SVCB_KEY_ALPN, "alpn", print_svcparam_alpn },
 	{ SVCB_KEY_NO_DEFAULT_ALPN, "no-default-alpn",
-		print_svcparam_no_default_alpn },
+		print_svcparam_no_value },
 	{ SVCB_KEY_PORT, "port", print_svcparam_port },
 	{ SVCB_KEY_IPV4HINT, "ipv4hint", print_svcparam_ipv4hint },
 	{ SVCB_KEY_ECH, "ech", print_svcparam_ech },
 	{ SVCB_KEY_IPV6HINT, "ipv6hint", print_svcparam_ipv6hint },
 	{ SVCB_KEY_DOHPATH, "dohpath", print_svcparam_dohpath },
-	{ SVCB_KEY_OHTTP, "ohttp", print_svcparam_ohttp },
+	{ SVCB_KEY_OHTTP, "ohttp", print_svcparam_no_value },
 	{ SVCB_KEY_TLS_SUPPORTED_GROUPS, "tls-supported-groups",
 		print_svcparam_tls_supported_groups },
 };
@@ -669,7 +665,7 @@ svcparam_must_have_value(uint16_t svcparamkey)
 
 /* If an svcparam must not have a value */
 static int
-svcparam_must_not have_value(uint16_t svcparamkey)
+svcparam_must_not_have_value(uint16_t svcparamkey)
 {
 	switch (svcparamkey) {
 	case SVCB_KEY_NO_DEFAULT_ALPN:
@@ -722,92 +718,35 @@ static void
 buffer_print_svcparamkey(buffer_type *output, uint16_t svcparamkey)
 {
 	if (svcparamkey < sizeof(svcparams)/sizeof(svcparams[0]))
-		buffer_printf(output, "%s", svcparams[svcparamkey]->name);
+		buffer_printf(output, "%s", svcparams[svcparamkey].name);
 	else
 		buffer_printf(output, "key%" PRIu16, svcparamkey);
 }
 
 static int
-rdata_svcparam_port_to_string(buffer_type *output, uint16_t val_len,
-	uint16_t *data)
+print_svcparam_no_value(struct buffer *output, uint16_t svcparamkey,
+	const uint8_t* ATTR_UNUSED(data), uint16_t ATTR_UNUSED(datalen))
 {
-	if (val_len != 2)
-		return 0; /* wireformat error, a short is 2 bytes */
-	buffer_printf(output, "=%d", (int)ntohs(data[0]));
+	buffer_print_svcparamkey(output, svcparamkey);
 	return 1;
 }
 
 static int
-rdata_svcparam_ipv4hint_to_string(buffer_type *output, uint16_t val_len,
-	uint16_t *data)
+print_svcparam_mandatory(struct buffer *output, uint16_t svcparamkey,
+	const uint8_t* data, uint16_t datalen)
 {
-	char ip_str[INET_ADDRSTRLEN + 1];
-	
-	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
+	assert(datalen > 0); /* Guaranteed by svcparam_print */
 
-	if ((val_len % IP4ADDRLEN) == 0) {
-		if (inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)) == NULL)
-			return 0; /* wireformat error, incorrect size or inet family */
-
-		buffer_printf(output, "=%s", ip_str);
-		data += IP4ADDRLEN / sizeof(uint16_t);
-
-		while ((val_len -= IP4ADDRLEN) > 0) {
-			if (inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)) == NULL)
-				return 0; /* wireformat error, incorrect size or inet family */
-
-			buffer_printf(output, ",%s", ip_str);
-			data += IP4ADDRLEN / sizeof(uint16_t);
-		}
-		return 1;
-	} else
-		return 0;
-}
-
-static int
-rdata_svcparam_ipv6hint_to_string(buffer_type *output, uint16_t val_len,
-	uint16_t *data)
-{
-	char ip_str[INET6_ADDRSTRLEN + 1];
-	
-	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
-
-	if ((val_len % IP6ADDRLEN) == 0) {
-		if (inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)) == NULL)
-			return 0; /* wireformat error, incorrect size or inet family */
-
-		buffer_printf(output, "=%s", ip_str);
-		data += IP6ADDRLEN / sizeof(uint16_t);
-
-		while ((val_len -= IP6ADDRLEN) > 0) {
-			if (inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)) == NULL)
-				return 0; /* wireformat error, incorrect size or inet family */
-
-			buffer_printf(output, ",%s", ip_str);
-			data += IP6ADDRLEN / sizeof(uint16_t);
-		}
-		return 1;
-	} else
-		return 0;
-}
-
-static int32_t
-print_svcparam_mandatory(struct buffer *output, uint16_t rdlength,
-	const uint8_t *rdata, uint16_t *offset)
-//rdata_svcparam_mandatory_to_string(buffer_type *output, uint16_t val_len,
-//	uint16_t *data)
-{
-	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
-
-	if (val_len % sizeof(uint16_t))
+	if (datalen % sizeof(uint16_t))
 		return 0; /* wireformat error, val_len must be multiple of shorts */
+	buffer_print_svcparamkey(output, svcparamkey);
 	buffer_write_u8(output, '=');
-	buffer_print_svcparamkey(output, ntohs(*data));
+	buffer_print_svcparamkey(output, read_uint16(data));
 	data += 2;
 
-	while ((val_len -= sizeof(uint16_t))) {
+	while ((datalen -= sizeof(uint16_t))) {
 		buffer_write_u8(output, ',');
-		buffer_print_svcparamkey(output, ntohs(*data));
+		buffer_print_svcparamkey(output, read_uint16(data));
 		data += 2;
 	}
 
@@ -815,39 +754,20 @@ print_svcparam_mandatory(struct buffer *output, uint16_t rdlength,
 }
 
 static int
-rdata_svcparam_ech_to_string(buffer_type *output, uint16_t val_len,
-	uint16_t *data)
-{
-	int length;
-
-	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
-
-	buffer_write_u8(output, '=');
-
-	buffer_reserve(output, val_len * 2 + 1);
-	length = b64_ntop((uint8_t*) data, val_len,
-			  (char *) buffer_current(output), val_len * 2);
-	if (length > 0) {
-		buffer_skip(output, length);
-	}
-
-	return length != -1;
-}
-
-static int
-rdata_svcparam_alpn_to_string(buffer_type *output, uint16_t val_len,
-	uint16_t *data)
+print_svcparam_alpn(struct buffer *output, uint16_t svcparamkey,
+	const uint8_t* data, uint16_t datalen)
 {
 	uint8_t *dp = (void *)data;
 
-	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
+	assert(datalen > 0); /* Guaranteed by svcparam_print */
 
+	buffer_print_svcparamkey(output, svcparamkey);
 	buffer_write_u8(output, '=');
 	buffer_write_u8(output, '"');
-	while (val_len) {
+	while (datalen) {
 		uint8_t i, str_len = *dp++;
 
-		if (str_len > --val_len)
+		if (str_len > --datalen)
 			return 0;
 
 		for (i = 0; i < str_len; i++) {
@@ -864,7 +784,7 @@ rdata_svcparam_alpn_to_string(buffer_type *output, uint16_t val_len,
 				buffer_write_u8(output, dp[i]);
 		}
 		dp += str_len;
-		if ((val_len -= str_len))
+		if ((datalen -= str_len))
 			buffer_write_u8(output, ',');
 	}
 	buffer_write_u8(output, '"');
@@ -872,17 +792,111 @@ rdata_svcparam_alpn_to_string(buffer_type *output, uint16_t val_len,
 }
 
 static int
-rdata_svcparam_tls_supported_groups_to_string(buffer_type *output,
-	uint16_t val_len, uint16_t *data)
+print_svcparam_port(struct buffer *output, uint16_t svcparamkey,
+	const uint8_t* data, uint16_t datalen)
 {
-	assert(val_len > 0); /* Guaranteed by rdata_svcparam_to_string */
+	if (datalen != 2)
+		return 0; /* wireformat error, a short is 2 bytes */
+	buffer_print_svcparamkey(output, svcparamkey);
+	buffer_printf(output, "=%d", (int)read_uint16(data));
+	return 1;
+}
 
-	if ((val_len % sizeof(uint16_t)) == 1)
+static int
+print_svcparam_ipv4hint(struct buffer *output, uint16_t svcparamkey,
+	const uint8_t* data, uint16_t datalen)
+{
+	char ip_str[INET_ADDRSTRLEN + 1];
+	
+	assert(datalen > 0); /* Guaranteed by svcparam_print */
+
+	buffer_print_svcparamkey(output, svcparamkey);
+	if ((datalen % IP4ADDRLEN) == 0) {
+		if (inet_ntop(AF_INET, data, ip_str, sizeof(ip_str)) == NULL)
+			return 0; /* wireformat error, incorrect size or inet family */
+
+		buffer_printf(output, "=%s", ip_str);
+		data += IP4ADDRLEN;
+
+		while ((datalen -= IP4ADDRLEN) > 0) {
+			if (inet_ntop(AF_INET, data, ip_str, sizeof(ip_str))
+				== NULL)
+				return 0; /* wireformat error, incorrect size or inet family */
+
+			buffer_printf(output, ",%s", ip_str);
+			data += IP4ADDRLEN;
+		}
+		return 1;
+	}
+	return 0;
+}
+
+static int
+print_svcparam_ech(struct buffer *output, uint16_t svcparamkey,
+	const uint8_t* data, uint16_t datalen)
+{
+	int length;
+
+	assert(datalen > 0); /* Guaranteed by svcparam_print */
+
+	buffer_print_svcparamkey(output, svcparamkey);
+	buffer_write_u8(output, '=');
+
+	buffer_reserve(output, datalen * 2 + 1);
+	length = b64_ntop(data, datalen, (char*)buffer_current(output),
+		datalen * 2);
+	if (length > 0) {
+		buffer_skip(output, length);
+	}
+
+	return length != -1;
+}
+
+static int
+print_svcparam_ipv6hint(struct buffer *output, uint16_t svcparamkey,
+	const uint8_t* data, uint16_t datalen)
+{
+	char ip_str[INET6_ADDRSTRLEN + 1];
+
+	assert(datalen > 0); /* Guaranteed by svcparam_print */
+
+	buffer_print_svcparamkey(output, svcparamkey);
+	if ((datalen % IP6ADDRLEN) == 0) {
+		if (inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str)) == NULL)
+			return 0; /* wireformat error, incorrect size or inet family */
+
+		buffer_printf(output, "=%s", ip_str);
+		data += IP6ADDRLEN;
+
+		while ((datalen -= IP6ADDRLEN) > 0) {
+			if (inet_ntop(AF_INET6, data, ip_str, sizeof(ip_str))
+				== NULL)
+				return 0; /* wireformat error, incorrect size or inet family */
+
+			buffer_printf(output, ",%s", ip_str);
+			data += IP6ADDRLEN;
+		}
+		return 1;
+	}
+	return 0;
+}
+
+static int
+print_svcparam_tls_supported_groups(struct buffer *output,
+	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen)
+{
+	assert(datalen > 0); /* Guaranteed by svcparam_print */
+
+	if ((datalen % sizeof(uint16_t)) == 1)
 		return 0; /* A series of uint16_t is an even number of bytes */
 
-	buffer_printf(output, "=%d", (int)ntohs(*data++));
-	while ((val_len -= sizeof(uint16_t)) > 0) 
-		buffer_printf(output, ",%d", (int)ntohs(*data++));
+	buffer_print_svcparamkey(output, svcparamkey);
+	buffer_printf(output, "=%d", (int)read_uint16(data));
+	data += 2;
+	while ((datalen -= sizeof(uint16_t)) > 0) {
+		buffer_printf(output, ",%d", (int)read_uint16(data));
+		data += 2;
+	}
 	return 1;
 }
 
@@ -913,9 +927,16 @@ print_svcparam(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	if (rdlength - *offset <= length + 4)
 		return 0; /* wireformat error */
 
-	if (key < sizeof(svcparams)/sizeof(svcparams[0]))
-		return svcparams[key].print_rdata(output, rdlength, rdata,
-			offset);
+	if(length == 0 && svcparam_must_have_value(key))
+		return 0;
+	if(length != 0 && svcparam_must_not_have_value(key))
+		return 0;
+	if (key < sizeof(svcparams)/sizeof(svcparams[0])) {
+		if(!svcparams[key].print_rdata(output, key, rdata+4, length))
+			return 0;
+		*offset += length+4;
+		return 1;
+	}
 
 	buffer_printf(output, "key%" PRIu16, key);
 	if (!length)
@@ -995,7 +1016,7 @@ read_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + rdlength)))
 		return TRUNCATED;
 	buffer_read(packet, (*rr)->rdata, rdlength);
-	rr->rdlength = rdlength;
+	(*rr)->rdlength = rdlength;
 	return rdlength;
 }
 
