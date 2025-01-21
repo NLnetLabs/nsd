@@ -950,7 +950,7 @@ static int
 rdata_hip_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
- 	uint16_t size = rdata_atom_size(rdata);
+	uint16_t size = rdata_atom_size(rdata);
 	uint8_t hit_length;
 	uint16_t pk_length;
 	int length = 0;
@@ -972,6 +972,27 @@ rdata_hip_to_string(buffer_type *output, rdata_atom_type rdata,
 		buffer_skip(output, length);
 	}
 	return length != -1;
+}
+
+static int
+rdata_atma_to_string(buffer_type *output, rdata_atom_type rdata,
+	rr_type* ATTR_UNUSED(rr))
+{
+	uint16_t size = rdata_atom_size(rdata), i;
+
+	if(size < 2 || rdata_atom_data(rdata)[0] > 1)
+		return 0;
+	if(!rdata_atom_data(rdata)[0]) {
+		hex_to_string(output, rdata_atom_data(rdata) + 1, size - 1);
+		return 1;
+	}
+	for(i = 1; i < size; i++) {
+		if(!isdigit(rdata_atom_data(rdata)[i]))
+			return 0;
+	}
+	buffer_write_u8(output, '+');
+	buffer_write(output, rdata_atom_data(rdata) + 1, size - 1);
+	return 1;
 }
 
 static int
@@ -1019,6 +1040,7 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_tag_to_string,
 	rdata_svcparam_to_string,
 	rdata_hip_to_string,
+	rdata_atma_to_string,
 	rdata_unknown_to_string
 };
 

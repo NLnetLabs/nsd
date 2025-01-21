@@ -115,7 +115,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_EID	31	/* draft-ietf-nimrod-dns-01 */
 #define TYPE_NIMLOC	32	/* draft-ietf-nimrod-dns-01 */
 #define TYPE_SRV	33	/* SRV record RFC2782 */
-
+#define TYPE_ATMA	34	/* ATM Address */
 #define TYPE_NAPTR	35	/* RFC2915 */
 #define TYPE_KX		36	/* RFC2230 Key Exchange Delegation Record */
 #define TYPE_CERT	37	/* RFC2538 */
@@ -272,6 +272,7 @@ enum rdata_zoneformat
 	RDATA_ZF_TAG,		/* A sequence of letters and numbers. */
 	RDATA_ZF_SVCPARAM,	/* SvcParam <key>[=<value>] */
 	RDATA_ZF_HIP,		/* HIP rdata up to the Rendezvous Servers */
+	RDATA_ZF_ATMA,		/* ATM Address */
 	RDATA_ZF_UNKNOWN	/* Unknown data.  */
 };
 typedef enum rdata_zoneformat rdata_zoneformat_type;

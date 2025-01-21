@@ -78,6 +78,10 @@ h2	IN TALINK h1 .
 @	IN DOA 0 1 2 "" bWFpbHRvOmxhYnNAbmxuZXRsYWJzLm5s
 	IN DOA 0 100000 200 example/nothing -
 
+; https://web.archive.org/web/20190112072924/http://www.broadband-forum.org/ftp/pub/approved-specs/af-dans-0152.000.pdf
+@	IN ATMA 39.246f.00.0e7c9c.0312.0001.0001.000012345678.00
+	IN ATMA +358.400.1234567
+
 *._dsync	IN	DSYNC	CDS	1 5359 cds-scanner.example.net.
 *._dsync	IN	DSYNC	CSYNC	1 5360 csync-scanner.example.net.
 
