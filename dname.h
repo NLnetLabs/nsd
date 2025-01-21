@@ -403,4 +403,7 @@ int dname_equal_nocase(uint8_t* a, uint8_t* b, uint16_t len);
 int is_dname_subdomain_of_case(const uint8_t* d, unsigned int len,
 	const uint8_t* d2, unsigned int len2);
 
+/** return (static) dname with label prepended to dname */
+dname_type* label_plus_dname(const char* label,const dname_type* dname);
+
 #endif /* DNAME_H */

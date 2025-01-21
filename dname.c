@@ -618,3 +618,41 @@ is_dname_subdomain_of_case(const uint8_t* d, unsigned int len,
 	/* The trailing portion is not at a label point. */
 	return 0;
 }
+
+dname_type*
+label_plus_dname(const char* label, const dname_type* dname)
+{
+	static struct {
+		dname_type dname;
+		uint8_t bytes[MAXDOMAINLEN + 128 /* max number of labels */];
+	} ATTR_PACKED name;
+	size_t i, ll;
+
+	if (!label || !dname || dname->label_count > 127)
+		return NULL;
+	ll = strlen(label);
+	if ((int)dname->name_size + ll + 1 > MAXDOMAINLEN)
+		return NULL;
+
+	/* In reversed order and first copy with memmove, so we can nest.
+	 * i.e. label_plus_dname(label1, label_plus_dname(label2, dname))
+	 */
+	memmove(name.bytes + dname->label_count
+			+ 1 /* label_count increases by one */
+			+ 1 /* label type/length byte for label */ + ll,
+		((void*)dname) + sizeof(dname_type) + dname->label_count,
+		dname->name_size);
+	memcpy(name.bytes + dname->label_count
+			+ 1 /* label_count increases by one */
+			+ 1 /* label type/length byte for label */, label, ll);
+	name.bytes[dname->label_count + 1] = ll; /* label type/length byte */
+	name.bytes[dname->label_count] = 0; /* first label follows last
+										 * label_offsets element */
+	for (i = 0; i < dname->label_count; i++)
+		name.bytes[i] = ((uint8_t*)(void*)dname)[sizeof(dname_type)+i]
+			+ 1 /* label type/length byte for label */ + ll;
+	name.dname.label_count = dname->label_count + 1 /* label_count incr. */;
+	name.dname.name_size   = dname->name_size   + ll
+												+ 1 /* label length */;
+	return &name.dname;
+}

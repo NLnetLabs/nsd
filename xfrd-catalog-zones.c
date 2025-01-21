@@ -26,9 +26,6 @@ static void vmake_catalog_consumer_invalid(
 	struct xfrd_catalog_consumer_zone *consumer_zone,
 	const char *format, va_list args);
 
-/** return (static) dname with label prepended to dname */
-static dname_type* label_plus_dname(const char* label,const dname_type* dname);
-
 /** delete the catalog member zone */
 static void catalog_del_consumer_member_zone(
 		struct xfrd_catalog_consumer_zone* consumer_zone,
@@ -303,44 +300,6 @@ make_catalog_consumer_valid(struct xfrd_catalog_consumer_zone *consumer_zone)
 	}
 }
 
-static dname_type*
-label_plus_dname(const char* label, const dname_type* dname)
-{
-	static struct {
-		dname_type dname;
-		uint8_t bytes[MAXDOMAINLEN + 128 /* max number of labels */];
-	} ATTR_PACKED name;
-	size_t i, ll;
-
-	if (!label || !dname || dname->label_count > 127)
-		return NULL;
-	ll = strlen(label);
-	if ((int)dname->name_size + ll + 1 > MAXDOMAINLEN)
-		return NULL;
-
-	/* In reversed order and first copy with memmove, so we can nest.
-	 * i.e. label_plus_dname(label1, label_plus_dname(label2, dname))
-	 */
-	memmove(name.bytes + dname->label_count
-			+ 1 /* label_count increases by one */
-			+ 1 /* label type/length byte for label */ + ll,
-		((void*)dname) + sizeof(dname_type) + dname->label_count,
-		dname->name_size);
-	memcpy(name.bytes + dname->label_count
-			+ 1 /* label_count increases by one */
-			+ 1 /* label type/length byte for label */, label, ll);
-	name.bytes[dname->label_count + 1] = ll; /* label type/length byte */
-	name.bytes[dname->label_count] = 0; /* first label follows last
-	                                     * label_offsets element */
-	for (i = 0; i < dname->label_count; i++)
-		name.bytes[i] = ((uint8_t*)(void*)dname)[sizeof(dname_type)+i]
-			+ 1 /* label type/length byte for label */ + ll;
-	name.dname.label_count = dname->label_count + 1 /* label_count incr. */;
-	name.dname.name_size   = dname->name_size   + ll
-	                                            + 1 /* label length */;
-	return &name.dname;
-}
-
 static void
 catalog_del_consumer_member_zone(
 		struct xfrd_catalog_consumer_zone* consumer_zone,
@@ -420,7 +379,7 @@ const char *invalid_catalog_consumer_zone(struct zone_options* zone)
 	if (!zone || !zone_is_catalog_consumer(zone))
 		msg = NULL;
 
-	else if (!xfrd) 
+	else if (!xfrd)
 		msg = "asked for catalog information outside of xfrd process";
 
 	else if (!xfrd->catalog_consumer_zones)
@@ -596,7 +555,7 @@ retry_adding:
 		 *    NOT be processed (see Section 5.1).
 		 */
 		if (rrset->rr_count != 1) {
-			make_catalog_consumer_invalid(consumer_zone, 
+			make_catalog_consumer_invalid(consumer_zone,
 				"only a single PTR RR expected on '%s'",
 				domain_to_string(member_id));
 			return;
@@ -671,7 +630,7 @@ retry_adding:
 
 		else if (!(pattern = default_pattern =
 				catalog_member_pattern(consumer_zone))) {
-			make_catalog_consumer_invalid(consumer_zone, 
+			make_catalog_consumer_invalid(consumer_zone,
 				"missing 'group.%s' TXT RR and no default "
 				"pattern from \"catalog-member-pattern\"",
 				domain_to_string(member_id));
@@ -692,7 +651,7 @@ retry_adding:
 				dname_to_string(cursor_member_id(cursor),
 					NULL)));
 
-			while (cursor != RBTREE_NULL && 
+			while (cursor != RBTREE_NULL &&
 			       (cmp = dname_compare(
 					domain_dname(member_id),
 					cursor_member_id(cursor))) > 0) {
@@ -764,7 +723,7 @@ retry_adding:
 #endif
 					/* It is a catalog consumer member,
 					 * so no need to check if it was a
-					 * catalog producer member zone to 
+					 * catalog producer member zone to
 					 * delete and add
 					 */
 					zopt->pattern = pattern;
@@ -1103,7 +1062,7 @@ try_buffer_write_TXT(buffer_type* packet, const dname_type* name,
 		return 1;
 	}
 	buffer_set_position(packet, mark);
-	return 0; 
+	return 0;
 }
 
 static void
@@ -1199,7 +1158,7 @@ xfrd_process_catalog_producer_zone(
 		xfr_writer_add_TXT(&xw, label_plus_dname("version"
 		                                        , producer_name), "2");
 		goto add_member_zones;
-	} 
+	}
 	/* IXFR */
 	xfr_writer_add_SOA(&xw, producer_name, xw.old_serial);
 	while(producer_zone->to_delete) {
@@ -1282,4 +1241,3 @@ void xfrd_process_catalog_producer_zones()
 		xfrd_process_catalog_producer_zone(producer_zone);
 	}
 }
-
