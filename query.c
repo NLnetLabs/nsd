@@ -921,6 +921,9 @@ static void
 answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 {
 	rrset_type *rrset;
+#ifdef USE_DELEG
+	rrset_type *rrset_deleg_signatures;
+#endif
 	assert(answer);
 	assert(query->delegation_domain);
 	assert(query->delegation_rrset);
@@ -950,11 +953,14 @@ answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 		}
 	}
 #ifdef USE_DELEG
-	if ((rrset = domain_find_deleg_rrsets(query->delegation_domain, query->zone, nsd->db)))
+	if ((rrset = domain_find_deleg_rrsets(query->delegation_domain, query->zone, nsd->db, &rrset_deleg_signatures)))
 	{
 
 		add_rrset(query, answer, AUTHORITY_SECTION,
 			query->delegation_domain, rrset);
+	if (rrset_deleg_signatures && query->edns.dnssec_ok && zone_is_secure(query->zone))
+		add_rrset(query, answer, AUTHORITY_SECTION,
+			query->delegation_domain, rrset_deleg_signatures);
 	}
 #endif
 }

@@ -475,7 +475,7 @@ void zone_rr_iter_init(zone_rr_iter_type *iter, zone_type *zone);
 rr_type *zone_rr_iter_next(zone_rr_iter_type *iter);
 
 #ifdef USE_DELEG
-rrset_type *domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone, namedb_type* db);
+rrset_type *domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone, namedb_type* db, rrset_type **rrsig);
 #endif
 
 #endif /* NAMEDB_H */

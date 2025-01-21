@@ -602,15 +602,45 @@ domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns)
 
 #ifdef USE_DELEG
 rrset_type *
-domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone, namedb_type* db)
+domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone, namedb_type* db, rrset_type **rrsig)
 {
 	dname_type* target;
 	rrset_type* result;
+	rrset_type* signatures;
+	uint8_t signatures_found;
+	*rrsig = NULL;
+	signatures_found = 0;
 	target = label_plus_dname("_deleg", zone->apex->dname);
 	target = labels_plus_dname(delegation_domain->dname,
 		delegation_domain->dname->label_count - zone->apex->dname->label_count,
 		target);
 	result = domain_find_rrset(domain_table_find(db->domains, target), zone, TYPE_DELEG);
+	signatures = domain_find_rrset(domain_table_find(db->domains, target), zone, TYPE_RRSIG);
+
+	while (signatures)
+	{
+		printf("Amount found: %d\n", signatures->rr_count);
+		if (signatures->rrs->type != TYPE_RRSIG) break; // If not assertion on the next line fails
+		if (rr_rrsig_type_covered(signatures->rrs) == TYPE_DELEG)
+		{
+			signatures_found++;
+			if (!*rrsig)
+			{
+				*rrsig = signatures;
+				signatures = signatures->next;
+			}
+			else
+			{
+				rrset_type *tmp = signatures->next;
+				signatures->next = *rrsig;
+				*rrsig = signatures;
+				signatures = tmp;
+			}
+		}
+		else signatures = signatures->next;
+	}
+	(*rrsig)->rr_count = signatures_found;
+
 	return result;
 }
 #endif
