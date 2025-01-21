@@ -193,6 +193,10 @@ static const struct nsd_rdata_descriptor srv_rdata_fields[] = {
 	FIELD("target", RDATA_UNCOMPRESSED_DNAME)
 };
 
+static const struct nsd_rdata_descriptor atma_rdata_fields[] = {
+	FIELD("address", RDATA_REMAINDER)
+};
+
 static const struct nsd_rdata_descriptor naptr_rdata_fields[] = {
 	FIELD("order", 2),
 	FIELD("preference", 2),
@@ -554,9 +558,9 @@ const nsd_type_descriptor_t type_descriptors[] = {
 	TYPE("SRV", TYPE_SRV, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_srv_rdata, write_srv_rdata,
 		print_srv_rdata, srv_rdata_fields),
-
-	UNKNOWN_TYPE(34),
-
+	TYPE("ATMA", TYPE_ATMA, TYPE_HAS_NO_REFS,
+		read_generic_rdata, write_generic_rdata, print_atma_rdata,
+		atma_rdata_fields),
 	TYPE("NAPTR", TYPE_NAPTR, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_naptr_rdata, write_naptr_rdata,
 		print_naptr_rdata, naptr_rdata_fields),

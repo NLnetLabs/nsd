@@ -1834,6 +1834,36 @@ print_srv_rdata(struct buffer *output, const struct rr *rr)
 	return 1;
 }
 
+int
+print_atma_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint8_t format;
+	if(rr->rdlength < 1)
+		return 0;
+	format = rr->rdata[0];
+	if(format == 0) {
+		/* AESA format (ATM End System Address). */
+		uint16_t length = 1;
+		if (!print_base16(output, rr->rdlength, rr->rdata, &length))
+			return 0;
+		assert(rr->rdlength == length);
+		return 1;
+	} else if(format == 1) {
+		/* E.164 format. */
+		/* '+' and then digits '0'-'9' from the rdata string. */
+		buffer_printf(output, "+");
+		for (size_t i = 1; i < rr->rdlength; i++) {
+			char ch = (char)rr->rdata[i];
+			if(!isdigit((unsigned char)ch))
+				return 0;
+			buffer_printf(output, "%c", ch);
+		}
+		return 1;
+	}
+	/* Unknown format. */
+	return 0;
+}
+
 int32_t
 read_naptr_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)

@@ -118,7 +118,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_NXT	30	/* 2535typecode */
 
 #define TYPE_SRV	33	/* SRV record RFC2782 */
-
+#define TYPE_ATMA	34	/* http://www.jhsoft.com/rfc/af-saa-0069.000.rtf */
 #define TYPE_NAPTR	35	/* RFC2915 */
 #define TYPE_KX		36	/* RFC2230 Key Exchange Delegation Record */
 #define TYPE_CERT	37	/* RFC2538 */

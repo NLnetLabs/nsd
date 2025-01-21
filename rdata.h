@@ -252,6 +252,9 @@ void write_srv_rdata(struct query *query, const struct rr *rr);
 /* Print rdata for type SRV. */
 int print_srv_rdata(struct buffer *buffer, const struct rr *rr);
 
+/* Print rdata for type ATMA. */
+int print_atma_rdata(struct buffer *buffer, const struct rr *rr);
+
 /* Read rdata for type NAPTR. */
 int32_t read_naptr_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr);
