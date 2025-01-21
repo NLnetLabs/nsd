@@ -34,7 +34,7 @@ allocate_domain_info(domain_table_type* table,
 	result = (domain_type *) region_alloc(table->region,
 					      sizeof(domain_type));
 #ifdef USE_RADIX_TREE
-	result->dname 
+	result->dname
 #else
 	result->node.key
 #endif
@@ -599,6 +599,21 @@ domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns)
 	*ns = NULL;
 	return NULL;
 }
+
+#ifdef USE_DELEG
+rrset_type *
+domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone, namedb_type* db)
+{
+	dname_type* target;
+	rrset_type* result;
+	target = label_plus_dname("_deleg", zone->apex->dname);
+	target = labels_plus_dname(delegation_domain->dname,
+		delegation_domain->dname->label_count - zone->apex->dname->label_count,
+		target);
+	result = domain_find_rrset(domain_table_find(db->domains, target), zone, TYPE_DELEG);
+	return result;
+}
+#endif
 
 domain_type *
 find_dname_above(domain_type* domain, zone_type* zone)
