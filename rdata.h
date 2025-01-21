@@ -47,8 +47,8 @@ struct nsd_svcparam_descriptor {
 	nsd_print_svcparam_rdata_t print_rdata;
 };
 
-int print_unknown_rdata(
-	buffer_type *output, nsd_type_descriptor_t *descriptor, const rr_type *rr);
+int print_unknown_rdata(buffer_type *output,
+	nsd_type_descriptor_t *descriptor, const rr_type *rr);
 
 /* print rdata to a text string (as for a zone file) returns 0
   on a failure (bufpos is reset to original position).

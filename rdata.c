@@ -24,6 +24,7 @@
 
 #include "rdata.h"
 #include "zonec.h"
+#include "query.h"
 
 /* Taken from RFC 4398, section 2.1.  */
 lookup_table_type dns_certificate_types[] = {
@@ -182,29 +183,29 @@ print_domain(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 
 /* Return length of string or -1 on wireformat error. offset is moved +len. */
 static inline int32_t
-skip_string(uint16_t rdlength, const uint8_t* rdata, uint16_t *offset)
+skip_string(struct buffer* output, uint16_t rdlength, uint16_t* offset)
 {
-	uint8_t length;
-	if (rdlength < 1)
+	int32_t length;
+	if (rdlength - *offset < 1)
 		return -1;
-	length = rdata[0];
-	if (1 + length > rdlength)
+	length = buffer_read_u8(output);
+	if (length + 1 > rdlength - *offset)
 		return -1;
-	*offset += 1;
-	*offset += length;
-	return 1 + length;
+	buffer_skip(output, length);
+	*offset += length + 1;
+	return length + 1;
 }
 
 /* Return length of strings or -1 on wireformat error. offset is moved +len. */
 static inline int32_t
-skip_strings(uint16_t rdlength, const uint8_t* rdata, uint16_t *offset)
+skip_strings(struct buffer* output, uint16_t rdlength, uint16_t* offset)
 {
 	int32_t olen = 0;
 	while(*offset < rdlength) {
-		int32_t slen = skip_string(rdlength, rdata, offset);
+		int32_t slen = skip_string(output, rdlength, offset);
 		if(slen < 0)
 			return slen;
-		olen += 1 + slen;
+		olen += slen;
 	}
 	return olen;
 }
@@ -582,21 +583,24 @@ print_salt(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	return 1;
 }
 
+/* Return length of nsec type bitmap or -1 on wireformat error. offset is
+ * moved +len. rdlength is the length of the rdata, offset is offset in it. */
 static inline int32_t
-skip_nsec(struct buffer *packet, uint16_t rdlength)
+skip_nsec(struct buffer* packet, uint16_t rdlength, uint16_t *offset)
 {
 	uint16_t length = 0;
 	uint8_t last_window;
 
-	while (rdlength - length > 2) {
-		uint8_t window = rdata[count];
-		uint8_t blocks = rdata[count + 1];
+	while (rdlength - *offset - length > 2) {
+		uint8_t window = buffer_read_u8(packet);
+		uint8_t blocks = buffer_read_u8(packet);
 		if (window <= last_window)
 			return -1; // could make this a semantic error...
 		if (!blocks || blocks > 32)
 			return -1;
-		if (rdlength - length < 2 + blocks)
+		if (rdlength - *offset - length < 2 + blocks)
 			return -1;
+		buffer_skip(packet, blocks);
 		length += 2 + blocks;
 		last_window = window;
 	}
@@ -604,33 +608,43 @@ skip_nsec(struct buffer *packet, uint16_t rdlength)
 	if (rdlength != length)
 		return -1;
 
+	*offset += length;
 	return length;
 }
 
-static int32_t
-print_nsec(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
-	uint16_t *offset)
+/*
+ * Print nsec type bitmap, for the remainder of rdata.
+ * @param output: the string is output here.
+ * @param rdlength: length of rdata.
+ * @param rdata: the rdata. The rdata+*offset is where the field is.
+ * @param offset: the current position on input. The position is updated to
+ *	be incremented with the length of rdata that was used.
+ * @return false on failure.
+ */
+static int
+print_nsec_bitmap(struct buffer *output, uint16_t rdlength,
+	const uint8_t *rdata, uint16_t *offset)
 {
-	size_t saved_position = buffer_position(output);
-	buffer_type packet;
 	int insert_space = 0;
 
-// not going to use this...
-//	buffer_create_from(&packet, rdata + offset, rdlength - offset);
-
-	while (buffer_available(&packet, 2)) {
-		uint8_t window = buffer_read_u8(&packet);
-		uint8_t bitmap_size = buffer_read_u8(&packet);
-		uint8_t *bitmap = buffer_current(&packet);
+	while(rdlength - *offset > 0) {
+		uint8_t window, bitmap_size;
+		const uint8_t* bitmap;
 		int i;
 
-		if (!buffer_available(&packet, bitmap_size)) {
-			buffer_set_position(output, saved_position);
+		if(rdlength - *offset < 2)
 			return 0;
-		}
+		window = rdata[0];
+		bitmap_size = rdata[1];
+		*offset += 2;
 
-		for (i = 0; i < bitmap_size * 8; ++i) {
-			if (get_bit(bitmap, i)) {
+		if(rdlength - *offset < bitmap_size)
+			return 0;
+
+		bitmap = rdata + 2;
+		rdata += 2;
+		for(i=0; i<((int)bitmap_size)*8; i++) {
+			if(get_bit(bitmap, i)) {
 				buffer_printf(output,
 					      "%s%s",
 					      insert_space ? " " : "",
@@ -639,9 +653,9 @@ print_nsec(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 				insert_space = 1;
 			}
 		}
-		buffer_skip(&packet, bitmap_size);
+		rdata += bitmap_size;
+		*offset += bitmap_size;
 	}
-
 	return 1;
 }
 
@@ -960,53 +974,6 @@ print_svcparam(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	return 1;
 }
 
-#if 0
-//	buffer_print_svcparamkey(output, key);
-//	val_len = ntohs(read_uin16(rdata + *offset + 2));
-
-	if (!length) {
-		/* Some SvcParams MUST have values */
-		switch (svcparamkey) {
-		case SVCB_KEY_ALPN:
-		case SVCB_KEY_PORT:
-		case SVCB_KEY_IPV4HINT:
-		case SVCB_KEY_IPV6HINT:
-		case SVCB_KEY_MANDATORY:
-		case SVCB_KEY_DOHPATH:
-		case SVCB_KEY_TLS_SUPPORTED_GROUPS:
-			return 0;
-		default:
-			return 1;
-		}
-	}
-	data = rdata + rdlength +4;
-	switch (svcparamkey) {
-	case SVCB_KEY_PORT:
-		return rdata_svcparam_port_to_string(output, val_len, data);
-	case SVCB_KEY_IPV4HINT:
-		return rdata_svcparam_ipv4hint_to_string(output, val_len, data);
-	case SVCB_KEY_IPV6HINT:
-		return rdata_svcparam_ipv6hint_to_string(output, val_len, data);
-	case SVCB_KEY_MANDATORY:
-		return rdata_svcparam_mandatory_to_string(output, val_len, data);
-	case SVCB_KEY_NO_DEFAULT_ALPN:
-		return 0; /* wireformat error, should not have a value */
-	case SVCB_KEY_ALPN:
-		return rdata_svcparam_alpn_to_string(output, val_len, data);
-	case SVCB_KEY_ECH:
-		return rdata_svcparam_ech_to_string(output, val_len, data);
-	case SVCB_KEY_OHTTP:
-		return 0; /* wireformat error, should not have a value */
-	case SVCB_KEY_TLS_SUPPORTED_GROUPS:
-		return rdata_svcparam_tls_supported_groups_to_string(output, val_len, data+2);
-	case SVCB_KEY_DOHPATH:
-		/* fallthrough */
-	default:
-	}
-	return val_len + 4;
-}
-#endif /* 0 */
-
 static inline int32_t
 read_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
@@ -1033,6 +1000,9 @@ write_generic_rdata(struct query *query, const struct rr *rr)
 	buffer_write(query->packet, rr->rdata, rr->rdlength);
 }
 
+int print_unknown_rdata(buffer_type *output,
+	nsd_type_descriptor_t *descriptor, const rr_type *rr)
+{
 //static int
 //rdata_unknown_to_string(
 //	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
@@ -1043,29 +1013,68 @@ write_generic_rdata(struct query *query, const struct rr *rr)
 //	return size;
 //}
 
-// >> probably better name print_generic_rdata?!?!
-int
-print_unknown_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
-	rr_type *rr)
-{
+	// >> probably better name print_generic_rdata?!?!
 	// get descriptor, make sure domains are printed correctly!
 	// >> wait, we're printing generic rdata right?!?!
-	size_t i;
-	rdata_atom_type temp_rdatas[MAXRDATALEN];
-	rrtype_descriptor_type *descriptor = rrtype_descriptor_by_type(rrtype);
-	region_type *temp_region;
+	//
 
+	size_t i;
+	const nsd_rdata_descriptor_t* field;
 	size_t size = rr_marshal_rdata_length(rr);
+	uint16_t length = 0;
+
 	buffer_printf(output, " \\# %lu ", (unsigned long) size);
-	for (i = 0; i < rdata_count; ++i) {
-		if (rdata_atom_is_domain(descriptor->type, i)) {
-			const dname_type *dname =
-				domain_dname(rdata_atom_domain(rdatas[i]));
-			hex_to_string(
-				output, dname_name(dname), dname->name_size);
+
+	if(!descriptor->has_references) {
+		/* There are no references to the domain table, the
+		 * rdata can be printed literally. */
+		if(!print_base16(output, rr->rdlength, rr->rdata, &length))
+			return 0;
+		assert(rr->rdlength == length);
+		return 1;
+	}
+
+	for(i=0; i < descriptor->rdata.length; i++) {
+		field = &descriptor->rdata.fields[i];
+		if(rr->rdlength == length && field->is_optional)
+			break; /* There are no more fields. */
+		if(field->calculate_length) {
+			/* Call field length function and print hex. */
+			int32_t field_len = field->calculate_length(
+				rr->rdlength, rr->rdata, &length);
+			if(!print_base16(output, field_len, rr->rdata,
+				&length))
+				return 0;
+		} else if(field->length >= 0) {
+			/* Print the field in hex. */
+			if(!print_base16(output, field->length, rr->rdata,
+				&length))
+				return 0;
 		} else {
-			hex_to_string(output, rdata_atom_data(rdatas[i]),
-				rdata_atom_size(rdatas[i]));
+			/* Handle the specialized value cases. */
+			switch(field->length) {
+			case RDATA_COMPRESSED_DNAME:
+				break;
+			case RDATA_UNCOMPRESSED_DNAME:
+				break;
+			case RDATA_LITERAL_DNAME:
+				break;
+			case RDATA_STRING:
+				break;
+			case RDATA_BINARY:
+				break;
+			case RDATA_IPSECGATEWAY:
+				return 0; /* Has a callback function. */
+			case RDATA_REMAINDER:
+				/* Print the field in hex. */
+				if (!print_base16(output, rr->rdlength,
+					rr->rdata, &length))
+					return 0;
+				break;
+			default:
+				/* Unknown specialized value. */
+				return 0;
+			}
 		}
 	}
 	return 1;
@@ -1413,7 +1422,7 @@ read_txt_rdata(struct domain_table *owners, uint16_t rdlength,
 {
 	uint16_t length = 0;
 	const size_t mark = buffer_position(packet);
-	if (skip_strings(packet, &length) < 0 || rdlength != length)
+	if (skip_strings(packet, rdlength, &length) < 0 || rdlength != length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
 	return read_rdata(owners, rdlength, buffer, rr);
@@ -1536,7 +1545,7 @@ read_x25_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	uint16_t length = 0;
 	const size_t mark = buffer_position(packet);
-	if (skip_string(packet, &length) < 0 || rdlength != length)
+	if (skip_string(packet, rdlength, &length) < 0 || rdlength != length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
 	return read_rdata(domains, rdlength, packet, rr);
@@ -1559,8 +1568,8 @@ read_isdn_rdata(struct domain_table *domains, uint16_t rdlength,
 	uint16_t length = 0;
 	const size_t mark = buffer_position(packet);
 
-	if (skip_string(packet, &length) < 0
-	 || skip_string(packet, &length) < 0
+	if (skip_string(packet, rdlength, &length) < 0
+	 || skip_string(packet, rdlength, &length) < 0
 	 || rdlength != length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
@@ -1897,9 +1906,9 @@ read_naptr_rdata(struct domain_table *domains, uint16_t rdlength,
 	/* short + short + text + text + text + name */
 	if (buffer_remaining(packet) < rdlength ||
 	    rdlength < length ||
-	    skip_string(packet, &length) < 0 ||
-	    skip_string(packet, &length) < 0 ||
-	    skip_string(packet, &length) < 0 ||
+	    skip_string(packet, rdlength, &length) < 0 ||
+	    skip_string(packet, rdlength, &length) < 0 ||
+	    skip_string(packet, rdlength, &length) < 0 ||
 	    !dname_make_from_packet_buffered(&dname, packet, 1, 1) ||
 	    rdlength - length != dname.dname.name_size)
 		return MALFORMED;
@@ -2306,7 +2315,7 @@ read_nsec_rdata(struct domain_table *domains, uint16_t rdlength,
 
 	uint16_t length = next.dname.name_size;
 	const size_t mark = buffer_position(packet);
-	if (skip_nsec(packet, &length) < 0 || rdlength != length)
+	if (skip_nsec(packet, rdlength, &length) < 0 || rdlength != length)
 		return MALFORMED;
 	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + rdlength)))
 		return TRUNCATED;
@@ -2323,7 +2332,7 @@ print_nsec_rdata(struct buffer *output, const struct rr *rr)
 	assert(rr->rdlength > length);
 	if (!print_name_literal(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	if (!print_nsec(output, rr->rdlength, rr->rdata, &length))
+	if (!print_nsec_bitmap(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
 	return 1;
@@ -2386,9 +2395,9 @@ read_nsec3_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (buffer_remaining(packet) < rdlength || rdlength < length)
 		return MALFORMED;
 	buffer_skip(packet, length);
-	if (skip_string(packet, &length) < 0 ||
-			skip_string(packet, &length) < 0 ||
-			skip_nsec(packet, &length) < 0 ||
+	if (skip_string(packet, rdlength, &length) < 0 ||
+			skip_string(packet, rdlength, &length) < 0 ||
+			skip_nsec(packet, rdlength, &length) < 0 ||
 			rdlength != length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
@@ -2410,7 +2419,7 @@ print_nsec3_rdata(struct buffer *output, const struct rr *rr)
 	if (!print_base32(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	buffer_printf(output, " ");
-	if (!print_nsec(output, rr->rdlength, rr->rdata, &length))
+	if (!print_nsec_bitmap(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
 	return 1;
@@ -2427,7 +2436,7 @@ read_nsec3param_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (buffer_remaining(packet) < rdlength || rdlength < length)
 		return MALFORMED;
 	buffer_skip(packet, length);
-	if (skip_string(packet, &length) < 0 ||
+	if (skip_string(packet, rdlength, &length) < 0 ||
 	    rdlength != length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
@@ -2577,7 +2586,7 @@ print_csync_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(
 		output, "%" PRIu32 " %" PRIu16 " ",
 		read_uint32(rr->rdata), read_uint16(rr->rdata + 4));
-	if (!print_nsec(output, rr->rdlength, rr->rdata, &length))
+	if (!print_nsec_bitmap(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
 	return 1;
@@ -2859,7 +2868,7 @@ read_caa_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (buffer_remaining(packet) < rdlength || rdlength < 3)
 		return MALFORMED;
 	uint16_t length = 1;
-	if (skip_string(packet, &length) < 0 || rdlength <= length)
+	if (skip_string(packet, rdlength, &length) < 0 || rdlength <= length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
 	return read_rdata(domains, rdlength, packet, rr);
