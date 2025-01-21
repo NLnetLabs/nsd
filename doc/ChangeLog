@@ -1,3 +1,28 @@
+20 January 2025: Willem
+	- code repository continues with 4.11.2 under development.
+	- Fix re-enable to configure dns-cookies from config file, which was
+	  accidentally removed with the 4.11.1 release.
+
+19 January 2025: Willem
+	- NSD 4.11.1 emergency quick-fix release
+
+17 January 2025: Willem
+	- Fix #424: Stalled updates after corrupt transfer.
+
+15 January 2025: Wouter
+	- Fix whitespace in comment.
+
+7 January 2025: Willem
+	- Fix #421: old-main can quit before the reload process received        
+	  from old-main that it is done on the reload_listener pipe.                    
+	  Thanks Otto Retter.
+
+3 January 2025: Willem
+	- Fix #414: XoT interoperability with BIND and Knot
+
+23 December 2024: Willem
+	- Fix #415: Fix out of tree builds. Thanks Florian Obser (@fobser).
+
 5 December 2024: Willem
 	- The tag for the 4.11.0rc1 release became the release 4.11.0,
 	  on 12 December 2024, the code repository continues with 4.11.1 under

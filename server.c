@@ -1898,23 +1898,29 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 
 #ifdef HAVE_SSL
 static void
-log_crypto_from_err(const char* str, unsigned long err)
+log_crypto_from_err(int level, const char* str, unsigned long err)
 {
 	/* error:[error code]:[library name]:[function name]:[reason string] */
 	char buf[128];
 	unsigned long e;
 	ERR_error_string_n(err, buf, sizeof(buf));
-	log_msg(LOG_ERR, "%s crypto %s", str, buf);
+	log_msg(level, "%s crypto %s", str, buf);
 	while( (e=ERR_get_error()) ) {
 		ERR_error_string_n(e, buf, sizeof(buf));
-		log_msg(LOG_ERR, "and additionally crypto %s", buf);
+		log_msg(level, "and additionally crypto %s", buf);
 	}
 }
 
 void
 log_crypto_err(const char* str)
 {
-	log_crypto_from_err(str, ERR_get_error());
+	log_crypto_from_err(LOG_ERR, str, ERR_get_error());
+}
+
+void
+log_crypto_warning(const char* str)
+{
+	log_crypto_from_err(LOG_WARNING, str, ERR_get_error());
 }
 
 /** true if the ssl handshake error has to be squelched from the logs */
@@ -2079,6 +2085,20 @@ add_ocsp_data_cb(SSL *s, void* ATTR_UNUSED(arg))
 	}
 }
 
+static int
+server_alpn_cb(SSL* ATTR_UNUSED(s),
+		const unsigned char** out, unsigned char* outlen,
+		const unsigned char* in, unsigned int inlen,
+		void* ATTR_UNUSED(arg))
+{
+	static const unsigned char alpns[] = { 3, 'd', 'o', 't' };
+	unsigned char* tmp_out;
+
+	SSL_select_next_proto(&tmp_out, outlen, alpns, sizeof(alpns), in, inlen);
+	*out = tmp_out;
+	return SSL_TLSEXT_ERR_OK;
+}
+
 SSL_CTX*
 server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 {
@@ -2128,6 +2148,13 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 		return 0;
 	}
 #endif
+#if defined(SSL_OP_IGNORE_UNEXPECTED_EOF)
+	/* disable client renegotiation */
+	if((SSL_CTX_set_options(ctx, SSL_OP_IGNORE_UNEXPECTED_EOF) &
+		SSL_OP_IGNORE_UNEXPECTED_EOF) != SSL_OP_IGNORE_UNEXPECTED_EOF) {
+		log_crypto_warning("could not set SSL_OP_IGNORE_UNEXPECTED_EOF");
+	}
+#endif
 #if defined(SHA256_DIGEST_LENGTH) && defined(SSL_TXT_CHACHA20)
 	/* if we detect system-wide crypto policies, use those */
 	if (access( "/etc/crypto-policies/config", F_OK ) != 0 ) {
@@ -2174,6 +2201,7 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 		SSL_CTX_set_client_CA_list(ctx, SSL_load_client_CA_file(verifypem));
 		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 	}
+	SSL_CTX_set_alpn_select_cb(ctx, server_alpn_cb, NULL);
 	return ctx;
 }
 
@@ -2419,7 +2447,8 @@ static void server_reload_handle_quit_sync_ack(int cmdsocket, short event,
 	r = read(cmdsocket, cb_data->to_read.buf + cb_data->read,
 			sizeof(cb_data->to_read.cmd) - cb_data->read);
 	if(r == 0) {
-		log_msg(LOG_ERR, "reload: old-main quit during quit sync");
+		DEBUG(DEBUG_IPC, 1, (LOG_WARNING,
+			"reload: old-main quit during quit sync"));
 		cb_data->to_read.cmd = NSD_RELOAD;
 
 	} else if(r == -1) {
@@ -2629,7 +2658,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		exit(1);
 	}
 	assert(cmd == NSD_RELOAD);
-	udb_ptr_unlink(last_task, nsd->task[nsd->mytask]);
+	udb_ptr_set(last_task, nsd->task[nsd->mytask], 0);
 	task_process_sync(nsd->task[nsd->mytask]);
 #ifdef USE_ZONE_STATS
 	server_zonestat_realloc(nsd); /* realloc for next children */
@@ -2943,6 +2972,15 @@ server_main(struct nsd *nsd)
 			task_remap(nsd->task[nsd->mytask]);
 			udb_ptr_init(&xfrs2process, nsd->task[nsd->mytask]);
 			udb_ptr_init(&last_task   , nsd->task[nsd->mytask]);
+			/* last_task and xfrs2process MUST be unlinked in all
+			 * possible branches of the fork() below.
+			 * server_reload() will unlink them, but for failed
+			 * fork and for the "old-main" (child) process, we MUST
+			 * unlink them in the case statement below.
+			 * Unlink by setting the value to 0, because
+			 * reload_process_non_xfr_tasks() may clear (and
+			 * implicitly unlink) xfrs2process.
+			 */
 			reload_process_non_xfr_tasks(nsd, &xfrs2process
 			                                , &last_task);
 			/* Do actual reload */
@@ -2950,6 +2988,8 @@ server_main(struct nsd *nsd)
 			switch (reload_pid) {
 			case -1:
 				log_msg(LOG_ERR, "fork failed: %s", strerror(errno));
+				udb_ptr_set(&last_task, nsd->task[nsd->mytask], 0);
+				udb_ptr_set(&xfrs2process, nsd->task[nsd->mytask], 0);
 				break;
 			default:
 				/* PARENT */
@@ -2981,6 +3021,8 @@ server_main(struct nsd *nsd)
 #ifdef USE_LOG_PROCESS_ROLE
 				log_set_process_role("old-main");
 #endif
+				udb_ptr_set(&last_task, nsd->task[nsd->mytask], 0);
+				udb_ptr_set(&xfrs2process, nsd->task[nsd->mytask], 0);
 				reload_listener.fd = reload_sockets[0];
 				reload_listener.timeout = NULL;
 				reload_listener.user_data = nsd;
@@ -3001,13 +3043,6 @@ server_main(struct nsd *nsd)
 				log_set_process_role("main");
 #endif
 			}
-			/* xfrs2process and last_task need to be reset in case
-			 * "old-main" becomes "main" (due to an failed (exited)
-			 * xfr update). If needed xfrs2process gets unlinked by
-			 * "load", and last_task by the xfrd.
-			 */
-			memset(&xfrs2process, 0, sizeof(xfrs2process));
-			memset(&last_task, 0, sizeof(last_task));
 			break;
 		case NSD_QUIT_SYNC:
 			/* synchronisation of xfrd, parent and reload */
@@ -4802,7 +4837,7 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 					char a[64], s[256];
 					addr2str(&data->query->remote_addr, a, sizeof(a));
 					snprintf(s, sizeof(s), "TLS handshake failed from %s", a);
-					log_crypto_from_err(s, err);
+					log_crypto_from_err(LOG_ERR, s, err);
 				}
 			}
 			cleanup_tcp_handler(data);
