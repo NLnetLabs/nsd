@@ -682,7 +682,7 @@ labels_plus_dname(const dname_type* labels, size_t amount_to_be_copied, const dn
 	name.dname.label_count = dname->label_count + amount_to_be_copied;
 	name.dname.name_size   = dname->name_size   + copied_label_size + amount_to_be_copied;
 	/* In reversed order and first copy with memmove, so we can nest.
-	 * i.e. label_plus_dname(label1, label_plus_dname(label2, dname))
+	 * i.e. labels_plus_dname(labels1, 1,labels_plus_dname(label2, 2, dname))
 	 */
 	memmove(name.bytes + copied_label_size + name.dname.label_count + 1, ((void*)dname) + sizeof(dname_type) + dname->label_count, dname->name_size);
 	memcpy(name.bytes + name.dname.label_count,
