@@ -918,8 +918,9 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
  * record proving the DS RRset does not exist.
  */
 static void
-answer_delegation(query_type *query, answer_type *answer)
+answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 {
+	rrset_type *rrset;
 	assert(answer);
 	assert(query->delegation_domain);
 	assert(query->delegation_rrset);
@@ -936,7 +937,6 @@ answer_delegation(query_type *query, answer_type *answer)
 		  query->delegation_domain,
 		  query->delegation_rrset);
 	if (query->edns.dnssec_ok && zone_is_secure(query->zone)) {
-		rrset_type *rrset;
 		if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_DS))) {
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				  query->delegation_domain, rrset);
@@ -949,6 +949,14 @@ answer_delegation(query_type *query, answer_type *answer)
 				  query->delegation_domain, rrset);
 		}
 	}
+#ifdef USE_DELEG
+	if ((rrset = domain_find_deleg_rrsets(query->delegation_domain, query->zone, nsd->db)))
+	{
+
+		add_rrset(query, answer, AUTHORITY_SECTION,
+			query->delegation_domain, rrset);
+	}
+#endif
 }
 
 
@@ -1506,7 +1514,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 					     closest_match, closest_encloser, qname);
 		}
 		else {
-			answer_delegation(q, answer);
+			answer_delegation(q, answer, nsd);
 		}
 	}
 }
