@@ -479,4 +479,21 @@ int32_t read_dlv_rdata(struct domain_table *domains, uint16_t rdlength,
 /* Print rdata for type DLV. */
 int print_dlv_rdata(struct buffer *buffer, const struct rr *rr);
 
+/*
+ * Look up the field length. The field length is returned as a length
+ * in the rdata that is stored. For a reference, the pointer is returned too.
+ * @param descriptor: type descriptor.
+ * @param index: field index.
+ * @param rr: the rr with the rdata.
+ * @param offset: current position in the rdata.
+ *	It is not updated, because the caller has to do that.
+ * @param field_len: the field length is returned.
+ * @param domain: the pointer is returned when the field is a reference.
+ * @return false on failure, when the rdata stored is badly formatted, like
+ *	the rdata buffer is too short.
+ */
+int lookup_rdata_field(nsd_type_descriptor_t* descriptor, size_t index,
+	const rr_type* rr, uint16_t offset, uint16_t* field_len,
+	struct domain** domain);
+
 #endif /* RDATA_H */

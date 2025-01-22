@@ -185,30 +185,6 @@ static void pktcompression_insert_with_labels(struct pktcompression* pcomp,
 	}
 }
 
-/* calculate length of dname in uncompressed wireformat in buffer */
-static size_t dname_length(const uint8_t* buf, size_t len)
-{
-	size_t l = 0;
-	if(!buf || len == 0)
-		return l;
-	while(len > 0 && buf[0] != 0) {
-		size_t lablen = (size_t)(buf[0]);
-		if( (lablen&0xc0) )
-			return 0; /* the name should be uncompressed */
-		if(lablen+1 > len)
-			return 0; /* should fit in the buffer */
-		l += lablen+1;
-		len -= lablen+1;
-		buf += lablen+1;
-	}
-	if(len == 0)
-		return 0; /* end label should fit in buffer */
-	if(buf[0] != 0)
-		return 0; /* must end in root label */
-	l += 1; /* for the end root label */
-	return l;
-}
-
 /* write a compressed domain name into the packet,
  * returns uncompressed wireformat length,
  * 0 if it does not fit and -1 on failure, bad dname. */
@@ -216,7 +192,7 @@ static int pktcompression_write_dname(struct buffer* packet,
 	struct pktcompression* pcomp, const uint8_t* rr, size_t rrlen)
 {
 	size_t wirelen = 0;
-	size_t dname_len = dname_length(rr, rrlen);
+	size_t dname_len = buf_dname_length(rr, rrlen);
 	if(!rr || rrlen == 0 || dname_len == 0)
 		return 0;
 	while(rrlen > 0 && rr[0] != 0) {

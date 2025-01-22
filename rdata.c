@@ -1000,26 +1000,69 @@ write_generic_rdata(struct query *query, const struct rr *rr)
 	buffer_write(query->packet, rr->rdata, rr->rdlength);
 }
 
+int
+lookup_rdata_field(nsd_type_descriptor_t* descriptor, size_t index,
+	const rr_type* rr, uint16_t offset, uint16_t* field_len,
+	struct domain** domain)
+{
+	const nsd_rdata_descriptor_t* field = &descriptor->rdata.fields[index];
+	if(field->calculate_length) {
+		/* Call field length function */
+		*field_len = field->calculate_length(rr->rdlength, rr->rdata,
+			offset);
+		*domain = NULL;
+	} else if(field->length >= 0) {
+		*field_len = field->length;
+		*domain = NULL;
+	} else {
+		size_t dlen;
+		int32_t flen;
+		/* Handle the specialized value cases. */
+		switch(field->length) {
+		case RDATA_COMPRESSED_DNAME:
+		case RDATA_UNCOMPRESSED_DNAME:
+			if(rr->rdlength - offset <
+				(uint16_t)sizeof(void*))
+				return 0;
+			*field_len = sizeof(void*);
+			memcpy(domain, rr->rdata+offset, sizeof(void*));
+			break;
+		case RDATA_LITERAL_DNAME:
+			dlen = buf_dname_length(rr->rdata+offset,
+				rr->rdlength-offset);
+			if(dlen == 0)
+				return 0;
+			*field_len = dlen;
+			*domain = NULL;
+			break;
+		case RDATA_STRING:
+		case RDATA_BINARY:
+			if(rr->rdlength - offset < 1)
+				return 0;
+			flen = (rr->rdata+offset)[0];
+			if(rr->rdlength - offset < flen+1)
+				return 0;
+			*field_len = flen+1;
+			*domain = NULL;
+			break;
+		case RDATA_IPSECGATEWAY:
+			return 0; /* Has a callback function. */
+		case RDATA_REMAINDER:
+			*field_len = rr->rdlength - offset;
+			*domain = NULL;
+			break;
+		default:
+			/* Unknown specialized value. */
+			return 0;
+		}
+	}
+	return 1;
+}
+
 int print_unknown_rdata(buffer_type *output,
 	nsd_type_descriptor_t *descriptor, const rr_type *rr)
 {
-//static int
-//rdata_unknown_to_string(
-//	buffer_type *output, uint16_t rdlength, const uint8_t *rdata, size_t offset)
-//{
-// 	size_t size = rdlength - offset;
-// 	buffer_printf(output, "\\# %lu ", (unsigned long)size);
-//	hex_to_string(output, rdata + offset, size);
-//	return size;
-//}
-
-	// >> probably better name print_generic_rdata?!?!
-	// get descriptor, make sure domains are printed correctly!
-	// >> wait, we're printing generic rdata right?!?!
-	//
-
 	size_t i;
-	const nsd_rdata_descriptor_t* field;
 	size_t size = rr_marshal_rdata_length(rr);
 	uint16_t length = 0;
 
@@ -1035,47 +1078,25 @@ int print_unknown_rdata(buffer_type *output,
 	}
 
 	for(i=0; i < descriptor->rdata.length; i++) {
-		field = &descriptor->rdata.fields[i];
-		if(rr->rdlength == length && field->is_optional)
-			break; /* There are no more fields. */
-		if(field->calculate_length) {
-			/* Call field length function and print hex. */
-			int32_t field_len = field->calculate_length(
-				rr->rdlength, rr->rdata, &length);
-			if(!print_base16(output, field_len, rr->rdata,
-				&length))
-				return 0;
-		} else if(field->length >= 0) {
-			/* Print the field in hex. */
-			if(!print_base16(output, field->length, rr->rdata,
-				&length))
-				return 0;
+		uint16_t field_len;
+		struct domain* domain;
+		const uint8_t* to_print;
+		size_t to_print_len;
+		if(!lookup_rdata_field(descriptor, i, rr, length, &field_len,
+			&domain))
+			return 0; /* malformed rdata buffer */
+		if(domain != NULL) {
+			/* Handle RDATA_COMPRESSED_DNAME and
+			 * RDATA_UNCOMPRESSED_DNAME fields. */
+			const struct dname* dname = domain_dname(domain);
+			to_print = dname_name(dname);
+			to_print_len = dname->name_size;
 		} else {
-			/* Handle the specialized value cases. */
-			switch(field->length) {
-			case RDATA_COMPRESSED_DNAME:
-				break;
-			case RDATA_UNCOMPRESSED_DNAME:
-				break;
-			case RDATA_LITERAL_DNAME:
-				break;
-			case RDATA_STRING:
-				break;
-			case RDATA_BINARY:
-				break;
-			case RDATA_IPSECGATEWAY:
-				return 0; /* Has a callback function. */
-			case RDATA_REMAINDER:
-				/* Print the field in hex. */
-				if (!print_base16(output, rr->rdlength,
-					rr->rdata, &length))
-					return 0;
-				break;
-			default:
-				/* Unknown specialized value. */
-				return 0;
-			}
+			to_print = rr->rdata+length;
+			to_print_len = field_len;
 		}
+		hex_to_string(output, to_print, to_print_len);
+		length += field_len;
 	}
 	return 1;
 }

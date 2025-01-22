@@ -618,3 +618,27 @@ is_dname_subdomain_of_case(const uint8_t* d, unsigned int len,
 	/* The trailing portion is not at a label point. */
 	return 0;
 }
+
+size_t
+buf_dname_length(const uint8_t* buf, size_t len)
+{
+	size_t l = 0;
+	if(!buf || len == 0)
+		return l;
+	while(len > 0 && buf[0] != 0) {
+		size_t lablen = (size_t)(buf[0]);
+		if( (lablen&0xc0) )
+			return 0; /* the name should be uncompressed */
+		if(lablen+1 > len)
+			return 0; /* should fit in the buffer */
+		l += lablen+1;
+		len -= lablen+1;
+		buf += lablen+1;
+	}
+	if(len == 0)
+		return 0; /* end label should fit in buffer */
+	if(buf[0] != 0)
+		return 0; /* must end in root label */
+	l += 1; /* for the end root label */
+	return l;
+}
