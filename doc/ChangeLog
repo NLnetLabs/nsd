@@ -1,3 +1,6 @@
+22 January 2025: Wouter
+	- Fix #426: nsd crashes with patterns in config_apply_pattern.
+
 20 January 2025: Willem
 	- code repository continues with 4.11.2 under development.
 	- Fix re-enable to configure dns-cookies from config file, which was
