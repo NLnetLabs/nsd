@@ -2773,8 +2773,8 @@ config_apply_pattern(struct pattern_options *dest, const char* name)
 		c_error("could not find pattern %s", name);
 		return;
 	}
-	if(strncmp(dest->pname, PATTERN_IMPLICIT_MARKER,
-				strlen(PATTERN_IMPLICIT_MARKER)) == 0
+	if( (!dest->pname || strncmp(dest->pname, PATTERN_IMPLICIT_MARKER,
+				strlen(PATTERN_IMPLICIT_MARKER)) == 0)
 	&& pat->catalog_producer_zone) {
 		c_error("patterns with an catalog-producer-zone option are to "
 		        "be used with \"nsd-control addzone\" only and cannot "

@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 BUG FIXES:
         - Fix re-enable to configure dns-cookies from config file, which was
           accidentally removed with the 4.11.1 release.
+	- Fix #426: nsd crashes with patterns in config_apply_pattern.
 
 4.11.1
 ================
