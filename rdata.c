@@ -605,36 +605,30 @@ rdata_services_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
-rdata_ipsecgateway_to_string(buffer_type *output, rdata_atom_type rdata, rr_type* rr)
+rdata_gateway_relay_to_string(buffer_type *output, rdata_atom_type rdata,
+		int gateway_relay_type)
 {
-	int gateway_type = rdata_atom_data(rr->rdatas[1])[0];
-	switch(gateway_type) {
+	switch(gateway_relay_type) {
 	case IPSECKEY_NOGATEWAY:
 		buffer_printf(output, ".");
 		break;
 	case IPSECKEY_IP4:
-		rdata_a_to_string(output, rdata, rr);
-		break;
+		return rdata_a_to_string(output, rdata, NULL);
 	case IPSECKEY_IP6:
-		rdata_aaaa_to_string(output, rdata, rr);
-		break;
+		return rdata_aaaa_to_string(output, rdata, NULL);
 	case IPSECKEY_DNAME:
-		{
-			region_type* temp = region_create(xalloc, free);
-			const dname_type* d = dname_make(temp,
-				rdata_atom_data(rdata), 0);
-			if(!d) {
-				region_destroy(temp);
-				return 0;
-			}
-			buffer_printf(output, "%s", dname_to_string(d, NULL));
-			region_destroy(temp);
-		}
-		break;
+		return rdata_dns_name_to_string(output, rdata, NULL);
 	default:
 		return 0;
 	}
 	return 1;
+}
+
+static int
+rdata_ipsecgateway_to_string(buffer_type *output, rdata_atom_type rdata, rr_type* rr)
+{
+	return rdata_gateway_relay_to_string(output, rdata,
+			rdata_atom_data(rr->rdatas[1])[0]);
 }
 
 static int
@@ -996,6 +990,26 @@ rdata_atma_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
+rdata_amtrelay_d_type_to_string(buffer_type *output, rdata_atom_type rdata,
+	rr_type* ATTR_UNUSED(rr))
+{
+	uint8_t data = *rdata_atom_data(rdata);
+	buffer_printf(output , "%c %lu", (data & 0x80 ? '1' : '0'),
+			((unsigned long)data & 0x7f));
+	return 1;
+}
+
+static int
+rdata_amtrelay_relay_to_string(buffer_type *output, rdata_atom_type rdata,
+	rr_type* ATTR_UNUSED(rr))
+{
+	int relay_type = rdata_atom_data(rr->rdatas[1])[0] & 0x7f;
+	if(!relay_type)
+		return 1;
+	return rdata_gateway_relay_to_string(output, rdata, relay_type);
+}
+
+static int
 rdata_unknown_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -1041,6 +1055,8 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_svcparam_to_string,
 	rdata_hip_to_string,
 	rdata_atma_to_string,
+	rdata_amtrelay_d_type_to_string,
+	rdata_amtrelay_relay_to_string,
 	rdata_unknown_to_string
 };
 
@@ -1142,7 +1158,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			break;
 		case RDATA_WF_IPSECGATEWAY:
 			assert(i>1); /* we are past the gateway type */
-			switch(rdata_atom_data(temp_rdatas[1])[0]) /* gateway type */ {
+			switch(rdata_atom_data(temp_rdatas[1])[0] & 0x7f) /* gateway type */ {
 			default:
 			case IPSECKEY_NOGATEWAY:
 				length = 0;

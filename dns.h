@@ -167,6 +167,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_CAA	257	/* RFC 6844 */
 #define TYPE_AVC	258	/* AVC/avc-completed-template */
 #define TYPE_DOA	259	/* draft-durand-doa-over-dns */
+#define TYPE_AMTRELAY	260	/* RFC 8777 */
 #define TYPE_RESINFO	261	/* RFC 9606 */
 #define TYPE_WALLET	262	/* WALLET/wallet-completed-template */
 #define TYPE_CLA	263	/* CLA/cla-completed-template */
@@ -273,6 +274,8 @@ enum rdata_zoneformat
 	RDATA_ZF_SVCPARAM,	/* SvcParam <key>[=<value>] */
 	RDATA_ZF_HIP,		/* HIP rdata up to the Rendezvous Servers */
 	RDATA_ZF_ATMA,		/* ATM Address */
+	RDATA_ZF_AMTRELAY_D_TYPE,/* Discovery Optional and Type */
+	RDATA_ZF_AMTRELAY_RELAY,/* ip4, ip6, dname or nothing */
 	RDATA_ZF_UNKNOWN	/* Unknown data.  */
 };
 typedef enum rdata_zoneformat rdata_zoneformat_type;
