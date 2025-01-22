@@ -1001,13 +1001,13 @@ write_generic_rdata(struct query *query, const struct rr *rr)
 }
 
 int
-lookup_rdata_field(nsd_type_descriptor_t* descriptor, size_t index,
+lookup_rdata_field(const nsd_type_descriptor_t* descriptor, size_t index,
 	const rr_type* rr, uint16_t offset, uint16_t* field_len,
 	struct domain** domain)
 {
 	const nsd_rdata_descriptor_t* field = &descriptor->rdata.fields[index];
 	if(field->calculate_length) {
-		/* Call field length function */
+		/* Call field length function. */
 		*field_len = field->calculate_length(rr->rdlength, rr->rdata,
 			offset);
 		*domain = NULL;
@@ -1059,29 +1059,64 @@ lookup_rdata_field(nsd_type_descriptor_t* descriptor, size_t index,
 	return 1;
 }
 
-int print_unknown_rdata(buffer_type *output,
-	nsd_type_descriptor_t *descriptor, const rr_type *rr)
+int32_t
+rr_calculate_uncompressed_rdata_length(const rr_type* rr)
 {
 	size_t i;
-	size_t size = rr_marshal_rdata_length(rr);
-	uint16_t length = 0;
+	const nsd_type_descriptor_t* descriptor =
+		nsd_type_descriptor(rr->type);
+	uint16_t offset = 0;
+	int32_t result = 0;
+	for(i=0; i < descriptor->rdata.length; i++) {
+		uint16_t field_len;
+		struct domain* domain;
+		if(rr->rdlength == offset &&
+			descriptor->rdata.fields[i].is_optional)
+			break; /* There are no more rdata fields. */
+		if(!lookup_rdata_field(descriptor, i, rr, offset, &field_len,
+			&domain))
+			return -1; /* malformed rdata buffer */
+		if(domain != NULL) {
+			/* Handle RDATA_COMPRESSED_DNAME and
+			 * RDATA_UNCOMPRESSED_DNAME fields. */
+			const struct dname* dname = domain_dname(domain);
+			result += dname->name_size;
+		} else {
+			result += field_len;
+		}
+		offset += field_len;
+	}
+	return result;
+}
 
-	buffer_printf(output, " \\# %lu ", (unsigned long) size);
+int print_unknown_rdata(buffer_type *output,
+	const nsd_type_descriptor_t *descriptor, const rr_type *rr)
+{
+	size_t i;
+	int32_t size;
+	uint16_t length = 0;
 
 	if(!descriptor->has_references) {
 		/* There are no references to the domain table, the
 		 * rdata can be printed literally. */
-		if(!print_base16(output, rr->rdlength, rr->rdata, &length))
-			return 0;
-		assert(rr->rdlength == length);
+		buffer_printf(output, " \\# %lu ", (unsigned long)rr->rdlength);
+		hex_to_string(output, rr->rdata, rr->rdlength);
 		return 1;
 	}
+
+	size = rr_calculate_uncompressed_rdata_length(rr);
+	if(size < 0)
+		return 0;
+	buffer_printf(output, " \\# %lu ", (unsigned long) size);
 
 	for(i=0; i < descriptor->rdata.length; i++) {
 		uint16_t field_len;
 		struct domain* domain;
 		const uint8_t* to_print;
 		size_t to_print_len;
+		if(rr->rdlength == length &&
+			descriptor->rdata.fields[i].is_optional)
+			break; /* There are no more rdata fields. */
 		if(!lookup_rdata_field(descriptor, i, rr, length, &field_len,
 			&domain))
 			return 0; /* malformed rdata buffer */
@@ -1101,18 +1136,49 @@ int print_unknown_rdata(buffer_type *output,
 	return 1;
 }
 
+/* This structure is sufficient in size for a struct dname. It can
+ * be cast to a struct dname*, since it has the same data. */
+struct dname_buffer {
+	struct dname dname;
+	/* storage for labelcount, and for the wireformat name.
+	 * The labelcount can be 1 byte per label, maxlen/2 + 1(root label).
+	 * The wireformat name, MAXDOMAINLEN+1.
+	 * This allocates storage for it, due to alignment, the struct
+	 * dname may have padding. The actual content would be after the
+	 * sizeof(struct dname), of label_offsets and name. */
+	uint8_t storage[MAXDOMAINLEN/2 + 1 + MAXDOMAINLEN+1 ];
+};
+
+/*
+ * Parse a domain name from packet and store it in the buffer.
+ * @param dname: the buffer with sufficient size for the dname.
+ * @param packet: packet, at the position of the dname. The position is moved.
+ * @param allow_pointers: set to true if compression pointers are allowed.
+ * @param normalize: set to true if the domain name has to be normalized.
+ * @return 0 on failure, or name_length when done.
+ */
+int
+dname_make_from_packet_buffered(struct dname_buffer* dname,
+	buffer_type *packet, int allow_pointers, int normalize)
+{
+	int wirelen = dname_make_wire_from_packet(dname->storage,
+		packet, allow_pointers);
+	return wirelen;
+}
+
 int32_t
 read_compressed_name_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
 	struct domain *domain;
 	struct dname_buffer dname;
-
+	size_t size;
 	const size_t mark = buffer_position(packet);
-	if (!dname_make_wire_from_packet_buffered(&dname, packet, 1, 1) ||
-	    rdlength != buffer_position(packet) - mark)
+
+	if (!dname_make_from_packet_buffered(&dname, packet, 1, 1) ||
+	    rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
-	static const size_t size = sizeof(**rr) + sizeof(void*);
+	size = sizeof(**rr) + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void*)&dname);
@@ -1128,11 +1194,13 @@ read_uncompressed_name_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	struct domain *domain;
 	struct dname_buffer dname;
+	size_t size;
 
-	if (!dname_make_wire_from_packet_buffered(&dname, packet, 0, 1) ||
-			rdlength != dname.dname.name_size)
+	if (!dname_make_from_packet_buffered(&dname, packet,
+		1 /* Lenient, allows pointers. */, 1) ||
+			rdlength < dname.dname.name_size)
 		return MALFORMED;
-	const size_t size = sizeof(**rr) + sizeof(void*);
+	size = sizeof(**rr) + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void*)&dname);
@@ -1173,7 +1241,7 @@ encode_dname(query_type *q, domain_type *domain)
 void
 write_compressed_name_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *domain;
+	struct domain *domain;
 	assert(rr->rdlength == sizeof(void*));
 	memcpy(domain, rr->rdata, sizeof(void*));
 	encode_dname(query, domain);
@@ -1183,9 +1251,9 @@ void
 write_uncompressed_name_rdata(struct query *query, const struct rr *rr)
 {
 	const struct dname *dname;
-	const struct domain *domain;
-	assert(rdlength >= sizeof(void*));
-	memcpy(domain, rdata, sizeof(void*));
+	struct domain *domain;
+	assert(rr->rdlength >= sizeof(void*));
+	memcpy(domain, rr->rdata, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
 }
@@ -1220,9 +1288,9 @@ int32_t
 read_soa_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
-	uint16_t length;
 	struct domain *primary_domain, *mailbox_domain;
 	struct dname_buffer primary, mailbox;
+	size_t size;
 
 	/* name + name + long + long + long + long + long */
 	const size_t mark = buffer_position(packet);
@@ -1231,7 +1299,7 @@ read_soa_rdata(struct domain_table *domains, uint16_t rdlength,
 	    rdlength != (buffer_position(packet) - mark) + 20)
 		return MALFORMED;
 
-	static const size_t size = sizeof(**rr) + 2 * sizeof(struct domain *) + 20;
+	size = sizeof(**rr) + 2 * sizeof(struct domain *) + 20;
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	primary_domain = domain_table_insert(domains, (void*)&primary);
@@ -1249,7 +1317,7 @@ read_soa_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_soa_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *primary, *mailbox;
+	struct domain *primary, *mailbox;
 	/* domain + domain + long + long + long + long + long */
 	assert(rr->rdlength == 2 * sizeof(void*) + 20);
 	memcpy(primary, rr->rdata, sizeof(void*));
@@ -1267,7 +1335,7 @@ print_soa_rdata(struct buffer *output, const struct rr *rr)
 	assert(rr->rdlength == 2 * sizeof(void*) + 20);
 	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	buffer_printf(buffer, " ");
+	buffer_printf(output, " ");
 	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 
@@ -1279,7 +1347,7 @@ print_soa_rdata(struct buffer *output, const struct rr *rr)
 	minimum = read_uint32(rr->rdata + length + 16);
 
 	buffer_printf(
-		buffer, " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32,
+		output, " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32,
 		serial, refresh, retry, expire, minimum);
 	return 1;
 }
@@ -1314,19 +1382,26 @@ print_wks_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
 	uint8_t protocol;
+	int bits;
+	const uint8_t* bitmap;
 
 	assert(rr->rdlength >= 5);
 	if (!print_ip4(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 
 	protocol = rr->rdata[4];
-	buffer_printf(buffer, "%s %" PRIu8, address, protocol);
+	if(protocol == 6)
+		buffer_printf(output, "tcp");
+	else if(protocol == 17)
+		buffer_printf(output, "udp");
+	else
+		buffer_printf(output, "%" PRIu8, protocol);
 
-	int bits = (rr->rdlength - 5) * 8;
-	const uint8_t *bitmap = rr->rdata + 5;
+	bits = (rr->rdlength - 5) * 8;
+	bitmap = rr->rdata + 5;
 	for (int service = 0; service < bits; service++) {
 		if (get_bit(bitmap, service))
-			buffer_printf(buffer, " %d", service);
+			buffer_printf(output, " %d", service);
 	}
 	return 1;
 }
@@ -1365,10 +1440,10 @@ read_minfo_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_minfo_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *rmailbx, *emailbx;
-	assert(rdlength == 2 * sizeof(void*));
-	memcpy(rmailbx, rdata, sizeof(void*));
-	memcpy(emailbx, rdata + sizeof(void*), sizeof(void*));
+	struct domain *rmailbx, *emailbx;
+	assert(rr->rdlength == 2 * sizeof(void*));
+	memcpy(rmailbx, rr->rdata, sizeof(void*));
+	memcpy(emailbx, rr->rdata + sizeof(void*), sizeof(void*));
 	encode_dname(query, rmailbx);
 	encode_dname(query, emailbx);
 }
@@ -1393,6 +1468,7 @@ read_mx_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	struct domain *domain;
 	struct dname_buffer exchange;
+	size_t size;
 
 	/* short + name */
 	const size_t mark = buffer_position(packet);
@@ -1403,7 +1479,7 @@ read_mx_rdata(struct domain_table *domains, uint16_t rdlength,
 		return MALFORMED;
 	if (rdlength != 2 + exchange.dname.name_size)
 		return MALFORMED;
-	static const size_t size = sizeof(**rr) + 2 + sizeof(void*);
+	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
 		return -1;
 	domain = domain_table_insert(domains, (void*)&dname);
@@ -1417,9 +1493,9 @@ read_mx_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_mx_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *domain;
+	struct domain *domain;
 	const struct dname *dname;
-	assert(rdlength == 2 + sizeof(void*));
+	assert(rr->rdlength == 2 + sizeof(void*));
 	memcpy(domain, rr->rdata + 2, sizeof(void*));
 	buffer_write(query->packet, rr->rdata, 2);
 	encode_dname(query, domain);
@@ -1446,7 +1522,7 @@ read_txt_rdata(struct domain_table *owners, uint16_t rdlength,
 	if (skip_strings(packet, rdlength, &length) < 0 || rdlength != length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
-	return read_rdata(owners, rdlength, buffer, rr);
+	return read_rdata(owners, rdlength, packet, rr);
 }
 
 int
@@ -1458,7 +1534,7 @@ print_txt_rdata(struct buffer *output, const struct rr *rr)
 		if (!print_string(output, rr->rdlength, rr->rdata, &length))
 			return 0;
 		while (offset < rr->rdlength) {
-			buffer_printf(buffer, " ");
+			buffer_printf(output, " ");
 			if (!print_string(output, rr->rdlength, rr->rdata,
 				&length))
 				return 0;
@@ -1473,13 +1549,14 @@ read_rp_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	struct domain *mbox_domain, *txt_domain;
 	struct dname_buffer mbox, txt;
+	size_t size;
 
 	if (buffer_remaining(packet) < rdlength ||
 	    !dname_make_from_packet_buffered(&mbox, packet, 0, 1) ||
 			!dname_make_from_packet_buffered(&txt, packet, 0, 1) ||
 	    rdlength != mbox.dname.name_size + txt.dname.name_size)
 		return MALFORMED;
-	static const size_t size = sizeof(**rr) + 2 * sizeof(void*);
+	size = sizeof(**rr) + 2 * sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	mbox_domain = domain_table_insert(domains, (void*)&mbox);
@@ -1495,7 +1572,7 @@ read_rp_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_rp_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *mbox_domain, *txt_domain;
+	struct domain *mbox_domain, *txt_domain;
 	const struct dname *mbox, *txt;
 
 	assert(rr->rdlength == 2 * sizeof(void*));
@@ -1513,6 +1590,7 @@ read_afsdb_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	struct domain *domain;
 	struct dname_buffer hostname;
+	size_t size;
 	/* short + uncompressed name */
 	const size_t mark = buffer_position(packet);
 
@@ -1522,7 +1600,7 @@ read_afsdb_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (!dname_make_from_packet_buffered(&hostname, packet, 0, 1) ||
 	    rdlength != 2 + hostname.dname.name_size)
 		return MALFORMED;
-	static const size_t size = sizeof(**rr) + 2 + sizeof(void*);
+	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void*)&hostname);
@@ -1536,7 +1614,7 @@ read_afsdb_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_afsdb_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *domain;
+	struct domain *domain;
 	const struct dname *dname;
 
 	assert(rr->rdlength == 2 + sizeof(void*));
@@ -1554,7 +1632,7 @@ print_afsdb_rdata(struct buffer *output, const struct rr *rr)
 	assert(rr->rdlength == 2 + sizeof(void*));
 	memcpy(&subtype, rr->rdata, sizeof(subtype));
 	subtype = ntohs(subtype);
-	buffer_printf(buffer, "%" PRIu16 " ", subtype);
+	buffer_printf(output, "%" PRIu16 " ", subtype);
 	if(!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	return 0;
@@ -1603,8 +1681,8 @@ print_isdn_rdata(struct buffer *output, const struct rr *rr)
 	uint16_t length = 0;
 	if (!print_string(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	buffer_printf(buffer, " ");
-	if (!print_string(buffer, rr->rdlength, rr->rdata, &length))
+	buffer_printf(output, " ");
+	if (!print_string(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
 	return 1;
@@ -1616,6 +1694,7 @@ read_rt_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	struct domain *domain;
 	struct dname_buffer dname;
+	size_t size;
 	const size_t mark = buffer_position(packet);
 
 	if (rdlength < 2)
@@ -1625,7 +1704,7 @@ read_rt_rdata(struct domain_table *domains, uint16_t rdlength,
 		return MALFORMED;
 	if (rdlength != 2 + dname.dname.name_size)
 		return MALFORMED;
-	static const size_t size = sizeof(**rr) + 2 + sizeof(void*);
+	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
 		return -1;
 	domain = domain_table_insert(domains, (void*)&dname);
@@ -1639,13 +1718,12 @@ read_rt_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_rt_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *domain;
+	struct domain *domain;
 	const struct dname *dname;
 
-	assert(rdlength == 2 + sizeof(void*));
+	assert(rr->rdlength == 2 + sizeof(void*));
 	memcpy(domain, (*rr)->rdata + 2, sizeof(void*));
 	dname = domain_dname(domain);
-	const uint16_t rdlength = 2 + dname->name_size;
 	if (!try_buffer_write_u16(query->packet, rdlength) ||
 	    !try_buffer_write(query->packet, rr->rdata, 2) ||
 			!try_buffer_write(query->packet, dname_name(dname), dname->name_size))
@@ -1681,6 +1759,7 @@ read_px_rdata(struct domain_table *domains, struct buffer *packet,
 {
 	struct domain *map822_domain, *mapx400_domain;
 	struct dname_buffer map822, mapx400;
+	size_t size;
 	const uint16_t rdlength = buffer_read_u16(packet);
 	const size_t mark = buffer_position(packet);
 
@@ -1692,7 +1771,7 @@ read_px_rdata(struct domain_table *domains, struct buffer *packet,
 	    rdlength != 2 + map822.dname.name_size + mapx400.dname.name_size)
 		return MALFORMED;
 
-	static const size_t size = sizeof(**rr) + 2 + 2*sizeof(void*);
+	size = sizeof(**rr) + 2 + 2*sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	map822_domain = domain_table_insert(domains, (void*)&map822);
@@ -1710,14 +1789,13 @@ read_px_rdata(struct domain_table *domains, struct buffer *packet,
 void
 write_px_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *map822_domain, *mapx400_domain;
+	struct domain *map822_domain, *mapx400_domain;
 	const struct dname *map822, *mapx400;
 
 	memcpy(map822_domain, rr->rdata + 2, sizeof(void*));
 	memcpy(mapx400_domain, rr->rdata + 2 + sizeof(void*), sizeof(void*));
 	map822 = domain_dname(map822_domain);
 	mapx400 = domain_dname(mapx400_domain);
-	const uint16_t rdlength = 2 + map822->name_size + mapx400->name_size;
 	buffer_write(query->packet, rr->rdata, 2);
 	buffer_write(query->packet, dname_name(map822), map822->name_size);
 	buffer_write(query->packet, dname_name(mapx400), mapx400->name_size);
@@ -1757,14 +1835,18 @@ int32_t
 read_loc_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
+	size_t mark;
+	uint8_t version;
+	uint16_t size_version_0;
+
 	/* version (byte) */
 	if (rdlength < 1)
 		return MALFORMED;
 	/* version (byte) + size (byte) + horiz pre (byte) + vert pre (byte)
 	 * latitude (long) + longitude (long) + altitude (long) */
-	const size_t mask = buffer_position(packet);
-	const uint8_t version = buffer_read_u8_at(packet, mark + 2);
-	static const uint16_t size_version_0 = 16u;
+	mark = buffer_position(packet);
+	version = buffer_read_u8_at(packet, mark + 2);
+	size_version_0 = 16u;
 	if (version == 0 && rdlength != size_version_0)
 		return MALFORMED;
 	return read_rdata(domains, rdlength, packet, rr);
@@ -1776,16 +1858,18 @@ read_nxt_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	struct domain *domain;
 	struct dname_buffer dname;
+	size_t size;
+	uint16_t bitmap_size;
 
 	/* name + nxt */
 	if (!dname_make_from_packet_buffered(&dname, packet, 1, 1))
 		return MALFORMED;
 	if (buffer_remaining(packet) < 2)
 		return MALFORMED;
-	const uint16_t bitmap_size = buffer_peek_u16(packet);
+	bitmap_size = buffer_peek_u16(packet);
 	if (bitmap_size >= 8192 || buffer_remaining(packet) < 2 + bitmap_size)
 		return MALFORMED;
-	const size_t size = sizeof(**rr) + sizeof(domain) + bitmap_size;
+	size = sizeof(**rr) + sizeof(domain) + bitmap_size;
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void*)&next);
@@ -1799,7 +1883,7 @@ read_nxt_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_nxt_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *domain;
+	struct domain *domain;
 	const struct dname *dname;
 
 	assert(rr->rdlength >= sizeof(void*));
@@ -1813,13 +1897,15 @@ int
 print_nxt_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
+	int bitmap_size;
+	const uint8_t* bitmap;
 
 	assert(rr->rdlength > sizeof(void*));
 	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 
-	int bits = rdlength - length;
-	const uint8_t *bitmap = rr->rdata + length;
+	bitmap_size = rr->rdlength - length;
+	bitmap = rr->rdata + length;
 	for (int type = 0; type < bitmap_size * 8; type++) {
 		if (get_bit(bitmap, type)) {
 			buffer_printf(output, "%s ", rrtype_to_string(type));
@@ -1836,6 +1922,7 @@ read_srv_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	struct domain *domain;
 	struct dname_buffer dname;
+	size_t size;
 	const size_t mark = buffer_position(packet);
 
 	/* short + short + short + name */
@@ -1845,7 +1932,7 @@ read_srv_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (!dname_make_from_packet_buffered(&dname, packet, 0, 1) ||
 	    rdlength != 6 + dname.dname.name_size)
 		return MALFORMED;
-	const size_t size = sizeof(**rr) + 6 + sizeof(void*);
+	size = sizeof(**rr) + 6 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void*)&dname);
@@ -1859,13 +1946,12 @@ read_srv_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_srv_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *domain;
+	struct domain *domain;
 	const struct dname *dname;
 
 	assert(rr->rdlength == 6 + sizeof(void*));
 	memcpy(domain, rr->rdata, sizeof(void*));
 	dname = domain_dname(domain);
-	uint16_t rdlength = 6 + dname->name_size;
 	buffer_write(query->packet, rr->rdata, 6);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
 }
@@ -1922,6 +2008,7 @@ read_naptr_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct domain *domain;
 	struct dname_buffer dname;
 	uint16_t length = 4;
+	size_t size;
 	const size_t mark = buffer_position(packet);
 
 	/* short + short + text + text + text + name */
@@ -1934,7 +2021,7 @@ read_naptr_rdata(struct domain_table *domains, uint16_t rdlength,
 	    rdlength - length != dname.dname.name_size)
 		return MALFORMED;
 
-	const size_t size = sizeof(**rr) + length + sizeof(void*);
+	size = sizeof(**rr) + length + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void*)&next);
@@ -1948,13 +2035,14 @@ read_naptr_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_naptr_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *domain;
+	struct domain *domain;
 	const struct dname *dname;
+	uint16_t length;
 
 	/* short + short + string + string + string + uncompressed name */
 	assert(rr->rdlength < 7 + sizeof(void*));
-	uint16_t length = rr->rdlength - sizeof(void*);
-	memcpy(domain, rdata + length, sizeof(void*));
+	length = rr->rdlength - sizeof(void*);
+	memcpy(domain, rr->rdata + length, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, rr->rdata, length);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
@@ -1991,6 +2079,7 @@ read_kx_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct domain *domain;
 	struct dname_buffer dname;
 	const size_t mark = buffer_position(packet);
+	size_t size;
 
 	/* short + uncompressed name */
 	if (buffer_remaining(packet) < rdlength || rdlength < 2 ||
@@ -1998,7 +2087,7 @@ read_kx_rdata(struct domain_table *domains, uint16_t rdlength,
 			rdlength - 2 != dname.dname.name_size)
 		return MALFORMED;
 
-	const size_t size = sizeof(**rr) + 2 + sizeof(void*);
+	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void*)&dname);
@@ -2012,7 +2101,7 @@ read_kx_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_kx_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *domain;
+	struct domain *domain;
 	const struct dname *dname;
 
 	/* short + uncompressed name */
@@ -2084,15 +2173,20 @@ print_apl(struct buffer *output, size_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
 	size_t size = rdlength - *offset;
+	uint16_t address_family;
+	uint8_t prefix, length, negated;
+	int af;
+	char text_address[INET6_ADDRSTRLEN + 1];
+	uint8_t address[16];
 
 	if (size < 4)
 		return 0;
 
-	uint16_t address_family = read_uint16(rdata + *offset);
-	uint8_t prefix = rdata[*offset + 2];
-	uint8_t length = rdata[*offset + 3] & APL_LENGTH_MASK;
-	uint8_t negated = rdata[*offset + 3] & APL_NEGATION_MASK;
-	int af = -1;
+	address_family = read_uint16(rdata + *offset);
+	prefix = rdata[*offset + 2];
+	length = rdata[*offset + 3] & APL_LENGTH_MASK;
+	negated = rdata[*offset + 3] & APL_NEGATION_MASK;
+	af = -1;
 
 	switch (address_family) {
 	case 1: af = AF_INET; break;
@@ -2102,8 +2196,6 @@ print_apl(struct buffer *output, size_t rdlength, const uint8_t *rdata,
 	if (af == -1 || size - 4 < length)
 		return 0;
 
-	char text_address[INET6_ADDRSTRLEN + 1];
-	uint8_t address[16];
 	memset(address, 0, sizeof(address));
 	memmove(address, rdata + *offset + 4, length);
 
@@ -2190,6 +2282,7 @@ read_ipseckey_rdata(struct domain_table *domains, uint16_t rdlength,
 	const uint8_t *gateway_rdata, *rdata;
 	uint8_t gateway_length = 0;
 	const size_t mark = buffer_position(packet);
+	uint16_t length;
 
 	/* byte + byte + byte + gateway + binary */
 	if (buffer_remaining(buffer) < rdlength || rdlength < 3)
@@ -2227,7 +2320,7 @@ read_ipseckey_rdata(struct domain_table *domains, uint16_t rdlength,
 
 	buffer_read_at(packet, mark, (*rr)->rdata, 3);
 	memcpy((*rr)->rdata + 3, gateway_rdata, gateway_length);
-	const uint16_t length = 3 + gateway_length;
+	length = 3 + gateway_length;
 	buffer_read(packet, (*rr)->rdata + length, rdlength - length);
 	(*rr)->rdlength = rdlength;
 	return rdlength;
@@ -2239,7 +2332,7 @@ print_ipseckey_rdata(struct buffer *output, const struct rr *rr)
 	uint16_t length = 3;
 	uint8_t gateway_type;
 
-	assert(rdlength >= length);
+	assert(rr->rdlength >= length);
 	buffer_printf(
 		output, "%" PRIu8 " %" PRIu8 " %" PRIu8 " ",
 		rr->rdata[0], rr->rdata[1], rr->rdata[2]);
@@ -2272,6 +2365,32 @@ print_ipseckey_rdata(struct buffer *output, const struct rr *rr)
 }
 
 int32_t
+ipseckey_gateway_length(uint16_t rdlength, const uint8_t *rdata,
+	uint16_t offset)
+{
+	uint8_t gateway_type;
+	/* Calculate the gateway length, based on the gateway type.
+	 * That is stored in an earlier field. */
+	if(rdlength < 3 || offset < 3)
+		return -1; /* too short */
+	gateway_type = rdata[1];
+	switch(gateway_type) {
+	case IPSECKEY_NOGATEWAY:
+		return 0;
+	case IPSECKEY_IP4:
+		return 4;
+	case IPSECKEY_IP6:
+		return 16;
+	case IPSECKEY_DNAME:
+		return buf_dname_length(rdata+offset, rdlength-offset);
+	default:
+		/* Unknown gateway type. */
+		break;
+	}
+	return -1;
+}
+
+int32_t
 read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
@@ -2289,7 +2408,6 @@ read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + rdlength)))
 		return TRUNCATED;
 	buffer_read_at(packet, mark, (*rr)->rdata, 18);
-	const uint8_t length = 18 + signer.dname.name_size;
 	memcpy((*rr)->rdata + 18, dname_name(&signer), signer.dname.name_size);
 	(*rr)->rdlength = rdlength;
 	return rdlength;
@@ -2328,14 +2446,16 @@ read_nsec_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
 	struct dname_storage next;
+	uint16_t length;
+	size_t mark;
 
 	/* uncompressed name + nsec */
 	if (buffer_remaining(packet) < rdlength ||
 	    !dname_make_from_packet_buffered(&next, packet, 0, 1))
 		return MALFORMED;
 
-	uint16_t length = next.dname.name_size;
-	const size_t mark = buffer_position(packet);
+	length = next.dname.name_size;
+	mark = buffer_position(packet);
 	if (skip_nsec(packet, rdlength, &length) < 0 || rdlength != length)
 		return MALFORMED;
 	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + rdlength)))
@@ -2491,7 +2611,7 @@ read_tlsa_rdata(struct domain_table *domains, uint16_t rdlength,
 }
 
 int
-print_tlsa_rdata(struct buffer *buffer, const struct rr *rr)
+print_tlsa_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 3;
 
@@ -2645,6 +2765,7 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct domain *domain;
 	struct dname_buffer target;
 	uint16_t length = 2, svcparams_length = 0;
+	uint16_t size;
 	const size_t mark = buffer_position(packet);
 
 	/* short + name + svc_params */
@@ -2658,7 +2779,7 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 		return MALFORMED;
 	svcparams_length = rdlength - length;
 
-	const uint16_t size = sizeof(**rr) + 2 + sizeof(void*) + svcparams_length;
+	size = sizeof(**rr) + 2 + sizeof(void*) + svcparams_length;
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void)&target);
@@ -2673,15 +2794,16 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_svcb_rdata(struct query *query, const struct rr *rr)
 {
-	const struct domain *domain;
+	struct domain *domain;
 	const struct dname *target;
+	uint8_t length;
 
 	assert(rr->rdlength >= 2 + sizeof(void*));
 	memcpy(domain, rr->rdata + 2, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, rr->rdata, 2);
 	buffer_write(query->packet, dname_name(target), target->name_size);
-	const uint8_t length = 2 + sizeof(void*);
+	length = 2 + sizeof(void*);
 	buffer_write(query->packet, rr->rdata + length, rr->rdlength - length);
 }
 
@@ -2733,7 +2855,7 @@ read_l32_rdata(struct domain_table *domains, uint16_t rdlength,
 }
 
 int
-print_l32_rdata(struct buffer *buffer, const struct rr *rr)
+print_l32_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
 
@@ -2755,7 +2877,7 @@ read_l64_rdata(struct domain_table *domains, uint16_t rdlength,
 }
 
 int
-print_l64_rdata(struct buffer *buffer, const struct rr *rr)
+print_l64_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
 
@@ -2773,6 +2895,7 @@ read_lp_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	struct domain *domain;
 	struct dname_buffer target;
+	size_t size;
 	/* short + name */
 	const size_t mark = buffer_position(packet);
 
@@ -2782,7 +2905,7 @@ read_lp_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (!dname_make_from_packet_buffered(&target, packet, 0, 1) ||
 	    rdlength != 2 + target.dname.name_size)
 		return MALFORMED;
-	const size_t size = sizeof(**rr) + 2 + sizeof(void*);
+	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	domain = domain_table_insert(domains, &target);
@@ -2794,7 +2917,7 @@ read_lp_rdata(struct domain_table *domains, uint16_t rdlength,
 }
 
 int
-print_lp_rdata(struct buffer *buffer, const struct rr *rr)
+print_lp_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
 
@@ -2818,8 +2941,8 @@ read_eui48_rdata(struct domain_table *domains, uint16_t rdlength,
 int
 print_eui48_rdata(struct buffer *output, const struct rr *rr)
 {
-	assert(rr->rdlength == 6);
 	const uint8_t *x = rr->rdata;
+	assert(rr->rdlength == 6);
 	buffer_printf(output, "%.2x-%.2x-%.2x-%.2x-%.2x-%.2x",
 		x[0], x[1], x[2], x[3], x[4], x[5]);
 	return 1;
@@ -2835,10 +2958,10 @@ read_eui64_rdata(struct domain_table *domains, uint16_t rdlength,
 }
 
 int
-print_eui64_rdata(struct buffer *buffer, const struct rr *rr)
+print_eui64_rdata(struct buffer *output, const struct rr *rr)
 {
-	assert(rr->rdlength == 8);
 	const uint8_t *x = rr->rdata;
+	assert(rr->rdlength == 8);
 	buffer_printf(output, "%.2x-%.2x-%.2x-%.2x-%.2x-%.2x-%.2x-%.2x",
 		x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7]);
 	return 1;
@@ -2884,11 +3007,11 @@ read_caa_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
 	const size_t mark = buffer_position(packet);
+	uint16_t length = 1;
 
 	/* byte + string */
 	if (buffer_remaining(packet) < rdlength || rdlength < 3)
 		return MALFORMED;
-	uint16_t length = 1;
 	if (skip_string(packet, rdlength, &length) < 0 || rdlength <= length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
@@ -2896,7 +3019,7 @@ read_caa_rdata(struct domain_table *domains, uint16_t rdlength,
 }
 
 int
-print_caa_rdata(struct buffer *buffer, const struct rr *rr)
+print_caa_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 1;
 
@@ -2947,13 +3070,10 @@ print_dlv_rdata(struct buffer *output, const struct rr *rr)
 }
 
 int
-print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
+print_rdata(buffer_type *output, const nsd_type_descriptor_t *descriptor,
 	const rr_type *rr)
 {
-	(void)output;
-	(void)descriptor;
-	(void)rr;
-	return 0;
+	return descriptor->print_rdata(output, rr);
 }
 
 int32_t

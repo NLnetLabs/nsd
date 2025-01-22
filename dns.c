@@ -247,7 +247,8 @@ static const struct nsd_rdata_descriptor ipseckey_rdata_fields[] = {
 	FIELD("precedence", 1),
 	FIELD("gateway type", 1),
 	FIELD("algorithm", 1),
-	FIELD_ENTRY("gateway", 0, RDATA_IPSECGATEWAY, gateway_length, NULL),
+	FIELD_ENTRY("gateway", 0, RDATA_IPSECGATEWAY,
+		ipseckey_gateway_length, NULL),
 	FIELD_ENTRY("public key", 1, RDATA_BINARY, NULL, NULL)
 };
 

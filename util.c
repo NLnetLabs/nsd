@@ -910,8 +910,8 @@ print_rr(FILE *out,
 	 region_type* rr_region,
 	 buffer_type* output)
 {
-        rrtype_descriptor_type *descriptor
-                = rrtype_descriptor_by_type(record->type);
+        const nsd_type_descriptor_t *descriptor =
+		nsd_type_descriptor(record->type);
         int result;
         const dname_type *owner = domain_dname(record->owner);
 	buffer_clear(output);
@@ -949,8 +949,7 @@ print_rr(FILE *out,
 		 * Some RDATA failed to print, so print the record's
 		 * RDATA in unknown format.
 		 */
-		result = rdata_atoms_to_unknown_string(output,
-			descriptor, record->rdata_count, record->rdatas);
+		result = print_unknown_rdata(output, descriptor, record);
 	}
 
 	if (result) {

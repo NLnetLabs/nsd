@@ -237,7 +237,7 @@ typedef enum nsd_rc nsd_rc_type;
  * @param offset: current byte position in rdata.
  * 	offset is required for the ipsecgateway where we need to read
  * 	a couple bytes back
- * @return length in bytes.
+ * @return length in bytes. Or -1 on failure, like rdata length too short.
  */
 typedef int32_t(*nsd_rdata_field_length_t)(
 	uint16_t rdlength,
@@ -281,7 +281,9 @@ struct nsd_rdata_descriptor {
 	int32_t length;
 
 	/* Determine size of rdata field. Returns the size of uncompressed
-	 * rdata on the wire. So for references this is a different number. */
+	 * rdata on the wire, or -1 on failure, like when it is malformed.
+	 * So for references this is a different number. Used for ipseckey
+	 * gateway, because the type depends on earlier data. */
 	nsd_rdata_field_length_t calculate_length;
 
 	/* Print the rdata field */

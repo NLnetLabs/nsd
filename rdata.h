@@ -48,17 +48,13 @@ struct nsd_svcparam_descriptor {
 };
 
 int print_unknown_rdata(buffer_type *output,
-	nsd_type_descriptor_t *descriptor, const rr_type *rr);
+	const nsd_type_descriptor_t *descriptor, const rr_type *rr);
 
 /* print rdata to a text string (as for a zone file) returns 0
   on a failure (bufpos is reset to original position).
   returns 1 on success, bufpos is moved. */
-int print_rdata(
-	buffer_type *output, nsd_type_descriptor_t *descriptor, const rr_type *rr);
-
-/* Determine length of IPSECKEY gateway field. */
-int32_t gateway_length(uint16_t rdlength, const uint8_t *rdata,
-	uint16_t offset);
+int print_rdata(buffer_type *output, const nsd_type_descriptor_t *descriptor,
+	const rr_type *rr);
 
 /* Read rdata for an unknown RR type. */
 int32_t read_generic_rdata(struct domain_table *domains, uint16_t rdlength,
@@ -313,6 +309,10 @@ int32_t read_ipseckey_rdata(struct domain_table *domains, uint16_t rdlength,
 /* Print rdata for type IPSECKEY. */
 int print_ipseckey_rdata(struct buffer *buffer, const struct rr *rr);
 
+/* Determine length of IPSECKEY gateway field. */
+int32_t ipseckey_gateway_length(uint16_t rdlength, const uint8_t *rdata,
+	uint16_t offset);
+
 /* Read rdata for type RRSIG. */
 int32_t read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr);
@@ -480,6 +480,15 @@ int32_t read_dlv_rdata(struct domain_table *domains, uint16_t rdlength,
 int print_dlv_rdata(struct buffer *buffer, const struct rr *rr);
 
 /*
+ * Look up the uncompressed wireformat length of the rdata.
+ * The pointer references in it are taking up the length of their uncompressed
+ * domain names.
+ * @param rr: the rr, the RR type and rdata are used.
+ * @result -1 on failure, otherwise length in bytes.
+ */
+int32_t rr_calculate_uncompressed_rdata_length(const rr_type* rr);
+
+/*
  * Look up the field length. The field length is returned as a length
  * in the rdata that is stored. For a reference, the pointer is returned too.
  * @param descriptor: type descriptor.
@@ -492,7 +501,7 @@ int print_dlv_rdata(struct buffer *buffer, const struct rr *rr);
  * @return false on failure, when the rdata stored is badly formatted, like
  *	the rdata buffer is too short.
  */
-int lookup_rdata_field(nsd_type_descriptor_t* descriptor, size_t index,
+int lookup_rdata_field(const nsd_type_descriptor_t* descriptor, size_t index,
 	const rr_type* rr, uint16_t offset, uint16_t* field_len,
 	struct domain** domain);
 
