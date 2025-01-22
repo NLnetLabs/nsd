@@ -911,6 +911,8 @@ static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+2)] 
 	{ TYPE_WALLET, "WALLET", 1, 1, { RDATA_WF_TEXTS }, { RDATA_ZF_TEXTS } },
 	/* 263 - CLA */
 	{ TYPE_CLA, "CLA", 1, 1, { RDATA_WF_TEXTS }, { RDATA_ZF_TEXTS } },
+	/* 264 - IPN */
+	{ TYPE_IPN, "IPN", 1, 1, { RDATA_WF_LONGLONG }, { RDATA_ZF_LONGLONG } },
 
 	/* 32768 - TA */
 	{ TYPE_TA, "TA", 4, 4,

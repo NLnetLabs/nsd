@@ -171,6 +171,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_RESINFO	261	/* RFC 9606 */
 #define TYPE_WALLET	262	/* WALLET/wallet-completed-template */
 #define TYPE_CLA	263	/* CLA/cla-completed-template */
+#define TYPE_IPN	264	/* IPN/ipn-completed-template */
 
 #define TYPE_TA		32768	/* http://www.watson.org/~weiler/INI1999-19.pdf */
 #define TYPE_DLV	32769	/* RFC 4431 */
@@ -217,6 +218,7 @@ enum rdata_wireformat
 	RDATA_WF_BYTE,               /* 8-bit integer.  */
 	RDATA_WF_SHORT,              /* 16-bit integer.  */
 	RDATA_WF_LONG,               /* 32-bit integer.  */
+	RDATA_WF_LONGLONG,           /* 64-bit integer.  */
 	RDATA_WF_TEXT,               /* Text string.  */
 	RDATA_WF_TEXTS,              /* Text string sequence.  */
 	RDATA_WF_A,                  /* 32-bit IPv4 address.  */
@@ -246,6 +248,7 @@ enum rdata_zoneformat
 	RDATA_ZF_BYTE,		/* 8-bit integer.  */
 	RDATA_ZF_SHORT,		/* 16-bit integer.  */
 	RDATA_ZF_LONG,		/* 32-bit integer.  */
+	RDATA_ZF_LONGLONG,	/* 64-bit integer.  */
 	RDATA_ZF_A,		/* 32-bit IPv4 address.  */
 	RDATA_ZF_AAAA,		/* 128-bit IPv6 address.  */
 	RDATA_ZF_RRTYPE,	/* RR type.  */
@@ -297,7 +300,7 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
  *
  * CLA + 1
  */
-#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_CLA + 1)
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_IPN + 1)
 rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 rrtype_descriptor_type *rrtype_descriptor_by_type(uint16_t type);
 

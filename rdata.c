@@ -296,6 +296,15 @@ rdata_long_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
+rdata_longlong_to_string(buffer_type *output, rdata_atom_type rdata,
+	rr_type* ATTR_UNUSED(rr))
+{
+	uint64_t data = read_uint64(rdata_atom_data(rdata));
+	buffer_printf(output, "%llu", (unsigned long long) data);
+	return 1;
+}
+
+static int
 rdata_a_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -1027,6 +1036,7 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_byte_to_string,
 	rdata_short_to_string,
 	rdata_long_to_string,
+	rdata_longlong_to_string,
 	rdata_a_to_string,
 	rdata_aaaa_to_string,
 	rdata_rrtype_to_string,
@@ -1114,6 +1124,9 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			break;
 		case RDATA_WF_LONG:
 			length = sizeof(uint32_t);
+			break;
+		case RDATA_WF_LONGLONG:
+			length = sizeof(uint64_t);
 			break;
 		case RDATA_WF_TEXTS:
 		case RDATA_WF_LONG_TEXT:
