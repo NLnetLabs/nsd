@@ -900,12 +900,11 @@ static int
 print_svcparam_dohpath(struct buffer *output, uint16_t svcparamkey,
 	const uint8_t* data, uint16_t datalen)
 {
-	const uint8_t* dp;
+	const uint8_t* dp = data;
 	unsigned i;
 
 	buffer_print_svcparamkey(output, svcparamkey);
 	buffer_write(output, "=\"", 2);
-	dp = data + 2;
 	for (i = 0; i < datalen; i++) {
 		if (dp[i] == '"' || dp[i] == '\\')
 			buffer_printf(output, "\\%c", dp[i]);
