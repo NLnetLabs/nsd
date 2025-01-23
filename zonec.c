@@ -147,7 +147,7 @@ int32_t zonec_accept(
 	assert(domain);
 
 	descriptor = nsd_type_descriptor(type);
-	descriptor->read_rdata(state->domains, buffer, &rr);
+	descriptor->read_rdata(state->domains, rdlength, &buffer, &rr);
 	rr->owner = domain;
 	rr->type = type;
 	rr->klass = class;

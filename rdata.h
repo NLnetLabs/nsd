@@ -491,6 +491,13 @@ int32_t rr_calculate_uncompressed_rdata_length(const rr_type* rr);
 /*
  * Look up the field length. The field length is returned as a length
  * in the rdata that is stored. For a reference, the pointer is returned too.
+ * Before calling it check if the field is_optional, and rdlength is
+ * reached by offset, then there are no more rdata fields.
+ * Also if the index has reached the rdata field length count, fields end.
+ * It checks if the field fits in the rdata buffer, failure if not.
+ * Then check for domain ptr or not, and handle the field at rr->rdata+offset.
+ * Continue the loop by incrementing offset with field_len, and index++.
+ *
  * @param descriptor: type descriptor.
  * @param index: field index.
  * @param rr: the rr with the rdata.
@@ -509,6 +516,14 @@ int lookup_rdata_field_entry(const nsd_type_descriptor_t* descriptor,
  * Compare rdata for two RRs. They have to be of the same type already.
  * It iterates over the RR type fields. The RRs and the rdatas are the
  * namedb format, that is with references stored as pointers.
+ * The comparison is in canonical order, by looping over the uncompressed
+ * wireformat bytes. It does not canonicalize the domain names.
+ * References to the domain table are canonical domain names.
+ * But literal domain names are not canonicalized by the routine.
+ * That is for types RRSIG, SIG. But for these two types, the read_rrsig_rdata
+ * routine normalizes the signer name when it is read in. Both from zonefile
+ * format and from wire format. So that is canonicalized already.
+ * For types NSEC and HINFO it should not be downcased, and it does not.
  * @param descriptor: type descriptor for the type.
  * @param rr1: RR to compare rdata 1. The rdata can contain pointers.
  * @param rr2: RR to compare rdata 2. The rdata can contain pointers.

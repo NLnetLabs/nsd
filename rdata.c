@@ -1041,6 +1041,8 @@ lookup_rdata_field_entry(const nsd_type_descriptor_t* descriptor, size_t index,
 	} else {
 		size_t dlen;
 		int32_t flen;
+		if(offset > rr->rdlength)
+			return 0;
 		/* Handle the specialized value cases. */
 		switch(field->length) {
 		case RDATA_COMPRESSED_DNAME:
@@ -1064,8 +1066,6 @@ lookup_rdata_field_entry(const nsd_type_descriptor_t* descriptor, size_t index,
 			if(rr->rdlength - offset < 1)
 				return 0;
 			flen = (rr->rdata+offset)[0];
-			if(rr->rdlength - offset < flen+1)
-				return 0;
 			*field_len = flen+1;
 			*domain = NULL;
 			break;
@@ -1080,6 +1080,8 @@ lookup_rdata_field_entry(const nsd_type_descriptor_t* descriptor, size_t index,
 			return 0;
 		}
 	}
+	if(offset + *field_len > rr->rdlength)
+		return 0; /* The field does not fit in the rdata. */
 	return 1;
 }
 
@@ -3329,8 +3331,6 @@ equal_rr_rdata(const nsd_type_descriptor_t *descriptor, const struct rr *rr1,
 			/* It is equal. */
 			return 0;
 		}
-		domain1 = NULL;
-		domain2 = NULL;
 		if(!lookup_rdata_field_entry(descriptor, i, rr1, offset,
 			&field_len1, &domain1))
 			malf1 = 1; /* malformed rdata buffer */
