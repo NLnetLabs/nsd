@@ -1,6 +1,6 @@
 23 January 2025: Willem
-	- Support for DSYNC, EID, NIMLOC, SINK, TALINK, DOA, AMTRELAY and
-	  IPN resource record types.
+	- Merge #418: Support for DSYNC, EID, NIMLOC, SINK, TALINK, DOA,
+	  AMTRELAY and IPN resource record types.
 
 22 January 2025: Wouter
 	- Fix #426: nsd crashes with patterns in config_apply_pattern.
