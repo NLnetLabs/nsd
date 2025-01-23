@@ -3366,6 +3366,7 @@ equal_rr_rdata(const nsd_type_descriptor_t *descriptor, const struct rr *rr1,
 			if(res != 0)
 				return res;
 		}
+		/* The fields are equal, field_len1 == field_len2. */
 		offset += field_len1;
 	}
 	return 0;
