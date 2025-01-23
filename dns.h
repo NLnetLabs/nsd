@@ -116,7 +116,8 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_AAAA	28	/* ipv6 address */
 #define TYPE_LOC	29	/* LOC record  RFC1876 */
 #define TYPE_NXT	30	/* 2535typecode */
-
+#define TYPE_EID	31	/* draft-ietf-nimrod-dns-01 */
+#define TYPE_NIMLOC	32	/* draft-ietf-nimrod-dns-01 */
 #define TYPE_SRV	33	/* SRV record RFC2782 */
 #define TYPE_ATMA	34	/* http://www.jhsoft.com/rfc/af-saa-0069.000.rtf */
 #define TYPE_NAPTR	35	/* RFC2915 */
@@ -124,7 +125,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_CERT	37	/* RFC2538 */
 #define TYPE_A6		38	/* RFC2874 */
 #define TYPE_DNAME	39	/* RFC2672 */
-
+#define TYPE_SINK	40	/* draft-eastlake-kitchen-sink */
 #define TYPE_OPT	41	/* Pseudo OPT record... */
 #define TYPE_APL	42	/* RFC3123 */
 #define TYPE_DS		43	/* RFC 4033, 4034, and 4035 */
@@ -141,7 +142,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_HIP	55	/* RFC 8005 */
 #define TYPE_NINFO	56	/* NINFO/ninfo-completed-template */
 #define TYPE_RKEY	57	/* RKEY/rkey-completed-template */
-
+#define TYPE_TALINK	58	/* draft-ietf-dnsop-dnssec-trust-history */
 #define TYPE_CDS	59	/* RFC 7344 */
 #define TYPE_CDNSKEY	60	/* RFC 7344 */
 #define TYPE_OPENPGPKEY 61	/* RFC 7929 */
@@ -149,6 +150,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_ZONEMD	63	/* RFC 8976 */
 #define TYPE_SVCB	64	/* RFC 9460 */
 #define TYPE_HTTPS	65	/* RFC 9460 */
+#define TYPE_DSYNC	66	/* draft-ietf-dnsop-generalized-notify */
 
 #define TYPE_SPF        99      /* RFC 4408 */
 
@@ -159,6 +161,8 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_EUI48      108     /* RFC 7043 */
 #define TYPE_EUI64      109     /* RFC 7043 */
 
+#define TYPE_NXNAME	128	/* draft-ietf-dnsop-compact-denial-of-existence-04 */
+
 #define TYPE_TSIG	250	/* RFC 2845 */
 #define TYPE_IXFR	251	/* RFC 1995 */
 #define TYPE_AXFR	252	/* RFC 1035, RFC 5936 */
@@ -168,10 +172,12 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_URI	256	/* RFC 7553 */
 #define TYPE_CAA	257	/* RFC 6844 */
 #define TYPE_AVC	258	/* AVC/avc-completed-template */
-
+#define TYPE_DOA	259	/* draft-durand-doa-over-dns */
+#define TYPE_AMTRELAY	260	/* RFC 8777 */
 #define TYPE_RESINFO	261	/* RFC 9606 */
 #define TYPE_WALLET	262	/* WALLET/wallet-completed-template */
 #define TYPE_CLA	263	/* CLA/cla-completed-template */
+#define TYPE_IPN	264	/* IPN/ipn-completed-template draft-johnson-dns-ipn-cla-07 */
 
 #define TYPE_TA		32768	/* http://www.watson.org/~weiler/INI1999-19.pdf */
 #define TYPE_DLV	32769	/* RFC 4431 */
@@ -229,6 +235,9 @@ typedef enum nsd_rc nsd_rc_type;
 /* The rdata is the remainder of the record, to the end of the bytes, possibly
  * zero bytes. The length of the field is determined by the rdata length. */
 #define RDATA_REMAINDER -7
+/* The rdata is of type AMTRELAYRELAY because of its encoding elsewhere in
+ * the RR. */
+#define RDATA_AMTRELAY_RELAY -8
 
 /*
  * Function signature to determine length of the rdata field.
@@ -385,7 +394,7 @@ struct nsd_type_descriptor {
 };
 
 /* The length of the RRTYPE descriptors arrary */
-#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_CLA + 2)
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_IPN + 2)
 
 /*
  * Indexed by type.  The special type "0" can be used to get a
@@ -413,12 +422,12 @@ extern const nsd_type_descriptor_t type_descriptors[];
 static inline const nsd_type_descriptor_t *
 nsd_type_descriptor(uint16_t rrtype)
 {
-	if (rrtype <= TYPE_CLA)
+	if (rrtype <= TYPE_IPN)
 		return &type_descriptors[rrtype];
 	if (rrtype == TYPE_TA)
-		return &type_descriptors[TYPE_CLA + 1];
+		return &type_descriptors[TYPE_IPN + 1];
 	if (rrtype == TYPE_DLV)
-		return &type_descriptors[TYPE_CLA + 2];
+		return &type_descriptors[TYPE_IPN + 2];
 	return &type_descriptors[0];
 }
 

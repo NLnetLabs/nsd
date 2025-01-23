@@ -237,6 +237,12 @@ void write_nxt_rdata(struct query *query, const struct rr *rr);
 /* Print rdata for type NXT. */
 int print_nxt_rdata(struct buffer *buffer, const struct rr *rr);
 
+/* Print rdata for type EID. */
+int print_eid_rdata(struct buffer *output, const struct rr *rr);
+
+/* Print rdata for type NIMLOC. */
+int print_nimloc_rdata(struct buffer *output, const struct rr *rr);
+
 /* Read rdata for type SRV. */
 int32_t read_srv_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr);
@@ -280,6 +286,9 @@ int32_t read_a6_rdata(struct domain_table *domains, uint16_t rdlength,
 
 /* Print rdata for type A6. */
 int print_a6_rdata(struct buffer *buffer, const struct rr *rr);
+
+/* Print rdata for type SINK. */
+int print_sink_rdata(struct buffer *output, const struct rr *rr);
 
 /* Read rdata for type APL. */
 int32_t read_apl_rdata(struct domain_table *domains, uint16_t rdlength,
@@ -383,6 +392,13 @@ int32_t read_rkey_rdata(struct domain_table *domains, uint16_t rdlength,
 /* Print rdata for type RKEY. */
 int print_rkey_rdata(struct buffer *buffer, const struct rr *rr);
 
+/* Read rdata for type TALINK. */
+int32_t read_talink_rdata(struct domain_table *domains, uint16_t rdlength,
+	struct buffer *packet, struct rr **rr);
+
+/* Print rdata for type TALINK. */
+int print_talink_rdata(struct buffer *output, const struct rr *rr);
+
 /* Print rdata for type OPENPGPKEY. */
 int print_openpgpkey_rdata(struct buffer *buffer, const struct rr *rr);
 
@@ -409,6 +425,13 @@ void write_svcb_rdata(struct query *query, const struct rr *rr);
 
 /* Print rdata for type SVCB. */
 int print_svcb_rdata(struct buffer *buffer, const struct rr *rr);
+
+/* Read rdata for type DSYNC. */
+int32_t read_dsync_rdata(struct domain_table *domains, uint16_t rdlength,
+	struct buffer *packet, struct rr **rr);
+
+/* Print rdata for type DSYNC. */
+int print_dsync_rdata(struct buffer *output, const struct rr *rr);
 
 /* Read rdata for type NID. */
 int32_t read_nid_rdata(struct domain_table *domains, uint16_t rdlength,
@@ -471,6 +494,23 @@ int32_t read_caa_rdata(struct domain_table *domains, uint16_t rdlength,
 
 /* Print rdata for type CAA. */
 int print_caa_rdata(struct buffer *buffer, const struct rr *rr);
+
+/* Print rdata for type DOA. */
+int print_doa_rdata(struct buffer *output, const struct rr *rr);
+
+/* Read rdata for type AMTRELAY. */
+int32_t read_amtrelay_rdata(struct domain_table *domains, uint16_t rdlength,
+	struct buffer *packet, struct rr **rr);
+
+/* Print rdata for type AMTRELAY. */
+int print_amtrelay_rdata(struct buffer *output, const struct rr *rr);
+
+/* Determine length of AMTRELAY relay field. */
+int32_t amtrelay_relay_length(uint16_t rdlength, const uint8_t *rdata,
+	uint16_t offset);
+
+/* Print rdata for type IPN. */
+int print_ipn_rdata(struct buffer *output, const struct rr *rr);
 
 /* Read rdata for type DLV. */
 int32_t read_dlv_rdata(struct domain_table *domains, uint16_t rdlength,

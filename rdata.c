@@ -1191,10 +1191,11 @@ read_uncompressed_name_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct domain *domain;
 	struct dname_buffer dname;
 	size_t size;
+	const size_t mark = buffer_position(packet);
 
 	if (!dname_make_from_packet_buffered(&dname, packet,
 		1 /* Lenient, allows pointers. */, 1) ||
-			rdlength < dname.dname.name_size)
+		rdlength < buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1292,7 +1293,7 @@ read_soa_rdata(struct domain_table *domains, uint16_t rdlength,
 	const size_t mark = buffer_position(packet);
 	if (!dname_make_from_packet_buffered(&primary, packet, 1, 1) ||
 	    !dname_make_from_packet_buffered(&mailbox, packet, 1, 1) ||
-	    rdlength != (buffer_position(packet) - mark) + 20)
+	    rdlength < (buffer_position(packet) - mark) + 20)
 		return MALFORMED;
 
 	size = sizeof(**rr) + 2 * sizeof(struct domain *) + 20;
@@ -1437,11 +1438,12 @@ read_minfo_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct domain *rmailbx_domain, *emailbx_domain;
 	struct dname_buffer rmailbx, emailbx;
 	size_t size;
+	const size_t mark = buffer_position(packet);
 
 	if (buffer_remaining(packet) < rdlength ||
 	    !dname_make_from_packet_buffered(&rmailbx, packet, 1, 1) ||
 	    !dname_make_from_packet_buffered(&emailbx, packet, 1, 1) ||
-	    rdlength != rmailbx.dname.name_size + emailbx.dname.name_size)
+	    rdlength < buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 * sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1496,7 +1498,7 @@ read_mx_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, 2);
 	if (!dname_make_from_packet_buffered(&exchange, packet, 1, 1))
 		return MALFORMED;
-	if (rdlength != 2 + exchange.dname.name_size)
+	if (rdlength < buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1567,11 +1569,12 @@ read_rp_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct domain *mbox_domain, *txt_domain;
 	struct dname_buffer mbox, txt;
 	size_t size;
+	const size_t mark = buffer_position(packet);
 
 	if (buffer_remaining(packet) < rdlength ||
 	    !dname_make_from_packet_buffered(&mbox, packet, 1 /*lenient*/, 1) ||
 	    !dname_make_from_packet_buffered(&txt, packet, 1 /*lenient*/, 1) ||
-	    rdlength != mbox.dname.name_size + txt.dname.name_size)
+	    rdlength < buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 * sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1616,7 +1619,7 @@ read_afsdb_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, 2);
 	if (!dname_make_from_packet_buffered(&hostname, packet,
 		1 /*lenient*/, 1) ||
-	    rdlength != 2 + hostname.dname.name_size)
+	    rdlength < buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1726,7 +1729,7 @@ read_rt_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, 2);
 	if (!dname_make_from_packet_buffered(&dname, packet, 1 /*lenient*/, 1))
 		return MALFORMED;
-	if (rdlength != 2 + dname.dname.name_size)
+	if (rdlength < buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1792,7 +1795,7 @@ read_px_rdata(struct domain_table *domains, uint16_t rdlength,
 		1 /*lenient*/, 1) ||
 	   !dname_make_from_packet_buffered(&mapx400, packet,
 		1 /*lenient*/, 1) ||
-	   rdlength != 2 + map822.dname.name_size + mapx400.dname.name_size)
+	   rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 
 	size = sizeof(**rr) + 2 + 2*sizeof(void*);
@@ -1885,14 +1888,19 @@ read_nxt_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct dname_buffer dname;
 	size_t size;
 	uint16_t bitmap_size;
+	const size_t mark = buffer_position(packet);
 
 	/* name + nxt */
 	if (!dname_make_from_packet_buffered(&dname, packet, 1, 1))
+		return MALFORMED;
+	if(rdlength < buffer_position(packet) - mark + 2)
 		return MALFORMED;
 	if (buffer_remaining(packet) < 2)
 		return MALFORMED;
 	bitmap_size = read_uint16(buffer_current(packet)); /* peek at uint16 */
 	if (bitmap_size >= 8192 || buffer_remaining(packet) < 2 + (size_t)bitmap_size)
+		return MALFORMED;
+	if(rdlength < buffer_position(packet) - mark + 2 + bitmap_size)
 		return MALFORMED;
 	size = sizeof(**rr) + sizeof(domain) + bitmap_size;
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1941,6 +1949,26 @@ print_nxt_rdata(struct buffer *output, const struct rr *rr)
 	return 1;
 }
 
+int
+print_eid_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	if(!print_base16(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int
+print_nimloc_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	if(!print_base16(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
 int32_t
 read_srv_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
@@ -1956,7 +1984,7 @@ read_srv_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, 6);
 	if (!dname_make_from_packet_buffered(&dname, packet,
 		1 /* lenient */, 1) ||
-	    rdlength != 6 + dname.dname.name_size)
+	    rdlength < buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 6 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -2044,7 +2072,7 @@ read_naptr_rdata(struct domain_table *domains, uint16_t rdlength,
 	    skip_string(packet, rdlength, &length) < 0 ||
 	    skip_string(packet, rdlength, &length) < 0 ||
 	    !dname_make_from_packet_buffered(&dname, packet, 1, 1) ||
-	    rdlength - length != dname.dname.name_size)
+	    rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 
 	size = sizeof(**rr) + length + sizeof(void*);
@@ -2108,10 +2136,12 @@ read_kx_rdata(struct domain_table *domains, uint16_t rdlength,
 	size_t size;
 
 	/* short + uncompressed name */
-	if (buffer_remaining(packet) < rdlength || rdlength < 2 ||
-	    !dname_make_from_packet_buffered(&dname, packet,
+	if(buffer_remaining(packet) < rdlength || rdlength < 2)
+		return MALFORMED;
+	buffer_skip(packet, 2);
+	if(!dname_make_from_packet_buffered(&dname, packet,
 		1 /* lenient */, 1) ||
-		rdlength - 2 != dname.dname.name_size)
+	    rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 
 	size = sizeof(**rr) + 2 + sizeof(void*);
@@ -2159,6 +2189,20 @@ print_cert_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(output, "%" PRIu16 " %" PRIu8 " ",
 		read_uint16(rr->rdata+2), rr->rdata[4]);
 	length += 3;
+	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int
+print_sink_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 2;
+	if(rr->rdlength < 2)
+		return 0;
+	buffer_printf(output, "%" PRIu8 " %" PRIu8 " ",
+		rr->rdata[0], rr->rdata[1]);
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
@@ -2362,7 +2406,7 @@ read_ipseckey_rdata(struct domain_table *domains, uint16_t rdlength,
 		memcpy((*rr)->rdata + 3, gateway_rdata, gateway_length);
 	if(keylen != 0)
 		buffer_read(packet, (*rr)->rdata + 3 + gateway_length, keylen);
-	(*rr)->rdlength = rdlength;
+	(*rr)->rdlength = 3 + gateway_length + keylen;
 	return rdlength;
 }
 
@@ -2439,6 +2483,7 @@ read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	struct dname_buffer signer;
 	const size_t mark = buffer_position(packet);
+	uint16_t memrdlen;
 
 	/* short + byte + byte + long + long + long + short */
 	if (buffer_remaining(packet) < rdlength || rdlength < 18)
@@ -2447,14 +2492,15 @@ read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (!dname_make_from_packet_buffered(&signer, packet,
 		1 /* lenient */, 1))
 		return MALFORMED;
-	if (rdlength < 18 + signer.dname.name_size)
+	if (rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
-	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + rdlength)))
+	memrdlen = 18 + signer.dname.name_size;
+	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + memrdlen)))
 		return TRUNCATED;
 	buffer_read_at(packet, mark, (*rr)->rdata, 18);
 	memcpy((*rr)->rdata + 18, dname_name((void*)&signer),
 		signer.dname.name_size);
-	(*rr)->rdlength = rdlength;
+	(*rr)->rdlength = memrdlen;
 	return rdlength;
 }
 
@@ -2491,24 +2537,29 @@ read_nsec_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
 	struct dname_buffer next;
-	uint16_t length;
-	size_t mark;
+	uint16_t length, memrdlen, bitmaplen;
+	size_t bitmapmark;
+	const size_t mark = buffer_position(packet);
 
 	/* uncompressed name + nsec */
-	if (buffer_remaining(packet) < rdlength ||
-	    !dname_make_from_packet_buffered(&next, packet,
-		1 /* lenient */, 1))
+	if(buffer_remaining(packet) < rdlength ||
+	   !dname_make_from_packet_buffered(&next, packet,
+		1 /* lenient */, 1) ||
+	   rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 
-	length = next.dname.name_size;
-	mark = buffer_position(packet);
+	bitmapmark = buffer_position(packet);
+	length = bitmapmark - mark;
 	if (skip_nsec(packet, rdlength, &length) < 0 || rdlength != length)
 		return MALFORMED;
-	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + rdlength)))
+	bitmaplen = buffer_position(packet) - bitmapmark;
+	memrdlen = next.dname.name_size + bitmaplen;
+	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + memrdlen)))
 		return TRUNCATED;
 	memcpy((*rr)->rdata, dname_name((void*)&next), next.dname.name_size);
-	buffer_read_at(packet, mark, (*rr)->rdata + next.dname.name_size,
-		rdlength - next.dname.name_size);
+	buffer_read_at(packet, bitmapmark, (*rr)->rdata + next.dname.name_size,
+		bitmaplen);
+	(*rr)->rdlength = memrdlen;
 	return rdlength;
 }
 
@@ -2740,6 +2791,45 @@ print_rkey_rdata(struct buffer *output, const struct rr *rr)
 	return 1;
 }
 
+int32_t
+read_talink_rdata(struct domain_table *domains, uint16_t rdlength,
+	struct buffer *packet, struct rr **rr)
+{
+	struct dname_buffer prev, next;
+	const size_t mark = buffer_position(packet);
+	if(!dname_make_from_packet_buffered(&prev, packet,
+		1 /* lenient */, 1))
+		return MALFORMED;
+	if(buffer_position(packet)-mark > rdlength)
+		return MALFORMED;
+	if(!dname_make_from_packet_buffered(&next, packet,
+		1 /* lenient */, 1))
+		return MALFORMED;
+	if(buffer_position(packet)-mark > rdlength)
+		return MALFORMED;
+	if (!(*rr = region_alloc(domains->region,
+		sizeof(**rr) + prev.dname.name_size + next.dname.name_size)))
+		return TRUNCATED;
+	memcpy((*rr)->rdata, dname_name((void*)&prev), prev.dname.name_size);
+	memcpy((*rr)->rdata + prev.dname.name_size, dname_name((void*)&next),
+		next.dname.name_size);
+	(*rr)->rdlength = prev.dname.name_size + next.dname.name_size;
+	return rdlength;
+}
+
+int
+print_talink_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	if(!print_name_literal(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if(!print_name_literal(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
 int
 print_openpgpkey_rdata(struct buffer *output, const struct rr *rr)
 {
@@ -2819,8 +2909,12 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (!dname_make_from_packet_buffered(&target, packet,
 		1 /* lenient */, 1))
 		return MALFORMED;
+	if(rdlength < buffer_position(packet) - mark)
+		return MALFORMED;
 	length += target.dname.name_size;
 	if(!skip_svcparams(packet, rdlength-length))
+		return MALFORMED;
+	if(rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 	svcparams_length = rdlength - length;
 
@@ -2864,6 +2958,48 @@ print_svcb_rdata(struct buffer *output, const struct rr *rr)
 	while (length < rr->rdlength)
 		if (!print_svcparam(output, rr->rdlength, rr->rdata, &length))
 			return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t
+read_dsync_rdata(struct domain_table *domains, uint16_t rdlength,
+	struct buffer *packet, struct rr **rr)
+{
+	struct dname_buffer target;
+	uint16_t length = 5;
+	const size_t mark = buffer_position(packet);
+
+	/* type + byte + short + literaldname */
+	if (buffer_remaining(packet) < rdlength || rdlength < length)
+		return MALFORMED;
+	buffer_skip(packet, length);
+	if(!dname_make_from_packet_buffered(&target, packet,
+		1 /* lenient */, 1) ||
+	   rdlength < buffer_position(packet) - mark)
+		return MALFORMED;
+	length += target.dname.name_size;
+
+	if (!(*rr = region_alloc(domains->region, sizeof(**rr)+length)))
+		return TRUNCATED;
+	buffer_read_at(packet, mark, (*rr)->rdata, 5);
+	memcpy((*rr)->rdata + 5, dname_name((void*)&target),
+		target.dname.name_size);
+	(*rr)->rdlength = length;
+	return rdlength;
+}
+
+int
+print_dsync_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 5;
+	if(rr->rdlength < length)
+		return 0;
+	buffer_printf(output, "%s %" PRIu8 " %" PRIu16 " ",
+		rrtype_to_string(read_uint16(rr->rdata)), rr->rdata[2],
+		read_uint16(rr->rdata+3));
+	if(!print_name_literal(output, rr->rdlength, rr->rdata, &length))
+		return 0;
 	assert(rr->rdlength == length);
 	return 1;
 }
@@ -2949,7 +3085,7 @@ read_lp_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, 2);
 	if (!dname_make_from_packet_buffered(&target, packet,
 		1 /* lenient */, 1) ||
-	    rdlength != 2 + target.dname.name_size)
+	    rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -3087,6 +3223,157 @@ print_caa_rdata(struct buffer *output, const struct rr *rr)
 	if (!print_text(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
+	return 1;
+}
+
+int
+print_doa_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 9;
+	if(rr->rdlength < length)
+		return MALFORMED;
+	buffer_printf(output, "%" PRIu32 " %" PRIu32 " %" PRIu8 " ",
+		read_uint32(rr->rdata), read_uint32(rr->rdata+4),
+		rr->rdata[8]);
+	if(!print_string(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	if(!print_base64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t
+read_amtrelay_rdata(struct domain_table *domains, uint16_t rdlength,
+	struct buffer *packet, struct rr **rr)
+{
+	struct dname_buffer relay;
+	const uint8_t *relay_rdata;
+	uint8_t relay_length = 0;
+	const size_t mark = buffer_position(packet);
+
+	/* byte + byte + relay */
+	if (buffer_remaining(packet) < rdlength || rdlength < 2)
+		return MALFORMED;
+
+	buffer_skip(packet, 2);
+
+	switch (buffer_read_u8_at(packet, mark + 1)&0x7f) {
+	case AMTRELAY_NOGATEWAY:
+		relay_length = 0;
+		relay_rdata = NULL;
+		break;
+	case AMTRELAY_IP4:
+		relay_length = 4;
+		relay_rdata = buffer_current(packet);
+		if (rdlength < 2 + relay_length)
+			return MALFORMED;
+		buffer_skip(packet, relay_length);
+		break;
+	case AMTRELAY_IP6:
+		relay_length = 16;
+		relay_rdata = buffer_current(packet);
+		if (rdlength < 2 + relay_length)
+			return MALFORMED;
+		buffer_skip(packet, relay_length);
+		break;
+	case AMTRELAY_DNAME:
+		/* The dname is stored as literal dname. On the wire
+		 * skip possibly compressed format, in the rdata there
+		 * is an uncompressed wire format. */
+		if(!dname_make_from_packet_buffered(&relay, packet,
+			1 /* lenient */, 1))
+			return MALFORMED;
+		if(rdlength < buffer_position(packet) - mark)
+			return MALFORMED;
+		relay_length = relay.dname.name_size;
+		relay_rdata = dname_name((void*)&relay);
+		break;
+	default:
+		return MALFORMED;
+	}
+
+	if (!(*rr = region_alloc(domains->region,
+		sizeof(**rr) + 2 + relay_length)))
+		return TRUNCATED;
+
+	buffer_read_at(packet, mark, (*rr)->rdata, 2);
+	if(relay_rdata)
+		memcpy((*rr)->rdata + 2, relay_rdata, relay_length);
+	(*rr)->rdlength = 2 + relay_length;
+	return rdlength;
+}
+
+int
+print_amtrelay_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 2;
+	uint8_t relay_type;
+
+	if(rr->rdlength < length)
+		return 0;
+	relay_type = rr->rdata[1]&0x7f;
+	buffer_printf(output, "%" PRIu8 " %c %" PRIu8 " ",
+		rr->rdata[0], (rr->rdata[1] & 0x80 ? '1' : '0'), relay_type);
+	switch(relay_type) {
+	case AMTRELAY_NOGATEWAY:
+		buffer_printf(output, ".");
+		break;
+	case AMTRELAY_IP4:
+		if(!print_ip4(output, rr->rdlength, rr->rdata, &length))
+			return 0;
+		break;
+	case AMTRELAY_IP6:
+		if(!print_ip6(output, rr->rdlength, rr->rdata, &length))
+			return 0;
+		break;
+	case AMTRELAY_DNAME:
+		if(!print_name_literal(output, rr->rdlength, rr->rdata,
+			&length))
+			return 0;
+		break;
+	default:
+		return 0;
+	}
+
+	assert(rr->rdlength == length);
+	return 1;
+}
+
+int32_t
+amtrelay_relay_length(uint16_t rdlength, const uint8_t *rdata, uint16_t offset)
+{
+	uint8_t relay_type;
+	/* Calculate the relay length, based on the relay type.
+	 * That is stored in an earlier field. */
+	if(rdlength < 2 || offset < 2)
+		return -1; /* too short */
+	relay_type = rdata[1]&0x7f;
+	switch(relay_type) {
+	case AMTRELAY_NOGATEWAY:
+		return 0;
+	case AMTRELAY_IP4:
+		return 4;
+	case AMTRELAY_IP6:
+		return 16;
+	case AMTRELAY_DNAME:
+		return buf_dname_length(rdata+offset, rdlength-offset);
+	default:
+		/* Unknown relay type. */
+		break;
+	}
+	return -1;
+}
+
+int
+print_ipn_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint64_t data;
+
+	if(rr->rdlength < sizeof(data))
+		return 0;
+	data = read_uint64(rr->rdata);
+	buffer_printf(output, "%llu", (unsigned long long) data);
 	return 1;
 }
 
