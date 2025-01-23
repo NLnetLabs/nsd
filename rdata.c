@@ -499,7 +499,7 @@ print_base64(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	size_t size = rdlength - *offset;
 	if(size == 0) {
 		/* single zero represents empty buffer */
-		buffer_write(output, (rr->type == TYPE_DOA ? "-" : "0"), 1);
+		buffer_write(output, "0", 1);
 		return 1;
 	}
 	buffer_reserve(output, size * 2 + 1);
@@ -3237,8 +3237,13 @@ print_doa_rdata(struct buffer *output, const struct rr *rr)
 		rr->rdata[8]);
 	if(!print_string(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	if(!print_base64(output, rr->rdlength, rr->rdata, &length))
-		return 0;
+	if(rr->rdlength == length) {
+		/* The base64 string is empty, and DOA uses '-' for that. */
+		buffer_printf(output, "-");
+	} else {
+		if(!print_base64(output, rr->rdlength, rr->rdata, &length))
+			return 0;
+	}
 	assert(rr->rdlength == length);
 	return 1;
 }
