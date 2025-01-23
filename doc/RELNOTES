@@ -2,6 +2,10 @@ NSD RELEASE NOTES
 
 4.11.2
 ================
+FEATURES:
+	- Merge #418: Support for DSYNC, EID, NIMLOC, SINK, TALINK, DOA,
+	  AMTRELAY and IPN resource record types.
+
 BUG FIXES:
         - Fix re-enable to configure dns-cookies from config file, which was
           accidentally removed with the 4.11.1 release.

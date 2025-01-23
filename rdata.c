@@ -499,7 +499,7 @@ print_base64(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	size_t size = rdlength - *offset;
 	if(size == 0) {
 		/* single zero represents empty buffer */
-		buffer_write(output, "0", 1);
+		buffer_write(output, (rr->type == TYPE_DOA ? "-" : "0"), 1);
 		return 1;
 	}
 	buffer_reserve(output, size * 2 + 1);
