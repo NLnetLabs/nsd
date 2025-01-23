@@ -461,7 +461,7 @@ static const struct nsd_rdata_descriptor dlv_rdata_fields[] = {
 #define TYPE_HAS_FLAGS(has_references, is_compressible, has_dnames) has_references, is_compressible, has_dnames
 
 const nsd_type_descriptor_t type_descriptors[] = {
-	UNKNOWN_TYPE(0), /* Type 0 - Reserved */
+	UNKNOWN_TYPE(0), /* Type 0 - Reserved [RFC 6895] */
 	TYPE("A", TYPE_A, TYPE_HAS_NO_REFS,
 		read_a_rdata, write_generic_rdata,
 		print_a_rdata, a_rdata_fields),
@@ -692,10 +692,10 @@ const nsd_type_descriptor_t type_descriptors[] = {
 		read_txt_rdata, write_generic_rdata,
 		print_txt_rdata, spf_rdata_fields),
 
-	UNKNOWN_TYPE(100), /* Type 100 - UINFO */
-	UNKNOWN_TYPE(101), /* Type 101 - UID */
-	UNKNOWN_TYPE(102), /* Type 102 - GID */
-	UNKNOWN_TYPE(103), /* Type 103 - UNSPEC */
+	UNKNOWN_TYPE(100), /* Type 100 - UINFO [The RR type code is reserved, no reference] */
+	UNKNOWN_TYPE(101), /* Type 101 - UID [The RR type code is reserved, no reference] */
+	UNKNOWN_TYPE(102), /* Type 102 - GID [The RR type code is reserved, no reference] */
+	UNKNOWN_TYPE(103), /* Type 103 - UNSPEC [The RR type code is reserved, no reference] */
 
 	TYPE("NID", TYPE_NID, TYPE_HAS_NO_REFS,
 		read_nid_rdata, write_generic_rdata,
@@ -734,7 +734,7 @@ const nsd_type_descriptor_t type_descriptors[] = {
 	UNKNOWN_TYPE(125),
 	UNKNOWN_TYPE(126),
 	UNKNOWN_TYPE(127),
-	UNKNOWN_TYPE(128), /* Type 128 - NXNAME */
+	UNKNOWN_TYPE(128), /* Type 128 - NXNAME [draft-ietf-dnsop-compact-denial-of-existence-04] */
 	UNKNOWN_TYPE(129),
 	UNKNOWN_TYPE(130),
 	UNKNOWN_TYPE(131),
