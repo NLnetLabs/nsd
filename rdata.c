@@ -2358,7 +2358,8 @@ read_ipseckey_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_read_at(packet, mark, (*rr)->rdata, 3);
 	if(gateway_rdata)
 		memcpy((*rr)->rdata + 3, gateway_rdata, gateway_length);
-	buffer_read(packet, (*rr)->rdata + 3 + gateway_length, keylen);
+	if(keylen != 0)
+		buffer_read(packet, (*rr)->rdata + 3 + gateway_length, keylen);
 	(*rr)->rdlength = rdlength;
 	return rdlength;
 }
@@ -2395,8 +2396,11 @@ print_ipseckey_rdata(struct buffer *output, const struct rr *rr)
 		return 0;
 	}
 
-	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
-		return 0;
+	if(rr->rdlength > length) {
+		/* Print key field in base64. */
+		if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+			return 0;
+	}
 	assert(rr->rdlength == length);
 	return 1;
 }

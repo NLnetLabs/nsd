@@ -855,7 +855,7 @@ const nsd_type_descriptor_t type_descriptors[] = {
 	UNKNOWN_TYPE(246),
 	UNKNOWN_TYPE(247),
 	UNKNOWN_TYPE(248),
-	UNKNOWN_TYPE(249), /* Type 249 - TKEY */
+	UNKNOWN_TYPE(249), /* Type 249 - TKEY [RFC 2930] */
 	UNKNOWN_TYPE(250), /* Type 250 - TSIG */
 	UNKNOWN_TYPE(251), /* Type 251 - IXFR */
 	UNKNOWN_TYPE(252), /* Type 252 - AXFR */
