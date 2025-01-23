@@ -353,6 +353,9 @@ static int ixfr_write_rr_pkt(struct query* query, struct buffer* packet,
 		case RDATA_WF_LONG:
 			copy_len = 4;
 			break;
+		case RDATA_WF_LONGLONG:
+			copy_len = 8;
+			break;
 		case RDATA_WF_TEXTS:
 		case RDATA_WF_LONG_TEXT:
 			copy_len = rdlen;
