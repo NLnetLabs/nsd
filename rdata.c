@@ -614,30 +614,22 @@ rdata_services_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
-rdata_gateway_relay_to_string(buffer_type *output, rdata_atom_type rdata,
-		int gateway_relay_type)
+rdata_ipsecgateway_to_string(buffer_type *output, rdata_atom_type rdata, rr_type* rr)
 {
-	switch(gateway_relay_type) {
+	switch(rdata_atom_data(rr->rdatas[1])[0]) {
 	case IPSECKEY_NOGATEWAY:
 		buffer_printf(output, ".");
 		break;
 	case IPSECKEY_IP4:
-		return rdata_a_to_string(output, rdata, NULL);
+		return rdata_a_to_string(output, rdata, rr);
 	case IPSECKEY_IP6:
-		return rdata_aaaa_to_string(output, rdata, NULL);
+		return rdata_aaaa_to_string(output, rdata, rr);
 	case IPSECKEY_DNAME:
-		return rdata_dns_name_to_string(output, rdata, NULL);
+		return rdata_dns_name_to_string(output, rdata, rr);
 	default:
 		return 0;
 	}
 	return 1;
-}
-
-static int
-rdata_ipsecgateway_to_string(buffer_type *output, rdata_atom_type rdata, rr_type* rr)
-{
-	return rdata_gateway_relay_to_string(output, rdata,
-			rdata_atom_data(rr->rdatas[1])[0]);
 }
 
 static int
@@ -953,7 +945,7 @@ static int
 rdata_hip_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
-	uint16_t size = rdata_atom_size(rdata);
+ 	uint16_t size = rdata_atom_size(rdata);
 	uint8_t hit_length;
 	uint16_t pk_length;
 	int length = 0;
@@ -1010,12 +1002,21 @@ rdata_amtrelay_d_type_to_string(buffer_type *output, rdata_atom_type rdata,
 
 static int
 rdata_amtrelay_relay_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
+		rr_type* rr)
 {
-	int relay_type = rdata_atom_data(rr->rdatas[1])[0] & 0x7f;
-	if(!relay_type)
-		return 1;
-	return rdata_gateway_relay_to_string(output, rdata, relay_type);
+	switch(rdata_atom_data(rr->rdatas[1])[0] & 0x7f) {
+	case AMTRELAY_NOGATEWAY:
+		break;
+	case AMTRELAY_IP4:
+		return rdata_a_to_string(output, rdata, rr);
+	case AMTRELAY_IP6:
+		return rdata_aaaa_to_string(output, rdata, rr);
+	case AMTRELAY_DNAME:
+		return rdata_dns_name_to_string(output, rdata, rr);
+	default:
+		return 0;
+	}
+	return 1;
 }
 
 static int
@@ -1171,7 +1172,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			break;
 		case RDATA_WF_IPSECGATEWAY:
 			assert(i>1); /* we are past the gateway type */
-			switch(rdata_atom_data(temp_rdatas[1])[0] & 0x7f) /* gateway type */ {
+			switch(rdata_atom_data(temp_rdatas[1])[0]) /* gateway type */ {
 			default:
 			case IPSECKEY_NOGATEWAY:
 				length = 0;
@@ -1203,6 +1204,26 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			if (buffer_position(packet) + length <= end) {
 				length += buffer_current(packet)[0];
 				length += read_uint16(buffer_current(packet) + 2);
+			}
+			break;
+		case RDATA_WF_AMTRELAY_RELAY:
+			assert(i>1);
+			switch(rdata_atom_data(temp_rdatas[1])[0] & 0x7f) /* relay type */ {
+			default:
+			case AMTRELAY_NOGATEWAY:
+				length = 0;
+				break;
+			case AMTRELAY_IP4:
+				length = IP4ADDRLEN;
+				break;
+			case AMTRELAY_IP6:
+				length = IP6ADDRLEN;
+				break;
+			case AMTRELAY_DNAME:
+				is_domain = 1;
+				is_normalized = 1;
+				is_wirestore = 1;
+				break;
 			}
 			break;
 		}

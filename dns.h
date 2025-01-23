@@ -232,7 +232,8 @@ enum rdata_wireformat
 	RDATA_WF_EUI64,              /* 64-bit address.  */
 	RDATA_WF_LONG_TEXT,          /* Long (>255) text string. */
 	RDATA_WF_SVCPARAM,           /* SvcParam <key>[=<value>] */
-	RDATA_WF_HIP                 /* HIP rdata up to the Rendezvous Servers */
+	RDATA_WF_HIP,                /* HIP rdata up to the Rendezvous Servers */
+	RDATA_WF_AMTRELAY_RELAY      /* ip4, ip6, dname or nothing */
 };
 typedef enum rdata_wireformat rdata_wireformat_type;
 
