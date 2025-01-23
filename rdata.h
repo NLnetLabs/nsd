@@ -501,8 +501,34 @@ int32_t rr_calculate_uncompressed_rdata_length(const rr_type* rr);
  * @return false on failure, when the rdata stored is badly formatted, like
  *	the rdata buffer is too short.
  */
-int lookup_rdata_field(const nsd_type_descriptor_t* descriptor, size_t index,
-	const rr_type* rr, uint16_t offset, uint16_t* field_len,
+int lookup_rdata_field_entry(const nsd_type_descriptor_t* descriptor,
+	size_t index, const rr_type* rr, uint16_t offset, uint16_t* field_len,
 	struct domain** domain);
+
+/*
+ * Compare rdata for two RRs. They have to be of the same type already.
+ * It iterates over the RR type fields. The RRs and the rdatas are the
+ * namedb format, that is with references stored as pointers.
+ * @param descriptor: type descriptor for the type.
+ * @param rr1: RR to compare rdata 1. The rdata can contain pointers.
+ * @param rr2: RR to compare rdata 2. The rdata can contain pointers.
+ * @return comparison of rdata1 and rdata2, -1 smaller, 0 equal, 1 larger.
+ */
+int compare_rr_rdata(const nsd_type_descriptor_t *descriptor,
+	const struct rr *rr1, const struct rr *rr2);
+
+/*
+ * Compare rdata for equality. This is easier than the sorted compare,
+ * it treats field types as a difference too, so a reference instead of
+ * a wireformat field makes for a different RR.
+ * The RRs have to be the same type alrady.
+ * It iterates over the RR type fields. The RRs and the rdatas are the
+ * namedb format, that is with references stored as pointers.
+ * @param rr1: RR to compare rdata 1. The rdata can contain pointers.
+ * @param rr2: RR to compare rdata 2. The rdata can contain pointers.
+ * @return true if rdata is equal.
+ */
+int equal_rr_rdata(const nsd_type_descriptor_t *descriptor,
+	const struct rr *rr1, const struct rr *rr2);
 
 #endif /* RDATA_H */

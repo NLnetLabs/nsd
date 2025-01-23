@@ -130,7 +130,7 @@ int32_t zonec_accept(
 	struct domain *domain;
 	struct buffer buffer;
 	int priority;
-	const struct rrtype_descriptor *descriptor;
+	const struct nsd_type_descriptor *descriptor;
 	struct zonec_state *state = (struct zonec_state *)user_data;
 
 	assert(state);
@@ -146,7 +146,7 @@ int32_t zonec_accept(
 	domain = domain_table_insert(state->domains, &dname);
 	assert(domain);
 
-	descriptor = rrtype_descriptor_by_type(type);
+	descriptor = nsd_type_descriptor(type);
 	descriptor->read_rdata(state->domains, buffer, &rr);
 	rr->owner = domain;
 	rr->type = type;
@@ -215,7 +215,7 @@ int32_t zonec_accept(
 
 		/* Search for possible duplicates... */
 		for (int i = 0; i < rrset->rr_count; i++) {
-			if (rdata_compare(descriptor, rr, &rrset->rrs[i]) != 0)
+			if (!equal_rr_rdata(descriptor, rr, rrset->rrs[i]))
 				continue;
 			/* Discard the duplicates... */
 			// FIXME: The usage counter for any domains isn't lowered...

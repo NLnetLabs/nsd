@@ -472,7 +472,7 @@ print_base32(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 		return 1;
 	}
 
-	buffer_reserve(output, length * 2 + 1);
+	buffer_reserve(output, size * 2 + 1);
 	length = b32_ntop(rdata + *offset + 1, size,
 			  (char *)buffer_current(output), size * 2);
 	if (length == -1)
@@ -590,12 +590,12 @@ static inline int32_t
 skip_nsec(struct buffer* packet, uint16_t rdlength, uint16_t *offset)
 {
 	uint16_t length = 0;
-	uint8_t last_window;
+	uint8_t last_window = 0;
 
 	while (rdlength - *offset - length > 2) {
 		uint8_t window = buffer_read_u8(packet);
 		uint8_t blocks = buffer_read_u8(packet);
-		if (window <= last_window)
+		if (length > 0 && window <= last_window)
 			return -1; // could make this a semantic error...
 		if (!blocks || blocks > 32)
 			return -1;
@@ -1025,7 +1025,7 @@ write_generic_rdata(struct query *query, const struct rr *rr)
 }
 
 int
-lookup_rdata_field(const nsd_type_descriptor_t* descriptor, size_t index,
+lookup_rdata_field_entry(const nsd_type_descriptor_t* descriptor, size_t index,
 	const rr_type* rr, uint16_t offset, uint16_t* field_len,
 	struct domain** domain)
 {
@@ -1097,8 +1097,8 @@ rr_calculate_uncompressed_rdata_length(const rr_type* rr)
 		if(rr->rdlength == offset &&
 			descriptor->rdata.fields[i].is_optional)
 			break; /* There are no more rdata fields. */
-		if(!lookup_rdata_field(descriptor, i, rr, offset, &field_len,
-			&domain))
+		if(!lookup_rdata_field_entry(descriptor, i, rr, offset,
+			&field_len, &domain))
 			return -1; /* malformed rdata buffer */
 		if(domain != NULL) {
 			/* Handle RDATA_COMPRESSED_DNAME and
@@ -1141,8 +1141,8 @@ int print_unknown_rdata(buffer_type *output,
 		if(rr->rdlength == length &&
 			descriptor->rdata.fields[i].is_optional)
 			break; /* There are no more rdata fields. */
-		if(!lookup_rdata_field(descriptor, i, rr, length, &field_len,
-			&domain))
+		if(!lookup_rdata_field_entry(descriptor, i, rr, length,
+			&field_len, &domain))
 			return 0; /* malformed rdata buffer */
 		if(domain != NULL) {
 			/* Handle RDATA_COMPRESSED_DNAME and
@@ -1177,7 +1177,7 @@ read_compressed_name_rdata(struct domain_table *domains, uint16_t rdlength,
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void*)&dname);
 	domain->usage++;
-	memcpy((*rr)->rdata, domain, sizeof(void*));
+	memcpy((*rr)->rdata, &domain, sizeof(void*));
 	(*rr)->rdlength = sizeof(void*);
 	return rdlength;
 }
@@ -1199,7 +1199,7 @@ read_uncompressed_name_rdata(struct domain_table *domains, uint16_t rdlength,
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void*)&dname);
 	domain->usage++;
-	memcpy((*rr)->rdata, domain, sizeof(void*));
+	memcpy((*rr)->rdata, &domain, sizeof(void*));
 	(*rr)->rdlength = sizeof(void*);
 	return rdlength;
 }
@@ -1237,7 +1237,7 @@ write_compressed_name_rdata(struct query *query, const struct rr *rr)
 {
 	struct domain *domain;
 	assert(rr->rdlength == sizeof(void*));
-	memcpy(domain, rr->rdata, sizeof(void*));
+	memcpy(&domain, rr->rdata, sizeof(void*));
 	encode_dname(query, domain);
 }
 
@@ -1247,7 +1247,7 @@ write_uncompressed_name_rdata(struct query *query, const struct rr *rr)
 	const struct dname *dname;
 	struct domain *domain;
 	assert(rr->rdlength >= sizeof(void*));
-	memcpy(domain, rr->rdata, sizeof(void*));
+	memcpy(&domain, rr->rdata, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
 }
@@ -1301,8 +1301,8 @@ read_soa_rdata(struct domain_table *domains, uint16_t rdlength,
 	mailbox_domain = domain_table_insert(domains, (void*)&mailbox);
 	mailbox_domain->usage++;
 
-	memcpy((*rr)->rdata, primary_domain, sizeof(void*));
-	memcpy((*rr)->rdata + sizeof(void*), mailbox_domain, sizeof(void*));
+	memcpy((*rr)->rdata, &primary_domain, sizeof(void*));
+	memcpy((*rr)->rdata + sizeof(void*), &mailbox_domain, sizeof(void*));
 	buffer_read(packet, (*rr)->rdata + 2 * sizeof(void*), 20);
 	(*rr)->rdlength = 2 * sizeof(void*) + 20;
 	return rdlength;
@@ -1314,8 +1314,8 @@ write_soa_rdata(struct query *query, const struct rr *rr)
 	struct domain *primary, *mailbox;
 	/* domain + domain + long + long + long + long + long */
 	assert(rr->rdlength == 2 * sizeof(void*) + 20);
-	memcpy(primary, rr->rdata, sizeof(void*));
-	memcpy(mailbox, rr->rdata + sizeof(void*), sizeof(void*));
+	memcpy(&primary, rr->rdata, sizeof(void*));
+	memcpy(&mailbox, rr->rdata + sizeof(void*), sizeof(void*));
 	encode_dname(query, primary);
 	encode_dname(query, mailbox);
 	buffer_write(query->packet, rr->rdata + (2 * sizeof(void*)), 20);
@@ -1448,8 +1448,8 @@ read_minfo_rdata(struct domain_table *domains, uint16_t rdlength,
 	rmailbx_domain->usage++;
 	emailbx_domain = domain_table_insert(domains, (void*)&emailbx);
 	emailbx_domain->usage++;
-	memcpy((*rr)->rdata, rmailbx_domain, sizeof(void*));
-	memcpy((*rr)->rdata + sizeof(void*), emailbx_domain, sizeof(void*));
+	memcpy((*rr)->rdata, &rmailbx_domain, sizeof(void*));
+	memcpy((*rr)->rdata + sizeof(void*), &emailbx_domain, sizeof(void*));
 	(*rr)->rdlength = 2 * sizeof(void*);
 	return rdlength;
 }
@@ -1459,8 +1459,8 @@ write_minfo_rdata(struct query *query, const struct rr *rr)
 {
 	struct domain *rmailbx, *emailbx;
 	assert(rr->rdlength == 2 * sizeof(void*));
-	memcpy(rmailbx, rr->rdata, sizeof(void*));
-	memcpy(emailbx, rr->rdata + sizeof(void*), sizeof(void*));
+	memcpy(&rmailbx, rr->rdata, sizeof(void*));
+	memcpy(&emailbx, rr->rdata + sizeof(void*), sizeof(void*));
 	encode_dname(query, rmailbx);
 	encode_dname(query, emailbx);
 }
@@ -1502,7 +1502,7 @@ read_mx_rdata(struct domain_table *domains, uint16_t rdlength,
 	domain = domain_table_insert(domains, (void*)&exchange);
 	domain->usage++;
 	buffer_read_at(packet, mark, (*rr)->rdata, 2);
-	memcpy((*rr)->rdata + 2, domain, sizeof(void*));
+	memcpy((*rr)->rdata + 2, &domain, sizeof(void*));
 	(*rr)->rdlength = 2 + sizeof(void*);
 	return rdlength;
 }
@@ -1512,7 +1512,7 @@ write_mx_rdata(struct query *query, const struct rr *rr)
 {
 	struct domain *domain;
 	assert(rr->rdlength == 2 + sizeof(void*));
-	memcpy(domain, rr->rdata + 2, sizeof(void*));
+	memcpy(&domain, rr->rdata + 2, sizeof(void*));
 	buffer_write(query->packet, rr->rdata, 2);
 	encode_dname(query, domain);
 }
@@ -1578,8 +1578,8 @@ read_rp_rdata(struct domain_table *domains, uint16_t rdlength,
 	mbox_domain->usage++;
 	txt_domain = domain_table_insert(domains, (void*)&txt);
 	txt_domain->usage++;
-	memcpy((*rr)->rdata, mbox_domain, sizeof(void*));
-	memcpy((*rr)->rdata + sizeof(void*), txt_domain, sizeof(void*));
+	memcpy((*rr)->rdata, &mbox_domain, sizeof(void*));
+	memcpy((*rr)->rdata + sizeof(void*), &txt_domain, sizeof(void*));
 	(*rr)->rdlength = 2 * sizeof(void*);
 	return rdlength;
 }
@@ -1591,8 +1591,8 @@ write_rp_rdata(struct query *query, const struct rr *rr)
 	const struct dname *mbox, *txt;
 
 	assert(rr->rdlength == 2 * sizeof(void*));
-	memcpy(mbox_domain, rr->rdata, sizeof(void*));
-	memcpy(txt_domain, rr->rdata + sizeof(void*), sizeof(void*));
+	memcpy(&mbox_domain, rr->rdata, sizeof(void*));
+	memcpy(&txt_domain, rr->rdata + sizeof(void*), sizeof(void*));
 	mbox = domain_dname(mbox_domain);
 	txt = domain_dname(txt_domain);
 	buffer_write(query->packet, dname_name(mbox), mbox->name_size);
@@ -1622,7 +1622,7 @@ read_afsdb_rdata(struct domain_table *domains, uint16_t rdlength,
 	domain = domain_table_insert(domains, (void*)&hostname);
 	domain->usage++;
 	buffer_read_at(packet, mark, (*rr)->rdata, 2);
-	memcpy((*rr)->rdata + 2, domain, sizeof(void*));
+	memcpy((*rr)->rdata + 2, &domain, sizeof(void*));
 	(*rr)->rdlength = 2 + sizeof(void*);
 	return rdlength;
 }
@@ -1634,7 +1634,7 @@ write_afsdb_rdata(struct query *query, const struct rr *rr)
 	const struct dname *dname;
 
 	assert(rr->rdlength == 2 + sizeof(void*));
-	memcpy(domain, rr->rdata + 2, sizeof(void*));
+	memcpy(&domain, rr->rdata + 2, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, rr->rdata, 2);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
@@ -1732,7 +1732,7 @@ read_rt_rdata(struct domain_table *domains, uint16_t rdlength,
 	domain = domain_table_insert(domains, (void*)&dname);
 	domain->usage++;
 	buffer_read_at(packet, mark, (*rr)->rdata, 2);
-	memcpy((*rr)->rdata + 2, domain, sizeof(void*));
+	memcpy((*rr)->rdata + 2, &domain, sizeof(void*));
 	(*rr)->rdlength = 2 + sizeof(void*);
 	return rdlength;
 }
@@ -1744,7 +1744,7 @@ write_rt_rdata(struct query *query, const struct rr *rr)
 	const struct dname *dname;
 
 	assert(rr->rdlength == 2 + sizeof(void*));
-	memcpy(domain, rr->rdata + 2, sizeof(void*));
+	memcpy(&domain, rr->rdata + 2, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, rr->rdata, 2);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
@@ -1802,8 +1802,8 @@ read_px_rdata(struct domain_table *domains, uint16_t rdlength,
 	mapx400_domain->usage++;
 
 	buffer_read_at(packet, mark, (*rr)->rdata, 2);
-	memcpy((*rr)->rdata, map822_domain, sizeof(void*));
-	memcpy((*rr)->rdata, mapx400_domain, sizeof(void*));
+	memcpy((*rr)->rdata, &map822_domain, sizeof(void*));
+	memcpy((*rr)->rdata, &mapx400_domain, sizeof(void*));
 	(*rr)->rdlength = 2 + 2*sizeof(void*);
 	return rdlength;
 }
@@ -1814,8 +1814,8 @@ write_px_rdata(struct query *query, const struct rr *rr)
 	struct domain *map822_domain, *mapx400_domain;
 	const struct dname *map822, *mapx400;
 
-	memcpy(map822_domain, rr->rdata + 2, sizeof(void*));
-	memcpy(mapx400_domain, rr->rdata + 2 + sizeof(void*), sizeof(void*));
+	memcpy(&map822_domain, rr->rdata + 2, sizeof(void*));
+	memcpy(&mapx400_domain, rr->rdata + 2 + sizeof(void*), sizeof(void*));
 	map822 = domain_dname(map822_domain);
 	mapx400 = domain_dname(mapx400_domain);
 	buffer_write(query->packet, rr->rdata, 2);
@@ -1897,7 +1897,7 @@ read_nxt_rdata(struct domain_table *domains, uint16_t rdlength,
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void*)&dname);
 	domain->usage++;
-	memcpy((*rr)->rdata, domain, sizeof(void*));
+	memcpy((*rr)->rdata, &domain, sizeof(void*));
 	buffer_read(packet, (*rr)->rdata + sizeof(void*), 2 + bitmap_size);
 	(*rr)->rdlength = sizeof(void*) + bitmap_size;
 	return rdlength;
@@ -1910,7 +1910,7 @@ write_nxt_rdata(struct query *query, const struct rr *rr)
 	const struct dname *dname;
 
 	assert(rr->rdlength >= sizeof(void*));
-	memcpy(domain, rr->rdata, sizeof(void*));
+	memcpy(&domain, rr->rdata, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
 	buffer_write(query->packet, rr->rdata + sizeof(void*), rr->rdlength - sizeof(void*));
@@ -1962,7 +1962,7 @@ read_srv_rdata(struct domain_table *domains, uint16_t rdlength,
 	domain = domain_table_insert(domains, (void*)&dname);
 	domain->usage++;
 	buffer_read_at(packet, mark, (*rr)->rdata, 6);
-	memcpy((*rr)->rdata + 6, domain, sizeof(void*));
+	memcpy((*rr)->rdata + 6, &domain, sizeof(void*));
 	(*rr)->rdlength = 6 + sizeof(void*);
 	return rdlength;
 }
@@ -1974,7 +1974,7 @@ write_srv_rdata(struct query *query, const struct rr *rr)
 	const struct dname *dname;
 
 	assert(rr->rdlength == 6 + sizeof(void*));
-	memcpy(domain, rr->rdata, sizeof(void*));
+	memcpy(&domain, rr->rdata, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, rr->rdata, 6);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
@@ -2051,7 +2051,7 @@ read_naptr_rdata(struct domain_table *domains, uint16_t rdlength,
 	domain = domain_table_insert(domains, (void*)&dname);
 	domain->usage++;
 	buffer_read_at(packet, mark, (*rr)->rdata, length);
-	memcpy((*rr)->rdata + length, domain, sizeof(void*));
+	memcpy((*rr)->rdata + length, &domain, sizeof(void*));
 	(*rr)->rdlength += length + sizeof(void*);
 	return rdlength;
 }
@@ -2066,7 +2066,7 @@ write_naptr_rdata(struct query *query, const struct rr *rr)
 	/* short + short + string + string + string + uncompressed name */
 	assert(rr->rdlength < 7 + sizeof(void*));
 	length = rr->rdlength - sizeof(void*);
-	memcpy(domain, rr->rdata + length, sizeof(void*));
+	memcpy(&domain, rr->rdata + length, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, rr->rdata, length);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
@@ -2118,7 +2118,7 @@ read_kx_rdata(struct domain_table *domains, uint16_t rdlength,
 	domain = domain_table_insert(domains, (void*)&dname);
 	domain->usage++;
 	buffer_read_at(packet, mark, (*rr)->rdata, 2);
-	memcpy((*rr)->rdata + 2, domain, sizeof(void*));
+	memcpy((*rr)->rdata + 2, &domain, sizeof(void*));
 	(*rr)->rdlength = 2 + sizeof(void*);
 	return rdlength;
 }
@@ -2131,7 +2131,7 @@ write_kx_rdata(struct query *query, const struct rr *rr)
 
 	/* short + uncompressed name */
 	assert(rr->rdlength != 2 + sizeof(void*));
-	memcpy(domain, rr->rdata + 2, sizeof(void*));
+	memcpy(&domain, rr->rdata + 2, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, rr->rdata, 2);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
@@ -2828,7 +2828,7 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 	domain = domain_table_insert(domains, (void*)&target);
 	domain->usage++;
 	buffer_read_at(packet, mark, (*rr)->rdata, 2);
-	memcpy((*rr)->rdata + 2, domain, sizeof(void*));
+	memcpy((*rr)->rdata + 2, &domain, sizeof(void*));
 	buffer_read_at(packet, mark + length, (*rr)->rdata, svcparams_length);
 	(*rr)->rdlength = 2 + sizeof(void*) + svcparams_length;
 	return rdlength;
@@ -2842,7 +2842,7 @@ write_svcb_rdata(struct query *query, const struct rr *rr)
 	uint8_t length;
 
 	assert(rr->rdlength >= 2 + sizeof(void*));
-	memcpy(domain, rr->rdata + 2, sizeof(void*));
+	memcpy(&domain, rr->rdata + 2, sizeof(void*));
 	target = domain_dname(domain);
 	buffer_write(query->packet, rr->rdata, 2);
 	buffer_write(query->packet, dname_name(target), target->name_size);
@@ -2955,7 +2955,7 @@ read_lp_rdata(struct domain_table *domains, uint16_t rdlength,
 	domain = domain_table_insert(domains, (void*)&target);
 	domain->usage++;
 	buffer_read_at(packet, mark, (*rr)->rdata, 2);
-	memcpy((*rr)->rdata + 2, domain, sizeof(void*));
+	memcpy((*rr)->rdata + 2, &domain, sizeof(void*));
 	(*rr)->rdlength = 2 + sizeof(void*);
 	return rdlength;
 }
@@ -3120,68 +3120,253 @@ print_rdata(buffer_type *output, const nsd_type_descriptor_t *descriptor,
 	return descriptor->print_rdata(output, rr);
 }
 
-int32_t
-compare_rdata(const struct type_descriptor *descriptor, const struct rr *rr1,
-	const struct rr *rr2)
-{
-}
-
-// we want to merge the zrdatacmp code below
-// and the rdatas_equal from difffile.c????
-// >> why are we implementing the same thing over and over...
-
-
 /*
- * Compares two rdata arrays.
- *
- * Returns:
- *
- *	zero if they are equal
- *	non-zero if not
- *
+ * Compare two wireformat byte strings. In canonical order for this comparison.
+ * Sorts equal as equal, and if there is a prefix match, the shorter one is
+ * before the longer one; so it sorts like normalized domain names,
+ * ab ac acd ace ad ae af.  And ab < abc , abc < ac .
+ * @param b1: byte string1.
+ * @param len1: length of b1.
+ * @param b2: byte string2.
+ * @param len2: length of b2
+ * @return comparison, -1, 0, 1.
  */
 static int
-zrdatacmp(uint16_t type, const union rdata_atom *rdatas, size_t rdata_count,
-	rr_type *b)
+compare_bytestring(const uint8_t* b1, uint16_t len1, const uint8_t* b2,
+	uint16_t len2)
 {
-	assert(rdatas);
-	assert(b);
+	uint16_t blen;
+	int res;
 
-	/* One is shorter than another */
-	if (rdata_count != b->rdata_count)
+	if(len1 == 0 && len2 == 0)
+		return 0;
+	if(len1 == 0 && len2 != 0)
+		return -1;
+	if(len1 != 0 && len2 == 0)
 		return 1;
+	blen = len1;
+	if(len2 < blen)
+		blen = len2;
+	res = memcmp(b1, b2, blen);
+	if(res != 0)
+		return res;
+	if(len1 < len2)
+		return -1;
+	if(len1 > len2)
+		return 1;
+	/* len1 == len2 and equal. */
+	return 0;
+}
 
-	/* Compare element by element */
-	for (size_t i = 0; i < rdata_count; ++i) {
-		if (rdata_atom_is_domain(type, i)) {
-			if (rdata_atom_domain(rdatas[i])
-			    != rdata_atom_domain(b->rdatas[i]))
-			{
-				return 1;
-			}
-		} else if(rdata_atom_is_literal_domain(type, i)) {
-			if (rdata_atom_size(rdatas[i])
-			    != rdata_atom_size(b->rdatas[i]))
-				return 1;
-			if (!dname_equal_nocase(rdata_atom_data(rdatas[i]),
-				   rdata_atom_data(b->rdatas[i]),
-				   rdata_atom_size(rdatas[i])))
-				return 1;
-		} else {
-			if (rdata_atom_size(rdatas[i])
-			    != rdata_atom_size(b->rdatas[i]))
-			{
-				return 1;
-			}
-			if (memcmp(rdata_atom_data(rdatas[i]),
-				   rdata_atom_data(b->rdatas[i]),
-				   rdata_atom_size(rdatas[i])) != 0)
-			{
-				return 1;
-			}
-		}
+int
+compare_rr_rdata(const nsd_type_descriptor_t *descriptor, const struct rr *rr1,
+	const struct rr *rr2)
+{
+	size_t index1 = 0, index2 = 0;
+	uint16_t offset1 = 0, offset2 = 0, pos = 0, field1_pos = 0,
+		field2_pos = 0, field1_len = 0, field2_len = 0;
+	const uint8_t* field1 = NULL, *field2 = NULL;
+	struct domain* domain1, *domain2;
+	int res;
+
+	if(!descriptor->has_references) {
+		/* Compare the wireformat of the rdata. */
+		return compare_bytestring(rr1->rdata, rr1->rdlength,
+			rr2->rdata, rr2->rdlength);
 	}
 
-	/* Otherwise they are equal */
+	/* Loop through the rdata fields, of rr1 and rr2, and compare
+	 * the wireformat fields. Move to the next field when needed.
+	 * The loop continues while they are equal. pos is comparison point.
+	 * Field1 has wireformat starting at field1_pos, for field1_len length,
+	 * it is in field1. It is at RR type field index1-1.
+	 * Field2 has wireformat starting at field2_pos, for field2_len length,
+	 * it is in field2. It is at RR type field index2-1.
+	 */
+	while(index1 < descriptor->rdata.length &&
+		index2 < descriptor->rdata.length) {
+		uint16_t compare_len;
+		int malf1 = 0, malf2 = 0;
+
+		/* The comparison continues at byte pos. */
+
+		/* Pick up wireformat for field of rr1. */
+		if(field1_pos + field1_len <= pos &&
+			index1 < descriptor->rdata.length) {
+			if(rr1->rdlength == offset1 &&
+				descriptor->rdata.fields[index1].is_optional) {
+				/* No more rdata fields in rr1. */
+				field1_len = 0;
+				field1 = NULL;
+			} else {
+				if(!lookup_rdata_field_entry(descriptor,
+					index1, rr1, offset1, &field1_len,
+					&domain1))
+					malf1 = 1; /* malformed rdata buffer */
+				if(!malf1) {
+					if(domain1) {
+						offset1 += field1_len;
+						field1 = dname_name(
+							domain_dname(domain1));
+						field1_len = domain_dname(
+							domain1)->name_size;
+					} else {
+						field1 = rr1->rdata+offset1;
+						offset1 += field1_len;
+					}
+					index1++;
+				}
+			}
+		}
+		/* Pick up wireformat for field of rr2. */
+		if(field2_pos + field2_len <= pos &&
+			index2 < descriptor->rdata.length) {
+			if(rr2->rdlength == offset2 &&
+				descriptor->rdata.fields[index2].is_optional) {
+				/* No more rdata fields in rr2. */
+				field2_len = 0;
+				field2 = NULL;
+			} else {
+				if(!lookup_rdata_field_entry(descriptor,
+					index2, rr2, offset2, &field2_len,
+					&domain2))
+					malf2 = 1; /* malformed rdata buffer */
+				if(!malf2) {
+					if(domain2) {
+						offset2 += field2_len;
+						field2 = dname_name(
+							domain_dname(domain2));
+						field2_len = domain_dname(
+							domain2)->name_size;
+					} else {
+						field2 = rr2->rdata+offset2;
+						offset2 += field2_len;
+					}
+					index2++;
+				}
+			}
+		}
+
+		/* Both fields should have pos, or the RR ends at pos
+		 * and the length equals pos. */
+		if(!malf1 && field1_pos+field1_len < pos)
+			malf1 = 1;
+		if(!malf2 && field2_pos+field2_len < pos)
+			malf2 = 1;
+		if(!malf1 && pos < field1_pos)
+			malf1 = 1;
+		if(!malf2 && pos < field2_pos)
+			malf2 = 1;
+
+		if(malf1 || malf2) {
+			/* Malformed entries sort last, and are sorted
+			 * equal with other malformed entries. */
+			if(!malf1 && malf2)
+				return -1;
+			if(malf1 && !malf2)
+				return 1;
+			return 0;
+		}
+
+		/* Compare wireformat pieces. */
+		if(field1_pos+field1_len-pos < field2_pos+field2_len-pos)
+			compare_len = field1_pos+field1_len-pos;
+		else	compare_len = field2_pos+field2_len-pos;
+		if(compare_len == 0) {
+			/* One of the RRs ended, perform the final length
+			 * comparison. */
+			if(field1_pos+field1_len-pos <
+				field2_pos+field2_len-pos)
+				return -1;
+			if(field1_pos+field1_len-pos >
+				field2_pos+field2_len-pos)
+				return 1;
+			/* The RRs are equal. */
+			return 0;
+		}
+		res = memcmp(field1+pos-field1_pos, field2+pos-field2_pos,
+			compare_len);
+		if(res != 0)
+			return res;
+		pos += compare_len;
+	}
+	if(index1 == descriptor->rdata.length &&
+		index2 < descriptor->rdata.length)
+		return -1;
+	if(index1 < descriptor->rdata.length &&
+		index2 == descriptor->rdata.length)
+		return 1;
+	return 0;
+}
+
+int
+equal_rr_rdata(const nsd_type_descriptor_t *descriptor, const struct rr *rr1,
+	const struct rr *rr2)
+{
+	size_t i;
+	uint16_t offset = 0;
+	int res;
+
+	if(!descriptor->has_references) {
+		/* Compare the wireformat of the rdata. */
+		return compare_bytestring(rr1->rdata, rr1->rdlength,
+			rr2->rdata, rr2->rdlength);
+	}
+
+	for(i=0; i < descriptor->rdata.length; i++) {
+		uint16_t field_len1, field_len2;
+		struct domain* domain1, *domain2;
+		int malf1 = 0, malf2 = 0;
+		/* The fields are equal up to this point. */
+		if((rr1->rdlength == offset || rr2->rdlength == offset) &&
+			descriptor->rdata.fields[i].is_optional) {
+			/* There are no more rdata fields. */
+			/* Check lengths. */
+			if(rr1->rdlength < rr2->rdlength)
+				return -1;
+			if(rr1->rdlength > rr2->rdlength)
+				return 1;
+			/* It is equal. */
+			return 0;
+		}
+		domain1 = NULL;
+		domain2 = NULL;
+		if(!lookup_rdata_field_entry(descriptor, i, rr1, offset,
+			&field_len1, &domain1))
+			malf1 = 1; /* malformed rdata buffer */
+		if(!lookup_rdata_field_entry(descriptor, i, rr2, offset,
+			&field_len2, &domain2))
+			malf2 = 1; /* malformed rdata buffer */
+		if(malf1 || malf2) {
+			/* Malformed entries sort last, and are sorted
+			 * equal with other malformed entries. */
+			if(!malf1 && malf2)
+				return -1;
+			if(malf1 && !malf2)
+				return 1;
+			return 0;
+		}
+		/* Compare the two fields. */
+		/* If they have a different type field, they are not the
+		 * same. */
+		if(domain1 && !domain2)
+			return -1;
+		if(!domain1 && domain2)
+			return 1;
+		if(domain1 && domain2) {
+			/* Handle RDATA_COMPRESSED_DNAME and
+			 * RDATA_UNCOMPRESSED_DNAME fields. */
+			res = dname_compare(domain_dname(domain1),
+				domain_dname(domain2));
+			if(res != 0)
+				return res;
+		} else {
+			res = compare_bytestring(rr1->rdata + offset,
+				field_len1, rr2->rdata + offset, field_len2);
+			if(res != 0)
+				return res;
+		}
+		offset += field_len1;
+	}
 	return 0;
 }
