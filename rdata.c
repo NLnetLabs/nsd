@@ -3801,13 +3801,7 @@ equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
 	return 0;
 }
 
-/*
- * Retrieve domain ref at an offset in the rdata.
- * @param rr: the RR to retrieve it for.
- * @param offset: where in the rdata the reference pointer is.
- * @return domain ptr.
- */
-static struct domain*
+struct domain*
 retrieve_rdata_ref_domain_offset(const struct rr* rr, uint16_t offset)
 {
 	struct domain *domain;
@@ -3817,11 +3811,6 @@ retrieve_rdata_ref_domain_offset(const struct rr* rr, uint16_t offset)
 	return domain;
 }
 
-/*
- * Retrieve domain ref from rdata. No offset, rdata starts with ref.
- * @param rr: the RR to retrieve it for.
- * @return domain ptr.
- */
 static struct domain*
 retrieve_rdata_ref_domain(const struct rr* rr)
 {

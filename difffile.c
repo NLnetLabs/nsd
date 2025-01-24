@@ -234,19 +234,10 @@ diff_read_str(FILE* in, char* buf, size_t len)
 }
 
 static void
-add_rdata_to_recyclebin(namedb_type* db, rr_type* rr)
+add_rr_to_recyclebin(namedb_type* db, rr_type* rr)
 {
-	/* add rdatas to recycle bin. */
-	size_t i;
-	for(i=0; i<rr->rdata_count; i++)
-	{
-		if(!rdata_atom_is_domain(rr->type, i))
-			region_recycle(db->region, rr->rdatas[i].data,
-				rdata_atom_size(rr->rdatas[i])
-				+ sizeof(uint16_t));
-	}
-	region_recycle(db->region, rr->rdatas,
-		sizeof(rdata_atom_type)*rr->rdata_count);
+	/* add rr and rdata to recycle bin. */
+	region_recycle(db->region, rr, sizeof(rr_type) + rr->rdlength);
 }
 
 /* this routine determines if below a domain there exist names with
@@ -323,7 +314,7 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	}
 	if(domain == rrset->zone->apex && rrset_rrtype(rrset) == TYPE_RRSIG) {
 		for (i = 0; i < rrset->rr_count; ++i) {
-			if(rr_rrsig_type_covered(&rrset->rrs[i])==TYPE_DNSKEY) {
+			if(rr_rrsig_type_covered(rrset->rrs[i])==TYPE_DNSKEY) {
 				rrset->zone->is_secure = 0;
 				break;
 			}
@@ -331,9 +322,8 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	}
 	/* recycle the memory space of the rrset */
 	for (i = 0; i < rrset->rr_count; ++i)
-		add_rdata_to_recyclebin(db, &rrset->rrs[i]);
-	region_recycle(db->region, rrset->rrs,
-		sizeof(rr_type) * rrset->rr_count);
+		add_rr_to_recyclebin(db, rrset->rrs[i]);
+	region_recycle(db->region, rrset->rrs, sizeof(rr_type*) * rrset->rr_count);
 	rrset->rr_count = 0;
 	region_recycle(db->region, rrset, sizeof(rrset_type));
 }
@@ -343,7 +333,7 @@ rdatas_equal(const rr_type *rr1, const rr_type *rr2, uint16_t type,
 	int* rdnum, char** reason)
 {
 	size_t offset = 0;
-	const rrtype_descriptor_type *descriptor;
+	const nsd_type_descriptor_type *descriptor;
 
 	assert(rr1->rdlength == rr2->rdlength);
 
@@ -354,9 +344,9 @@ rdatas_equal(const rr_type *rr1, const rr_type *rr2, uint16_t type,
 	if (type == TYPE_SOA) {
 		offset = 2 * sizeof(void*);
 		assert(rr1->rdlength == offset + 20);
-		if (memcpy(rr1->rdata + offset, rr2->rdata + offset, 4) == 0)
+		if (memcmp(rr1->rdata + offset, rr2->rdata + offset, 4) == 0)
 			return 1;
-		*rdnum = 2
+		*rdnum = 2;
 		*reason = "rdata data";
 		return 0;
 	}
@@ -364,69 +354,73 @@ rdatas_equal(const rr_type *rr1, const rr_type *rr2, uint16_t type,
 	if (memcmp(rr1->rdata, rr2->rdata, rr1->rdlength) == 0)
 		return 1;
 
-	descriptor = rrtype_descriptor_by_type(type);
+	descriptor = nsd_type_descriptor(type);
 	for (size_t i=0; i < descriptor->rdata.length && offset < rr1->rdlength; i++) {
-		int32_t length = descriptor->rdata.fields[i].length;
-		switch (length) {
-			case RDATA_COMPRESSED_NAME:
-			case RDATA_UNCOMPRESSED_DNAME:
-				{
-					const struct dname *dname1, *dname2;
-					const struct domain *domain1, *domain2;
-					memcpy(&domain1, rr1->rdata + offset, sizeof(void*));
-					memcpy(&domain2, rr2->rdata + offset, sizeof(void*));
-					dname1 = domain_dname(domain1);
-					dname2 = domain_dname(domain2);
-					// FIXME: check if enough data is available!!!!
-					if (dname_compare(dname1, dname2) != 0) {
-						*rdnum = i;
-						*reason = "dname data";
-						return 0;
-					}
-					offset += sizeof(void*);
-				}
-				continue;
-			case RDATA_LITERAL_DNAME:
-				{
-					uint8_t length1, length2;
-					const uint8_t *name1 = rr1->rdata + offset;
-					const uint8_t *name2 = rr2->rdata + offset;
-					length1 = name_length(name1, rr1->rdlength - offset);
-					length2 = name_length(name2, rr2->rdlength - offset);
-
-					if (!length1 || !length2 || length1 != length2) {
-						*rdnum = i;
-						*reason = "literal dname len";
-						return 0;
-					}
-					if (!dname_equal_nocase(name1, name2, length1)) {
-						*rdnum = i;
-						*reason = "literal dname data";
-						return 0;
-					}
-					offset += length1;
-				}
-				continue;
-			case RDATA_STRING:
-				length = 1 + rr1->rdata[offset];
-				break;
-			case RDATA_REMAINDER:
-				length = rr1->rdlength - offset;
-				break;
+		uint16_t field_len1, field_len2;
+		struct domain* domain1, *domain2;
+		if(offset == rr1->rdlength &&
+			descriptor->rdata.fields[i].is_optional)
+			break;
+		if(!lookup_rdata_field_entry(descriptor, i, rr1, offset,
+			&field_len1, &domain1)) {
+			*rdnum = i;
+			*reason = "malformed field rr1";
+			return 0;
 		}
+		if(!lookup_rdata_field_entry(descriptor, i, rr2, offset,
+			&field_len2, &domain2)) {
+			*rdnum = i;
+			*reason = "malformed field rr2";
+			return 0;
+		}
+		if(domain1 && domain2) {
+			const struct dname *dname1, *dname2;
+			dname1 = domain_dname(domain1);
+			dname2 = domain_dname(domain2);
+			if (dname_compare(dname1, dname2) != 0) {
+				*rdnum = i;
+				*reason = "dname data";
+				return 0;
+			}
+			offset += field_len1;
+			continue;
+		} else if(descriptor->rdata.fields[i].length ==
+			RDATA_LITERAL_DNAME) {
+			uint8_t length1, length2;
+			const uint8_t *name1 = rr1->rdata + offset;
+			const uint8_t *name2 = rr2->rdata + offset;
+			if(field_len1 != field_len2) {
+				*rdnum = i;
+				*reason = "literal dname field len";
+				return 0;
+			}
+			length1 = buf_dname_length(name1, rr1->rdlength - offset);
+			length2 = buf_dname_length(name2, rr2->rdlength - offset);
 
-    assert(length >= 0);
-		if (rr1->rdlength - offset < (uint16_t)length) {
+			if (!length1 || !length2 || length1 != length2) {
+				*rdnum = i;
+				*reason = "literal dname len";
+				return 0;
+			}
+			if (!dname_equal_nocase((uint8_t*)name1, (uint8_t*)name2, length1)) {
+				*rdnum = i;
+				*reason = "literal dname data";
+				return 0;
+			}
+			offset += field_len1;
+			continue;
+		}
+		if(field_len1 != field_len2) {
 			*rdnum = i;
 			*reason = "rdata len";
 			return 0;
 		}
-		if (memcpy(rr1->rdata+offset, rr2->rdata+offset, length) != 0) {
+		if(memcmp(rr1->rdata+offset, rr2->rdata+offset, field_len1) != 0) {
 			*rdnum = i;
 			*reason = "rdata data";
 			return 0;
 		}
-		offset += (uint16_t)length;
+		offset += field_len1;
 	}
 
 	return 1;
@@ -460,7 +454,7 @@ debug_find_rr_num(rrset_type* rrset, uint16_t type, uint16_t klass,
 				"does not match RR num %d rdlen %d",
 				dname_to_string(domain_dname(rrset->rrs[i]->owner),0),
 				rrtype_to_string(type),
-				(unsigned) rdata_num, i,
+				(unsigned) rr->rdlength, i,
 				(unsigned) rrset->rrs[i]->rdlength);
 		}
 		if (!rdatas_equal(rr, rrset->rrs[i], type,
@@ -682,15 +676,27 @@ nsec3_add_rrset_trigger(namedb_type* db, domain_type* domain, zone_type* zone,
 static void
 rr_lower_usage(namedb_type* db, rr_type* rr)
 {
-	unsigned i;
-	for(i=0; i<rr->rdata_count; i++) {
-		if(rdata_atom_is_domain(rr->type, i)) {
-			assert(rdata_atom_domain(rr->rdatas[i])->usage > 0);
-			rdata_atom_domain(rr->rdatas[i])->usage --;
-			if(rdata_atom_domain(rr->rdatas[i])->usage == 0)
+	const nsd_type_descriptor_type *descriptor =
+		nsd_type_descriptor(rr->type);
+	uint16_t offset = 0;
+	size_t i;
+	for(i=0; i<descriptor->rdata.length; i++) {
+		uint16_t field_len;
+		struct domain* domain;
+		if(rr->rdlength == offset &&
+			descriptor->rdata.fields[i].is_optional)
+			break;
+		if(!lookup_rdata_field_entry(descriptor, i, rr, offset,
+			&field_len, &domain))
+			break;
+		if(domain) {
+			assert(domain->usage > 0);
+			domain->usage --;
+			if(domain->usage == 0)
 				domain_table_deldomain(db,
-					rdata_atom_domain(rr->rdatas[i]));
+					domain);
 		}
+		offset += field_len;
 	}
 }
 
@@ -699,7 +705,7 @@ rrset_lower_usage(namedb_type* db, rrset_type* rrset)
 {
 	unsigned i;
 	for(i=0; i<rrset->rr_count; i++)
-		rr_lower_usage(db, &rrset->rrs[i]);
+		rr_lower_usage(db, rrset->rrs[i]);
 }
 
 int
@@ -710,7 +716,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 {
 	domain_type *domain;
 	rrset_type *rrset;
-	const nsd_type_descriptor_t *descriptor = rrtype_descriptor_by_type(type);
+	const nsd_type_descriptor_type *descriptor = nsd_type_descriptor(type);
 	domain = domain_table_find(db->domains, dname);
 	if(!domain) {
 		log_msg(LOG_WARNING, "diff: domain %s does not exist",
@@ -736,9 +742,10 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		 * normalized, conform RFC 4035, section 6.2
 		 */
 		rdata_num = descriptor->read_rdata(temptable, rdatalen, packet, &rr);
-		if(rdata_num == -1) {
-			log_msg(LOG_ERR, "diff: bad rdata for %s",
-				dname_to_string(dname,0));
+		if(rdata_num < 0) {
+			log_msg(LOG_ERR, "diff: bad rdata for %s %s",
+				dname_to_string(dname,0),
+				rrtype_to_string(type));
 			return 0;
 		}
 		rrnum = find_rr_num(rrset, type, klass, rr, 0);
@@ -757,7 +764,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 #endif
 		/* lower usage (possibly deleting other domains, and thus
 		 * invalidating the current RR's domain pointers) */
-		rr_lower_usage(db, &rrset->rrs[rrnum]);
+		rr_lower_usage(db, rrset->rrs[rrnum]);
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
 			rrset_delete(db, domain, rrset);
@@ -771,11 +778,11 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			domain_table_deldomain(db, domain);
 		} else {
 			/* swap out the bad RR and decrease the count */
-			rr_type* rrs_orig = rrset->rrs;
-			add_rdata_to_recyclebin(db, &rrset->rrs[rrnum]);
+			rr_type** rrs_orig = rrset->rrs;
+			add_rr_to_recyclebin(db, rrset->rrs[rrnum]);
 			if(rrnum < rrset->rr_count-1)
 				rrset->rrs[rrnum] = rrset->rrs[rrset->rr_count-1];
-			memset(&rrset->rrs[rrset->rr_count-1], 0, sizeof(rr_type));
+			rrset->rrs[rrset->rr_count-1] = NULL;
 			/* realloc the rrs array one smaller */
 			rrset->rrs = region_alloc_array_init(db->region, rrs_orig,
 				(rrset->rr_count-1), sizeof(rr_type*));
@@ -785,23 +792,6 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			}
 			region_recycle(db->region, rrs_orig,
 				sizeof(rr_type*) * rrset->rr_count);
-#ifdef NSEC3
-			if(type == TYPE_NSEC3PARAM && zone->nsec3_param) {
-				/* fixup nsec3_param pointer to same RR */
-				assert(zone->nsec3_param >= rrs_orig &&
-					zone->nsec3_param <=
-					rrs_orig+rrset->rr_count);
-				/* last moved to rrnum, others at same index*/
-				if(zone->nsec3_param == &rrs_orig[
-					rrset->rr_count-1])
-					zone->nsec3_param = &rrset->rrs[rrnum];
-				else
-					zone->nsec3_param = (void*)
-						((char*)zone->nsec3_param
-						-(char*)rrs_orig +
-						 (char*)rrset->rrs);
-			}
-#endif /* NSEC3 */
 			rrset->rr_count --;
 #ifdef NSEC3
 			/* for type nsec3, the domain may have become a
@@ -824,11 +814,10 @@ add_RR(namedb_type* db, const dname_type* dname,
 	domain_type* domain;
 	rrset_type* rrset;
 //	rdata_atom_type *rdatas;
-	rr_type *rrs_old, *rr;
+	rr_type **rrs_old, *rr;
 	int32_t rdata_num;
 	int rrnum;
-	uint8_t *rdata;
-	const nsd_type_descriptor_t *descriptor;
+	const nsd_type_descriptor_type *descriptor;
 #ifdef NSEC3
 	int rrset_added = 0;
 #endif
@@ -857,10 +846,10 @@ add_RR(namedb_type* db, const dname_type* dname,
 	/* dnames in rdata are normalized, conform RFC 4035,
 	 * Section 6.2
 	 */
-	descriptor = rrtype_descriptor_by_type(type);
+	descriptor = nsd_type_descriptor(type);
 	rdata_num = descriptor->read_rdata(
 		db->domains, rdatalen, packet, &rr);
-	if(rdata_num == -1) {
+	if(rdata_num < 0) {
 		log_msg(LOG_ERR, "diff: bad rdata for %s",
 			dname_to_string(dname,0));
 		return 0;
@@ -894,28 +883,14 @@ add_RR(namedb_type* db, const dname_type* dname,
 		exit(1);
 	}
 	if(rrs_old)
-		memcpy(rrset->rrs, rrs_old, rrset->rr_count * sizeof(rr_type));
-	region_recycle(db->region, rrs_old, sizeof(rr_type) * rrset->rr_count);
+		memcpy(rrset->rrs, rrs_old, rrset->rr_count * sizeof(rr_type*));
+	region_recycle(db->region, rrs_old, sizeof(rr_type*) * rrset->rr_count);
 	rrset->rr_count ++;
 	rrset->rrs[rrset->rr_count - 1] = rr;
 
 	/* see if it is a SOA */
 	if(domain == zone->apex) {
 		apex_rrset_checks(db, rrset, domain);
-#ifdef NSEC3
-		if(type == TYPE_NSEC3PARAM && zone->nsec3_param) {
-			//
-			// FIXME: This cannot be correct!!!!
-			//
-			/* the pointer just changed, fix it up to point
-			 * to the same record */
-			assert(zone->nsec3_param >= rrs_old &&
-				zone->nsec3_param < rrs_old+rrset->rr_count);
-			/* in this order to make sure no overflow/underflow*/
-			zone->nsec3_param = (void*)((char*)zone->nsec3_param - 
-				(char*)rrs_old + (char*)rrset->rrs);
-		}
-#endif /* NSEC3 */
 	}
 
 #ifdef NSEC3
@@ -1269,15 +1244,17 @@ axfr:
 		if(*delete_mode) {
 			assert(!*is_axfr);
 			/* delete this rr */
+			if(ixfr_store)
+				ixfr_store_delrr(ixfr_store, owner, type,
+					klass, ttl, packet, rrlen, region);
 			if(!delete_RR(nsd->db, owner, type, klass, packet,
 				rrlen, zone, region, softfail)) {
 				region_destroy(region);
 				return 0;
 			}
-			if(ixfr_store)
-				ixfr_store_delrr(ixfr_store, rr);
 		} else {
 			/* add this rr */
+			rr_type* rr;
 			if(!(rr = add_RR(nsd->db, owner, type, klass, ttl, packet,
 				rrlen, zone, softfail))) {
 				region_destroy(region);
@@ -1304,10 +1281,9 @@ check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
 		zone = domain_find_zone(db, domain);
 	if(zone && zone->apex == domain && zone->soa_rrset && old_serial)
 	{
-		uint32_t memserial;
-		memcpy(&memserial, rdata_atom_data(zone->soa_rrset->rrs[0].rdatas[2]),
-			sizeof(uint32_t));
-		if(old_serial != ntohl(memserial)) {
+		uint32_t memserial = 0;
+		retrieve_soa_rdata_serial(zone->soa_rrset->rrs[0], &memserial);
+		if(old_serial != memserial) {
 			region_destroy(region);
 			return 1;
 		}
@@ -1533,15 +1509,15 @@ void task_new_soainfo(struct udb_base* udb, udb_ptr* last, struct zone* z,
 	apex = domain_dname(z->apex);
 	sz = sizeof(struct task_list_d) + dname_total_size(apex);
 	if(z->soa_rrset && hint == soainfo_ok) {
-		ns = domain_dname(rdata_atom_domain(
-			z->soa_rrset->rrs[0].rdatas[0]));
-		em = domain_dname(rdata_atom_domain(
-			z->soa_rrset->rrs[0].rdatas[1]));
+		ns = domain_dname(retrieve_rdata_ref_domain_offset(
+			z->soa_rrset->rrs[0], 0));
+		em = domain_dname(retrieve_rdata_ref_domain_offset(
+			z->soa_rrset->rrs[0], sizeof(void*)));
 		sz += sizeof(uint32_t)*6 + sizeof(uint8_t)*2
 			+ ns->name_size + em->name_size;
 	} else {
-		ns = 0;
-		em = 0;
+		ns = NULL;
+		em = NULL;
 	}
 
 	/* create new task_list item */
@@ -1553,7 +1529,7 @@ void task_new_soainfo(struct udb_base* udb, udb_ptr* last, struct zone* z,
 	TASKLIST(&e)->yesno = (uint64_t)hint;
 
 	if(z->soa_rrset && hint == soainfo_ok) {
-		uint32_t ttl = htonl(z->soa_rrset->rrs[0].ttl);
+		uint32_t ttl = htonl(z->soa_rrset->rrs[0]->ttl);
 		uint8_t* p = (uint8_t*)TASKLIST(&e)->zname;
 		p += dname_total_size(apex);
 		memmove(p, &ttl, sizeof(uint32_t));
@@ -1566,20 +1542,8 @@ void task_new_soainfo(struct udb_base* udb, udb_ptr* last, struct zone* z,
 		p += sizeof(uint8_t);
 		memmove(p, dname_name(em), em->name_size);
 		p += em->name_size;
-		memmove(p, rdata_atom_data(z->soa_rrset->rrs[0].rdatas[2]),
-			sizeof(uint32_t));
-		p += sizeof(uint32_t);
-		memmove(p, rdata_atom_data(z->soa_rrset->rrs[0].rdatas[3]),
-			sizeof(uint32_t));
-		p += sizeof(uint32_t);
-		memmove(p, rdata_atom_data(z->soa_rrset->rrs[0].rdatas[4]),
-			sizeof(uint32_t));
-		p += sizeof(uint32_t);
-		memmove(p, rdata_atom_data(z->soa_rrset->rrs[0].rdatas[5]),
-			sizeof(uint32_t));
-		p += sizeof(uint32_t);
-		memmove(p, rdata_atom_data(z->soa_rrset->rrs[0].rdatas[6]),
-			sizeof(uint32_t));
+		memmove(p, z->soa_rrset->rrs[0]->rdata + sizeof(void*)*2,
+			sizeof(uint32_t)*5);
 	}
 	udb_ptr_unlink(&e, udb);
 }

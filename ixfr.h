@@ -181,10 +181,11 @@ void ixfr_store_add_newsoa(struct ixfr_store* ixfr_store, uint32_t ttl,
 void ixfr_store_add_oldsoa(struct ixfr_store* ixfr_store, uint32_t ttl,
 	struct buffer* packet, size_t rrlen);
 
-void ixfr_store_delrr(struct ixfr_store* ixfr_store, const rr_type *rr);
-//const struct dname* dname,
-//	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
-//	uint16_t rrlen, struct region* temp_region);
+void ixfr_store_delrr(struct ixfr_store* ixfr_store,
+	//const rr_type *rr);
+const struct dname* dname,
+	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
+	uint16_t rrlen, struct region* temp_region);
 void ixfr_store_addrr(struct ixfr_store* ixfr_store, const rr_type *rr);
 //const struct dname* dname,
 //	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
