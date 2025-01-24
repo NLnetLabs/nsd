@@ -93,6 +93,8 @@ detect_nsec3_params(rr_type* nsec3_apex,
 {
 	assert(salt && salt_len && iter);
 	assert(nsec3_apex);
+	if(nsec3_apex->rdlength < 5)
+		return;
 	*salt_len = nsec3_apex->rdata[4];
 	*salt = (unsigned char*)(nsec3_apex->rdata + 5);
 	*iter = read_uint16(nsec3_apex->rdata + 2);
@@ -164,6 +166,8 @@ nsec3_has_soa(rr_type* rr)
 {
 	size_t offset;
 	/* byte + byte + short + string + string + bitmap */
+	if(rr->rdlength < 6)
+		return 0;
 	offset = 4;
 	assert(rr->rdlength > offset);
 	offset += 1 + rr->rdata[offset];
@@ -173,7 +177,7 @@ nsec3_has_soa(rr_type* rr)
 		 	rr->rdata[offset] == 0 && /* first window = 0, */
 	    /* [1]: bitmap length must be >= 1 */
 	    /* [2]: bit[6] = SOA, thus mask first bitmap octet with 0x02 */
-	    (rr->rdata[offset+2] & 0x02)
+	    (rr->rdata[offset+2] & 0x02))
 		return 1;
 	return 0;
 }
@@ -233,6 +237,10 @@ static void
 nsec3param_to_str(struct rr* rr, char* str, size_t buflen)
 {
 	size_t len;
+	if(rr->rdlength < 6) {
+		str[0]=0;
+		return;
+	}
 	len = snprintf(str, buflen, "%u %u %u ",
 		rr->rdata[0], rr->rdata[1], read_uint16(rr->rdata+2));
 	if(rr->rdata[4] == 0) {
@@ -257,8 +265,9 @@ db_find_nsec3param(struct namedb* db, struct zone* z, struct rr* avoid_rr,
 	for(i=0; i<rrset->rr_count; i++) {
 		/* do not use the RR that is going to be deleted (in IXFR) */
 		if(rrset->rrs[i] == avoid_rr) continue;
-		if(rrset->rrs[i]->rdlength < 6) continue; /* require salt */
-		if(rr->rdata[0] == NSEC3_SHA1_HASH && rr->rdata[1] == 0) {
+		if(rrset->rrs[i]->rdlength < 6) continue; /* require salt field */
+		if(rrset->rrs[i]->rdata[0] == NSEC3_SHA1_HASH &&
+			rrset->rrs[i]->rdata[1] == 0) {
 			if(checkchain) {
 				z->nsec3_param = rrset->rrs[i];
 				if(!check_apex_soa(db, z, 1)) {
@@ -295,7 +304,7 @@ static int
 nsec3_rdata_params_ok(const rr_type *prr, const rr_type* rr)
 {
 	return prr->rdlength == rr->rdlength &&
-	       memcpy(prr->rdata, rr->rdata, prr->rdlength) == 0;
+	       (memcmp(prr->rdata, rr->rdata, prr->rdlength) == 0);
 }
 
 int
