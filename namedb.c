@@ -723,7 +723,7 @@ rr_type *zone_rr_iter_next(struct zone_rr_iter *iter)
 
 	while(iter->rrset != NULL) {
 		if(iter->index < iter->rrset->rr_count) {
-			return &iter->rrset->rrs[iter->index++];
+			return iter->rrset->rrs[iter->index++];
 		}
 		iter->index = 0;
 		if(iter->domain == NULL) {
