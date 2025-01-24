@@ -558,4 +558,46 @@ int compare_rr_rdata(const nsd_type_descriptor_type *descriptor,
 int equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
 	const struct rr *rr1, const struct rr *rr2);
 
+/*
+ * Accessor function to the domain in the rdata of the type.
+ * The RR must be of the type. The type must have references.
+ * @param rr: the rr with rdata
+ * @return domain pointer.
+ */
+typedef struct domain*(*nsd_rdata_ref_domain)(
+	const struct rr* rr);
+
+/* Access the domain reference for type NS */
+struct domain* retrieve_ns_ref_domain(const struct rr* rr);
+
+/* Access the domain reference for type CNAME */
+struct domain* retrieve_cname_ref_domain(const struct rr* rr);
+
+/* Access the domain reference for type DNAME */
+struct domain* retrieve_dname_ref_domain(const struct rr* rr);
+
+/* Access the domain reference for type MB */
+struct domain* retrieve_mb_ref_domain(const struct rr* rr);
+
+/* Access the domain reference for type MX */
+struct domain* retrieve_mx_ref_domain(const struct rr* rr);
+
+/* Access the domain reference for type KX */
+struct domain* retrieve_kx_ref_domain(const struct rr* rr);
+
+/* Access the domain reference for type RT */
+struct domain* retrieve_rt_ref_domain(const struct rr* rr);
+
+/* Access the domain reference for type SRV */
+struct domain* retrieve_srv_ref_domain(const struct rr* rr);
+
+/* Access the domain reference for type PTR */
+struct domain* retrieve_ptr_ref_domain(const struct rr* rr);
+
+/* Access the serial number for type SOA, false if malformed. */
+int retrieve_soa_rdata_serial(const struct rr* rr, uint32_t* serial);
+
+/* Access the minimum ttl for type SOA, false if malformed. */
+int retrieve_soa_rdata_minttl(const struct rr* rr, uint32_t* minttl);
+
 #endif /* RDATA_H */

@@ -3800,3 +3800,118 @@ equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
 	}
 	return 0;
 }
+
+/*
+ * Retrieve domain ref at an offset in the rdata.
+ * @param rr: the RR to retrieve it for.
+ * @param offset: where in the rdata the reference pointer is.
+ * @return domain ptr.
+ */
+static struct domain*
+retrieve_rdata_ref_domain_offset(const struct rr* rr, uint16_t offset)
+{
+	struct domain *domain;
+	if(rr->rdlength < offset+sizeof(void*))
+		return NULL;
+	memcpy(&domain, rr->rdata+offset, sizeof(void*));
+	return domain;
+}
+
+/*
+ * Retrieve domain ref from rdata. No offset, rdata starts with ref.
+ * @param rr: the RR to retrieve it for.
+ * @return domain ptr.
+ */
+static struct domain*
+retrieve_rdata_ref_domain(const struct rr* rr)
+{
+	struct domain *domain;
+	if(rr->rdlength < sizeof(void*))
+		return NULL;
+	memcpy(&domain, rr->rdata, sizeof(void*));
+	return domain;
+}
+
+struct domain*
+retrieve_ns_ref_domain(const struct rr* rr)
+{
+	assert(rr->type == TYPE_NS);
+	return retrieve_rdata_ref_domain(rr);
+}
+
+struct domain*
+retrieve_cname_ref_domain(const struct rr* rr)
+{
+	assert(rr->type == TYPE_CNAME);
+	return retrieve_rdata_ref_domain(rr);
+}
+
+struct domain*
+retrieve_dname_ref_domain(const struct rr* rr)
+{
+	assert(rr->type == TYPE_DNAME);
+	return retrieve_rdata_ref_domain(rr);
+}
+
+struct domain*
+retrieve_mb_ref_domain(const struct rr* rr)
+{
+	assert(rr->type == TYPE_MB);
+	return retrieve_rdata_ref_domain(rr);
+}
+
+struct domain*
+retrieve_mx_ref_domain(const struct rr* rr)
+{
+	assert(rr->type == TYPE_MX);
+	return retrieve_rdata_ref_domain_offset(rr, 2);
+}
+
+struct domain*
+retrieve_kx_ref_domain(const struct rr* rr)
+{
+	assert(rr->type == TYPE_KX);
+	return retrieve_rdata_ref_domain_offset(rr, 2);
+}
+
+struct domain*
+retrieve_rt_ref_domain(const struct rr* rr)
+{
+	assert(rr->type == TYPE_RT);
+	return retrieve_rdata_ref_domain_offset(rr, 2);
+}
+
+struct domain*
+retrieve_srv_ref_domain(const struct rr* rr)
+{
+	assert(rr->type == TYPE_SRV);
+	return retrieve_rdata_ref_domain_offset(rr, 6);
+}
+
+struct domain*
+retrieve_ptr_ref_domain(const struct rr* rr)
+{
+	assert(rr->type == TYPE_PTR);
+	return retrieve_rdata_ref_domain(rr);
+}
+
+int
+retrieve_soa_rdata_serial(const struct rr* rr, uint32_t* serial)
+{
+	assert(rr->type == TYPE_SOA);
+	if(rr->rdlength < 20 + 2*sizeof(void*))
+		return 0;
+	/* primary mailbox serial[4] refresh[4] retry[4] expire[4] minimum[4] */
+	*serial = read_uint32(rr->rdata+2*sizeof(void*));
+	return 1;
+}
+
+int
+retrieve_soa_rdata_minttl(const struct rr* rr, uint32_t* minttl)
+{
+	assert(rr->type == TYPE_SOA);
+	if(rr->rdlength < 20 + 2*sizeof(void*))
+		return 0;
+	*minttl = read_uint32(rr->rdata+2*sizeof(void*)+16);
+	return 1;
+}
