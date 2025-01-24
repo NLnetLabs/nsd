@@ -3901,7 +3901,7 @@ retrieve_soa_rdata_serial(const struct rr* rr, uint32_t* serial)
 	assert(rr->type == TYPE_SOA);
 	if(rr->rdlength < 20 + 2*sizeof(void*))
 		return 0;
-	/* primary mailbox serial[4] refresh[4] retry[4] expire[4] minimum[4] */
+	/* primary mail serial[4] refresh[4] retry[4] expire[4] minimum[4] */
 	*serial = read_uint32(rr->rdata+2*sizeof(void*));
 	return 1;
 }
@@ -3912,6 +3912,17 @@ retrieve_soa_rdata_minttl(const struct rr* rr, uint32_t* minttl)
 	assert(rr->type == TYPE_SOA);
 	if(rr->rdlength < 20 + 2*sizeof(void*))
 		return 0;
+	/* primary mail serial[4] refresh[4] retry[4] expire[4] minimum[4] */
 	*minttl = read_uint32(rr->rdata+2*sizeof(void*)+16);
 	return 1;
+}
+
+struct dname* retrieve_cname_ref_dname(const struct rr* rr)
+{
+	struct domain* domain;
+	assert(rr->type == TYPE_CNAME);
+	domain = retrieve_rdata_ref_domain(rr);
+	if(!domain)
+		return NULL;
+	return domain_dname(domain);
 }

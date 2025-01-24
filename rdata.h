@@ -564,7 +564,7 @@ int equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
  * @param rr: the rr with rdata
  * @return domain pointer.
  */
-typedef struct domain*(*nsd_rdata_ref_domain)(
+typedef struct domain*(*nsd_rdata_ref_domain_type)(
 	const struct rr* rr);
 
 /* Access the domain reference for type NS */
@@ -599,5 +599,8 @@ int retrieve_soa_rdata_serial(const struct rr* rr, uint32_t* serial);
 
 /* Access the minimum ttl for type SOA, false if malformed. */
 int retrieve_soa_rdata_minttl(const struct rr* rr, uint32_t* minttl);
+
+/* Access the dname reference for type CNAME */
+struct dname* retrieve_cname_ref_dname(const struct rr* rr);
 
 #endif /* RDATA_H */
