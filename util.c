@@ -910,7 +910,7 @@ print_rr(FILE *out,
 	 region_type* rr_region,
 	 buffer_type* output)
 {
-        const nsd_type_descriptor_t *descriptor =
+        const nsd_type_descriptor_type *descriptor =
 		nsd_type_descriptor(record->type);
         int result;
         const dname_type *owner = domain_dname(record->owner);

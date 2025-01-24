@@ -248,22 +248,22 @@ typedef enum nsd_rc nsd_rc_type;
  * 	a couple bytes back
  * @return length in bytes. Or -1 on failure, like rdata length too short.
  */
-typedef int32_t(*nsd_rdata_field_length_t)(
+typedef int32_t(*nsd_rdata_field_length_type)(
 	uint16_t rdlength,
 	const uint8_t *rdata,
 	uint16_t offset);
 
 /**
  * Function signature to print RR
- * @param buffer: output buffer for text string.
+ * @param output: output buffer for text string.
  * @param rr: the resource record to print.
  * @return length, or MALFORMED.
  */
-typedef int32_t(*nsd_print_rdata_field_t)(
-	struct buffer* buffer,
+typedef int32_t(*nsd_print_rdata_field_type)(
+	struct buffer* output,
 	const struct rr* rr);
 
-typedef struct nsd_rdata_descriptor nsd_rdata_descriptor_t;
+typedef struct nsd_rdata_descriptor nsd_rdata_descriptor_type;
 
 /*
  * Descriptor table. For DNS RRTypes has information on the resource record
@@ -293,13 +293,13 @@ struct nsd_rdata_descriptor {
 	 * rdata on the wire, or -1 on failure, like when it is malformed.
 	 * So for references this is a different number. Used for ipseckey
 	 * gateway, because the type depends on earlier data. */
-	nsd_rdata_field_length_t calculate_length;
+	nsd_rdata_field_length_type calculate_length;
 
 	/* Print the rdata field */
-	nsd_print_rdata_field_t print;
+	nsd_print_rdata_field_type print;
 };
 
-typedef struct nsd_type_descriptor nsd_type_descriptor_t;
+typedef struct nsd_type_descriptor nsd_type_descriptor_type;
 struct nsd_type_descriptor;
 
 /* The rdata is malformed. The wireformat is not correct.
@@ -319,7 +319,7 @@ struct nsd_type_descriptor;
  * @return the number of bytes that are read from the packet. Or negative
  *	for an error, like MALFORMED, TRUNCATED.
  */
-typedef int32_t(*nsd_read_rdata_t)(
+typedef int32_t(*nsd_read_rdata_type)(
 	struct domain_table *domains,
 	uint16_t rdlength,
 	struct buffer *packet,
@@ -332,7 +332,7 @@ typedef int32_t(*nsd_read_rdata_t)(
  *	wireformat to the packet, compressed if needed, not including the
  *	rdlength before the rdata.
  */
-typedef void(*nsd_write_rdata_t)(
+typedef void(*nsd_write_rdata_type)(
 	struct query *query,
 	const struct rr *rr);
 
@@ -340,13 +340,13 @@ typedef void(*nsd_write_rdata_t)(
  * Function signature to print rdata. The string is in the buffer.
  * The printed string starts with the rdata text. It does not have a newline
  * at end. No space is put before it.
- * @param buffer: buffer with string on return. The position is moved.
+ * @param output: buffer with string on return. The position is moved.
  * @param rr: the record to print the rdata for.
  * @return false on failure. The wireformat can not be printed in the
  *	nice output format.
  */
-typedef int(*nsd_print_rdata_t)(
-	struct buffer *buffer,
+typedef int(*nsd_print_rdata_type)(
+	struct buffer *output,
 	const struct rr *rr);
 
 /*
@@ -377,11 +377,11 @@ struct nsd_type_descriptor {
 	/* The type has domain names, like literal dnames in the format. */
 	int has_dnames;
 	/* Read function that copies rdata for this type to struct rr. */
-	nsd_read_rdata_t read_rdata;
+	nsd_read_rdata_type read_rdata;
 	/* Write function, that copie rdata from struct rr to packet. */
-	nsd_write_rdata_t write_data;
+	nsd_write_rdata_type write_data;
 	/* Print function, that writes the struct rr to string. */
-	nsd_print_rdata_t print_rdata;
+	nsd_print_rdata_type print_rdata;
 	/* Description of the rdata fields. Used by functions that need
 	 * to iterate over the fields. There are binary fields and
 	 * references, and wireformat domain names. */
@@ -389,7 +389,7 @@ struct nsd_type_descriptor {
 		/* Length of the fields array. */
 		size_t length;
 		/* The rdata field descriptors. */
-		const nsd_rdata_descriptor_t *fields;
+		const nsd_rdata_descriptor_type *fields;
 	} rdata;
 };
 
@@ -400,7 +400,7 @@ struct nsd_type_descriptor {
  * Indexed by type.  The special type "0" can be used to get a
  * descriptor for unknown types (with one binary rdata).
  */
-static inline const nsd_type_descriptor_t *nsd_type_descriptor(
+static inline const nsd_type_descriptor_type *nsd_type_descriptor(
 	uint16_t rrtype);
 
 const char *rrtype_to_string(uint16_t rrtype);
@@ -417,9 +417,9 @@ const char *rrclass_to_string(uint16_t rrclass);
 uint16_t rrclass_from_string(const char *name);
 
 /* The type descriptors array of length RRTYPE_DESCRIPTORS_LENGTH. */
-extern const nsd_type_descriptor_t type_descriptors[];
+extern const nsd_type_descriptor_type type_descriptors[];
 
-static inline const nsd_type_descriptor_t *
+static inline const nsd_type_descriptor_type *
 nsd_type_descriptor(uint16_t rrtype)
 {
 	if (rrtype <= TYPE_IPN)

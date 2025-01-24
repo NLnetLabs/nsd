@@ -105,7 +105,7 @@ static int print_svcparam_dohpath(struct buffer *output,
 static int print_svcparam_tls_supported_groups(struct buffer *output,
 	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen);
 
-static const nsd_svcparam_descriptor_t svcparams[] = {
+static const nsd_svcparam_descriptor_type svcparams[] = {
 	{ SVCB_KEY_MANDATORY, "mandatory", print_svcparam_mandatory },
 	{ SVCB_KEY_ALPN, "alpn", print_svcparam_alpn },
 	{ SVCB_KEY_NO_DEFAULT_ALPN, "no-default-alpn",
@@ -1025,11 +1025,20 @@ write_generic_rdata(struct query *query, const struct rr *rr)
 }
 
 int
-lookup_rdata_field_entry(const nsd_type_descriptor_t* descriptor, size_t index,
-	const rr_type* rr, uint16_t offset, uint16_t* field_len,
+print_generic_rdata(struct buffer *output, const struct rr *rr)
+{
+	const nsd_type_descriptor_type* descriptor =
+		nsd_type_descriptor(rr->type);
+	return print_unknown_rdata(output, descriptor, rr);
+}
+
+int
+lookup_rdata_field_entry(const nsd_type_descriptor_type* descriptor,
+	size_t index, const rr_type* rr, uint16_t offset, uint16_t* field_len,
 	struct domain** domain)
 {
-	const nsd_rdata_descriptor_t* field = &descriptor->rdata.fields[index];
+	const nsd_rdata_descriptor_type* field =
+		&descriptor->rdata.fields[index];
 	if(field->calculate_length) {
 		/* Call field length function. */
 		*field_len = field->calculate_length(rr->rdlength, rr->rdata,
@@ -1089,7 +1098,7 @@ int32_t
 rr_calculate_uncompressed_rdata_length(const rr_type* rr)
 {
 	size_t i;
-	const nsd_type_descriptor_t* descriptor =
+	const nsd_type_descriptor_type* descriptor =
 		nsd_type_descriptor(rr->type);
 	uint16_t offset = 0;
 	int32_t result = 0;
@@ -1116,7 +1125,7 @@ rr_calculate_uncompressed_rdata_length(const rr_type* rr)
 }
 
 int print_unknown_rdata(buffer_type *output,
-	const nsd_type_descriptor_t *descriptor, const rr_type *rr)
+	const nsd_type_descriptor_type *descriptor, const rr_type *rr)
 {
 	size_t i;
 	int32_t size;
@@ -1604,6 +1613,19 @@ write_rp_rdata(struct query *query, const struct rr *rr)
 	buffer_write(query->packet, dname_name(txt), txt->name_size);
 }
 
+int
+print_rp_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	if(!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if(!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	assert(rr->rdlength == length);
+	return 1;
+}
+
 int32_t
 read_afsdb_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
@@ -1880,6 +1902,107 @@ read_loc_rdata(struct domain_table *domains, uint16_t rdlength,
 	return read_rdata(domains, rdlength, packet, rr);
 }
 
+/* Print the cm for LOC. */
+static void
+loc_cm_print(struct buffer* output, uint8_t mantissa, uint8_t exponent)
+{
+	uint8_t i;
+	/* is it 0.<two digits> ? */
+	if(exponent < 2) {
+		if(exponent == 1)
+			mantissa *= 10;
+		buffer_printf(output, "0.%02ld", (long)mantissa);
+		return;
+	}
+	/* always <digit><string of zeros> */
+	buffer_printf(output, "%d", (int)mantissa);
+	for(i=0; i<exponent-2; i++)
+		buffer_printf(output, "0");
+}
+
+int
+print_loc_rdata(struct buffer *output, const struct rr *rr)
+{
+	/* we could do checking (ie degrees < 90 etc)? */
+	uint8_t version;
+	uint8_t size;
+	uint8_t horizontal_precision;
+	uint8_t vertical_precision;
+	uint32_t longitude;
+	uint32_t latitude;
+	uint32_t altitude;
+	char northerness;
+	char easterness;
+	uint32_t h;
+	uint32_t m;
+	double s;
+	uint32_t equator = (uint32_t)1 << 31; /* 2**31 */
+
+	if(rr->rdlength < 16)
+		return 0;
+	version = rr->rdata[0];
+	if(version != 0)
+		return 0;
+	size = rr->rdata[1];
+	horizontal_precision = rr->rdata[2];
+	vertical_precision = rr->rdata[3];
+
+	latitude = read_uint32(rr->rdata+4);
+	longitude = read_uint32(rr->rdata+8);
+	altitude = read_uint32(rr->rdata+12);
+
+	if (latitude > equator) {
+		northerness = 'N';
+		latitude = latitude - equator;
+	} else {
+		northerness = 'S';
+		latitude = equator - latitude;
+	}
+	h = latitude / (1000 * 60 * 60);
+	latitude = latitude % (1000 * 60 * 60);
+	m = latitude / (1000 * 60);
+	latitude = latitude % (1000 * 60);
+	s = (double) latitude / 1000.0;
+	buffer_printf(output, "%02u %02u %06.3f %c ",
+		h, m, s, northerness);
+
+	if (longitude > equator) {
+		easterness = 'E';
+		longitude = longitude - equator;
+	} else {
+		easterness = 'W';
+		longitude = equator - longitude;
+	}
+	h = longitude / (1000 * 60 * 60);
+	longitude = longitude % (1000 * 60 * 60);
+	m = longitude / (1000 * 60);
+	longitude = longitude % (1000 * 60);
+	s = (double) longitude / (1000.0);
+	buffer_printf(output, "%02u %02u %06.3f %c ",
+		h, m, s, easterness);
+
+	s = ((double) altitude) / 100;
+	s -= 100000;
+
+	if(altitude%100 != 0)
+		buffer_printf(output, "%.2f", s);
+	else
+		buffer_printf(output, "%.0f", s);
+	buffer_printf(output, "m ");
+
+	loc_cm_print(output, (size & 0xf0) >> 4, size & 0x0f);
+	buffer_printf(output, "m ");
+
+	loc_cm_print(output, (horizontal_precision & 0xf0) >> 4,
+		horizontal_precision & 0x0f);
+	buffer_printf(output, "m ");
+
+	loc_cm_print(output, (vertical_precision & 0xf0) >> 4,
+		vertical_precision & 0x0f);
+	buffer_printf(output, "m");
+
+	return 1;
+}
 int32_t
 read_nxt_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
@@ -3098,6 +3221,20 @@ read_lp_rdata(struct domain_table *domains, uint16_t rdlength,
 	return rdlength;
 }
 
+void
+write_lp_rdata(struct query *query, const struct rr *rr)
+{
+	struct domain *domain;
+	const struct dname *dname;
+
+	/* short + uncompressed name */
+	assert(rr->rdlength != 2 + sizeof(void*));
+	memcpy(&domain, rr->rdata + 2, sizeof(void*));
+	dname = domain_dname(domain);
+	buffer_write(query->packet, rr->rdata, 2);
+	buffer_write(query->packet, dname_name(dname), dname->name_size);
+}
+
 int
 print_lp_rdata(struct buffer *output, const struct rr *rr)
 {
@@ -3408,7 +3545,7 @@ print_dlv_rdata(struct buffer *output, const struct rr *rr)
 }
 
 int
-print_rdata(buffer_type *output, const nsd_type_descriptor_t *descriptor,
+print_rdata(buffer_type *output, const nsd_type_descriptor_type *descriptor,
 	const rr_type *rr)
 {
 	return descriptor->print_rdata(output, rr);
@@ -3453,8 +3590,8 @@ compare_bytestring(const uint8_t* b1, uint16_t len1, const uint8_t* b2,
 }
 
 int
-compare_rr_rdata(const nsd_type_descriptor_t *descriptor, const struct rr *rr1,
-	const struct rr *rr2)
+compare_rr_rdata(const nsd_type_descriptor_type *descriptor,
+	const struct rr *rr1, const struct rr *rr2)
 {
 	size_t index1 = 0, index2 = 0;
 	uint16_t offset1 = 0, offset2 = 0, pos = 0, field1_pos = 0,
@@ -3594,8 +3731,8 @@ compare_rr_rdata(const nsd_type_descriptor_t *descriptor, const struct rr *rr1,
 }
 
 int
-equal_rr_rdata(const nsd_type_descriptor_t *descriptor, const struct rr *rr1,
-	const struct rr *rr2)
+equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
+	const struct rr *rr1, const struct rr *rr2)
 {
 	size_t i;
 	uint16_t offset = 0;

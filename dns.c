@@ -505,7 +505,7 @@ static const struct nsd_rdata_descriptor dlv_rdata_fields[] = {
 /* Set the bools, has_references, is_compressible, has_dnames. */
 #define TYPE_HAS_FLAGS(has_references, is_compressible, has_dnames) has_references, is_compressible, has_dnames
 
-const nsd_type_descriptor_t type_descriptors[] = {
+const nsd_type_descriptor_type type_descriptors[] = {
 	/* 0 */
 	UNKNOWN_TYPE(0), /* Type 0 - Reserved [RFC 6895] */
 	/* 1 */
@@ -601,11 +601,11 @@ const nsd_type_descriptor_t type_descriptors[] = {
 
 	/* 24 */
 	TYPE("SIG", TYPE_SIG, TYPE_HAS_LITERAL_DNAME,
-		read_rrsig_rdata, write_rrsig_rdata, print_rrsig_rdata,
+		read_rrsig_rdata, write_generic_rdata, print_rrsig_rdata,
 		sig_rdata_fields),
 	/* 25 */
 	TYPE("KEY", TYPE_KEY, TYPE_HAS_NO_REFS,
-		read_key_rdata, write_key_rdata, print_key_rdata,
+		read_generic_rdata, write_generic_rdata, print_key_rdata,
 		key_rdata_fields),
 	/* 26 */
 	TYPE("PX", TYPE_PX, TYPE_HAS_UNCOMPRESSED_DNAME,
@@ -620,7 +620,7 @@ const nsd_type_descriptor_t type_descriptors[] = {
 		aaaa_rdata_fields),
 	/* 29 */
 	TYPE("LOC", TYPE_LOC, TYPE_HAS_NO_REFS,
-		read_loc_rdata, write_generic_rdata, print_generic_rdata,
+		read_loc_rdata, write_generic_rdata, print_loc_rdata,
 		loc_rdata_fields),
 	/* 30 */
 	TYPE("NXT", TYPE_NXT, TYPE_HAS_UNCOMPRESSED_DNAME,
@@ -656,8 +656,8 @@ const nsd_type_descriptor_t type_descriptors[] = {
 		print_cert_rdata, cert_rdata_fields),
 	/* 38 */
 	TYPE("A6", TYPE_A6, TYPE_HAS_NO_REFS,
-		read_a6_rdata, write_generic_rdata,
-		print_a6_rdata, a6_rdata_fields),
+		read_generic_rdata, write_generic_rdata,
+		print_generic_rdata, a6_rdata_fields),
 	/* 39 */
 	TYPE("DNAME", TYPE_DNAME, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_uncompressed_name_rdata, write_uncompressed_name_rdata,
@@ -1051,7 +1051,8 @@ const char *
 rrtype_to_string(uint16_t rrtype)
 {
 	static char buf[20];
-	const nsd_type_descriptor_t *descriptor = nsd_type_descriptor(rrtype);
+	const nsd_type_descriptor_type *descriptor =
+		nsd_type_descriptor(rrtype);
 	if (descriptor->name) {
 		return descriptor->name;
 	} else {
