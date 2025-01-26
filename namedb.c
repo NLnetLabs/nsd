@@ -602,43 +602,17 @@ domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns)
 
 #ifdef USE_DELEG
 rrset_type *
-domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone, namedb_type* db, rrset_type **rrsig)
+domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone, namedb_type* db, domain_type** ideleg_domain)
 {
-	dname_type* target;
 	rrset_type* result;
-	rrset_type* signatures;
-	uint8_t signatures_found;
-	*rrsig = NULL;
-	signatures_found = 0;
-	target = label_plus_dname("_deleg", zone->apex->dname);
-	target = labels_plus_dname(delegation_domain->dname,
+	dname_type* dname;
+	dname = labels_plus_dname(delegation_domain->dname,
 		delegation_domain->dname->label_count - zone->apex->dname->label_count,
-		target);
-	result = domain_find_rrset(domain_table_find(db->domains, target), zone, TYPE_DELEG);
-	signatures = domain_find_rrset(domain_table_find(db->domains, target), zone, TYPE_RRSIG);
-
-	while (signatures)
-	{
-		if (signatures->rrs->type != TYPE_RRSIG) break;
-		if (rr_rrsig_type_covered(signatures->rrs) == TYPE_DELEG)
-		{
-			signatures_found++;
-			if (!*rrsig)
-			{
-				*rrsig = signatures;
-				signatures = signatures->next;
-			}
-			else
-			{
-				rrset_type *tmp = signatures->next;
-				signatures->next = *rrsig;
-				*rrsig = signatures;
-				signatures = tmp;
-			}
-		}
-		else signatures = signatures->next;
-	}
-	(*rrsig)->rr_count = signatures_found;
+		label_plus_dname("_deleg", zone->apex->dname));
+	*ideleg_domain = domain_table_find(db->domains, dname);
+	if (!*ideleg_domain)
+		return NULL;
+	result = domain_find_rrset(*ideleg_domain, zone, TYPE_DELEG);
 
 	return result;
 }
