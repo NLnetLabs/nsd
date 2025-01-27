@@ -921,6 +921,9 @@ static void
 answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 {
 	rrset_type *rrset;
+#ifdef USE_DELEG
+	dname_type* ideleg_dname;
+#endif
 	assert(answer);
 	assert(query->delegation_domain);
 	assert(query->delegation_rrset);
@@ -937,7 +940,24 @@ answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 		  query->delegation_domain,
 		  query->delegation_rrset);
 #ifdef USE_DELEG
-	if ((rrset = domain_find_deleg_rrsets(query->delegation_domain, query->zone, nsd->db, &query->ideleg_domain)))
+	if ((rrset = domain_find_deleg_rrsets(query->delegation_domain, query->zone, nsd->db, &query->ideleg_domain, &ideleg_dname)))
+	{
+		add_rrset(query, answer, AUTHORITY_SECTION,
+			query->ideleg_domain, rrset);
+	}
+    else if (!query->edns.dnssec_ok || !zone_is_secure(query->zone)){}
+	else if (!query->ideleg_domain)
+	{
+		domain_type* ideleg_closest_match;
+		domain_type* ideleg_encloser;
+		namedb_lookup(nsd->db, ideleg_dname, &ideleg_closest_match, &ideleg_encloser);
+		if ((rrset = domain_find_rrset(ideleg_closest_match, query->zone, TYPE_NSEC)))
+		{
+			add_rrset(query, answer, AUTHORITY_SECTION,
+				ideleg_closest_match, rrset);
+		}
+	}
+	else if ((rrset = domain_find_rrset(query->ideleg_domain, query->zone, TYPE_NSEC)))
 	{
 		add_rrset(query, answer, AUTHORITY_SECTION,
 			query->ideleg_domain, rrset);
@@ -954,14 +974,6 @@ answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 		} else if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_NSEC))) {
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				  query->delegation_domain, rrset);
-#ifdef USE_DELEG
-			if ((rrset = domain_find_rrset(query->ideleg_domain, query->zone, TYPE_NSEC)))
-			{
-				add_rrset(query, answer, AUTHORITY_SECTION,
-					query->ideleg_domain, rrset);
-			}
-#endif
-
 		}
 	}
 }
