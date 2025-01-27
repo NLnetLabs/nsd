@@ -602,14 +602,14 @@ domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns)
 
 #ifdef USE_DELEG
 rrset_type *
-domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone, namedb_type* db, domain_type** ideleg_domain)
+domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone,
+	namedb_type* db, domain_type** ideleg_domain, dname_type** ideleg_dname)
 {
 	rrset_type* result;
-	dname_type* dname;
-	dname = labels_plus_dname(delegation_domain->dname,
+	*ideleg_dname = labels_plus_dname(delegation_domain->dname,
 		delegation_domain->dname->label_count - zone->apex->dname->label_count,
 		label_plus_dname("_deleg", zone->apex->dname));
-	*ideleg_domain = domain_table_find(db->domains, dname);
+	*ideleg_domain = domain_table_find(db->domains, *ideleg_dname);
 	if (!*ideleg_domain)
 		return NULL;
 	result = domain_find_rrset(*ideleg_domain, zone, TYPE_DELEG);
