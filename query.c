@@ -946,6 +946,30 @@ answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 			query->ideleg_domain, rrset);
 	}
     else if (!query->edns.dnssec_ok || !zone_is_secure(query->zone)){}
+#ifdef NSEC3
+	else if (query->zone->nsec3_param)
+	{
+		if (query->ideleg_domain)
+		{
+			if ((rrset = domain_find_rrset(query->ideleg_domain->nsec3->nsec3_cover, query->zone, TYPE_NSEC3)))
+			{
+				add_rrset(query, answer, AUTHORITY_SECTION,
+					query->ideleg_domain->nsec3->nsec3_cover, rrset);
+			}
+		}
+		else
+		{
+			domain_type* ideleg_closest_match;
+			domain_type* ideleg_encloser;
+			namedb_lookup(nsd->db, ideleg_dname, &ideleg_closest_match, &ideleg_encloser);
+			if ((rrset = domain_find_rrset(ideleg_closest_match->nsec3->nsec3_cover, query->zone, TYPE_NSEC3)))
+			{
+				add_rrset(query, answer, AUTHORITY_SECTION,
+					ideleg_closest_match->nsec3->nsec3_cover, rrset);
+			}
+		}
+	}
+#endif
 	else if (!query->ideleg_domain)
 	{
 		domain_type* ideleg_closest_match;
