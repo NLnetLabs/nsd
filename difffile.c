@@ -1509,9 +1509,8 @@ void task_new_soainfo(struct udb_base* udb, udb_ptr* last, struct zone* z,
 	apex = domain_dname(z->apex);
 	sz = sizeof(struct task_list_d) + dname_total_size(apex);
 	if(z->soa_rrset && hint == soainfo_ok) {
-		ns = domain_dname(retrieve_rdata_ref_domain_offset(
-			z->soa_rrset->rrs[0], 0));
-		em = domain_dname(retrieve_rdata_ref_domain_offset(
+		ns = domain_dname(rdata_domain_ref(z->soa_rrset->rrs[0]));
+		em = domain_dname(rdata_domain_ref_offset(
 			z->soa_rrset->rrs[0], sizeof(void*)));
 		sz += sizeof(uint32_t)*6 + sizeof(uint8_t)*2
 			+ ns->name_size + em->name_size;

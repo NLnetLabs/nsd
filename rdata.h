@@ -619,4 +619,38 @@ int retrieve_soa_rdata_minttl(const struct rr* rr, uint32_t* minttl);
 /* Access the dname reference for type CNAME */
 struct dname* retrieve_cname_ref_dname(const struct rr* rr);
 
+/*
+ * Access the domain name reference, that is stored as COMPRESSED_DNAME,
+ * or UNCOMPRESSED DNAME, at the start of the rdata, or only part of the rdata.
+ * Not for literal DNAMEs. This is similar to a pointer reference,
+ * but it may be stored unaligned.
+ * @param rr: the resource record.
+ * @return domain pointer.
+ */
+static inline struct domain* rdata_domain_ref(const struct rr* rr) {
+	struct domain* domain;
+	assert(rr->rdlength >= (uint16_t)sizeof(void*));
+	memcpy(&domain, rr->rdata, sizeof(void*));
+	return domain;
+}
+
+/*
+ * Access the domain name reference, that is stored as COMPRESSED_DNAME,
+ * or UNCOMPRESSED DNAME, the reference is at an offset in the rdata.
+ * Not for literal DNAMEs. This is similar to a pointer reference,
+ * but it may be stored unaligned.
+ * @param rr: the resource record
+ * @param offset: where the reference is found in the rdata. Pass like 2,
+ *	for type MX, or sizeof(void*) to access the second domain pointer
+ *	of SOA.
+ * @return domain pointer.
+ */
+static inline struct domain* rdata_domain_ref_offset(const struct rr* rr,
+	uint16_t offset) {
+	struct domain* domain;
+	assert(rr->rdlength >= offset+(uint16_t)sizeof(void*));
+	memcpy(&domain, rr->rdata+offset, sizeof(void*));
+	return domain;
+}
+
 #endif /* RDATA_H */

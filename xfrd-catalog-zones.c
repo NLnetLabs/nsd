@@ -603,7 +603,7 @@ retry_adding:
 			return;
 		}
 		/* A PTR rr always has 1 rdata element which is a dname */
-		member_domain = retrieve_ptr_ref_domain(rrset->rrs[0]);
+		member_domain = rdata_domain_ref(rrset->rrs[0]);
 		if(!member_domain)
 			continue;
 		domain_to_string_buf(member_domain, member_domain_str);

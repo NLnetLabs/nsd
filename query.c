@@ -679,8 +679,7 @@ struct additional_rr_types rt_additional_rr_types[] = {
 
 static void
 add_additional_rrsets(struct query *query, answer_type *answer,
-		      rrset_type *master_rrset,
-		      nsd_rdata_ref_domain_type rdata_retrieve,
+		      rrset_type *master_rrset, uint16_t rdata_offset,
 		      int allow_glue, struct additional_rr_types types[])
 {
 	size_t i;
@@ -692,7 +691,8 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 
 	for (i = 0; i < master_rrset->rr_count; ++i) {
 		int j;
-		domain_type *additional = rdata_retrieve(master_rrset->rrs[i]);
+		domain_type *additional = rdata_domain_ref_offset(
+			master_rrset->rrs[i], rdata_offset);
 		domain_type *match = additional;
 
 		assert(additional);
@@ -771,39 +771,39 @@ add_rrset(struct query   *query,
 #if defined(INET6)
 		/* if query over IPv6, swap A and AAAA; put AAAA first */
 		add_additional_rrsets(query, answer, rrset,
-			retrieve_ns_ref_domain, 1,
+			0, 1,
 			(query->client_addr.ss_family == AF_INET6)?
 			swap_aaaa_additional_rr_types:
 			default_additional_rr_types);
 #else
 		add_additional_rrsets(query, answer, rrset,
-				      retrieve_ns_ref_domain, 1,
+				      0, 1,
 				      default_additional_rr_types);
 #endif
 		break;
 	case TYPE_MB:
 		add_additional_rrsets(query, answer, rrset,
-				      retrieve_mb_ref_domain, 0,
+				      0, 0,
 				      default_additional_rr_types);
 		break;
 	case TYPE_MX:
 		add_additional_rrsets(query, answer, rrset,
-				      retrieve_mx_ref_domain, 0,
+				      2, 0,
 				      default_additional_rr_types);
 		break;
 	case TYPE_KX:
 		add_additional_rrsets(query, answer, rrset,
-				      retrieve_kx_ref_domain, 0,
+				      2, 0,
 				      default_additional_rr_types);
 		break;
 	case TYPE_RT:
 		add_additional_rrsets(query, answer, rrset,
-				      retrieve_rt_ref_domain, 0,
+				      2, 0,
 				      rt_additional_rr_types);
 		break;
 	case TYPE_SRV:
 		add_additional_rrsets(query, answer, rrset,
-				      retrieve_srv_ref_domain, 0,
+				      6, 0,
 				      default_additional_rr_types);
 		break;
 	default:
@@ -843,7 +843,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 			answer->rrsets[j]->rrs[0]->type == TYPE_CNAME &&
 			dname_compare(domain_dname(answer->rrsets[j]->rrs[0]->owner), from_name) == 0 &&
 			answer->rrsets[j]->rrs[0]->rdlength >= 1 &&
-			dname_compare(retrieve_cname_ref_dname(answer->rrsets[j]->rrs[0]), to_name) == 0) {
+			dname_compare(domain_dname(rdata_domain_ref(answer->rrsets[j]->rrs[0])), to_name) == 0) {
 			DEBUG(DEBUG_QUERY,2, (LOG_INFO, "loop for synthesized CNAME rrset for query %s", dname_to_string(q->qname, NULL)));
 			return 0;
 		}
@@ -1100,7 +1100,7 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 		assert(rrset->rr_count > 0);
 		if (added) {
 			/* only process first CNAME record */
-			domain_type *closest_match = retrieve_cname_ref_domain(rrset->rrs[0]);
+			domain_type *closest_match = rdata_domain_ref(rrset->rrs[0]);
 			domain_type *closest_encloser = closest_match;
 			zone_type* origzone = q->zone;
 			++q->cname_count;
@@ -1169,7 +1169,7 @@ answer_authoritative(struct nsd   *nsd,
 		/* process DNAME */
 		const dname_type* name = qname;
 		domain_type* src = closest_encloser;
-		domain_type *dest = retrieve_dname_ref_domain(rrset->rrs[0]);
+		domain_type *dest = rdata_domain_ref(rrset->rrs[0]);
 		const dname_type* newname;
 		size_t newnum = 0;
 		zone_type* origzone = q->zone;
