@@ -658,7 +658,7 @@ label_plus_dname(const char* label, const dname_type* dname)
 }
 
 dname_type*
-labels_plus_dname(const dname_type* labels, size_t amount_to_be_copied, const dname_type* dname)
+labels_plus_dname(const dname_type* labels, size_t amount_to_be_copied, dname_type* dname)
 {
 	static struct {
 		dname_type dname;
@@ -667,7 +667,8 @@ labels_plus_dname(const dname_type* labels, size_t amount_to_be_copied, const dn
 	size_t i;
 	uint8_t copied_label_size;
 	copied_label_size = 0;
-	if (!labels || !dname || dname->label_count > 127 || !amount_to_be_copied ||
+	if (!amount_to_be_copied) return dname; // If the size is 0 we return the original dname
+	if (!labels || !dname || dname->label_count > 127 ||
 		amount_to_be_copied > labels->label_count)
 		return NULL;
 

@@ -408,6 +408,6 @@ dname_type* label_plus_dname(const char* label,const dname_type* dname);
 
 /** return dname with amount_of_labels from labels prepended to dname */
 dname_type* labels_plus_dname(const dname_type* labels,
-	size_t amount_to_be_copied, const dname_type* dname);
+	size_t amount_to_be_copied, dname_type* dname);
 
 #endif /* DNAME_H */
