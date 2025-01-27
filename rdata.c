@@ -3811,7 +3811,7 @@ retrieve_rdata_ref_domain_offset(const struct rr* rr, uint16_t offset)
 	return domain;
 }
 
-static struct domain*
+struct domain*
 retrieve_rdata_ref_domain(const struct rr* rr)
 {
 	struct domain *domain;
