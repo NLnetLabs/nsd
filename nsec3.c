@@ -1095,10 +1095,6 @@ nsec3_answer_delegation(struct query *query, struct answer *answer)
 	if(!query->zone->nsec3_param)
 		return;
 	nsec3_add_ds_proof(query, answer, query->delegation_domain, 1);
-#ifdef USE_DELEG
-	nsec3_add_ds_proof(query, answer, query->ideleg_domain, 1);
-#endif
-
 }
 
 int
