@@ -712,7 +712,7 @@ int
 delete_RR(namedb_type* db, const dname_type* dname,
 	uint16_t type, uint16_t klass,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
-	region_type* temp_region, int* softfail)
+	region_type* temp_region, int* softfail, struct ixfr_store* ixfr_store)
 {
 	domain_type *domain;
 	rrset_type *rrset;
@@ -748,6 +748,15 @@ delete_RR(namedb_type* db, const dname_type* dname,
 				rrtype_to_string(type));
 			return 0;
 		}
+
+		/* Now that the RR has been read with its RRtype specific read
+		 * routine, store the read data and rdata, for an ixfr store.
+		 * Store the delete RR information, for the softfail cases, the
+		 * IXFR is stopped and an AXFR is attempted, so it would not
+		 * need to be stored as the transfer is rejected. */
+		if(ixfr_store)
+			ixfr_store_delrr(ixfr_store, rr);
+
 		rrnum = find_rr_num(rrset, type, klass, rr, 0);
 		if(rrnum == -1 && type == TYPE_SOA && domain == zone->apex
 			&& rrset->rr_count != 0)
@@ -809,7 +818,7 @@ int
 add_RR(namedb_type* db, const dname_type* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
-	int* softfail)
+	int* softfail, struct ixfr_store* ixfr_store)
 {
 	domain_type* domain;
 	rrset_type* rrset;
@@ -859,6 +868,11 @@ add_RR(namedb_type* db, const dname_type* dname,
 	rr->klass = klass;
 	rr->ttl = ttl;
 	rr->rdlength = (uint16_t)rdata_num;
+
+	/* Now that the RR has been read with its RRtype specific read
+	 * routine, store the read data and rdata, for an ixfr store. */
+	if (ixfr_store)
+		ixfr_store_addrr(ixfr_store, rr);
 
 	rrnum = find_rr_num(rrset, type, klass, rr, 1);
 	if(rrnum != -1) {
@@ -1244,24 +1258,18 @@ axfr:
 		if(*delete_mode) {
 			assert(!*is_axfr);
 			/* delete this rr */
-			if(ixfr_store)
-				ixfr_store_delrr(ixfr_store, owner, type,
-					klass, ttl, packet, rrlen, region);
 			if(!delete_RR(nsd->db, owner, type, klass, packet,
-				rrlen, zone, region, softfail)) {
+				rrlen, zone, region, softfail, ixfr_store)) {
 				region_destroy(region);
 				return 0;
 			}
 		} else {
 			/* add this rr */
-			rr_type* rr;
-			if(!(rr = add_RR(nsd->db, owner, type, klass, ttl, packet,
-				rrlen, zone, softfail))) {
+			if(!(add_RR(nsd->db, owner, type, klass, ttl, packet,
+				rrlen, zone, softfail, ixfr_store))) {
 				region_destroy(region);
 				return 0;
 			}
-			if (ixfr_store)
-				ixfr_store_addrr(ixfr_store, rr);
 		}
 	}
 	region_destroy(region);
