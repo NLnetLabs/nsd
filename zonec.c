@@ -130,6 +130,7 @@ int32_t zonec_accept(
 	struct domain *domain;
 	struct buffer buffer;
 	int priority;
+	int32_t code;
 	const struct nsd_type_descriptor *descriptor;
 	struct zonec_state *state = (struct zonec_state *)user_data;
 
@@ -147,7 +148,13 @@ int32_t zonec_accept(
 	assert(domain);
 
 	descriptor = nsd_type_descriptor(type);
-	descriptor->read_rdata(state->domains, rdlength, &buffer, &rr);
+	code = descriptor->read_rdata(state->domains, rdlength, &buffer, &rr);
+	if(code < 0) {
+		zone_log(parser, ZONE_ERROR, "the RR rdata fields are wrong for the type");
+		if(code == TRUNCATED)
+			return ZONE_OUT_OF_MEMORY;
+		return ZONE_BAD_PARAMETER;
+	}
 	rr->owner = domain;
 	rr->type = type;
 	rr->klass = class;

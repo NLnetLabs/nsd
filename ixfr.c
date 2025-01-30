@@ -2441,12 +2441,15 @@ static int32_t ixfr_data_accept(
 	 * rdata, rdlength could have been used to add to the ixfr store.
 	 * But it is more prudent to validate the rdata fields. */
 	if(code < 0) {
+		if(verbosity >= 3) {
+			zone_log(parser, ZONE_ERROR, "the RR rdata fields are wrong for the type");
+		}
 		VERBOSITY(3, (LOG_INFO, "zone %s IXFR bad RR, cannot parse "
 			"rdata of %s %s", state->zone->opts->name,
 			dname_to_string(dname, NULL), rrtype_to_string(type)));
 		if(code == TRUNCATED)
 			return ZONE_OUT_OF_MEMORY;
-		return ZONE_SEMANTIC_ERROR;
+		return ZONE_BAD_PARAMETER;
 	}
 	assert(rr);
 	rr->owner = domain;
