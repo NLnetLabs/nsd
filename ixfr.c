@@ -1191,129 +1191,21 @@ void ixfr_store_add_oldsoa(struct ixfr_store* ixfr_store, uint32_t ttl,
 	buffer_set_position(packet, oldpos);
 }
 
-static inline int32_t figure_rdata_length(
-	const nsd_type_descriptor_t *type, uint16_t rdlength, struct buffer *packet)
-{
-	size_t index = 0;
-	size_t length = 0;
-	size_t uncompressed_length = 0;
-
-	for (; index < type->rdata.length && length < rdlength; index++) {
-		const nsd_rdata_descriptor_t *field = &type->rdata.fields[field];
-
-		if (field->calculate_length) {
-			if (field->length == NSD_RDATA_COMPRESSED_NAME ||
-			    field->length == NSD_RDATA_UNCOMPRESSED_NAME)
-			{
-				struct dname_buffer dname;
-				const size_t mark = buffer_position(packet);
-				int32_t allow_pointers = field->length == NSD_RDATA_COMPRESSED_NAME;
-				// no need to normalize, we can do that later on!
-				if (!dname_make_from_packet_buffered(&dname, packet, allow_pointers, 0))
-					return -1; /* malformed */
-				length += buffer_position(packet) - mark;
-				uncompressed_length += dname.dname.name_size;
-			} else {
-				length = field->figure_length(
-					rdlength - offset, buffer_current(packet));
-				if (length < 0)
-					return length;
-				uncompressed_length += (uint16_t)length;
-				buffer_skip(packet, (size_t)length);
-			}
-		} else {
-			assert(field->length < NSD_RDATA_REMAINDER);
-			if (rdlength - length < field->length)
-				return -1; /* malformed */
-			length += field->length;
-			uncompressed_length += field->length;
-			buffer_skip(packet, field->length);
-		}
-	}
-
-	//
-	// right... check if we read all fields here
-	//
-
-	return uncompressed_length;
-}
-
-//
-// at this point, we know the rdata is good...
-// so what we do here is simply copy it if it's not compressible!!!!
-//
-static inline void write_rdata(
-	const nsd_type_descriptor_t *type, uint16_t rdlength, struct buffer *packet,
-	uint8_t *rrs, size_t rrs_capacity)
-{
-	uint8_t *rdata = rrs;
-
-	/* short circuit if rdata does not contain names to normalize */
-	if (!type->is_compressible) { // << not quite right... need to know if it has names that
-																//    should be normalized. we'll get there though...
-		memmove(sp, buffer_current(packet), rdlength);
-		return;
-	}
-
-	size_t index = 0;
-	size_t length = 0;
-
-	for (; index < type->rdata.length && length < rdlength; index++) {
-		const nsd_rdata_descriptor_t *field = &type->rdata.fields[field];
-
-		if (field->calculate_length) {
-			if (field->length == NSD_RDATA_COMPRESSED_NAME ||
-			    field->length == NSD_RDATA_UNCOMPRESSED_NAME)
-			{
-				struct dname_buffer dname;
-				const size_t mark = buffer_position(packet);
-				int32_t pointers = field->length == NSD_RDATA_COMPRESSED_NAME;
-				if (!dname_make_from_packet_buffered(&dname, packet, pointers, 1))
-					return -1; /* malformed */
-				memmove(sp, dname_name(&dname), dname.dname.name_size);
-				length += buffer_position(packet) - mark;
-				//uncompressed_length += dname.dname.name_size;
-			} else {
-				int32_t field_length = field->figure_length(
-					rdlength - length, buffer_current(packet));
-				assert(field_length >= 0);
-				memcpy(rdata+uncompressed_length, buffer_current(packet), field_length);
-				length += (uint16_t)field_length;
-				uncompressed_length += (uint16_t)field_length;
-				buffer_skip(packet, (size_t)field_length);
-			}
-		} else {
-			assert(field->length < NSD_RDATA_REMAINDER);
-			assert(field->length <= rdlength - length);
-			memcpy(rdata+uncompressed_length, buffer_current(packet), field->length);
-			buffer_skip(packet, field->length);
-		}
-	}
-
-	//
-	// implement
-	//
-}
-
-/* store RR in data segment */
-static int ixfr_putrr(const struct dname* dname, uint16_t type, uint16_t klass,
-	uint32_t ttl, uint16_t rrlen, struct buffer *packet,
-	uint8_t** rrs, size_t* rrs_len, size_t* rrs_capacity)
+/* store RR in data segment.
+ * return -1 on fail of wireformat, 0 on allocate failure, or 1 success. */
+static int ixfr_putrr(const rr_type* rr, uint8_t** rrs, size_t* rrs_len,
+	size_t* rrs_capacity)
 {
 	int32_t rdlen_uncompressed;
 	size_t sz;
 	uint8_t* sp;
-	int i;
-	const nsd_type_descriptor_t *descriptor;
-	const size_t oldpos = buffer_position(packet);
+	const dname_type* dname;
 
-	descriptor = nsd_type_descriptor(type, buffer_current(packet), rrlen);
-	/* figure uncompressed rdata length and validate rdata. input source
-	 * is a network packet or on-disk storage */
-	rdlen_uncompressed = figure_rdata_length(descriptor, rrlen, packet);
+	rdlen_uncompressed = rr_calculate_uncompressed_rdata_length(rr);
 	if (rdlen_uncompressed < 0)
 		return -1; /* malformed */
 
+	dname = domain_dname(rr->owner);
 	sz = dname->name_size + 2 /*type*/ + 2 /*class*/ + 4 /*ttl*/ +
 		2 /*rdlen*/ + rdlen_uncompressed;
 
@@ -1327,31 +1219,18 @@ static int ixfr_putrr(const struct dname* dname, uint16_t type, uint16_t klass,
 	*rrs_len += sz;
 	memmove(sp, dname_name(dname), dname->name_size);
 	sp += dname->name_size;
-	write_uint16(sp, type);
-	//sp += 2;
-	write_uint16(sp + 2, klass);
-	//sp += 2;
-	write_uint32(sp + 4, ttl);
-	//sp += 4;
+	write_uint16(sp, rr->type);
+	write_uint16(sp + 2, rr->klass);
+	write_uint32(sp + 4, rr->ttl);
 	write_uint16(sp + 8, rdlen_uncompressed);
-	//sp += 2;
-	write_rdata(descriptor, packet, sp + 10, *rrs_capacity - *rrs_len);
-	//
-	// we probably have to update some sort of counter here?!?!
-	// >> we'll get to that!
-	//
+	rr_write_uncompressed_rdata(rr, sp+10, rdlen_uncompressed);
 	return 1;
 }
 
-void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
-	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
-	uint16_t rrlen, uint8_t** rrs, size_t* rrs_len, size_t* rrs_capacity)
+void ixfr_store_putrr(struct ixfr_store* ixfr_store, const rr_type* rr,
+	uint8_t** rrs, size_t* rrs_len, size_t* rrs_capacity)
 {
-//	domain_table_type *temptable;
-//	rr_type *rr;
-//	const rrtype_descriptor_type *descriptor;
-//	ssize_t rdata_num;
-	size_t oldpos;
+	int32_t code;
 
 	if(ixfr_store->cancelled)
 		return;
@@ -1359,7 +1238,7 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	/* The SOA data is stored with separate calls. And then appended
 	 * during the finish operation. We do not have to store it here
 	 * when called from difffile's IXFR processing with type SOA. */
-	if(type == TYPE_SOA)
+	if(rr->type == TYPE_SOA)
 		return;
 	/* make space for these RRs we have now; basically once we
 	 * grow beyond the current allowed amount an older IXFR is deleted. */
@@ -1368,14 +1247,12 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	if(ixfr_store->cancelled)
 		return;
 
-	/* parse rdata */
-	const size_t oldpos = buffer_position(packet);
-	int32_t code = ixfr_putrr(dname, type, klass, ttl, rrlen, packet, rrs, rrs_len, rrs_capacity);
-	buffer_set_position(packet, oldpos);
+	/* store rdata */
+	code = ixfr_putrr(rr, rrs, rrs_len, rrs_capacity);
 
-	if (rdata_num < 0) {
-		if (rdata_num == -1)
-			log_msg(LOG_ERR, "ixfr_store addrr: cannot parse packet");
+	if (code <= 0) {
+		if (code == -1)
+			log_msg(LOG_ERR, "ixfr_store addrr: cannot parse rdata format");
 		else
 			log_msg(LOG_ERR, "ixfr_store addrr: cannot allocate space");
 		ixfr_store_cancel(ixfr_store);
@@ -1383,52 +1260,40 @@ void ixfr_store_putrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	}
 }
 
-void ixfr_store_delrr(struct ixfr_store* ixfr_store,
-	const struct dname* dname, uint16_t type, uint16_t klass, uint32_t ttl,
-	struct buffer* packet, uint16_t rrlen)
+void ixfr_store_delrr(struct ixfr_store* ixfr_store, const rr_type* rr)
 {
-	ixfr_store_putrr(ixfr_store, dname, type, klass, ttl, packet, rrlen,
-		&ixfr_store->data->del,
+	ixfr_store_putrr(ixfr_store, rr, &ixfr_store->data->del,
 		&ixfr_store->data->del_len, &ixfr_store->del_capacity);
 }
 
-void ixfr_store_addrr(struct ixfr_store* ixfr_store,
-	const struct dname *dname, uint16_t type, uint16_t klass, uint32_t ttl,
-	struct buffer *packet, uint16_t rrlen)
+void ixfr_store_addrr(struct ixfr_store* ixfr_store, const rr_type* rr)
 {
-	ixfr_store_putrr(ixfr_store, dname, type, klass, ttl, packet, rrlen,
-		&ixfr_store->data->add,
+	ixfr_store_putrr(ixfr_store, rr, &ixfr_store->data->add,
 		&ixfr_store->data->add_len, &ixfr_store->add_capacity);
 }
 
-//int ixfr_store_addrr_rdatas(struct ixfr_store* ixfr_store,
-//	const struct dname* dname, uint16_t type, uint16_t klass,
-//	uint32_t ttl, rdata_atom_type* rdatas, ssize_t rdata_num)
-//{
-//	if(ixfr_store->cancelled)
-//		return 1;
-//	if(type == TYPE_SOA)
-//		return 1;
-//	return ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
-//		&ixfr_store->data->add, &ixfr_store->data->add_len,
-//		&ixfr_store->add_capacity);
-//}
-
-int ixfr_store_add_newsoa_rdatas(struct ixfr_store* ixfr_store,
-	const struct dname* dname, uint16_t type, uint16_t klass,
-	uint32_t ttl, uint8_t* rdatas, uint16_t rdlength)
+int ixfr_store_addrr_rdatas(struct ixfr_store* ixfr_store, const rr_type *rr)
 {
-	size_t capacity = 0;
-	uint32_t serial;
 	if(ixfr_store->cancelled)
 		return 1;
-	if(rdlength < 1+1+4*5)
+	if(rr->type == TYPE_SOA)
+		return 1;
+	if(ixfr_putrr(rr, &ixfr_store->data->add, &ixfr_store->data->add_len,
+		&ixfr_store->add_capacity) <= 0)
 		return 0;
-	memcpy(&serial, rdata_atom_data(rdatas[2]), sizeof(serial));
-	ixfr_store->data->newserial = ntohl(serial);
-	if(!ixfr_putrr(dname, type, klass, ttl, rdatas, rdata_num,
-		&ixfr_store->data->newsoa, &ixfr_store->data->newsoa_len,
-		&ixfr_store->add_capacity))
+	return 1;
+}
+
+int ixfr_store_add_newsoa_rdatas(struct ixfr_store* ixfr_store,
+	const rr_type* rr)
+{
+	size_t capacity = 0;
+	if(ixfr_store->cancelled)
+		return 1;
+	if(!retrieve_soa_rdata_serial(rr, &ixfr_store->data->newserial))
+		return 0;
+	if(!ixfr_putrr(rr, &ixfr_store->data->newsoa,
+		&ixfr_store->data->newsoa_len, &ixfr_store->add_capacity))
 		return 0;
 	ixfr_trim_capacity(&ixfr_store->data->newsoa,
 		&ixfr_store->data->newsoa_len, &capacity);

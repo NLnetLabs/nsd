@@ -458,10 +458,7 @@ static int process_diff_rrset(FILE* spool, struct ixfr_create* ixfrcr,
 			continue;
 		}
 		/* not in the marked list, the RR is added */
-		if(!ixfr_store_addrr_rdatas(store, domain_dname(domain),
-			rrset->rrs[i].type, rrset->rrs[i].klass,
-			rrset->rrs[i].ttl, rrset->rrs[i].rdatas,
-			rrset->rrs[i].rdata_count)) {
+		if(!ixfr_store_addrr_rdatas(store, rrset->rrs[i])) {
 			log_msg(LOG_ERR, "out of memory");
 			return 0;
 		}
@@ -516,10 +513,7 @@ static int process_add_rrset(struct ixfr_store* ixfr_store,
 {
 	int i;
 	for(i=0; i<rrset->rr_count; i++) {
-		if(!ixfr_store_addrr_rdatas(ixfr_store, domain_dname(domain),
-			rrset->rrs[i].type, rrset->rrs[i].klass,
-			rrset->rrs[i].ttl, rrset->rrs[i].rdatas,
-			rrset->rrs[i].rdata_count)) {
+		if(!ixfr_store_addrr_rdatas(ixfr_store, rrset->rrs[i])) {
 			log_msg(LOG_ERR, "out of memory");
 			return 0;
 		}
@@ -921,10 +915,7 @@ static int ixfr_create_store_newsoa(struct ixfr_store* store,
 		log_msg(LOG_ERR, "error empty SOA rrset");
 		return 0;
 	}
-	if(!ixfr_store_add_newsoa_rdatas(store, domain_dname(zone->apex),
-		zone->soa_rrset->rrs[0]->type, zone->soa_rrset->rrs[0]->klass,
-		zone->soa_rrset->rrs[0]->ttl, zone->soa_rrset->rrs[0]->rdata,
-		zone->soa_rrset->rrs[0]->rdlength)) {
+	if(!ixfr_store_add_newsoa_rdatas(store, zone->soa_rrset->rrs[0])) {
 		log_msg(LOG_ERR, "out of memory");
 		return 0;
 	}

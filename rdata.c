@@ -1102,6 +1102,9 @@ rr_calculate_uncompressed_rdata_length(const rr_type* rr)
 		nsd_type_descriptor(rr->type);
 	uint16_t offset = 0;
 	int32_t result = 0;
+	if(!descriptor->has_references)
+		return rr->rdlength; /* It does not really validate the
+			fields versus the rdlength. */
 	for(i=0; i < descriptor->rdata.length; i++) {
 		uint16_t field_len;
 		struct domain* domain;
@@ -1122,6 +1125,49 @@ rr_calculate_uncompressed_rdata_length(const rr_type* rr)
 		offset += field_len;
 	}
 	return result;
+}
+
+void
+rr_write_uncompressed_rdata(const rr_type* rr, uint8_t* buf, size_t len)
+{
+	size_t i;
+	const nsd_type_descriptor_type* descriptor =
+		nsd_type_descriptor(rr->type);
+	uint16_t offset = 0; /* The offset in rr->rdatas. */
+	size_t pos = 0; /* The position in buf. */
+	if(!descriptor->has_references) {
+		/* It does not really validate the fields versus the
+		 * rdlength. */
+		if(rr->rdlength > len)
+			return; /* buffer too small */
+		memcpy(buf, rr->rdata, rr->rdlength);
+		return;
+	}
+	for(i=0; i < descriptor->rdata.length; i++) {
+		uint16_t field_len;
+		struct domain* domain;
+		if(rr->rdlength == offset &&
+			descriptor->rdata.fields[i].is_optional)
+			break; /* There are no more rdata fields. */
+		if(!lookup_rdata_field_entry(descriptor, i, rr, offset,
+			&field_len, &domain))
+			return; /* malformed rdata buffer */
+		if(domain != NULL) {
+			/* Handle RDATA_COMPRESSED_DNAME and
+			 * RDATA_UNCOMPRESSED_DNAME fields. */
+			const struct dname* dname = domain_dname(domain);
+			if(pos + dname->name_size > len)
+				return; /* buffer too small */
+			memcpy(buf+pos, dname_name(dname), dname->name_size);
+			pos += dname->name_size;
+		} else {
+			if(pos + field_len > len)
+				return; /* buffer too small */
+			memcpy(buf+pos, rr->rdata+offset, field_len);
+			pos += field_len;
+		}
+		offset += field_len;
+	}
 }
 
 int print_unknown_rdata(buffer_type *output,

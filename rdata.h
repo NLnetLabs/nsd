@@ -494,11 +494,21 @@ int print_dlv_rdata(struct buffer *output, const struct rr *rr);
 /*
  * Look up the uncompressed wireformat length of the rdata.
  * The pointer references in it are taking up the length of their uncompressed
- * domain names.
+ * domain names. The length is without the RR's rdatalength uint16 preceding.
  * @param rr: the rr, the RR type and rdata are used.
  * @result -1 on failure, otherwise length in bytes.
  */
 int32_t rr_calculate_uncompressed_rdata_length(const rr_type* rr);
+
+/*
+ * Write uncompressed wireformat rdata to buffer. The pointer references
+ * and domains are uncompressed wireformat domain names. The uint16 rdlength
+ * is not written before it.
+ * @param rr: the rr, with RR type and rdata.
+ * @param buf: destination.
+ * @param len: length of buffer.
+ */
+void rr_write_uncompressed_rdata(const rr_type* rr, uint8_t* buf, size_t len);
 
 /*
  * Look up the field length. The field length is returned as a length
