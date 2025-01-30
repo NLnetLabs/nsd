@@ -47,6 +47,8 @@ struct nsd_svcparam_descriptor {
 	nsd_print_svcparam_rdata_type print_rdata;
 };
 
+int print_unknown_rdata_field(buffer_type *output,
+	const nsd_type_descriptor_type *descriptor, const rr_type *rr);
 int print_unknown_rdata(buffer_type *output,
 	const nsd_type_descriptor_type *descriptor, const rr_type *rr);
 

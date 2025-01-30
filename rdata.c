@@ -1029,7 +1029,7 @@ print_generic_rdata(struct buffer *output, const struct rr *rr)
 {
 	const nsd_type_descriptor_type* descriptor =
 		nsd_type_descriptor(rr->type);
-	return print_unknown_rdata(output, descriptor, rr);
+	return print_unknown_rdata_field(output, descriptor, rr);
 }
 
 int
@@ -1041,8 +1041,11 @@ lookup_rdata_field_entry(const nsd_type_descriptor_type* descriptor,
 		&descriptor->rdata.fields[index];
 	if(field->calculate_length) {
 		/* Call field length function. */
-		*field_len = field->calculate_length(rr->rdlength, rr->rdata,
+		int32_t l = field->calculate_length(rr->rdlength, rr->rdata,
 			offset);
+		if(l < 0)
+			return 0;
+		*field_len = l;
 		*domain = NULL;
 	} else if(field->length >= 0) {
 		*field_len = field->length;
@@ -1079,6 +1082,7 @@ lookup_rdata_field_entry(const nsd_type_descriptor_type* descriptor,
 			*domain = NULL;
 			break;
 		case RDATA_IPSECGATEWAY:
+		case RDATA_AMTRELAY_RELAY:
 			return 0; /* Has a callback function. */
 		case RDATA_REMAINDER:
 			*field_len = rr->rdlength - offset;
@@ -1170,7 +1174,7 @@ rr_write_uncompressed_rdata(const rr_type* rr, uint8_t* buf, size_t len)
 	}
 }
 
-int print_unknown_rdata(buffer_type *output,
+int print_unknown_rdata_field(buffer_type *output,
 	const nsd_type_descriptor_type *descriptor, const rr_type *rr)
 {
 	size_t i;
@@ -1180,7 +1184,7 @@ int print_unknown_rdata(buffer_type *output,
 	if(!descriptor->has_references) {
 		/* There are no references to the domain table, the
 		 * rdata can be printed literally. */
-		buffer_printf(output, " \\# %lu ", (unsigned long)rr->rdlength);
+		buffer_printf(output, "\\# %lu ", (unsigned long)rr->rdlength);
 		hex_to_string(output, rr->rdata, rr->rdlength);
 		return 1;
 	}
@@ -1188,7 +1192,7 @@ int print_unknown_rdata(buffer_type *output,
 	size = rr_calculate_uncompressed_rdata_length(rr);
 	if(size < 0)
 		return 0;
-	buffer_printf(output, " \\# %lu ", (unsigned long) size);
+	buffer_printf(output, "\\# %lu ", (unsigned long) size);
 
 	for(i=0; i < descriptor->rdata.length; i++) {
 		uint16_t field_len;
@@ -1215,6 +1219,13 @@ int print_unknown_rdata(buffer_type *output,
 		length += field_len;
 	}
 	return 1;
+}
+
+int print_unknown_rdata(buffer_type *output,
+	const nsd_type_descriptor_type *descriptor, const rr_type *rr)
+{
+	buffer_printf(output, "\t");
+	return print_unknown_rdata_field(output, descriptor, rr);
 }
 
 int32_t
@@ -3594,7 +3605,14 @@ int
 print_rdata(buffer_type *output, const nsd_type_descriptor_type *descriptor,
 	const rr_type *rr)
 {
-	return descriptor->print_rdata(output, rr);
+	size_t saved_position = buffer_position(output);
+	if(rr->rdlength != 0)
+		buffer_printf(output, "\t");
+	if(!descriptor->print_rdata(output, rr)) {
+		buffer_set_position(output, saved_position);
+		return 0;
+	}
+	return 1;
 }
 
 /*
