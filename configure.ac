@@ -1157,6 +1157,19 @@ case "$enable_packed" in
 	;;
 esac
 
+AC_ARG_ENABLE(metrics, AS_HELP_STRING([--enable-metrics],[Enable prometheus metrics support.]))
+case "$enable_metrics" in
+	yes)
+		AC_DEFINE_UNQUOTED([USE_METRICS], [], [Define this to expose NSD statistics via a prometheus metrics HTTP endpoint.])
+		AC_DEFINE_UNQUOTED([NSD_METRICS_PORT], [9100], [Define to the default metrics HTTP endpoint port.])
+		AC_SEARCH_LIBS(evhttp_free, [event], , AC_MSG_ERROR(Cannot find libevent, but is needed for prometheus metrics support.))
+        AC_SUBST([METRICS_SRC], ["metrics.c"])
+        AC_SUBST([METRICS_OBJ], ["metrics.o"])
+		;;
+	no|*)
+		;;
+esac
+
 # check for dnstap if requested
 dt_DNSTAP([${localstatedir}/run/nsd-dnstap.sock],
     [
