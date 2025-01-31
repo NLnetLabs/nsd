@@ -143,8 +143,11 @@ int32_t zonec_accept(
 	if (class != CLASS_IN)
 		zone_log(parser, priority, "only class IN is supported");
 
-	dname_make_buffered(&dname, owner->octets, 1);
-	domain = domain_table_insert(state->domains, &dname);
+	if(!dname_make_buffered(&dname, (uint8_t*)owner->octets, 1)) {
+		return ZONE_BAD_PARAMETER;
+	}
+
+	domain = domain_table_insert(state->domains, (void*)&dname);
 	assert(domain);
 
 	descriptor = nsd_type_descriptor(type);
@@ -213,7 +216,7 @@ int32_t zonec_accept(
 		/* Add it */
 		domain_add_rrset(domain, rrset);
 	} else {
-		struct rr *rrs;
+		struct rr **rrs;
 		if (type != TYPE_RRSIG && ttl != rrset->rrs[0]->ttl) {
 			zone_log(parser, ZONE_WARNING, "%s TTL %"PRIu32" does not match TTL %u of %s RRset",
 				domain_to_string(domain), ttl, rrset->rrs[0]->ttl,
@@ -353,7 +356,6 @@ zonec_read(
 
 	state.database = database;
 	state.domains = domains;
-	state.rr_region = region_create(xalloc, free);
 	state.zone = zone;
 	state.domain = NULL;
 	state.errors = 0;
@@ -373,7 +375,6 @@ zonec_read(
 
 	/* Parse and process all RRs.  */
 	if (zone_parse(&parser, &options, &buffers, zonefile, &state) != 0) {
-		region_destroy(state.rr_region);
 		return state.errors;
 	}
 
@@ -384,16 +385,15 @@ zonec_read(
 	} else if (!zone->soa_rrset || zone->soa_rrset->rr_count == 0) {
 		log_msg(LOG_ERR, "zone configured as '%s' has no SOA record", name);
 		state.errors++;
-	} else if (dname_compare(domain_dname(zone->soa_rrset->rrs[0].owner), origin) != 0) {
+	} else if (dname_compare(domain_dname(zone->soa_rrset->rrs[0]->owner), origin) != 0) {
 		log_msg(LOG_ERR, "zone configured as '%s', but SOA has owner '%s'",
-		        name, domain_to_string(zone->soa_rrset->rrs[0].owner));
+		        name, domain_to_string(zone->soa_rrset->rrs[0]->owner));
 		state.errors++;
 	}
 
 	if(!zone_is_slave(zone->opts) && !check_dname(zone))
 		state.errors++;
 
-	region_destroy(state.rr_region);
 	return state.errors;
 }
 
@@ -416,21 +416,23 @@ apex_rrset_checks(namedb_type* db, rrset_type* rrset, domain_type* domain)
 			zone->soa_nx_rrset->next = 0;
 			zone->soa_nx_rrset->zone = zone;
 			zone->soa_nx_rrset->rrs = region_alloc(db->region,
-				sizeof(rr_type));
+				sizeof(rr_type*));
+			zone->soa_nx_rrset->rrs[0] = region_alloc(db->region,
+				sizeof(rr_type)+rrset->rrs[0]->rdlength);
 		}
-		memcpy(zone->soa_nx_rrset->rrs, rrset->rrs, sizeof(rr_type));
+		memcpy(zone->soa_nx_rrset->rrs[0], rrset->rrs[0],
+			sizeof(rr_type)+rrset->rrs[0]->rdlength);
 
 		/* check the ttl and MINIMUM value and set accordingly */
-		memcpy(&soa_minimum, rdata_atom_data(rrset->rrs->rdatas[6]),
-				rdata_atom_size(rrset->rrs->rdatas[6]));
-		if (rrset->rrs->ttl > ntohl(soa_minimum)) {
-			zone->soa_nx_rrset->rrs[0].ttl = ntohl(soa_minimum);
+		retrieve_soa_rdata_minttl(rrset->rrs[0], &soa_minimum);
+		if (rrset->rrs[0]->ttl > soa_minimum) {
+			zone->soa_nx_rrset->rrs[0]->ttl = soa_minimum;
 		}
 	} else if (rrset_rrtype(rrset) == TYPE_NS) {
 		zone->ns_rrset = rrset;
 	} else if (rrset_rrtype(rrset) == TYPE_RRSIG) {
 		for (i = 0; i < rrset->rr_count; ++i) {
-			if(rr_rrsig_type_covered(&rrset->rrs[i])==TYPE_DNSKEY){
+			if(rr_rrsig_type_covered(rrset->rrs[i])==TYPE_DNSKEY){
 				zone->is_secure = 1;
 				break;
 			}
