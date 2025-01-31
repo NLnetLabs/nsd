@@ -144,6 +144,7 @@ int32_t zonec_accept(
 		zone_log(parser, priority, "only class IN is supported");
 
 	if(!dname_make_buffered(&dname, (uint8_t*)owner->octets, 1)) {
+		zone_log(parser, ZONE_ERROR, "the owner cannot be converted");
 		return ZONE_BAD_PARAMETER;
 	}
 

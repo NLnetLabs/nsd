@@ -152,7 +152,7 @@ print_name_literal(struct buffer *output, uint16_t rdlength,
 	} while (*label);
 
 	buffer_printf(output, "%s", wiredname2str(name));
-	*offset += label - name;
+	*offset += (label - name) + 1 /* root label */;
 	return 1;
 }
 
@@ -175,7 +175,7 @@ print_domain(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	struct domain *domain;
 	if(rdlength < sizeof(void*))
 		return 0;
-	memcpy(&domain, rdata, sizeof(void*));
+	memcpy(&domain, rdata+*offset, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_printf(output, "%s", dname_to_string(dname, NULL));
 	*offset += sizeof(void*);
@@ -227,12 +227,12 @@ print_string(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	size_t n;
 	if(rdlength < 1)
 		return 0;
-	n = rdata[0];
+	n = rdata[*offset];
 	if(rdlength < 1 + n)
 		return 0;
 	buffer_printf(output, "\"");
 	for (size_t i = 1; i <= n; i++) {
-		char ch = (char) rdata[i];
+		char ch = (char) rdata[i+*offset];
 		if (isprint((unsigned char)ch)) {
 			if (ch == '"' || ch == '\\') {
 				buffer_printf(output, "\\");
@@ -606,10 +606,10 @@ skip_nsec(struct buffer* packet, uint16_t rdlength, uint16_t *offset)
 		last_window = window;
 	}
 
-	if (rdlength != length)
+	*offset += length;
+	if (rdlength != *offset)
 		return -1;
 
-	*offset += length;
 	return length;
 }
 
@@ -628,6 +628,7 @@ print_nsec_bitmap(struct buffer *output, uint16_t rdlength,
 {
 	int insert_space = 0;
 
+	rdata += *offset;
 	while(rdlength - *offset > 0) {
 		uint8_t window, bitmap_size;
 		const uint8_t* bitmap;
@@ -2309,12 +2310,14 @@ read_naptr_rdata(struct domain_table *domains, uint16_t rdlength,
 
 	/* short + short + text + text + text + name */
 	if (buffer_remaining(packet) < rdlength ||
-	    rdlength < length ||
-	    skip_string(packet, rdlength, &length) < 0 ||
-	    skip_string(packet, rdlength, &length) < 0 ||
-	    skip_string(packet, rdlength, &length) < 0 ||
-	    !dname_make_from_packet_buffered(&dname, packet, 1, 1) ||
-	    rdlength < buffer_position(packet) - mark)
+	    rdlength < length)
+		return MALFORMED;
+	buffer_skip(packet, 4);
+	if(skip_string(packet, rdlength, &length) < 0 ||
+	   skip_string(packet, rdlength, &length) < 0 ||
+	   skip_string(packet, rdlength, &length) < 0 ||
+	   !dname_make_from_packet_buffered(&dname, packet, 1, 1) ||
+	   rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 
 	size = sizeof(**rr) + length + sizeof(void*);
@@ -2324,7 +2327,7 @@ read_naptr_rdata(struct domain_table *domains, uint16_t rdlength,
 	domain->usage++;
 	buffer_read_at(packet, mark, (*rr)->rdata, length);
 	memcpy((*rr)->rdata + length, &domain, sizeof(void*));
-	(*rr)->rdlength += length + sizeof(void*);
+	(*rr)->rdlength = length + sizeof(void*);
 	return rdlength;
 }
 
@@ -2730,7 +2733,7 @@ read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	struct dname_buffer signer;
 	const size_t mark = buffer_position(packet);
-	uint16_t memrdlen;
+	uint16_t memrdlen, b64len;
 
 	/* short + byte + byte + long + long + long + short */
 	if (buffer_remaining(packet) < rdlength || rdlength < 18)
@@ -2742,19 +2745,21 @@ read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 	memrdlen = 18 + signer.dname.name_size;
-	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + memrdlen)))
+	b64len = rdlength - memrdlen;
+	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + memrdlen + b64len)))
 		return TRUNCATED;
 	buffer_read_at(packet, mark, (*rr)->rdata, 18);
 	memcpy((*rr)->rdata + 18, dname_name((void*)&signer),
 		signer.dname.name_size);
-	(*rr)->rdlength = memrdlen;
+	buffer_read(packet, (*rr)->rdata+memrdlen, b64len);
+	(*rr)->rdlength = memrdlen + b64len;
 	return rdlength;
 }
 
 int
 print_rrsig_rdata(struct buffer *output, const struct rr *rr)
 {
-	uint16_t length = 4;
+	uint16_t length = 8;
 
 	assert(rr->rdlength > length);
 	buffer_printf(
@@ -2797,7 +2802,8 @@ read_nsec_rdata(struct domain_table *domains, uint16_t rdlength,
 
 	bitmapmark = buffer_position(packet);
 	length = bitmapmark - mark;
-	if (skip_nsec(packet, rdlength, &length) < 0 || rdlength != length)
+	if (skip_nsec(packet, rdlength, &length) < 0
+		|| rdlength != length)
 		return MALFORMED;
 	bitmaplen = buffer_position(packet) - bitmapmark;
 	memrdlen = next.dname.name_size + bitmaplen;
@@ -2818,6 +2824,7 @@ print_nsec_rdata(struct buffer *output, const struct rr *rr)
 	assert(rr->rdlength > length);
 	if (!print_name_literal(output, rr->rdlength, rr->rdata, &length))
 		return 0;
+	buffer_printf(output, " ");
 	if (!print_nsec_bitmap(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
