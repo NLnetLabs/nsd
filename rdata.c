@@ -2763,9 +2763,9 @@ print_rrsig_rdata(struct buffer *output, const struct rr *rr)
 
 	assert(rr->rdlength > length);
 	buffer_printf(
-		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " %" PRIu32 " ",
-		read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3],
-		read_uint32(rr->rdata+4));
+		output, "%s %" PRIu8 " %" PRIu8 " %" PRIu32 " ",
+		rrtype_to_string(read_uint16(rr->rdata)), rr->rdata[2],
+		rr->rdata[3], read_uint32(rr->rdata+4));
 	if (!print_time(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	buffer_printf(output, " ");
@@ -3884,8 +3884,11 @@ equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
 
 	if(!descriptor->has_references) {
 		/* Compare the wireformat of the rdata. */
-		return compare_bytestring(rr1->rdata, rr1->rdlength,
+		res = compare_bytestring(rr1->rdata, rr1->rdlength,
 			rr2->rdata, rr2->rdlength);
+		if(res != 0)
+			return 0;
+		return 1;
 	}
 
 	for(i=0; i < descriptor->rdata.length; i++) {
@@ -3898,11 +3901,11 @@ equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
 			/* There are no more rdata fields. */
 			/* Check lengths. */
 			if(rr1->rdlength < rr2->rdlength)
-				return -1;
+				return 0;
 			if(rr1->rdlength > rr2->rdlength)
-				return 1;
+				return 0;
 			/* It is equal. */
-			return 0;
+			return 1;
 		}
 		if(!lookup_rdata_field_entry(descriptor, i, rr1, offset,
 			&field_len1, &domain1))
@@ -3914,35 +3917,35 @@ equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
 			/* Malformed entries sort last, and are sorted
 			 * equal with other malformed entries. */
 			if(!malf1 && malf2)
-				return -1;
+				return 0;
 			if(malf1 && !malf2)
-				return 1;
-			return 0;
+				return 0;
+			return 1;
 		}
 		/* Compare the two fields. */
 		/* If they have a different type field, they are not the
 		 * same. */
 		if(domain1 && !domain2)
-			return -1;
+			return 0;
 		if(!domain1 && domain2)
-			return 1;
+			return 0;
 		if(domain1 && domain2) {
 			/* Handle RDATA_COMPRESSED_DNAME and
 			 * RDATA_UNCOMPRESSED_DNAME fields. */
 			res = dname_compare(domain_dname(domain1),
 				domain_dname(domain2));
 			if(res != 0)
-				return res;
+				return 0;
 		} else {
 			res = compare_bytestring(rr1->rdata + offset,
 				field_len1, rr2->rdata + offset, field_len2);
 			if(res != 0)
-				return res;
+				return 0;
 		}
 		/* The fields are equal, field_len1 == field_len2. */
 		offset += field_len1;
 	}
-	return 0;
+	return 1;
 }
 
 int
@@ -3955,8 +3958,11 @@ equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
 
 	if(!descriptor->has_references) {
 		/* Compare the wireformat of the rdata. */
-		return compare_bytestring(rr1->rdata, rr1->rdlength,
+		res = compare_bytestring(rr1->rdata, rr1->rdlength,
 			rr2_rdata, rr2_rdlen);
+		if(res != 0)
+			return 0;
+		return 1;
 	}
 
 	for(i=0; i < descriptor->rdata.length; i++) {
@@ -3971,11 +3977,11 @@ equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
 			int remain1 = rr1->rdlength - offset1;
 			int remain2 = rr2_rdlen - offset2;
 			if(remain1 < remain2)
-				return -1;
+				return 0;
 			if(remain1 > remain2)
-				return 1;
+				return 0;
 			/* It is equal. */
-			return 0;
+			return 1;
 		}
 		if(!lookup_rdata_field_entry(descriptor, i, rr1, offset1,
 			&field_len1, &domain1))
@@ -3987,10 +3993,10 @@ equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
 			/* Malformed entries sort last, and are sorted
 			 * equal with other malformed entries. */
 			if(!malf1 && malf2)
-				return -1;
+				return 0;
 			if(malf1 && !malf2)
-				return 1;
-			return 0;
+				return 0;
+			return 1;
 		}
 		/* Compare the two fields. */
 		/* If they have a different type field, they are not the
@@ -4002,7 +4008,7 @@ equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
 				res = dname_compare(domain_dname(domain1),
 					domain_dname(domain2));
 				if(res != 0)
-					return res;
+					return 0;
 			} else {
 				if(domain_dname(domain1)->name_size !=
 					buf_dname_length(rr2_rdata+offset2,
@@ -4023,7 +4029,7 @@ equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
 			res = compare_bytestring(rr1->rdata + offset1,
 				field_len1, rr2_rdata + offset2, field_len2);
 			if(res != 0)
-				return res;
+				return 0;
 		}
 		offset1 += field_len1;
 		offset2 += field_len2;
