@@ -268,10 +268,23 @@ static int ixfr_write_rdata_pkt(struct buffer* packet, uint16_t tp,
 			 * data buffer, instead of the in-memory data buffer.
 			 * For IPSECKEY it does not matter, since it has
 			 * a literal dname storage. */
-			int32_t l = field->calculate_length(rdlen, rr, offset);
+			struct domain* domain;
+			int32_t l = field->calculate_length_uncompressed_wire(
+				rdlen, rr, offset, &domain);
 			if(l < 0)
 				return 1; /* attempt to skip malformed rr */
 			field_len = l;
+			if(domain) {
+				/* Treat as uncompressed dname, to be safe. */
+				/* Write as an uncompressed name. */
+				if(!buffer_available(packet,
+					domain_dname(domain)->name_size))
+					return 0;
+				buffer_write(packet,
+					dname_name(domain_dname(domain)),
+					domain_dname(domain)->name_size);
+				already_written = 1;
+			}
 		} else if(field->length >= 0) {
 			field_len = field->length;
 		} else {

@@ -301,7 +301,7 @@ int print_ipseckey_rdata(struct buffer *output, const struct rr *rr);
 
 /* Determine length of IPSECKEY gateway field. */
 int32_t ipseckey_gateway_length(uint16_t rdlength, const uint8_t *rdata,
-	uint16_t offset);
+	uint16_t offset, struct domain** domain);
 
 /* Read rdata for type RRSIG. */
 int32_t read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
@@ -481,7 +481,7 @@ int print_amtrelay_rdata(struct buffer *output, const struct rr *rr);
 
 /* Determine length of AMTRELAY relay field. */
 int32_t amtrelay_relay_length(uint16_t rdlength, const uint8_t *rdata,
-	uint16_t offset);
+	uint16_t offset, struct domain** domain);
 
 /* Print rdata for type IPN. */
 int print_ipn_rdata(struct buffer *output, const struct rr *rr);
@@ -536,6 +536,14 @@ int lookup_rdata_field_entry(const nsd_type_descriptor_type* descriptor,
 	size_t index, const rr_type* rr, uint16_t offset, uint16_t* field_len,
 	struct domain** domain);
 
+/* Look up the field length. Same as lookup_rdata_field_entry, but the rdata
+ * is uncompressed wireformat. The length returned skips the field in the
+ * uncompressed wireformat. */
+int lookup_rdata_field_entry_uncompressed_wire(
+	const nsd_type_descriptor_type* descriptor, size_t index,
+	const uint8_t* rdata, uint16_t rdlength, uint16_t offset,
+	uint16_t* field_len, struct domain** domain);
+
 /*
  * Compare rdata for two RRs. They have to be of the same type already.
  * It iterates over the RR type fields. The RRs and the rdatas are the
@@ -569,6 +577,14 @@ int compare_rr_rdata(const nsd_type_descriptor_type *descriptor,
  */
 int equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
 	const struct rr *rr1, const struct rr *rr2);
+
+/*
+ * Compare rdata for equality. Same as equal_rr_rdata, but the second
+ * rdata is passed as uncompressed wireformat, the first has the in-memory
+ * rdata format.
+ */
+int equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
+	const struct rr *rr1, const uint8_t* rr2_rdata, uint16_t rr2_rdlen);
 
 /*
  * Retrieve domain ref at an offset in the rdata.

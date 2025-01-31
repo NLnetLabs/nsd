@@ -15,6 +15,7 @@
 #include "namedb.h"
 #include "ixfr.h"
 #include "options.h"
+#include "rdata.h"
 
 /* spool a uint16_t to file */
 static int spool_u16(FILE* out, uint16_t val)
@@ -47,45 +48,25 @@ static int spool_dname(FILE* out, dname_type* dname)
 	return 1;
 }
 
-// FIXME: replace rr_marshal_rdata_size
-/* calculate the rdatalen of an RR */
-//static size_t rr_rdatalen_uncompressed(rr_type* rr)
-//{
-//	int i;
-//	size_t rdlen_uncompressed = 0;
-//	for(i=0; i<rr->rdata_count; i++) {
-//		if(rdata_atom_is_domain(rr->type, i)) {
-//			rdlen_uncompressed += domain_dname(rr->rdatas[i].domain)
-//				->name_size;
-//		} else {
-//			rdlen_uncompressed += rr->rdatas[i].data[0];
-//		}
-//	}
-//	return rdlen_uncompressed;
-//}
-
 /* spool the data for one rr into the file */
 static int spool_rr_data(FILE* out, rr_type* rr)
 {
-	int i;
 	uint16_t rdlen;
+	int32_t code;
+	uint8_t buf[MAX_RDLENGTH];
 	if(!spool_u32(out, rr->ttl))
 		return 0;
-	rdlen = rr_rdatalen_uncompressed(rr);
+	code = rr_calculate_uncompressed_rdata_length(rr);
+	if(code < 0)
+		return 0;
+	if((size_t)code > sizeof(buf))
+		return 0; /* Buffer too small. The buffer has max length. */
+	rdlen = (uint16_t)code;
 	if(!spool_u16(out, rdlen))
 		return 0;
-	for(i=0; i<rr->rdata_count; i++) {
-		if(rdata_atom_is_domain(rr->type, i)) {
-			if(!fwrite(dname_name(domain_dname(
-				rr->rdatas[i].domain)), domain_dname(
-				rr->rdatas[i].domain)->name_size, 1, out))
-				return 0;
-		} else {
-			if(!fwrite(&rr->rdatas[i].data[1],
-				rr->rdatas[i].data[0], 1, out))
-				return 0;
-		}
-	}
+	rr_write_uncompressed_rdata(rr, buf, rdlen);
+	if(!fwrite(buf, rdlen, 1, out))
+		return 0;
 	return 1;
 }
 
@@ -340,31 +321,11 @@ static int process_store_oldsoa(struct ixfr_store* store, uint8_t* dname,
 /* see if rdata matches, true if equal */
 static int rdata_match(struct rr* rr, uint8_t* rdata, uint16_t rdlen)
 {
-	size_t rdpos = 0;
-	int i;
-	for(i=0; i<rr->rdata_count; i++) {
-		if(rdata_atom_is_domain(rr->type, i)) {
-			if(rdpos + domain_dname(rr->rdatas[i].domain)->name_size
-				> rdlen)
-				return 0;
-			if(memcmp(rdata+rdpos,
-				dname_name(domain_dname(rr->rdatas[i].domain)),
-				domain_dname(rr->rdatas[i].domain)->name_size)
-				!= 0)
-				return 0;
-			rdpos += domain_dname(rr->rdatas[i].domain)->name_size;
-		} else {
-			if(rdpos + rr->rdatas[i].data[0] > rdlen)
-				return 0;
-			if(memcmp(rdata+rdpos, &rr->rdatas[i].data[1],
-				rr->rdatas[i].data[0]) != 0)
-				return 0;
-			rdpos += rr->rdatas[i].data[0];
-		}
-	}
-	if(rdpos != rdlen)
-		return 0;
-	return 1;
+	/* The rr has in-memory representation. The rdata is uncompressed
+	 * wireformat representation. */
+	const struct nsd_type_descriptor *descriptor = nsd_type_descriptor(
+		rr->type);
+	return equal_rr_rdata_uncompressed_wire(descriptor, rr, rdata, rdlen);
 }
 
 /* find an rdata in an rrset, true if found and sets index found */
@@ -373,9 +334,9 @@ static int rrset_find_rdata(struct rrset* rrset, uint32_t ttl, uint8_t* rdata,
 {
 	int i;
 	for(i=0; i<rrset->rr_count; i++) {
-		if(rrset->rrs[i].ttl != ttl)
+		if(rrset->rrs[i]->ttl != ttl)
 			continue;
-		if(rdata_match(&rrset->rrs[i], rdata, rdlen)) {
+		if(rdata_match(rrset->rrs[i], rdata, rdlen)) {
 			*index = i;
 			return 1;
 		}
@@ -509,7 +470,7 @@ static int process_spool_delrrset(FILE* spool, struct ixfr_create* ixfrcr,
 
 /* add the rrset to the added list */
 static int process_add_rrset(struct ixfr_store* ixfr_store,
-	struct domain* domain, struct rrset* rrset)
+	struct rrset* rrset)
 {
 	int i;
 	for(i=0; i<rrset->rr_count; i++) {
@@ -538,7 +499,7 @@ static int process_marktypes(struct ixfr_store* store, struct zone* zone,
 			/* the item is in the marked list, skip it */
 			continue;
 		}
-		if(!process_add_rrset(store, domain, s))
+		if(!process_add_rrset(store, s))
 			return 0;
 	}
 	return 1;
@@ -610,7 +571,7 @@ static int process_domain_add_RRs(struct ixfr_store* store, struct zone* zone,
 	for(s=domain->rrsets; s; s=s->next) {
 		if(s->zone != zone)
 			continue;
-		if(!process_add_rrset(store, domain, s))
+		if(!process_add_rrset(store, s))
 			return 0;
 	}
 	return 1;

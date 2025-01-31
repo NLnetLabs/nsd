@@ -1042,11 +1042,10 @@ lookup_rdata_field_entry(const nsd_type_descriptor_type* descriptor,
 	if(field->calculate_length) {
 		/* Call field length function. */
 		int32_t l = field->calculate_length(rr->rdlength, rr->rdata,
-			offset);
+			offset, domain);
 		if(l < 0)
 			return 0;
 		*field_len = l;
-		*domain = NULL;
 	} else if(field->length >= 0) {
 		*field_len = field->length;
 		*domain = NULL;
@@ -1094,6 +1093,69 @@ lookup_rdata_field_entry(const nsd_type_descriptor_type* descriptor,
 		}
 	}
 	if(offset + *field_len > rr->rdlength)
+		return 0; /* The field does not fit in the rdata. */
+	return 1;
+}
+
+int
+lookup_rdata_field_entry_uncompressed_wire(
+	const nsd_type_descriptor_type* descriptor, size_t index,
+	const uint8_t* rdata, uint16_t rdlength, uint16_t offset,
+	uint16_t* field_len, struct domain** domain)
+{
+	const nsd_rdata_descriptor_type* field =
+		&descriptor->rdata.fields[index];
+	if(field->calculate_length) {
+		/* Call field length function. */
+		int32_t l = field->calculate_length_uncompressed_wire(rdlength,
+			rdata, offset, domain);
+		if(l < 0)
+			return 0;
+		*field_len = l;
+	} else if(field->length >= 0) {
+		*field_len = field->length;
+		*domain = NULL;
+	} else {
+		size_t dlen;
+		int32_t flen;
+		if(offset > rdlength)
+			return 0;
+		/* Handle the specialized value cases. */
+		switch(field->length) {
+		case RDATA_COMPRESSED_DNAME:
+		case RDATA_UNCOMPRESSED_DNAME:
+			/* It is not a reference, but in uncompressed
+			 * wireformat in the rdata buffer, for
+			 * RDATA_COMPRESSED_DNAME and
+			 * RDATA_UNCOMPRESSED_DNAME. */
+		case RDATA_LITERAL_DNAME:
+			dlen = buf_dname_length(rdata+offset, rdlength-offset);
+			if(dlen == 0)
+				return 0;
+			*field_len = dlen;
+			*domain = NULL;
+			break;
+		case RDATA_STRING:
+		case RDATA_BINARY:
+			if(rdlength - offset < 1)
+				return 0;
+			flen = (rdata+offset)[0];
+			*field_len = flen+1;
+			*domain = NULL;
+			break;
+		case RDATA_IPSECGATEWAY:
+		case RDATA_AMTRELAY_RELAY:
+			return 0; /* Has a callback function. */
+		case RDATA_REMAINDER:
+			*field_len = rdlength - offset;
+			*domain = NULL;
+			break;
+		default:
+			/* Unknown specialized value. */
+			return 0;
+		}
+	}
+	if(offset + *field_len > rdlength)
 		return 0; /* The field does not fit in the rdata. */
 	return 1;
 }
@@ -2633,9 +2695,14 @@ print_ipseckey_rdata(struct buffer *output, const struct rr *rr)
 
 int32_t
 ipseckey_gateway_length(uint16_t rdlength, const uint8_t *rdata,
-	uint16_t offset)
+	uint16_t offset, struct domain** domain)
 {
+	/* The ipseckey gateway length depends only on earlier bytes, so both
+	 * the in-memory and uncompressed wireformat refer to the same
+	 * earlier bytes. Also the domain name is stored literally, so it
+	 * does not need to return a reference. */
 	uint8_t gateway_type;
+	*domain = NULL;
 	/* Calculate the gateway length, based on the gateway type.
 	 * That is stored in an earlier field. */
 	if(rdlength < 3 || offset < 3)
@@ -3540,9 +3607,15 @@ print_amtrelay_rdata(struct buffer *output, const struct rr *rr)
 }
 
 int32_t
-amtrelay_relay_length(uint16_t rdlength, const uint8_t *rdata, uint16_t offset)
+amtrelay_relay_length(uint16_t rdlength, const uint8_t *rdata, uint16_t offset,
+	struct domain** domain)
 {
+	/* The amtrelay relay length depends only on earlier bytes, so both
+	 * the in-memory and uncompressed wireformat refer to the same
+	 * earlier bytes. Also the domain name is stored literally, so it
+	 * does not need to return a reference. */
 	uint8_t relay_type;
+	*domain = NULL;
 	/* Calculate the relay length, based on the relay type.
 	 * That is stored in an earlier field. */
 	if(rdlength < 2 || offset < 2)
@@ -3863,6 +3936,92 @@ equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
 		offset += field_len1;
 	}
 	return 0;
+}
+
+int
+equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
+	const struct rr *rr1, const uint8_t* rr2_rdata, uint16_t rr2_rdlen)
+{
+	size_t i;
+	uint16_t offset1 = 0, offset2 = 0;
+	int res;
+
+	if(!descriptor->has_references) {
+		/* Compare the wireformat of the rdata. */
+		return compare_bytestring(rr1->rdata, rr1->rdlength,
+			rr2_rdata, rr2_rdlen);
+	}
+
+	for(i=0; i < descriptor->rdata.length; i++) {
+		uint16_t field_len1, field_len2;
+		struct domain* domain1, *domain2;
+		int malf1 = 0, malf2 = 0;
+		/* The fields are equal up to this point. */
+		if((rr1->rdlength == offset1 || rr2_rdlen == offset2) &&
+			descriptor->rdata.fields[i].is_optional) {
+			/* There are no more rdata fields. */
+			/* Check lengths. */
+			int remain1 = rr1->rdlength - offset1;
+			int remain2 = rr2_rdlen - offset2;
+			if(remain1 < remain2)
+				return -1;
+			if(remain1 > remain2)
+				return 1;
+			/* It is equal. */
+			return 0;
+		}
+		if(!lookup_rdata_field_entry(descriptor, i, rr1, offset1,
+			&field_len1, &domain1))
+			malf1 = 1; /* malformed rdata buffer */
+		if(!lookup_rdata_field_entry_uncompressed_wire(descriptor, i,
+			rr2_rdata, rr2_rdlen, offset2, &field_len2, &domain2))
+			malf2 = 1; /* malformed rdata buffer */
+		if(malf1 || malf2) {
+			/* Malformed entries sort last, and are sorted
+			 * equal with other malformed entries. */
+			if(!malf1 && malf2)
+				return -1;
+			if(malf1 && !malf2)
+				return 1;
+			return 0;
+		}
+		/* Compare the two fields. */
+		/* If they have a different type field, they are not the
+		 * same. */
+		if(domain1) {
+			if(domain2) {
+				/* Handle RDATA_COMPRESSED_DNAME and
+				 * RDATA_UNCOMPRESSED_DNAME fields. */
+				res = dname_compare(domain_dname(domain1),
+					domain_dname(domain2));
+				if(res != 0)
+					return res;
+			} else {
+				if(domain_dname(domain1)->name_size !=
+					buf_dname_length(rr2_rdata+offset2,
+						rr2_rdlen-offset2)) {
+					/* not the same length dnames. */
+					return 0;
+				}
+				if(!dname_equal_nocase(
+					(uint8_t*)dname_name(domain_dname(
+						domain1)),
+					(uint8_t*)rr2_rdata+offset2,
+					rr2_rdlen-offset2)) {
+					/* name comparison not equal. */
+					return 0;
+				}
+			}
+		} else {
+			res = compare_bytestring(rr1->rdata + offset1,
+				field_len1, rr2_rdata + offset2, field_len2);
+			if(res != 0)
+				return res;
+		}
+		offset1 += field_len1;
+		offset2 += field_len2;
+	}
+	return 1;
 }
 
 struct domain*

@@ -11,6 +11,7 @@
 #define DNS_H
 struct rr;
 struct buffer;
+struct domain;
 struct domain_table;
 struct query;
 
@@ -246,12 +247,21 @@ typedef enum nsd_rc nsd_rc_type;
  * @param offset: current byte position in rdata.
  * 	offset is required for the ipsecgateway where we need to read
  * 	a couple bytes back
+ * @param domain: this value can be returned as NULL, in which case the
+ *	function return value is a length in bytes in wireformat.
+ *	If this value is returned nonNULL, it is the special reference
+ *	object that needs different treatment. The function return value
+ *	is the length that needs to be skipped in rdata to get past the
+ *	field, that is a reference when that is a pointer.
+ *	For other types of objects an additional function argument could be
+ *	added, and then handling in the caller.
  * @return length in bytes. Or -1 on failure, like rdata length too short.
  */
 typedef int32_t(*nsd_rdata_field_length_type)(
 	uint16_t rdlength,
 	const uint8_t *rdata,
-	uint16_t offset);
+	uint16_t offset,
+	struct domain** domain);
 
 /**
  * Function signature to print RR
@@ -292,8 +302,17 @@ struct nsd_rdata_descriptor {
 	/* Determine size of rdata field. Returns the size of uncompressed
 	 * rdata on the wire, or -1 on failure, like when it is malformed.
 	 * So for references this is a different number. Used for ipseckey
-	 * gateway, because the type depends on earlier data. */
+	 * gateway, because the type depends on earlier data. Also amtrelay
+	 * relay. This function takes the in-memory rdata representation.
+	 * If the field has a special object, return -1 on failure or the
+	 * length of the object in the rdata, with domain ptr returned to
+	 * the special object. */
 	nsd_rdata_field_length_type calculate_length;
+
+	/* Determine size of rdata field. Like calculate_length, but this
+	 * function takes uncompressed wireformat in the rdata that is passed.
+	 */
+	nsd_rdata_field_length_type calculate_length_uncompressed_wire;
 
 	/* Print the rdata field */
 	nsd_print_rdata_field_type print;

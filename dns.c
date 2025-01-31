@@ -33,11 +33,11 @@ static lookup_table_type dns_rrclasses[] = {
 };
 
 /* For a standard field, it is not optional, has not special functions. */
-#define FIELD(name, size) { name, 0 /* is_optional */, size, NULL /* calc_len_func */, NULL /* print_func */ }
+#define FIELD(name, size) { name, 0 /* is_optional */, size, NULL /* calc_len_func */, NULL /* calc_len_uncompressed_wire_func */, NULL /* print_func */ }
 
 /* For a field entry with all values, for optional fields, or with defined
  * functions. */
-#define FIELD_ENTRY(name, is_optional, size, calc_len_func, print_func ) { name, is_optional, size, calc_len_func, print_func }
+#define FIELD_ENTRY(name, is_optional, size, calc_len_func, cal_len_uncompressed_wire_func, print_func ) { name, is_optional, size, calc_len_func, cal_len_uncompressed_wire_func, print_func }
 
 static const struct nsd_rdata_descriptor generic_rdata_fields[] = {
 	FIELD("", RDATA_REMAINDER)
@@ -130,7 +130,7 @@ static const struct nsd_rdata_descriptor x25_rdata_fields[] = {
 
 static const struct nsd_rdata_descriptor isdn_rdata_fields[] = {
 	FIELD("address", RDATA_STRING),
-	FIELD_ENTRY("subaddress", 1, RDATA_STRING, NULL, NULL)
+	FIELD_ENTRY("subaddress", 1, RDATA_STRING, NULL, NULL, NULL)
 };
 
 static const struct nsd_rdata_descriptor rt_rdata_fields[] = {
@@ -241,7 +241,7 @@ static const struct nsd_rdata_descriptor sink_rdata_fields[] = {
 };
 
 static const struct nsd_rdata_descriptor apl_rdata_fields[] = {
-	FIELD_ENTRY("prefix", 1, RDATA_REMAINDER, NULL, NULL)
+	FIELD_ENTRY("prefix", 1, RDATA_REMAINDER, NULL, NULL, NULL)
 };
 
 static const struct nsd_rdata_descriptor ds_rdata_fields[] = {
@@ -262,8 +262,8 @@ static const struct nsd_rdata_descriptor ipseckey_rdata_fields[] = {
 	FIELD("gateway type", 1),
 	FIELD("algorithm", 1),
 	FIELD_ENTRY("gateway", 0, RDATA_IPSECGATEWAY,
-		ipseckey_gateway_length, NULL),
-	FIELD_ENTRY("public key", 1, RDATA_BINARY, NULL, NULL)
+		ipseckey_gateway_length, ipseckey_gateway_length, NULL),
+	FIELD_ENTRY("public key", 1, RDATA_BINARY, NULL, NULL, NULL)
 };
 
 static const struct nsd_rdata_descriptor rrsig_rdata_fields[] = {
@@ -454,7 +454,7 @@ static const struct nsd_rdata_descriptor amtrelay_rdata_fields[] = {
 	FIELD("precedence", 1),
 	FIELD("discovery_type", 1),
 	FIELD_ENTRY("relay", 0, RDATA_AMTRELAY_RELAY,
-		amtrelay_relay_length, NULL)
+		amtrelay_relay_length, amtrelay_relay_length, NULL)
 };
 
 static const struct nsd_rdata_descriptor resinfo_rdata_fields[] = {
