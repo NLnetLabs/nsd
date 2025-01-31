@@ -81,6 +81,7 @@
 #include "difffile.h"
 #include "ipc.h"
 #include "remote.h"
+#include "rdata.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>
@@ -1043,6 +1044,7 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 			return 0;
 	}
 	if(zone_is_catalog_consumer(zo)) {
+		uint32_t serial;
 		zone_type* zone = namedb_find_zone(xfrd->nsd->db,
 				(const dname_type*)zo->node.key);
 		struct xfrd_catalog_consumer_zone* consumer_zone =
@@ -1053,12 +1055,10 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 		if(!ssl_printf(ssl, "	catalog: consumer"))
 			return 0;
 		if(zone && zone->soa_rrset && zone->soa_rrset->rrs
-		&& zone->soa_rrset->rrs[0].rdata_count > 2
-		&& rdata_atom_size(zone->soa_rrset->rrs[0].rdatas[2]) ==
-							sizeof(uint32_t)) {
+		&& retrieve_soa_rdata_serial(zone->soa_rrset->rrs[0],
+			&serial)) {
 			if(!ssl_printf(ssl, " (serial: %u, # members: %zu)\n",
-					read_uint32(rdata_atom_data(
-					zone->soa_rrset->rrs[0].rdatas[2])),
+					serial,
 					  consumer_zone
 					? consumer_zone->member_ids.count : 0))
 				return 0;
