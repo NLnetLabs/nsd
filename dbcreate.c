@@ -26,120 +26,6 @@
 /* pathname directory separator character */
 #define PATHSEP '/'
 
-//
-// we use an array of int32_t so we can easily determine the length of a
-// given field if it's fixed length or if we can skip the rest of the
-// processing.
-//
-// for types that require inspection, i.e. names and strings. we do that
-// if so required
-//
-// IPSECKEY gateway can be a literal domain name, but
-// << we can probably just return remainder
-//    because it's either an address (ip4 or ip6)
-//    or a literal name, so we don't have to resolve
-//
-/*
- * this function is far from ideal, there are better ways to do this. i'd
- * have to alter the descriptor table though, which can be done later. the
- * point is to get the functions in place. we go from there!
- */
-
-static always_inline void
-copy_rdata(
-	uint8_t *rdata, size_t rdlength, const uint8_t *data, size_t length, size_t *left)
-{
-	if (*left == 0)
-		return;
-	if (*left < length)
-		length = *left;
-	memcpy(rdata + rdlength, data, length);
-	*left -= length;
-}
-
-/* marshal rdata into buffer */
-size_t
-rr_marshal_rdata(const rr_type *rr, uint8_t *rdata, size_t size)
-{
-	const rrtype_descriptor_type *descriptor;
-	size_t rdlength = 0, offset = 0;
-
-	descriptor = rrtype_descriptor_by_type(rr->type);
-	for (size_t i=0; offset < rr->rdlength && i < descriptor->maximum; i++) {
-		size_t length = field_lengths[ descriptor->wireformat[i] ];
-		if (length <= UINT16_MAX) {
-			copy_rdata(rdata, rdlength, rr->rdata + offset, length, &size);
-			rdlength += length;
-			offset += length;
-		} else if (length == NAME) {
-			const struct dname *dname;
-			const struct domain *domain;
-			assert(offset < (size_t)rr->rdlength + sizeof(void*));
-			memcpy(&domain, rr->rdata + offset, sizeof(void*));
-			dname = domain_dname(domain);
-			copy_rdata(rdata, rdlength, dname_name(dname), dname->name_size, &size);
-			rdlength += dname->name_size;
-			offset += sizeof(void*);
-		} else if (length == STRING) {
-			length = 1 + rr->rdata[offset];
-			assert(offset + length <= (size_t)rr->rdlength);
-			copy_rdata(rdata, rdlength, rr->rdata + offset, length, &size);
-			rdlength += length;
-			offset += length;
-		} else {
-			assert(length == REMAINDER);
-			length = (size_t)rr->rdlength - offset;
-			copy_rdata(rdata, rdlength, rr->rdata + offset, length, &size);
-			rdlength += length;
-			offset = rr->rdlength;
-			break;
-		}
-	}
-
-	assert(offset == length);
-	assert(rdlength <= UINT16_MAX);
-	return length;
-}
-
-uint16_t
-rr_marshal_rdata_length(const rr_type *rr)
-{
-	const rrtype_descriptor_type *descriptor;
-	size_t rdlength = 0, offset = 0;
-
-	descriptor = rrtype_descriptor_by_type(rr->type);
-	for (size_t i=0; offset < rr->rdlength && i < descriptor->maximum; i++) {
-		size_t length = field_lengths[ descriptor->wireformat[i] ];
-		if (length <= UINT16_MAX) {
-			rdlength += length;
-			offset += length;
-		} else if (length == NAME) {
-			const struct dname *dname;
-			const struct domain *domain;
-			assert(offset <= rr->rdlength + sizeof(void*));
-			memcpy(&domain, rr->rdata + offset, sizeof(void*));
-			dname = domain_dname(domain);
-			rdlength += dname->name_size;
-			offset += sizeof(void*);
-		} else if (length == STRING) {
-			length = 1 + rr->rdata[offset];
-			assert(offset + length <= (size_t)rr->rdlength);
-			rdlength += length;
-			offset += length;
-		} else {
-			assert(length == REMAINDER);
-			length = (size_t)rr->rdlength - offset;
-			rdlength += length;
-			offset += length;
-			break;
-		}
-	}
-
-	assert(offset == length);
-	assert(rdlength <= UINT16_MAX);
-	return (uint16_t)rdlength;
-}
-
 int
 print_rrs(FILE* out, struct zone* zone)
 {
@@ -153,7 +39,7 @@ print_rrs(FILE* out, struct zone* zone)
 	if(zone->soa_rrset) {
 		size_t i;
 		for(i=0; i < zone->soa_rrset->rr_count; i++) {
-			if(!print_rr(out, state, &zone->soa_rrset->rrs[i],
+			if(!print_rr(out, state, zone->soa_rrset->rrs[i],
 				rr_region, rr_buffer)){
 				log_msg(LOG_ERR, "There was an error "
 				   "printing SOARR to zone %s",
@@ -173,7 +59,7 @@ print_rrs(FILE* out, struct zone* zone)
 			if(rrset->zone != zone || rrset == zone->soa_rrset)
 				continue;
 			for(i=0; i < rrset->rr_count; i++) {
-				if(!print_rr(out, state, &rrset->rrs[i],
+				if(!print_rr(out, state, rrset->rrs[i],
 					rr_region, rr_buffer)){
 					log_msg(LOG_ERR, "There was an error "
 					   "printing RR to zone %s",

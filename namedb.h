@@ -354,13 +354,6 @@ void domain_table_deldomain(namedb_type* db, domain_type* domain);
 /** dbcreate.c */
 int print_rrs(FILE* out, struct zone* zone);
 
-/** marshal rdata into buffer */
-/* if buffer is not sufficiently large enough, the number of bytes that
- * would have been required is returned! */
-size_t rr_marshal_rdata(rr_type* rr, uint8_t* rdata, size_t sz);
-/** determine size of buffer needed to marshal rdata */
-size_t rr_marshal_rdata_length(rr_type* rr);
-
 /* dbaccess.c */
 int namedb_lookup (struct namedb* db,
 		   const dname_type* dname,
