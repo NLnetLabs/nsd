@@ -945,7 +945,7 @@ answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 		add_rrset(query, answer, AUTHORITY_SECTION,
 			query->ideleg_domain, rrset);
 	}
-    else if (!query->edns.dnssec_ok || !zone_is_secure(query->zone)){}
+	else if (!query->edns.dnssec_ok || !zone_is_secure(query->zone)){}
 #ifdef NSEC3
 	else if (query->zone->nsec3_param)
 	{
