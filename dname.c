@@ -693,6 +693,6 @@ labels_plus_dname(const dname_type* labels, size_t amount_to_be_copied, dname_ty
 	name.bytes[dname->label_count] = 0;
 	for (i = 0; i < dname->label_count; i++)
 		name.bytes[i] = ((uint8_t*)(void*)dname)[sizeof(dname_type)+i]
-			+ 1 /* label type/length byte for label */ + amount_to_be_copied;
+			 + copied_label_size /* label type/length byte for label */ + amount_to_be_copied;
 	return &name.dname;
 }
