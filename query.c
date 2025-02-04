@@ -961,22 +961,25 @@ answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 		{
 			domain_type* ideleg_closest_match;
 			domain_type* ideleg_encloser;
+			domain_type* ideleg_next_closer;
+			const dname_type* to_prove;
+			uint8_t hash[NSEC3_HASH_LEN];
+
 			namedb_lookup(nsd->db, ideleg_dname, &ideleg_closest_match, &ideleg_encloser);
-			if ((rrset = domain_find_rrset(ideleg_closest_match->nsec3->nsec3_cover, query->zone, TYPE_NSEC3)))
+			to_prove = dname_partial_copy(query->region, ideleg_dname,
+			dname_label_match_count(ideleg_dname, domain_dname(ideleg_encloser))+1);
+			nsec3_hash_and_store(query->zone, to_prove, hash);
+			nsec3_find_cover(query->zone, hash, sizeof(hash), &ideleg_next_closer);
+
+			if ((rrset = domain_find_rrset(ideleg_next_closer, query->zone, TYPE_NSEC3)))
 			{
 				add_rrset(query, answer, AUTHORITY_SECTION,
-					ideleg_closest_match->nsec3->nsec3_cover, rrset);
+					ideleg_next_closer, rrset);
 			}
-			if (!ideleg_encloser->nsec3) {} // temporary fix since the encloser does not have nsec3 data
-			else if ((rrset = domain_find_rrset(ideleg_encloser->nsec3->nsec3_cover, query->zone, TYPE_NSEC3)))
+			if ((rrset = domain_find_rrset(ideleg_encloser->nsec3->nsec3_cover, query->zone, TYPE_NSEC3)))
 			{
 				add_rrset(query, answer, AUTHORITY_SECTION,
 					ideleg_encloser->nsec3->nsec3_cover, rrset);
-			}
-			if ((rrset = domain_find_rrset(ideleg_closest_match->nsec3->nsec3_wcard_child_cover, query->zone, TYPE_NSEC3)))
-			{
-				 add_rrset(query, answer, AUTHORITY_SECTION,
-					ideleg_closest_match->nsec3->nsec3_wcard_child_cover, rrset);
 			}
 		}
 	}
@@ -985,8 +988,10 @@ answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 	{
 		domain_type* ideleg_closest_match;
 		domain_type* ideleg_encloser;
-		namedb_lookup(nsd->db, ideleg_dname, &ideleg_closest_match, &ideleg_encloser);
-		if ((rrset = domain_find_rrset(ideleg_closest_match, query->zone, TYPE_NSEC)))
+		namedb_lookup(nsd->db, ideleg_dname, &ideleg_closest_match, &ideleg_encloser);;
+		find_covering_nsec(ideleg_closest_match, query->zone, &rrset);
+
+		if (rrset)
 		{
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				ideleg_closest_match, rrset);
