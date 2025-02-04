@@ -967,10 +967,16 @@ answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 				add_rrset(query, answer, AUTHORITY_SECTION,
 					ideleg_closest_match->nsec3->nsec3_cover, rrset);
 			}
-			if ((rrset = domain_find_rrset(ideleg_closest_match->nsec3->nsec3_cover, query->zone, TYPE_NSEC3)))
+			if (!ideleg_encloser->nsec3) {} // temporary fix since the encloser does not have nsec3 data
+			else if ((rrset = domain_find_rrset(ideleg_encloser->nsec3->nsec3_cover, query->zone, TYPE_NSEC3)))
 			{
 				add_rrset(query, answer, AUTHORITY_SECTION,
-					ideleg_closest_match->nsec3->nsec3_cover, rrset);
+					ideleg_encloser->nsec3->nsec3_cover, rrset);
+			}
+			if ((rrset = domain_find_rrset(ideleg_closest_match->nsec3->nsec3_wcard_child_cover, query->zone, TYPE_NSEC3)))
+			{
+				 add_rrset(query, answer, AUTHORITY_SECTION,
+					ideleg_closest_match->nsec3->nsec3_wcard_child_cover, rrset);
 			}
 		}
 	}
