@@ -967,6 +967,11 @@ answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 				add_rrset(query, answer, AUTHORITY_SECTION,
 					ideleg_closest_match->nsec3->nsec3_cover, rrset);
 			}
+			if ((rrset = domain_find_rrset(ideleg_closest_match->nsec3->nsec3_cover, query->zone, TYPE_NSEC3)))
+			{
+				add_rrset(query, answer, AUTHORITY_SECTION,
+					ideleg_closest_match->nsec3->nsec3_cover, rrset);
+			}
 		}
 	}
 #endif
@@ -979,6 +984,11 @@ answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 		{
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				ideleg_closest_match, rrset);
+		}
+		if ((rrset = domain_find_rrset(ideleg_encloser, query->zone, TYPE_NSEC)))
+		{
+			add_rrset(query, answer, AUTHORITY_SECTION,
+				ideleg_encloser, rrset);
 		}
 	}
 	else if ((rrset = domain_find_rrset(query->ideleg_domain, query->zone, TYPE_NSEC)))
