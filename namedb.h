@@ -476,6 +476,8 @@ rr_type *zone_rr_iter_next(zone_rr_iter_type *iter);
 
 #ifdef USE_DELEG
 rrset_type *domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone, namedb_type* db, domain_type **ideleg_domain, dname_type **ideleg_dname);
+
+rrset_type *domain_find_deleg_wildcard_rrsets(dname_type* ideleg_dname, zone_type* zone, region_type* region, namedb_type* db, domain_type** wildcard_match);
 #endif
 
 #endif /* NAMEDB_H */

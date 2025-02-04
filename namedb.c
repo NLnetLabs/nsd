@@ -616,6 +616,50 @@ domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone,
 
 	return result;
 }
+
+rrset_type *
+domain_find_deleg_wildcard_rrsets(dname_type* ideleg_dname, zone_type* zone,
+	region_type* region, namedb_type* db, domain_type** wildcard_match)
+{
+	domain_type* closest_match;
+	domain_type* closest_encloser;
+	domain_type* wildcard_child;
+	domain_type* match;
+	namedb_lookup(db, ideleg_dname, &closest_match, &closest_encloser);
+	wildcard_child = domain_wildcard_child(closest_encloser);
+	if (!wildcard_child || !wildcard_child->is_existing)
+	{
+		return NULL;
+	}
+	match = (domain_type *) region_alloc(region,
+					 sizeof(domain_type));
+#ifdef USE_RADIX_TREE
+	match->rnode = NULL;
+	match->dname = ideleg_dname;
+#else
+	memcpy(&match->node, &wildcard_child->node, sizeof(rbnode_type));
+	match->node.parent = NULL;
+#endif
+	match->parent = closest_encloser;
+	match->wildcard_child_closest_match = match;
+	// match->number = domain_number;
+	match->rrsets = wildcard_child->rrsets;
+	match->is_existing = wildcard_child->is_existing;
+#ifdef NSEC3
+	match->nsec3 = wildcard_child->nsec3;
+	/* copy over these entries:
+	match->nsec3_is_exact = wildcard_child->nsec3_is_exact;
+	match->nsec3_cover = wildcard_child->nsec3_cover;
+	match->nsec3_wcard_child_cover = wildcard_child->nsec3_wcard_child_cover;
+	match->nsec3_ds_parent_is_exact = wildcard_child->nsec3_ds_parent_is_exact;
+	match->nsec3_ds_parent_cover = wildcard_child->nsec3_ds_parent_cover;
+	*/
+
+#endif
+
+	*wildcard_match = match;
+	return domain_find_rrset(wildcard_child, zone, TYPE_DELEG);
+}
 #endif
 
 domain_type *
