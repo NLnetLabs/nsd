@@ -1,0 +1,848 @@
+/*
+ * metrics.c -- prometheus metrics endpoint
+ *
+ * Copyright (c) 2001-2025, NLnet Labs. All rights reserved.
+ *
+ * See LICENSE for the license.
+ *
+ */
+
+#include "config.h"
+
+#ifdef USE_METRICS
+
+#include <unistd.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <errno.h>
+#ifndef USE_MINI_EVENT
+#    include <event2/event.h>
+#else
+#    warning "Using metrics with mini_event is untested, and libevent is needed anyway for http"
+#    include "mini_event.h"
+#endif
+#include "event2/http.h"
+#include "nsd.h"
+#include "xfrd.h"
+#include "options.h"
+#include "ipc.h"
+/* remote.h: re-using create_local_accept_sock as it happens to not be static
+ * and is not remote control specific (w.r.t. log messages and ssl).
+ */
+#include "remote.h"
+#include "metrics.h"
+
+/** if you want zero to be inhibited in stats output.
+ * it omits zeroes for types that have no acronym and unused-rcodes */
+const int metrics_inhibit_zero = 1;
+
+/**
+ * list of events for accepting connections
+ */
+struct metrics_acceptlist {
+	struct metrics_acceptlist* next;
+	int accept_fd;
+	char* ident;
+	struct daemon_metrics* metrics;
+};
+
+/**
+ * The metrics daemon state.
+ */
+struct daemon_metrics {
+	/** the master process for this metrics daemon */
+	struct xfrd_state* xfrd;
+	/** commpoints for accepting HTTP connections */
+	struct metrics_acceptlist* accept_list;
+	/** last time stats was reported */
+	struct timeval stats_time, boot_time;
+	/** libevent http server */
+	struct evhttp *http_server;
+};
+
+static void
+metrics_http_callback(struct evhttp_request *req, void *p);
+
+#ifdef BIND8_STATS
+static void
+process_stats(struct evbuffer* buf, xfrd_state_type* xfrd, int peek);
+
+static void
+do_stats(struct evbuffer *buf, xfrd_state_type *xfrd, int peek);
+#endif /*BIND8_STATS*/
+
+struct daemon_metrics*
+daemon_metrics_create(struct nsd_options* cfg)
+{
+	struct daemon_metrics* metrics = (struct daemon_metrics*)xalloc_zero(
+		sizeof(*metrics));
+	assert(cfg->metrics_enable);
+
+	/* and try to open the ports */
+	if(!daemon_metrics_open_ports(metrics, cfg)) {
+		log_msg(LOG_ERR, "could not open metrics port");
+		daemon_metrics_delete(metrics);
+		return NULL;
+	}
+
+	if(gettimeofday(&metrics->boot_time, NULL) == -1)
+		log_msg(LOG_ERR, "gettimeofday: %s", strerror(errno));
+	metrics->stats_time = metrics->boot_time;
+
+	return metrics;
+}
+
+void daemon_metrics_close(struct daemon_metrics* metrics)
+{
+	struct metrics_acceptlist *h, *nh;
+	if(!metrics) return;
+
+	/* close listen sockets */
+	h = metrics->accept_list;
+	while(h) {
+		nh = h->next;
+		close(h->accept_fd);
+		free(h->ident);
+		free(h);
+		h = nh;
+	}
+	metrics->accept_list = NULL;
+
+	if (metrics->http_server) {
+		evhttp_free(metrics->http_server);
+	}
+}
+
+void daemon_metrics_delete(struct daemon_metrics* metrics)
+{
+	if(!metrics) return;
+	daemon_metrics_close(metrics);
+	free(metrics);
+}
+
+static int
+create_tcp_accept_sock(struct addrinfo* addr, int* noproto)
+{
+#if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)))
+	int on = 1;
+#endif
+	int s;
+	*noproto = 0;
+	if ((s = socket(addr->ai_family, addr->ai_socktype, 0)) == -1) {
+#if defined(INET6)
+		if (addr->ai_family == AF_INET6 &&
+			errno == EAFNOSUPPORT) {
+			*noproto = 1;
+			log_msg(LOG_WARNING, "fallback to TCP4, no IPv6: not supported");
+			return -1;
+		}
+#endif /* INET6 */
+		log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
+		return -1;
+	}
+#ifdef  SO_REUSEADDR
+	if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
+		log_msg(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %s", strerror(errno));
+	}
+#endif /* SO_REUSEADDR */
+#if defined(INET6) && defined(IPV6_V6ONLY)
+	if (addr->ai_family == AF_INET6 &&
+		setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
+	{
+		log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s", strerror(errno));
+		close(s);
+		return -1;
+	}
+#endif
+	/* set it nonblocking */
+	/* (StevensUNP p463), if tcp listening socket is blocking, then
+	   it may block in accept, even if select() says readable. */
+	if (fcntl(s, F_SETFL, O_NONBLOCK) == -1) {
+		log_msg(LOG_ERR, "cannot fcntl tcp: %s", strerror(errno));
+	}
+	/* Bind it... */
+	if (bind(s, (struct sockaddr *)addr->ai_addr, addr->ai_addrlen) != 0) {
+		log_msg(LOG_ERR, "can't bind tcp socket: %s", strerror(errno));
+		close(s);
+		return -1;
+	}
+	/* Listen to it... */
+	if (listen(s, TCP_BACKLOG_METRICS) == -1) {
+		log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
+		close(s);
+		return -1;
+	}
+	return s;
+}
+
+/**
+ * Add and open a new metrics port
+ * @param metrics: metrics with result list.
+ * @param ip: ip str
+ * @param nr: port nr
+ * @param noproto_is_err: if lack of protocol support is an error.
+ * @return false on failure.
+ */
+static int
+metrics_add_open(struct daemon_metrics* metrics, struct nsd_options* cfg, const char* ip,
+	int nr, int noproto_is_err)
+{
+	struct addrinfo hints;
+	struct addrinfo* res;
+	struct metrics_acceptlist* hl;
+	int noproto = 0;
+	int fd, r;
+	char port[15];
+	snprintf(port, sizeof(port), "%d", nr);
+	port[sizeof(port)-1]=0;
+	memset(&hints, 0, sizeof(hints));
+	assert(ip);
+
+	if(ip[0] == '/') {
+		/* This looks like a local socket */
+		fd = create_local_accept_sock(ip, &noproto);
+		/*
+		 * Change socket ownership and permissions so users other
+		 * than root can access it provided they are in the same
+		 * group as the user we run as.
+		 */
+		if(fd != -1) {
+#ifdef HAVE_CHOWN
+			if(chmod(ip, (mode_t)(S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)) == -1) {
+				VERBOSITY(3, (LOG_INFO, "cannot chmod metrics socket %s: %s", ip, strerror(errno)));
+			}
+			if (cfg->username && cfg->username[0] &&
+				nsd.uid != (uid_t)-1) {
+				if(chown(ip, nsd.uid, nsd.gid) == -1)
+					VERBOSITY(2, (LOG_INFO, "cannot chown %u.%u %s: %s",
+					  (unsigned)nsd.uid, (unsigned)nsd.gid,
+					  ip, strerror(errno)));
+			}
+#else
+			(void)cfg;
+#endif
+		}
+	} else {
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_flags = AI_PASSIVE | AI_NUMERICHOST;
+		/* if we had no interface ip name, "default" is what we
+		 * would do getaddrinfo for. */
+		if((r = getaddrinfo(ip, port, &hints, &res)) != 0 || !res) {
+			log_msg(LOG_ERR, "metrics interface %s:%s getaddrinfo: %s %s",
+				ip, port, gai_strerror(r),
+#ifdef EAI_SYSTEM
+				r==EAI_SYSTEM?(char*)strerror(errno):""
+#else
+				""
+#endif
+				);
+			return 0;
+		}
+
+		/* open fd */
+		fd = create_tcp_accept_sock(res, &noproto);
+		freeaddrinfo(res);
+	}
+
+	if(fd == -1 && noproto) {
+		if(!noproto_is_err)
+			return 1; /* return success, but do nothing */
+		log_msg(LOG_ERR, "cannot open metrics interface %s %d : "
+			"protocol not supported", ip, nr);
+		return 0;
+	}
+	if(fd == -1) {
+		log_msg(LOG_ERR, "cannot open metrics interface %s %d", ip, nr);
+		return 0;
+	}
+
+	/* alloc */
+	hl = (struct metrics_acceptlist*)xalloc_zero(sizeof(*hl));
+	hl->metrics = metrics;
+	hl->ident = strdup(ip);
+	if(!hl->ident) {
+		log_msg(LOG_ERR, "malloc failure");
+		close(fd);
+		free(hl);
+		return 0;
+	}
+	hl->next = metrics->accept_list;
+	metrics->accept_list = hl;
+
+	hl->accept_fd = fd;
+	return 1;
+}
+
+int
+daemon_metrics_open_ports(struct daemon_metrics* metrics, struct nsd_options* cfg)
+{
+	assert(cfg->metrics_enable && cfg->metrics_port);
+	if(cfg->metrics_interface) {
+		ip_address_option_type* p;
+		for(p = cfg->metrics_interface; p; p = p->next) {
+			if(!metrics_add_open(metrics, cfg, p->address, cfg->metrics_port, 1)) {
+				return 0;
+			}
+		}
+	} else {
+		/* defaults */
+		if(cfg->do_ip6 && !metrics_add_open(metrics, cfg, "::1", cfg->metrics_port, 0)) {
+			return 0;
+		}
+		if(cfg->do_ip4 &&
+			!metrics_add_open(metrics, cfg, "127.0.0.1", cfg->metrics_port, 1)) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+void
+daemon_metrics_attach(struct daemon_metrics* metrics, struct xfrd_state* xfrd)
+{
+	int fd;
+	struct metrics_acceptlist* p;
+	if(!metrics) return;
+	metrics->xfrd = xfrd;
+
+	metrics->http_server = evhttp_new(xfrd->event_base);
+	for(p = metrics->accept_list; p; p = p->next) {
+		fd = p->accept_fd;
+		if (evhttp_accept_socket(metrics->http_server, fd)) {
+			log_msg(LOG_ERR, "metrics: cannot set http server to accept socket");
+		}
+
+		/* only handle requests to metrics_path, anything else returns 404 */
+		evhttp_set_cb(metrics->http_server,
+                      metrics->xfrd->nsd->options->metrics_path,
+                      metrics_http_callback, p);
+		/* evhttp_set_gencb(metrics->http_server, metrics_http_callback_generic, p); */
+	}
+}
+
+/* Callback for handling the active http request to the specific URI */
+static void
+metrics_http_callback(struct evhttp_request *req, void *p)
+{
+	struct daemon_metrics *metrics = ((struct metrics_acceptlist *)p)->metrics;
+
+	/* currently only GET requests are supported/allowed */
+	enum evhttp_cmd_type cmd = evhttp_request_get_command(req);
+	if (cmd != EVHTTP_REQ_GET /* && cmd != EVHTTP_REQ_HEAD */) {
+		evhttp_send_error(req, HTTP_BADMETHOD, 0);
+		return;
+	}
+
+	struct evbuffer *reply = evbuffer_new();
+
+	if (!reply) {
+		evhttp_send_error(req, HTTP_INTERNAL, 0);
+		log_msg(LOG_ERR, "failed to allocate reply buffer\n");
+		return;
+	}
+
+	evhttp_add_header(evhttp_request_get_output_headers(req),
+	                  "Content-Type", "text/plain; version=0.0.4");
+#ifdef BIND8_STATS
+	process_stats(reply, metrics->xfrd, 1);
+	evhttp_send_reply(req, HTTP_OK, NULL, reply);
+	VERBOSITY(3, (LOG_INFO, "metrics operation completed, response sent"));
+#else
+	evhttp_send_reply(req, HTTP_NOCONTENT, "No Content - Statistics disabled", reply);
+	/* TODO: should this be verbosity 3 too? */
+	log_msg(LOG_NOTICE, "no stats enabled at compile time\n");
+#endif /* BIND8_STATS */
+
+	evbuffer_free(reply);
+}
+
+#ifdef BIND8_STATS
+/** subtract timers and the values do not overflow or become negative */
+static void
+timeval_subtract(struct timeval* d, const struct timeval* end,
+	const struct timeval* start)
+{
+#ifndef S_SPLINT_S
+	time_t end_usec = end->tv_usec;
+	d->tv_sec = end->tv_sec - start->tv_sec;
+	if(end_usec < start->tv_usec) {
+		end_usec += 1000000;
+		d->tv_sec--;
+	}
+	d->tv_usec = end_usec - start->tv_usec;
+#endif
+}
+static const char*
+opcode2str(int o)
+{
+	switch(o) {
+		case OPCODE_QUERY: return "QUERY";
+		case OPCODE_IQUERY: return "IQUERY";
+		case OPCODE_STATUS: return "STATUS";
+		case OPCODE_NOTIFY: return "NOTIFY";
+		case OPCODE_UPDATE: return "UPDATE";
+		default: return "OTHER";
+	}
+}
+
+/** print long number*/
+static int
+print_longnum(struct evbuffer *buf, char* desc, uint64_t x)
+{
+	if(x > (uint64_t)1024*1024*1024) {
+		/*more than a Gb*/
+		size_t front = (size_t)(x / (uint64_t)1000000);
+		size_t back = (size_t)(x % (uint64_t)1000000);
+		return evbuffer_add_printf(buf, "%s%lu%6.6lu\n", desc,
+			(unsigned long)front, (unsigned long)back);
+	} else {
+		return evbuffer_add_printf(buf, "%s%lu\n", desc, (unsigned long)x);
+	}
+}
+
+/*print one block of statistics.  n is name and d is delimiter*/
+static void
+print_stat_block(struct evbuffer *buf, struct nsdst* st)
+{
+	const char* rcstr[] = {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN",
+		"NOTIMP", "REFUSED", "YXDOMAIN", "YXRRSET", "NXRRSET", "NOTAUTH",
+		"NOTZONE", "RCODE11", "RCODE12", "RCODE13", "RCODE14", "RCODE15",
+		"BADVERS"
+	};
+	size_t i;
+	for(i=0; i<= 255; i++) {
+		if(metrics_inhibit_zero && st->qtype[i] == 0 &&
+			strncmp(rrtype_to_string(i), "TYPE", 4) == 0)
+			continue;
+		evbuffer_add_printf(buf, "nsd_queries_total{type=\"%s\"} %lu\n",
+			rrtype_to_string(i), (unsigned long)st->qtype[i]);
+	}
+
+	/*opcode*/
+	for(i=0; i<6; i++) {
+		if(metrics_inhibit_zero && st->opcode[i] == 0 && i != OPCODE_QUERY)
+			continue;
+		evbuffer_add_printf(buf, "nsd_queries_total{opcode=\"%s\"} %lu\n",
+			opcode2str(i), (unsigned long)st->opcode[i]);
+	}
+
+	/*qclass*/
+	for(i=0; i<4; i++) {
+		if(metrics_inhibit_zero && st->qclass[i] == 0 && i != CLASS_IN)
+			continue;
+		evbuffer_add_printf(buf, "nsd_queries_total{class=\"%s\"} %lu\n",
+			rrclass_to_string(i), (unsigned long)st->qclass[i]);
+	}
+
+	/*rcode*/
+	for(i=0; i<17; i++) {
+		if(metrics_inhibit_zero && st->rcode[i] == 0 &&
+			i > RCODE_YXDOMAIN) /*NSD does not use larger*/
+			continue;
+		evbuffer_add_printf(buf, "nsd_queries_total{rcode=\"%s\"} %lu\n",
+			rcstr[i], (unsigned long)st->rcode[i]);
+	}
+
+	/*edns*/
+	/* TODO: maybe use label? */
+	evbuffer_add_printf(buf, "nsd_queries_edns_total %lu\n", (unsigned long)st->edns);
+
+	/*ednserr*/
+	/* TODO: maybe use label? */
+	evbuffer_add_printf(buf, "nsd_queries_ednserr_total %lu\n",
+		(unsigned long)st->ednserr);
+
+	/*qudp*/
+	/* TODO: maybe use label? */
+	evbuffer_add_printf(buf, "nsd_queries_udp_total %lu\n", (unsigned long)st->qudp);
+	/*qudp6*/
+	/* TODO: maybe use label? */
+	evbuffer_add_printf(buf, "nsd_queries_udp6_total %lu\n", (unsigned long)st->qudp6);
+	/*ctcp*/
+	evbuffer_add_printf(buf, "nsd_connections_total{transport=\"tcp\"} %lu\n", (unsigned long)st->ctcp);
+	/*ctcp6*/
+	evbuffer_add_printf(buf, "nsd_connections_total{transport=\"tcp6\"} %lu\n", (unsigned long)st->ctcp6);
+	/*ctls*/
+	evbuffer_add_printf(buf, "nsd_connections_total{transport=\"tls\"} %lu\n", (unsigned long)st->ctls);
+	/*ctls6*/
+	evbuffer_add_printf(buf, "nsd_connections_total{transport=\"tls6\"} %lu\n", (unsigned long)st->ctls6);
+
+	/*nona*/
+	evbuffer_add_printf(buf, "nsd_answers_without_aa_total %lu\n",
+		(unsigned long)st->nona);
+
+	/*rxerr*/
+	evbuffer_add_printf(buf, "nsd_queries_rxerr_total %lu\n", (unsigned long)st->rxerr);
+
+	/*txerr*/
+	evbuffer_add_printf(buf, "nsd_queries_txerr_total %lu\n", (unsigned long)st->txerr);
+
+	/*number of requested-axfr, number of times axfr served to clients*/
+	evbuffer_add_printf(buf, "nsd_answered_axfr_requests_total %lu\n", (unsigned long)st->raxfr);
+
+	/*number of requested-ixfr, number of times ixfr served to clients*/
+	evbuffer_add_printf(buf, "nsd_answered_ixfr_requests_total %lu\n", (unsigned long)st->rixfr);
+
+	/*truncated*/
+	evbuffer_add_printf(buf, "nsd_answers_truncated_total %lu\n",
+		(unsigned long)st->truncated);
+
+	/*dropped*/
+	evbuffer_add_printf(buf, "nsd_queries_dropped_total %lu\n",
+		(unsigned long)st->dropped);
+}
+
+/*print one block of statistics.  n is name and d is delimiter*/
+static void
+print_stat_block_with_zone(struct evbuffer *buf, char* n, struct nsdst* st)
+{
+	const char* rcstr[] = {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN",
+		"NOTIMP", "REFUSED", "YXDOMAIN", "YXRRSET", "NXRRSET", "NOTAUTH",
+		"NOTZONE", "RCODE11", "RCODE12", "RCODE13", "RCODE14", "RCODE15",
+		"BADVERS"
+	};
+	size_t i;
+	for(i=0; i<= 255; i++) {
+		if(metrics_inhibit_zero && st->qtype[i] == 0 &&
+			strncmp(rrtype_to_string(i), "TYPE", 4) == 0)
+			continue;
+		evbuffer_add_printf(buf, "nsd_queries_total{zone=\"%s\", type=\"%s\"} %lu\n",
+			n, rrtype_to_string(i), (unsigned long)st->qtype[i]);
+	}
+
+	/*opcode*/
+	for(i=0; i<6; i++) {
+		if(metrics_inhibit_zero && st->opcode[i] == 0 && i != OPCODE_QUERY)
+			continue;
+		evbuffer_add_printf(buf,
+			"nsd_queries_total{zone=\"%s\", opcode=\"%s\"} %lu\n",
+			n, opcode2str(i), (unsigned long)st->opcode[i]);
+	}
+
+	/*qclass*/
+	for(i=0; i<4; i++) {
+		if(metrics_inhibit_zero && st->qclass[i] == 0 && i != CLASS_IN)
+			continue;
+		evbuffer_add_printf(buf,
+			"nsd_queries_total{zone=\"%s\", class=\"%s\"} %lu\n",
+			n, rrclass_to_string(i), (unsigned long)st->qclass[i]);
+	}
+
+	/*rcode*/
+	for(i=0; i<17; i++) {
+		if(metrics_inhibit_zero && st->rcode[i] == 0 &&
+			i > RCODE_YXDOMAIN) /*NSD does not use larger*/
+			continue;
+		evbuffer_add_printf(buf,
+			"nsd_queries_total{zone=\"%s\", rcode=\"%s\"} %lu\n",
+			n, rcstr[i], (unsigned long)st->rcode[i]);
+	}
+
+	/*edns*/
+	evbuffer_add_printf(buf, "nsd_queries_edns_total{zone=\"%s\"} %lu\n",
+		n, (unsigned long)st->edns);
+
+	/*ednserr*/
+	evbuffer_add_printf(buf, "nsd_queries_ednserr_total{zone=\"%s\"} %lu\n",
+		n, (unsigned long)st->ednserr);
+
+	/*qudp*/
+	evbuffer_add_printf(buf, "nsd_queries_udp_total{zone=\"%s\"} %lu\n", n, (unsigned long)st->qudp);
+	/*qudp6*/
+	evbuffer_add_printf(buf, "nsd_queries_udp6_total{zone=\"%s\"} %lu\n", n, (unsigned long)st->qudp6);
+	/*ctcp*/
+	evbuffer_add_printf(buf,
+		"nsd_connections_total{zone=\"%s\", transport=\"tcp\"} %lu\n",
+		n, (unsigned long)st->ctcp);
+	/*ctcp6*/
+	evbuffer_add_printf(buf,
+		"nsd_connections_total{zone=\"%s\", transport=\"tcp6\"} %lu\n",
+		n, (unsigned long)st->ctcp6);
+	/*ctls*/
+	evbuffer_add_printf(buf,
+		"nsd_connections_total{zone=\"%s\", transport=\"tls\"} %lu\n",
+		n, (unsigned long)st->ctls);
+	/*ctls6*/
+	evbuffer_add_printf(buf,
+		"nsd_connections_total{zone=\"%s\", transport=\"tls6\"} %lu\n",
+		n, (unsigned long)st->ctls6);
+
+	/*nona*/
+	evbuffer_add_printf(buf,
+		"nsd_answer_without_aa_total{zone=\"%s\"} %lu\n",
+		n, (unsigned long)st->nona);
+
+	/*rxerr*/
+	evbuffer_add_printf(buf,
+		"nsd_queries_rxerr_total{zone=\"%s\"} %lu\n",
+		n, (unsigned long)st->rxerr);
+
+	/*txerr*/
+	evbuffer_add_printf(buf,
+		"nsd_queries_txerr_total{zone=\"%s\"} %lu\n",
+		n, (unsigned long)st->txerr);
+
+	/*number of requested-axfr,
+		number of times axfr served to clients*/
+	evbuffer_add_printf(buf,
+		"nsd_answered_axfr_requests_total{zone=\"%s\"} %lu\n",
+		n, (unsigned long)st->raxfr);
+
+	/*number of requested-ixfr,
+		number of times ixfr served to clients*/
+	evbuffer_add_printf(buf,
+		"nsd_answered_ixfr_requests_total{zone=\"%s\"} %lu\n",
+		n, (unsigned long)st->rixfr);
+
+	/*truncated*/
+	evbuffer_add_printf(buf,
+		"nsd_answers_truncated_total{zone=\"%s\"} %lu\n",
+		n, (unsigned long)st->truncated);
+
+	/*dropped*/
+	evbuffer_add_printf(buf,
+		"nsd_queries_dropped_total{zone=\"%s\"} %lu\n",
+		n, (unsigned long)st->dropped);
+}
+
+#ifdef USE_ZONE_STATS
+static void
+resize_zonestat(xfrd_state_type* xfrd, size_t num)
+{
+	struct nsdst** a = xalloc_array_zero(num, sizeof(struct nsdst*));
+	if(xfrd->zonestat_clear_num != 0)
+		memcpy(a, xfrd->zonestat_clear, xfrd->zonestat_clear_num
+			* sizeof(struct nsdst*));
+	free(xfrd->zonestat_clear);
+	xfrd->zonestat_clear = a;
+	xfrd->zonestat_clear_num = num;
+}
+
+static void
+zonestat_print(struct evbuffer *buf, xfrd_state_type* xfrd, int clear,
+	struct nsdst** zonestats)
+{
+	struct zonestatname* n;
+	struct nsdst stat0, stat1;
+	RBTREE_FOR(n, struct zonestatname*, xfrd->nsd->options->zonestatnames){
+		char* name = (char*)n->node.key;
+		if(n->id >= xfrd->zonestat_safe)
+			continue; /*newly allocated and reload has not yet
+				done and replied with new size*/
+		if(name == NULL || name[0]==0)
+			continue; /*empty name, do not output*/
+		/*the statistics are stored in two blocks, during reload
+		 * the newly forked processes get the other block to use,
+		 * these blocks are mmapped and are currently in use to
+		 * add statistics to*/
+		memcpy(&stat0, &zonestats[0][n->id], sizeof(stat0));
+		memcpy(&stat1, &zonestats[1][n->id], sizeof(stat1));
+		stats_add(&stat0, &stat1);
+
+		/*save a copy of current (cumulative) stats in stat1*/
+		memcpy(&stat1, &stat0, sizeof(stat1));
+		/*subtract last total of stats that was 'cleared'*/
+		if(n->id < xfrd->zonestat_clear_num &&
+			xfrd->zonestat_clear[n->id])
+			stats_subtract(&stat0, xfrd->zonestat_clear[n->id]);
+		if(clear) {
+			/*extend storage array if needed*/
+			if(n->id >= xfrd->zonestat_clear_num) {
+				if(n->id+1 < xfrd->nsd->options->zonestatnames->count)
+					resize_zonestat(xfrd, xfrd->nsd->options->zonestatnames->count);
+				else
+					resize_zonestat(xfrd, n->id+1);
+			}
+			if(!xfrd->zonestat_clear[n->id])
+				xfrd->zonestat_clear[n->id] = xalloc(
+					sizeof(struct nsdst));
+			/*store last total of stats*/
+			memcpy(xfrd->zonestat_clear[n->id], &stat1,
+				sizeof(struct nsdst));
+		}
+
+		/*stat0 contains the details that we want to print*/
+		evbuffer_add_printf(buf, "nsd_queries_total{zone=\"%s\"} %lu\n", name,
+			(unsigned long)(stat0.qudp + stat0.qudp6 + stat0.ctcp +
+				stat0.ctcp6 + stat0.ctls + stat0.ctls6));
+		print_stat_block_with_zone(buf, name, &stat0);
+	}
+}
+#endif /*USE_ZONE_STATS*/
+
+static void
+print_stats(struct evbuffer *buf, xfrd_state_type* xfrd, struct timeval* now, int clear,
+	struct nsdst* st, struct nsdst** zonestats)
+{
+	size_t i;
+	stc_type total = 0;
+	struct timeval elapsed, uptime;
+
+	/*per CPU and total*/
+	for(i=0; i<xfrd->nsd->child_count; i++) {
+		evbuffer_add_printf(buf, "nsd_queries_total{server=\"%d\"} %lu\n",
+			(int)i, (unsigned long)xfrd->nsd->children[i].query_count);
+		total += xfrd->nsd->children[i].query_count;
+	}
+	evbuffer_add_printf(buf, "nsd_queries_total %lu\n", (unsigned long)total);
+
+	/*time elapsed and uptime (in seconds)*/
+	timeval_subtract(&uptime, now, &xfrd->nsd->metrics->boot_time);
+	timeval_subtract(&elapsed, now, &xfrd->nsd->metrics->stats_time);
+	evbuffer_add_printf(buf, "nsd_time_up_seconds %lu.%6.6lu\n",
+		(unsigned long)uptime.tv_sec, (unsigned long)uptime.tv_usec);
+	evbuffer_add_printf(buf, "nsd_time_elapsed_seconds %lu.%6.6lu\n",
+		(unsigned long)elapsed.tv_sec, (unsigned long)elapsed.tv_usec);
+
+	/*mem info, database on disksize*/
+	print_longnum(buf, "nsd_size_db_on_disk_bytes ", st->db_disk);
+	print_longnum(buf, "nsd_size_db_in_mem_bytes ", st->db_mem);
+	print_longnum(buf, "nsd_size_xfrd_in_mem_bytes ", region_get_mem(xfrd->region));
+	print_longnum(buf, "nsd_size_config_on_disk_bytes ",
+	xfrd->nsd->options->zonelist_off);
+	print_longnum(buf, "nsd_size_config_in_mem_bytes ", region_get_mem(
+		xfrd->nsd->options->region));
+	print_stat_block(buf, st);
+
+	/*zone statistics*/
+	evbuffer_add_printf(buf, "nsd_zones_primary_total %lu\n",
+		(unsigned long)(xfrd->notify_zones->count - xfrd->zones->count));
+	evbuffer_add_printf(buf, "nsd_zones_secondary_total %lu\n",
+		(unsigned long)xfrd->zones->count);
+#ifdef USE_ZONE_STATS
+	zonestat_print(buf, xfrd, clear, zonestats); /*per-zone statistics*/
+#else
+	(void)clear; (void)zonestats;
+#endif
+}
+
+/*allocate stats temp arrays, for taking a coherent snapshot of the
+ * statistics values at that time.*/
+static void
+process_stats_alloc(xfrd_state_type* xfrd, struct nsdst** stats,
+	struct nsdst** zonestats)
+{
+	*stats = xmallocarray(xfrd->nsd->child_count*2, sizeof(struct nsdst));
+#ifdef USE_ZONE_STATS
+	zonestats[0] = xmallocarray(xfrd->zonestat_safe, sizeof(struct nsdst));
+	zonestats[1] = xmallocarray(xfrd->zonestat_safe, sizeof(struct nsdst));
+#else
+	(void)zonestats;
+#endif
+}
+
+/*grab a copy of the statistics, at this particular time.*/
+static void
+process_stats_grab(xfrd_state_type* xfrd, struct timeval* stattime,
+	struct nsdst* stats, struct nsdst** zonestats)
+{
+	if(gettimeofday(stattime, NULL) == -1)
+		log_msg(LOG_ERR, "gettimeofday: %s", strerror(errno));
+	memcpy(stats, xfrd->nsd->stat_map,
+		xfrd->nsd->child_count*2*sizeof(struct nsdst));
+#ifdef USE_ZONE_STATS
+	memcpy(zonestats[0], xfrd->nsd->zonestat[0],
+		xfrd->zonestat_safe*sizeof(struct nsdst));
+	memcpy(zonestats[1], xfrd->nsd->zonestat[1],
+		xfrd->zonestat_safe*sizeof(struct nsdst));
+#else
+	(void)zonestats;
+#endif
+}
+
+/*add the old and new processes stat values into the first part of the
+ * array of stats*/
+static void
+process_stats_add_old_new(xfrd_state_type* xfrd, struct nsdst* stats)
+{
+	size_t i;
+	uint64_t dbd = stats[0].db_disk;
+	uint64_t dbm = stats[0].db_mem;
+	/*The old and new server processes have separate stat blocks,
+	 * and these are added up together. This results in the statistics
+	 * values per server-child. The reload task briefly forks both
+	 * old and new server processes.*/
+	for(i=0; i<xfrd->nsd->child_count; i++) {
+		stats_add(&stats[i], &stats[xfrd->nsd->child_count+i]);
+	}
+	stats[0].db_disk = dbd;
+	stats[0].db_mem = dbm;
+}
+
+/*manage clearing of stats, a cumulative count of cleared statistics*/
+static void
+process_stats_manage_clear(xfrd_state_type* xfrd, struct nsdst* stats,
+	int peek)
+{
+	struct nsdst st;
+	size_t i;
+	if(peek) {
+		/*Subtract the earlier resetted values from the numbers,
+		 * but do not reset the values that are retrieved now.*/
+		if(!xfrd->stat_clear)
+			return; /*nothing to subtract*/
+		for(i=0; i<xfrd->nsd->child_count; i++) {
+			/*subtract cumulative count that has been reset*/
+			stats_subtract(&stats[i], &xfrd->stat_clear[i]);
+		}
+		return;
+	}
+	if(!xfrd->stat_clear)
+		xfrd->stat_clear = region_alloc_zero(xfrd->region,
+			sizeof(struct nsdst)*xfrd->nsd->child_count);
+	for(i=0; i<xfrd->nsd->child_count; i++) {
+		/*store cumulative count copy*/
+		memcpy(&st, &stats[i], sizeof(st));
+		/*subtract cumulative count that has been reset*/
+		stats_subtract(&stats[i], &xfrd->stat_clear[i]);
+		/*store cumulative count in the cleared value array*/
+		memcpy(&xfrd->stat_clear[i], &st, sizeof(st));
+	}
+}
+
+/*add up the statistics to get the total over the server children.*/
+static void
+process_stats_add_total(xfrd_state_type* xfrd, struct nsdst* total,
+	struct nsdst* stats)
+{
+	size_t i;
+	/*copy over the first one, with also the nonadded values.*/
+	memcpy(total, &stats[0], sizeof(*total));
+	xfrd->nsd->children[0].query_count = stats[0].qudp + stats[0].qudp6
+		+ stats[0].ctcp + stats[0].ctcp6 + stats[0].ctls
+		+ stats[0].ctls6;
+	for(i=1; i<xfrd->nsd->child_count; i++) {
+		stats_add(total, &stats[i]);
+		xfrd->nsd->children[i].query_count = stats[i].qudp
+			+ stats[i].qudp6 + stats[i].ctcp + stats[i].ctcp6
+			+ stats[i].ctls + stats[i].ctls6;
+	}
+}
+
+/** process the statistics and write them into the buffer */
+static void
+process_stats(struct evbuffer *buf, xfrd_state_type* xfrd, int peek)
+{
+	struct timeval stattime;
+	struct nsdst* stats, *zonestats[2], total;
+
+	process_stats_alloc(xfrd, &stats, zonestats);
+	process_stats_grab(xfrd, &stattime, stats, zonestats);
+	process_stats_add_old_new(xfrd, stats);
+	process_stats_manage_clear(xfrd, stats, peek);
+	process_stats_add_total(xfrd, &total, stats);
+	print_stats(buf, xfrd, &stattime, !peek, &total, zonestats);
+	/* if(!peek) { */
+	/*     xfrd->nsd->metrics->stats_time = stattime; */
+	/* } */
+
+	free(stats);
+#ifdef USE_ZONE_STATS
+	free(zonestats[0]);
+	free(zonestats[1]);
+#endif
+}
+#endif /*BIND8_STATS*/
+
+#endif /* USE_METRICS */
