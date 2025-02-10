@@ -54,6 +54,9 @@
 #include "remote.h"
 #include "xfrd-disk.h"
 #include "ipc.h"
+#ifdef USE_METRICS
+#include "metrics.h"
+#endif /* USE_METRICS */
 #ifdef USE_DNSTAP
 #include "dnstap/dnstap_collector.h"
 #endif
@@ -1517,6 +1520,13 @@ main(int argc, char *argv[])
 		if(!(nsd.rc = daemon_remote_create(nsd.options)))
 			error("could not perform remote control setup");
 	}
+#ifdef USE_METRICS
+	if(nsd.options->metrics_enable) {
+		/* read ssl keys while superuser and outside chroot */
+		if(!(nsd.metrics = daemon_metrics_create(nsd.options)))
+			error("could not perform metrics server setup");
+	}
+#endif /* USE_METRICS */
 #if defined(HAVE_SSL)
 	if(nsd.options->tls_service_key && nsd.options->tls_service_key[0]
 	   && nsd.options->tls_service_pem && nsd.options->tls_service_pem[0]) {

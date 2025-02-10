@@ -35,6 +35,9 @@
 #ifdef USE_DNSTAP
 #include "dnstap/dnstap_collector.h"
 #endif
+#ifdef USE_METRICS
+#include "metrics.h"
+#endif /* USE_METRICS */
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -211,6 +214,10 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	xfrd->notify_udp_num = 0;
 
 	daemon_remote_attach(xfrd->nsd->rc, xfrd);
+
+#ifdef USE_METRICS
+	daemon_metrics_attach(xfrd->nsd->metrics, xfrd);
+#endif /* USE_METRICS */
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region, nsd->options->tls_cert_bundle, nsd->options->xfrd_tcp_max, nsd->options->xfrd_tcp_pipeline);
 	xfrd->tcp_set->tcp_timeout = nsd->tcp_timeout;
