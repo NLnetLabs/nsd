@@ -38,7 +38,7 @@
 const int metrics_inhibit_zero = 1;
 
 /**
- * list of events for accepting connections
+ * list of connection accepting file descriptors
  */
 struct metrics_acceptlist {
 	struct metrics_acceptlist* next;
@@ -67,9 +67,6 @@ metrics_http_callback(struct evhttp_request *req, void *p);
 #ifdef BIND8_STATS
 static void
 process_stats(struct evbuffer* buf, xfrd_state_type* xfrd, int peek);
-
-static void
-do_stats(struct evbuffer *buf, xfrd_state_type *xfrd, int peek);
 #endif /*BIND8_STATS*/
 
 struct daemon_metrics*

@@ -1522,7 +1522,6 @@ main(int argc, char *argv[])
 	}
 #ifdef USE_METRICS
 	if(nsd.options->metrics_enable) {
-		/* read ssl keys while superuser and outside chroot */
 		if(!(nsd.metrics = daemon_metrics_create(nsd.options)))
 			error("could not perform metrics server setup");
 	}
