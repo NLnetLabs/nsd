@@ -163,6 +163,17 @@ struct nsd_options {
 	/** certificate file for nsd-control */
 	char* control_cert_file;
 
+#ifdef USE_METRICS
+	/** metrics section. enable toggle. */
+	int metrics_enable;
+	/** the interfaces the metrics endpoint should listen on */
+	struct ip_address_option* metrics_interface;
+	/** port number for the metrics endpoint */
+	int metrics_port;
+	/** HTTP path for the metrics endpoint */
+	char* metrics_path;
+#endif /* USE_METRICS */
+
 #ifdef RATELIMIT
 	/** number of buckets in rrl hashtable */
 	size_t rrl_size;

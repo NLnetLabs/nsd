@@ -87,6 +87,9 @@
 #endif
 #include "verify.h"
 #include "util/proxy_protocol.h"
+#ifdef USE_METRICS
+#include "metrics.h"
+#endif /* USE_METRICS */
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 
@@ -1600,6 +1603,9 @@ server_shutdown(struct nsd *nsd)
 
 	tsig_finalize();
 	daemon_remote_delete(nsd->rc); /* ssl-delete secret keys */
+#ifdef USE_METRICS
+	daemon_metrics_delete(nsd->metrics);
+#endif /* USE_METRICS */
 #ifdef HAVE_SSL
 	if (nsd->tls_ctx)
 		SSL_CTX_free(nsd->tls_ctx);
