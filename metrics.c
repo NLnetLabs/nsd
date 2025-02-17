@@ -402,26 +402,25 @@ print_longnum(struct evbuffer *buf, char* desc, uint64_t x)
 }
 
 static void
-print_metric_help_and_type(struct evbuffer *buf, char *name,
+print_metric_help_and_type(struct evbuffer *buf, char *prefix, char *name,
 						   char *help, char *type)
 {
-	evbuffer_add_printf(buf, "# HELP %s %s\n# TYPE %s %s\n",
-	                    name, help, name, type);
-}
-
-static void
-print_metric_help_and_type_zonestats(struct evbuffer *buf, char *name,
-						   char *help, char *type, char *zonestat_name)
-{
-	evbuffer_add_printf(buf, "# HELP nsd_zonestats_%s_%s %s\n# TYPE %s %s\n",
-	                    zonestat_name, name, help, name, type);
+	evbuffer_add_printf(buf, "# HELP %s%s %s\n# TYPE %s%s %s\n",
+	                    prefix, name, help, prefix, name, type);
 }
 
 static void
 print_stat_block(struct evbuffer *buf, struct nsdst* st,
-                 struct nsdst** zonestats)
+                  char *name)
 {
 	size_t i;
+
+	char prefix[512] = {0};
+	if (name) {
+		snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
+	} else {
+		sprintf(prefix, "nsd_");
+	}
 
 	const char* rcstr[] = {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN",
 		"NOTIMP", "REFUSED", "YXDOMAIN", "YXRRSET", "NXRRSET", "NOTAUTH",
@@ -430,262 +429,115 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 	};
 
 	/* nsd_queries_by_type_total */
-	print_metric_help_and_type(buf, "nsd_queries_by_type_total",
+	print_metric_help_and_type(buf, prefix, "queries_by_type_total",
 	                           "Total number of queries recieved by type.",
 	                           "counter");
 	for(i=0; i<= 255; i++) {
 		if(metrics_inhibit_zero && st->qtype[i] == 0 &&
 			strncmp(rrtype_to_string(i), "TYPE", 4) == 0)
 			continue;
-		evbuffer_add_printf(buf, "nsd_queries_by_type_total{type=\"%s\"} %lu\n",
-			rrtype_to_string(i), (unsigned long)st->qtype[i]);
+		evbuffer_add_printf(buf, "%squeries_by_type_total{type=\"%s\"} %lu\n",
+			prefix, rrtype_to_string(i), (unsigned long)st->qtype[i]);
 	}
 
 	/* nsd_queries_by_class_total */
-	print_metric_help_and_type(buf, "nsd_queries_by_class_total",
+	print_metric_help_and_type(buf, prefix, "queries_by_class_total",
 	                           "Total number of queries recieved by class.",
 	                           "counter");
 	for(i=0; i<4; i++) {
 		if(metrics_inhibit_zero && st->qclass[i] == 0 && i != CLASS_IN)
 			continue;
-		evbuffer_add_printf(buf, "nsd_queries_by_class_total{class=\"%s\"} %lu\n",
-			rrclass_to_string(i), (unsigned long)st->qclass[i]);
+		evbuffer_add_printf(buf, "%squeries_by_class_total{class=\"%s\"} %lu\n",
+			prefix, rrclass_to_string(i), (unsigned long)st->qclass[i]);
 	}
 
 	/* nsd_queries_by_opcode_total */
-	print_metric_help_and_type(buf, "nsd_queries_by_opcode_total",
+	print_metric_help_and_type(buf, prefix, "queries_by_opcode_total",
 	                           "Total number of queries recieved by opcode.",
 	                           "counter");
 	for(i=0; i<6; i++) {
 		if(metrics_inhibit_zero && st->opcode[i] == 0 && i != OPCODE_QUERY)
 			continue;
-		evbuffer_add_printf(buf, "nsd_queries_by_opcode_total{opcode=\"%s\"} %lu\n",
-			opcode2str(i), (unsigned long)st->opcode[i]);
+		evbuffer_add_printf(buf, "%squeries_by_opcode_total{opcode=\"%s\"} %lu\n",
+			prefix, opcode2str(i), (unsigned long)st->opcode[i]);
 	}
 
 	/* nsd_queries_by_rcode_total */
-	print_metric_help_and_type(buf, "nsd_queries_by_rcode_total",
+	print_metric_help_and_type(buf, prefix, "queries_by_rcode_total",
 	                           "Total number of queries recieved by rcode.",
 	                           "counter");
 	for(i=0; i<17; i++) {
 		if(metrics_inhibit_zero && st->rcode[i] == 0 &&
 			i > RCODE_YXDOMAIN) /*NSD does not use larger*/
 			continue;
-		evbuffer_add_printf(buf, "nsd_queries_by_rcode_total{rcode=\"%s\"} %lu\n",
-			rcstr[i], (unsigned long)st->rcode[i]);
+		evbuffer_add_printf(buf, "%squeries_by_rcode_total{rcode=\"%s\"} %lu\n",
+			prefix, rcstr[i], (unsigned long)st->rcode[i]);
 	}
 
 	/* nsd_queries_by_transport_total */
-	print_metric_help_and_type(buf, "nsd_queries_by_transport_total",
+	print_metric_help_and_type(buf, prefix, "queries_by_transport_total",
 		"Total number of queries recieved by transport.",
 		"counter");
-	evbuffer_add_printf(buf, "nsd_queries_by_transport_total{transport=\"udp\"} %lu\n", (unsigned long)st->qudp);
-	evbuffer_add_printf(buf, "nsd_queries_by_transport_total{transport=\"udp6\"} %lu\n", (unsigned long)st->qudp6);
+	evbuffer_add_printf(buf, "%squeries_by_transport_total{transport=\"udp\"} %lu\n", prefix, (unsigned long)st->qudp);
+	evbuffer_add_printf(buf, "%squeries_by_transport_total{transport=\"udp6\"} %lu\n", prefix, (unsigned long)st->qudp6);
 
 	/* nsd_queries_with_edns_total */
-	print_metric_help_and_type(buf, "nsd_queries_with_edns_total",
+	print_metric_help_and_type(buf, prefix, "queries_with_edns_total",
 		"Total number of queries recieved with EDNS OPT.",
 		"counter");
-	evbuffer_add_printf(buf, "nsd_queries_with_edns_total %lu\n", (unsigned long)st->edns);
+	evbuffer_add_printf(buf, "%squeries_with_edns_total %lu\n", prefix, (unsigned long)st->edns);
 
 	/* nsd_queries_with_edns_failed_total */
-	print_metric_help_and_type(buf, "nsd_queries_with_edns_failed_total",
+	print_metric_help_and_type(buf, prefix, "queries_with_edns_failed_total",
 		"Total number of queries recieved with EDNS OPT where EDNS parsing failed.",
 		"counter");
-	evbuffer_add_printf(buf, "nsd_queries_with_edns_failed_total %lu\n", (unsigned long)st->ednserr);
+	evbuffer_add_printf(buf, "%squeries_with_edns_failed_total %lu\n", prefix, (unsigned long)st->ednserr);
 
 	/* nsd_connections_total */
-	print_metric_help_and_type(buf, "nsd_connections_total",
+	print_metric_help_and_type(buf, prefix, "connections_total",
 		"Total number of connections.",
 		"counter");
-	evbuffer_add_printf(buf, "nsd_connections_total{transport=\"tcp\"} %lu\n", (unsigned long)st->ctcp);
-	evbuffer_add_printf(buf, "nsd_connections_total{transport=\"tcp6\"} %lu\n", (unsigned long)st->ctcp6);
-	evbuffer_add_printf(buf, "nsd_connections_total{transport=\"tls\"} %lu\n", (unsigned long)st->ctls);
-	evbuffer_add_printf(buf, "nsd_connections_total{transport=\"tls6\"} %lu\n", (unsigned long)st->ctls6);
+	evbuffer_add_printf(buf, "%sconnections_total{transport=\"tcp\"} %lu\n", prefix, (unsigned long)st->ctcp);
+	evbuffer_add_printf(buf, "%sconnections_total{transport=\"tcp6\"} %lu\n", prefix, (unsigned long)st->ctcp6);
+	evbuffer_add_printf(buf, "%sconnections_total{transport=\"tls\"} %lu\n", prefix, (unsigned long)st->ctls);
+	evbuffer_add_printf(buf, "%sconnections_total{transport=\"tls6\"} %lu\n", prefix, (unsigned long)st->ctls6);
 
 	/* nsd_xfr_requests_served_total */
-	print_metric_help_and_type(buf, "nsd_xfr_requests_served_total",
+	print_metric_help_and_type(buf, prefix, "xfr_requests_served_total",
 		"Total number of answered zone transfers.",
 		"counter");
-	evbuffer_add_printf(buf, "nsd_xfr_requests_served_total{xfrtype=\"AXFR\"} %lu\n", (unsigned long)st->raxfr);
-	evbuffer_add_printf(buf, "nsd_xfr_requests_served_total{xfrtype=\"IXFR\"} %lu\n", (unsigned long)st->rixfr);
+	evbuffer_add_printf(buf, "%sxfr_requests_served_total{xfrtype=\"AXFR\"} %lu\n", prefix, (unsigned long)st->raxfr);
+	evbuffer_add_printf(buf, "%sxfr_requests_served_total{xfrtype=\"IXFR\"} %lu\n", prefix, (unsigned long)st->rixfr);
 
 	/* nsd_queries_dropped_total */
-	print_metric_help_and_type(buf, "nsd_queries_dropped_total",
+	print_metric_help_and_type(buf, prefix, "queries_dropped_total",
 		"Total number of dropped queries.",
 		"counter");
-	evbuffer_add_printf(buf, "nsd_queries_dropped_total %lu\n", (unsigned long)st->dropped);
+	evbuffer_add_printf(buf, "%squeries_dropped_total %lu\n", prefix, (unsigned long)st->dropped);
 
 	/* nsd_queries_rx_failed_total */
-	print_metric_help_and_type(buf, "nsd_queries_rx_failed_total",
+	print_metric_help_and_type(buf, prefix, "queries_rx_failed_total",
 		"Total number of queries where receive failed.",
 		"counter");
-	evbuffer_add_printf(buf, "nsd_queries_rx_failed_total %lu\n", (unsigned long)st->rxerr);
+	evbuffer_add_printf(buf, "%squeries_rx_failed_total %lu\n", prefix, (unsigned long)st->rxerr);
 
 	/* nsd_answers_tx_failed_total */
-	print_metric_help_and_type(buf, "nsd_answers_tx_failed_total",
+	print_metric_help_and_type(buf, prefix, "answers_tx_failed_total",
 		"Total number of answers where transmit failed.",
 		"counter");
-	evbuffer_add_printf(buf, "nsd_answers_tx_failed_total %lu\n", (unsigned long)st->txerr);
+	evbuffer_add_printf(buf, "%sanswers_tx_failed_total %lu\n", prefix, (unsigned long)st->txerr);
 
 	/* nsd_answers_without_aa_total */
-	print_metric_help_and_type(buf, "nsd_answers_without_aa_total",
+	print_metric_help_and_type(buf, prefix, "answers_without_aa_total",
 		"Total number of NOERROR answers without AA flag set.",
 		"counter");
-	evbuffer_add_printf(buf, "nsd_answers_without_aa_total %lu\n", (unsigned long)st->nona);
+	evbuffer_add_printf(buf, "%sanswers_without_aa_total %lu\n", prefix, (unsigned long)st->nona);
 
 	/* nsd_answers_truncated_total */
-	print_metric_help_and_type(buf, "nsd_answers_truncated_total",
+	print_metric_help_and_type(buf, prefix, "answers_truncated_total",
 		"Total number of truncated answers.",
 		"counter");
-	evbuffer_add_printf(buf, "nsd_answers_truncated_total %lu\n", (unsigned long)st->truncated);
-}
-
-/*print one block of statistics.  n is name and d is delimiter*/
-static void
-print_stat_block_with_zone(struct evbuffer *buf, char* n, struct nsdst* st)
-{
-	const char* rcstr[] = {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN",
-		"NOTIMP", "REFUSED", "YXDOMAIN", "YXRRSET", "NXRRSET", "NOTAUTH",
-		"NOTZONE", "RCODE11", "RCODE12", "RCODE13", "RCODE14", "RCODE15",
-		"BADVERS"
-	};
-	size_t i;
-
-	/* nsd_zonestats_%s_queries_by_type_total */
-	print_metric_help_and_type_zonestats(buf, "queries_by_type_total",
-	                           "Total number of queries recieved by type.",
-	                           "counter", n);
-	for(i=0; i<= 255; i++) {
-		if(metrics_inhibit_zero && st->qtype[i] == 0 &&
-			strncmp(rrtype_to_string(i), "TYPE", 4) == 0)
-			continue;
-		evbuffer_add_printf(buf, "nsd_zonestats_%s_queries_by_type_total{type=\"%s\"} %lu\n",
-			n, rrtype_to_string(i), (unsigned long)st->qtype[i]);
-	}
-
-	/* nsd_zonestats_%s_queries_by_class_total */
-	print_metric_help_and_type_zonestats(buf, "queries_by_class_total",
-	                           "Total number of queries recieved by class.",
-	                           "counter", n);
-	for(i=0; i<4; i++) {
-		if(metrics_inhibit_zero && st->qclass[i] == 0 && i != CLASS_IN)
-			continue;
-		evbuffer_add_printf(buf,
-			"nsd_zonestats_%s_queries_by_class_total{class=\"%s\"} %lu\n",
-			n, rrclass_to_string(i), (unsigned long)st->qclass[i]);
-	}
-
-	/* nsd_zonestats_%s_queries_by_opcode_total */
-	print_metric_help_and_type_zonestats(buf, "queries_by_opcode_total",
-	                           "Total number of queries recieved by opcode.",
-	                           "counter", n);
-	for(i=0; i<6; i++) {
-		if(metrics_inhibit_zero && st->opcode[i] == 0 && i != OPCODE_QUERY)
-			continue;
-		evbuffer_add_printf(buf,
-			"nsd_zonestats_%s_queries_by_opcode_total{opcode=\"%s\"} %lu\n",
-			n, opcode2str(i), (unsigned long)st->opcode[i]);
-	}
-
-	/* nsd_zonestats_%s_queries_by_rcode_total */
-	print_metric_help_and_type_zonestats(buf, "queries_by_rcode_total",
-	                           "Total number of queries recieved by rcode.",
-	                           "counter", n);
-	for(i=0; i<17; i++) {
-		if(metrics_inhibit_zero && st->rcode[i] == 0 &&
-			i > RCODE_YXDOMAIN) /*NSD does not use larger*/
-			continue;
-		evbuffer_add_printf(buf,
-			"nsd_zonestats_%s_queries_by_rcode_total{rcode=\"%s\"} %lu\n",
-			n, rcstr[i], (unsigned long)st->rcode[i]);
-	}
-
-	/* nsd_zonestats_%s_queries_by_transport_total */
-	print_metric_help_and_type_zonestats(buf, "queries_by_transport_total",
-	    "Total number of queries recieved by transport.", "counter", n);
-	evbuffer_add_printf(buf,
-                            "nsd_zonestats_%s_queries_by_transport_total{"
-                            "transport=\"udp\"} %lu\n",
-                            n, (unsigned long)st->qudp);
-	evbuffer_add_printf(buf,
-                            "nsd_zonestats_%s_queries_by_transport_total{"
-                            "transport=\"udp6\"} %lu\n",
-                            n, (unsigned long)st->qudp6);
-
-	/* nsd_zonestats_%s_queries_with_edns_total */
-	print_metric_help_and_type_zonestats(buf, "queries_with_edns_total",
-	    "Total number of queries recieved with EDNS OPT.", "counter", n);
-	evbuffer_add_printf(buf, "nsd_zonestats_%s_queries_with_edns_total %lu\n",
-		n, (unsigned long)st->edns);
-
-	/* nsd_zonestats_%s_queries_with_edns_failed_total */
-	print_metric_help_and_type_zonestats(buf, "queries_with_edns_failed_total",
-	    "Total number of queries recieved with EDNS OPT where EDNS parsing failed.",
-	    "counter", n);
-	evbuffer_add_printf(buf, "nsd_zonestats_%s_queries_with_edns_failed_total %lu\n",
-		n, (unsigned long)st->ednserr);
-
-	/* nsd_zonestats_%s_connections_total */
-	print_metric_help_and_type_zonestats(buf, "connections_total",
-        "Total number of connections.", "counter", n);
-	evbuffer_add_printf(buf,
-		"nsd_zonestats_%s_connections_total{transport=\"tcp\"} %lu\n",
-		n, (unsigned long)st->ctcp);
-	evbuffer_add_printf(buf,
-		"nsd_zonestats_%s_connections_total{transport=\"tcp6\"} %lu\n",
-		n, (unsigned long)st->ctcp6);
-	evbuffer_add_printf(buf,
-		"nsd_zonestats_%s_connections_total{transport=\"tls\"} %lu\n",
-		n, (unsigned long)st->ctls);
-	evbuffer_add_printf(buf,
-		"nsd_zonestats_%s_connections_total{transport=\"tls6\"} %lu\n",
-		n, (unsigned long)st->ctls6);
-
-	/* nsd_zonestats_%s_xfr_requests_served_total */
-	print_metric_help_and_type_zonestats(buf, "xfr_requests_served_total",
-		"Total number of answered zone transfers.", "counter", n);
-	evbuffer_add_printf(buf,
-		"nsd_zonestats_%s_xfr_requests_served_total{xfrtype=\"AXFR\"} %lu\n",
-		n, (unsigned long)st->raxfr);
-	evbuffer_add_printf(buf,
-		"nsd_zonestats_%s_xfr_requests_served_total{xfrtype=\"IXFR\"} %lu\n",
-		n, (unsigned long)st->rixfr);
-
-	/* nsd_zonestats_%s_zonestats_%s_queries_dropped_total */
-	print_metric_help_and_type_zonestats(buf, "queries_dropped_total",
-		"Total number of dropped queries.", "counter", n);
-	evbuffer_add_printf(buf,
-		"nsd_zonestats_%s_queries_dropped_total %lu\n",
-		n, (unsigned long)st->dropped);
-
-	/* nsd_zonestats_%s_queries_rx_failed_total */
-	print_metric_help_and_type_zonestats(buf, "queries_rx_failed_total",
-		"Total number of queries where receive failed.", "counter", n);
-	evbuffer_add_printf(buf,
-		"nsd_zonestats_%s_queries_rx_failed_total %lu\n",
-		n, (unsigned long)st->rxerr);
-
-	/* nsd_zonestats_%s_answers_tx_failed_total */
-	print_metric_help_and_type_zonestats(buf, "answers_tx_failed_total",
-		"Total number of answers where transmit failed.", "counter", n);
-	evbuffer_add_printf(buf,
-		"nsd_zonestats_%s_answers_tx_failed_total %lu\n",
-		n, (unsigned long)st->txerr);
-
-	/* nsd_zonestats_%s_answers_without_aa_total */
-	print_metric_help_and_type_zonestats(buf, "answers_without_aa_total",
-		"Total number of NOERROR answers without AA flag set.", "counter", n);
-	evbuffer_add_printf(buf,
-		"nsd_zonestats_%s_answers_without_aa_total %lu\n",
-		n, (unsigned long)st->nona);
-
-	/* nsd_zonestats_%s_answers_truncated_total */
-	print_metric_help_and_type_zonestats(buf, "answers_truncated_total",
-		"Total number of truncated answers.", "counter", n);
-	evbuffer_add_printf(buf,
-		"nsd_zonestats_%s_answers_truncated_total %lu\n",
-		n, (unsigned long)st->truncated);
+	evbuffer_add_printf(buf, "%sanswers_truncated_total %lu\n", prefix, (unsigned long)st->truncated);
 }
 
 #ifdef USE_ZONE_STATS
@@ -745,13 +597,16 @@ zonestat_print(struct evbuffer *buf, xfrd_state_type* xfrd, int clear,
 		}
 
 		/*stat0 contains the details that we want to print*/
-		print_metric_help_and_type_zonestats(buf, "queries_total",
-									   "Total number of queries recieved.",
-									   "counter", name);
+
+		char prefix[512] = {0};
+		snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
+
+		print_metric_help_and_type(buf, prefix, "queries_total",
+		    "Total number of queries recieved.", "counter");
 		evbuffer_add_printf(buf, "nsd_zonestats_%s_queries_total %lu\n", name,
 			(unsigned long)(stat0.qudp + stat0.qudp6 + stat0.ctcp +
 				stat0.ctcp6 + stat0.ctls + stat0.ctls6));
-		print_stat_block_with_zone(buf, name, &stat0);
+		print_stat_block(buf, &stat0, name);
 	}
 }
 #endif /*USE_ZONE_STATS*/
@@ -764,7 +619,7 @@ print_stats(struct evbuffer *buf, xfrd_state_type* xfrd, struct timeval* now, in
 	struct timeval elapsed, uptime;
 
 	/* nsd_queries_total */
-	print_metric_help_and_type(buf, "nsd_queries_total",
+	print_metric_help_and_type(buf, "nsd_", "queries_total",
 	                           "Total number of queries recieved.", "counter");
 	/*per CPU and total*/
 	for(i=0; i<xfrd->nsd->child_count; i++) {
@@ -772,17 +627,17 @@ print_stats(struct evbuffer *buf, xfrd_state_type* xfrd, struct timeval* now, in
 			(int)i, (unsigned long)xfrd->nsd->children[i].query_count);
 	}
 
-	print_stat_block(buf, st, zonestats);
+	print_stat_block(buf, st, NULL);
 
 	/*time elapsed and uptime (in seconds)*/
 	timeval_subtract(&uptime, now, &xfrd->nsd->metrics->boot_time);
 	timeval_subtract(&elapsed, now, &xfrd->nsd->metrics->stats_time);
-	print_metric_help_and_type(buf, "nsd_time_up_seconds_total",
+	print_metric_help_and_type(buf, "nsd_", "time_up_seconds_total",
 	                           "Uptime since server boot in seconds.", "counter");
 	evbuffer_add_printf(buf, "nsd_time_up_seconds_total %lu.%6.6lu\n",
 		(unsigned long)uptime.tv_sec, (unsigned long)uptime.tv_usec);
 	/* TODO: re-add when elapsed time resetting on nsd-control stats is implemented
-	print_metric_help_and_type(buf, "nsd_time_elapsed_seconds",
+	print_metric_help_and_type(buf, "nsd_", "time_elapsed_seconds",
 	                           "Time since last statistics printout in seconds.",
 	                           "untyped");
 	evbuffer_add_printf(buf, "nsd_time_elapsed_seconds %lu.%6.6lu\n",
@@ -790,37 +645,37 @@ print_stats(struct evbuffer *buf, xfrd_state_type* xfrd, struct timeval* now, in
 	*/
 
 	/*mem info, database on disksize*/
-	print_metric_help_and_type(buf, "nsd_size_db_on_disk_bytes",
+	print_metric_help_and_type(buf, "nsd_", "size_db_on_disk_bytes",
 	                           "Size of DNS database on disk.", "gauge");
 	print_longnum(buf, "nsd_size_db_on_disk_bytes ", st->db_disk);
 
-	print_metric_help_and_type(buf, "nsd_size_db_in_mem_bytes",
+	print_metric_help_and_type(buf, "nsd_", "size_db_in_mem_bytes",
 	                           "Size of DNS database in memory.", "gauge");
 	print_longnum(buf, "nsd_size_db_in_mem_bytes ", st->db_mem);
 
-	print_metric_help_and_type(buf, "nsd_size_xfrd_in_mem_bytes",
+	print_metric_help_and_type(buf, "nsd_", "size_xfrd_in_mem_bytes",
 	                           "Size of zone transfers and notifies in xfrd process, excluding TSIG data.",
 	                           "gauge");
 	print_longnum(buf, "nsd_size_xfrd_in_mem_bytes ", region_get_mem(xfrd->region));
 
-	print_metric_help_and_type(buf, "nsd_size_config_on_disk_bytes",
+	print_metric_help_and_type(buf, "nsd_", "size_config_on_disk_bytes",
 	                           "Size of zonelist file on disk, excluding nsd.conf.",
 	                           "gauge");
 	print_longnum(buf, "nsd_size_config_on_disk_bytes ",
 		xfrd->nsd->options->zonelist_off);
 
-	print_metric_help_and_type(buf, "nsd_size_config_in_mem_bytes",
+	print_metric_help_and_type(buf, "nsd_", "size_config_in_mem_bytes",
 	                           "Size of config data in memory.", "gauge");
 	print_longnum(buf, "nsd_size_config_in_mem_bytes ", region_get_mem(
 		xfrd->nsd->options->region));
 
 	/* number of zones serverd */
-	print_metric_help_and_type(buf, "nsd_zones_primary",
+	print_metric_help_and_type(buf, "nsd_", "zones_primary",
 	                           "Number of primary zones served.", "gauge");
 	evbuffer_add_printf(buf, "nsd_zones_primary %lu\n",
 		(unsigned long)(xfrd->notify_zones->count - xfrd->zones->count));
 
-	print_metric_help_and_type(buf, "nsd_zones_secondary",
+	print_metric_help_and_type(buf, "nsd_", "zones_secondary",
 	                           "Number of secondary zones served.", "gauge");
 	evbuffer_add_printf(buf, "nsd_zones_secondary %lu\n",
 		(unsigned long)xfrd->zones->count);
