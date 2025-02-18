@@ -1,3 +1,6 @@
+18 February 2025: Wouter
+	- Fix for #430: Confusing documentation: word "outgoing".
+
 11 February 2025: Willem
 	- Merge #420: Zones get state "old-serial" with
 	  `nsd-control zonestatus` when the served serial is older than
