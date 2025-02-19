@@ -14,6 +14,8 @@ BUG FIXES:
           accidentally removed with the 4.11.1 release.
 	- Fix #426: nsd crashes with patterns in config_apply_pattern.
 	- Fix for #430: Confusing documentation: word "outgoing".
+	- Fix for #430: Confusing documentation: word "outgoing". Add wording
+	  to tcp-count, xfrd-tcp-max, xfrd-tcp-pipeline options.
 
 4.11.1
 ================

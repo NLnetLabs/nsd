@@ -229,6 +229,7 @@ enabled.
 The maximum number of concurrent, active TCP connections by each server.
 Default is 100. Same as command-line option
 .BR \-n .
+That is the number of requests from clients to this server.
 .TP
 .B tcp\-reject\-overflow:\fR <yes or no>
 If set to yes, TCP connections made beyond the maximum set by tcp-count will
@@ -262,6 +263,7 @@ negotiation between NSD and other servers.
 .B xfrd\-tcp\-max:\fR <number>
 Number of sockets for xfrd to use for outgoing zone transfers. Default 128.
 Increase it to allow more zone transfer sockets, like to 256.
+That is for zone transfers requested by this server from other servers.
 To save memory, this can be lowered, set it lower together with some other
 settings to have reduced memory footprint for NSD. xfrd\-tcp\-max: 32
 and xfrd\-tcp\-pipeline: 128 and rrl\-size: 1000
@@ -273,7 +275,8 @@ size of the zone data.
 .TP
 .B xfrd\-tcp\-pipeline:\fR <number>
 Number of simultaneous outgoing zone transfers that are possible on the
-tcp sockets of xfrd. Max is 65536, default is 128.
+tcp sockets of xfrd. Max is 65536, default is 128. That is for zone transfers
+requested by this server from other servers.
 .TP
 .B ipv4\-edns\-size:\fR <number>
 Preferred EDNS buffer size for IPv4.  Default 1232.
