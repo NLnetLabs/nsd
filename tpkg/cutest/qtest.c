@@ -307,7 +307,7 @@ qread(char* qfile)
 static void
 buffer_spool_rr(buffer_type* output, rr_type* rr, int qsection)
 {
-	rrtype_descriptor_type *d = rrtype_descriptor_by_type(rr->type);
+	const nsd_type_descriptor_type *d = nsd_type_descriptor(rr->type);
 	int result;
 	const dname_type *owner = domain_dname(rr->owner);
 	buffer_printf(output, "%s", dname_to_string(owner, NULL));
@@ -336,8 +336,7 @@ buffer_spool_rr(buffer_type* output, rr_type* rr, int qsection)
 		result = print_rdata(output, d, rr);
 		if (!result) {
 			/* Some RDATA failed to print, so do unknown format. */
-			result = rdata_atoms_to_unknown_string(output, d,
-				rr->rdata_count, rr->rdatas);
+			result = print_rdata(output, d, rr);
 			if(!result) {
 				buffer_printf(output,
 					"rdata_atoms_to_unknown_string failed");

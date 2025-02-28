@@ -335,6 +335,11 @@ rdatas_equal(const rr_type *rr1, const rr_type *rr2, uint16_t type,
 	size_t offset = 0;
 	const nsd_type_descriptor_type *descriptor;
 
+	if(rr1->rdlength != rr2->rdlength) {
+		*rdnum = 0;
+		*reason = "rr length different";
+		return 0;
+	}
 	assert(rr1->rdlength == rr2->rdlength);
 
 	/**
@@ -343,6 +348,11 @@ rdatas_equal(const rr_type *rr1, const rr_type *rr2, uint16_t type,
 	 **/
 	if (type == TYPE_SOA) {
 		offset = 2 * sizeof(void*);
+		if(rr1->rdlength != offset + 20) {
+			*rdnum = 0;
+			*reason = "invalid SOA length";
+			return 0;
+		}
 		assert(rr1->rdlength == offset + 20);
 		if (memcmp(rr1->rdata + offset, rr2->rdata + offset, 4) == 0)
 			return 1;

@@ -657,6 +657,7 @@ parse_rr_str(struct zone *zone, char *input, struct parse_rr_state *state)
 
 	length = strlen(input);
 	string = malloc(length + 1 + ZONE_BLOCK_SIZE);
+	memset(string, 0, length + 1 + ZONE_BLOCK_SIZE);
 	memcpy(string, input, length);
 	string[length] = 0;
 
