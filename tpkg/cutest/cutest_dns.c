@@ -28,14 +28,23 @@ static void dns_1(CuTest *tc)
 {
 	/* Check consistency of rrtype descriptor table. */
 	int i;
-	struct rrtype_descriptor* d;
-	struct rrtype_descriptor* start = rrtype_descriptor_by_type(0);
+	const struct nsd_type_descriptor* d;
+	const struct nsd_type_descriptor* start = nsd_type_descriptor(0);
 	for (i = 0; i < RRTYPE_DESCRIPTORS_LENGTH; ++i) {
-		struct rrtype_descriptor* d = rrtype_descriptor_by_type(i);
-		CuAssert(tc, "dns rrtype descriptor: type", i == d->type);
-		CuAssert(tc, "dns rrtype descriptor: offset", i == d - start);
+		const struct nsd_type_descriptor* d = start+i;
+		const struct nsd_type_descriptor* lookup = nsd_type_descriptor(
+			d->type);
+
+		if(i <= 264) {
+			CuAssert(tc, "dns rrtype descriptor: index",
+				i == d->type);
+			CuAssert(tc, "dns rrtype descriptor: offset",
+				i == d - start);
+		}
+		CuAssert(tc, "dns rrtype descriptor: type",
+			lookup->type == d->type);
 	}
 
-	d = rrtype_descriptor_by_type(TYPE_NSEC3);
+	d = nsd_type_descriptor(TYPE_NSEC3);
 	CuAssert(tc, "dns rrtype descriptor: type nsec3", d->type == TYPE_NSEC3);
 }
