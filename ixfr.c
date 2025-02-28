@@ -1423,7 +1423,8 @@ int ixfr_store_oldsoa_uncompressed(struct ixfr_store* ixfr_store,
 	uint8_t* dname, size_t dname_len, uint16_t type, uint16_t klass,
 	uint32_t ttl, uint8_t* rdata, size_t rdata_len)
 {
-	size_t capacity = 0;
+	uint32_t serial;
+	size_t capacity = 0, index, count = 0;
 	if(ixfr_store->cancelled)
 		return 1;
 	if(!ixfr_storerr_uncompressed(dname, dname_len, type, klass,
@@ -1431,8 +1432,6 @@ int ixfr_store_oldsoa_uncompressed(struct ixfr_store* ixfr_store,
 		&ixfr_store->data->oldsoa_len, &capacity))
 		return 0;
 	{
-		uint32_t serial;
-		size_t index, count = 0;
 		if (!(count = skip_dname(rdata, rdata_len)))
 			return 0;
 		index = count;
