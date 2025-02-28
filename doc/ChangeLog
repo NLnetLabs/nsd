@@ -1,3 +1,15 @@
+19 February 2025: Wouter
+	- Fix for #430: Confusing documentation: word "outgoing". Add wording
+	  to tcp-count, xfrd-tcp-max, xfrd-tcp-pipeline options.
+
+18 February 2025: Wouter
+	- Fix for #430: Confusing documentation: word "outgoing".
+
+11 February 2025: Willem
+	- Merge #420: Zones get state "old-serial" with
+	  `nsd-control zonestatus` when the served serial is older than
+	  the one received by the transfer daemon.
+
 23 January 2025: Willem
 	- Merge #418: Support for DSYNC, EID, NIMLOC, SINK, TALINK, DOA,
 	  AMTRELAY and IPN resource record types.
