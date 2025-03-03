@@ -16,6 +16,8 @@ BUG FIXES:
 	- Fix for #430: Confusing documentation: word "outgoing".
 	- Fix for #430: Confusing documentation: word "outgoing". Add wording
 	  to tcp-count, xfrd-tcp-max, xfrd-tcp-pipeline options.
+	- Fix that nsec3 prehash after a full transfer can create the nsec3
+	  zone trees if they are needed.
 
 4.11.1
 ================

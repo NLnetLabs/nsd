@@ -661,6 +661,7 @@ prehash_zone_complete(struct namedb* db, struct zone* zone)
 		zone->nsec3_last = NULL;
 		return;
 	}
+	nsec3_zone_trees_create(db->region, zone);
 	nsec3_precompile_newparam(db, zone);
 }
 
