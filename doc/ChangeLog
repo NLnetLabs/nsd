@@ -1,3 +1,7 @@
+3 March 2025: Wouter
+	- Fix that nsec3 prehash after a full transfer can create the nsec3
+	  zone trees if they are needed.
+
 19 February 2025: Wouter
 	- Fix for #430: Confusing documentation: word "outgoing". Add wording
 	  to tcp-count, xfrd-tcp-max, xfrd-tcp-pipeline options.
