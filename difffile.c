@@ -450,6 +450,7 @@ debug_find_rr_num(rrset_type* rrset, uint16_t type, uint16_t klass,
 				dname_to_string(domain_dname(rrset->rrs[i]->owner),0),
 				rrtype_to_string(type),	i,
 				rrtype_to_string(rrset->rrs[i]->type));
+			continue; /* rdata equality needs same type. */
 		}
 		if (rrset->rrs[i]->klass != klass) {
 			log_msg(LOG_WARNING, "diff: RR <%s, %s> class %d "
@@ -458,6 +459,7 @@ debug_find_rr_num(rrset_type* rrset, uint16_t type, uint16_t klass,
 				rrtype_to_string(type),
 				klass, i,
 				rrset->rrs[i]->klass);
+			continue;
 		}
 		if (rrset->rrs[i]->rdlength != rr->rdlength) {
 			log_msg(LOG_WARNING, "diff: RR <%s, %s> rdlen %u "

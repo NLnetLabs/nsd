@@ -568,7 +568,7 @@ int compare_rr_rdata(const nsd_type_descriptor_type *descriptor,
  * Compare rdata for equality. This is easier than the sorted compare,
  * it treats field types as a difference too, so a reference instead of
  * a wireformat field makes for a different RR.
- * The RRs have to be the same type alrady.
+ * The RRs have to be the same type already.
  * It iterates over the RR type fields. The RRs and the rdatas are the
  * namedb format, that is with references stored as pointers.
  * @param rr1: RR to compare rdata 1. The rdata can contain pointers.
