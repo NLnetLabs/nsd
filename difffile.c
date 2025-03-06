@@ -879,7 +879,6 @@ add_RR(namedb_type* db, const dname_type* dname,
 	rr->type = type;
 	rr->klass = klass;
 	rr->ttl = ttl;
-	rr->rdlength = (uint16_t)rdata_num;
 
 	/* Now that the RR has been read with its RRtype specific read
 	 * routine, store the read data and rdata, for an ixfr store. */

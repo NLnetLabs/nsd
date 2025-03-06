@@ -292,7 +292,6 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 	rr->type = type;
 	rr->klass = class;
 	rr->ttl = ttl;
-	rr->rdlength = (uint16_t)code;
 
 	return rr;
 }
