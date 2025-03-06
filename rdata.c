@@ -978,8 +978,10 @@ print_svcparam(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	}
 
 	buffer_printf(output, "key%" PRIu16, key);
-	if (!length)
+	if (!length) {
+		*offset += 4;
 		return 1;
+	}
 
 	buffer_write(output, "=\"", 2);
 	dp = rdata + *offset + 4;
