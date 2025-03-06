@@ -163,6 +163,17 @@ struct nsd_options {
 	/** certificate file for nsd-control */
 	char* control_cert_file;
 
+#ifdef USE_XDP
+	/** XDP interface name */
+	const char* xdp_interface;
+	/** XDP/eBPF program file path */
+	const char* xdp_program_path;
+	/** if NSD should load the XDP/eBPF program */
+	int xdp_program_load;
+	/** path to bpffs for pinned BPF objects */
+	const char* xdp_bpffs_path;
+#endif
+
 #ifdef RATELIMIT
 	/** number of buckets in rrl hashtable */
 	size_t rrl_size;
