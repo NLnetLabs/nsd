@@ -963,7 +963,7 @@ print_svcparam(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	key = read_uint16(rdata + *offset);
 	length = read_uint16(rdata + *offset + 2);
 
-	if (rdlength - *offset <= length + 4)
+	if (rdlength - *offset < length + 4)
 		return 0; /* wireformat error */
 
 	if(length == 0 && svcparam_must_have_value(key))
@@ -971,7 +971,7 @@ print_svcparam(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	if(length != 0 && svcparam_must_not_have_value(key))
 		return 0;
 	if (key < sizeof(svcparams)/sizeof(svcparams[0])) {
-		if(!svcparams[key].print_rdata(output, key, rdata+4, length))
+		if(!svcparams[key].print_rdata(output, key, rdata+*offset+4, length))
 			return 0;
 		*offset += length+4;
 		return 1;
@@ -3165,7 +3165,7 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 		return MALFORMED;
 	if(rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
-	length += target.dname.name_size;
+	length = buffer_position(packet)-mark;
 	if(!skip_svcparams(packet, rdlength-length))
 		return MALFORMED;
 	if(rdlength < buffer_position(packet) - mark)
@@ -3179,7 +3179,8 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 	domain->usage++;
 	buffer_read_at(packet, mark, (*rr)->rdata, 2);
 	memcpy((*rr)->rdata + 2, &domain, sizeof(void*));
-	buffer_read_at(packet, mark + length, (*rr)->rdata, svcparams_length);
+	buffer_read_at(packet, mark + length, (*rr)->rdata + 2 + sizeof(void*),
+		svcparams_length);
 	(*rr)->rdlength = 2 + sizeof(void*) + svcparams_length;
 	return rdlength;
 }
@@ -3209,9 +3210,11 @@ print_svcb_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
 	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	while (length < rr->rdlength)
+	while (length < rr->rdlength) {
+		buffer_printf(output, " ");
 		if (!print_svcparam(output, rr->rdlength, rr->rdata, &length))
 			return 0;
+	}
 	assert(rr->rdlength == length);
 	return 1;
 }
