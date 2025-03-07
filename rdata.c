@@ -3193,11 +3193,16 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 	if(rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 	length = buffer_position(packet)-mark;
+	/* For secondary, the server should accept the wireformat more
+	 * leniently. So this check is skipped. */
+	/*
 	if(!skip_svcparams(packet, rdlength-length))
 		return MALFORMED;
 	if(rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
+	*/
 	svcparams_length = rdlength - length;
+	buffer_skip(packet, svcparams_length);
 
 	size = sizeof(**rr) + 2 + sizeof(void*) + svcparams_length;
 	if (!(*rr = region_alloc(domains->region, size)))
