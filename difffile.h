@@ -58,7 +58,7 @@ int diff_read_str(FILE* in, char* buf, size_t len);
 void delete_zone_rrs(namedb_type* db, zone_type* zone);
 /* delete an RR */
 int delete_RR(namedb_type* db, const dname_type* dname,
-	uint16_t type, uint16_t klass,
+	uint16_t type, uint16_t klass, uint32_t ttl,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
 	region_type* temp_region, int* softfail,
 	struct ixfr_store* ixfr_store);

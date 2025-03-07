@@ -722,7 +722,7 @@ rrset_lower_usage(namedb_type* db, rrset_type* rrset)
 
 int
 delete_RR(namedb_type* db, const dname_type* dname,
-	uint16_t type, uint16_t klass,
+	uint16_t type, uint16_t klass, uint32_t ttl,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
 	region_type* temp_region, int* softfail, struct ixfr_store* ixfr_store)
 {
@@ -760,6 +760,10 @@ delete_RR(namedb_type* db, const dname_type* dname,
 				rrtype_to_string(type));
 			return 0;
 		}
+		rr->owner = domain;
+		rr->type = type;
+		rr->klass = klass;
+		rr->ttl = ttl;
 
 		/* Now that the RR has been read with its RRtype specific read
 		 * routine, store the read data and rdata, for an ixfr store.
@@ -1269,7 +1273,7 @@ axfr:
 		if(*delete_mode) {
 			assert(!*is_axfr);
 			/* delete this rr */
-			if(!delete_RR(nsd->db, owner, type, klass, packet,
+			if(!delete_RR(nsd->db, owner, type, klass, ttl, packet,
 				rrlen, zone, region, softfail, ixfr_store)) {
 				region_destroy(region);
 				return 0;

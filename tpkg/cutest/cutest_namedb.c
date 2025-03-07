@@ -724,7 +724,7 @@ del_str(namedb_type* db, zone_type* zone, char* str)
 		exit(1);
 	}
 	buffer_create_from(&buffer, state.rdata, state.rdlength);
-	if(!delete_RR(db, state.owner, state.type, state.class,
+	if(!delete_RR(db, state.owner, state.type, state.class, state.ttl,
 		&buffer, state.rdlength, zone, state.region, &softfail, NULL)) {
 		printf("cannot delete RR: %s\n", str);
 		exit(1);
