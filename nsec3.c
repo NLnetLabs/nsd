@@ -237,7 +237,7 @@ static void
 nsec3param_to_str(struct rr* rr, char* str, size_t buflen)
 {
 	size_t len;
-	if(rr->rdlength < 6) {
+	if(rr->rdlength < 5) {
 		str[0]=0;
 		return;
 	}
@@ -265,7 +265,7 @@ db_find_nsec3param(struct namedb* db, struct zone* z, struct rr* avoid_rr,
 	for(i=0; i<rrset->rr_count; i++) {
 		/* do not use the RR that is going to be deleted (in IXFR) */
 		if(rrset->rrs[i] == avoid_rr) continue;
-		if(rrset->rrs[i]->rdlength < 6) continue; /* require salt field */
+		if(rrset->rrs[i]->rdlength < 5) continue; /* require salt field */
 		if(rrset->rrs[i]->rdata[0] == NSEC3_SHA1_HASH &&
 			rrset->rrs[i]->rdata[1] == 0) {
 			if(checkchain) {
@@ -303,7 +303,7 @@ nsec3_find_zone_param(struct namedb* db, struct zone* zone,
 static int
 nsec3_rdata_params_ok(const rr_type *prr, const rr_type* rr)
 {
-	return prr->rdlength == rr->rdlength &&
+	return prr->rdlength <= rr->rdlength &&
 	       (memcmp(prr->rdata, rr->rdata, prr->rdlength) == 0);
 }
 
