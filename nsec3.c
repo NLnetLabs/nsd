@@ -303,8 +303,12 @@ nsec3_find_zone_param(struct namedb* db, struct zone* zone,
 static int
 nsec3_rdata_params_ok(const rr_type *prr, const rr_type* rr)
 {
-	return prr->rdlength <= rr->rdlength &&
-	       (memcmp(prr->rdata, rr->rdata, prr->rdlength) == 0);
+	if(prr->rdlength > rr->rdlength)
+		return 0; /* The salt has to fit */
+	if(prr->rdlength < 5)
+		return 0; /* Malformed */
+	return prr->rdata[0] == rr->rdata[0] &&
+		(memcmp(prr->rdata+2, rr->rdata+2, prr->rdlength-2) == 0);
 }
 
 int
