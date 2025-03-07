@@ -853,9 +853,9 @@ print_svcparam_ech(struct buffer *output, uint16_t svcparamkey,
 {
 	int length;
 
-	assert(datalen > 0); /* Guaranteed by svcparam_print */
-
 	buffer_print_svcparamkey(output, svcparamkey);
+	if(datalen == 0)
+		return 1;
 	buffer_write_u8(output, '=');
 
 	buffer_reserve(output, datalen * 2 + 1);
