@@ -564,6 +564,8 @@ openssl ocsp -no_nonce \\
 .B tls\-port:\fR <number>
 The port number on which to provide TCP TLS service, default is 853, only
 interfaces configured with that port number as @number get DNS over TLS service.
+UDP service is implicitly turned off for the same port as to not mix encrypted
+and plain text communication.
 .TP
 .B tls\-auth\-port:\fR <number>
 The port number on which to provide TCP TLS service to authenticated clients only.
