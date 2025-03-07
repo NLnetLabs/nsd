@@ -103,6 +103,9 @@ void write_soa_rdata(struct query *query, const struct rr *rr);
 /* Print rdata for type SOA. */
 int print_soa_rdata(struct buffer *output, const struct rr *rr);
 
+/* Print rdata for type SOA, on two lines, with parentheses. */
+int print_soa_rdata_twoline(struct buffer *output, const struct rr *rr);
+
 /* Read rdata for type WKS. */
 int32_t read_wks_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr);

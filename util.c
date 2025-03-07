@@ -943,7 +943,12 @@ print_rr(FILE *out,
 		rrclass_to_string(record->klass),
 		rrtype_to_string(record->type));
 
-	result = print_rdata(output, descriptor, record);
+	if(record->type == TYPE_SOA) {
+		buffer_printf(output, "\t");
+		result = print_soa_rdata_twoline(output, record);
+	} else {
+		result = print_rdata(output, descriptor, record);
+	}
 	if (!result) {
 		/*
 		 * Some RDATA failed to print, so print the record's

@@ -1480,6 +1480,31 @@ print_soa_rdata(struct buffer *output, const struct rr *rr)
 	return 1;
 }
 
+int
+print_soa_rdata_twoline(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	uint32_t serial, refresh, retry, expire, minimum;
+	assert(rr->rdlength == 2 * sizeof(void*) + 20);
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+
+	assert(length == 2 * sizeof(void*));
+	serial = read_uint32(rr->rdata + length);
+	refresh = read_uint32(rr->rdata + length + 4);
+	retry = read_uint32(rr->rdata + length + 8);
+	expire = read_uint32(rr->rdata + length + 12);
+	minimum = read_uint32(rr->rdata + length + 16);
+
+	buffer_printf(
+		output, " (\n\t\t%" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " )",
+		serial, refresh, retry, expire, minimum);
+	return 1;
+}
+
 int32_t
 read_wks_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
