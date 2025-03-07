@@ -1991,9 +1991,10 @@ static int print_rr_oneline(struct buffer* rr_buffer, const dname_type* dname,
 	buffer_printf(rr_buffer, "%s", dname_to_string(dname, NULL));
 	buffer_printf(rr_buffer, "\t%lu\t%s\t%s", (unsigned long)rr->ttl,
 		rrclass_to_string(rr->klass), rrtype_to_string(rr->type));
-	if (!print_rdata(rr_buffer, descriptor, rr) ||
-	    !print_unknown_rdata(rr_buffer, descriptor, rr))
-		return 0;
+	if (!print_rdata(rr_buffer, descriptor, rr)) {
+		if(!print_unknown_rdata(rr_buffer, descriptor, rr))
+			return 0;
+	}
 	return 1;
 }
 
