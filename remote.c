@@ -82,6 +82,10 @@
 #include "ipc.h"
 #include "remote.h"
 
+#ifdef USE_METRICS
+#include "metrics.h"
+#endif /* USE_METRICS */
+
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>
 #endif
@@ -220,11 +224,6 @@ remote_accept_callback(int fd, short event, void* arg);
 /** perform remote control */
 static void
 remote_control_callback(int fd, short event, void* arg);
-
-#ifdef BIND8_STATS
-/* process the statistics and output them */
-static void process_stats(RES* ssl, xfrd_state_type* xfrd, int peek);
-#endif
 
 /** ---- end of private defines ---- **/
 
@@ -1266,7 +1265,7 @@ static void
 do_stats(RES* ssl, xfrd_state_type* xfrd, int peek)
 {
 #ifdef BIND8_STATS
-	process_stats(ssl, xfrd, peek);
+	process_stats(ssl, NULL, xfrd, peek);
 #else
 	(void)xfrd; (void)peek;
 	(void)ssl_printf(ssl, "error no stats enabled at compile time\n");
@@ -3201,9 +3200,8 @@ process_stats_add_total(struct xfrd_state* xfrd, struct nsdst* total,
 	}
 }
 
-/* process the statistics and output them */
-static void
-process_stats(RES* ssl, xfrd_state_type* xfrd, int peek)
+void
+process_stats(RES* ssl, struct evbuffer *evbuf, struct xfrd_state* xfrd, int peek)
 {
 	struct timeval stattime;
 	struct nsdst* stats, *zonestats[2], total;
@@ -3213,7 +3211,12 @@ process_stats(RES* ssl, xfrd_state_type* xfrd, int peek)
 	process_stats_add_old_new(xfrd, stats);
 	process_stats_manage_clear(xfrd, stats, peek);
 	process_stats_add_total(xfrd, &total, stats);
-	print_stats(ssl, xfrd, &stattime, !peek, &total, zonestats);
+	if (ssl) {
+		print_stats(ssl, xfrd, &stattime, !peek, &total, zonestats);
+	}
+	if (evbuf) {
+		metrics_print_stats(evbuf, xfrd, &stattime, !peek, &total, zonestats);
+	}
 	if(!peek) {
 		xfrd->nsd->rc->stats_time = stattime;
 	}

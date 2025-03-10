@@ -50,7 +50,12 @@ struct nsd_options;
 
 #ifdef BIND8_STATS
 struct nsdst;
+struct remote_stream;
 #endif /* BIND8_STATS */
+
+#ifdef USE_METRICS
+struct evbuffer;
+#endif /* USE_METRICS */
 
 /* private, defined in remote.c to keep ssl.h out of this header */
 struct daemon_remote;
@@ -143,7 +148,7 @@ void process_stats_add_old_new(struct xfrd_state* xfrd, struct nsdst* stats);
  * Manage clearing of stats, a cumulative count of cleared statistics
  * @param xfrd: the process that hosts the control connection.
  * @param stats: the stats pointer
- * @param zonestats: the zonestats pointer
+ * @param peek: whether to reset the stats time (0) or not (1)
  */
 void
 process_stats_manage_clear(struct xfrd_state* xfrd,
@@ -159,6 +164,18 @@ process_stats_manage_clear(struct xfrd_state* xfrd,
 void process_stats_add_total(struct xfrd_state* xfrd,
                              struct nsdst* total,
                              struct nsdst* stats);
+
+/**
+ * Process the statistics and output them
+ * @param ssl: the remote stream to write normal remote-control output to
+ * @param evbuf: the HTTP buffer to write prometheus metrics output to
+ * @param xfrd: the process that hosts the control connection.
+ * @param peek: whether to reset the stats time (0) or not (1)
+ */
+void process_stats(struct remote_stream* ssl,
+                   struct evbuffer* evbuf,
+                   struct xfrd_state* xfrd,
+                   int peek);
 
 #endif /* BIND8_STATS */
 

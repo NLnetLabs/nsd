@@ -64,11 +64,6 @@ struct daemon_metrics {
 static void
 metrics_http_callback(struct evhttp_request *req, void *p);
 
-#ifdef BIND8_STATS
-static void
-process_stats(struct evbuffer* buf, xfrd_state_type* xfrd, int peek);
-#endif /*BIND8_STATS*/
-
 struct daemon_metrics*
 daemon_metrics_create(struct nsd_options* cfg)
 {
@@ -342,7 +337,7 @@ metrics_http_callback(struct evhttp_request *req, void *p)
 	evhttp_add_header(evhttp_request_get_output_headers(req),
 	                  "Content-Type", "text/plain; version=0.0.4");
 #ifdef BIND8_STATS
-	process_stats(reply, metrics->xfrd, 1);
+	process_stats(NULL, reply, metrics->xfrd, 1);
 	evhttp_send_reply(req, HTTP_OK, NULL, reply);
 	VERBOSITY(3, (LOG_INFO, "metrics operation completed, response sent"));
 #else
@@ -608,9 +603,10 @@ zonestat_print(struct evbuffer *buf, xfrd_state_type* xfrd, int clear,
 }
 #endif /*USE_ZONE_STATS*/
 
-static void
-print_stats(struct evbuffer *buf, xfrd_state_type* xfrd, struct timeval* now, int clear,
-	struct nsdst* st, struct nsdst** zonestats)
+void
+metrics_print_stats(struct evbuffer *buf, xfrd_state_type *xfrd,
+                    struct timeval *now, int clear, struct nsdst *st,
+                    struct nsdst **zonestats)
 {
 	size_t i;
 	struct timeval elapsed, uptime;
@@ -684,29 +680,6 @@ print_stats(struct evbuffer *buf, xfrd_state_type* xfrd, struct timeval* now, in
 #endif
 }
 
-/** process the statistics and write them into the buffer */
-static void
-process_stats(struct evbuffer *buf, xfrd_state_type *xfrd, int peek)
-{
-	struct timeval stattime;
-	struct nsdst *stats, *zonestats[2], total;
-
-	process_stats_alloc(xfrd, &stats, zonestats);
-	process_stats_grab(xfrd, &stattime, stats, zonestats);
-	process_stats_add_old_new(xfrd, stats);
-	process_stats_manage_clear(xfrd, stats, peek);
-	process_stats_add_total(xfrd, &total, stats);
-	print_stats(buf, xfrd, &stattime, !peek, &total, zonestats);
-	/* if(!peek) { */
-	/*     xfrd->nsd->metrics->stats_time = stattime; */
-	/* } */
-
-	free(stats);
-#ifdef USE_ZONE_STATS
-	free(zonestats[0]);
-	free(zonestats[1]);
-#endif
-}
 #endif /*BIND8_STATS*/
 
 #endif /* USE_METRICS */

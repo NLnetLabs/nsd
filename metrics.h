@@ -13,6 +13,11 @@
 struct xfrd_state;
 struct nsd_options;
 struct daemon_metrics;
+struct evbuffer;
+
+#ifdef BIND8_STATS
+struct nsdst;
+#endif /* BIND8_STATS */
 
 /* the metrics daemon needs little backlog */
 #define TCP_BACKLOG_METRICS 16 /* listen() tcp backlog */
@@ -53,5 +58,22 @@ int daemon_metrics_open_ports(struct daemon_metrics* m,
  *	m's HTTP listener is attached to its event base.
  */
 void daemon_metrics_attach(struct daemon_metrics* m, struct xfrd_state* xfrd);
+
+#ifdef BIND8_STATS
+/**
+ * Print stats as prometheus metrics to HTTP buffer
+ * @param buf: the HTTP buffer to write to
+ * @param xfrd: the process that hosts the daemon.
+ * @param now: current time
+ * @param clear: whether to reset the stats time
+ * @param st: the stats
+ * @param zonestats: the zonestats
+ * @param rc_stats_time: pointer to the remote-control stats_time member
+ *   to correctly print the elapsed time since last stats reset
+ */
+void metrics_print_stats(struct evbuffer *buf, struct xfrd_state *xfrd,
+                         struct timeval *now, int clear, struct nsdst *st,
+                         struct nsdst **zonestats);
+#endif /*BIND8_STATS*/
 
 #endif /* DAEMON_METRICS_H */
