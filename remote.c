@@ -3042,9 +3042,13 @@ zonestat_print(RES *ssl, struct evbuffer *evbuf, xfrd_state_type *xfrd,
 			print_stat_block(ssl, name, ".", &stat0);
 		}
 
+#ifdef USE_METRICS
 		if (evbuf) {
 			metrics_zonestat_print_one(evbuf, name, &stat0);
 		}
+#else
+		(void)evbuf;
+#endif /* USE_METRICS */
 	}
 }
 #endif /* USE_ZONE_STATS */
@@ -3220,10 +3224,14 @@ process_stats(RES* ssl, struct evbuffer *evbuf, struct xfrd_state* xfrd, int pee
 	if (ssl) {
 		print_stats(ssl, xfrd, &stattime, !peek, &total, zonestats);
 	}
+#ifdef USE_METRICS
 	if (evbuf) {
 		metrics_print_stats(evbuf, xfrd, &stattime, !peek, &total, zonestats,
 		                    &xfrd->nsd->rc->stats_time);
 	}
+#else
+	(void)evbuf;
+#endif /* USE_METRICS */
 	if(!peek) {
 		xfrd->nsd->rc->stats_time = stattime;
 	}

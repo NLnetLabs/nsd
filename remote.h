@@ -51,11 +51,8 @@ struct nsd_options;
 #ifdef BIND8_STATS
 struct nsdst;
 struct remote_stream;
-#endif /* BIND8_STATS */
-
-#ifdef USE_METRICS
 struct evbuffer;
-#endif /* USE_METRICS */
+#endif /* BIND8_STATS */
 
 /* private, defined in remote.c to keep ssl.h out of this header */
 struct daemon_remote;
