@@ -297,7 +297,7 @@ server:
 	# Port number for the HTTP metrics endpoint. Default is 9100.
 	# metrics-port: 9100
 
-	# HTTP path for the metrics endpoint. Default is /metrics.
+	# HTTP path for the metrics endpoint. Default is "/metrics".
 	# metrics-path: "/metrics"
 
 verify:

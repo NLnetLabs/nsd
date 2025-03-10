@@ -626,7 +626,7 @@ Default is 127.0.0.1 and ::1.
 The port number for the HTTP service. Default is 9100.
 .TP
 .B metrics\-path:\fR <string>
-The HTTP path to expose the metrics at. Default is /metrics.
+The HTTP path to expose the metrics at. Default is "/metrics".
 .SS "Remote Control"
 The
 .B remote\-control:
