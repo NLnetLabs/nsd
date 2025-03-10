@@ -365,18 +365,6 @@ timeval_subtract(struct timeval* d, const struct timeval* end,
 	d->tv_usec = end_usec - start->tv_usec;
 #endif
 }
-static const char*
-opcode2str(int o)
-{
-	switch(o) {
-		case OPCODE_QUERY: return "QUERY";
-		case OPCODE_IQUERY: return "IQUERY";
-		case OPCODE_STATUS: return "STATUS";
-		case OPCODE_NOTIFY: return "NOTIFY";
-		case OPCODE_UPDATE: return "UPDATE";
-		default: return "OTHER";
-	}
-}
 
 /** print long number*/
 static int

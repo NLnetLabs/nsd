@@ -2842,7 +2842,7 @@ remote_control_callback(int fd, short event, void* arg)
 }
 
 #ifdef BIND8_STATS
-static const char*
+const char*
 opcode2str(int o)
 {
 	switch(o) {

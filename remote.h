@@ -177,6 +177,8 @@ void process_stats(struct remote_stream* ssl,
                    struct xfrd_state* xfrd,
                    int peek);
 
+const char* opcode2str(int o);
+
 #endif /* BIND8_STATS */
 
 #endif /* DAEMON_REMOTE_H */
