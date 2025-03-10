@@ -8,7 +8,7 @@ We recommend using the :command:`nsd-checkzone` tool to verify that you have a w
 Creating a zone
 ---------------
 
-A minimal zone needs exactly one SOA (Source Of Authority) and one or more NS (Name Server) records. Refer to appropriate documentation of you need to learn about DNS basics.
+A minimal zone needs exactly one SOA (Source Of Authority) and one or more NS (Name Server) records. Refer to appropriate documentation if you need to learn about DNS basics.
 
 .. code:: bash
 
