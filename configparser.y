@@ -139,6 +139,10 @@ struct component {
 %token VAR_DROP_UPDATES
 %token VAR_XFRD_TCP_MAX
 %token VAR_XFRD_TCP_PIPELINE
+%token VAR_METRICS_ENABLE
+%token VAR_METRICS_INTERFACE
+%token VAR_METRICS_PORT
+%token VAR_METRICS_PATH
 
 /* dnstap */
 %token VAR_DNSTAP
@@ -587,6 +591,40 @@ server_option:
           }
         }
       }
+    }
+  | VAR_METRICS_ENABLE boolean
+    {
+#ifdef USE_METRICS
+      cfg_parser->opt->metrics_enable = $2;
+#endif /* USE_METRICS */
+    }
+  | VAR_METRICS_INTERFACE ip_address
+    {
+#ifdef USE_METRICS
+      struct ip_address_option *ip = cfg_parser->opt->metrics_interface;
+      if(ip == NULL) {
+        cfg_parser->opt->metrics_interface = $2;
+      } else {
+        while(ip->next != NULL) { ip = ip->next; }
+        ip->next = $2;
+      }
+#endif /* USE_METRICS */
+    }
+  | VAR_METRICS_PORT number
+    {
+#ifdef USE_METRICS
+      if($2 == 0) {
+        yyerror("metrics port number expected");
+      } else {
+        cfg_parser->opt->metrics_port = (int)$2;
+      }
+#endif /* USE_METRICS */
+    }
+  | VAR_METRICS_PATH STRING
+    {
+#ifdef USE_METRICS
+      cfg_parser->opt->metrics_path = region_strdup(cfg_parser->opt->region, $2);
+#endif /* USE_METRICS */
     }
   ;
 
