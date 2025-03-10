@@ -526,7 +526,7 @@ const nsd_type_descriptor_type type_descriptors[] = {
 		print_name_rdata, mf_rdata_fields),
 	/* 5 */
 	TYPE("CNAME", TYPE_CNAME, TYPE_HAS_COMPRESSED_DNAME,
-		read_uncompressed_name_rdata, write_uncompressed_name_rdata,
+		read_compressed_name_rdata, write_compressed_name_rdata,
 		print_name_rdata, cname_rdata_fields),
 	/* 6 */
 	TYPE("SOA", TYPE_SOA, TYPE_HAS_COMPRESSED_DNAME,
