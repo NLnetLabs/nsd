@@ -246,7 +246,7 @@ log_crypto_err(const char* str)
 
 #ifdef BIND8_STATS
 /** subtract timers and the values do not overflow or become negative */
-static void
+void
 timeval_subtract(struct timeval* d, const struct timeval* end, 
 	const struct timeval* start)
 {

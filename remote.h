@@ -179,6 +179,9 @@ void process_stats(struct remote_stream* ssl,
 
 const char* opcode2str(int o);
 
+void timeval_subtract(struct timeval *d, const struct timeval *end,
+                      const struct timeval *start);
+
 #endif /* BIND8_STATS */
 
 #endif /* DAEMON_REMOTE_H */

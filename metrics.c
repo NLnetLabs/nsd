@@ -350,22 +350,6 @@ metrics_http_callback(struct evhttp_request *req, void *p)
 }
 
 #ifdef BIND8_STATS
-/** subtract timers and the values do not overflow or become negative */
-static void
-timeval_subtract(struct timeval* d, const struct timeval* end,
-	const struct timeval* start)
-{
-#ifndef S_SPLINT_S
-	time_t end_usec = end->tv_usec;
-	d->tv_sec = end->tv_sec - start->tv_sec;
-	if(end_usec < start->tv_usec) {
-		end_usec += 1000000;
-		d->tv_sec--;
-	}
-	d->tv_usec = end_usec - start->tv_usec;
-#endif
-}
-
 /** print long number*/
 static int
 print_longnum(struct evbuffer *buf, char* desc, uint64_t x)
