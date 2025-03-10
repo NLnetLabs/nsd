@@ -3105,10 +3105,8 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear,
 #endif
 }
 
-/* allocate stats temp arrays, for taking a coherent snapshot of the
- * statistics values at that time. */
-static void
-process_stats_alloc(xfrd_state_type* xfrd, struct nsdst** stats,
+void
+process_stats_alloc(struct xfrd_state* xfrd, struct nsdst** stats,
 	struct nsdst** zonestats)
 {
 	*stats = xmallocarray(xfrd->nsd->child_count*2, sizeof(struct nsdst));
@@ -3120,9 +3118,8 @@ process_stats_alloc(xfrd_state_type* xfrd, struct nsdst** stats,
 #endif
 }
 
-/* grab a copy of the statistics, at this particular time. */
-static void
-process_stats_grab(xfrd_state_type* xfrd, struct timeval* stattime,
+void
+process_stats_grab(struct xfrd_state* xfrd, struct timeval* stattime,
 	struct nsdst* stats, struct nsdst** zonestats)
 {
 	if(gettimeofday(stattime, NULL) == -1)
@@ -3139,10 +3136,8 @@ process_stats_grab(xfrd_state_type* xfrd, struct timeval* stattime,
 #endif
 }
 
-/* add the old and new processes stat values into the first part of the
- * array of stats */
-static void
-process_stats_add_old_new(xfrd_state_type* xfrd, struct nsdst* stats)
+void
+process_stats_add_old_new(struct xfrd_state* xfrd, struct nsdst* stats)
 {
 	size_t i;
 	uint64_t dbd = stats[0].db_disk;
@@ -3158,9 +3153,8 @@ process_stats_add_old_new(xfrd_state_type* xfrd, struct nsdst* stats)
 	stats[0].db_mem = dbm;
 }
 
-/* manage clearing of stats, a cumulative count of cleared statistics */
-static void
-process_stats_manage_clear(xfrd_state_type* xfrd, struct nsdst* stats,
+void
+process_stats_manage_clear(struct xfrd_state* xfrd, struct nsdst* stats,
 	int peek)
 {
 	struct nsdst st;
@@ -3189,9 +3183,8 @@ process_stats_manage_clear(xfrd_state_type* xfrd, struct nsdst* stats,
 	}
 }
 
-/* add up the statistics to get the total over the server children. */
-static void
-process_stats_add_total(xfrd_state_type* xfrd, struct nsdst* total,
+void
+process_stats_add_total(struct xfrd_state* xfrd, struct nsdst* total,
 	struct nsdst* stats)
 {
 	size_t i;

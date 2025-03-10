@@ -684,115 +684,12 @@ print_stats(struct evbuffer *buf, xfrd_state_type* xfrd, struct timeval* now, in
 #endif
 }
 
-/*allocate stats temp arrays, for taking a coherent snapshot of the
- * statistics values at that time.*/
-static void
-process_stats_alloc(xfrd_state_type* xfrd, struct nsdst** stats,
-	struct nsdst** zonestats)
-{
-	*stats = xmallocarray(xfrd->nsd->child_count*2, sizeof(struct nsdst));
-#ifdef USE_ZONE_STATS
-	zonestats[0] = xmallocarray(xfrd->zonestat_safe, sizeof(struct nsdst));
-	zonestats[1] = xmallocarray(xfrd->zonestat_safe, sizeof(struct nsdst));
-#else
-	(void)zonestats;
-#endif
-}
-
-/*grab a copy of the statistics, at this particular time.*/
-static void
-process_stats_grab(xfrd_state_type* xfrd, struct timeval* stattime,
-	struct nsdst* stats, struct nsdst** zonestats)
-{
-	if(gettimeofday(stattime, NULL) == -1)
-		log_msg(LOG_ERR, "gettimeofday: %s", strerror(errno));
-	memcpy(stats, xfrd->nsd->stat_map,
-		xfrd->nsd->child_count*2*sizeof(struct nsdst));
-#ifdef USE_ZONE_STATS
-	memcpy(zonestats[0], xfrd->nsd->zonestat[0],
-		xfrd->zonestat_safe*sizeof(struct nsdst));
-	memcpy(zonestats[1], xfrd->nsd->zonestat[1],
-		xfrd->zonestat_safe*sizeof(struct nsdst));
-#else
-	(void)zonestats;
-#endif
-}
-
-/*add the old and new processes stat values into the first part of the
- * array of stats*/
-static void
-process_stats_add_old_new(xfrd_state_type* xfrd, struct nsdst* stats)
-{
-	size_t i;
-	uint64_t dbd = stats[0].db_disk;
-	uint64_t dbm = stats[0].db_mem;
-	/*The old and new server processes have separate stat blocks,
-	 * and these are added up together. This results in the statistics
-	 * values per server-child. The reload task briefly forks both
-	 * old and new server processes.*/
-	for(i=0; i<xfrd->nsd->child_count; i++) {
-		stats_add(&stats[i], &stats[xfrd->nsd->child_count+i]);
-	}
-	stats[0].db_disk = dbd;
-	stats[0].db_mem = dbm;
-}
-
-/*manage clearing of stats, a cumulative count of cleared statistics*/
-static void
-process_stats_manage_clear(xfrd_state_type* xfrd, struct nsdst* stats,
-	int peek)
-{
-	struct nsdst st;
-	size_t i;
-	if(peek) {
-		/*Subtract the earlier resetted values from the numbers,
-		 * but do not reset the values that are retrieved now.*/
-		if(!xfrd->stat_clear)
-			return; /*nothing to subtract*/
-		for(i=0; i<xfrd->nsd->child_count; i++) {
-			/*subtract cumulative count that has been reset*/
-			stats_subtract(&stats[i], &xfrd->stat_clear[i]);
-		}
-		return;
-	}
-	if(!xfrd->stat_clear)
-		xfrd->stat_clear = region_alloc_zero(xfrd->region,
-			sizeof(struct nsdst)*xfrd->nsd->child_count);
-	for(i=0; i<xfrd->nsd->child_count; i++) {
-		/*store cumulative count copy*/
-		memcpy(&st, &stats[i], sizeof(st));
-		/*subtract cumulative count that has been reset*/
-		stats_subtract(&stats[i], &xfrd->stat_clear[i]);
-		/*store cumulative count in the cleared value array*/
-		memcpy(&xfrd->stat_clear[i], &st, sizeof(st));
-	}
-}
-
-/*add up the statistics to get the total over the server children.*/
-static void
-process_stats_add_total(xfrd_state_type* xfrd, struct nsdst* total,
-	struct nsdst* stats)
-{
-	size_t i;
-	/*copy over the first one, with also the nonadded values.*/
-	memcpy(total, &stats[0], sizeof(*total));
-	xfrd->nsd->children[0].query_count = stats[0].qudp + stats[0].qudp6
-		+ stats[0].ctcp + stats[0].ctcp6 + stats[0].ctls
-		+ stats[0].ctls6;
-	for(i=1; i<xfrd->nsd->child_count; i++) {
-		stats_add(total, &stats[i]);
-		xfrd->nsd->children[i].query_count = stats[i].qudp
-			+ stats[i].qudp6 + stats[i].ctcp + stats[i].ctcp6
-			+ stats[i].ctls + stats[i].ctls6;
-	}
-}
-
 /** process the statistics and write them into the buffer */
 static void
-process_stats(struct evbuffer *buf, xfrd_state_type* xfrd, int peek)
+process_stats(struct evbuffer *buf, xfrd_state_type *xfrd, int peek)
 {
 	struct timeval stattime;
-	struct nsdst* stats, *zonestats[2], total;
+	struct nsdst *stats, *zonestats[2], total;
 
 	process_stats_alloc(xfrd, &stats, zonestats);
 	process_stats_grab(xfrd, &stattime, stats, zonestats);
