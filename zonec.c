@@ -193,7 +193,7 @@ int32_t zonec_accept(
 		rrset = region_alloc(state->database->region, sizeof(*rrset));
 		rrset->zone = state->zone;
 		rrset->rr_count = 0;
-		rrset->rrs = region_alloc(state->database->region, sizeof(*rr));
+		rrset->rrs = region_alloc(state->database->region, sizeof(rr_type*));
 
 		switch (type) {
 			case TYPE_CNAME:
