@@ -75,6 +75,18 @@ void metrics_print_stats(struct evbuffer *buf, struct xfrd_state *xfrd,
                          struct timeval *now, int clear, struct nsdst *st,
                          struct nsdst **zonestats,
                          struct timeval *rc_stats_time);
+
+#ifdef USE_ZONE_STATS
+/**
+ * Print zonestat metrics for a single zonestats object
+ * @param buf: the HTTP buffer to write to
+ * @param name: the zonestats name
+ * @param zst: the stats to print
+ */
+void metrics_zonestat_print_one(struct evbuffer *buf, char *name,
+                                struct nsdst *zst);
+#endif /* USE_ZONE_STATS */
+
 #endif /*BIND8_STATS*/
 
 #endif /* DAEMON_METRICS_H */

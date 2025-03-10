@@ -2990,9 +2990,9 @@ resize_zonestat(xfrd_state_type* xfrd, size_t num)
 	xfrd->zonestat_clear_num = num;
 }
 
-static void
-zonestat_print(RES* ssl, xfrd_state_type* xfrd, int clear,
-	struct nsdst** zonestats)
+void
+zonestat_print(RES *ssl, struct evbuffer *evbuf, xfrd_state_type *xfrd,
+               int clear, struct nsdst **zonestats)
 {
 	struct zonestatname* n;
 	struct nsdst stat0, stat1;
@@ -3034,11 +3034,17 @@ zonestat_print(RES* ssl, xfrd_state_type* xfrd, int clear,
 		}
 
 		/* stat0 contains the details that we want to print */
-		if(!ssl_printf(ssl, "%s%snum.queries=%lu\n", name, ".",
-			(unsigned long)(stat0.qudp + stat0.qudp6 + stat0.ctcp +
-				stat0.ctcp6 + stat0.ctls + stat0.ctls6)))
-			return;
-		print_stat_block(ssl, name, ".", &stat0);
+		if (ssl) {
+			if(!ssl_printf(ssl, "%s%snum.queries=%lu\n", name, ".",
+				(unsigned long)(stat0.qudp + stat0.qudp6 + stat0.ctcp +
+					stat0.ctcp6 + stat0.ctls + stat0.ctls6)))
+				return;
+			print_stat_block(ssl, name, ".", &stat0);
+		}
+
+		if (evbuf) {
+			metrics_zonestat_print_one(evbuf, name, &stat0);
+		}
 	}
 }
 #endif /* USE_ZONE_STATS */
@@ -3098,7 +3104,7 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear,
 	if(!ssl_printf(ssl, "zone.slave=%lu\n", (unsigned long)xfrd->zones->count))
 		return;
 #ifdef USE_ZONE_STATS
-	zonestat_print(ssl, xfrd, clear, zonestats); /* per-zone statistics */
+	zonestat_print(ssl, NULL, xfrd, clear, zonestats); /* per-zone statistics */
 #else
 	(void)clear; (void)zonestats;
 #endif

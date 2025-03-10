@@ -177,6 +177,20 @@ void process_stats(struct remote_stream* ssl,
                    struct xfrd_state* xfrd,
                    int peek);
 
+#ifdef USE_ZONE_STATS
+/**
+ * Process the zonestat statistics and output them
+ * @param ssl: the remote stream to write normal remote-control output to
+ * @param evbuf: the HTTP buffer to write prometheus metrics output to
+ * @param xfrd: the process that hosts the control connection.
+ * @param clear: whether to reset the stats time
+ * @param zonestats: the zonestats pointer
+ */
+void zonestat_print(struct remote_stream *ssl, struct evbuffer *evbuf,
+                    struct xfrd_state *xfrd, int clear,
+                    struct nsdst **zonestats);
+#endif /*USE_ZONE_STATS*/
+
 const char* opcode2str(int o);
 
 void timeval_subtract(struct timeval *d, const struct timeval *end,

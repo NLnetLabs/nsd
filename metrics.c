@@ -505,73 +505,19 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 }
 
 #ifdef USE_ZONE_STATS
-static void
-resize_zonestat(xfrd_state_type* xfrd, size_t num)
+void
+metrics_zonestat_print_one(struct evbuffer *buf, char *name,
+                           struct nsdst *zst)
 {
-	struct nsdst** a = xalloc_array_zero(num, sizeof(struct nsdst*));
-	if(xfrd->zonestat_clear_num != 0)
-		memcpy(a, xfrd->zonestat_clear, xfrd->zonestat_clear_num
-			* sizeof(struct nsdst*));
-	free(xfrd->zonestat_clear);
-	xfrd->zonestat_clear = a;
-	xfrd->zonestat_clear_num = num;
-}
+	char prefix[512] = {0};
+	snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
 
-static void
-zonestat_print(struct evbuffer *buf, xfrd_state_type* xfrd, int clear,
-	struct nsdst** zonestats)
-{
-	struct zonestatname* n;
-	struct nsdst stat0, stat1;
-	RBTREE_FOR(n, struct zonestatname*, xfrd->nsd->options->zonestatnames){
-		char* name = (char*)n->node.key;
-		if(n->id >= xfrd->zonestat_safe)
-			continue; /*newly allocated and reload has not yet
-				done and replied with new size*/
-		if(name == NULL || name[0]==0)
-			continue; /*empty name, do not output*/
-		/*the statistics are stored in two blocks, during reload
-		 * the newly forked processes get the other block to use,
-		 * these blocks are mmapped and are currently in use to
-		 * add statistics to*/
-		memcpy(&stat0, &zonestats[0][n->id], sizeof(stat0));
-		memcpy(&stat1, &zonestats[1][n->id], sizeof(stat1));
-		stats_add(&stat0, &stat1);
-
-		/*save a copy of current (cumulative) stats in stat1*/
-		memcpy(&stat1, &stat0, sizeof(stat1));
-		/*subtract last total of stats that was 'cleared'*/
-		if(n->id < xfrd->zonestat_clear_num &&
-			xfrd->zonestat_clear[n->id])
-			stats_subtract(&stat0, xfrd->zonestat_clear[n->id]);
-		if(clear) {
-			/*extend storage array if needed*/
-			if(n->id >= xfrd->zonestat_clear_num) {
-				if(n->id+1 < xfrd->nsd->options->zonestatnames->count)
-					resize_zonestat(xfrd, xfrd->nsd->options->zonestatnames->count);
-				else
-					resize_zonestat(xfrd, n->id+1);
-			}
-			if(!xfrd->zonestat_clear[n->id])
-				xfrd->zonestat_clear[n->id] = xalloc(
-					sizeof(struct nsdst));
-			/*store last total of stats*/
-			memcpy(xfrd->zonestat_clear[n->id], &stat1,
-				sizeof(struct nsdst));
-		}
-
-		/*stat0 contains the details that we want to print*/
-
-		char prefix[512] = {0};
-		snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
-
-		print_metric_help_and_type(buf, prefix, "queries_total",
-		    "Total number of queries recieved.", "counter");
-		evbuffer_add_printf(buf, "nsd_zonestats_%s_queries_total %lu\n", name,
-			(unsigned long)(stat0.qudp + stat0.qudp6 + stat0.ctcp +
-				stat0.ctcp6 + stat0.ctls + stat0.ctls6));
-		print_stat_block(buf, &stat0, name);
-	}
+	print_metric_help_and_type(buf, prefix, "queries_total",
+		"Total number of queries recieved.", "counter");
+	evbuffer_add_printf(buf, "nsd_zonestats_%s_queries_total %lu\n", name,
+		(unsigned long)(zst->qudp + zst->qudp6 + zst->ctcp +
+			zst->ctcp6 + zst->ctls + zst->ctls6));
+	print_stat_block(buf, zst, name);
 }
 #endif /*USE_ZONE_STATS*/
 
@@ -645,7 +591,7 @@ metrics_print_stats(struct evbuffer *buf, xfrd_state_type *xfrd,
 		(unsigned long)xfrd->zones->count);
 
 #ifdef USE_ZONE_STATS
-	zonestat_print(buf, xfrd, clear, zonestats); /*per-zone statistics*/
+	zonestat_print(NULL, buf, xfrd, clear, zonestats); /*per-zone statistics*/
 #else
 	(void)clear; (void)zonestats;
 #endif
