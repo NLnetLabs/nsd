@@ -317,6 +317,7 @@ daemon_metrics_attach(struct daemon_metrics* metrics, struct xfrd_state* xfrd)
 static void
 metrics_http_callback(struct evhttp_request *req, void *p)
 {
+	struct evbuffer *reply = NULL;
 	struct daemon_metrics *metrics = ((struct metrics_acceptlist *)p)->metrics;
 
 	/* currently only GET requests are supported/allowed */
@@ -326,7 +327,7 @@ metrics_http_callback(struct evhttp_request *req, void *p)
 		return;
 	}
 
-	struct evbuffer *reply = evbuffer_new();
+	reply = evbuffer_new();
 
 	if (!reply) {
 		evhttp_send_error(req, HTTP_INTERNAL, 0);
@@ -379,18 +380,18 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 {
 	size_t i;
 
+	const char* rcstr[] = {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN",
+		"NOTIMP", "REFUSED", "YXDOMAIN", "YXRRSET", "NXRRSET", "NOTAUTH",
+		"NOTZONE", "RCODE11", "RCODE12", "RCODE13", "RCODE14", "RCODE15",
+		"BADVERS"
+	};
+
 	char prefix[512] = {0};
 	if (name) {
 		snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
 	} else {
 		sprintf(prefix, "nsd_");
 	}
-
-	const char* rcstr[] = {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN",
-		"NOTIMP", "REFUSED", "YXDOMAIN", "YXRRSET", "NXRRSET", "NOTAUTH",
-		"NOTZONE", "RCODE11", "RCODE12", "RCODE13", "RCODE14", "RCODE15",
-		"BADVERS"
-	};
 
 	/* nsd_queries_by_type_total */
 	print_metric_help_and_type(buf, prefix, "queries_by_type_total",
