@@ -606,7 +606,7 @@ zonestat_print(struct evbuffer *buf, xfrd_state_type* xfrd, int clear,
 void
 metrics_print_stats(struct evbuffer *buf, xfrd_state_type *xfrd,
                     struct timeval *now, int clear, struct nsdst *st,
-                    struct nsdst **zonestats)
+                    struct nsdst **zonestats, struct timeval *rc_stats_time)
 {
 	size_t i;
 	struct timeval elapsed, uptime;
@@ -624,18 +624,17 @@ metrics_print_stats(struct evbuffer *buf, xfrd_state_type *xfrd,
 
 	/*time elapsed and uptime (in seconds)*/
 	timeval_subtract(&uptime, now, &xfrd->nsd->metrics->boot_time);
-	timeval_subtract(&elapsed, now, &xfrd->nsd->metrics->stats_time);
+	timeval_subtract(&elapsed, now, rc_stats_time);
 	print_metric_help_and_type(buf, "nsd_", "time_up_seconds_total",
 	                           "Uptime since server boot in seconds.", "counter");
 	evbuffer_add_printf(buf, "nsd_time_up_seconds_total %lu.%6.6lu\n",
 		(unsigned long)uptime.tv_sec, (unsigned long)uptime.tv_usec);
-	/* TODO: re-add when elapsed time resetting on nsd-control stats is implemented
 	print_metric_help_and_type(buf, "nsd_", "time_elapsed_seconds",
-	                           "Time since last statistics printout in seconds.",
+	                           "Time since last statistics printout and reset "
+	                           "(by nsd-control stats) in seconds.",
 	                           "untyped");
 	evbuffer_add_printf(buf, "nsd_time_elapsed_seconds %lu.%6.6lu\n",
 		(unsigned long)elapsed.tv_sec, (unsigned long)elapsed.tv_usec);
-	*/
 
 	/*mem info, database on disksize*/
 	print_metric_help_and_type(buf, "nsd_", "size_db_on_disk_bytes",

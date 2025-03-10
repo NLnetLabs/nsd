@@ -3215,7 +3215,8 @@ process_stats(RES* ssl, struct evbuffer *evbuf, struct xfrd_state* xfrd, int pee
 		print_stats(ssl, xfrd, &stattime, !peek, &total, zonestats);
 	}
 	if (evbuf) {
-		metrics_print_stats(evbuf, xfrd, &stattime, !peek, &total, zonestats);
+		metrics_print_stats(evbuf, xfrd, &stattime, !peek, &total, zonestats,
+		                    &xfrd->nsd->rc->stats_time);
 	}
 	if(!peek) {
 		xfrd->nsd->rc->stats_time = stattime;

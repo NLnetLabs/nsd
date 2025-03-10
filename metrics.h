@@ -73,7 +73,8 @@ void daemon_metrics_attach(struct daemon_metrics* m, struct xfrd_state* xfrd);
  */
 void metrics_print_stats(struct evbuffer *buf, struct xfrd_state *xfrd,
                          struct timeval *now, int clear, struct nsdst *st,
-                         struct nsdst **zonestats);
+                         struct nsdst **zonestats,
+                         struct timeval *rc_stats_time);
 #endif /*BIND8_STATS*/
 
 #endif /* DAEMON_METRICS_H */
