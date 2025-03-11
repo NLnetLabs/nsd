@@ -3216,6 +3216,10 @@ process_stats(RES* ssl, struct evbuffer *evbuf, struct xfrd_state* xfrd, int pee
 	struct timeval stattime;
 	struct nsdst* stats, *zonestats[2], total;
 
+	/* it only really makes sense for one to be used at a time and would
+	 * otherwise cause issues if peek is zero */
+	assert((ssl && !evbuf) || (!ssl && evbuf));
+
 	process_stats_alloc(xfrd, &stats, zonestats);
 	process_stats_grab(xfrd, &stattime, stats, zonestats);
 	process_stats_add_old_new(xfrd, stats);
