@@ -169,6 +169,7 @@ check_zone_mem(const char* tf, struct zone_options* zo,
 	/* init*/
 	memset(&zmem, 0, sizeof(zmem));
 	memset(&nsd, 0, sizeof(nsd));
+	nsd.region = region_create(xalloc, free);
 	nsd.db = db = namedb_open(opt);
 	if(!db) error("cannot open namedb");
 	zone = namedb_zone_create(db, dname, zo);
@@ -188,6 +189,7 @@ check_zone_mem(const char* tf, struct zone_options* zo,
 	namedb_close(db);
 	udb_base_free(taskudb);
 	unlink(tf);
+	region_destroy(nsd.region);
 
 	/* add up totals */
 	add_mem(totmem, &zmem);
@@ -211,6 +213,8 @@ check_mem(struct nsd_options* opt)
 	account_total(opt, &totmem);
 	/* print statistics */
 	print_tot_mem(&totmem);
+
+	nsd_options_destroy(opt);
 }
 
 /* dummy functions to link */

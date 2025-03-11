@@ -18,6 +18,7 @@ BUG FIXES:
 	  to tcp-count, xfrd-tcp-max, xfrd-tcp-pipeline options.
 	- Fix that nsec3 prehash after a full transfer can create the nsec3
 	  zone trees if they are needed.
+	- Fix in nsd-mem for a zone with ixfr data.
 
 4.11.1
 ================
