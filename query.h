@@ -104,6 +104,9 @@ struct query {
 	/* The delegation NS rrset, if any.  */
 	rrset_type *delegation_rrset;
 
+	/* The delegation DELEG rrset, if any.  */
+	rrset_type *deleg_rrset;
+
 	/* Original opcode.  */
 	uint8_t opcode;
 
