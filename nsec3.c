@@ -442,7 +442,7 @@ int
 nsec3_condition_dshash(domain_type* d, zone_type* z)
 {
 	return d->is_existing && !domain_has_only_NSEC3(d, z) &&
-		(domain_find_rrset(d, z, TYPE_DS) ||
+		(domain_find_rrset(d, z, TYPE_DS) || domain_find_rrset(d, z, TYPE_DELEG) ||
 		domain_find_rrset(d, z, TYPE_NS)) && d != z->apex
 		&& nsec3_domain_part_of_zone(d->parent, z);
 }
@@ -1030,7 +1030,7 @@ nsec3_answer_nodata(struct query* query, struct answer* answer,
 	if(!query->zone->nsec3_param)
 		return;
 	/* nodata when asking for secure delegation */
-	if(query->qtype == TYPE_DS)
+	if(query->qtype == TYPE_DS || query->qtype == TYPE_DELEG)
 	{
 		if(original == query->zone->apex) {
 			/* DS at zone apex, but server not authoritative for parent zone */

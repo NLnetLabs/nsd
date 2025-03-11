@@ -937,9 +937,20 @@ answer_delegation(query_type *query, answer_type *answer)
 		  query->delegation_rrset);
 	if (query->edns.dnssec_ok && zone_is_secure(query->zone)) {
 		rrset_type *rrset;
+		int ds_found = 0, deleg_found = 0;
 		if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_DS))) {
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				  query->delegation_domain, rrset);
+			ds_found = 1;
+
+		}
+		if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_DELEG))) {
+			add_rrset(query, answer, AUTHORITY_SECTION,
+				  query->delegation_domain, rrset);
+			deleg_found = 1;
+		}
+		if (ds_found && deleg_found) {
+			; /* pass; No NSEC needed showing the absence of the other RRset */
 #ifdef NSEC3
 		} else if (query->zone->nsec3_param) {
 			nsec3_answer_delegation(query, answer);
@@ -1438,7 +1449,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	 * See RFC 4035 (DNSSEC protocol) section 3.1.4.1 Responding
 	 * to Queries for DS RRs.
 	 */
-	if (exact && q->qtype == TYPE_DS && closest_encloser == q->zone->apex) {
+	if (exact && (q->qtype == TYPE_DS || q->qtype == TYPE_DELEG) && closest_encloser == q->zone->apex) {
 		/*
 		 * Type DS query at a zone cut, use the responsible
 		 * parent zone to generate the answer if we are
@@ -1475,7 +1486,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 		return;
 	}
 
-	if (exact && q->qtype == TYPE_DS && closest_encloser == q->zone->apex) {
+	if (exact && (q->qtype == TYPE_DS || q->qtype == TYPE_DELEG) && closest_encloser == q->zone->apex) {
 		/*
 		 * Type DS query at the zone apex (and the server is
 		 * not authoritative for the parent zone).
@@ -1495,7 +1506,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 
 		if (!q->delegation_domain
 		    || !q->delegation_rrset
-		    || (exact && q->qtype == TYPE_DS && closest_encloser == q->delegation_domain))
+		    || (exact && (q->qtype == TYPE_DS || q->qtype == TYPE_DELEG) && closest_encloser == q->delegation_domain))
 		{
 			if (q->qclass == CLASS_ANY) {
 				AA_CLR(q->packet);

@@ -567,10 +567,10 @@ nsec3_delete_rrset_trigger(namedb_type* db, domain_type* domain,
 	nsec3_rrsets_changed_remove_prehash(domain, zone);
 	/* for type nsec3, or a delegation, the domain may have become a
 	 * 'normal' domain with its remaining data now */
-	if(type == TYPE_NSEC3 || type == TYPE_NS || type == TYPE_DS)
+	if(type == TYPE_NSEC3 || type == TYPE_NS || type == TYPE_DS || type == TYPE_DELEG)
 		nsec3_rrsets_changed_add_prehash(db, domain, zone);
 	/* for type DNAME or a delegation, obscured data may be revealed */
-	if(type == TYPE_NS || type == TYPE_DS || type == TYPE_DNAME) {
+	if(type == TYPE_NS || type == TYPE_DS || type == TYPE_DNAME || type == TYPE_DELEG) {
 		/* walk over subdomains and check them each */
 		domain_type *d;
 		for(d=domain_next(domain); d && domain_is_subdomain(d, domain);
@@ -624,11 +624,11 @@ nsec3_add_rrset_trigger(namedb_type* db, domain_type* domain, zone_type* zone,
 	 * check if domain needs to become precompiled now */
 	nsec3_rrsets_changed_add_prehash(db, domain, zone);
 	/* if a delegation, it changes from normal name to unhashed referral */
-	if(type == TYPE_NS || type == TYPE_DS) {
+	if(type == TYPE_NS || type == TYPE_DS || type == TYPE_DELEG) {
 		nsec3_rrsets_changed_remove_prehash(domain, zone);
 	}
 	/* if delegation or DNAME added, then some RRs may get obscured */
-	if(type == TYPE_NS || type == TYPE_DS || type == TYPE_DNAME) {
+	if(type == TYPE_NS || type == TYPE_DS || type == TYPE_DNAME || type == TYPE_DELEG) {
 		/* walk over subdomains and check them each */
 		domain_type *d;
 		for(d=domain_next(domain); d && domain_is_subdomain(d, domain);

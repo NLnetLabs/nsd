@@ -585,8 +585,10 @@ domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns)
 	domain_type* result = NULL;
 	rrset_type* rrset = NULL;
 	while (domain && domain != zone->apex) {
-		rrset = domain_find_rrset(domain, zone, TYPE_NS);
-		if (rrset) {
+		if ((rrset = domain_find_rrset(domain, zone, TYPE_NS))) {
+			*ns = rrset;
+			result = domain;
+		} else if ((rrset = domain_find_rrset(domain, zone, TYPE_DELEG))) {
 			*ns = rrset;
 			result = domain;
 		}
