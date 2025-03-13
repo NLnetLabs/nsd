@@ -2179,6 +2179,11 @@ void ixfr_write_to_file(struct zone* zone, const char* zfile)
 static void domain_table_delete(struct domain_table* table,
 	struct domain* domain)
 {
+	/* first adjust the number list so that domain is the last one */
+	numlist_make_last(table, domain);
+	/* pop off the domain from the number list */
+	(void)numlist_pop_last(table);
+
 #ifdef USE_RADIX_TREE
 	radix_delete(table->nametree, domain->rnode);
 #else
