@@ -536,7 +536,7 @@ nsd-control.o: $(srcdir)/nsd-control.c config.h $(srcdir)/compat/cpuset.h $(srcd
  $(srcdir)/namedb.h $(srcdir)/radtree.h
 nsd-mem.o: $(srcdir)/nsd-mem.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/bitset.h $(srcdir)/tsig.h $(srcdir)/dname.h $(srcdir)/options.h $(srcdir)/rbtree.h \
- $(srcdir)/namedb.h $(srcdir)/radtree.h $(srcdir)/difffile.h $(srcdir)/udb.h
+ $(srcdir)/namedb.h $(srcdir)/radtree.h $(srcdir)/difffile.h $(srcdir)/udb.h $(srcdir)/ixfr.h $(srcdir)/query.h $(srcdir)/packet.h
 nsec3.o: $(srcdir)/nsec3.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/nsec3.h $(srcdir)/iterated_hash.h \
  $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h \
  $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/bitset.h $(srcdir)/answer.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/tsig.h \

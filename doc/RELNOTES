@@ -20,6 +20,9 @@ BUG FIXES:
 	  zone trees if they are needed.
 	- Fix in nsd-mem for a zone with ixfr data.
 	- Fix ixfr read routine for use after the temp region is freed of rr.
+	- Fix ixfr file read to manage numlist in temp domains.
+	- Fix nsd-mem to clean ixfr storage.
+
 
 4.11.1
 ================
