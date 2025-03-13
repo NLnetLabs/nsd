@@ -2374,13 +2374,14 @@ static int ixfr_data_readdel(struct ixfr_data* data, struct zone* zone,
 		return 0;
 	}
 	clear_temp_table_of_rr(temptable, tempzone, rr);
-	region_free_all(tempregion);
 	/* check SOA and also serial, because there could be other
 	 * add and del sections from older versions collated, we can
 	 * see this del section end when it has the serial */
 	if(rr->type != TYPE_SOA && soa_rr_get_serial(rr) != data->newserial) {
+		region_free_all(tempregion);
 		return 1;
 	}
+	region_free_all(tempregion);
 	ixfr_trim_capacity(&data->del, &data->del_len, &capacity);
 	return 2;
 }
@@ -2397,10 +2398,11 @@ static int ixfr_data_readadd(struct ixfr_data* data, struct zone* zone,
 		return 0;
 	}
 	clear_temp_table_of_rr(temptable, tempzone, rr);
-	region_free_all(tempregion);
 	if(rr->type != TYPE_SOA || soa_rr_get_serial(rr) != data->newserial) {
+		region_free_all(tempregion);
 		return 1;
 	}
+	region_free_all(tempregion);
 	ixfr_trim_capacity(&data->add, &data->add_len, &capacity);
 	return 2;
 }

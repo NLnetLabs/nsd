@@ -1,3 +1,9 @@
+12 March 2025: Wouter
+	- Fix ixfr read routine for use after the temp region is freed of rr.
+
+11 March 2025: Wouter
+	- Fix in nsd-mem for a zone with ixfr data.
+
 7 March 2025: Yorgos
 	- Merge #428: Do not listen on plain UDP on the same port as DoT.
 
