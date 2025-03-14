@@ -675,6 +675,7 @@ svcparam_must_have_value(uint16_t svcparamkey)
 	case SVCB_KEY_TLS_SUPPORTED_GROUPS:
 		return 1;
 	default:
+		break;
 	}
 	return 0;
 }
@@ -688,6 +689,7 @@ svcparam_must_not_have_value(uint16_t svcparamkey)
 	case SVCB_KEY_OHTTP:
 		return 1;
 	default:
+		break;
 	}
 	return 0;
 };
