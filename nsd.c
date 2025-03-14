@@ -554,7 +554,7 @@ print_socket_servers(struct nsd_socket *sock, char *buf, size_t bufsz)
 			cnt = 0;
 			if (i == n && x == -1) {
 				assert(y == -1);
-				assert(z == -1);
+				assert(z == (n - 1));
 				cnt = snprintf(buf, bufsz, "-");
 			} else if (y > z) {
 				assert(x > z);
