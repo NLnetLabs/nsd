@@ -144,12 +144,18 @@ print_name_literal(struct buffer *output, uint16_t rdlength,
 	label = name;
 	limit = rdata + rdlength;
 
-	do {
-		if (label - name > 255 || *label > 63
-			|| limit - label < 1 + *label)
+	if(*label) {
+		do {
+			if (label - name > 255 || *label > 63
+				|| limit - label < 1 + *label)
+				return 0;
+			label += 1 + *label;
+		} while (*label);
+	} else {
+		/* root domain. */
+		if(limit - label < 1)
 			return 0;
-		label += 1 + *label;
-	} while (*label);
+	}
 
 	buffer_printf(output, "%s", wiredname2str(name));
 	*offset += (label - name) + 1 /* root label */;
@@ -265,7 +271,8 @@ print_text(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 		}
 	}
 	buffer_printf(output, "\"");
-	return rdlength - *offset;
+	*offset += (rdlength - *offset);
+	return 1;
 }
 
 static int
@@ -403,7 +410,7 @@ print_certificate_type(struct buffer *output, size_t rdlength,
 {
 	uint16_t id;
 	lookup_table_type* type;
-	if (rdlength < *offset || rdlength - *offset > 2)
+	if (rdlength < *offset || rdlength - *offset < 2)
 		return 0;
 	id = read_uint16(rdata + *offset);
 	type = lookup_by_id(dns_certificate_types, id);
@@ -1011,7 +1018,8 @@ read_rdata(struct domain_table *domains, uint16_t rdlength,
 		return MALFORMED;
 	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + rdlength)))
 		return TRUNCATED;
-	buffer_read(packet, (*rr)->rdata, rdlength);
+	if(rdlength != 0)
+		buffer_read(packet, (*rr)->rdata, rdlength);
 	(*rr)->rdlength = rdlength;
 	return rdlength;
 }
@@ -1544,6 +1552,7 @@ print_wks_rdata(struct buffer *output, const struct rr *rr)
 	if (!print_ip4(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 
+	buffer_printf(output, " ");
 	protocol = rr->rdata[4];
 	if(protocol == 6)
 		buffer_printf(output, "tcp");
@@ -1826,7 +1835,7 @@ print_afsdb_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(output, "%" PRIu16 " ", subtype);
 	if(!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	return 0;
+	return 1;
 }
 
 int32_t
@@ -1931,7 +1940,7 @@ print_nsap_rdata(struct buffer *output, const struct rr *rr)
 {
 	buffer_printf(output, "0x");
 	hex_to_string(output, rr->rdata, rr->rdlength);
-	return 0;
+	return 1;
 }
 
 int
@@ -1978,8 +1987,8 @@ read_px_rdata(struct domain_table *domains, uint16_t rdlength,
 	mapx400_domain->usage++;
 
 	buffer_read_at(packet, mark, (*rr)->rdata, 2);
-	memcpy((*rr)->rdata, &map822_domain, sizeof(void*));
-	memcpy((*rr)->rdata, &mapx400_domain, sizeof(void*));
+	memcpy((*rr)->rdata+2, &map822_domain, sizeof(void*));
+	memcpy((*rr)->rdata+2+sizeof(void*), &mapx400_domain, sizeof(void*));
 	(*rr)->rdlength = 2 + 2*sizeof(void*);
 	return rdlength;
 }
@@ -2007,6 +2016,7 @@ print_px_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
 	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
+	buffer_printf(output, " ");
 	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
@@ -2165,22 +2175,17 @@ read_nxt_rdata(struct domain_table *domains, uint16_t rdlength,
 	/* name + nxt */
 	if (!dname_make_from_packet_buffered(&dname, packet, 1, 1))
 		return MALFORMED;
-	if(rdlength < buffer_position(packet) - mark + 2)
+	if(rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
-	if (buffer_remaining(packet) < 2)
-		return MALFORMED;
-	bitmap_size = read_uint16(buffer_current(packet)); /* peek at uint16 */
-	if (bitmap_size >= 8192 || buffer_remaining(packet) < 2 + (size_t)bitmap_size)
-		return MALFORMED;
-	if(rdlength < buffer_position(packet) - mark + 2 + bitmap_size)
-		return MALFORMED;
-	size = sizeof(**rr) + sizeof(domain) + bitmap_size;
+	bitmap_size = rdlength - (buffer_position(packet) - mark);
+	size = sizeof(**rr) + sizeof(void*) + bitmap_size;
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	domain = domain_table_insert(domains, (void*)&dname);
 	domain->usage++;
 	memcpy((*rr)->rdata, &domain, sizeof(void*));
-	buffer_read(packet, (*rr)->rdata + sizeof(void*), 2 + bitmap_size);
+	if(bitmap_size != 0)
+		buffer_read(packet, (*rr)->rdata + sizeof(void*), bitmap_size);
 	(*rr)->rdlength = sizeof(void*) + bitmap_size;
 	return rdlength;
 }
@@ -2213,11 +2218,10 @@ print_nxt_rdata(struct buffer *output, const struct rr *rr)
 	bitmap = rr->rdata + length;
 	for (int type = 0; type < bitmap_size * 8; type++) {
 		if (get_bit(bitmap, type)) {
-			buffer_printf(output, "%s ", rrtype_to_string(type));
+			buffer_printf(output, " %s", rrtype_to_string(type));
 		}
 	}
 
-	buffer_skip(output, -1);
 	return 1;
 }
 
@@ -2460,7 +2464,7 @@ print_cert_rdata(struct buffer *output, const struct rr *rr)
 	assert(rr->rdlength > 5);
 	if(!print_certificate_type(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	buffer_printf(output, "%" PRIu16 " %" PRIu8 " ",
+	buffer_printf(output, " %" PRIu16 " %" PRIu8 " ",
 		read_uint16(rr->rdata+2), rr->rdata[4]);
 	length += 3;
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
@@ -2492,7 +2496,7 @@ read_apl_rdata(struct domain_table *domains, uint16_t rdlength,
 
 	if (buffer_remaining(packet) < rdlength)
 		return MALFORMED;
-	while (rdlength - length < 4) {
+	while (rdlength - length >= 4) {
 		uint8_t afdlength = rdata[length + 3] & APL_LENGTH_MASK;
 		if (rdlength - (length + 4) < afdlength)
 			return MALFORMED;
@@ -2560,6 +2564,8 @@ print_apl_rdata(struct buffer *output, const struct rr *rr)
 	uint16_t length = 0;
 
 	while (length < rr->rdlength) {
+		if(length != 0)
+			buffer_printf(output, " ");
 		if (!print_apl(output, rr->rdlength, rr->rdata, &length))
 			return 0;
 	}
@@ -3420,7 +3426,7 @@ int32_t
 read_eui48_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
-	if (rdlength != 8)
+	if (rdlength != 6)
 		return MALFORMED;
 	return read_rdata(domains, rdlength, packet, rr);
 }
@@ -3439,7 +3445,7 @@ int32_t
 read_eui64_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
-	if (rdlength != 10)
+	if (rdlength != 8)
 		return MALFORMED;
 	return read_rdata(domains, rdlength, packet, rr);
 }
@@ -3496,10 +3502,11 @@ read_caa_rdata(struct domain_table *domains, uint16_t rdlength,
 	const size_t mark = buffer_position(packet);
 	uint16_t length = 1;
 
-	/* byte + string */
-	if (buffer_remaining(packet) < rdlength || rdlength < 3)
+	/* byte + string + long string */
+	if (buffer_remaining(packet) < rdlength || rdlength < 2)
 		return MALFORMED;
-	if (skip_string(packet, rdlength, &length) < 0 || rdlength <= length)
+	buffer_skip(packet, 1);
+	if (skip_string(packet, rdlength, &length) < 0 || rdlength < length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
 	return read_rdata(domains, rdlength, packet, rr);
@@ -3510,14 +3517,15 @@ print_caa_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 1;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < 2)
+		return 0;
 	buffer_printf(output, "%" PRIu8 " ", rr->rdata[0]);
 
-	length = 1 + rr->rdata[1];
+	length = 2 + rr->rdata[1];
 	if (rr->rdlength < length)
 		return 0;
 
-	for (uint16_t i = 2; i <= length; ++i) {
+	for (uint16_t i = 2; i < length; ++i) {
 		char ch = (char) rr->rdata[i];
 		if (isdigit((unsigned char)ch) || islower((unsigned char)ch))
 			buffer_printf(output, "%c", ch);
@@ -3542,6 +3550,7 @@ print_doa_rdata(struct buffer *output, const struct rr *rr)
 		rr->rdata[8]);
 	if(!print_string(output, rr->rdlength, rr->rdata, &length))
 		return 0;
+	buffer_printf(output, " ");
 	if(rr->rdlength == length) {
 		/* The base64 string is empty, and DOA uses '-' for that. */
 		buffer_printf(output, "-");
@@ -3623,21 +3632,23 @@ print_amtrelay_rdata(struct buffer *output, const struct rr *rr)
 	if(rr->rdlength < length)
 		return 0;
 	relay_type = rr->rdata[1]&0x7f;
-	buffer_printf(output, "%" PRIu8 " %c %" PRIu8 " ",
+	buffer_printf(output, "%" PRIu8 " %c %" PRIu8,
 		rr->rdata[0], (rr->rdata[1] & 0x80 ? '1' : '0'), relay_type);
 	switch(relay_type) {
 	case AMTRELAY_NOGATEWAY:
-		buffer_printf(output, ".");
 		break;
 	case AMTRELAY_IP4:
+		buffer_printf(output, " ");
 		if(!print_ip4(output, rr->rdlength, rr->rdata, &length))
 			return 0;
 		break;
 	case AMTRELAY_IP6:
+		buffer_printf(output, " ");
 		if(!print_ip6(output, rr->rdlength, rr->rdata, &length))
 			return 0;
 		break;
 	case AMTRELAY_DNAME:
+		buffer_printf(output, " ");
 		if(!print_name_literal(output, rr->rdlength, rr->rdata,
 			&length))
 			return 0;
@@ -3723,7 +3734,9 @@ print_rdata(buffer_type *output, const nsd_type_descriptor_type *descriptor,
 	const rr_type *rr)
 {
 	size_t saved_position = buffer_position(output);
-	buffer_printf(output, "\t");
+	/* If print_rdata is going to print "", omit the tab printout. */
+	if(!(rr->type == TYPE_APL && rr->rdlength == 0))
+		buffer_printf(output, "\t");
 	if(!descriptor->print_rdata(output, rr)) {
 		buffer_set_position(output, saved_position);
 		return 0;
