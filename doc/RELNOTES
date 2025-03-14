@@ -22,6 +22,7 @@ BUG FIXES:
 	- Fix ixfr read routine for use after the temp region is freed of rr.
 	- Fix ixfr file read to manage numlist in temp domains.
 	- Fix nsd-mem to clean ixfr storage.
+	- Fix log print assert in server sockets for printing '-' empty.
 
 
 4.11.1
