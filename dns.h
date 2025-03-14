@@ -175,8 +175,16 @@ typedef enum nsd_rc nsd_rc_type;
 
 #define TYPE_TA		32768	/* http://www.watson.org/~weiler/INI1999-19.pdf */
 #define TYPE_DLV	32769	/* RFC 4431 */
+
+#ifdef USE_IDELEG
+#define TYPE_IDELEG	65280	/* IETF IDELEG draft*/
+#endif
+
 #define PSEUDO_TYPE_TA	RRTYPE_DESCRIPTORS_LENGTH
 #define PSEUDO_TYPE_DLV	(RRTYPE_DESCRIPTORS_LENGTH + 1)
+#ifdef USE_IDELEG
+#define PSEUDO_TYPE_IDELEG	(RRTYPE_DESCRIPTORS_LENGTH + 2)
+#endif
 
 #define SVCB_KEY_MANDATORY		0
 #define SVCB_KEY_ALPN			1
@@ -299,7 +307,7 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
  * Indexed by type.  The special type "0" can be used to get a
  * descriptor for unknown types (with one binary rdata).
  *
- * CLA + 1
+ * IPN + 1
  */
 #define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_IPN + 1)
 rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);

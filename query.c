@@ -918,8 +918,12 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
  * record proving the DS RRset does not exist.
  */
 static void
-answer_delegation(query_type *query, answer_type *answer)
+answer_delegation(query_type *query, answer_type *answer, const struct nsd* nsd)
 {
+	rrset_type *rrset;
+#ifdef USE_IDELEG
+	dname_type* ideleg_dname;
+#endif
 	assert(answer);
 	assert(query->delegation_domain);
 	assert(query->delegation_rrset);
@@ -935,8 +939,76 @@ answer_delegation(query_type *query, answer_type *answer)
 		  AUTHORITY_SECTION,
 		  query->delegation_domain,
 		  query->delegation_rrset);
+#ifdef USE_IDELEG
+	if ((rrset = domain_find_deleg_rrsets(query->delegation_domain, query->zone, nsd->db, &query->ideleg_domain, &ideleg_dname)))
+	{
+		add_rrset(query, answer, AUTHORITY_SECTION,
+			query->ideleg_domain, rrset);
+	}
+	else if (!query->edns.dnssec_ok || !zone_is_secure(query->zone)){}
+#ifdef NSEC3
+	else if (query->zone->nsec3_param)
+	{
+		if (query->ideleg_domain)
+		{
+			if ((rrset = domain_find_rrset(query->ideleg_domain->nsec3->nsec3_cover, query->zone, TYPE_NSEC3)))
+			{
+				add_rrset(query, answer, AUTHORITY_SECTION,
+					query->ideleg_domain->nsec3->nsec3_cover, rrset);
+			}
+		}
+		else
+		{
+			domain_type* ideleg_closest_match;
+			domain_type* ideleg_encloser;
+			domain_type* ideleg_next_closer;
+			const dname_type* to_prove;
+			uint8_t hash[NSEC3_HASH_LEN];
+
+			namedb_lookup(nsd->db, ideleg_dname, &ideleg_closest_match, &ideleg_encloser);
+			to_prove = dname_partial_copy(query->region, ideleg_dname,
+			dname_label_match_count(ideleg_dname, domain_dname(ideleg_encloser))+1);
+			nsec3_hash_and_store(query->zone, to_prove, hash);
+			nsec3_find_cover(query->zone, hash, sizeof(hash), &ideleg_next_closer);
+
+			if ((rrset = domain_find_rrset(ideleg_next_closer, query->zone, TYPE_NSEC3)))
+			{
+				add_rrset(query, answer, AUTHORITY_SECTION,
+					ideleg_next_closer, rrset);
+			}
+			if ((rrset = domain_find_rrset(ideleg_encloser->nsec3->nsec3_cover, query->zone, TYPE_NSEC3)))
+			{
+				add_rrset(query, answer, AUTHORITY_SECTION,
+					ideleg_encloser->nsec3->nsec3_cover, rrset);
+			}
+		}
+	}
+#endif
+	else if (!query->ideleg_domain)
+	{
+		domain_type* ideleg_closest_match;
+		domain_type* ideleg_encloser;
+		namedb_lookup(nsd->db, ideleg_dname, &ideleg_closest_match, &ideleg_encloser);;
+		find_covering_nsec(ideleg_closest_match, query->zone, &rrset);
+
+		if (rrset)
+		{
+			add_rrset(query, answer, AUTHORITY_SECTION,
+				ideleg_closest_match, rrset);
+		}
+		if ((rrset = domain_find_rrset(ideleg_encloser, query->zone, TYPE_NSEC)))
+		{
+			add_rrset(query, answer, AUTHORITY_SECTION,
+				ideleg_encloser, rrset);
+		}
+	}
+	else if ((rrset = domain_find_rrset(query->ideleg_domain, query->zone, TYPE_NSEC)))
+	{
+		add_rrset(query, answer, AUTHORITY_SECTION,
+			query->ideleg_domain, rrset);
+	}
+#endif
 	if (query->edns.dnssec_ok && zone_is_secure(query->zone)) {
-		rrset_type *rrset;
 		if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_DS))) {
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				  query->delegation_domain, rrset);
@@ -1506,7 +1578,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 					     closest_match, closest_encloser, qname);
 		}
 		else {
-			answer_delegation(q, answer);
+			answer_delegation(q, answer, nsd);
 		}
 	}
 }

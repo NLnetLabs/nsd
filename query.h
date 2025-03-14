@@ -161,6 +161,11 @@ struct query {
 	/* if we encountered a wildcard, its domain */
 	domain_type *wildcard_domain;
 #endif
+
+#ifdef USE_IDELEG
+	/* if we encountered an ideleg domain, it will be here */
+	domain_type *ideleg_domain;
+#endif
 };
 
 

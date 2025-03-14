@@ -372,7 +372,7 @@ zone_type *namedb_find_zone(namedb_type *db, const dname_type *dname);
 /*
  * Delete a domain name from the domain table.  Removes dname_info node.
  * Only deletes if usage is 0, has no rrsets and no children.  Checks parents
- * for deletion as well.  Adjusts numberlist(domain.number), and 
+ * for deletion as well.  Adjusts numberlist(domain.number), and
  * wcard_child closest match.
  */
 void domain_table_deldomain(namedb_type* db, domain_type* domain);
@@ -473,5 +473,11 @@ struct zone_rr_iter {
 void zone_rr_iter_init(zone_rr_iter_type *iter, zone_type *zone);
 
 rr_type *zone_rr_iter_next(zone_rr_iter_type *iter);
+
+#ifdef USE_IDELEG
+rrset_type *domain_find_deleg_rrsets(domain_type* delegation_domain, zone_type* zone, namedb_type* db, domain_type **ideleg_domain, dname_type **ideleg_dname);
+
+rrset_type *domain_find_deleg_wildcard_rrsets(dname_type* ideleg_dname, zone_type* zone, region_type* region, namedb_type* db, domain_type** wildcard_match);
+#endif
 
 #endif /* NAMEDB_H */

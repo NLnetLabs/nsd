@@ -360,7 +360,7 @@ hash_tree_clear(rbtree_type* tree)
 	 * then mean setting the key value of the nodes to NULL to indicate
 	 * absence of the prehash.
 	 * But since prehash structs are separatly allocated, this is no longer
-	 * necessary as currently the prehash structs are simply recycled and 
+	 * necessary as currently the prehash structs are simply recycled and
 	 * NULLed.
 	 *
 	 * rbnode_type* n;
