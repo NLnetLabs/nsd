@@ -1,5 +1,7 @@
 14 March 2025: Wouter
 	- Fix log print assert in server sockets for printing '-' empty.
+	- Fix notify_fmt test for xfrd file location.
+	- Fix sanitizer warnings in read_uint32.
 
 13 March 2025: Wouter
 	- Fix ixfr file read to manage numlist in temp domains.
