@@ -175,6 +175,7 @@ typedef enum nsd_rc nsd_rc_type;
 
 #define TYPE_TA		32768	/* http://www.watson.org/~weiler/INI1999-19.pdf */
 #define TYPE_DLV	32769	/* RFC 4431 */
+#define TYPE_DELEG	65432	/* draft-wesplaap-deleg */
 #define PSEUDO_TYPE_TA	RRTYPE_DESCRIPTORS_LENGTH
 #define PSEUDO_TYPE_DLV	(RRTYPE_DESCRIPTORS_LENGTH + 1)
 

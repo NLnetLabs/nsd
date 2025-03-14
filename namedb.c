@@ -577,15 +577,19 @@ domain_find_parent_zone(namedb_type* db, zone_type* zone)
 }
 
 domain_type *
-domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns)
+domain_find_delegation_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns, rrset_type **deleg)
 {
-	/* return highest NS RRset in the zone that is a delegation above */
+	/* return highest NS and/or DELEG RRsets in the zone that is a delegation above */
 	domain_type* result = NULL;
 	rrset_type* rrset = NULL;
 	while (domain && domain != zone->apex) {
-		rrset = domain_find_rrset(domain, zone, TYPE_NS);
-		if (rrset) {
+		if ((rrset = domain_find_rrset(domain, zone, TYPE_NS))) {
 			*ns = rrset;
+			*deleg = domain_find_rrset(domain, zone, TYPE_DELEG);
+			result = domain;
+		} else if ((rrset = domain_find_rrset(domain, zone, TYPE_DELEG))) {
+			*ns = NULL;
+			*deleg = rrset;
 			result = domain;
 		}
 		domain = domain->parent;
@@ -595,6 +599,7 @@ domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns)
 		return result;
 
 	*ns = NULL;
+	*deleg = NULL;
 	return NULL;
 }
 
@@ -614,7 +619,7 @@ int
 domain_is_glue(domain_type* domain, zone_type* zone)
 {
 	rrset_type* unused;
-	domain_type* ns_domain = domain_find_ns_rrsets(domain, zone, &unused);
+	domain_type* ns_domain = domain_find_delegation_rrsets(domain, zone, &unused, &unused);
 	return (ns_domain != NULL &&
 		domain_find_rrset(ns_domain, zone, TYPE_SOA) == NULL);
 }
