@@ -3723,8 +3723,7 @@ print_rdata(buffer_type *output, const nsd_type_descriptor_type *descriptor,
 	const rr_type *rr)
 {
 	size_t saved_position = buffer_position(output);
-	if(rr->rdlength != 0)
-		buffer_printf(output, "\t");
+	buffer_printf(output, "\t");
 	if(!descriptor->print_rdata(output, rr)) {
 		buffer_set_position(output, saved_position);
 		return 0;
