@@ -30,6 +30,9 @@ struct netio_handler;
 struct nsd_options;
 struct udb_base;
 struct daemon_remote;
+#ifdef USE_METRICS
+struct daemon_metrics;
+#endif /* USE_METRICS */
 #ifdef USE_DNSTAP
 struct dt_collector;
 #endif
@@ -255,6 +258,9 @@ struct	nsd
 	region_type* server_region;
 	struct netio_handler* xfrd_listener;
 	struct daemon_remote* rc;
+#ifdef USE_METRICS
+	struct daemon_metrics* metrics;
+#endif /* USE_METRICS */
 
 	/* Configuration */
 	const char		*pidfile;
