@@ -204,6 +204,9 @@ void write_px_rdata(struct query *query, const struct rr *rr);
 /* Print rdata for type PX. */
 int print_px_rdata(struct buffer *output, const struct rr *rr);
 
+/* Print rdata for type GPOS. */
+int print_gpos_rdata(struct buffer *output, const struct rr *rr);
+
 /* Read rdata for type AAAA. */
 int32_t read_aaaa_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr);

@@ -231,21 +231,22 @@ print_string(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
 	size_t n;
-	if(rdlength < 1)
+	if(rdlength - *offset < 1)
 		return 0;
 	n = rdata[*offset];
-	if(rdlength < 1 + n)
+	if((size_t)rdlength - *offset < 1 + n)
 		return 0;
 	buffer_printf(output, "\"");
 	for (size_t i = 1; i <= n; i++) {
-		char ch = (char) rdata[i+*offset];
+		char ch = (char) rdata[*offset+i];
 		if (isprint((unsigned char)ch)) {
 			if (ch == '"' || ch == '\\') {
 				buffer_printf(output, "\\");
 			}
 			buffer_printf(output, "%c", ch);
 		} else {
-			buffer_printf(output, "\\%03u", (unsigned) rdata[i]);
+			buffer_printf(output, "\\%03u",
+				(unsigned) rdata[*offset+i]);
 		}
 	}
 	buffer_printf(output, "\"");
@@ -277,19 +278,19 @@ print_text(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 
 static int
 print_unquoted(buffer_type *output, uint16_t rdlength,
-	const uint8_t* rdata, uint16_t* length)
+	const uint8_t* rdata, uint16_t* offset)
 {
 	uint8_t len;
 	size_t i;
 
-	if(rdlength < 1)
+	if(rdlength - *offset < 1)
 		return 0;
-	len = rdata[0];
-	if(((size_t)len) + 1 > rdlength)
+	len = rdata[*offset];
+	if(((size_t)len) + 1 > (size_t)rdlength - *offset)
 		return 0;
 
 	for (i = 1; i <= (size_t)len; ++i) {
-		char ch = (char) rdata[i];
+		char ch = (char) rdata[*offset + i];
 		if (isprint((unsigned char)ch)) {
 			if (ch == '"' || ch == '\\'
 			||  isspace((unsigned char)ch)) {
@@ -297,25 +298,23 @@ print_unquoted(buffer_type *output, uint16_t rdlength,
 			}
 			buffer_printf(output, "%c", ch);
 		} else {
-			buffer_printf(output, "\\%03u", (unsigned) rdata[i]);
+			buffer_printf(output, "\\%03u",
+				(unsigned) rdata[*offset + i]);
 		}
 	}
-	*length += 1;
-	*length += len;
+	*offset += 1;
+	*offset += len;
 	return 1;
 }
 
 static int
 print_unquoteds(buffer_type *output, uint16_t rdlength,
-	const uint8_t* rdata, uint16_t* length)
+	const uint8_t* rdata, uint16_t* offset)
 {
-	uint16_t pos = 0;
-
-	while (pos < rdlength) {
-		if(!print_unquoted(output, rdlength, rdata+pos, length))
+	while (*offset < rdlength) {
+		if(!print_unquoted(output, rdlength, rdata, offset))
 			return 0;
-		pos = *length;
-		if(pos < rdlength)
+		if(*offset < rdlength)
 			buffer_printf(output, " ");
 	}
 	return 1;
@@ -2020,6 +2019,23 @@ print_px_rdata(struct buffer *output, const struct rr *rr)
 	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
+	return 1;
+}
+
+int
+print_gpos_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	if(!print_unquoted(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if(!print_unquoted(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	if(!print_unquoted(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 

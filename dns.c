@@ -167,6 +167,12 @@ static const struct nsd_rdata_descriptor px_rdata_fields[] = {
 	FIELD("mapx400", RDATA_UNCOMPRESSED_DNAME)
 };
 
+static const struct nsd_rdata_descriptor gpos_rdata_fields[] = {
+	FIELD("latitude", RDATA_STRING),
+	FIELD("longitude", RDATA_STRING),
+	FIELD("altitude", RDATA_STRING)
+};
+
 static const struct nsd_rdata_descriptor aaaa_rdata_fields[] = {
 	FIELD("address", 16)
 };
@@ -611,9 +617,10 @@ const nsd_type_descriptor_type type_descriptors[] = {
 	TYPE("PX", TYPE_PX, TYPE_HAS_UNCOMPRESSED_DNAME,
 		read_px_rdata, write_px_rdata, print_px_rdata,
 		px_rdata_fields),
-
-	UNKNOWN_TYPE(27), /* Type 27 - GPOS */
-
+	/* 27 */
+	TYPE("GPOS", TYPE_GPOS, TYPE_HAS_NO_REFS,
+		read_generic_rdata, write_generic_rdata, print_gpos_rdata,
+		gpos_rdata_fields),
 	/* 28 */
 	TYPE("AAAA", TYPE_AAAA, TYPE_HAS_NO_REFS,
 		read_aaaa_rdata, write_generic_rdata, print_aaaa_rdata,
