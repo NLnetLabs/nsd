@@ -191,6 +191,9 @@ void write_rt_rdata(struct query *query, const struct rr *rr);
 /* Print rdata for type NSAP. */
 int print_nsap_rdata(struct buffer *output, const struct rr *rr);
 
+/* Print rdata for type NSAP-PTR. */
+int print_nsap_ptr_rdata(struct buffer *output, const struct rr *rr);
+
 /* Print rdata for type KEY. */
 int print_key_rdata(struct buffer *output, const struct rr *rr);
 

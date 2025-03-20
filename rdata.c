@@ -1947,6 +1947,17 @@ print_nsap_rdata(struct buffer *output, const struct rr *rr)
 }
 
 int
+print_nsap_ptr_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	if(!print_unquoted(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	if(rr->rdlength != length)
+		return 0;
+	return 1;
+}
+
+int
 print_key_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;

@@ -142,6 +142,10 @@ static const struct nsd_rdata_descriptor nsap_rdata_fields[] = {
 	FIELD("address", RDATA_REMAINDER)
 };
 
+static const struct nsd_rdata_descriptor nsap_ptr_rdata_fields[] = {
+	FIELD("hostname", RDATA_STRING)
+};
+
 static const struct nsd_rdata_descriptor sig_rdata_fields[] = {
 	FIELD("sigtype", 2),
 	FIELD("algorithm", 1),
@@ -602,9 +606,10 @@ const nsd_type_descriptor_type type_descriptors[] = {
 	TYPE("NSAP", TYPE_NSAP, TYPE_HAS_NO_REFS,
 		read_generic_rdata, write_generic_rdata, print_nsap_rdata,
 		nsap_rdata_fields),
-
-	UNKNOWN_TYPE(23), /* Type 23 - NSAP-PTR */
-
+	/* 23 */
+	TYPE("NSAP-PTR", TYPE_NSAP_PTR, TYPE_HAS_NO_REFS,
+		read_generic_rdata, write_generic_rdata,
+		print_nsap_ptr_rdata, nsap_ptr_rdata_fields),
 	/* 24 */
 	TYPE("SIG", TYPE_SIG, TYPE_HAS_LITERAL_DNAME,
 		read_rrsig_rdata, write_generic_rdata, print_rrsig_rdata,
