@@ -158,7 +158,7 @@ static const struct nsd_rdata_descriptor key_rdata_fields[] = {
 	FIELD("flags", 2),
 	FIELD("protocol", 1),
 	FIELD("algorithm", 1),
-	FIELD("publickey", RDATA_BINARY)
+	FIELD("publickey", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor px_rdata_fields[] = {
@@ -229,7 +229,7 @@ static const struct nsd_rdata_descriptor cert_rdata_fields[] = {
 	FIELD("type", 2),
 	FIELD("key tag", 2),
 	FIELD("algorithm", 1),
-	FIELD("certificate", RDATA_BINARY)
+	FIELD("certificate", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor a6_rdata_fields[] = {
@@ -254,13 +254,13 @@ static const struct nsd_rdata_descriptor ds_rdata_fields[] = {
 	FIELD("keytag", 2),
 	FIELD("algorithm", 1),
 	FIELD("digtype", 1),
-	FIELD("digest", RDATA_BINARY)
+	FIELD("digest", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor sshfp_rdata_fields[] = {
 	FIELD("algorithm", 1),
 	FIELD("ftype", 1),
-	FIELD("fingerprint", RDATA_BINARY)
+	FIELD("fingerprint", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor ipseckey_rdata_fields[] = {
@@ -269,7 +269,7 @@ static const struct nsd_rdata_descriptor ipseckey_rdata_fields[] = {
 	FIELD("algorithm", 1),
 	FIELD_ENTRY("gateway", 0, RDATA_IPSECGATEWAY,
 		ipseckey_gateway_length, ipseckey_gateway_length, NULL),
-	FIELD_ENTRY("public key", 1, RDATA_BINARY, NULL, NULL, NULL)
+	FIELD_ENTRY("public key", 1, RDATA_REMAINDER, NULL, NULL, NULL)
 };
 
 static const struct nsd_rdata_descriptor rrsig_rdata_fields[] = {
@@ -293,11 +293,11 @@ static const struct nsd_rdata_descriptor dnskey_rdata_fields[] = {
 	FIELD("flags", 2),
 	FIELD("protocol", 1),
 	FIELD("algorithm", 1),
-	FIELD("publickey", RDATA_BINARY)
+	FIELD("publickey", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor dhcid_rdata_fields[] = {
-	FIELD("dhcpinfo", RDATA_BINARY)
+	FIELD("dhcpinfo", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor nsec3_rdata_fields[] = {
@@ -330,19 +330,19 @@ static const struct nsd_rdata_descriptor smimea_rdata_fields[] = {
 	FIELD("certificate association data", RDATA_REMAINDER)
 };
 
-static const struct nsd_rdata_descriptor ninfo_rdata_fields[] = {
-	FIELD("text", RDATA_REMAINDER)
-};
-
 static const struct nsd_rdata_descriptor hip_rdata_fields[] = {
 	FIELD("hip", RDATA_REMAINDER)
+};
+
+static const struct nsd_rdata_descriptor ninfo_rdata_fields[] = {
+	FIELD("text", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor rkey_rdata_fields[] = {
 	FIELD("flags", 2),
 	FIELD("protocol", 1),
 	FIELD("algorithm", 1),
-	FIELD("publickey", RDATA_BINARY)
+	FIELD("publickey", RDATA_REMAINDER)
 };
 
 static const struct nsd_rdata_descriptor talink_rdata_fields[] = {
@@ -411,7 +411,7 @@ static const struct nsd_rdata_descriptor nid_rdata_fields[] = {
 
 static const struct nsd_rdata_descriptor l32_rdata_fields[] = {
 	FIELD("preference", 2),
-	FIELD("locator", 8)
+	FIELD("locator", 4)
 };
 
 static const struct nsd_rdata_descriptor l64_rdata_fields[] = {
