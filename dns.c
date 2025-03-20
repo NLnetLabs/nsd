@@ -116,7 +116,7 @@ static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+2)] 
 	  { RDATA_ZF_NSAP } },
 	/* 23 */
 	{ TYPE_NSAP_PTR, "NSAP-PTR", 1, 1,
-	  { RDATA_WF_UNCOMPRESSED_DNAME }, { RDATA_ZF_DNAME } },
+	  { RDATA_WF_TEXT }, { RDATA_ZF_UNQUOTED } },
 	/* 24 */
 	{ TYPE_SIG, "SIG", 9, 9,
 	  { RDATA_WF_SHORT, RDATA_WF_BYTE, RDATA_WF_BYTE, RDATA_WF_LONG,
