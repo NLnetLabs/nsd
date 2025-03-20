@@ -1547,7 +1547,8 @@ print_wks_rdata(struct buffer *output, const struct rr *rr)
 	int bits;
 	const uint8_t* bitmap;
 
-	assert(rr->rdlength >= 5);
+	if(rr->rdlength < 5)
+		return 0;
 	if (!print_ip4(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 
@@ -1593,7 +1594,8 @@ print_hinfo_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(output, " ");
 	if (!print_string(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -1855,7 +1857,8 @@ print_x25_rdata(struct buffer *output, const struct rr *rr)
 	uint16_t length = 0;
 	if (!print_string(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -1890,7 +1893,8 @@ print_isdn_rdata(struct buffer *output, const struct rr *rr)
 		if (!print_string(output, rr->rdlength, rr->rdata, &length))
 			return 0;
 	}
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -1946,13 +1950,15 @@ int
 print_key_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
 		read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3]);
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2247,7 +2253,8 @@ print_eid_rdata(struct buffer *output, const struct rr *rr)
 	uint16_t length = 0;
 	if(!print_base16(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2257,7 +2264,8 @@ print_nimloc_rdata(struct buffer *output, const struct rr *rr)
 	uint16_t length = 0;
 	if(!print_base16(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2329,7 +2337,8 @@ print_atma_rdata(struct buffer *output, const struct rr *rr)
 		uint16_t length = 1;
 		if (!print_base16(output, rr->rdlength, rr->rdata, &length))
 			return 0;
-		assert(rr->rdlength == length);
+		if(rr->rdlength != length)
+			return 0;
 		return 1;
 	} else if(format == 1) {
 		/* E.164 format. */
@@ -2477,7 +2486,8 @@ int
 print_cert_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
-	assert(rr->rdlength > 5);
+	if(rr->rdlength < 5)
+		return 0;
 	if(!print_certificate_type(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	buffer_printf(output, " %" PRIu16 " %" PRIu8 " ",
@@ -2485,7 +2495,8 @@ print_cert_rdata(struct buffer *output, const struct rr *rr)
 	length += 3;
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2499,7 +2510,8 @@ print_sink_rdata(struct buffer *output, const struct rr *rr)
 		rr->rdata[0], rr->rdata[1]);
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2585,7 +2597,8 @@ print_apl_rdata(struct buffer *output, const struct rr *rr)
 		if (!print_apl(output, rr->rdlength, rr->rdata, &length))
 			return 0;
 	}
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2604,13 +2617,15 @@ print_ds_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
 
-	assert(rr->rdlength > 4);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
 		read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3]);
 	if (!print_base16(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2630,14 +2645,16 @@ print_sshfp_rdata(struct buffer *output, const struct rr *rr)
 	uint16_t length = 2;
 	uint8_t algorithm, ftype;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	algorithm = rr->rdata[0];
 	ftype = rr->rdata[1];
 
 	buffer_printf(output, "%" PRIu8 " %" PRIu8 " ", algorithm, ftype);
 	if (!print_base16(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2712,7 +2729,8 @@ print_ipseckey_rdata(struct buffer *output, const struct rr *rr)
 	uint16_t length = 3;
 	uint8_t gateway_type;
 
-	assert(rr->rdlength >= length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu8 " %" PRIu8 " %" PRIu8 " ",
 		rr->rdata[0], rr->rdata[1], rr->rdata[2]);
@@ -2743,7 +2761,8 @@ print_ipseckey_rdata(struct buffer *output, const struct rr *rr)
 		if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 			return 0;
 	}
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2812,7 +2831,8 @@ print_rrsig_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 8;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%s %" PRIu8 " %" PRIu8 " %" PRIu32 " ",
 		rrtype_to_string(read_uint16(rr->rdata)), rr->rdata[2],
@@ -2831,7 +2851,8 @@ print_rrsig_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(output, " ");
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2872,13 +2893,13 @@ print_nsec_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
 
-	assert(rr->rdlength > length);
 	if (!print_name_literal(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	buffer_printf(output, " ");
 	if (!print_nsec_bitmap(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2897,13 +2918,15 @@ print_dnskey_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
 		read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3]);
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2924,7 +2947,8 @@ print_dhcid_rdata(struct buffer *output, const struct rr *rr)
 
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2953,7 +2977,8 @@ print_nsec3_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu8 " %" PRIu8 " %" PRIu16 " ",
 		rr->rdata[0], rr->rdata[1], read_uint16(rr->rdata + 2));
@@ -2965,7 +2990,8 @@ print_nsec3_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(output, " ");
 	if (!print_nsec_bitmap(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -2992,14 +3018,16 @@ print_nsec3param_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu8 " %" PRIu8 " %" PRIu16 " ",
 		rr->rdata[0], rr->rdata[1], read_uint16(rr->rdata + 2));
 
 	if (!print_salt(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3018,14 +3046,16 @@ print_tlsa_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 3;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu8 " %" PRIu8 " %" PRIu8 " ",
 		rr->rdata[0], rr->rdata[1], rr->rdata[2]);
 
 	if (!print_base16(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3049,7 +3079,8 @@ print_hip_rdata(struct buffer *output, const struct rr *rr)
 	uint16_t pk_length;
 	uint16_t length = 4;
 
-	assert(rr->rdlength >= length);
+	if(rr->rdlength < length)
+		return 0;
 	hit_length = rr->rdata[0];
 	pk_algorithm = rr->rdata[1];
 	pk_length = read_uint16(rr->rdata+2);
@@ -3067,7 +3098,8 @@ print_hip_rdata(struct buffer *output, const struct rr *rr)
 			&length))
 			return 0;
 	}
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3086,13 +3118,15 @@ print_rkey_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
 		read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3]);
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3131,7 +3165,8 @@ print_talink_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(output, " ");
 	if(!print_name_literal(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3140,10 +3175,10 @@ print_openpgpkey_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 0;
 
-	assert(rr->rdlength > 0);
 	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3162,13 +3197,15 @@ print_csync_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 6;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu32 " %" PRIu16 " ",
 		read_uint32(rr->rdata), read_uint16(rr->rdata + 4));
 	if (!print_nsec_bitmap(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3187,13 +3224,15 @@ print_zonemd_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 6;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu32 " %" PRIu8 " %" PRIu8 " ",
 		read_uint32(rr->rdata), rr->rdata[4], rr->rdata[5]);
 	if (!print_base16(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength != length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3262,7 +3301,7 @@ print_svcb_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
 
-	assert(rr->rdlength > length);
+	assert(rr->rdlength > length); /* It has 2+sizeof(void*) at least. */
 	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
 	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
@@ -3271,7 +3310,8 @@ print_svcb_rdata(struct buffer *output, const struct rr *rr)
 		if (!print_svcparam(output, rr->rdlength, rr->rdata, &length))
 			return 0;
 	}
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3313,7 +3353,8 @@ print_dsync_rdata(struct buffer *output, const struct rr *rr)
 		read_uint16(rr->rdata+3));
 	if(!print_name_literal(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3331,11 +3372,13 @@ print_nid_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
 
-	assert(rr->rdlength == 10);
+	if(rr->rdlength != 10)
+		return 0;
 	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
 	if (!print_ilnp64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3353,11 +3396,13 @@ print_l32_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
 
-	assert(rr->rdlength == 6);
+	if(rr->rdlength != 6)
+		return 0;
 	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
 	if (!print_ip4(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3375,11 +3420,13 @@ print_l64_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
 
-	assert(rr->rdlength == 10);
+	if(rr->rdlength != 10)
+		return 0;
 	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
 	if (!print_ilnp64(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3451,7 +3498,8 @@ int
 print_eui48_rdata(struct buffer *output, const struct rr *rr)
 {
 	const uint8_t *x = rr->rdata;
-	assert(rr->rdlength == 6);
+	if(rr->rdlength != 6)
+		return 0;
 	buffer_printf(output, "%.2x-%.2x-%.2x-%.2x-%.2x-%.2x",
 		x[0], x[1], x[2], x[3], x[4], x[5]);
 	return 1;
@@ -3470,7 +3518,8 @@ int
 print_eui64_rdata(struct buffer *output, const struct rr *rr)
 {
 	const uint8_t *x = rr->rdata;
-	assert(rr->rdlength == 8);
+	if(rr->rdlength != 8)
+		return 0;
 	buffer_printf(output, "%.2x-%.2x-%.2x-%.2x-%.2x-%.2x-%.2x-%.2x",
 		x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7]);
 	return 1;
@@ -3491,13 +3540,15 @@ print_uri_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu16 " %" PRIu16 " ",
 		read_uint16(rr->rdata), read_uint16(rr->rdata + 2));
 	if (!print_string(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3507,7 +3558,8 @@ print_resinfo_rdata(struct buffer *output, const struct rr *rr)
 	uint16_t length = 0;
 	if(!print_unquoteds(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3551,7 +3603,8 @@ print_caa_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(output, " ");
 	if (!print_text(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3560,7 +3613,7 @@ print_doa_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 9;
 	if(rr->rdlength < length)
-		return MALFORMED;
+		return 0;
 	buffer_printf(output, "%" PRIu32 " %" PRIu32 " %" PRIu8 " ",
 		read_uint32(rr->rdata), read_uint32(rr->rdata+4),
 		rr->rdata[8]);
@@ -3574,7 +3627,8 @@ print_doa_rdata(struct buffer *output, const struct rr *rr)
 		if(!print_base64(output, rr->rdlength, rr->rdata, &length))
 			return 0;
 	}
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3673,7 +3727,8 @@ print_amtrelay_rdata(struct buffer *output, const struct rr *rr)
 		return 0;
 	}
 
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
@@ -3735,13 +3790,15 @@ print_dlv_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
 
-	assert(rr->rdlength > length);
+	if(rr->rdlength < length)
+		return 0;
 	buffer_printf(
 		output, "%" PRIu16 " %" PRIu8 " %" PRIu8 " ",
 		read_uint16(rr->rdata), rr->rdata[2], rr->rdata[3]);
 	if (!print_base16(output, rr->rdlength, rr->rdata, &length))
 		return 0;
-	assert(rr->rdlength == length);
+	if(rr->rdlength != length)
+		return 0;
 	return 1;
 }
 
