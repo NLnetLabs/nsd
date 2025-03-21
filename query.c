@@ -912,7 +912,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 	rrset->rrs[0]->type = TYPE_CNAME;
 	rrset->rrs[0]->klass = CLASS_IN;
 	rrset->rrs[0]->rdlength = sizeof(void*);
-	memcpy(rrset->rrs[0]->rdata, cname_dest, sizeof(void*));
+	memcpy(rrset->rrs[0]->rdata, &cname_dest, sizeof(void*));
 
 	if(!add_rrset(q, answer, ANSWER_SECTION, cname_domain, rrset)) {
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "could not add synthesized CNAME rrset to packet for query %s", dname_to_string(q->qname, NULL)));
