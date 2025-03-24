@@ -1,0 +1,38 @@
+# #-- prometheus_metrics_without_remote_control.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+PRE="../.."
+
+if grep "define USE_METRICS " $PRE/config.h; then
+	echo "USE_METRICS enabled"
+else
+	echo "USE_METRICS not enabled, skip test"
+	exit 0
+fi
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+TPKG_METRICS_PORT=$((RND_PORT+1))
+
+TPKG_NSD="$PRE/nsd"
+TPKG_NSD_CONF="edit.conf"
+
+# share the vars
+{
+	echo "export TPKG_PORT=$TPKG_PORT"
+	echo "export TPKG_METRICS_PORT=$TPKG_METRICS_PORT"
+	echo "export TPKG_NSD_CONF=$TPKG_NSD_CONF"
+} >> .tpkg.var.test
+
+sed -e "s/PORT1/$TPKG_PORT/" \
+	-e "s/PORT2/$TPKG_METRICS_PORT/" \
+	< prometheus_metrics_without_remote_control.conf > "$TPKG_NSD_CONF"
+echo "nsd on port $TPKG_PORT"
+echo "nsd prometheus metrics on port $TPKG_METRICS_PORT"
+
+$TPKG_NSD -c "$TPKG_NSD_CONF" -u "" -p "$TPKG_PORT" -V 6
+wait_nsd_up nsd.log
