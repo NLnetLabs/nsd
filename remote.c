@@ -3230,8 +3230,15 @@ process_stats(RES* ssl, struct evbuffer *evbuf, struct xfrd_state* xfrd, int pee
 	}
 #ifdef USE_METRICS
 	if (evbuf) {
-		metrics_print_stats(evbuf, xfrd, &stattime, !peek, &total, zonestats,
-		                    &xfrd->nsd->rc->stats_time);
+		if (xfrd->nsd->options->control_enable) {
+			/* only pass in rc->stats_time if remote-conrol is enabled,
+			 * otherwise stats_time is uninitialized */
+			metrics_print_stats(evbuf, xfrd, &stattime, !peek, &total, zonestats,
+			                    &xfrd->nsd->rc->stats_time);
+		} else {
+			metrics_print_stats(evbuf, xfrd, &stattime, !peek, &total, zonestats,
+			                    NULL);
+		}
 	}
 #else
 	(void)evbuf;
