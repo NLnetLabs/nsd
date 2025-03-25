@@ -23,6 +23,7 @@
 #include "namedb.h"
 #include "difffile.h"
 #include "util.h"
+#include "ixfr.h"
 
 struct nsd nsd;
 
@@ -186,6 +187,7 @@ check_zone_mem(const char* tf, struct zone_options* zo,
 	print_zone_mem(&zmem);
 
 	/* delete the zone from memory */
+	zone_ixfr_free(zone->ixfr);
 	namedb_close(db);
 	udb_base_free(taskudb);
 	unlink(tf);

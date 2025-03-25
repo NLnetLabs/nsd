@@ -255,7 +255,7 @@ read_uint32(const void *src)
 	return ntohl(* (const uint32_t *) src);
 #else
 	const uint8_t *p = (const uint8_t *) src;
-	return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+	return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) | ((uint32_t)p[2] << 8) | (uint32_t)p[3];
 #endif
 }
 

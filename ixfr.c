@@ -1351,6 +1351,8 @@ void ixfr_store_delrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
 	uint16_t rrlen, struct region* temp_region)
 {
+	if(ixfr_store->cancelled)
+		return;
 	ixfr_store_putrr(ixfr_store, dname, type, klass, ttl, packet, rrlen,
 		temp_region, &ixfr_store->data->del,
 		&ixfr_store->data->del_len, &ixfr_store->del_capacity);
@@ -1360,6 +1362,8 @@ void ixfr_store_addrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
 	uint16_t rrlen, struct region* temp_region)
 {
+	if(ixfr_store->cancelled)
+		return;
 	ixfr_store_putrr(ixfr_store, dname, type, klass, ttl, packet, rrlen,
 		temp_region, &ixfr_store->data->add,
 		&ixfr_store->data->add_len, &ixfr_store->add_capacity);
@@ -2246,6 +2250,11 @@ void ixfr_write_to_file(struct zone* zone, const char* zfile)
 static void domain_table_delete(struct domain_table* table,
 	struct domain* domain)
 {
+	/* first adjust the number list so that domain is the last one */
+	numlist_make_last(table, domain);
+	/* pop off the domain from the number list */
+	(void)numlist_pop_last(table);
+
 #ifdef USE_RADIX_TREE
 	radix_delete(table->nametree, domain->rnode);
 #else
@@ -2460,13 +2469,14 @@ static int ixfr_data_readdel(struct ixfr_data* data, struct zone* zone,
 		return 0;
 	}
 	clear_temp_table_of_rr(temptable, tempzone, rr);
-	region_free_all(tempregion);
 	/* check SOA and also serial, because there could be other
 	 * add and del sections from older versions collated, we can
 	 * see this del section end when it has the serial */
 	if(rr->type != TYPE_SOA && soa_rr_get_serial(rr) != data->newserial) {
+		region_free_all(tempregion);
 		return 1;
 	}
+	region_free_all(tempregion);
 	ixfr_trim_capacity(&data->del, &data->del_len, &capacity);
 	return 2;
 }
@@ -2483,10 +2493,11 @@ static int ixfr_data_readadd(struct ixfr_data* data, struct zone* zone,
 		return 0;
 	}
 	clear_temp_table_of_rr(temptable, tempzone, rr);
-	region_free_all(tempregion);
 	if(rr->type != TYPE_SOA || soa_rr_get_serial(rr) != data->newserial) {
+		region_free_all(tempregion);
 		return 1;
 	}
+	region_free_all(tempregion);
 	ixfr_trim_capacity(&data->add, &data->add_len, &capacity);
 	return 2;
 }

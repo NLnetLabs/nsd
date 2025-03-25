@@ -19,6 +19,15 @@ BUG FIXES:
 	- Fix that nsec3 prehash after a full transfer can create the nsec3
 	  zone trees if they are needed.
 	- Fix in nsd-mem for a zone with ixfr data.
+	- Fix ixfr read routine for use after the temp region is freed of rr.
+	- Fix ixfr file read to manage numlist in temp domains.
+	- Fix nsd-mem to clean ixfr storage.
+	- Fix log print assert in server sockets for printing '-' empty.
+	- Fix notify_fmt test for xfrd file location.
+	- Fix sanitizer warnings in read_uint32.
+	- Fix sanitizer warning in tsig write of zero length mac and otherdata.
+	- Fix to please sanitizer for ixfr store of data in cancelled state.
+
 
 4.11.1
 ================
