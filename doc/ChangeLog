@@ -1,3 +1,6 @@
+25 March 2025: Wouter
+	- Fix to please sanitizer for ixfr store of data in cancelled state.
+
 14 March 2025: Wouter
 	- Fix log print assert in server sockets for printing '-' empty.
 	- Fix notify_fmt test for xfrd file location.

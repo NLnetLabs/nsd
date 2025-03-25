@@ -1351,6 +1351,8 @@ void ixfr_store_delrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
 	uint16_t rrlen, struct region* temp_region)
 {
+	if(ixfr_store->cancelled)
+		return;
 	ixfr_store_putrr(ixfr_store, dname, type, klass, ttl, packet, rrlen,
 		temp_region, &ixfr_store->data->del,
 		&ixfr_store->data->del_len, &ixfr_store->del_capacity);
@@ -1360,6 +1362,8 @@ void ixfr_store_addrr(struct ixfr_store* ixfr_store, const struct dname* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl, struct buffer* packet,
 	uint16_t rrlen, struct region* temp_region)
 {
+	if(ixfr_store->cancelled)
+		return;
 	ixfr_store_putrr(ixfr_store, dname, type, klass, ttl, packet, rrlen,
 		temp_region, &ixfr_store->data->add,
 		&ixfr_store->data->add_len, &ixfr_store->add_capacity);
