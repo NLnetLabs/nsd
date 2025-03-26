@@ -29,6 +29,7 @@ BUG FIXES:
 	- Fix to please sanitizer for ixfr store of data in cancelled state.
 	- Fix multiple zone transfers in one reload so that xfrd does not
 	  check the update as failed and restart the transfer.
+	- Fix read of ixfr file with rdata subdomain.
 
 
 4.11.1

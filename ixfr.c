@@ -2282,10 +2282,10 @@ static int can_del_temp_domain(struct domain* domain)
 
 /* delete temporary domain */
 static void ixfr_temp_deldomain(struct domain_table* temptable,
-	struct domain* domain)
+	struct domain* domain, struct domain* avoid)
 {
 	struct domain* p;
-	if(!can_del_temp_domain(domain))
+	if(domain == avoid || !can_del_temp_domain(domain))
 		return;
 	p = domain->parent;
 	/* see if this domain is someones wildcard-child-closest-match,
@@ -2298,7 +2298,7 @@ static void ixfr_temp_deldomain(struct domain_table* temptable,
 	domain_table_delete(temptable, domain);
 	while(p) {
 		struct domain* up = p->parent;
-		if(!can_del_temp_domain(p))
+		if(p == avoid || !can_del_temp_domain(p))
 			break;
 		if(p->parent && p->parent->wildcard_child_closest_match == p)
 			p->parent->wildcard_child_closest_match =
@@ -2354,7 +2354,7 @@ static void clear_temp_table_of_rr(struct domain_table* temptable,
 				rdata_atom_domain(rr->rdatas[i]);
 			domain->usage --;
 			if(domain != tempzone->apex && domain->usage == 0)
-				ixfr_temp_deldomain(temptable, domain);
+				ixfr_temp_deldomain(temptable, domain, rr->owner);
 		}
 	}
 
@@ -2367,7 +2367,7 @@ static void clear_temp_table_of_rr(struct domain_table* temptable,
 	} else {
 		rr->owner->rrsets = NULL;
 		if(rr->owner->usage == 0) {
-			ixfr_temp_deldomain(temptable, rr->owner);
+			ixfr_temp_deldomain(temptable, rr->owner, NULL);
 		}
 	}
 }

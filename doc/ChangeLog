@@ -2,6 +2,7 @@
 	- Fix multiple zone transfers in one reload so that xfrd does not
 	  check the update as failed and restart the transfer.
 	- Test for the multiple transfer failure, xfr_over_notify.
+	- Fix read of ixfr file with rdata subdomain.
 
 25 March 2025: Wouter
 	- Fix to please sanitizer for ixfr store of data in cancelled state.
