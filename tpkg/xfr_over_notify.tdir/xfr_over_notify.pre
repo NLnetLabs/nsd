@@ -1,0 +1,37 @@
+# #-- xfr_over_notify.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+PRE="../.."
+. ../common.sh
+
+# start NSD
+get_random_port 3
+LDNS_PORT=$RND_PORT
+NSD_PORT=`expr $RND_PORT + 1`
+VERIFY_PORT=`expr $RND_PORT + 2`
+echo ldns-testns-port: $LDNS_PORT
+echo nsd-port: $NSD_PORT
+
+cp xfr_over_notify.verifier.sh verifier.sh
+chmod +x verifier.sh
+
+# start ldns-testns, be extra verbose
+ldns-testns -p $LDNS_PORT xfr_over_notify.datafile >testns.log 2>&1 &
+echo "$!" > testns.pid
+wait_ldns_testns_up testns.log
+
+# share the vars
+echo "export LDNS_PORT=$LDNS_PORT" >> .tpkg.var.test
+echo "export NSD_PORT=$NSD_PORT" >> .tpkg.var.test
+echo "export VERIFY_PORT=$VERIFY_PORT" >> .tpkg.var.test
+
+# replace PORT with $LDNS_PORT and put it in nsd_update.conf
+cat xfr_over_notify.conf | sed -e "s/VERIFY_PORT/$VERIFY_PORT/g" -e "s/LDNS_PORT/$LDNS_PORT/g" > nsd.conf
+if [[ $? -ne 0 ]]; then
+        exit 1
+fi
+TPKG_NSD="$PRE/nsd"
+$TPKG_NSD -c nsd.conf -p $NSD_PORT -d -V 3 2>&1 | tee nsd.log &
+wait_nsd_up nsd.log

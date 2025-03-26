@@ -1,0 +1,7 @@
+$TTL    4D
+$ORIGIN example.net.
+example.net.	IN	SOA	nibbler.example.net. leela.example.net. 1 3600 3600 3600 3600
+
+unmodified IN A 8.8.8.7
+unmodified IN A 8.8.8.6
+unmodified IN TXT "this entry has not been modified"
