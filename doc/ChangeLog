@@ -1,3 +1,7 @@
+26 March 2025: Wouter
+	- Fix multiple zone transfers in one reload so that xfrd does not
+	  check the update as failed and restart the transfer.
+
 25 March 2025: Wouter
 	- Fix to please sanitizer for ixfr store of data in cancelled state.
 

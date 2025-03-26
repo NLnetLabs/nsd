@@ -823,10 +823,12 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 			if(!xfr->sent)
 				continue;
 			assert(xfr->acquired <= before);
-			/* skip non-applied updates */
-			if(!soa_ptr ||
-			    soa_ptr->serial != htonl(xfr->msg_new_serial))
-				continue;
+		}
+		if(hint == soainfo_ok && soa_ptr) {
+			/* soa_ptr should be true if soainfo_ok. If no
+			 * soa_ptr or soa_info_bad or gone delete all
+			 * the transfers. */
+
 			/* updates are applied in-order, acquired time of
 			   most-recent update is used as baseline */
 			if(!acquired) {
@@ -843,7 +845,9 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 					xfrd->nsd, xfr->xfrfilenumber);
 				return;
 			}
-			if(consumer_zone && dbzone)
+			if(consumer_zone && dbzone &&
+				/* Call consumer apply for most recent update*/
+				(soa_ptr && soa_ptr->serial == htonl(xfr->msg_new_serial)))
 				apply_xfrs_to_consumer_zone(
 					consumer_zone, dbzone, xfr);
 		}
