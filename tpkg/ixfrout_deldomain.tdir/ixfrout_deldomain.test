@@ -5,7 +5,7 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 . ../common.sh
 
-# At the start the serial is 1.
+# See if the server is running.
 dig -4 @127.0.0.1 -p $NSD_PORT example.com SOA | tee output
 if grep "3 3600" output; then
 	echo "OK"

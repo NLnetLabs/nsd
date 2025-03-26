@@ -4,6 +4,7 @@
 	- Test for the multiple transfer failure, xfr_over_notify.
 	- Fix read of ixfr file with rdata subdomain.
 	- Test for the ixfr rdata subdomain, ixfrout_deldomain.
+	- Fix note in ixfrout_deldomain test.
 
 25 March 2025: Wouter
 	- Fix to please sanitizer for ixfr store of data in cancelled state.
