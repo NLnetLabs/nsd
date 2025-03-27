@@ -696,7 +696,9 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 
 		assert(additional);
 
-		if (!allow_glue && domain_is_glue(match, query->zone))
+		if (!allow_glue && ( query->edns.deleg_ok
+		                   ? domain_is_glue_DE(match, query->zone)
+		                   : domain_is_glue(match, query->zone)))
 			continue;
 
 		/*
@@ -947,12 +949,12 @@ answer_delegation(query_type *query, answer_type *answer)
 			ds_found = 1;
 
 		}
-		if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_DELEG))) {
+		if (query->deleg_rrset) {
 			add_rrset(query, answer, AUTHORITY_SECTION,
-				  query->delegation_domain, rrset);
+				  query->delegation_domain, query->deleg_rrset);
 			deleg_found = 1;
 		}
-		if (ds_found && deleg_found) {
+		if (ds_found && (!query->edns.deleg_ok || deleg_found)) {
 			; /* pass; No NSEC needed showing the absence of the other RRset */
 #ifdef NSEC3
 		} else if (query->zone->nsec3_param) {
@@ -1507,8 +1509,17 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 		}
 		answer_nodata(q, answer, closest_encloser);
 	} else {
-		q->delegation_domain = domain_find_delegation_rrsets(
-			closest_encloser, q->zone, &q->delegation_rrset, &q->deleg_rrset);
+		if(q->edns.deleg_ok)
+			q->delegation_domain =domain_find_delegation_rrsets(
+					closest_encloser, q->zone,
+					&q->delegation_rrset, &q->deleg_rrset);
+		else {
+			q->deleg_rrset = NULL;
+			q->delegation_domain =domain_find_ns_rrsets(
+					closest_encloser, q->zone,
+					&q->delegation_rrset);
+		}
+
 		if(q->delegation_domain && find_dname_above(q->delegation_domain, q->zone)) {
 			q->delegation_domain = NULL; /* use higher DNAME */
 		}

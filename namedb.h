@@ -260,11 +260,14 @@ rrset_type* domain_find_any_rrset(domain_type* domain, zone_type* zone);
 zone_type* domain_find_zone(namedb_type* db, domain_type* domain);
 zone_type* domain_find_parent_zone(namedb_type* db, zone_type* zone);
 
+domain_type* domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns);
+int zone_is_deleg_zone(zone_type* zone);
 domain_type* domain_find_delegation_rrsets(
 		domain_type* domain, zone_type* zone, rrset_type **ns, rrset_type **deleg);
 /* find DNAME rrset in domain->parent or higher and return that domain */
 domain_type * find_dname_above(domain_type* domain, zone_type* zone);
 
+int domain_is_glue_DE(domain_type* domain, zone_type* zone);
 int domain_is_glue(domain_type* domain, zone_type* zone);
 
 rrset_type* domain_find_non_cname_rrset(domain_type* domain, zone_type* zone);

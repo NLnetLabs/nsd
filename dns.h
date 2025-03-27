@@ -57,6 +57,13 @@ typedef enum rr_section rr_section_type;
 #define RCODE_NOTAUTH		9	/* server not authoritative */
 #define RCODE_NOTZONE		10	/* name not inside zone */
 
+/* DNSKEY FLAGS */
+
+/* #define DNSKEY_FLAG_ZONE   (1 << (15 - 7)) */
+/* #define DNSKEY_FLAG_REVOKE (1 << (15 - 8)) */
+#define DNSKEY_FLAG_DELEG (1 << (15 - 14))
+/* #define DNSKEY_FLAG_SEP    (1 << (15 - 15)) */
+
 /* Standardized NSD return code.  Partially maps to DNS RCODE values.  */
 enum nsd_rc
 {
