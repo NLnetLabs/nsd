@@ -31,6 +31,8 @@ BUG FIXES:
 	  check the update as failed and restart the transfer.
 	- Fix read of ixfr file with rdata subdomain.
 	- Fix test checkconf for metrics options.
+	- Updated simdzone to include fixes for NSAP-PTR, LOC,
+	  uninitialized reads, and comment nit.
 
 
 4.11.1

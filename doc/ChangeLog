@@ -1,5 +1,7 @@
 27 March 2025: Wouter
 	- Fix test checkconf for metrics options.
+	- Updated simdzone to include fixes for NSAP-PTR, LOC,
+	  uninitialized reads, and comment nit.
 
 26 March 2025: Wouter
 	- Fix multiple zone transfers in one reload so that xfrd does not
