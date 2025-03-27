@@ -34,6 +34,7 @@ BUG FIXES:
 	- Updated simdzone to include fixes for NSAP-PTR, LOC,
 	  uninitialized reads, and comment nit.
 	- Fix #436: Fix print of RR type NSAP-PTR.
+	- Fix unit test call to zone_parse_string and initialize padding.
 
 
 4.11.1

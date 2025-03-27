@@ -3,6 +3,7 @@
 	- Updated simdzone to include fixes for NSAP-PTR, LOC,
 	  uninitialized reads, and comment nit.
 	- Fix #436: Fix print of RR type NSAP-PTR.
+	- Fix unit test call to zone_parse_string and initialize padding.
 
 26 March 2025: Wouter
 	- Fix multiple zone transfers in one reload so that xfrd does not
