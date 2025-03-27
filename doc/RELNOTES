@@ -30,6 +30,7 @@ BUG FIXES:
 	- Fix multiple zone transfers in one reload so that xfrd does not
 	  check the update as failed and restart the transfer.
 	- Fix read of ixfr file with rdata subdomain.
+	- Fix test checkconf for metrics options.
 
 
 4.11.1
