@@ -2,6 +2,7 @@
 	- Fix test checkconf for metrics options.
 	- Updated simdzone to include fixes for NSAP-PTR, LOC,
 	  uninitialized reads, and comment nit.
+	- Fix #436: Fix print of RR type NSAP-PTR.
 
 26 March 2025: Wouter
 	- Fix multiple zone transfers in one reload so that xfrd does not
