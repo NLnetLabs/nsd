@@ -77,7 +77,9 @@ static int
 xsk_configure_umem(struct xsk_umem_info *umem_info, uint64_t size);
 
 /*
- * Allocate a frame in UMEM
+ * Retrieve a UMEM frame address for allocation
+ *
+ * Returns XDP_INVALID_UMEM_FRAME when there are no free frames available.
  */
 static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk);
 
@@ -193,7 +195,8 @@ static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk) {
 	}
 
 	frame = xsk->umem->umem_frame_addr[--xsk->umem->umem_frame_free];
-	xsk->umem->umem_frame_addr[xsk->umem->umem_frame_free] = XDP_INVALID_UMEM_FRAME;
+	xsk->umem->umem_frame_addr[xsk->umem->umem_frame_free] =
+		XDP_INVALID_UMEM_FRAME;
 	return frame;
 }
 
@@ -211,7 +214,8 @@ static void fill_fq(struct xsk_socket_info *xsk) {
 	uint32_t idx_fq = 0;
 	/* fill the fill ring with as many frames as are available */
 	/* get number of spots available in fq */
-	stock_frames = xsk_prod_nb_free(&xsk->umem->fq, (uint32_t) xsk_umem_free_frames(xsk));
+	stock_frames = xsk_prod_nb_free(&xsk->umem->fq,
+	                                (uint32_t) xsk_umem_free_frames(xsk));
 	if (stock_frames > 0) {
 		/* ignoring prod__reserve return value, because we got stock_frames
 		 * from xsk_prod_nb_free(), which are therefore available */
@@ -234,8 +238,9 @@ static int load_xdp_program_and_map(struct xdp_server *xdp) {
 	struct bpf_map *map;
 	char errmsg[512];
 	int err, ret;
+	/* UNSPEC => let libxdp decide */
 	// TODO: put this into a config option as well?
-	enum xdp_attach_mode attach_mode = XDP_MODE_UNSPEC; /* UNSPEC => let libxdp decide */
+	enum xdp_attach_mode attach_mode = XDP_MODE_UNSPEC;
 
 	DECLARE_LIBXDP_OPTS(bpf_object_open_opts, opts);
 	if (xdp->bpf_bpffs_path)
@@ -245,7 +250,8 @@ static int load_xdp_program_and_map(struct xdp_server *xdp) {
 	// TODO: look at xdp_program__create because it can take a pinned prog
 	xdp->bpf_prog = xdp_program__open_file(xdp->bpf_prog_filename, NULL, &opts);
 
-	// should be fine, libxdp errors shouldn't exceed (int), also libxdp_strerr takes int anyway...
+	// conversion should be fine, libxdp errors shouldn't exceed (int),
+	// also libxdp_strerr takes int anyway...
 	err = (int) libxdp_get_error(xdp->bpf_prog);
 	if (err) {
 		libxdp_strerror(err, errmsg, sizeof(errmsg));
@@ -896,10 +902,12 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 
 	/* TODO: at least send as many packets as slots are available */
 	reserved = xsk_ring_prod__reserve(&xsk->tx, to_send, &tx_idx);
-	// if we can't reserve to_send frames, we'll get 0 frames, so no need to "un-reserve"
+	// if we can't reserve to_send frames, we'll get 0 frames, so
+	// no need to "un-reserve"
 	if (reserved != to_send) {
 		// not enough tx slots available, drop packets
-		log_msg(LOG_ERR, "xdp: not enough TX frames available, dropping whole batch");
+		log_msg(LOG_ERR, "xdp: not enough TX frames available, dropping "
+		        "whole batch");
 		for (i = 0; i < to_send; ++i) {
 			xsk_free_umem_frame(xsk, umem_ptrs[i].addr);
 			umem_ptrs[i].addr = XDP_INVALID_UMEM_FRAME;
