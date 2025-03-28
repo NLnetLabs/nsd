@@ -227,7 +227,9 @@ static void fill_fq(struct xsk_socket_info *xsk) {
 		xsk_ring_prod__reserve(&xsk->umem->fq, stock_frames, &idx_fq);
 
 		for (uint32_t i = 0; i < stock_frames; ++i) {
-			// TODO: handle lack of available frames?
+			/* TODO: handle lack of available frames?
+			 * Is not necessary when the total amount of frames exceeds the
+			 * total slots available across all queues combined */
 			/* uint64_t frame = xsk_alloc_umem_frame(xsk); */
 			/* if (frame == XDP_INVALID_UMEM_FRAME) */
 			/*     printf("xdp: trying to fill_addr INVALID UMEM FRAME"); */
