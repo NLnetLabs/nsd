@@ -11,7 +11,7 @@ LDNS_PORT=$RND_PORT
 echo port: $LDNS_PORT
 
 # start ldns-testns, be extra verbose
-ldns-testns -p $LDNS_PORT ixfr_wildcard.datafile1 &
+ldns-testns -p $LDNS_PORT ixfr_wildcard.datafile1 >testns.log 2>&1 &
 echo "export TESTNS_PID=$!" >> .tpkg.var.test
 sleep 1
 

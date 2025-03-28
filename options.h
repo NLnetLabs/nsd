@@ -120,6 +120,7 @@ struct nsd_options {
 	int zonefiles_check;
 	int zonefiles_write;
 	int log_time_ascii;
+	int log_time_iso;
 	int round_robin;
 	int minimal_responses;
 	int refuse_any;
@@ -173,6 +174,17 @@ struct nsd_options {
 	const char* xdp_bpffs_path;
 #endif
 
+#ifdef USE_METRICS
+	/** metrics section. enable toggle. */
+	int metrics_enable;
+	/** the interfaces the metrics endpoint should listen on */
+	struct ip_address_option* metrics_interface;
+	/** port number for the metrics endpoint */
+	int metrics_port;
+	/** HTTP path for the metrics endpoint */
+	char* metrics_path;
+#endif /* USE_METRICS */
+
 #ifdef RATELIMIT
 	/** number of buckets in rrl hashtable */
 	size_t rrl_size;
@@ -219,8 +231,12 @@ struct nsd_options {
 	int answer_cookie;
 	/** cookie secret */
 	char *cookie_secret;
+	/** cookie staging secret */
+	char *cookie_staging_secret;
 	/** path to cookie secret store */
-	char const* cookie_secret_file;
+	char *cookie_secret_file;
+	/** set when the cookie_secret_file whas not explicitely configured */
+	uint8_t cookie_secret_file_is_default;
 	/** enable verify */
 	int verify_enable;
 	/** list of ip addresses used to serve zones for verification */

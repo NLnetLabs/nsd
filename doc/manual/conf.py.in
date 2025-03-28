@@ -64,6 +64,7 @@ extensions = [
     'notfound.extension',
     'sphinxcontrib.jquery',
     'sphinx_rtd_theme',
+    'sphinx_substitution_extensions',
 ]
 
 intersphinx_mapping = {
@@ -75,6 +76,7 @@ autosectionlabel_prefix_document = True
 # -- Sphinx Tabs configuration -----------------------------------------------
 
 sphinx_tabs_disable_tab_closing = True
+sphinx_tabs_disable_css_loading = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['../templates']
@@ -109,12 +111,10 @@ pygments_style = 'sphinx'
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 html_logo = 'resources/nsd-duotone-white.png'
 html_favicon = 'resources/favicon.ico'
 html_theme_options = {
     'logo_only': True,
-    'display_version': True,
 }
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -157,7 +157,7 @@ html_context = {
         'rtd_language': language,
         'canonical_url': html_baseurl,
 
-        'conf_py_path': "/source/",
+        'conf_py_path': "/doc/manual/",
 
         'github_user': "NLnetLabs",
         'github_repo': "nsd",
@@ -296,3 +296,8 @@ rst_epilog = ".. |pidfile| replace:: @pidfile@\n" \
              ".. |logfile| replace:: @logfile@\n" \
              ".. |xfrdfile| replace:: @xfrdfile@\n" \
              ".. |zonelistfile| replace:: @zonelistfile@\n"
+
+
+# -- Options for substitution extension --------------------------------------
+
+rst_prolog = ".. |version| replace:: @version@"

@@ -35,6 +35,9 @@
 #ifdef USE_DNSTAP
 #include "dnstap/dnstap_collector.h"
 #endif
+#ifdef USE_METRICS
+#include "metrics.h"
+#endif /* USE_METRICS */
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -131,6 +134,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	pid_t nsd_pid)
 {
 	region_type* region;
+	size_t i;
 
 	assert(xfrd == 0);
 	/* to setup signalhandling */
@@ -158,7 +162,6 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	xfrd->zonestat_safe = nsd->zonestatdesired;
 #endif
 	xfrd->activated_first = NULL;
-	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
 	xfrd->last_task = region_alloc(xfrd->region, sizeof(*xfrd->last_task));
 	udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
 	assert(shortsoa || udb_base_get_userdata(xfrd->nsd->task[xfrd->nsd->mytask])->data == 0);
@@ -182,10 +185,22 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	if(event_add(&xfrd->ipc_handler, NULL) != 0)
 		log_msg(LOG_ERR, "xfrd ipc handler: event_add failed");
 	xfrd->ipc_handler_flags = EV_PERSIST|EV_READ;
-	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region, QIOBUFSZ);
-	/* not reading using ipc_conn yet */
-	xfrd->ipc_conn->is_reading = 0;
-	xfrd->ipc_conn->fd = socket;
+	xfrd->notify_events = (struct event *) region_alloc_array_zero(
+		xfrd->region, nsd->child_count * 2, sizeof(struct event));
+	xfrd->notify_pipes = (struct xfrd_tcp *) region_alloc_array_zero(
+		xfrd->region, nsd->child_count * 2, sizeof(struct xfrd_tcp));
+	for(i = 0; i < 2 * nsd->child_count; i++) {
+		int fd = nsd->serve2xfrd_fd_recv[i];
+		xfrd->notify_pipes[i].fd = fd;
+		xfrd->notify_pipes[i].packet = buffer_create(xfrd->region, QIOBUFSZ);
+		event_set(&xfrd->notify_events[i], fd,
+				EV_PERSIST|EV_READ, xfrd_handle_notify, &xfrd->notify_pipes[i]);
+		if(event_base_set(xfrd->event_base, &xfrd->notify_events[i]) != 0)
+			log_msg( LOG_ERR
+			       , "xfrd notify_event: event_base_set failed");
+		if(event_add(&xfrd->notify_events[i], NULL) != 0)
+			log_msg(LOG_ERR, "xfrd notify_event: event_add failed");
+	}
 	xfrd->need_to_send_reload = 0;
 	xfrd->need_to_send_shutdown = 0;
 	xfrd->need_to_send_stats = 0;
@@ -199,6 +214,10 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	xfrd->notify_udp_num = 0;
 
 	daemon_remote_attach(xfrd->nsd->rc, xfrd);
+
+#ifdef USE_METRICS
+	daemon_metrics_attach(xfrd->nsd->metrics, xfrd);
+#endif /* USE_METRICS */
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region, nsd->options->tls_cert_bundle, nsd->options->xfrd_tcp_max, nsd->options->xfrd_tcp_pipeline);
 	xfrd->tcp_set->tcp_timeout = nsd->tcp_timeout;
@@ -640,7 +659,7 @@ apply_xfr:
 		       (long long)xfr->xfrfilenumber, strerror(errno));
 
 	} else if(0 >= apply_ixfr_for_zone(xfrd->nsd, dbzone, df,
-			xfrd->nsd->options, NULL, NULL, xfr->xfrfilenumber)) {
+			xfrd->nsd->options, NULL, xfr->xfrfilenumber)) {
 		make_catalog_consumer_invalid(consumer_zone,
 			"error processing transfer file %lld",
 			(long long)xfr->xfrfilenumber);
@@ -804,10 +823,12 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 			if(!xfr->sent)
 				continue;
 			assert(xfr->acquired <= before);
-			/* skip non-applied updates */
-			if(!soa_ptr ||
-			    soa_ptr->serial != htonl(xfr->msg_new_serial))
-				continue;
+		}
+		if(hint == soainfo_ok && soa_ptr) {
+			/* soa_ptr should be true if soainfo_ok. If no
+			 * soa_ptr or soa_info_bad or gone delete all
+			 * the transfers. */
+
 			/* updates are applied in-order, acquired time of
 			   most-recent update is used as baseline */
 			if(!acquired) {
@@ -824,7 +845,9 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 					xfrd->nsd, xfr->xfrfilenumber);
 				return;
 			}
-			if(consumer_zone && dbzone)
+			if(consumer_zone && dbzone &&
+				/* Call consumer apply for most recent update*/
+				(soa_ptr && soa_ptr->serial == htonl(xfr->msg_new_serial)))
 				apply_xfrs_to_consumer_zone(
 					consumer_zone, dbzone, xfr);
 		}
@@ -2472,10 +2495,20 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 		zone->latest_xfr->msg_seq_nr,
 		buffer_begin(packet), buffer_limit(packet), xfrd->nsd,
 		zone->latest_xfr->xfrfilenumber);
-	VERBOSITY(3, (LOG_INFO,
-		"xfrd: zone %s written received XFR packet from %s with serial %u to "
-		"disk", zone->apex_str, zone->master->ip_address_spec,
-		(int)zone->latest_xfr->msg_new_serial));
+
+	if(verbosity < 4 || zone->latest_xfr->msg_seq_nr == 0)
+		; /* pass */
+
+	else if((verbosity >= 6)
+	     || (verbosity >= 5 && zone->latest_xfr->msg_seq_nr %  1000 == 0)
+	     || (verbosity >= 4 && zone->latest_xfr->msg_seq_nr % 10000 == 0)) {
+		VERBOSITY(4, (LOG_INFO,
+			"xfrd: zone %s written received XFR packet %u from %s "
+			"with serial %u to disk", zone->apex_str,
+			zone->latest_xfr->msg_seq_nr,
+			zone->master->ip_address_spec,
+			(int)zone->latest_xfr->msg_new_serial));
+	}
 	zone->latest_xfr->msg_seq_nr++;
 
 	xfrfile_size = xfrd_get_xfrfile_size(

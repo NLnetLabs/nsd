@@ -1,0 +1,21 @@
+$ORIGIN example.net.
+$TTL 7200
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR AA AD
+ADJUST copy_id		; ’copy_id’ copies the ID from the query to the answer.
+
+SECTION QUESTION
+example.net. IN AXFR
+SECTION ANSWER
+
+; This reply indicates the currently hosted serial
+example.net. IN SOA nibbler.example.net. leela.example.net. 1 3600 3600 3600 3600
+unmodified IN A 8.8.8.7
+unmodified IN A 8.8.8.6
+unmodified IN TXT "this entry has not been modified"
+example.net. IN SOA nibbler.example.net. leela.example.net. 1 3600 3600 3600 3600
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END

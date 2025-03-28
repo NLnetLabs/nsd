@@ -17,31 +17,31 @@ remote-control:
 	control-enable: @TPKG_CONTROL_ENABLE@
 	control-interface: 127.0.0.1
 	control-port: @TPKG_PRI_PORT_CTL@
-	server-key-file: "nsd_server.key"
-	server-cert-file: "nsd_server.pem"
-	control-key-file: "nsd_control.key"
-	control-cert-file: "nsd_control.pem"
+	server-key-file: "xot.nsd_server.key"
+	server-cert-file: "xot.nsd_server.pem"
+	control-key-file: "xot.nsd_control.key"
+	control-cert-file: "xot.nsd_control.pem"
 
 zone:
 	name: example.org
-	zonefile: example.org
+	zonefile: xot.example.org
 	notify: 127.0.0.1@@TPKG_SEC_PORT@ xot.
 	provide-xfr: 0.0.0.0/0 xot.
 
 zone:
 	name: example.net
-	zonefile: example.net
+	zonefile: xot.example.net
 	notify: 127.0.0.1@@TPKG_SEC_PORT@ xot.
 	provide-xfr: 0.0.0.0/0 xot.
 
 zone:
 	name: example.com
-	zonefile: example.com
+	zonefile: xot.example.com
 	notify: 127.0.0.1@@TPKG_SEC_PORT@ xot.
 	provide-xfr: 0.0.0.0/0 xot.
 
 zone:
 	name: example.edu
-	zonefile: example.edu
+	zonefile: xot.example.edu
 	notify: 127.0.0.1@@TPKG_SEC_PORT@ xot.
 	provide-xfr: 0.0.0.0/0 xot.

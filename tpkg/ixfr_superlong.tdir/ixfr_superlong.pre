@@ -15,7 +15,7 @@ TPKG_NSD="$PRE/nsd"
 
 sed -e "s/TESTNS_PORT/"$TESTNS_PORT"/" < ixfr_superlong.conf > edit.conf
 
-ldns-testns -v -p $TESTNS_PORT ixfr_superlong.testns &
+ldns-testns -v -p $TESTNS_PORT ixfr_superlong.testns >testns.log 2>&1 &
 TESTNS_PID=$!
 
 # share the vars

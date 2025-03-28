@@ -258,6 +258,10 @@ server-key-file{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_SERVER_KEY_FILE;
 server-cert-file{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_SERVER_CERT_FILE;}
 control-key-file{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_CONTROL_KEY_FILE;}
 control-cert-file{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_CONTROL_CERT_FILE;}
+metrics-enable{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_METRICS_ENABLE;}
+metrics-interface{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_METRICS_INTERFACE;}
+metrics-port{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_METRICS_PORT;}
+metrics-path{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_METRICS_PATH;}
 AXFR			{ LEXOUT(("v(%s) ", yytext)); return VAR_AXFR;}
 UDP			{ LEXOUT(("v(%s) ", yytext)); return VAR_UDP;}
 rrl-size{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_RRL_SIZE;}
@@ -286,6 +290,7 @@ dnstap-version{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_VERSION; }
 dnstap-log-auth-query-messages{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_LOG_AUTH_QUERY_MESSAGES; }
 dnstap-log-auth-response-messages{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSTAP_LOG_AUTH_RESPONSE_MESSAGES; }
 log-time-ascii{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_LOG_TIME_ASCII;}
+log-time-iso{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_LOG_TIME_ISO;}
 round-robin{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ROUND_ROBIN;}
 minimal-responses{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_MINIMAL_RESPONSES;}
 confine-to-zone{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_CONFINE_TO_ZONE;}
@@ -312,6 +317,7 @@ proxy-protocol-port{COLON} { LEXOUT(("v(%s) ", yytext)); return VAR_PROXY_PROTOC
 answer-cookie{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ANSWER_COOKIE;}
 cookie-secret{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_COOKIE_SECRET;}
 cookie-secret-file{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_COOKIE_SECRET_FILE;}
+cookie-staging-secret{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_COOKIE_STAGING_SECRET;}
 xfrd-tcp-max{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_XFRD_TCP_MAX;}
 xfrd-tcp-pipeline{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_XFRD_TCP_PIPELINE;}
 verify{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFY; }

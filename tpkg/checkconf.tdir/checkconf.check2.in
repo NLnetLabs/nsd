@@ -40,6 +40,7 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -56,7 +57,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -176,6 +182,7 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -190,7 +197,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -253,6 +265,7 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: no
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -267,7 +280,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -339,6 +357,7 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -353,7 +372,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -469,6 +493,7 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -483,7 +508,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -597,6 +627,7 @@ server:
 	xfrdir: "@xfrdir@"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -611,7 +642,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "@configdir@/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no

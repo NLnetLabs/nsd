@@ -195,6 +195,10 @@ server:
 	# log timestamp in ascii (y-m-d h:m:s.msec), yes is default.
 	# log-time-ascii: yes
 
+	# log timestamp in ISO8601 format if also log-time-ascii is enabled.
+	# (y-m-dTh:m:s.msec[+-]tzhours:tzminutes)
+	# log-time-iso: no
+
 	# round robin rotation of records in the answer.
 	# round-robin: no
 
@@ -254,6 +258,7 @@ server:
 	# Service clients over TLS (on the TCP sockets), with plain DNS inside
 	# the TLS stream. Give the certificate to use and private key.
 	# Default is "" (disabled). Requires restart to take effect.
+	# UDP on the same port is implicitly turned off.
 	# tls-service-key: "path/to/privatekeyfile.key"
 	# tls-service-pem: "path/to/publiccertfile.pem"
 	# tls-service-ocsp: "path/to/ocsp.pem"
@@ -305,6 +310,23 @@ server:
 	# own bpffs. Default is "", letting libbpf decide the default path.
 	# xdp-bpffs-path: ""
 	# XDPend
+
+	# Enable the prometheus metrics HTTP endpoint. Default is no.
+	# metrics-enable: no
+
+	# Interfaces to expose the HTTP endpoint on, default is on localhost.
+	# Interfaces can be specified by IP address or interface name.
+	# With an interface name, all IP addresses associated with that
+	# interface are used. Default is 127.0.0.1 and ::1.
+	# metrics-interface: 127.0.0.1
+	# metrics-interface: ::1
+	# metrics-interface: lo
+
+	# Port number for the HTTP metrics endpoint. Default is 9100.
+	# metrics-port: 9100
+
+	# HTTP path for the metrics endpoint. Default is "/metrics".
+	# metrics-path: "/metrics"
 
 verify:
 	# Enable zone verification. Default is no.

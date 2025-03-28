@@ -42,18 +42,19 @@ configured<configuration>`.
 Building from source
 ====================
 
-Ubuntu 20.04 LTS
-****************
+Ubuntu
+******
 
 First of all, we need our copy of the NSD code. `On our website
 <https://nlnetlabs.nl/projects/nsd/about/>`_ you can find the latest version
-and the changelog. In this example we'll use version 4.10.1. Please note
+and the changelog. In this example we'll use version |version|. Please note
 that this may not be the latest version currently.
 
 .. code-block:: bash
+   :substitutions:
 
-    wget https://nlnetlabs.nl/downloads/nsd/nsd-4.10.1.tar.gz
-    tar xzf nsd-4.10.1.tar.gz
+    wget https://nlnetlabs.nl/downloads/nsd/nsd-|version|.tar.gz
+    tar xzf nsd-|version|.tar.gz
 
 
 We'll need some tools, such as a compiler and the :command:`make` program.
@@ -98,7 +99,7 @@ NSD using :command:`make`; compilation might take a while.
 
 .. code-block:: bash
 
-    make
+    make -j4
 
 After successfully compiling, we can install NSD to make it available for
 the machine.

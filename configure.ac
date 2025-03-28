@@ -7,7 +7,7 @@ sinclude(dnstap/dnstap.m4)
 
 # autoconf-2.70 is needed for @runstatedir@
 AC_PREREQ([2.70])
-AC_INIT([NSD],[4.10.1],[https://github.com/NLnetLabs/nsd/issues or nsd-bugs@nlnetlabs.nl])
+AC_INIT([NSD],[4.11.2],[https://github.com/NLnetLabs/nsd/issues or nsd-bugs@nlnetlabs.nl])
 AC_CONFIG_HEADERS([config.h])
 
 #
@@ -125,6 +125,12 @@ zonelistfile=${dbdir}/zone.list
 AC_ARG_WITH([zonelistfile], AS_HELP_STRING([--with-zonelistfile=path],[Pathname to the NSD zone list file]), [zonelistfile=$withval])
 AC_DEFINE_UNQUOTED(ZONELISTFILE, ["`eval echo $zonelistfile`"], [Pathname to the NSD zone list file.])
 AC_SUBST(zonelistfile)
+
+# default cookiesecrets file location.
+cookiesecretsfile=${dbdir}/cookiesecrets.txt
+AC_ARG_WITH([cookiesecretsfile], AS_HELP_STRING([--with-cookiesecretsfile=path],[Pathname to the NSD cookie secrets file]), [cookiesecretsfile=$withval])
+AC_DEFINE_UNQUOTED(COOKIESECRETSFILE, ["`eval echo $cookiesecretsfile`"], [Pathname to the NSD cookies secrets file.])
+AC_SUBST(cookiesecretsfile)
 
 # default xfr dir location.
 xfrdir="/tmp"
@@ -1176,6 +1182,19 @@ case "$enable_xdp" in
 	;;
 esac
 AC_SUBST(xdp)
+
+AC_ARG_ENABLE(prometheus-metrics, AS_HELP_STRING([--enable-prometheus-metrics],[Enable prometheus metrics support.]))
+case "$enable_prometheus_metrics" in
+	yes)
+		AC_DEFINE_UNQUOTED([USE_METRICS], [], [Define this to expose NSD statistics via a prometheus metrics HTTP endpoint.])
+		AC_DEFINE_UNQUOTED([NSD_METRICS_PORT], [9100], [Define to the default metrics HTTP endpoint port.])
+		AC_SEARCH_LIBS(evhttp_free, [event], , AC_MSG_ERROR(Cannot find libevent, but is needed for prometheus metrics support.))
+        AC_SUBST([METRICS_SRC], ["metrics.c"])
+        AC_SUBST([METRICS_OBJ], ["metrics.o"])
+		;;
+	no|*)
+		;;
+esac
 
 # check for dnstap if requested
 dt_DNSTAP([${localstatedir}/run/nsd-dnstap.sock],

@@ -80,6 +80,7 @@ nsd_options_create(region_type* region)
 	opt->logfile = 0;
 	opt->log_only_syslog = 0;
 	opt->log_time_ascii = 1;
+	opt->log_time_iso = 0;
 	opt->round_robin = 0; /* also packet.h::round_robin */
 	opt->minimal_responses = 0; /* also packet.h::minimal_responses */
 	opt->confine_to_zone = 0;
@@ -151,7 +152,9 @@ nsd_options_create(region_type* region)
 	opt->proxy_protocol_port = NULL;
 	opt->answer_cookie = 0;
 	opt->cookie_secret = NULL;
-	opt->cookie_secret_file = CONFIGDIR"/nsd_cookiesecrets.txt";
+	opt->cookie_staging_secret = NULL;
+	opt->cookie_secret_file = NULL;
+	opt->cookie_secret_file_is_default = 1;
 	opt->control_enable = 0;
 	opt->control_interface = NULL;
 	opt->control_port = NSD_CONTROL_PORT;
@@ -165,6 +168,12 @@ nsd_options_create(region_type* region)
 	opt->xdp_program_load = 1;
 	opt->xdp_bpffs_path = "/sys/fs/bpf";
 #endif
+#ifdef USE_METRICS
+	opt->metrics_enable = 0;
+	opt->metrics_interface = NULL;
+	opt->metrics_port = NSD_METRICS_PORT;
+	opt->metrics_path = "/metrics";
+#endif /* USE_METRICS */
 
 	opt->verify_enable = 0;
 	opt->verify_ip_addresses = NULL;
@@ -262,6 +271,16 @@ parse_options_file(struct nsd_options* opt, const char* file,
 
 	opt->configfile = region_strdup(opt->region, file);
 
+	/* Set default cookie_secret_file value */
+	if(opt->cookie_secret_file_is_default && !opt->cookie_secret_file) {
+		opt->cookie_secret_file =
+			region_strdup(opt->region, COOKIESECRETSFILE);
+	}
+	/* Semantic errors */
+	if(opt->cookie_staging_secret && !opt->cookie_secret) {
+		c_error("a cookie-staging-secret cannot be configured without "
+		        "also providing a cookie-secret");
+	}
 	RBTREE_FOR(pat, struct pattern_options*, opt->patterns)
 	{
 		struct pattern_options* old_pat =
@@ -2766,8 +2785,8 @@ config_apply_pattern(struct pattern_options *dest, const char* name)
 		c_error("could not find pattern %s", name);
 		return;
 	}
-	if(strncmp(dest->pname, PATTERN_IMPLICIT_MARKER,
-				strlen(PATTERN_IMPLICIT_MARKER)) == 0
+	if( (!dest->pname || strncmp(dest->pname, PATTERN_IMPLICIT_MARKER,
+				strlen(PATTERN_IMPLICIT_MARKER)) == 0)
 	&& pat->catalog_producer_zone) {
 		c_error("patterns with an catalog-producer-zone option are to "
 		        "be used with \"nsd-control addzone\" only and cannot "
@@ -3075,6 +3094,10 @@ resolve_interface_names(struct nsd_options* options)
 			addrs, options->region);
 	resolve_interface_names_for_ref(&options->control_interface, 
 			addrs, options->region);
+#ifdef USE_METRICS
+	resolve_interface_names_for_ref(&options->metrics_interface,
+			addrs, options->region);
+#endif /* USE_METRICS */
 
 	freeifaddrs(addrs);
 #else

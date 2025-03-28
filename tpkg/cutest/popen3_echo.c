@@ -31,7 +31,10 @@ int main(int argc, char *argv[])
 		fds |= 4;
 
 	if (fds & 1)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result" 
 		fgets(buf, sizeof(buf), stdin);
+#pragma GCC diagnostic pop 
 	if ((fds & 3) == 3)
 		fprintf(stdout, "%sstdin,stdout,stderr\n%s", (fds & 1) ? "" : "!", buf);
 	if ((fds & 5) == 5)

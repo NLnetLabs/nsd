@@ -1,0 +1,196 @@
+# #-- dns-cookies.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# set environment interfaces
+ip address add 198.51.100.100 dev lo
+ip link set dev lo up
+
+# set NSD environment variables
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+TPKG_NSD_CONTROL="$PRE/nsd-control"
+
+
+cat << EOF > cookiesecrets.conf
+server:
+	answer-cookie: yes
+	cookie-secret-file: "cookiesecrets.txt"
+	cookie-secret: c0be1977faa8661a00944c337c1a07e9
+	cookie-staging-secret: 1f4fd8475cb97ed70da5d7a019ad53f1
+EOF
+
+# start nsd with faketime
+TZ=UTC faketime -f '2024-08-26 15:37:05' $TPKG_NSD -c dns-cookies.by-config.conf -P $TPKG_NSD_PID &
+wait_nsd_up nsd.log
+NSD_PID=`cat $TPKG_NSD_PID`
+echo "faketime nsd instance C1 running"
+
+if $TPKG_NSD_CONTROL -c dns-cookies.by-config.conf add_cookie_secret dd3bdf9344b678b185a6f5cb60fca715 >/dev/null
+then
+	echo "C.1.1 Adding cookies by nsd-control should not be allowed with configured cookies"
+	# kill NSD
+	kill_pid $NSD_PID
+	rm -f nsd.log
+	exit 1
+else
+	echo "C.1.1 Adding cookies by nsd-control is not allowed with configured cookies"
+fi
+
+# dig @198.51.100.100 +cookie=2464c4abcf10c957
+# $TPKG_NSD_CONTROL -c dns-cookies.by-config.conf print_cookie_secrets
+dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c1.2
+
+cat << EOF > cookiesecrets.conf
+server:
+	answer-cookie: yes
+	cookie-secret-file: "cookiesecrets.txt"
+	cookie-staging-secret: c0be1977faa8661a00944c337c1a07e9
+	cookie-secret: 1f4fd8475cb97ed70da5d7a019ad53f1
+EOF
+$TPKG_NSD_CONTROL -c dns-cookies.by-config.conf reconfig
+
+sleep .1
+
+dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c1.3
+
+cat << EOF > cookiesecrets.conf
+server:
+	answer-cookie: yes
+	cookie-secret-file: "cookiesecrets.txt"
+EOF
+$TPKG_NSD_CONTROL -c dns-cookies.by-config.conf reconfig
+
+sleep .1
+
+$TPKG_NSD_CONTROL -c dns-cookies.by-nsd-control.conf add_cookie_secret dd3bdf9344b678b185a6f5cb60fca715
+
+sleep .1
+
+dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c1.4
+
+cat << EOF > cookiesecrets.conf
+server:
+	answer-cookie: yes
+	cookie-secret-file: "cookiesecrets.txt"
+	cookie-staging-secret: c0be1977faa8661a00944c337c1a07e9
+	cookie-secret: 1f4fd8475cb97ed70da5d7a019ad53f1
+EOF
+$TPKG_NSD_CONTROL -c dns-cookies.by-config.conf reconfig
+
+sleep .1
+
+dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c1.5
+
+cat << EOF > cookiesecrets.conf
+server:
+	answer-cookie: yes
+	cookie-secret-file: "cookiesecrets.txt"
+	cookie-staging-secret: c0be1977faa8661a00944c337c1a07e9
+	cookie-secret: error
+EOF
+if $TPKG_NSD_CONTROL -c dns-cookies.by-config.conf reconfig 2>/dev/null
+then
+	echo "C.1.6. Reconfigure was allowed with broken cookies"
+	# kill NSD
+	kill_pid $NSD_PID
+	rm -f nsd.log
+	exit 1
+else
+	echo "C.1.6. Cannot reconfigure with broken cookies"
+fi
+
+dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c1.7
+
+cat << EOF > cookiesecrets.conf
+server:
+	answer-cookie: yes
+	cookie-secret-file: "cookiesecrets.txt"
+	cookie-staging-secret: c0be1977faa8661a00944c337c1a07e9
+EOF
+if $TPKG_NSD_CONTROL -c dns-cookies.by-config.conf reconfig 2>/dev/null
+then
+	echo "C.1.8. Reconfigure was allowed with only a staging secret"
+	# kill NSD
+	kill_pid $NSD_PID
+	rm -f nsd.log
+	exit 1
+else
+	echo "C.1.8. Cannot reconfigure with only a staging secret"
+fi
+
+cat << EOF > cookiesecrets.conf
+server:
+	answer-cookie: yes
+	cookie-secret-file: "cookiesecrets.txt"
+EOF
+$TPKG_NSD_CONTROL -c dns-cookies.by-config.conf reconfig
+
+sleep .1
+
+dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c1.9
+
+# kill NSD
+kill_pid $NSD_PID
+rm -f nsd.log
+
+ERRORS=0
+if grep -q "2464c4abcf10c9570100000066cca121c6adacef8ac2bcdd" dig.output.c1.2
+then
+	echo "C.1.2. Active server cookie matched"
+else
+	echo "C.1.2. Active server cookie failed to match"
+	cat dig.output.c1.2
+	ERRORS=1
+fi
+
+if grep -q "2464c4abcf10c9570100000066cca121b789adffadb783df" dig.output.c1.3
+then
+	echo "C.1.3. Active server cookie matched"
+else
+	echo "C.1.3. Active server cookie failed to match"
+	cat dig.output.c1.3
+	ERRORS=1
+fi
+
+if grep -q "2464c4abcf10c9570100000066cca1218cf0b73f53bc2520" dig.output.c1.4
+then
+	echo "C.1.4. Active server cookie from file matched"
+else
+	echo "C.1.4. Active server cookie from file failed to match"
+	cat dig.output.c1.4
+	ERRORS=1
+fi
+
+if grep -q "2464c4abcf10c9570100000066cca121b789adffadb783df" dig.output.c1.5
+then
+	echo "C.1.5. Configured secrets prefered over dynamic secrets"
+else
+	echo "C.1.5. Error on configured secrets over dynamic secrets preference"
+	cat dig.output.c1.5
+	ERRORS=1
+fi
+
+if grep -q "2464c4abcf10c9570100000066cca121b789adffadb783df" dig.output.c1.7
+then
+	echo "C.1.7. Cookie secrets remain after broken reconfig"
+else
+	echo "C.1.7. Cookie secrets did not remain after broken reconfig"
+	cat dig.output.c1.7
+	ERRORS=1
+fi
+
+if grep -q "2464c4abcf10c9570100000066cca1218cf0b73f53bc2520" dig.output.c1.9
+then
+	echo "C.1.9. Active server cookie from file matched again"
+else
+	echo "C.1.9. Active server cookie from file failed to match again"
+	cat dig.output.c1.9
+	ERRORS=1
+fi
+
+exit $ERRORS

@@ -1,0 +1,22 @@
+$ORIGIN	3.3.1.e.1.0.0.0.0.0.0.0.0.0.a.5.0.0.0.8.5.0.0.0.7.4.NSAP.INT.
+
+@	IN	SOA	emu.ncsl.nist.gov.	root.emu.ncsl.nist.gov.	(
+			1994041800   ; Serial  - date
+			1800         ; Refresh - 30 minutes
+			300          ; Retry   - 5 minutes
+			604800       ; Expire  - 7 days
+			3600 )       ; Minimum - 1 hour
+	IN	NS	emu.ncsl.nist.gov.
+	IN	NS	tuba.nsap.lanl.gov.
+0.0.1.6.1.0.0.0.f.f.f.f.f.f	IN	NSAP-PTR	bsdi1.nsap.nist.gov.
+;
+0.0.2.6.1.0.0.0.f.f.f.f.f.f	IN	NSAP-PTR	bsdi2.nsap.nist.gov.
+;
+0.0.1.7.1.0.0.0.f.f.f.f.f.f	IN	NSAP-PTR	cursive.nsap.nist.gov.
+;
+0.0.4.6.1.0.0.0.f.f.f.f.f.f	IN	NSAP-PTR	infidel.nsap.nist.gov.
+;
+0.0.1.5.1.0.0.0.a.a.a.a.a.a	IN	NSAP-PTR	cisco1.nsap.nist.gov.
+;
+0.0.1.1.1.0.0.0.a.a.a.a.a.a	IN	NSAP-PTR	3com1.nsap.nist.gov.
+

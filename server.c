@@ -90,6 +90,9 @@
 #ifdef USE_XDP
 #include "xdp-server.h"
 #endif
+#ifdef USE_METRICS
+#include "metrics.h"
+#endif /* USE_METRICS */
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 
@@ -455,7 +458,6 @@ static int
 restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 	int* xfrd_sock_p)
 {
-	struct main_ipc_handler_data *ipc_data;
 	size_t i;
 	int sv[2];
 
@@ -481,17 +483,11 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				}
 				if(!nsd->children[i].handler)
 				{
+					struct main_ipc_handler_data *ipc_data;
 					ipc_data = (struct main_ipc_handler_data*) region_alloc(
 						region, sizeof(struct main_ipc_handler_data));
 					ipc_data->nsd = nsd;
 					ipc_data->child = &nsd->children[i];
-					ipc_data->child_num = i;
-					ipc_data->xfrd_sock = xfrd_sock_p;
-					ipc_data->packet = buffer_create(region, QIOBUFSZ);
-					ipc_data->forward_mode = 0;
-					ipc_data->got_bytes = 0;
-					ipc_data->total_bytes = 0;
-					ipc_data->acl_num = 0;
 					nsd->children[i].handler = (struct netio_handler*) region_alloc(
 						region, sizeof(struct netio_handler));
 					nsd->children[i].handler->fd = nsd->children[i].child_fd;
@@ -501,10 +497,6 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 					nsd->children[i].handler->event_handler = parent_handle_child_command;
 					netio_add_handler(netio, nsd->children[i].handler);
 				}
-				/* clear any ongoing ipc */
-				ipc_data = (struct main_ipc_handler_data*)
-					nsd->children[i].handler->user_data;
-				ipc_data->forward_mode = 0;
 				/* restart - update fd */
 				nsd->children[i].handler->fd = nsd->children[i].child_fd;
 				break;
@@ -1629,6 +1621,9 @@ server_shutdown(struct nsd *nsd)
 
 	tsig_finalize();
 	daemon_remote_delete(nsd->rc); /* ssl-delete secret keys */
+#ifdef USE_METRICS
+	daemon_metrics_delete(nsd->metrics);
+#endif /* USE_METRICS */
 #ifdef HAVE_SSL
 	if (nsd->tls_ctx)
 		SSL_CTX_free(nsd->tls_ctx);
@@ -1658,6 +1653,7 @@ void
 server_prepare_xfrd(struct nsd* nsd)
 {
 	char tmpfile[256];
+	size_t i;
 	/* create task mmaps */
 	nsd->mytask = 0;
 	snprintf(tmpfile, sizeof(tmpfile), "%snsd-xfr-%d/nsd.%u.task.0",
@@ -1701,6 +1697,24 @@ server_prepare_xfrd(struct nsd* nsd)
 		nsd;
 	((struct ipc_handler_conn_data*)nsd->xfrd_listener->user_data)->conn =
 		xfrd_tcp_create(nsd->region, QIOBUFSZ);
+	/* setup sockets to pass NOTIFY messages from the serve processes */
+	nsd->serve2xfrd_fd_send = region_alloc_array(
+			nsd->region, 2 * nsd->child_count, sizeof(int));
+	nsd->serve2xfrd_fd_recv= region_alloc_array(
+			nsd->region, 2 * nsd->child_count, sizeof(int));
+	for(i=0; i < 2 * nsd->child_count; i++) {
+		int pipefd[2];
+		pipefd[0] = -1; /* For receiving by parent (xfrd) */
+		pipefd[1] = -1; /* For sending   by child  (server childs) */
+		if(pipe(pipefd) < 0) {
+                        log_msg(LOG_ERR, "fatal error: cannot create NOTIFY "
+				"communication channel: %s", strerror(errno));
+			exit(1);
+                }
+                nsd->serve2xfrd_fd_recv[i] = pipefd[0];
+                nsd->serve2xfrd_fd_send[i] = pipefd[1];
+	}
+	nsd->serve2xfrd_fd_swap = nsd->serve2xfrd_fd_send + nsd->child_count;
 }
 
 
@@ -1710,6 +1724,7 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 	pid_t pid;
 	int sockets[2] = {0,0};
 	struct ipc_handler_conn_data *data;
+	size_t i;
 
 	if(nsd->xfrd_listener->fd != -1)
 		close(nsd->xfrd_listener->fd);
@@ -1746,6 +1761,14 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 		 * restarted, the reload is using nsd->mytask */
 		nsd->mytask = 1 - nsd->mytask;
 
+		/* close the send site of the serve2xfrd fds */
+		assert(nsd->serve2xfrd_fd_send < nsd->serve2xfrd_fd_swap);
+		for(i = 0; i < 2 * nsd->child_count; i++) {
+			if(nsd->serve2xfrd_fd_send[i] != -1) {
+				close(nsd->serve2xfrd_fd_send[i]);
+				nsd->serve2xfrd_fd_send[i] = -1;
+			}
+		}
 #ifdef HAVE_SETPROCTITLE
 		setproctitle("xfrd");
 #endif
@@ -1768,6 +1791,13 @@ server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 			log_msg(LOG_ERR, "cannot fcntl pipe: %s", strerror(errno));
 		}
 		nsd->xfrd_listener->fd = sockets[0];
+		/* close the receive site of the serve2xfrd fds */
+		for(i = 0; i < 2 * nsd->child_count; i++) {
+			if(nsd->serve2xfrd_fd_recv[i] != -1) {
+				close(nsd->serve2xfrd_fd_recv[i]);
+				nsd->serve2xfrd_fd_recv[i] = -1;
+			}
+		}
 #ifdef HAVE_SETPROCTITLE
 		setproctitle("main");
 #endif
@@ -1892,23 +1922,29 @@ server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
 
 #ifdef HAVE_SSL
 static void
-log_crypto_from_err(const char* str, unsigned long err)
+log_crypto_from_err(int level, const char* str, unsigned long err)
 {
 	/* error:[error code]:[library name]:[function name]:[reason string] */
 	char buf[128];
 	unsigned long e;
 	ERR_error_string_n(err, buf, sizeof(buf));
-	log_msg(LOG_ERR, "%s crypto %s", str, buf);
+	log_msg(level, "%s crypto %s", str, buf);
 	while( (e=ERR_get_error()) ) {
 		ERR_error_string_n(e, buf, sizeof(buf));
-		log_msg(LOG_ERR, "and additionally crypto %s", buf);
+		log_msg(level, "and additionally crypto %s", buf);
 	}
 }
 
 void
 log_crypto_err(const char* str)
 {
-	log_crypto_from_err(str, ERR_get_error());
+	log_crypto_from_err(LOG_ERR, str, ERR_get_error());
+}
+
+void
+log_crypto_warning(const char* str)
+{
+	log_crypto_from_err(LOG_WARNING, str, ERR_get_error());
 }
 
 /** true if the ssl handshake error has to be squelched from the logs */
@@ -2073,6 +2109,20 @@ add_ocsp_data_cb(SSL *s, void* ATTR_UNUSED(arg))
 	}
 }
 
+static int
+server_alpn_cb(SSL* ATTR_UNUSED(s),
+		const unsigned char** out, unsigned char* outlen,
+		const unsigned char* in, unsigned int inlen,
+		void* ATTR_UNUSED(arg))
+{
+	static const unsigned char alpns[] = { 3, 'd', 'o', 't' };
+	unsigned char* tmp_out;
+
+	SSL_select_next_proto(&tmp_out, outlen, alpns, sizeof(alpns), in, inlen);
+	*out = tmp_out;
+	return SSL_TLSEXT_ERR_OK;
+}
+
 SSL_CTX*
 server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 {
@@ -2122,6 +2172,13 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 		return 0;
 	}
 #endif
+#if defined(SSL_OP_IGNORE_UNEXPECTED_EOF)
+	/* disable client renegotiation */
+	if((SSL_CTX_set_options(ctx, SSL_OP_IGNORE_UNEXPECTED_EOF) &
+		SSL_OP_IGNORE_UNEXPECTED_EOF) != SSL_OP_IGNORE_UNEXPECTED_EOF) {
+		log_crypto_warning("could not set SSL_OP_IGNORE_UNEXPECTED_EOF");
+	}
+#endif
 #if defined(SHA256_DIGEST_LENGTH) && defined(SSL_TXT_CHACHA20)
 	/* if we detect system-wide crypto policies, use those */
 	if (access( "/etc/crypto-policies/config", F_OK ) != 0 ) {
@@ -2168,6 +2225,7 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 		SSL_CTX_set_client_CA_list(ctx, SSL_load_client_CA_file(verifypem));
 		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 	}
+	SSL_CTX_set_alpn_select_cb(ctx, server_alpn_cb, NULL);
 	return ctx;
 }
 
@@ -2286,47 +2344,81 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 }
 
 static void
-reload_process_tasks(struct nsd* nsd, udb_ptr* last_task, int cmdsocket)
+reload_process_non_xfr_tasks(struct nsd* nsd, udb_ptr* xfrs2process,
+		udb_ptr* last_task)
 {
-	sig_atomic_t cmd = NSD_QUIT_SYNC;
-	udb_ptr t, next;
+	udb_ptr t, next, xfr_tail;
 	udb_base* u = nsd->task[nsd->mytask];
 	udb_ptr_init(&next, u);
+	udb_ptr_init(&xfr_tail, u);
 	udb_ptr_new(&t, u, udb_base_get_userdata(u));
 	udb_base_set_userdata(u, 0);
+	/* Execute all tasks except of type "task_apply_xfr". */
 	while(!udb_ptr_is_null(&t)) {
 		/* store next in list so this one can be deleted or reused */
 		udb_ptr_set_rptr(&next, u, &TASKLIST(&t)->next);
 		udb_rptr_zero(&TASKLIST(&t)->next, u);
 
-		/* process task t */
-		/* append results for task t and update last_task */
-		task_process_in_reload(nsd, u, last_task, &t);
+		if(TASKLIST(&t)->task_type != task_apply_xfr) {
+			/* process task t */
+			/* append results for task t and update last_task */
+			task_process_in_reload(nsd, u, last_task, &t);
 
+		} else if(udb_ptr_is_null(xfrs2process)) {
+			udb_ptr_set_ptr( xfrs2process, u, &t);
+			udb_ptr_set_ptr(&xfr_tail, u, &t);
+		} else {
+			udb_rptr_set_ptr(&TASKLIST(&xfr_tail)->next, u, &t);
+			udb_ptr_set_ptr(&xfr_tail, u, &t);
+		}
 		/* go to next */
 		udb_ptr_set_ptr(&t, u, &next);
-
-		/* if the parent has quit, we must quit too, poll the fd for cmds */
-		if(block_read(nsd, cmdsocket, &cmd, sizeof(cmd), 0) == sizeof(cmd)) {
-			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc command from main %d", (int)cmd));
-			if(cmd == NSD_QUIT) {
-				DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: quit to follow nsd"));
-				/* unlink files of remainder of tasks */
-				while(!udb_ptr_is_null(&t)) {
-					if(TASKLIST(&t)->task_type == task_apply_xfr) {
-						xfrd_unlink_xfrfile(nsd, TASKLIST(&t)->yesno);
-					}
-					udb_ptr_set_rptr(&t, u, &TASKLIST(&t)->next);
-				}
-				udb_ptr_unlink(&t, u);
-				udb_ptr_unlink(&next, u);
-				exit(0);
-			}
-		}
-
 	}
-	udb_ptr_unlink(&t, u);
-	udb_ptr_unlink(&next, u);
+	/* t and next are already unlinked (because they are null) */
+	udb_ptr_unlink(&xfr_tail, u);
+}
+
+static size_t
+reload_process_xfr_tasks(struct nsd* nsd, int cmdsocket, udb_ptr* xfrs2process)
+{
+	sig_atomic_t cmd = NSD_QUIT_SYNC;
+	udb_ptr next;
+	udb_base* u = nsd->task[nsd->mytask];
+	size_t xfrs_processed = 0;
+
+	udb_ptr_init(&next, u);
+	while(!udb_ptr_is_null(xfrs2process)) {
+		/* store next in list so this one can be deleted or reused */
+		udb_ptr_set_rptr(&next, u, &TASKLIST(xfrs2process)->next);
+		udb_rptr_zero(&TASKLIST(xfrs2process)->next, u);
+		
+		/* process xfr task at xfrs2process */
+		assert(TASKLIST(xfrs2process)->task_type == task_apply_xfr);
+		task_process_apply_xfr(nsd, u, xfrs2process);
+		xfrs_processed += 1;
+
+		/* go to next */
+		udb_ptr_set_ptr(xfrs2process, u, &next);
+
+		/* if the "old-main" has quit, we must quit too, poll the fd for cmds */
+		if(block_read(nsd, cmdsocket, &cmd, sizeof(cmd), 0) != sizeof(cmd))
+			; /* pass */
+		else if (cmd != NSD_QUIT)
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc command from old-main %d", (int)cmd));
+		else {
+			udb_ptr_unlink(&next, u);
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: quit to follow nsd"));
+			/* unlink files of remainder of tasks */
+			while(!udb_ptr_is_null(xfrs2process)) {
+				assert(TASKLIST(xfrs2process)->task_type == task_apply_xfr);
+				xfrd_unlink_xfrfile(nsd, TASKLIST(xfrs2process)->yesno);
+				udb_ptr_set_rptr(xfrs2process, u, &TASKLIST(xfrs2process)->next);
+			}
+			exit(0);
+		}
+	}
+	/* xfrs2process and next are already unlinked (because they are null) */
+	return xfrs_processed;
 }
 
 static void server_verify(struct nsd *nsd, int cmdsocket,
@@ -2379,7 +2471,8 @@ static void server_reload_handle_quit_sync_ack(int cmdsocket, short event,
 	r = read(cmdsocket, cb_data->to_read.buf + cb_data->read,
 			sizeof(cb_data->to_read.cmd) - cb_data->read);
 	if(r == 0) {
-		log_msg(LOG_ERR, "reload: old-main quit during quit sync");
+		DEBUG(DEBUG_IPC, 1, (LOG_WARNING,
+			"reload: old-main quit during quit sync"));
 		cb_data->to_read.cmd = NSD_RELOAD;
 
 	} else if(r == -1) {
@@ -2410,11 +2503,10 @@ static void server_reload_handle_quit_sync_ack(int cmdsocket, short event,
  */
 static void
 server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
-	int cmdsocket)
+	int cmdsocket, udb_ptr* xfrs2process, udb_ptr* last_task)
 {
 	pid_t mypid;
 	sig_atomic_t cmd;
-	udb_ptr last_task;
 	struct sigaction old_sigchld, ign_sigchld;
 	struct radnode* node;
 	zone_type* zone;
@@ -2422,6 +2514,10 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	struct quit_sync_event_data cb_data;
 	struct event signal_event, cmd_event;
 	struct timeval reload_sync_timeout;
+	size_t xfrs_processed = 0;
+	/* For swapping filedescriptors from the serve childs to the xfrd
+	 * and/or the dnstap collector */
+	int *swap_fd_send;
 
 	/* ignore SIGCHLD from the previous server_main that used this pid */
 	memset(&ign_sigchld, 0, sizeof(ign_sigchld));
@@ -2435,9 +2531,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #endif
 
 	/* see what tasks we got from xfrd */
-	task_remap(nsd->task[nsd->mytask]);
-	udb_ptr_init(&last_task, nsd->task[nsd->mytask]);
-	reload_process_tasks(nsd, &last_task, cmdsocket);
+	xfrs_processed = reload_process_xfr_tasks(nsd, cmdsocket, xfrs2process);
 
 #ifndef NDEBUG
 	if(nsd_debug_level >= 1)
@@ -2474,10 +2568,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #endif
 	}
 
-	for(node = radix_first(nsd->db->zonetree);
-	    node != NULL;
-	    node = radix_next(node))
-	{
+	if(xfrs_processed) for( node = radix_first(nsd->db->zonetree)
+	                      ; node != NULL; node = radix_next(node)) {
+
 		zone = (zone_type *)node->elem;
 		if(zone->is_updated) {
 			if(zone->is_bad) {
@@ -2489,12 +2582,12 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			/* update(s), verified or not, possibly with subsequent
 			   skipped update(s). skipped update(s) are picked up
 			   by failed update check in xfrd */
-			task_new_soainfo(nsd->task[nsd->mytask], &last_task,
+			task_new_soainfo(nsd->task[nsd->mytask], last_task,
 			                 zone, hint);
 		} else if(zone->is_skipped) {
 			/* corrupt or inconsistent update without preceding
 			   update(s), communicate soainfo_gone */
-			task_new_soainfo(nsd->task[nsd->mytask], &last_task,
+			task_new_soainfo(nsd->task[nsd->mytask], last_task,
 			                 zone, soainfo_gone);
 		}
 		zone->is_updated = 0;
@@ -2509,7 +2602,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	sigaction(SIGCHLD, &old_sigchld, NULL);
 #ifdef USE_DNSTAP
 	if (nsd->dt_collector) {
-		int *swap_fd_send;
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: swap dnstap collector pipes"));
 		/* Swap fd_send with fd_swap so old serve child and new serve
 		 * childs will not write to the same pipe ends simultaneously */
@@ -2519,6 +2611,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	}
 #endif
+	swap_fd_send = nsd->serve2xfrd_fd_send;
+	nsd->serve2xfrd_fd_send = nsd->serve2xfrd_fd_swap;
+	nsd->serve2xfrd_fd_swap = swap_fd_send;
 	/* Start new child processes */
 	if (server_start_children(nsd, server_region, netio, &nsd->
 		xfrd_listener->fd) != 0) {
@@ -2587,7 +2682,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		exit(1);
 	}
 	assert(cmd == NSD_RELOAD);
-	udb_ptr_unlink(&last_task, nsd->task[nsd->mytask]);
+	udb_ptr_set(last_task, nsd->task[nsd->mytask], 0);
 	task_process_sync(nsd->task[nsd->mytask]);
 #ifdef USE_ZONE_STATS
 	server_zonestat_realloc(nsd); /* realloc for next children */
@@ -2664,6 +2759,10 @@ server_main(struct nsd *nsd)
 	netio_type *netio = netio_create(server_region);
 	netio_handler_type reload_listener;
 	int reload_sockets[2] = {-1, -1};
+	/* pointer to the xfr tasks that will be processed in a second pass */
+	udb_ptr xfrs2process;
+	/* pointer to results of task processing */
+	udb_ptr last_task;
 	struct timespec timeout_spec;
 	int status;
 	pid_t child_pid;
@@ -2681,6 +2780,8 @@ server_main(struct nsd *nsd)
 	nsd->st->db_disk = 0;
 	nsd->st->db_mem = region_get_mem(nsd->db->region);
 #endif
+	memset(&xfrs2process, 0, sizeof(xfrs2process));
+	memset(&last_task, 0, sizeof(last_task));
 
 	/* Start the child processes that handle incoming queries */
 	if (server_start_children(nsd, server_region, netio,
@@ -2881,31 +2982,47 @@ server_main(struct nsd *nsd)
 				reload_pid = -1;
 				break;
 			}
-
+			/* Execute the tasks that cannot fail */
+#ifdef HAVE_SETPROCTITLE
+			setproctitle("load");
+#endif
+#ifdef USE_LOG_PROCESS_ROLE
+			log_set_process_role("load");
+#endif
+			/* Already process the non xfr tasks, so that a failed
+			 * transfer (which can exit) will not nullify the
+			 * effects of the other tasks that will not exit.
+			 */
+			task_remap(nsd->task[nsd->mytask]);
+			udb_ptr_init(&xfrs2process, nsd->task[nsd->mytask]);
+			udb_ptr_init(&last_task   , nsd->task[nsd->mytask]);
+			/* last_task and xfrs2process MUST be unlinked in all
+			 * possible branches of the fork() below.
+			 * server_reload() will unlink them, but for failed
+			 * fork and for the "old-main" (child) process, we MUST
+			 * unlink them in the case statement below.
+			 * Unlink by setting the value to 0, because
+			 * reload_process_non_xfr_tasks() may clear (and
+			 * implicitly unlink) xfrs2process.
+			 */
+			reload_process_non_xfr_tasks(nsd, &xfrs2process
+			                                , &last_task);
 			/* Do actual reload */
 			reload_pid = fork();
 			switch (reload_pid) {
 			case -1:
 				log_msg(LOG_ERR, "fork failed: %s", strerror(errno));
+				udb_ptr_set(&last_task, nsd->task[nsd->mytask], 0);
+				udb_ptr_set(&xfrs2process, nsd->task[nsd->mytask], 0);
 				break;
 			default:
 				/* PARENT */
 				close(reload_sockets[0]);
-#ifdef HAVE_SETPROCTITLE
-				setproctitle("load");
-#endif
-#ifdef USE_LOG_PROCESS_ROLE
-				log_set_process_role("load");
-#endif
-				server_reload(nsd, server_region, netio,
-					reload_sockets[1]);
+				server_reload(nsd, server_region, netio
+				                 , reload_sockets[1]
+				                 , &xfrs2process
+						 , &last_task);
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload exited to become new main"));
-#ifdef HAVE_SETPROCTITLE
-				setproctitle("main");
-#endif
-#ifdef USE_LOG_PROCESS_ROLE
-				log_set_process_role("main");
-#endif
 				close(reload_sockets[1]);
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload closed"));
 				/* drop stale xfrd ipc data */
@@ -2928,6 +3045,8 @@ server_main(struct nsd *nsd)
 #ifdef USE_LOG_PROCESS_ROLE
 				log_set_process_role("old-main");
 #endif
+				udb_ptr_set(&last_task, nsd->task[nsd->mytask], 0);
+				udb_ptr_set(&xfrs2process, nsd->task[nsd->mytask], 0);
 				reload_listener.fd = reload_sockets[0];
 				reload_listener.timeout = NULL;
 				reload_listener.user_data = nsd;
@@ -2936,6 +3055,17 @@ server_main(struct nsd *nsd)
 				netio_add_handler(netio, &reload_listener);
 				reload_pid = getppid();
 				break;
+			}
+			if(reload_pid == -1) {
+				/* Reset proctitle after "load" process exited
+				 * or when fork() failed
+				 */
+#ifdef HAVE_SETPROCTITLE
+				setproctitle("main");
+#endif
+#ifdef USE_LOG_PROCESS_ROLE
+				log_set_process_role("main");
+#endif
 			}
 			break;
 		case NSD_QUIT_SYNC:
@@ -4813,7 +4943,7 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 					char a[64], s[256];
 					addr2str(&data->query->remote_addr, a, sizeof(a));
 					snprintf(s, sizeof(s), "TLS handshake failed from %s", a);
-					log_crypto_from_err(s, err);
+					log_crypto_from_err(LOG_ERR, s, err);
 				}
 			}
 			cleanup_tcp_handler(data);

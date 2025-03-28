@@ -57,7 +57,7 @@ Here is an example config for ``example.com``:
         remote-control:
             # this allows the use of 'nsd-control' to control NSD. The default is "no"
             control-enable: yes
-            # the interface NSD listens to for nsd-control. The default is 127.0.0.1
+            # the interface NSD listens to for nsd-control. The default is 127.0.0.1 and ::1
             control-interface: 127.0.0.1
             # the key files that allow the use of 'nsd-control'. The default path is "/etc/nsd/". Create these using the 'nsd-control-setup' utility
             server-key-file: /etc/nsd/nsd_server.key
@@ -91,7 +91,7 @@ The example for a secondary looks like this:
         zone:
             # this server is the primary, 192.0.2.1 is the secondary.
             name: primaryzone.com
-            zonefile: /etc/nsd/primaryone.com.zone
+            zonefile: /etc/nsd/primaryzone.com.zone
             notify: 192.0.2.1 NOKEY # NOKEY for testing purposes only
             provide-xfr: 192.0.2.1 NOKEY # NOKEY for testing purposes only
 
@@ -163,7 +163,7 @@ value with:
 Zone transfers can be secured with TSIG keys, replace NOKEY with the name of the
 TSIG key to use. See :doc:`Using TSIG<running/using-tsig>` for details.
 
-Since NSD is written to be run on the root name servers, the config file  can to
+Since NSD is written to be run on root name servers, the config file can 
 contain something like:
 
 .. code-block:: text

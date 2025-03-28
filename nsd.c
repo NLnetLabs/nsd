@@ -1,7 +1,7 @@
 /*
  * nsd.c -- nsd(8)
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2024, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -54,6 +54,9 @@
 #include "remote.h"
 #include "xfrd-disk.h"
 #include "ipc.h"
+#ifdef USE_METRICS
+#include "metrics.h"
+#endif /* USE_METRICS */
 #ifdef USE_DNSTAP
 #include "dnstap/dnstap_collector.h"
 #endif
@@ -150,7 +153,7 @@ version(void)
 		);
 #endif
 	fprintf(stderr,
-		"Copyright (C) 2001-2020 NLnet Labs.  This is free software.\n"
+		"Copyright (C) 2001-2024 NLnet Labs.  This is free software.\n"
 		"There is NO warranty; not even for MERCHANTABILITY or FITNESS\n"
 		"FOR A PARTICULAR PURPOSE.\n");
 	exit(0);
@@ -268,7 +271,8 @@ setup_socket(
 
 static void
 figure_socket_servers(
-	struct nsd_socket *sock, struct ip_address_option *ip)
+	struct nsd_socket *sock, struct ip_address_option *ip,
+	const char* tls_port)
 {
 	int i;
 	struct range_option *server;
@@ -276,6 +280,14 @@ figure_socket_servers(
 	sock->servers = xalloc_zero(nsd_bitset_size(nsd.child_count));
 	region_add_cleanup(nsd.region, free, sock->servers);
 	nsd_bitset_init(sock->servers, nsd.child_count);
+
+	if(sock->addr.ai_socktype == SOCK_DGRAM && tls_port &&
+		using_tls_port((struct sockaddr *)&sock->addr.ai_addr, tls_port))
+	{
+		/* This is for a UDP socket that has the same port as tls-port;
+		 * skip. */
+		return;
+	}
 
 	if(!ip || !ip->servers) {
 		/* every server must listen on this socket */
@@ -323,7 +335,7 @@ static void
 figure_default_sockets(
 	struct nsd_socket **udp, struct nsd_socket **tcp, size_t *ifs,
 	const char *node, const char *udp_port, const char *tcp_port,
-	const struct addrinfo *hints)
+	const char *tls_port, const struct addrinfo *hints)
 {
 	size_t i = 0, n = 1;
 	struct addrinfo ai[2] = { *hints, *hints };
@@ -373,11 +385,11 @@ figure_default_sockets(
 			(*udp)[i].flags |= NSD_SOCKET_IS_OPTIONAL;
 			(*udp)[i].fib = -1;
 			copyaddrinfo(&(*udp)[i].addr, addrs[0]);
-			figure_socket_servers(&(*udp)[i], NULL);
+			figure_socket_servers(&(*udp)[i], NULL, tls_port);
 			(*tcp)[i].flags |= NSD_SOCKET_IS_OPTIONAL;
 			(*tcp)[i].fib = -1;
 			copyaddrinfo(&(*tcp)[i].addr, addrs[1]);
-			figure_socket_servers(&(*tcp)[i], NULL);
+			figure_socket_servers(&(*tcp)[i], NULL, tls_port);
 			i++;
 		} else {
 			log_msg(LOG_WARNING, "No IPv6, fallback to IPv4. getaddrinfo: %s",
@@ -397,9 +409,9 @@ figure_default_sockets(
 
 	*ifs = i + 1;
 	setup_socket(&(*udp)[i], node, udp_port, &ai[0]);
-	figure_socket_servers(&(*udp)[i], NULL);
+	figure_socket_servers(&(*udp)[i], NULL, tls_port);
 	setup_socket(&(*tcp)[i], node, tcp_port, &ai[1]);
-	figure_socket_servers(&(*tcp)[i], NULL);
+	figure_socket_servers(&(*tcp)[i], NULL, tls_port);
 }
 
 #ifdef HAVE_GETIFADDRS
@@ -458,7 +470,7 @@ figure_sockets(
 	struct nsd_socket **udp, struct nsd_socket **tcp, size_t *ifs,
 	struct ip_address_option *ips,
 	const char *node, const char *udp_port, const char *tcp_port,
-	const struct addrinfo *hints)
+	const char *tls_port, const struct addrinfo *hints)
 {
 	size_t i = 0;
 	struct addrinfo ai = *hints;
@@ -470,7 +482,8 @@ figure_sockets(
 
 	if(!ips) {
 		figure_default_sockets(
-			udp, tcp, ifs, node, udp_port, tcp_port, hints);
+			udp, tcp, ifs, node, udp_port, tcp_port,
+			tls_port, hints);
 		return;
 	}
 
@@ -495,10 +508,10 @@ figure_sockets(
 	for(ip = ips, i = 0; ip; ip = ip->next, i++) {
 		ai.ai_socktype = SOCK_DGRAM;
 		setup_socket(&(*udp)[i], ip->address, udp_port, &ai);
-		figure_socket_servers(&(*udp)[i], ip);
+		figure_socket_servers(&(*udp)[i], ip, tls_port);
 		ai.ai_socktype = SOCK_STREAM;
 		setup_socket(&(*tcp)[i], ip->address, tcp_port, &ai);
-		figure_socket_servers(&(*tcp)[i], ip);
+		figure_socket_servers(&(*tcp)[i], ip, tls_port);
 		if(ip->fib != -1) {
 			(*udp)[i].fib = ip->fib;
 			(*tcp)[i].fib = ip->fib;
@@ -549,7 +562,7 @@ print_socket_servers(struct nsd_socket *sock, char *buf, size_t bufsz)
 			cnt = 0;
 			if (i == n && x == -1) {
 				assert(y == -1);
-				assert(z == -1);
+				assert(z == (n - 1));
 				cnt = snprintf(buf, bufsz, "-");
 			} else if (y > z) {
 				assert(x > z);
@@ -664,7 +677,9 @@ readpid(const char *file)
 	}
 
 	if (((l = read(fd, pidbuf, sizeof(pidbuf)))) == -1) {
+		int errno_bak = errno;
 		close(fd);
+		errno = errno_bak;
 		return -1;
 	}
 
@@ -907,40 +922,6 @@ bind8_stats (struct nsd *nsd)
 }
 #endif /* BIND8_STATS */
 
-static
-int cookie_secret_file_read(nsd_type* nsd) {
-	char secret[NSD_COOKIE_SECRET_SIZE * 2 + 2/*'\n' and '\0'*/];
-	char const* file = nsd->options->cookie_secret_file;
-	FILE* f;
-	int corrupt = 0;
-	size_t count;
-
-	assert( nsd->options->cookie_secret_file != NULL );
-	f = fopen(file, "r");
-	/* a non-existing cookie file is not an error */
-	if( f == NULL ) { return errno != EPERM; }
-	/* cookie secret file exists and is readable */
-	nsd->cookie_count = 0;
-	for( count = 0; count < NSD_COOKIE_HISTORY_SIZE; count++ ) {
-		size_t secret_len = 0;
-		ssize_t decoded_len = 0;
-		if( fgets(secret, sizeof(secret), f) == NULL ) { break; }
-		secret_len = strlen(secret);
-		if( secret_len == 0 ) { break; }
-		assert( secret_len <= sizeof(secret) );
-		secret_len = secret[secret_len - 1] == '\n' ? secret_len - 1 : secret_len;
-		if( secret_len != NSD_COOKIE_SECRET_SIZE * 2 ) { corrupt++; break; }
-		/* needed for `hex_pton`; stripping potential `\n` */
-		secret[secret_len] = '\0';
-		decoded_len = hex_pton(secret, nsd->cookie_secrets[count].cookie_secret,
-		                       NSD_COOKIE_SECRET_SIZE);
-		if( decoded_len != NSD_COOKIE_SECRET_SIZE ) { corrupt++; break; }
-		nsd->cookie_count++;
-	}
-	fclose(f);
-	return corrupt == 0;
-}
-
 extern char *optarg;
 extern int optind;
 
@@ -982,14 +963,16 @@ main(int argc, char *argv[])
 	nsd.chrootdir	= 0;
 	nsd.nsid 	= NULL;
 	nsd.nsid_len 	= 0;
+	nsd.do_answer_cookie = 0;
 	nsd.cookie_count = 0;
+	nsd.cookie_secrets_source = COOKIE_SECRETS_NONE;
+	nsd.cookie_secrets_filename = NULL;
 
 	nsd.child_count = 0;
 	nsd.maximum_tcp_count = 0;
 	nsd.current_tcp_count = 0;
 	nsd.file_rotation_ok = 0;
 
-	nsd.do_answer_cookie = 1;
 
 	/* Set up our default identity to gethostname(2) */
 	if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {
@@ -1292,35 +1275,7 @@ main(int argc, char *argv[])
 #endif /* IPV6 MTU) */
 #endif /* defined(INET6) */
 
-	nsd.do_answer_cookie = nsd.options->answer_cookie;
-	if (nsd.cookie_count > 0)
-		; /* pass */
-
-	else if (nsd.options->cookie_secret) {
-		ssize_t len = hex_pton(nsd.options->cookie_secret,
-			nsd.cookie_secrets[0].cookie_secret, NSD_COOKIE_SECRET_SIZE);
-		if (len != NSD_COOKIE_SECRET_SIZE ) {
-			error("A cookie secret must be a "
-			      "128 bit hex string");
-		}
-		nsd.cookie_count = 1;
-	} else {
-		size_t j;
-		size_t const cookie_secret_len = NSD_COOKIE_SECRET_SIZE;
-		/* Calculate a new random secret */
-		srandom(getpid() ^ time(NULL));
-
-		for( j = 0; j < NSD_COOKIE_HISTORY_SIZE; j++) {
-#if defined(HAVE_SSL)
-			if (!RAND_status()
-			    || !RAND_bytes(nsd.cookie_secrets[j].cookie_secret, cookie_secret_len))
-#endif
-			for (i = 0; i < cookie_secret_len; i++)
-				nsd.cookie_secrets[j].cookie_secret[i] = random_generate(256);
-		}
-		// XXX: all we have is a random cookie, still pretend we have one
-		nsd.cookie_count = 1;
-	}
+	reconfig_cookies(&nsd, nsd.options);
 
 	if (nsd.nsid_len == 0 && nsd.options->nsid) {
 		if (strlen(nsd.options->nsid) % 2 != 0) {
@@ -1441,11 +1396,13 @@ main(int argc, char *argv[])
 
 	resolve_interface_names(nsd.options);
 	figure_sockets(&nsd.udp, &nsd.tcp, &nsd.ifs,
-		nsd.options->ip_addresses, NULL, udp_port, tcp_port, &hints);
+		nsd.options->ip_addresses, NULL, udp_port, tcp_port,
+		nsd.options->tls_port, &hints);
 
 	if(nsd.options->verify_enable) {
 		figure_sockets(&nsd.verify_udp, &nsd.verify_tcp, &nsd.verify_ifs,
-			nsd.options->verify_ip_addresses, "localhost", verify_port, verify_port, &hints);
+			nsd.options->verify_ip_addresses, "localhost",
+			verify_port, verify_port, NULL, &hints);
 		setup_verifier_environment();
 	}
 
@@ -1622,6 +1579,12 @@ main(int argc, char *argv[])
 		if(!(nsd.rc = daemon_remote_create(nsd.options)))
 			error("could not perform remote control setup");
 	}
+#ifdef USE_METRICS
+	if(nsd.options->metrics_enable) {
+		if(!(nsd.metrics = daemon_metrics_create(nsd.options)))
+			error("could not perform metrics server setup");
+	}
+#endif /* USE_METRICS */
 #if defined(HAVE_SSL)
 	if(nsd.options->tls_service_key && nsd.options->tls_service_key[0]
 	   && nsd.options->tls_service_pem && nsd.options->tls_service_pem[0]) {
@@ -1638,11 +1601,6 @@ main(int argc, char *argv[])
 		}
 	}
 #endif /* HAVE_SSL */
-
-	if(nsd.options->cookie_secret_file && nsd.options->cookie_secret_file[0]
-	   && !cookie_secret_file_read(&nsd) ) {
-		log_msg(LOG_ERR, "cookie secret file corrupt or not readable");
-	}
 
 	/* Unless we're debugging, fork... */
 	if (!nsd.debug) {

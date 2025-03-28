@@ -320,9 +320,17 @@ xfrd_notify_send_udp(struct notify_zone* zone, int index)
 		int fd;
 		socklen_t to_len = xfrd_acl_sockaddr_to(
 			zone->pkts[index].dest, &to);
-		if(zone->pkts[index].dest->is_ipv6)
+		if(zone->pkts[index].dest->is_ipv6
+		&& zone->notify_send6_handler.ev_fd != -1)
 			fd = zone->notify_send6_handler.ev_fd;
-		else	fd = zone->notify_send_handler.ev_fd;
+		else if (zone->notify_send_handler.ev_fd != -1)
+			fd = zone->notify_send_handler.ev_fd;
+		else {
+			log_msg(LOG_ERR, "xfrd notify: sendto %s failed %s",
+				zone->pkts[index].dest->ip_address_spec,
+				"invalid file descriptor");
+			return 0;
+		}
 		if(sendto(fd,
 			buffer_current(packet), buffer_remaining(packet), 0,
 			(struct sockaddr*)&to, to_len) == -1) {

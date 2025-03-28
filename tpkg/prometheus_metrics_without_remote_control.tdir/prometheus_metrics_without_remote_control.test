@@ -1,0 +1,86 @@
+# #-- prometheus_metrics_without_remote_control.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+if grep "define USE_METRICS " $PRE/config.h; then
+	echo "USE_METRICS enabled"
+else
+	echo "USE_METRICS not enabled, skip test"
+	exit 0
+fi
+
+# Is curl available
+if test -f "$(which curl 2>&1)"; then
+	echo "curl available, do test"
+else
+	echo "curl not available, skip test"
+	exit 0
+fi
+
+NUM_A_QUERIES=5
+NUM_NS_QUERIES=3
+
+# query server a few times
+for i in $(seq 1 $NUM_A_QUERIES); do
+	dig @127.0.0.1 -p "$TPKG_PORT" www.example.com. A IN | tee out2
+	if grep "192.0.2.10" out2; then
+		echo "OK"
+	else
+		echo "zone not present"
+		cat nsd.log
+		exit 1
+	fi
+done
+
+for i in $(seq 1 $NUM_NS_QUERIES); do
+	dig @127.0.0.1 -p "$TPKG_PORT" example.com. NS IN | tee out2
+	if grep "ns2.example.com." out2; then
+		echo "OK"
+	else
+		echo "zone not present"
+		cat nsd.log
+		exit 1
+	fi
+done
+
+# check metrics
+if ! curl -Ssi "http://127.0.0.1:$TPKG_METRICS_PORT/metrics" -o metrics.out; then
+	echo "FAIL"
+	exit 1
+fi
+
+if grep -Fx "nsd_queries_total{server=\"0\"} $((NUM_NS_QUERIES+NUM_A_QUERIES))" metrics.out; then
+	echo "OK"
+else
+	echo "FAIL"
+	exit 1
+fi
+
+if grep -Fx "nsd_queries_by_type_total{type=\"NS\"} $NUM_NS_QUERIES" metrics.out; then
+	echo "OK"
+else
+	echo "FAIL"
+	exit 1
+fi
+
+if grep -Fx "nsd_queries_by_type_total{type=\"A\"} $NUM_A_QUERIES" metrics.out; then
+	echo "OK"
+else
+	echo "FAIL"
+	exit 1
+fi
+
+# check zonestats metrics
+if grep -Fx "nsd_zonestats_examplestats_queries_by_type_total{type=\"NS\"} $NUM_NS_QUERIES" metrics.out; then
+	echo "OK"
+else
+	echo "FAIL"
+	exit 1
+fi
+
+exit 0

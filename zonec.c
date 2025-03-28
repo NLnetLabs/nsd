@@ -267,7 +267,7 @@ int32_t zonec_accept(
 	} else {
 		struct rr *rrs;
 		if (type != TYPE_RRSIG && ttl != rrset->rrs[0].ttl) {
-			zone_log(parser, priority, "%s TTL %"PRIu32" does not match TTL %u of %s RRset",
+			zone_log(parser, ZONE_WARNING, "%s TTL %"PRIu32" does not match TTL %u of %s RRset",
 				domain_to_string(domain), ttl, rrset->rrs[0].ttl,
 					rrtype_to_string(type));
 		}
@@ -321,6 +321,43 @@ int32_t zonec_accept(
 
 	state->records++;
 	region_free_all(state->rr_region);
+	return 0;
+}
+
+static int32_t zonec_include(
+  zone_parser_t *parser,
+  const char *file,
+  const char *path,
+  void *user_data)
+{
+	char **paths;
+	struct zonec_state *state;
+	struct namedb *database;
+	struct zone *zone;
+
+	(void)parser;
+	(void)file;
+
+	state = (struct zonec_state *)user_data;
+	database = state->database;
+	zone = state->zone;
+
+	assert((zone->includes.count == 0) == (zone->includes.paths == NULL));
+
+	for (size_t i=0; i < zone->includes.count; i++)
+		if (strcmp(path, zone->includes.paths[i]) == 0)
+			return 0;
+
+	paths = region_alloc_array(
+		database->region, zone->includes.count + 1, sizeof(*paths));
+	if (zone->includes.count) {
+		const size_t size = zone->includes.count * sizeof(*paths);
+		memcpy(paths, zone->includes.paths, size);
+		region_recycle(database->region, zone->includes.paths, size);
+	}
+	paths[zone->includes.count] = region_strdup(database->region, path);
+	zone->includes.count++;
+	zone->includes.paths = paths;
 	return 0;
 }
 
@@ -395,6 +432,7 @@ zonec_read(
 	options.pretty_ttls = true; /* non-standard, for backwards compatibility */
 	options.log.callback = &zonec_log;
 	options.accept.callback = &zonec_accept;
+	options.include.callback = &zonec_include;
 
 	/* Parse and process all RRs.  */
 	if (zone_parse(&parser, &options, &buffers, zonefile, &state) != 0) {

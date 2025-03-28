@@ -13,7 +13,7 @@ echo port: $LDNS_PORT
 echo controlport: $CONTROL_PORT
 
 # start ldns-testns, be extra verbose
-ldns-testns -p $LDNS_PORT xfr_update.datafile &
+ldns-testns -p $LDNS_PORT xfr_update.datafile >testns.log 2>&1 &
 echo "export TESTNS_PID=$!" >> .tpkg.var.test
 sleep 1
 

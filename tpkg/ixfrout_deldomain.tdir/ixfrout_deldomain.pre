@@ -1,0 +1,24 @@
+# #-- ixfrout_deldomain.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+PRE="../.."
+. ../common.sh
+
+# start NSD
+get_random_port 1
+NSD_PORT=$RND_PORT
+echo nsd-port: $NSD_PORT
+
+# share the vars
+echo "export NSD_PORT=$NSD_PORT" >> .tpkg.var.test
+
+# replace NSD_PORT with $NSD_PORT and put it in nsd.conf
+cat ixfrout_deldomain.conf | sed -e "s/NSD_PORT/$NSD_PORT/g" > nsd.conf
+if [[ $? -ne 0 ]]; then
+        exit 1
+fi
+TPKG_NSD="$PRE/nsd"
+$TPKG_NSD -c nsd.conf -p $NSD_PORT -d -V 3 2>&1 | tee nsd.log &
+wait_nsd_up nsd.log

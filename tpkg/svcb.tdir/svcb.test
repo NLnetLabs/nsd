@@ -184,6 +184,23 @@ then
 	echo "Incorrectly succeeded"
 	exit 1
 
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-24
+then
+	echo "Failure case 24: values for the ohttp parameter MUST be empty"
+	echo "Incorrectly succeeded"
+	exit 1
+
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-25
+then
+	echo "Failure case 25: An empty list of tls-supported-groups values is invalid"
+	echo "Incorrectly succeeded"
+	exit 1
+
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-26
+then
+	echo "Failure case 26: A tls-supported-groups list containing duplicates is invalid"
+	echo "Incorrectly succeeded"
+	exit 1
 else
 	echo "All failure cases test successfully"
 fi

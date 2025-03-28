@@ -18,6 +18,7 @@ struct rr;
 struct buffer;
 struct region;
 struct nsd;
+struct nsd_options;
 
 #ifdef HAVE_SYSLOG_H
 #  include <syslog.h>
@@ -254,7 +255,7 @@ read_uint32(const void *src)
 	return ntohl(* (const uint32_t *) src);
 #else
 	const uint8_t *p = (const uint8_t *) src;
-	return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+	return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) | ((uint32_t)p[2] << 8) | (uint32_t)p[3];
 #endif
 }
 
@@ -302,6 +303,9 @@ extern int nsd_debug_level;
 
 /* set to true to log time prettyprinted, or false to print epoch */
 extern int log_time_asc;
+
+/* set to true to log time in iso format */
+extern int log_time_iso;
 
 /*
  * Timespec functions.
@@ -435,4 +439,7 @@ void activate_cookie_secret(struct nsd* nsd);
 /* Drop a cookie secret. Drops the staging secret. An active secret will not
  * be dropped. */
 void drop_cookie_secret(struct nsd* nsd);
+/* Configure nsd struct with how to respond to DNS Cookies based on options */
+void reconfig_cookies(struct nsd* nsd, struct nsd_options* options);
+
 #endif /* UTIL_H */

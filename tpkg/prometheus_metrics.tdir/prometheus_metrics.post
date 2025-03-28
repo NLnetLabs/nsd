@@ -1,0 +1,22 @@
+# #-- prometheus_metrics.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+#
+# do your teardown here
+
+. ../common.sh
+PRE="../.."
+
+if grep "define USE_METRICS " $PRE/config.h; then
+	echo "USE_METRICS enabled"
+else
+	echo "USE_METRICS not enabled, skip test"
+	exit 0
+fi
+
+# do your teardown here
+kill_from_pidfile nsd.pid
+
+cat nsd.log

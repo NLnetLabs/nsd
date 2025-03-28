@@ -229,6 +229,7 @@ enabled.
 The maximum number of concurrent, active TCP connections by each server.
 Default is 100. Same as command-line option
 .BR \-n .
+That is the number of requests from clients to this server.
 .TP
 .B tcp\-reject\-overflow:\fR <yes or no>
 If set to yes, TCP connections made beyond the maximum set by tcp-count will
@@ -262,6 +263,7 @@ negotiation between NSD and other servers.
 .B xfrd\-tcp\-max:\fR <number>
 Number of sockets for xfrd to use for outgoing zone transfers. Default 128.
 Increase it to allow more zone transfer sockets, like to 256.
+That is for zone transfers requested by this server from other servers.
 To save memory, this can be lowered, set it lower together with some other
 settings to have reduced memory footprint for NSD. xfrd\-tcp\-max: 32
 and xfrd\-tcp\-pipeline: 128 and rrl\-size: 1000
@@ -273,7 +275,8 @@ size of the zone data.
 .TP
 .B xfrd\-tcp\-pipeline:\fR <number>
 Number of simultaneous outgoing zone transfers that are possible on the
-tcp sockets of xfrd. Max is 65536, default is 128.
+tcp sockets of xfrd. Max is 65536, default is 128. That is for zone transfers
+requested by this server from other servers.
 .TP
 .B ipv4\-edns\-size:\fR <number>
 Preferred EDNS buffer size for IPv4.  Default 1232.
@@ -392,6 +395,10 @@ Log time in ascii, if "no" then in seconds epoch.  Default is yes.
 This chooses the format when logging to file.  The printout via syslog
 has a timestamp formatted by syslog.
 .TP
+.B log\-time\-iso:\fR <yes or no>
+Log time in ISO8601 format, if \fBlog\-time\-ascii:\fR yes is also set.
+Default is no.
+.TP
 .B round\-robin:\fR <yes or no>
 Enable round robin rotation of records in the answer.  This changes the
 order of records in the answer and this may balance load across them.
@@ -449,7 +456,7 @@ blocked and unblocked subnets are logged.  Blocked queries are blocked
 and some receive TCP fallback replies.  Once the rate limit is reached,
 NSD begins dropping responses. However, one in every "rrl\-slip" number
 of responses is allowed, with the TC bit set. If slip is set to 2, the
-outgoing response rate will be halved. If it's set to 3, the outgoing
+returned response rate will be halved. If it's set to 3, the returned
 response rate will be one\-third, and so on.  If you set rrl\-slip to 10,
 traffic is reduced to 1/10th.  Ratelimit options rrl\-ratelimit, rrl\-size and
 rrl\-whitelist\-ratelimit are updated when nsd\-control reconfig is done (also
@@ -477,25 +484,56 @@ With the value 0 the rate is unlimited.
 .B answer\-cookie:\fR <yes or no>
 Enable to answer to requests containing DNS Cookies as specified in RFC7873.
 Default is no.
+.sp
+DNS Cookies increase transaction security and provide limited protection 
+against denial-off-service amplification attacks. Server cookies will be
+created and included in responses. Server cookies are created based on the
+client cookie in the request, the current time, the client's IP address and
+a secret. When a client includes a valid server cookie in successive requests,
+the client will not be subjected to Request Rate Limiting (see \fBrrl\-ratelimit\fR).
+.sp
+Servers in an anycast deployment need to be able to verify each other's server
+cookies. For this they need to share the secret used to construct and verify
+the cookies. These cookie secrets can be specified in the configuration files
+with the \fBcookie\-secret\fR and \fBcookie\-staging\-secret\fR options.
+.sp
+If no cookie secrets are provided via configuration file, server cookie secrets
+can be added, dropped and activated with the \fInsd\-control\fR(8) tool.
+These secrets will be stored persistently in the cookie secret file for which
+the location can be specified with the \fBcookie\-secret\-file\fR option.
+.sp
+If no cookie secrets are provided via configuration file, and there is no or an
+empty cookie secret file, a random cookie secret is generated.
 .TP
 .B cookie\-secret:\fR <128 bit hex string>
-Servers in an anycast deployment need to be able to  verify  each other's DNS
-Server Cookies.  For  this they need to share the secret used to construct and
-verify the DNS Cookies.  Default is a 128 bits random secret generated at
-startup time.  This option is ignored if a \fBcookie\-secret\-file\fR is
-present.  In that case the secrets from that file are used in DNS Cookie
-calculations.
+The cookie secret with which server cookies are created and can be verified.
+If a \fBcookie\-secret\fR is specified via configuration file, cookie secrets
+from the cookie secret file will be ignored. 
+.TP
+.B cookie\-staging\-secret:\fR <128 bit hex string>
+A cookie secret with which server cookies can be verified, but will not be
+created. This is helpful in rolling cookie secrets in anycast setups.
+.sp
+A \fBcookie\-staging\-secret\fR can only be configured when there is also a
+\fBcookie\-secret\fR configured.
 .TP
 .B cookie\-secret\-file:\fR <filename>
-File from which the secrets are read used in DNS Cookie calculations. When this
-file exists, the secrets in this file are used and the secret specified by the
-\fBcookie-secret\fR option is ignored.
-Default is @configdir@/nsd_cookiesecrets.txt
+File from which the secrets are read used in DNS Cookie calculations. Secrets
+will only be read from this file if no cookie secrets are given in the
+configuration file via the \fBcookie\-secret\fR and
+\fBcookie\-staging\-secret\fR options.
+Default is "@cookiesecretsfile@"
 .sp
-The content of this file must be manipulated with the \fBadd_cookie_secret\fR,
-\fBdrop_cookie_secret\fR and \fBactivate_cookie_secret\fR commands to the
-\fInsd\-control\fR(8) tool. Please see that manpage how to perform a safe
-cookie secret rollover.
+In NSD version 4.10.1 and earlier, the default location of the cookie secret
+file was "@configdir@/nsd_cookiesecrets.txt". For migration purposes, cookie
+secrets will be read from that location if no value is given for the
+\fBcookie\-secret\-file\fR option and when the current default location
+("@cookiesecretsfile@") does not exist.
+.sp
+The content of the cookie secret file must be manipulated with the
+\fBadd_cookie_secret\fR, \fBdrop_cookie_secret\fR and
+\fBactivate_cookie_secret\fR commands to the \fInsd\-control\fR(8) tool.
+Please see that manpage how to perform a safe cookie secret rollover.
 .TP
 .B tls\-service\-key:\fR <filename>
 If enabled, the server provides TLS service on TCP sockets with the TLS
@@ -529,6 +567,8 @@ openssl ocsp -no_nonce \\
 .B tls\-port:\fR <number>
 The port number on which to provide TCP TLS service, default is 853, only
 interfaces configured with that port number as @number get DNS over TLS service.
+UDP service is implicitly turned off for the same port as to not mix encrypted
+and plain text communication.
 .TP
 .B tls\-auth\-port:\fR <number>
 The port number on which to provide TCP TLS service to authenticated clients only.
@@ -615,6 +655,30 @@ user to delete files in that directory.
 .IP
 Default is "/sys/fs/bpf".
 .\" xdpend
+.TP
+.B metrics\-enable:\fR <yes or no>
+Enable the prometheus metrics HTTP endpoint. It exposes the same statistics as
+the \fInsd\-control\fR(8) stats_noreset command, but with metric names
+following the prometheus specification.
+
+Beware, that when using \fInsd\-control\fR(8) stats (instead of stats_noreset),
+the statistics will be reset for the HTTP metrics endpoint as well.
+.TP
+.B metrics\-interface:\fR <ip4 or ip6 | interface name>
+NSD will bind to the listed addresses or interfaces to serve the prometheus
+metrics. Can be given multiple times to bind multiple ip\-addresses. Use
+0.0.0.0 and ::0 to bind to the wildcard interface.
+
+If an interface name is used instead of ip4 or ip6, the list of IP addresses
+associated with that interface is picked up and used at server start.
+
+Default is 127.0.0.1 and ::1.
+.TP
+.B metrics\-port:\fR <number>
+The port number for the HTTP service. Default is 9100.
+.TP
+.B metrics\-path:\fR <string>
+The HTTP path to expose the metrics at. Default is "/metrics".
 .SS "Remote Control"
 The
 .B remote\-control:

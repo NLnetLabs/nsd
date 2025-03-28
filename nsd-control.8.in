@@ -210,7 +210,7 @@ be dropped with the \fBdrop_cookie_secret\fR command.
 .sp
 Persistence is accomplished by writing to a file which if configured with the
 \fBcookie\-secret\-file\fR option in the server section of the config file.
-The default value for that is: @configdir@/nsd_cookiesecrets.txt .
+The default value for that is: @cookiesecretsfile@ .
 .TP
 .B drop_cookie_secret
 Drop the \fIstaging\fR cookie secret.

@@ -51,6 +51,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          persist-credentials: false
       - name: cross-platform-action on ${{ matrix.cross_platform_os }} ${{ matrix.cross_platform_version }}
         if: ${{ matrix.with_cross_platform_action == 'yes' }}
         uses: cross-platform-actions/action@v0.25.0

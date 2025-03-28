@@ -40,6 +40,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -56,7 +57,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "/var/db/nsd/cookiesecrets.txt"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -176,6 +182,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -190,7 +197,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "/var/db/nsd/cookiesecrets.txt"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -253,6 +265,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: no
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -267,7 +280,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "/var/db/nsd/cookiesecrets.txt"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -339,6 +357,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -353,7 +372,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "/var/db/nsd/cookiesecrets.txt"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -469,6 +493,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -483,7 +508,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "/var/db/nsd/cookiesecrets.txt"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -556,7 +586,7 @@ checkconf.nsd09.conf:9: error: expected yes or no
 read checkconf.nsd09.conf failed: 1 errors in configuration file
 checkconf.nsd10.conf:10: error: expected a number
 read checkconf.nsd10.conf failed: 1 errors in configuration file
-# Read file checkconf.nsd11.conf: 1 patterns, 0 fixed-zones, 0 keys, 0 tls-auth.
+# Read file checkconf.nsd11.conf: 5 patterns, 1 fixed-zones, 0 keys, 0 tls-auth.
 # Config settings.
 server:
 	debug-mode: no
@@ -597,6 +627,7 @@ server:
 	xfrdir: "/tmp"
 	xfrd-reload-timeout: 1
 	log-time-ascii: yes
+	log-time-iso: no
 	round-robin: no
 	minimal-responses: no
 	confine-to-zone: no
@@ -611,7 +642,12 @@ server:
 	tls-port: "853"
 	#tls-cert-bundle:
 	answer-cookie: no
-	cookie-secret-file: "/etc/nsd/nsd_cookiesecrets.txt"
+	#cookie-secret:
+	#cookie-staging-secret:
+	#cookie-secret-file: "/var/db/nsd/cookiesecrets.txt"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -630,6 +666,22 @@ verify:
 	verifier-timeout: 0
 
 pattern:
+	name: "group1"
+	catalog-producer-zone: "producer.catalog.invalid"
+
+pattern:
+	name: "group2"
+	catalog-producer-zone: "producer.catalog.invalid"
+
+pattern:
+	name: "group3"
+	catalog-producer-zone: "producer.catalog.invalid"
+
+pattern:
 	name: "myzones"
 	catalog: consumer
 	catalog-member-pattern: "mycatalog2"
+
+zone:
+	name: "producer.catalog.invalid"
+	catalog: producer

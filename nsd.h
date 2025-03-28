@@ -33,6 +33,9 @@ struct netio_handler;
 struct nsd_options;
 struct udb_base;
 struct daemon_remote;
+#ifdef USE_METRICS
+struct daemon_metrics;
+#endif /* USE_METRICS */
 #ifdef USE_DNSTAP
 struct dt_collector;
 #endif
@@ -44,13 +47,6 @@ struct dt_collector;
 #define	NSD_STATS 3
 #define	NSD_REAP_CHILDREN 4
 #define	NSD_QUIT 5
-/*
- * PASS_TO_XFRD is followed by the u16(len in network order) and
- * then network packet contents.  packet is a notify(acl checked), or
- * xfr reply from a master(acl checked).
- * followed by u32(acl number that matched from notify/xfr acl).
- */
-#define NSD_PASS_TO_XFRD 6
 /*
  * RELOAD_REQ is sent when parent receives a SIGHUP and tells
  * xfrd that it wants to initiate a reload (and thus task swap).
@@ -209,11 +205,20 @@ struct nsd_child
 #define NSD_COOKIE_HISTORY_SIZE 2
 #define NSD_COOKIE_SECRET_SIZE 16
 
-typedef struct cookie_secret cookie_secret_type;
 struct cookie_secret {
 	/** cookie secret */
 	uint8_t cookie_secret[NSD_COOKIE_SECRET_SIZE];
 };
+typedef struct cookie_secret cookie_secret_type;
+typedef cookie_secret_type cookie_secrets_type[NSD_COOKIE_HISTORY_SIZE];
+
+enum cookie_secrets_source {
+	COOKIE_SECRETS_NONE        = 0,
+	COOKIE_SECRETS_GENERATED   = 1,
+	COOKIE_SECRETS_FROM_FILE   = 2,
+	COOKIE_SECRETS_FROM_CONFIG = 3
+};
+typedef enum cookie_secrets_source cookie_secrets_source_type;
 
 /* NSD configuration and run-time variables */
 typedef struct nsd nsd_type;
@@ -256,6 +261,9 @@ struct	nsd
 	region_type* server_region;
 	struct netio_handler* xfrd_listener;
 	struct daemon_remote* rc;
+#ifdef USE_METRICS
+	struct daemon_metrics* metrics;
+#endif /* USE_METRICS */
 
 	/* Configuration */
 	const char		*pidfile;
@@ -364,20 +372,36 @@ struct	nsd
 	 * simultaneous with new serve childs. */
 	int *dt_collector_fd_swap;
 #endif /* USE_DNSTAP */
+	/* the pipes from the serve processes to xfrd, for passing through
+	 * NOTIFY messages, arrays of size child_count * 2.
+	 * Kept open for (re-)forks. */
+	int *serve2xfrd_fd_send, *serve2xfrd_fd_recv;
+	/* the pipes from the serve processes to the xfrd. Initially
+	 * these point halfway into serve2xfrd_fd_send, but during reload
+	 * the pointer is swapped with serve2xfrd_fd_send so that only one
+	 * serve child will write to the same fd simultaneously. */
+	int *serve2xfrd_fd_swap;
 	/* ratelimit for errors, time value */
 	time_t err_limit_time;
 	/* ratelimit for errors, packet count */
 	unsigned int err_limit_count;
 
-	/** do answer with server cookie when request contained cookie option */
+	/* do answer with server cookie when request contained cookie option */
 	int do_answer_cookie;
 
-	/** how many cookies are there in the cookies array */
+	/* how many cookies are there in the cookies array */
 	size_t cookie_count;
 
 	/* keep track of the last `NSD_COOKIE_HISTORY_SIZE`
 	 * cookies as per rfc requirement .*/
-	cookie_secret_type cookie_secrets[NSD_COOKIE_HISTORY_SIZE];
+	cookie_secrets_type cookie_secrets;
+
+	/* From where came the configured cookies */
+	cookie_secrets_source_type cookie_secrets_source;
+
+	/* The cookie secrets filename when they came from file; when
+	 * cookie_secrets_source == COOKIE_SECRETS_FROM_FILE */
+	char* cookie_secrets_filename;
 
 	struct nsd_options* options;
 
@@ -433,6 +457,7 @@ SSL_CTX* server_tls_ctx_setup(char* key, char* pem, char* verifypem);
 SSL_CTX* server_tls_ctx_create(struct nsd *nsd, char* verifypem, char* ocspfile);
 void perform_openssl_init(void);
 #endif
+int using_tls_port(struct sockaddr* addr, const char* tls_port);
 ssize_t block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout);
 
 #endif	/* NSD_H */

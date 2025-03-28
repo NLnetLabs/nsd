@@ -65,6 +65,37 @@ $ORIGIN blaat.nl.
 @	IN LOC   32   7 19 S 116 2 25.999 E 10m
 @	IN LOC   42 21 28.764 N 71 00 51.617 W -44.99m 2000m
 
+; draft-eastlake-kitchen-sink
+@	IN SINK 64 1 TkxuZXRMYWJzLm5s
+
+; draft-ietf-dnsop-dnssec-trust-history
+@	IN TALINK h0 h2
+h0	IN TALINK .  h1
+h1	IN TALINK h0 h2
+h2	IN TALINK h1 .
+
+; draft-durand-doa-over-dns
+@	IN DOA 0 1 2 "" bWFpbHRvOmxhYnNAbmxuZXRsYWJzLm5s
+	IN DOA 0 100000 200 example/nothing -
+
+; https://web.archive.org/web/20190112072924/http://www.broadband-forum.org/ftp/pub/approved-specs/af-dans-0152.000.pdf
+@	IN ATMA 39.246f.00.0e7c9c.0312.0001.0001.000012345678.00
+	IN ATMA +358.400.1234567
+
+; RFC 8777
+@	IN AMTRELAY 200 0 0
+	IN AMTRELAY 10 0 1 203.0.113.15
+	IN AMTRELAY 10 0 2 2001:db8::15
+	IN AMTRELAY 128 1 3 amtrelays.example.com.
+
+; draft-johnson-dns-ipn-cla-07 Section 3.1.
+@	IN IPN 100
+        IN IPN 100.100
+	IN IPN 10000000000000000000
+
+*._dsync	IN	DSYNC	CDS	1 5359 cds-scanner.example.net.
+*._dsync	IN	DSYNC	CSYNC	1 5360 csync-scanner.example.net.
+
 $ORIGIN blaat.nl.
 
 dotted\.label IN MX 10 foo\ bar\.nl
@@ -133,3 +164,40 @@ eui64		IN EUI64 00-00-5e-ef-00-00-00-2a
 mail	IN	TXT	Test-String"Test-String"
 mail	IN	TXT	foo.bar.test
 csync	IN	CSYNC	66 3 A NS AAAA
+
+ninfo	IN	NINFO	"This zone is for testing parsing and printing of the different RR types"
+rkey	IN	RKEY	512 255 2 ACDtkdVR2HWmc0HPEwkrM+SOrWZd8yPTAytLYZj2u33KgwABAgAg6jav 9rTK68C8j+kfLv7+re8KAb1qJXqdSrmL+1l3Js4=
+resinfo	IN	RESINFO	qnamemin exterr=15-17 infourl=https://resolver.example.com/guide
+wallet	IN	WALLET	BTC 1H6WkSHdqVahBKczJrs9bBfFYhUHrP5R2F
+	IN	WALLET	BCH 1PdRYCYMv7RA8PwxQZ1Q3aCYC4gxKVwFPu
+	IN	WALLET	NMC MwKMAXMaXPFQTSCiVD5zHucmA6r3gaAnra
+cla	IN	CLA	CP-V4-V6 TCP-V6-V7
+ta	IN	TA	56039 13 2 4104805B43928FC573F0704A2C1B5A10BAA2878DE26B8535DDE77517 C154CE9F
+dlv	IN	DLV	56039 13 2 4104805B43928FC573F0704A2C1B5A10BAA2878DE26B8535DDE77517C154CE9F
+
+; GPOS examples from RFC1712
+marsh.gpos	IN	GPOS	-32.6882 116.8652 10.0
+lillee.gpos	IN	GPOS	-32.6882 116.8652 10.0
+hinault.gpos	IN	GPOS	-22.6882 116.8652 250.0
+ambrose.gpos	IN	GPOS	-32.6882 116.8652 10.0
+
+hip1		IN	HIP	( 2 200100107B1A74DF365639CC39F1D578
+                                  AwEAAbdxyhNuSutc5EMzxTs9LBPCIkOFH8cIvM4p9+LrV4e19WzK00+CI6zBCQTdtWsuxKbWIy87UOoJTwkUs7lBu+Upr1gsNrut79ryra+bSRGQb1slImA8YVJyuIDsj7kwzG7jnERNqnWxZ48AWkskmdHaVDP4BcelrTI3rMXdXF5D )
+hip2		IN	HIP	( 2 200100107B1A74DF365639CC39F1D578
+                                  AwEAAbdxyhNuSutc5EMzxTs9LBPCIkOFH8cIvM4p9+LrV4e19WzK00+CI6zBCQTdtWsuxKbWIy87UOoJTwkUs7lBu+Upr1gsNrut79ryra+bSRGQb1slImA8YVJyuIDsj7kwzG7jnERNqnWxZ48AWkskmdHaVDP4BcelrTI3rMXdXF5D
+                                  rvs.example.com. )
+
+hip3		IN	HIP	( 2 200100107B1A74DF365639CC39F1D578
+                                  AwEAAbdxyhNuSutc5EMzxTs9LBPCIkOFH8cIvM4p9+LrV4e19WzK00+CI6zBCQTdtWsuxKbWIy87UOoJTwkUs7lBu+Upr1gsNrut79ryra+bSRGQb1slImA8YVJyuIDsj7kwzG7jnERNqnWxZ48AWkskmdHaVDP4BcelrTI3rMXdXF5D
+                                  rvs1.example.com.
+                                  rvs2.example.com. )
+
+; EID and NIMLOC examples from draft-ietf-nimrod-dns-01
+VENERA	EID	813F 4B7C DAB3 4217
+	NIMLOC	( 3227 45
+		  0A 01 00 34 )
+	NIMLOC	752341 59EAC4 5780 0920
+
+VAXA	EID	3141 5926 5358 9793
+	NIMLOC	752341 59EAC4 5780 0921
+
