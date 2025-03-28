@@ -153,6 +153,11 @@ static int xdp_sockets_cleanup(struct xdp_server *xdp);
 static void *alloc_shared_mem(size_t len);
 
 /*
+ * Collect free frames from completion queue
+ */
+static void drain_cq(struct xsk_socket_info *xsk);
+
+/*
  * Send outstanding packets and recollect completed frame addresses
  */
 static void handle_tx(struct xsk_socket_info *xsk);
@@ -937,14 +942,8 @@ void xdp_handle_recv_and_send(struct xdp_server *xdp) {
 	/* TODO: maybe call fill_fq(xsk) here as well? */
 }
 
-static void handle_tx(struct xsk_socket_info *xsk) {
+static void drain_cq(struct xsk_socket_info *xsk) {
 	uint32_t completed, idx_cq;
-
-	if (!xsk->outstanding_tx)
-		return;
-
-	if (xsk_ring_prod__needs_wakeup(&xsk->tx))
-		sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
 
 	/* free completed TX buffers */
 	completed = xsk_ring_cons__peek(&xsk->umem->cq,
@@ -961,6 +960,22 @@ static void handle_tx(struct xsk_socket_info *xsk) {
 		xsk->outstanding_tx -= completed < xsk->outstanding_tx ?
 		                       completed : xsk->outstanding_tx;
 	}
+}
+
+static void handle_tx(struct xsk_socket_info *xsk) {
+	if (!xsk->outstanding_tx)
+		return;
+
+	if (xsk_ring_prod__needs_wakeup(&xsk->tx))
+		sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+
+	drain_cq(xsk);
+
+	// Update TX-queue pointers
+	// This is not needed, because prod__reserve calls this function too,
+	// and therefore, if not enough frames are free on the cached pointers,
+	// it will update the real pointers.
+	/* xsk_prod_nb_free(&xsk->tx, XSK_RING_PROD__NUM_DESCS/4); */
 }
 
 #endif /* USE_XDP */
