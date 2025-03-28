@@ -83,6 +83,10 @@
 #include "remote.h"
 #include "rdata.h"
 
+#ifdef USE_METRICS
+#include "metrics.h"
+#endif /* USE_METRICS */
+
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>
 #endif
@@ -222,11 +226,6 @@ remote_accept_callback(int fd, short event, void* arg);
 static void
 remote_control_callback(int fd, short event, void* arg);
 
-#ifdef BIND8_STATS
-/* process the statistics and output them */
-static void process_stats(RES* ssl, xfrd_state_type* xfrd, int peek);
-#endif
-
 /** ---- end of private defines ---- **/
 
 #ifdef HAVE_SSL
@@ -248,7 +247,7 @@ log_crypto_err(const char* str)
 
 #ifdef BIND8_STATS
 /** subtract timers and the values do not overflow or become negative */
-static void
+void
 timeval_subtract(struct timeval* d, const struct timeval* end, 
 	const struct timeval* start)
 {
@@ -1271,7 +1270,7 @@ static void
 do_stats(RES* ssl, xfrd_state_type* xfrd, int peek)
 {
 #ifdef BIND8_STATS
-	process_stats(ssl, xfrd, peek);
+	process_stats(ssl, NULL, xfrd, peek);
 #else
 	(void)xfrd; (void)peek;
 	(void)ssl_printf(ssl, "error no stats enabled at compile time\n");
@@ -2848,7 +2847,7 @@ remote_control_callback(int fd, short event, void* arg)
 }
 
 #ifdef BIND8_STATS
-static const char*
+const char*
 opcode2str(int o)
 {
 	switch(o) {
@@ -2996,9 +2995,9 @@ resize_zonestat(xfrd_state_type* xfrd, size_t num)
 	xfrd->zonestat_clear_num = num;
 }
 
-static void
-zonestat_print(RES* ssl, xfrd_state_type* xfrd, int clear,
-	struct nsdst** zonestats)
+void
+zonestat_print(RES *ssl, struct evbuffer *evbuf, xfrd_state_type *xfrd,
+               int clear, struct nsdst **zonestats)
 {
 	struct zonestatname* n;
 	struct nsdst stat0, stat1;
@@ -3040,11 +3039,21 @@ zonestat_print(RES* ssl, xfrd_state_type* xfrd, int clear,
 		}
 
 		/* stat0 contains the details that we want to print */
-		if(!ssl_printf(ssl, "%s%snum.queries=%lu\n", name, ".",
-			(unsigned long)(stat0.qudp + stat0.qudp6 + stat0.ctcp +
-				stat0.ctcp6 + stat0.ctls + stat0.ctls6)))
-			return;
-		print_stat_block(ssl, name, ".", &stat0);
+		if (ssl) {
+			if(!ssl_printf(ssl, "%s%snum.queries=%lu\n", name, ".",
+				(unsigned long)(stat0.qudp + stat0.qudp6 + stat0.ctcp +
+					stat0.ctcp6 + stat0.ctls + stat0.ctls6)))
+				return;
+			print_stat_block(ssl, name, ".", &stat0);
+		}
+
+#ifdef USE_METRICS
+		if (evbuf) {
+			metrics_zonestat_print_one(evbuf, name, &stat0);
+		}
+#else
+		(void)evbuf;
+#endif /* USE_METRICS */
 	}
 }
 #endif /* USE_ZONE_STATS */
@@ -3104,16 +3113,14 @@ print_stats(RES* ssl, xfrd_state_type* xfrd, struct timeval* now, int clear,
 	if(!ssl_printf(ssl, "zone.slave=%lu\n", (unsigned long)xfrd->zones->count))
 		return;
 #ifdef USE_ZONE_STATS
-	zonestat_print(ssl, xfrd, clear, zonestats); /* per-zone statistics */
+	zonestat_print(ssl, NULL, xfrd, clear, zonestats); /* per-zone statistics */
 #else
 	(void)clear; (void)zonestats;
 #endif
 }
 
-/* allocate stats temp arrays, for taking a coherent snapshot of the
- * statistics values at that time. */
-static void
-process_stats_alloc(xfrd_state_type* xfrd, struct nsdst** stats,
+void
+process_stats_alloc(struct xfrd_state* xfrd, struct nsdst** stats,
 	struct nsdst** zonestats)
 {
 	*stats = xmallocarray(xfrd->nsd->child_count*2, sizeof(struct nsdst));
@@ -3125,9 +3132,8 @@ process_stats_alloc(xfrd_state_type* xfrd, struct nsdst** stats,
 #endif
 }
 
-/* grab a copy of the statistics, at this particular time. */
-static void
-process_stats_grab(xfrd_state_type* xfrd, struct timeval* stattime,
+void
+process_stats_grab(struct xfrd_state* xfrd, struct timeval* stattime,
 	struct nsdst* stats, struct nsdst** zonestats)
 {
 	if(gettimeofday(stattime, NULL) == -1)
@@ -3144,10 +3150,8 @@ process_stats_grab(xfrd_state_type* xfrd, struct timeval* stattime,
 #endif
 }
 
-/* add the old and new processes stat values into the first part of the
- * array of stats */
-static void
-process_stats_add_old_new(xfrd_state_type* xfrd, struct nsdst* stats)
+void
+process_stats_add_old_new(struct xfrd_state* xfrd, struct nsdst* stats)
 {
 	size_t i;
 	uint64_t dbd = stats[0].db_disk;
@@ -3163,9 +3167,8 @@ process_stats_add_old_new(xfrd_state_type* xfrd, struct nsdst* stats)
 	stats[0].db_mem = dbm;
 }
 
-/* manage clearing of stats, a cumulative count of cleared statistics */
-static void
-process_stats_manage_clear(xfrd_state_type* xfrd, struct nsdst* stats,
+void
+process_stats_manage_clear(struct xfrd_state* xfrd, struct nsdst* stats,
 	int peek)
 {
 	struct nsdst st;
@@ -3194,9 +3197,8 @@ process_stats_manage_clear(xfrd_state_type* xfrd, struct nsdst* stats,
 	}
 }
 
-/* add up the statistics to get the total over the server children. */
-static void
-process_stats_add_total(xfrd_state_type* xfrd, struct nsdst* total,
+void
+process_stats_add_total(struct xfrd_state* xfrd, struct nsdst* total,
 	struct nsdst* stats)
 {
 	size_t i;
@@ -3213,19 +3215,39 @@ process_stats_add_total(xfrd_state_type* xfrd, struct nsdst* total,
 	}
 }
 
-/* process the statistics and output them */
-static void
-process_stats(RES* ssl, xfrd_state_type* xfrd, int peek)
+void
+process_stats(RES* ssl, struct evbuffer *evbuf, struct xfrd_state* xfrd, int peek)
 {
 	struct timeval stattime;
 	struct nsdst* stats, *zonestats[2], total;
+
+	/* it only really makes sense for one to be used at a time and would
+	 * otherwise cause issues if peek is zero */
+	assert((ssl && !evbuf) || (!ssl && evbuf));
 
 	process_stats_alloc(xfrd, &stats, zonestats);
 	process_stats_grab(xfrd, &stattime, stats, zonestats);
 	process_stats_add_old_new(xfrd, stats);
 	process_stats_manage_clear(xfrd, stats, peek);
 	process_stats_add_total(xfrd, &total, stats);
-	print_stats(ssl, xfrd, &stattime, !peek, &total, zonestats);
+	if (ssl) {
+		print_stats(ssl, xfrd, &stattime, !peek, &total, zonestats);
+	}
+#ifdef USE_METRICS
+	if (evbuf) {
+		if (xfrd->nsd->options->control_enable) {
+			/* only pass in rc->stats_time if remote-conrol is enabled,
+			 * otherwise stats_time is uninitialized */
+			metrics_print_stats(evbuf, xfrd, &stattime, !peek, &total, zonestats,
+			                    &xfrd->nsd->rc->stats_time);
+		} else {
+			metrics_print_stats(evbuf, xfrd, &stattime, !peek, &total, zonestats,
+			                    NULL);
+		}
+	}
+#else
+	(void)evbuf;
+#endif /* USE_METRICS */
 	if(!peek) {
 		xfrd->nsd->rc->stats_time = stattime;
 	}

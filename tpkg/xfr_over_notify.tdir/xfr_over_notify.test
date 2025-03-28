@@ -1,0 +1,96 @@
+# #-- xfr_over_notify.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# Wait for NSD to test the upstream and wait on SOA timer.
+# this is a dbeug message, from xfrd
+#wait_logfile nsd.log "zone example.net got update indicating current serial" 10
+#instead, wait a bit.
+sleep 4
+
+# At the start the serial is 1.
+dig -4 @127.0.0.1 -p $NSD_PORT example.net SOA | tee output
+if grep "1 3600" output; then
+	echo "OK"
+else
+	echo "wrong serial at start"
+	exit 1
+fi
+
+# change upstream serial
+echo "> kill ldns-testns"
+kill_from_pidfile testns.pid
+cat testns.log
+echo "> start ldns-testns"
+ldns-testns -p $LDNS_PORT xfr_over_notify.datafile2 >testns.log 2>&1 &
+echo "$!" > testns.pid
+wait_ldns_testns_up testns.log
+
+# notify an older serial than the upstream has already got
+# but that serial is newer than what NSD has.
+ldns-notify -z example.net -p $NSD_PORT -s 2 127.0.0.1
+
+# The AXFR happens for serial 4.
+# Wait for the verifier during the reload to pause
+wait_logfile nsd.log "verifier: verifier script: delay" 20
+
+# change upstream serial
+echo "> kill ldns-testns"
+kill_from_pidfile testns.pid
+cat testns.log
+echo "> start ldns-testns 3"
+ldns-testns -p $LDNS_PORT xfr_over_notify.datafile3 >testns.log 2>&1 &
+echo "$!" > testns.pid
+wait_ldns_testns_up testns.log
+
+# Reload is delayed by a couple seconds. Add some more updates in sequence.
+sleep 1
+ldns-notify -z example.net -p $NSD_PORT -s 5 127.0.0.1
+
+# change upstream serial
+echo "> kill ldns-testns"
+kill_from_pidfile testns.pid
+cat testns.log
+echo "> start ldns-testns 4"
+ldns-testns -p $LDNS_PORT xfr_over_notify.datafile4 >testns.log 2>&1 &
+echo "$!" > testns.pid
+wait_ldns_testns_up testns.log
+
+sleep 1
+ldns-notify -z example.net -p $NSD_PORT -s 6 127.0.0.1
+
+wait_logfile nsd.log "verifier: verifier script: delay done" 20
+
+# The verify script is done, the reload exits and NSD processes the
+# update from 1 to 4 and the queued zone transfers.
+
+wait_logfile nsd.log "zone example.net serial 1 is updated to 4" 20
+# during the reload it logs the two updates:
+wait_logfile nsd.log "zone example.net. received update to serial 5" 20
+wait_logfile nsd.log "zone example.net. received update to serial 6" 20
+# reload is done
+wait_logfile nsd.log "zone example.net serial 4 is updated to 6" 20
+
+# If it now has the log message:
+# "error: xfrd: zone example.net: soa serial 5 update failed, restarting transfer (notified zone)"
+# then if has failed because of the two updates bunched up to reload.
+
+sleep 1
+if grep "update failed, restarting transfer" nsd.log; then
+	echo "The reload update has failed and xfrd restarts the transfer"
+	exit 1
+fi
+
+# Check serial.
+dig -4 @127.0.0.1 -p $NSD_PORT example.net SOA | tee output
+if grep "6 3600" output; then
+	echo "OK"
+else
+	echo "wrong serial"
+	exit 1
+fi
+
+exit 0

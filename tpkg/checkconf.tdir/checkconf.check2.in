@@ -60,6 +60,9 @@ server:
 	#cookie-secret:
 	#cookie-staging-secret:
 	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -197,6 +200,9 @@ server:
 	#cookie-secret:
 	#cookie-staging-secret:
 	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -277,6 +283,9 @@ server:
 	#cookie-secret:
 	#cookie-staging-secret:
 	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -366,6 +375,9 @@ server:
 	#cookie-secret:
 	#cookie-staging-secret:
 	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -499,6 +511,9 @@ server:
 	#cookie-secret:
 	#cookie-staging-secret:
 	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no
@@ -630,6 +645,9 @@ server:
 	#cookie-secret:
 	#cookie-staging-secret:
 	#cookie-secret-file: "@cookiesecretsfile@"
+	metrics-enable: no
+	metrics-port: 9100
+	metrics-path: "/metrics"
 
 remote-control:
 	control-enable: no

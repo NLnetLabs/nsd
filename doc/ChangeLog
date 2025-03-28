@@ -1,3 +1,21 @@
+27 March 2025: Wouter
+	- Fix test checkconf for metrics options.
+	- Updated simdzone to include fixes for NSAP-PTR, LOC,
+	  uninitialized reads, and comment nit.
+	- Fix #436: Fix print of RR type NSAP-PTR.
+	- Fix unit test call to zone_parse_string and initialize padding.
+
+26 March 2025: Wouter
+	- Fix multiple zone transfers in one reload so that xfrd does not
+	  check the update as failed and restart the transfer.
+	- Test for the multiple transfer failure, xfr_over_notify.
+	- Fix read of ixfr file with rdata subdomain.
+	- Test for the ixfr rdata subdomain, ixfrout_deldomain.
+	- Fix note in ixfrout_deldomain test.
+
+25 March 2025: Wouter
+	- Fix to please sanitizer for ixfr store of data in cancelled state.
+
 14 March 2025: Wouter
 	- Fix log print assert in server sockets for printing '-' empty.
 	- Fix notify_fmt test for xfrd file location.
