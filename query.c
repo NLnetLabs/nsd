@@ -1800,10 +1800,13 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 	case EDNS_NOT_PRESENT:
 		break;
 	case EDNS_OK:
-		edns->ok[7] = !q->edns.dnssec_ok ? !q->edns.deleg_ok ? 0
+		edns->ok[7] = !q->edns.dnssec_ok
+		            ? !q->edns.deleg_ok ? 0
 		            : (( DELEG_OK_MASK & 0xFF00) >> 8)
+		            : !q->edns.deleg_ok 
+		            ? ((DNSSEC_OK_MASK & 0xFF00) >> 8)
 		            : (( DELEG_OK_MASK & 0xFF00) >> 8) 
-			    | ((DNSSEC_OK_MASK & 0xFF00) >> 8);
+		            | ((DNSSEC_OK_MASK & 0xFF00) >> 8);
 		buffer_write(q->packet, edns->ok, OPT_LEN);
 
 		/* Add Extended DNS Error (RFC8914)
@@ -1885,10 +1888,13 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 		ZTATUP(nsd, q->zone, edns);
 		break;
 	case EDNS_ERROR:
-		edns->error[7] = !q->edns.dnssec_ok ? !q->edns.deleg_ok ? 0
+		edns->error[7] = !q->edns.dnssec_ok
+		               ? !q->edns.deleg_ok ? 0
 		               : (( DELEG_OK_MASK & 0xFF00) >> 8)
+		               : !q->edns.deleg_ok 
+		               ? ((DNSSEC_OK_MASK & 0xFF00) >> 8)
 		               : (( DELEG_OK_MASK & 0xFF00) >> 8) 
-			       | ((DNSSEC_OK_MASK & 0xFF00) >> 8);
+		               | ((DNSSEC_OK_MASK & 0xFF00) >> 8);
 		buffer_write(q->packet, edns->error, OPT_LEN);
 		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
