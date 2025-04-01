@@ -38,6 +38,7 @@ BUG FIXES:
 	- Fix unit test call to zone_parse_string and initialize padding.
 	- Fix escape more characters when printing an RR type with an
 	  unquoted string.
+	- Fix memory leak in the process of addzone.
 
 
 4.11.1

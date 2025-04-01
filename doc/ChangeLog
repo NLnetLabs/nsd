@@ -1,6 +1,7 @@
 1 April 2025: Wouter
 	- Fix escape more characters when printing an RR type with an
 	  unquoted string.
+	- Fix memory leak in the process of addzone.
 
 27 March 2025: Wouter
 	- Fix test checkconf for metrics options.
