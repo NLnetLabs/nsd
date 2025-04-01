@@ -292,8 +292,8 @@ print_unquoted(buffer_type *output, uint16_t rdlength,
 	for (i = 1; i <= (size_t)len; ++i) {
 		char ch = (char) rdata[*offset + i];
 		if (isprint((unsigned char)ch)) {
-			if (ch == '"' || ch == '\\'
-			||  isspace((unsigned char)ch)) {
+			if (ch == '"' || ch == '\\' || ch == '(' || ch == ')'
+			|| ch == '\'' || isspace((unsigned char)ch)) {
 				buffer_printf(output, "\\");
 			}
 			buffer_printf(output, "%c", ch);
