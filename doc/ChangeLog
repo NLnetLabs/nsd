@@ -1,3 +1,7 @@
+1 April 2025: Wouter
+	- Fix escape more characters when printing an RR type with an
+	  unquoted string.
+
 27 March 2025: Wouter
 	- Fix test checkconf for metrics options.
 	- Updated simdzone to include fixes for NSAP-PTR, LOC,

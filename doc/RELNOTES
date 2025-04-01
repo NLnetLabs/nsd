@@ -36,6 +36,8 @@ BUG FIXES:
 	  uninitialized reads, and comment nit.
 	- Fix #436: Fix print of RR type NSAP-PTR.
 	- Fix unit test call to zone_parse_string and initialize padding.
+	- Fix escape more characters when printing an RR type with an
+	  unquoted string.
 
 
 4.11.1
