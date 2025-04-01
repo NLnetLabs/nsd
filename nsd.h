@@ -447,6 +447,7 @@ SSL_CTX* server_tls_ctx_setup(char* key, char* pem, char* verifypem);
 SSL_CTX* server_tls_ctx_create(struct nsd *nsd, char* verifypem, char* ocspfile);
 void perform_openssl_init(void);
 #endif
+int using_tls_port(struct sockaddr* addr, const char* tls_port);
 ssize_t block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout);
 
 #endif	/* NSD_H */
