@@ -258,7 +258,6 @@ server:
 	# Service clients over TLS (on the TCP sockets), with plain DNS inside
 	# the TLS stream. Give the certificate to use and private key.
 	# Default is "" (disabled). Requires restart to take effect.
-	# UDP on the same port is implicitly turned off.
 	# tls-service-key: "path/to/privatekeyfile.key"
 	# tls-service-pem: "path/to/publiccertfile.pem"
 	# tls-service-ocsp: "path/to/ocsp.pem"

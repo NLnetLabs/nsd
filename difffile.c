@@ -1939,6 +1939,9 @@ task_process_add_zone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		log_msg(LOG_ERR, "can not add zone %s %s", zname, pname);
 		return;
 	}
+	/* zdname is not used by the zone allocation. */
+	region_recycle(nsd->db->region, (void*)zdname,
+		dname_total_size(zdname));
 	z->zonestatid = (unsigned)task->yesno;
 	/* if zone is empty, attempt to read the zonefile from disk (if any) */
 	if(!z->soa_rrset && z->opts->pattern->zonefile) {
