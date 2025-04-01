@@ -39,9 +39,6 @@
 11 March 2025: Wouter
 	- Fix in nsd-mem for a zone with ixfr data.
 
-7 March 2025: Yorgos
-	- Merge #428: Do not listen on plain UDP on the same port as DoT.
-
 3 March 2025: Wouter
 	- Fix that nsec3 prehash after a full transfer can create the nsec3
 	  zone trees if they are needed.
