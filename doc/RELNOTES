@@ -8,6 +8,7 @@ FEATURES:
 	- Merge #420: Zones get state "old-serial" with                         
 	  `nsd-control zonestatus` when the served serial is older than         
 	  the one received by the transfer daemon.
+	- Merge #429: Add prometheus metrics
 
 BUG FIXES:
         - Fix re-enable to configure dns-cookies from config file, which was
@@ -35,6 +36,8 @@ BUG FIXES:
 	  uninitialized reads, and comment nit.
 	- Fix #436: Fix print of RR type NSAP-PTR.
 	- Fix unit test call to zone_parse_string and initialize padding.
+	- Fix escape more characters when printing an RR type with an
+	  unquoted string.
 
 
 4.11.1
