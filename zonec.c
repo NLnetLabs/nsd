@@ -229,9 +229,8 @@ int32_t zonec_accept(
 			if (!equal_rr_rdata(descriptor, rr, rrset->rrs[i]))
 				continue;
 			/* Discard the duplicates... */
-			// FIXME: The usage counter for any domains isn't lowered...
-			//        That might be a problem (wasn't that way before either)?
-			// FIXME: We could do something like an rdata_recycle or something.
+			/* Lower the usage counter for domains in the rdata. */
+			rr_lower_usage(state->database, rr);
 			region_recycle(state->database->region, rr, sizeof(*rr) + rr->rdlength);
 			return 0;
 		}

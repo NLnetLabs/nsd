@@ -4284,3 +4284,30 @@ struct dname* retrieve_cname_ref_dname(const struct rr* rr)
 		return NULL;
 	return domain_dname(domain);
 }
+
+void
+rr_lower_usage(namedb_type* db, rr_type* rr)
+{
+	const nsd_type_descriptor_type *descriptor =
+		nsd_type_descriptor(rr->type);
+	uint16_t offset = 0;
+	size_t i;
+	for(i=0; i<descriptor->rdata.length; i++) {
+		uint16_t field_len;
+		struct domain* domain;
+		if(rr->rdlength == offset &&
+			descriptor->rdata.fields[i].is_optional)
+			break;
+		if(!lookup_rdata_field_entry(descriptor, i, rr, offset,
+			&field_len, &domain))
+			break;
+		if(domain) {
+			assert(domain->usage > 0);
+			domain->usage --;
+			if(domain->usage == 0)
+				domain_table_deldomain(db,
+					domain);
+		}
+		offset += field_len;
+	}
+}

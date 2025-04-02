@@ -690,4 +690,7 @@ static inline struct domain* rdata_domain_ref_offset(const struct rr* rr,
 	return domain;
 }
 
+/* fixup usage lower for domain names in the rdata */
+void rr_lower_usage(namedb_type* db, rr_type* rr);
+
 #endif /* RDATA_H */
