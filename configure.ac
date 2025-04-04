@@ -946,6 +946,24 @@ case "$enable_ipv6" in
 		;;
 esac
 
+AC_ARG_ENABLE(dbus, AS_HELP_STRING([--disable-dbus],[Disables DBus support]))
+case "$enable_dbus" in
+no)
+	;;
+yes|*)
+	AC_SEARCH_LIBS([sd_bus_open_system], [systemd], [
+		LDFLAGS="$LDFLAGS -Lsystemd"
+		AC_DEFINE_UNQUOTED([ENABLE_DBUS], [], [Define this to enable DBus support.])
+		AC_DEFINE_UNQUOTED(NSD_DBUS_NAME, ["nl.nlnetlabs.nsd"], [Name for NSD DBus signalling])
+		AC_DEFINE_UNQUOTED(NSD_DBUS_PATH, ["/nl/nlnetlabs/nsd"], [Path of DBus object])
+		AC_DEFINE_UNQUOTED(NSD_DBUS_EVENT_STARTED, ["started"], [DBus signal for just started])
+		AC_DEFINE_UNQUOTED(NSD_DBUS_EVENT_STOPPED, ["stopped"], [DBus signal for about to stop])
+		AC_DEFINE_UNQUOTED(NSD_DBUS_EVENT_ZONE_UPD, ["zone_updated"], [DBus signal for an updated zone])
+	])
+	;;
+esac
+
+
 AC_ARG_ENABLE(bind8-stats, AS_HELP_STRING([--enable-bind8-stats],[Enables BIND8 like NSTATS & XSTATS and statistics in nsd-control]))
 
 case "$enable_bind8_stats" in

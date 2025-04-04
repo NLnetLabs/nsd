@@ -62,11 +62,45 @@
 #endif
 #include "util/proxy_protocol.h"
 
+#ifdef ENABLE_DBUS
+#include <systemd/sd-bus.h>
+
+static sd_bus *_dbus = NULL;
+#endif
+
 /* The server handler... */
 struct nsd nsd;
 static char hostname[MAXHOSTNAMELEN];
 extern config_parser_state_type* cfg_parser;
 static void version(void) ATTR_NORETURN;
+
+
+void systemd_dbus_close(void)
+{
+#ifdef ENABLE_DBUS
+	_dbus = sd_bus_unref(_dbus);
+#endif
+}
+
+int systemd_dbus_open(void)
+{
+#ifdef ENABLE_DBUS
+	int ret = sd_bus_open_system(&_dbus);
+	if (ret < 0) {
+		return ret;
+	}
+
+	/* Take a well-known service name so that clients can find us. */
+	ret = sd_bus_request_name(_dbus, NSD_DBUS_NAME, 0);
+	if (ret < 0) {
+		systemd_dbus_close();
+		return ret;
+	}
+	return 0;
+#else
+	return -1;
+#endif
+}
 
 /*
  * Print the help text.
@@ -914,7 +948,7 @@ int
 main(int argc, char *argv[])
 {
 	/* Scratch variables... */
-	int c;
+	int c, r;
 	pid_t	oldpid;
 	size_t i;
 	struct sigaction action;
@@ -1579,6 +1613,10 @@ main(int argc, char *argv[])
 	/* Get our process id */
 	nsd.pid = getpid();
 
+
+	if ((r = systemd_dbus_open())) {
+		log_msg(LOG_ERR, "error opening DBus: %d", r);
+	}
 	/* Set user context */
 #ifdef HAVE_GETPWNAM
 	if (*nsd.username) {
