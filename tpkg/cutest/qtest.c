@@ -333,7 +333,12 @@ buffer_spool_rr(buffer_type* output, rr_type* rr, int qsection)
 		buffer_printf(output, " OPT");
 	}
 	if(!qsection) {
-		result = print_rdata(output, d, rr);
+		if(rr->type == TYPE_SOA) {
+			buffer_printf(output, "\t");
+			result = print_soa_rdata_twoline(output, rr);
+		} else {
+			result = print_rdata(output, d, rr);
+		}
 		if (!result) {
 			/* Some RDATA failed to print, so do unknown format. */
 			result = print_rdata(output, d, rr);
