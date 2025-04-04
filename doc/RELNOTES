@@ -39,6 +39,7 @@ BUG FIXES:
 	- Fix escape more characters when printing an RR type with an
 	  unquoted string.
 	- Fix memory leak in the process of addzone.
+	- Fix to update common.sh for speed of kill_pid.
 
 
 4.11.1
