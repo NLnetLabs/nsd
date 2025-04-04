@@ -2769,6 +2769,7 @@ print_ipseckey_rdata(struct buffer *output, const struct rr *rr)
 
 	if(rr->rdlength > length) {
 		/* Print key field in base64. */
+		buffer_printf(output, " ");
 		if (!print_base64(output, rr->rdlength, rr->rdata, &length))
 			return 0;
 	}
