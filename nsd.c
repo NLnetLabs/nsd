@@ -266,7 +266,8 @@ setup_socket(
 
 static void
 figure_socket_servers(
-	struct nsd_socket *sock, struct ip_address_option *ip)
+	struct nsd_socket *sock, struct ip_address_option *ip,
+	const char* tls_port)
 {
 	int i;
 	struct range_option *server;
@@ -274,6 +275,14 @@ figure_socket_servers(
 	sock->servers = xalloc_zero(nsd_bitset_size(nsd.child_count));
 	region_add_cleanup(nsd.region, free, sock->servers);
 	nsd_bitset_init(sock->servers, nsd.child_count);
+
+	if(sock->addr.ai_socktype == SOCK_DGRAM && tls_port &&
+		using_tls_port((struct sockaddr *)&sock->addr.ai_addr, tls_port))
+	{
+		/* This is for a UDP socket that has the same port as tls-port;
+		 * skip. */
+		return;
+	}
 
 	if(!ip || !ip->servers) {
 		/* every server must listen on this socket */
@@ -321,7 +330,7 @@ static void
 figure_default_sockets(
 	struct nsd_socket **udp, struct nsd_socket **tcp, size_t *ifs,
 	const char *node, const char *udp_port, const char *tcp_port,
-	const struct addrinfo *hints)
+	const char *tls_port, const struct addrinfo *hints)
 {
 	size_t i = 0, n = 1;
 	struct addrinfo ai[2] = { *hints, *hints };
@@ -371,11 +380,11 @@ figure_default_sockets(
 			(*udp)[i].flags |= NSD_SOCKET_IS_OPTIONAL;
 			(*udp)[i].fib = -1;
 			copyaddrinfo(&(*udp)[i].addr, addrs[0]);
-			figure_socket_servers(&(*udp)[i], NULL);
+			figure_socket_servers(&(*udp)[i], NULL, tls_port);
 			(*tcp)[i].flags |= NSD_SOCKET_IS_OPTIONAL;
 			(*tcp)[i].fib = -1;
 			copyaddrinfo(&(*tcp)[i].addr, addrs[1]);
-			figure_socket_servers(&(*tcp)[i], NULL);
+			figure_socket_servers(&(*tcp)[i], NULL, tls_port);
 			i++;
 		} else {
 			log_msg(LOG_WARNING, "No IPv6, fallback to IPv4. getaddrinfo: %s",
@@ -395,9 +404,9 @@ figure_default_sockets(
 
 	*ifs = i + 1;
 	setup_socket(&(*udp)[i], node, udp_port, &ai[0]);
-	figure_socket_servers(&(*udp)[i], NULL);
+	figure_socket_servers(&(*udp)[i], NULL, tls_port);
 	setup_socket(&(*tcp)[i], node, tcp_port, &ai[1]);
-	figure_socket_servers(&(*tcp)[i], NULL);
+	figure_socket_servers(&(*tcp)[i], NULL, tls_port);
 }
 
 #ifdef HAVE_GETIFADDRS
@@ -456,7 +465,7 @@ figure_sockets(
 	struct nsd_socket **udp, struct nsd_socket **tcp, size_t *ifs,
 	struct ip_address_option *ips,
 	const char *node, const char *udp_port, const char *tcp_port,
-	const struct addrinfo *hints)
+	const char *tls_port, const struct addrinfo *hints)
 {
 	size_t i = 0;
 	struct addrinfo ai = *hints;
@@ -468,7 +477,8 @@ figure_sockets(
 
 	if(!ips) {
 		figure_default_sockets(
-			udp, tcp, ifs, node, udp_port, tcp_port, hints);
+			udp, tcp, ifs, node, udp_port, tcp_port,
+			tls_port, hints);
 		return;
 	}
 
@@ -493,10 +503,10 @@ figure_sockets(
 	for(ip = ips, i = 0; ip; ip = ip->next, i++) {
 		ai.ai_socktype = SOCK_DGRAM;
 		setup_socket(&(*udp)[i], ip->address, udp_port, &ai);
-		figure_socket_servers(&(*udp)[i], ip);
+		figure_socket_servers(&(*udp)[i], ip, tls_port);
 		ai.ai_socktype = SOCK_STREAM;
 		setup_socket(&(*tcp)[i], ip->address, tcp_port, &ai);
-		figure_socket_servers(&(*tcp)[i], ip);
+		figure_socket_servers(&(*tcp)[i], ip, tls_port);
 		if(ip->fib != -1) {
 			(*udp)[i].fib = ip->fib;
 			(*tcp)[i].fib = ip->fib;
@@ -1355,11 +1365,13 @@ main(int argc, char *argv[])
 
 	resolve_interface_names(nsd.options);
 	figure_sockets(&nsd.udp, &nsd.tcp, &nsd.ifs,
-		nsd.options->ip_addresses, NULL, udp_port, tcp_port, &hints);
+		nsd.options->ip_addresses, NULL, udp_port, tcp_port,
+		nsd.options->tls_port, &hints);
 
 	if(nsd.options->verify_enable) {
 		figure_sockets(&nsd.verify_udp, &nsd.verify_tcp, &nsd.verify_ifs,
-			nsd.options->verify_ip_addresses, "localhost", verify_port, verify_port, &hints);
+			nsd.options->verify_ip_addresses, "localhost",
+			verify_port, verify_port, NULL, &hints);
 		setup_verifier_environment();
 	}
 
