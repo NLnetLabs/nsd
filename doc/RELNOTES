@@ -40,6 +40,7 @@ BUG FIXES:
 	  unquoted string.
 	- Fix memory leak in the process of addzone.
 	- Fix to update common.sh for speed of kill_pid.
+	- Fix nsd-checkzone ixfr create cleanup on exit.
 
 
 4.11.1

@@ -1,3 +1,6 @@
+8 April 2025: Wouter
+	- Fix nsd-checkzone ixfr create cleanup on exit.
+
 4 April 2025: Wouter
 	- Fix to update common.sh for speed of kill_pid.
 
