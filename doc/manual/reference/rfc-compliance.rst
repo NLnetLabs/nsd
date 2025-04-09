@@ -70,10 +70,12 @@ Internet drafts that have been implemented in NSD.
 :rfc:`5936`    DNS Zone Transfer Protocol (AXFR)
 :rfc:`6604`    xNAME RCODE and Status Bits Clarification
 :rfc:`6605`    Elliptic Curve Digital Signature Algorithm (DSA) for DNSSEC
+:rfc:`6672`    DNAME Redirection in the DNS
 :rfc:`6698`    The DNS-Based Authentication of Named Entities (DANE) Transport Layer Security (TLS) Protocol: TLSA
 :rfc:`6725`    DNS Security (DNSSEC) DNSKEY Algorithm IANA Registry Updates
 :rfc:`6742`    DNS Resource Records for the Identifier-Locator Network Protocol (ILNP)
 :rfc:`6761`    Special-Use Domain Names
+:rfc:`6840`    Clarifications and Implementation Notes for DNS Security (DNSSEC)
 :rfc:`6844`    DNS Certification Authority Authorization (CAA) Resource Record
 :rfc:`6891`    Extension Mechanisms for DNS (EDNS(0))
 :rfc:`6895`    Domain Name System (DNS) IANA Considerations
