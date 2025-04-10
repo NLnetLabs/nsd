@@ -92,6 +92,7 @@ Internet drafts that have been implemented in NSD.
 :rfc:`8914`    Extended DNS Errors
 :rfc:`8945`    Secret Key Transaction Authentication for DNS (TSIG)
 :rfc:`9018`    Interoperable Domain Name System (DNS) Server Cookies
+:rfc:`9103`    DNS Zone Transfer over TLS
 :rfc:`9210`    DNS Transport over TCP - Operational Requirements
 :rfc:`9432`    DNS Catalog Zones
 ============== ====
