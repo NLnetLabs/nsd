@@ -598,6 +598,60 @@ domain_find_ns_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns)
 	return NULL;
 }
 
+int
+zone_is_deleg_zone(zone_type* zone)
+{
+	rrset_type* dnskey_set;
+	uint16_t i;
+
+	if(!zone || !zone->apex
+	|| !(dnskey_set = domain_find_rrset(zone->apex, zone, TYPE_DNSKEY)))
+		return 0;
+	for(i = 0; i < dnskey_set->rr_count; i++) {
+		if(dnskey_set->rrs[i].rdata_count > 0
+		&& rdata_atom_size(dnskey_set->rrs[i].rdatas[0])
+				== sizeof(uint16_t)
+		&& read_uint16(rdata_atom_data(dnskey_set->rrs[i].rdatas[0]))
+				& DNSKEY_FLAG_DELEG)
+			return 1;
+	}
+	return 0;
+}
+
+domain_type *
+domain_find_delegation_rrsets(domain_type* domain, zone_type* zone, rrset_type **ns, rrset_type **deleg)
+{
+	/* return highest NS and/or DELEG RRsets in the zone that is a delegation above */
+	domain_type* result;
+	rrset_type* rrset;
+	if(!zone_is_deleg_zone(zone)) {
+		if(deleg)
+			*deleg = NULL;
+		return domain_find_ns_rrsets(domain, zone, ns);
+	}
+	result = NULL;
+	rrset = NULL;
+	while (domain && domain != zone->apex) {
+		if ((rrset = domain_find_rrset(domain, zone, TYPE_NS))) {
+			*ns = rrset;
+			*deleg = domain_find_rrset(domain, zone, TYPE_DELEG);
+			result = domain;
+		} else if ((rrset = domain_find_rrset(domain, zone, TYPE_DELEG))) {
+			*ns = NULL;
+			*deleg = rrset;
+			result = domain;
+		}
+		domain = domain->parent;
+	}
+
+	if(result)
+		return result;
+
+	*ns = NULL;
+	*deleg = NULL;
+	return NULL;
+}
+
 domain_type *
 find_dname_above(domain_type* domain, zone_type* zone)
 {
@@ -615,6 +669,15 @@ domain_is_glue(domain_type* domain, zone_type* zone)
 {
 	rrset_type* unused;
 	domain_type* ns_domain = domain_find_ns_rrsets(domain, zone, &unused);
+	return (ns_domain != NULL &&
+		domain_find_rrset(ns_domain, zone, TYPE_SOA) == NULL);
+}
+
+int
+domain_is_glue_DE(domain_type* domain, zone_type* zone)
+{
+	rrset_type* unused;
+	domain_type* ns_domain = domain_find_delegation_rrsets(domain, zone, &unused, &unused);
 	return (ns_domain != NULL &&
 		domain_find_rrset(ns_domain, zone, TYPE_SOA) == NULL);
 }

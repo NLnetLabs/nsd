@@ -1022,6 +1022,10 @@ rrtype_from_string(const char *name)
 		case 'N':
 			if(strcasecmp(name+2, "SKEY") == 0) return TYPE_DNSKEY;
 			break;
+		case 'e':
+		case 'E':
+			if(strcasecmp(name+2, "LEG") == 0) return TYPE_DELEG;
+			break;
 		}
 		break;
 	case 'a':
