@@ -654,6 +654,10 @@ privileges. Alternatively, you could mount a custom bpffs and allow the nsd
 user to delete files in that directory.
 .IP
 Default is "/sys/fs/bpf".
+.TP
+.B xdp\-force\-copy:\fR <yes or no>
+Force the use of XDP_COPY mode instead of zero copy for AF_XDP sockets. This
+can help with drivers with broken AF_XDP support. Default is no.
 .\" xdpend
 .TP
 .B metrics\-enable:\fR <yes or no>

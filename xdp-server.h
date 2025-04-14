@@ -60,6 +60,7 @@ struct xdp_server {
 	char const *bpf_prog_filename;
 	char const *bpf_bpffs_path;
 	int bpf_prog_should_load;
+	int force_copy;
 
 	/* track bpf objects and file descriptors */
 	int xsk_map_fd;

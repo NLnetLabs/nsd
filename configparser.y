@@ -221,6 +221,7 @@ struct component {
 %token VAR_XDP_PROGRAM_PATH
 %token VAR_XDP_PROGRAM_LOAD
 %token VAR_XDP_BPFFS_PATH
+%token VAR_XDP_FORCE_COPY
 
 /* zone */
 %token VAR_ZONE
@@ -620,6 +621,12 @@ server_option:
       cfg_parser->opt->xdp_bpffs_path = region_strdup(cfg_parser->opt->region, $2);
 #endif
 	}
+  | VAR_XDP_FORCE_COPY boolean
+    {
+#ifdef USE_XDP
+      cfg_parser->opt->xdp_force_copy = $2;
+#endif
+    }
   | VAR_METRICS_ENABLE boolean
     {
 #ifdef USE_METRICS

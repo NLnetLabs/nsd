@@ -172,6 +172,8 @@ struct nsd_options {
 	int xdp_program_load;
 	/** path to bpffs for pinned BPF objects */
 	const char* xdp_bpffs_path;
+	/** force copy mode instead of zero copy mode */
+	int xdp_force_copy;
 #endif
 
 #ifdef USE_METRICS

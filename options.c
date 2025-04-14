@@ -167,6 +167,7 @@ nsd_options_create(region_type* region)
 	opt->xdp_program_path = SHAREDFILESDIR"/xdp-dns-redirect_kern.o";
 	opt->xdp_program_load = 1;
 	opt->xdp_bpffs_path = "/sys/fs/bpf";
+	opt->xdp_force_copy = 0;
 #endif
 #ifdef USE_METRICS
 	opt->metrics_enable = 0;

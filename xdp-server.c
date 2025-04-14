@@ -342,9 +342,13 @@ xsk_configure_umem(struct xsk_umem_info *umem_info, uint64_t size) {
 static int
 xsk_configure_socket(struct xdp_server *xdp, struct xsk_socket_info *xsk_info,
                      struct xsk_umem_info *umem, uint32_t queue_index) {
+	uint16_t xsk_bind_flags = XDP_USE_NEED_WAKEUP;
+	if (xdp->force_copy) {
+		xsk_bind_flags |= XDP_COPY;
+	}
 	struct xdp_config cfg = {
 		.xdp_flags = 0,
-		.xsk_bind_flags = XDP_USE_NEED_WAKEUP,
+		.xsk_bind_flags = xsk_bind_flags,
 		.libxdp_flags = XSK_LIBXDP_FLAGS__INHIBIT_PROG_LOAD,
 	};
 
