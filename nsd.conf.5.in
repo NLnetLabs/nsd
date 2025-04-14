@@ -611,8 +611,8 @@ traffic, for UDP, TCP and for TLS service.
 .\" xdpstart
 .TP
 .B xdp\-interface:\fR <string>
-The interface to use XDP with. This enables the use of AF_XDP sockets.
-Default is "", disabled.
+The interface to use XDP with. This enables the use of AF_XDP sockets for UDP
+queries. Default is "", disabled. (EXPERIMENTAL)
 .IP
 .\" Considerations probably need improvement in format and wording
 Considerations:
@@ -626,7 +626,7 @@ combined channels on the specified interface will receive traffic via XDP.
 \fBserver-count\fR will be increased if necessary. If \fBserver-count\fR is
 higher, the excess processes will not use XDP.
 .br
-\(bu The PROXYv2 protocol is currently not supported via XDP.
+\(bu The PROXYv2 protocol and DNSTAP are currently not supported via XDP.
 .TP
 .B xdp\-program\-path:\fR <string>
 The eBPF XDP program to extract the XSKMAP from. Specify your own program here,
