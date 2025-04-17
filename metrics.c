@@ -337,6 +337,7 @@ metrics_http_callback(struct evhttp_request *req, void *p)
 	evhttp_send_reply(req, HTTP_NOCONTENT, "No Content - Statistics disabled", reply);
 	/* TODO: should this be verbosity 3 too? */
 	log_msg(LOG_NOTICE, "no stats enabled at compile time\n");
+	(void)metrics;
 #endif /* BIND8_STATS */
 
 	evbuffer_free(reply);
