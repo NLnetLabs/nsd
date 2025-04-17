@@ -9,8 +9,13 @@
 /config.log
 /config.status
 /config.guess
+/config.guess~
 /config.sub
+/config.sub~
+/install-sh
+/install-sh~
 /configure
+/configure~
 /configlexer.c
 /configparser.c
 /configparser.h
