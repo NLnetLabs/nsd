@@ -22,10 +22,6 @@
 #include "nsd.h"
 #include "xfrd.h"
 #include "options.h"
-#include "ipc.h"
-/* remote.h: re-using create_local_accept_sock as it happens to not be static
- * and is not remote control specific (w.r.t. log messages and ssl).
- */
 #include "remote.h"
 #include "metrics.h"
 
