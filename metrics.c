@@ -16,13 +16,9 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
-#ifndef USE_MINI_EVENT
-#    include <event2/event.h>
-#else
-#    warning "Using metrics with mini_event is untested, and libevent is needed anyway for http"
-#    include "mini_event.h"
-#endif
-#include "event2/http.h"
+#include <event2/event.h>
+#include <event2/http.h>
+
 #include "nsd.h"
 #include "xfrd.h"
 #include "options.h"

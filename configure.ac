@@ -490,8 +490,14 @@ You can restart ./configure --with-libevent=no to use a builtin alternative.])
 	AC_CHECK_FUNCS([event_base_get_method]) # only in libevent 1.4.3 and later
 	AC_CHECK_FUNCS([ev_loop]) # only in libev. (tested on 3.51)
 	AC_CHECK_FUNCS([ev_default_loop]) # only in libev. (tested on 4.00)
+
+	# prometheus metrics depend on libevent, and is therefore only enabled
+	# when libevent is found and used
+	AC_DEFINE_UNQUOTED([USE_METRICS], [], [Define this to expose NSD statistics via a prometheus metrics HTTP endpoint.])
+	AC_DEFINE_UNQUOTED([NSD_METRICS_PORT], [9100], [Define to the default metrics HTTP endpoint port.])
 else
 	AC_DEFINE(USE_MINI_EVENT, 1, [Define if you want to use internal select based events])
+	AC_MSG_NOTICE([Prometheus metrics are disabled with the builtin libevent alternative])
 fi
 
 # Checks for header files.
@@ -1155,19 +1161,6 @@ case "$enable_packed" in
 	;;
 	no|*)
 	;;
-esac
-
-AC_ARG_ENABLE(prometheus-metrics, AS_HELP_STRING([--enable-prometheus-metrics],[Enable prometheus metrics support.]))
-case "$enable_prometheus_metrics" in
-	yes)
-		AC_DEFINE_UNQUOTED([USE_METRICS], [], [Define this to expose NSD statistics via a prometheus metrics HTTP endpoint.])
-		AC_DEFINE_UNQUOTED([NSD_METRICS_PORT], [9100], [Define to the default metrics HTTP endpoint port.])
-		AC_SEARCH_LIBS(evhttp_free, [event], , AC_MSG_ERROR(Cannot find libevent, but is needed for prometheus metrics support.))
-        AC_SUBST([METRICS_SRC], ["metrics.c"])
-        AC_SUBST([METRICS_OBJ], ["metrics.o"])
-		;;
-	no|*)
-		;;
 esac
 
 # check for dnstap if requested
