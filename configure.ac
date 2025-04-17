@@ -493,8 +493,12 @@ You can restart ./configure --with-libevent=no to use a builtin alternative.])
 
 	# prometheus metrics depend on libevent, and is therefore only enabled
 	# when libevent is found and used
-	AC_DEFINE_UNQUOTED([USE_METRICS], [], [Define this to expose NSD statistics via a prometheus metrics HTTP endpoint.])
-	AC_DEFINE_UNQUOTED([NSD_METRICS_PORT], [9100], [Define to the default metrics HTTP endpoint port.])
+	AC_CHECK_FUNCS([evhttp_free], [
+		AC_DEFINE_UNQUOTED([USE_METRICS], [], [Define this to expose NSD statistics via a prometheus metrics HTTP endpoint.])
+		AC_DEFINE_UNQUOTED([NSD_METRICS_PORT], [9100], [Define the default metrics HTTP endpoint port.])
+	], [
+		AC_MSG_NOTICE([disabling prometheus metrics])
+	])
 else
 	AC_DEFINE(USE_MINI_EVENT, 1, [Define if you want to use internal select based events])
 	AC_MSG_NOTICE([Prometheus metrics are disabled with the builtin libevent alternative])
