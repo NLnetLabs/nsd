@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.11.2
+4.12.0
 ================
 FEATURES:
 	- Merge #418: Support for DSYNC, EID, NIMLOC, SINK, TALINK, DOA,
@@ -11,8 +11,8 @@ FEATURES:
 	- Merge #429: Add prometheus metrics
 
 BUG FIXES:
-        - Fix re-enable to configure dns-cookies from config file, which was
-          accidentally removed with the 4.11.1 release.
+	- Fix re-enable to configure dns-cookies from config file, which was
+	  accidentally removed with the 4.11.1 release.
 	- Fix #426: nsd crashes with patterns in config_apply_pattern.
 	- Fix for #430: Confusing documentation: word "outgoing".
 	- Fix for #430: Confusing documentation: word "outgoing". Add wording
@@ -40,6 +40,7 @@ BUG FIXES:
 	  unquoted string.
 	- Fix memory leak in the process of addzone.
 	- Fix to update common.sh for speed of kill_pid.
+	- Fix nsd-checkzone ixfr create cleanup on exit.
 
 
 4.11.1
