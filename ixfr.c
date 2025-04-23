@@ -1974,7 +1974,9 @@ static int parse_wirerr_into_temp(struct zone* zone, char* fname,
 	descriptor = nsd_type_descriptor(tp);
 	code = descriptor->read_rdata(owners, rdlen, &packet, rr);
 	if(code < 0) {
-		log_msg(LOG_ERR, "failed to write zone %s IXFR data %s: cannot parse rdata", zone->opts->name, fname);
+		log_msg(LOG_ERR, "failed to write zone %s IXFR data %s: cannot parse rdata %s %s %s", zone->opts->name, fname,
+			dname_to_string(*dname,0), rrtype_to_string(tp),
+			read_rdata_fail_str(code));
 		return 0;
 	}
 	(*rr)->owner = domain;
@@ -2470,8 +2472,9 @@ static int32_t ixfr_data_accept(
 			zone_log(parser, ZONE_ERROR, "the RR rdata fields are wrong for the type");
 		}
 		VERBOSITY(3, (LOG_INFO, "zone %s IXFR bad RR, cannot parse "
-			"rdata of %s %s", state->zone->opts->name,
-			dname_to_string(dname, NULL), rrtype_to_string(type)));
+			"rdata of %s %s %s", state->zone->opts->name,
+			dname_to_string(dname, NULL), rrtype_to_string(type),
+			read_rdata_fail_str(code)));
 		if(code == TRUNCATED)
 			return ZONE_OUT_OF_MEMORY;
 		return ZONE_BAD_PARAMETER;

@@ -727,10 +727,10 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		 */
 		rdata_num = descriptor->read_rdata(temptable, rdatalen, packet, &rr);
 		if(rdata_num < 0) {
-			log_msg(LOG_ERR, "diff: bad rdata for %s %s",
-				dname_to_string(dname,0),
-				rrtype_to_string(type));
-			return 0;
+			log_msg(LOG_ERR, "diff: could not read rdata for "
+				"%s %s %s", dname_to_string(dname,0),
+				rrtype_to_string(type),
+				read_rdata_fail_str(rdata_num));
 		}
 		rr->owner = domain;
 		rr->type = type;
@@ -847,8 +847,9 @@ add_RR(namedb_type* db, const dname_type* dname,
 	rdata_num = descriptor->read_rdata(
 		db->domains, rdatalen, packet, &rr);
 	if(rdata_num < 0) {
-		log_msg(LOG_ERR, "diff: bad rdata for %s",
-			dname_to_string(dname,0));
+		log_msg(LOG_ERR, "diff: could not read rdata for %s %s %s",
+			dname_to_string(dname,0), rrtype_to_string(type),
+			read_rdata_fail_str(rdata_num));
 		return 0;
 	}
 	rr->owner = domain;

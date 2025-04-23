@@ -693,4 +693,7 @@ static inline struct domain* rdata_domain_ref_offset(const struct rr* rr,
 /* fixup usage lower for domain names in the rdata */
 void rr_lower_usage(namedb_type* db, rr_type* rr);
 
+/* return error string for read_rdata return code that is < 0 */
+const char* read_rdata_fail_str(int32_t code);
+
 #endif /* RDATA_H */

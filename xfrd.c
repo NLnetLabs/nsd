@@ -2034,7 +2034,10 @@ xfrd_xfr_check_rrs(xfrd_zone_type* zone, buffer_type* packet, size_t count,
 		code = descriptor->read_rdata(owners, rrlen, packet, &rr);
 		if(code < 0) {
 			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr unable "
-				"to parse rdata", zone->apex_str));
+				"to parse rdata %s %s %s", zone->apex_str,
+				dname_to_string(dname,0),
+				rrtype_to_string(type),
+				read_rdata_fail_str(code)));
 			return 0;
 		}
 		if(type == TYPE_SOA) {

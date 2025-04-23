@@ -154,7 +154,10 @@ int32_t zonec_accept(
 	descriptor = nsd_type_descriptor(type);
 	code = descriptor->read_rdata(state->domains, rdlength, &buffer, &rr);
 	if(code < 0) {
-		zone_log(parser, ZONE_ERROR, "the RR rdata fields are wrong for the type %s", rrtype_to_string(type));
+		zone_log(parser, ZONE_ERROR, "the RR rdata fields are wrong for the type, %s %s %s",
+			dname_to_string((void*)&dname,0),
+			rrtype_to_string(type),
+			read_rdata_fail_str(code));
 		if(code == TRUNCATED)
 			return ZONE_OUT_OF_MEMORY;
 		return ZONE_BAD_PARAMETER;

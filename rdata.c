@@ -4312,3 +4312,17 @@ rr_lower_usage(namedb_type* db, rr_type* rr)
 		offset += field_len;
 	}
 }
+
+const char*
+read_rdata_fail_str(int32_t code)
+{
+	switch(code) {
+	case TRUNCATED:
+		return "out of memory";
+	case MALFORMED:
+		return "malformed rdata fields";
+	default:
+		break;
+	}
+	return "failed to read rdata fields";
+}
