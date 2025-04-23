@@ -1933,9 +1933,6 @@ static int ixfr_write_file_header(struct zone* zone, struct ixfr_data* data,
 	return 1;
 }
 
-//
-// FIXME: i have a strong suspicion this is better handled differently
-//
 /* parse wireformat RR into a struct RR in temp region */
 static int parse_wirerr_into_temp(struct zone* zone, char* fname,
 	struct region* temp, uint8_t* buf, size_t len,
@@ -1948,6 +1945,7 @@ static int parse_wirerr_into_temp(struct zone* zone, char* fname,
 	const struct nsd_type_descriptor *descriptor;
 	buffer_type packet;
 	domain_table_type* owners;
+	struct domain *domain;
 	owners = domain_table_create(temp);
 	*dname = dname_make(temp, buf, 1);
 	if(!*dname) {
@@ -1971,6 +1969,7 @@ static int parse_wirerr_into_temp(struct zone* zone, char* fname,
 		log_msg(LOG_ERR, "failed to write zone %s IXFR data %s: buffer too short for rdatalen", zone->opts->name, fname);
 		return 0;
 	}
+	domain = domain_table_insert(owners, *dname);
 	buffer_create_from(&packet, buf+bufpos, rdlen);
 	descriptor = nsd_type_descriptor(tp);
 	code = descriptor->read_rdata(owners, rdlen, &packet, rr);
@@ -1978,7 +1977,7 @@ static int parse_wirerr_into_temp(struct zone* zone, char* fname,
 		log_msg(LOG_ERR, "failed to write zone %s IXFR data %s: cannot parse rdata", zone->opts->name, fname);
 		return 0;
 	}
-	(*rr)->owner = domain_table_insert(owners, *dname);
+	(*rr)->owner = domain;
 	(*rr)->type = tp;
 	(*rr)->klass = klass;
 	(*rr)->ttl = ttl;
