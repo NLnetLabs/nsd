@@ -491,8 +491,8 @@ You can restart ./configure --with-libevent=no to use a builtin alternative.])
 	AC_CHECK_FUNCS([ev_loop]) # only in libev. (tested on 3.51)
 	AC_CHECK_FUNCS([ev_default_loop]) # only in libev. (tested on 4.00)
 
-	# prometheus metrics depend on libevent, and is therefore only enabled
-	# when libevent is found and used
+	# prometheus metrics depend on libevent 2.0 and later, and is therefore
+	# only enabled when the required version is found and used
 	AC_CHECK_FUNCS([evhttp_free], [
 		AC_DEFINE_UNQUOTED([USE_METRICS], [], [Define this to expose NSD statistics via a prometheus metrics HTTP endpoint.])
 		AC_DEFINE_UNQUOTED([NSD_METRICS_PORT], [9100], [Define the default metrics HTTP endpoint port.])
