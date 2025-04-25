@@ -82,7 +82,7 @@ usage (void)
 		"  -4                   Only listen to IPv4 connections.\n"
 		"  -6                   Only listen to IPv6 connections.\n"
 		"  -a ip-address[@port] Listen to the specified incoming IP address (and port)\n"
-		"                       May be specified multiple times).\n"
+		"                       (May be specified multiple times).\n"
 		"  -c configfile        Read specified configfile instead of %s.\n"
 		"  -d                   do not fork as a daemon process.\n"
 #ifndef NDEBUG

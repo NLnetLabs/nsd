@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 
 BUG FIXES:
+	- Fix punctuation of nsd -h output for the -a option.
 
 4.12.0
 ================
