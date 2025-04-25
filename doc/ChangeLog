@@ -1,6 +1,10 @@
 25 April 2025: Yorgos
 	- Prometheus metrics tests require --enable-zone-stats.
-
+	- Use '(all)' and '(none)' for the socket server affinity
+	  log output instead of '*' and '-'.
+	- Add unit test for socket server affinity log output.
+	- Move xfrd-tcp unit test to its own file.
+ 
 25 April 2025: Wouter
 	- Fix punctuation of nsd -h output for the -a option.
 	- Fix checkconf unit test for when metrics are not enabled.

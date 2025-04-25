@@ -3,10 +3,15 @@ NSD RELEASE NOTES
 4.12.1
 ================
 FEATURES:
+	- Use '(all)' and '(none)' for the socket server affinity
+	  log output instead of '*' and '-'.
 
 BUG FIXES:
 	- Fix punctuation of nsd -h output for the -a option.
 	- Fix checkconf unit test for when metrics are not enabled.
+	- Prometheus metrics tests require --enable-zone-stats.
+	- Add unit test for socket server affinity log output.
+	- Move xfrd-tcp unit test to its own file.
 
 4.12.0
 ================
