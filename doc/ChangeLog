@@ -1,3 +1,6 @@
+25 April 2025: Yorgos
+	- Prometheus metrics tests require --enable-zone-stats.
+
 24 April 2025: Jannik
 	- The main branch continues with version 4.12.1 in development.
 
