@@ -6,6 +6,7 @@ FEATURES:
 
 BUG FIXES:
 	- Fix punctuation of nsd -h output for the -a option.
+	- Fix checkconf unit test for when metrics are not enabled.
 
 4.12.0
 ================
