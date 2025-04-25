@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include "tpkg/cutest/cutest.h"
 #include "xfrd-tcp.h"
-//#include "region-allocator.h"
 
 static void xfrd_tcp_1(CuTest *tc);
 
