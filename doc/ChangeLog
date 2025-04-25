@@ -4,6 +4,7 @@
 25 April 2025: Wouter
 	- Fix punctuation of nsd -h output for the -a option.
 	- Fix checkconf unit test for when metrics are not enabled.
+	- make depend
 
 24 April 2025: Jannik
 	- The main branch continues with version 4.12.1 in development.
