@@ -1,0 +1,61 @@
+---
+name: Release
+
+# yamllint disable-line rule:truthy
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  binary_packages:
+    name: build the binary package
+    runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.version_step.outputs.VERSION }}
+      DEB_VERSION: ${{ steps.version_step.outputs.DEB_VERSION }}
+    strategy:
+      matrix:
+        dist: [20.04, 22.04]
+        arch: [amd64]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: set version
+        id: version_step
+        run: |
+          VERSION=$(awk 'NR==1 {print $2}' debian/changelog | tr -d '()' | cut -d '-' -f1)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "DEB_VERSION=$VERSION" >> $GITHUB_OUTPUT
+      - name: Build
+        uses: icann-dns/gha-ubuntu-packaging@v2.1
+        with:
+          dist: "${{ matrix.dist }}"
+          platform: "${{ matrix.arch }}"
+
+      - name: Store binary packages
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: wombat-server-${{ needs.build_source.outputs.VERSION }}-${{ matrix.dist }}
+          path: ../*.deb
+
+#    - name: Setup upterm session
+#      uses: lhotari/action-upterm@v1
+#      if: ${{ failure() }}
+
+  release:
+    name: Create a new release
+    needs: binary_packages
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Artifacts
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      with:
+        path: artifacts
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          artifacts/**/*.deb
