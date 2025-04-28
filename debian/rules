@@ -1,0 +1,50 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+DEB_BUILD_MAINT_OPTIONS = hardening=+all
+DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG
+DPKG_EXPORT_BUILDFLAGS = 1
+-include /usr/share/dpkg/buildflags.mk
+
+ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
+  WITH_SYSTEMD = --enable-systemd
+endif
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+	       --with-configdir=/etc/nsd		\
+	       --with-nsd_conf_file=/etc/nsd/nsd.conf	\
+	       --with-pidfile=/run/nsd/nsd.pid		\
+	       --with-dbfile=/var/lib/nsd/nsd.db	\
+	       --with-zonesdir=/etc/nsd			\
+	       --with-xfrdfile=/var/lib/nsd/xfrd.state	\
+	       --disable-largefile			\
+	       --disable-recvmmsg			\
+	       --enable-root-server			\
+	       --enable-mmap				\
+	       --enable-ratelimit			\
+	       --enable-zone-stats			\
+	       $(WITH_SYSTEMD)				\
+	       --enable-checking			\
+	       --enable-dnstap				\
+
+override_dh_auto_install:
+	dh_auto_install
+	rmdir $(CURDIR)/debian/nsd/run/nsd
+	rmdir $(CURDIR)/debian/nsd/run
+	rmdir $(CURDIR)/debian/nsd/tmp
+
+override_dh_install-arch:
+	dh_install -a
+	rm -f $(CURDIR)/debian/nsd/etc/nsd/nsd.conf.sample
+
+override_dh_installchangelogs:
+	dh_installchangelogs doc/ChangeLog
+
+override_dh_missing:
+	dh_missing --fail-missing

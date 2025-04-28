@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+if test "$1" = "configure"; then
+    # Create nsd user and group
+    if ! getent passwd nsd > /dev/null; then
+        adduser --quiet --system --group --no-create-home --home /var/lib/nsd nsd
+    fi
+
+    # Make /var/lib/nsd writeable by nsd:nsd user
+    if ! dpkg-statoverride --list /var/lib/nsd >/dev/null; then
+        dpkg-statoverride --update --add nsd nsd 0755 /var/lib/nsd >/dev/null 2>/dev/null || true
+    fi
+
+    # Generate the control certificates if needed
+    if ! [ -f /etc/nsd/nsd_control.key ]; then
+        nsd-control-setup >/dev/null 2>&1 || true
+    fi
+fi
+
+#DEBHELPER#
+
+exit 0

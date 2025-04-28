@@ -1,0 +1,30 @@
+[Unit]
+Description=Name Server Daemon
+Documentation=man:nsd(8)
+After=network.target
+
+[Service]
+Type=notify
+Restart=always
+ExecStart=/usr/sbin/nsd -d -P ""
+ExecReload=+/bin/kill -HUP $MAINPID
+# CAP_NET_ADMIN and CAP_NET_RAW required for IP_TRANSPARENT
+CapabilityBoundingSet=CAP_CHOWN CAP_IPC_LOCK CAP_NET_BIND_SERVICE CAP_NET_ADMIN CAP_NET_RAW CAP_SETGID CAP_SETUID CAP_SYS_CHROOT
+KillMode=mixed
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectHome=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/nsd /etc/nsd /run
+RuntimeDirectory=nsd
+RestrictRealtime=true
+SystemCallArchitectures=native
+SystemCallFilter=~@clock @cpu-emulation @debug @keyring @module @mount @obsolete @resources
+
+[Install]
+WantedBy=multi-user.target

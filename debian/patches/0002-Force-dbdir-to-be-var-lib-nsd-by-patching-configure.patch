@@ -1,0 +1,22 @@
+From: Pierre Habouzit <madcoder@debian.org>
+Date: Sat, 30 May 2009 12:10:24 +0200
+Subject: Force dbdir to be /var/lib/nsd by patching configure.ac
+
+since it's not configureable...
+
+Signed-off-by: Pierre Habouzit <madcoder@debian.org>
+---
+ configure.ac | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -81,7 +81,7 @@
+ #
+ # Database directory
+ #
+-dbdir=${localstatedir}/db/nsd
++dbdir=${localstatedir}/lib/nsd
+ 
+ #
+ # Determine the pidfile location. Check if /var/run exists, if so set pidfile

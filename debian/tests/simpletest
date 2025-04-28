@@ -1,0 +1,74 @@
+#!/bin/sh
+
+set -e
+
+setup() {
+  service nsd start
+}
+
+add_local_zone() {
+
+  {
+  echo '$TTL    604800'
+  echo '@       IN      SOA     localhost. root.localhost. ('
+  echo '                              2         ; Serial'
+  echo '                         604800         ; Refresh'
+  echo '                          86400         ; Retry'
+  echo '                        2419200         ; Expire'
+  echo '                         604800 )       ; Negative Cache TTL'
+  echo ';'
+  echo '@       IN      NS      localhost.'
+  echo '@       IN      A       127.0.0.1'
+  echo '@       IN      AAAA    ::1'
+  } > /etc/nsd/local.zone
+
+  # add local zone config
+  {
+    echo 'zone:'
+    echo '  name: "localhost."'
+    echo '  zonefile: "local.zone"'
+  } > /etc/nsd/nsd.conf.d/localzone.conf
+
+}
+
+run() {
+  # check nsd-control
+  nsd-control status
+  retcode=$?
+
+  if [ "$retcode" -eq 0 ]; then
+    echo "control OK"
+  else
+    return 1
+  fi
+
+  # enable local zone
+  nsd-control reconfig
+  retcode=$?
+  if [ "$retcode" -eq 0 ]; then
+    echo "reconfig OK"
+  else
+    return 1
+  fi
+
+  nsd-control zonestatus localhost
+  retcode=$?
+  if [ "$retcode" -eq 0 ]; then
+    echo "zone load OK"
+  else
+    return 1
+  fi
+
+}
+
+teardown() {
+        service nsd stop
+        rm -f /etc/nsd/local.zone
+        rm -f /etc/nsd/nsd.conf.d/localzone.conf
+}
+
+
+setup
+add_local_zone
+run
+teardown

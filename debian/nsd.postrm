@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+
+#DEBHELPER#
+
+if test "$1" = "purge"; then
+    spool=/var/lib/nsd
+    rm -f $spool/nsd.db $spool/ixfr.db $spool/xfrd.state
+    rmdir $spool 2>/dev/null || true
+
+    dpkg-statoverride --remove $spool >/dev/null 2>/dev/null || true
+
+    # remove server/control keys on purge
+    for f in nsd_control.key nsd_control.pem nsd_server.key nsd_server.pem; do
+        rm -f "/etc/nsd/$f"
+    done
+
+    # delete nsd daemon user, if it exists
+    if getent passwd nsd > /dev/null ; then
+        deluser  --quiet nsd > /dev/null || true
+    fi
+fi
+
+exit 0

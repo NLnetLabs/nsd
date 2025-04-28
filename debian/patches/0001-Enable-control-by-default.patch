@@ -1,0 +1,44 @@
+From: Debian DNS Packaging <pkg-dns-devel@lists.alioth.debian.org>
+Date: Fri, 4 Dec 2015 14:50:14 +0100
+Subject: Enable control by default
+Forwarded: not-needed
+
+---
+ nsd-control-setup.sh.in | 2 +-
+ nsd-control.8.in        | 2 --
+ options.c               | 2 +-
+ 3 files changed, 2 insertions(+), 4 deletions(-)
+
+--- a/nsd-control-setup.sh.in
++++ b/nsd-control-setup.sh.in
+@@ -206,7 +206,7 @@
+ 
+ cleanup
+ 
+-echo "Setup success. Certificates created. Enable in nsd.conf file to use"
++echo "Setup success. Certificates created."
+ 
+ # create trusted usage pem
+ # openssl x509 -in $CTL_BASE.pem -addtrust clientAuth -out $CTL_BASE"_trust.pem"
+--- a/nsd-control.8.in
++++ b/nsd-control.8.in
+@@ -230,8 +230,6 @@
+ If you change the access control permissions on the key files you can decide
+ who can use nsd\-control, by default owner and group but not all users.
+ The script preserves private keys present in the directory.
+-After running the script as root, turn on \fBcontrol\-enable\fR in 
+-\fInsd.conf\fR.
+ .SH "STATISTIC COUNTERS"
+ The \fIstats\fR command shows a number of statistic counters.
+ .TP
+--- a/options.c
++++ b/options.c
+@@ -155,7 +155,7 @@
+ 	opt->cookie_staging_secret = NULL;
+ 	opt->cookie_secret_file = NULL;
+ 	opt->cookie_secret_file_is_default = 1;
+-	opt->control_enable = 0;
++	opt->control_enable = 1;
+ 	opt->control_interface = NULL;
+ 	opt->control_port = NSD_CONTROL_PORT;
+ 	opt->server_key_file = CONFIGDIR"/nsd_server.key";

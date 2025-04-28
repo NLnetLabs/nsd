@@ -1,0 +1,2 @@
+# 3rd party helper software included in upstream distribution
+nsd: extra-license-file [usr/share/doc/nsd/contrib/bind2nsd/COPYING]
