@@ -14,6 +14,8 @@ BUG FIXES:
 	- Prometheus metrics tests require --enable-zone-stats.
 	- Add unit test for socket server affinity log output.
 	- Move xfrd-tcp unit test to its own file.
+	- Fix contrib/nsd.spec to omit configure flags that are default or
+	  that do not exist.
 
 4.12.0
 ================
