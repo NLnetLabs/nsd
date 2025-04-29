@@ -956,13 +956,13 @@ case "$enable_ipv6" in
 		;;
 esac
 
-AC_ARG_ENABLE(bind8-stats, AS_HELP_STRING([--enable-bind8-stats],[Enables BIND8 like NSTATS & XSTATS and statistics in nsd-control]))
+AC_ARG_ENABLE(bind8-stats, AS_HELP_STRING([--disable-bind8-stats],[Disable BIND8 like NSTATS & XSTATS and statistics in nsd-control]))
 
 case "$enable_bind8_stats" in
-	yes|'')
-		AC_DEFINE_UNQUOTED([BIND8_STATS], [], [Define this to enable BIND8 like NSTATS & XSTATS.])
+	no)
 		;;
-	no|*)
+	yes|*)
+		AC_DEFINE_UNQUOTED([BIND8_STATS], [], [Define this to enable BIND8 like NSTATS & XSTATS.])
 		;;
 esac
 

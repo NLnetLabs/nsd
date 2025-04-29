@@ -169,9 +169,9 @@ addition to standard configure options, one may use the following:
 	This will instruct NSD to be stricter when validating its input. 
 	This could lead to a reduced service level.
 
-  --enable-bind8-stats
+  --disable-bind8-stats
 
-        Enables BIND8-like statistics.
+        Disable BIND8-like statistics.
 
   --enable-ratelimit
 
