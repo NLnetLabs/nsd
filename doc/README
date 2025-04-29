@@ -150,12 +150,6 @@ addition to standard configure options, one may use the following:
  
         Specify additional libraries to link with.
 
-  --enable-root-server
-
-        Configure NSD as a root server. Unless this option is
-        specified, NSD will refuse to serve the ``.'' zone as a
-        misconfiguration safeguard.
-
   --disable-ipv6
 
         Disables IPv6 support in NSD.
@@ -365,9 +359,6 @@ You should only do that if you're intending to run a root server, NSD
 is not suited for running a . cache. Therefore if you choose to serve
 the .  zone you have to make sure that the complete root zone is
 timely and fully updated.
-
-To prevent misconfiguration, NSD configure has the --enable-root-server
-switch, that is by default disabled.
 
 In the config file, you can use patterns.  A pattern can have the
 same configuration statements that a zone can have.  And then you can

@@ -18,6 +18,7 @@ BUG FIXES:
 	- Move xfrd-tcp unit test to its own file.
 	- Fix contrib/nsd.spec to omit configure flags that are default or
 	  that do not exist.
+	- Fix to remove mention of obsolete root-server option.
 
 4.12.0
 ================
