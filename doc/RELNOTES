@@ -22,6 +22,7 @@ BUG FIXES:
 	- Fix contrib/nsd.spec to omit configure flags that are default or
 	  that do not exist.
 	- Fix to remove mention of obsolete root-server option.
+	- Fix mention of draft-rrtypes and root-server configure options.
 
 4.12.0
 ================

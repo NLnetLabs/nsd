@@ -181,10 +181,6 @@ addition to standard configure options, one may use the following:
 	Disable this to set default of ratelimit to on (this controls
 	the default, ratelimits can be enabled and disabled in nsd.conf).
 
-   --enable-draft-rrtypes
-
-	Enables draft RRtypes.
-
   --with-configdir=dir
 
         Specified, NSD configuration directory, default /etc/nsd
