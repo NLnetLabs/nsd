@@ -14,6 +14,7 @@
 	  or protobuf-c are not found by configure it prints an error.
 	  It can be turned on with config like `dnstap-enable: yes`.
 	- Fix ci workflow for enable dnstap.
+	- Fix to remove use of sprintf from metrics.
 
 25 April 2025: Yorgos
 	- Prometheus metrics tests require --enable-zone-stats.
