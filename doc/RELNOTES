@@ -31,6 +31,8 @@ BUG FIXES:
 	- Fix for fstrm and protobuf-c for ci workflow coverity-scan.
 	- Fix for parallel build of dnstap protoc-c output.
 	- Fix to remove unneeded mkdir from Makefile.
+	- Fix dnstap to use protoc and keep dnstap_config.h unchanged if
+	  possible.
 
 4.12.0
 ================

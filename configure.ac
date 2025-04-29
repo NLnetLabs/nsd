@@ -1176,7 +1176,9 @@ dt_DNSTAP([${localstatedir}/run/nsd-dnstap.sock],
 
         AC_SUBST([DNSTAP_SRC], ["dnstap/dnstap.c dnstap/dnstap.pb-c.c dnstap/dnstap_collector.c"])
         AC_SUBST([DNSTAP_OBJ], ["dnstap.o dnstap_collector.o dnstap.pb-c.o"])
-	dnstap_config="dnstap/dnstap_config.h"
+	dnstap_config="dnstap/dnstap_config.h.tmp:dnstap/dnstap_config.h.in"
+	dnstap_config_tmp="dnstap/dnstap_config.h.tmp"
+	dnstap_config_out="dnstap/dnstap_config.h"
     ],
     [
         AC_SUBST([ENABLE_DNSTAP], [0])
@@ -1422,3 +1424,18 @@ AC_ARG_ENABLE(westmere, AS_HELP_STRING([--disable-westmere], [Disable Westmere (
 AC_ARG_ENABLE(haswell, AS_HELP_STRING([--disable-haswell], [Disable Haswell (AVX2) parser kernel]))
 AC_CONFIG_SUBDIRS([simdzone])
 AC_OUTPUT
+# If dnstap config has changed, overwrite it.
+if test -n "$dnstap_config"; then
+	if test ! -f "$dnstap_config_out"; then
+		mv "$dnstap_config_tmp" "$dnstap_config_out" || AC_MSG_ERROR([Could not create $dnstap_config_out])
+	else if diff "$dnstap_config_out" "$dnstap_config_tmp" >/dev/null 2>&1; then
+		AC_MSG_NOTICE([In $srcdir: $dnstap_config_out is unchanged])
+		rm -f "$dnstap_config_tmp"
+	else
+		echo diff "$dnstap_config_out" "$dnstap_config_tmp"
+		diff "$dnstap_config_out" "$dnstap_config_tmp"
+		rm -f "$dnstap_config_out"
+		mv "$dnstap_config_tmp" "$dnstap_config_out" || AC_MSG_ERROR([Could not create $dnstap_config_out])
+	  fi
+	fi
+fi

@@ -18,6 +18,8 @@
 	- Fix for fstrm and protobuf-c for ci workflow coverity-scan.
 	- Fix for parallel build of dnstap protoc-c output.
 	- Fix to remove unneeded mkdir from Makefile.
+	- Fix dnstap to use protoc and keep dnstap_config.h unchanged if
+	  possible.
 
 25 April 2025: Yorgos
 	- Prometheus metrics tests require --enable-zone-stats.
