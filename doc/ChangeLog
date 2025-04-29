@@ -15,6 +15,7 @@
 	  It can be turned on with config like `dnstap-enable: yes`.
 	- Fix ci workflow for enable dnstap.
 	- Fix to remove use of sprintf from metrics.
+	- Fix for fstrm and protobuf-c for ci workflow coverity-scan.
 
 25 April 2025: Yorgos
 	- Prometheus metrics tests require --enable-zone-stats.

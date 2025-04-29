@@ -28,6 +28,7 @@ BUG FIXES:
 	- Fix mention of draft-rrtypes and root-server configure options.
 	- Fix ci workflow for enable dnstap.
 	- Fix to remove use of sprintf from metrics.
+	- Fix for fstrm and protobuf-c for ci workflow coverity-scan.
 
 4.12.0
 ================
