@@ -69,7 +69,7 @@ jobs:
             set -e -x
             if test "$CROSS_PLATFORM_OS" = "freebsd"; then sudo pkg install -y autoconf libtool openssl libevent fstrm protobuf-c; fi
             if test "$CROSS_PLATFORM_OS" = "openbsd"; then sudo pkg_add autoconf-2.71 libtool libevent fstrm protobuf-c; export AUTOCONF_VERSION="2.71"; fi
-            if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install autoconf libtool fstrm protobuf-c; fi
+            if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install autoconf libtool fstrm protobuf-c; export LDFLAGS="-Wl,--rpath=/usr/pkg/lib"; fi
             echo "::group::configure"
             autoconf && autoheader
             (cd simdzone && autoconf && autoheader)
