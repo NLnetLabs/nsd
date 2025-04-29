@@ -45,7 +45,7 @@ jobs:
             cross_platform_os: "netbsd"
             cross_platform_arch: "x86-64"
             cross_platform_version: "10.0"
-            cross_platform_config: "--enable-checking --disable-flto --with-libevent=no"
+            cross_platform_config: "--enable-checking --disable-flto --with-libevent=no --with-libfstrm=/usr/pkg --with-protobuf-c=/usr/pkg"
  
     steps:
       - uses: actions/checkout@v4
