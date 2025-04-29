@@ -10,6 +10,9 @@
 	  ratelimit value is off by default. It can be turned on with
 	  config like `rrl-ratelimit: 200`.
 	- Fix mention of draft-rrtypes and root-server configure options.
+	- The --enable-dnstap feature is enabled by default. If fstrm-devel
+	  or protobuf-c are not found by configure it prints an error.
+	  It can be turned on with config like `dnstap-enable: yes`.
 
 25 April 2025: Yorgos
 	- Prometheus metrics tests require --enable-zone-stats.

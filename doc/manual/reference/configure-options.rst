@@ -51,6 +51,10 @@ LIBS=libs
     Disable this to set default of ratelimit to on (this controls
     the default, ratelimits can be enabled and disabled in nsd.conf).
 
+--disable-dnstap
+
+    Disable dnstap support (requires fstrm-devel, protobuf-c).
+
 --with-configdir=dir
     Specified, NSD configuration directory, default :file:`/etc/nsd`.
 

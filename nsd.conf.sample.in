@@ -332,7 +332,7 @@ verify:
 	# Number of seconds before verifier is killed (0 is forever).
 	# verifier-timeout: 0
 
-# DNSTAP config section, if compiled with that
+# DNSTAP config section, ignored if not compiled with that
 # dnstap:
 	# set this to yes and set one or more of dnstap-log-..-messages to yes.
 	# dnstap-enable: no
