@@ -6,6 +6,9 @@
 	- The --enable-zone-stats feature is enabled by default. It can be
 	  turned on with config like `zonestats: "%s"`.
 	- Fix to remove mention of obsolete root-server option.
+	- The --enable-ratelimit feature is enabled by default. The
+	  ratelimit value is off by default. It can be turned on with
+	  config like `rrl-ratelimit: 200`.
 
 25 April 2025: Yorgos
 	- Prometheus metrics tests require --enable-zone-stats.

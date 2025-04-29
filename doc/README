@@ -172,9 +172,14 @@ addition to standard configure options, one may use the following:
 	Disable per-zone statistics gathering (if enabled, it needs
 	bind8-stats).
 
-  --enable-ratelimit
+  --disable-ratelimit
 
-	Enables ratelimiting, based on query name, type and source.
+	Disables ratelimiting, based on query name, type and source.
+
+  --disable-ratelimit-default-is-off
+
+	Disable this to set default of ratelimit to on (this controls
+	the default, ratelimits can be enabled and disabled in nsd.conf).
 
    --enable-draft-rrtypes
 

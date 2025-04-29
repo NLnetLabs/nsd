@@ -1003,27 +1003,23 @@ AC_ARG_ENABLE(memclean, AS_HELP_STRING([--enable-memclean],[Cleanup memory (at e
 if test "$enable_memclean" = "yes"; then AC_DEFINE_UNQUOTED([MEMCLEAN], [1], [Define this to cleanup memory at exit (eg. for valgrind, etc.)])
 fi
 
-AC_ARG_ENABLE(ratelimit, AS_HELP_STRING([--enable-ratelimit],[Enable rate limiting]))
+AC_ARG_ENABLE(ratelimit, AS_HELP_STRING([--disable-ratelimit],[Disable rate limiting]))
 case "$enable_ratelimit" in
-	yes)
-		AC_DEFINE_UNQUOTED([RATELIMIT], [], [Define this to enable rate limiting.])
-		dnl causes awk to not match the exclusion start marker.
-		ratelimit="xx"
+	no)
 		;;
-	no|*)
-		ratelimit=""
+	yes|*)
+		AC_DEFINE_UNQUOTED([RATELIMIT], [], [Define this to enable rate limiting.])
 		;;
 esac
-AC_SUBST(ratelimit)
 
-AC_ARG_ENABLE(ratelimit-default-is-off, AS_HELP_STRING([--enable-ratelimit-default-is-off],[Enable this to set default of ratelimit to off (enable in nsd.conf), otherwise ratelimit is enabled by default if --enable-ratelimit is enabled]))
+AC_ARG_ENABLE(ratelimit-default-is-off, AS_HELP_STRING([--disable-ratelimit-default-is-off],[Disable this to set default of ratelimit to on (this controls the default, ratelimits can be enabled and disabled in nsd.conf)]))
 case "$enable_ratelimit_default_is_off" in
-	yes)
+	no)
+		ratelimit_default="on"
+		;;
+	yes|*)
 		AC_DEFINE_UNQUOTED([RATELIMIT_DEFAULT_OFF], [], [Define this to set ratelimit to off by default.])
 		ratelimit_default="off"
-		;;
-	no|*)
-		ratelimit_default="on"
 		;;
 esac
 AC_SUBST(ratelimit_default)

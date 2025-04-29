@@ -223,14 +223,14 @@ server:
 	# Reload nsd.conf and update TSIG keys and zones on SIGHUP.
 	# reload-config: no
 
-	# RRLconfig
 	# Response Rate Limiting, size of the hashtable. Default 1000000.
 	# rrl-size: 1000000
 
 	# Response Rate Limiting, maximum QPS allowed (from one query source).
 	# If set to 0, ratelimiting is disabled. Also set
 	# rrl-whitelist-ratelimit to 0 to disable ratelimit processing.
-	# Default is @ratelimit_default@.
+	# Default is @ratelimit_default@. If not compiled in, the option is
+	# ignored.
 	# rrl-ratelimit: 200
 
 	# Response Rate Limiting, number of packets to discard before
@@ -556,7 +556,6 @@ remote-control:
 	# zonefile: "example.com.zone"
 	# request-xfr: 192.0.2.1 example.com.key
 
-	# RRLconfig
 	# Response Rate Limiting, whitelist types
 	# rrl-whitelist: nxdomain
 	# rrl-whitelist: error
@@ -568,5 +567,4 @@ remote-control:
 	# rrl-whitelist: dnskey
 	# rrl-whitelist: positive
 	# rrl-whitelist: all
-	# RRLend
 

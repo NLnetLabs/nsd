@@ -24,7 +24,7 @@ consult the REQUIREMENTS document which is a part of this distribution.
 %setup -q -n %{name}-%{version}
 
 %build
-%configure --enable-pie --enable-relro-now --enable-ratelimit \
+%configure --enable-pie --enable-relro-now \
            --enable-checking \
            --enable-mmap \
            --with-pidfile=%{_localstatedir}/run/%{name}/%{name}.pid \

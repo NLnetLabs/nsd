@@ -43,8 +43,12 @@ LIBS=libs
 --enable-bind8-stats
     Enables BIND8-like statistics.
 
---enable-ratelimit
-    Enables rate limiting, based on query name, type and source.
+--disable-ratelimit
+    Disables rate limiting, based on query name, type and source.
+
+--disable-ratelimit-default-is-off
+    Disable this to set default of ratelimit to on (this controls
+    the default, ratelimits can be enabled and disabled in nsd.conf).
 
 --enable-draft-rrtypes
     Enables draft RRtypes.
