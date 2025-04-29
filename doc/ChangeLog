@@ -17,6 +17,7 @@
 	- Fix to remove use of sprintf from metrics.
 	- Fix for fstrm and protobuf-c for ci workflow coverity-scan.
 	- Fix for parallel build of dnstap protoc-c output.
+	- Fix to remove unneeded mkdir from Makefile.
 
 25 April 2025: Yorgos
 	- Prometheus metrics tests require --enable-zone-stats.

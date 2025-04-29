@@ -431,7 +431,6 @@ dnstap/dnstap.pb-c.c: $(srcdir)/dnstap/dnstap.proto
 	@-if test ! -d dnstap; then $(INSTALL) -d dnstap; fi
 	$(PROTOC_C) --c_out=. --proto_path=$(srcdir) $(srcdir)/dnstap/dnstap.proto
 dnstap/dnstap.pb-c.h: dnstap/dnstap.pb-c.c
-	@-if test ! -d dnstap; then $(INSTALL) -d dnstap; fi
 	touch $@
 
 # autoconf rules
