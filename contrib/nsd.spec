@@ -10,7 +10,7 @@ Source1: nsd.init
 Source2: nsd.cron
 Group: System Environment/Daemons
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildRequires: flex, openssl-devel, fstrm-devel, protobuf-c
+BuildRequires: flex, openssl-devel, fstrm-devel, protobuf-c-devel
 Requires(pre): shadow-utils
 
 %description
