@@ -29,6 +29,7 @@ BUG FIXES:
 	- Fix ci workflow for enable dnstap.
 	- Fix to remove use of sprintf from metrics.
 	- Fix for fstrm and protobuf-c for ci workflow coverity-scan.
+	- Fix for parallel build of dnstap protoc-c output.
 
 4.12.0
 ================
