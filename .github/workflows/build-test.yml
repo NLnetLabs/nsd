@@ -11,14 +11,14 @@ jobs:
           - os: ubuntu-24.04
             cc: gcc
             cflags: -g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all
-            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison
+            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison libfstrm-dev protobuf-c-compiler
           - os: ubuntu-24.04
             cc: clang
             cflags: -g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all
-            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison
+            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison libfstrm-dev protobuf-c-compiler
           - os: macos-15
             cflags: -g2 -O0 -fsanitize=address,undefined -fno-sanitize-recover=all
-            packages: autoconf automake libtool flex bison
+            packages: autoconf automake libtool flex bison fstrm protobuf-c
             # The libevent and openssl packages are already installed.
     steps:
       - uses: actions/checkout@v4

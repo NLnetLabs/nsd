@@ -26,6 +26,7 @@ BUG FIXES:
 	  that do not exist.
 	- Fix to remove mention of obsolete root-server option.
 	- Fix mention of draft-rrtypes and root-server configure options.
+	- Fix ci workflow for enable dnstap.
 
 4.12.0
 ================

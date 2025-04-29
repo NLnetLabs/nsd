@@ -13,6 +13,7 @@
 	- The --enable-dnstap feature is enabled by default. If fstrm-devel
 	  or protobuf-c are not found by configure it prints an error.
 	  It can be turned on with config like `dnstap-enable: yes`.
+	- Fix ci workflow for enable dnstap.
 
 25 April 2025: Yorgos
 	- Prometheus metrics tests require --enable-zone-stats.
