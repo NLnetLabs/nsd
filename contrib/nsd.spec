@@ -25,9 +25,9 @@ consult the REQUIREMENTS document which is a part of this distribution.
 
 %build
 %configure --enable-pie --enable-relro-now --enable-ratelimit \
-           --enable-plugins --enable-checking \
-           --enable-mmap --with-ssl --enable-nsec3 --enable-nsid \
-           --with-pidfile=%{_localstatedir}/run/%{name}/%{name}.pid --with-ssl \
+           --enable-checking \
+           --enable-mmap \
+           --with-pidfile=%{_localstatedir}/run/%{name}/%{name}.pid \
            --with-user=nsd --with-xfrdfile=%{_localstatedir}/lib/%{name}/ixfr.state
 
 %{__make} %{?_smp_mflags}

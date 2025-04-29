@@ -1,6 +1,8 @@
 29 April 2025: Wouter
 	- The --enable-bind8-stats feature, was already enabled by default,
 	  is described as enabled by default in usage.
+	- Fix contrib/nsd.spec to omit configure flags that are default or
+	  that do not exist.
 
 25 April 2025: Yorgos
 	- Prometheus metrics tests require --enable-zone-stats.
