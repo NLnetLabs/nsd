@@ -67,9 +67,9 @@ jobs:
           cpu_count: 2
           run: |
             set -e -x
-            if test "$CROSS_PLATFORM_OS" = "freebsd"; then sudo pkg install -y autoconf libtool openssl libevent; fi
-            if test "$CROSS_PLATFORM_OS" = "openbsd"; then sudo pkg_add autoconf-2.71 libtool libevent; export AUTOCONF_VERSION="2.71"; fi
-            if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install autoconf libtool; fi
+            if test "$CROSS_PLATFORM_OS" = "freebsd"; then sudo pkg install -y autoconf libtool openssl libevent fstrm protobuf-c; fi
+            if test "$CROSS_PLATFORM_OS" = "openbsd"; then sudo pkg_add autoconf-2.71 libtool libevent fstrm protobuf-c; export AUTOCONF_VERSION="2.71"; fi
+            if test "$CROSS_PLATFORM_OS" = "netbsd"; then sudo pkgin -y install autoconf libtool fstrm protobuf-c; fi
             echo "::group::configure"
             autoconf && autoheader
             (cd simdzone && autoconf && autoheader)
@@ -87,7 +87,7 @@ jobs:
         if: ${{ matrix.config != 'no' }}
         run: |
           set -e -x
-          if test `uname` = "Linux"; then sudo apt-get install libevent-dev; fi
+          if test `uname` = "Linux"; then sudo apt-get install libevent-dev libfstrm-dev protobuf-c-compiler libprotobuf-c-dev; fi
           autoconf && autoheader
           (cd simdzone && autoconf && autoheader)
           libtoolize -c -i || glibtoolize -c -i
