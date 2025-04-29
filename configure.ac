@@ -966,13 +966,13 @@ case "$enable_bind8_stats" in
 		;;
 esac
 
-AC_ARG_ENABLE(zone-stats, AS_HELP_STRING([--enable-zone-stats],[Enable per-zone statistics gathering (needs --enable-bind8-stats)]))
+AC_ARG_ENABLE(zone-stats, AS_HELP_STRING([--disable-zone-stats],[Disable per-zone statistics gathering (if enabled, it needs bind8-stats)]))
 case "$enable_zone_stats" in
-	yes)
+	no)
+		;;
+	yes|*)
 		AC_DEFINE_UNQUOTED([USE_ZONE_STATS], [], [Define this to enable per-zone statistics gathering.])
 		AC_DEFINE_UNQUOTED([BIND8_STATS], [], [Define this to enable BIND8 like NSTATS & XSTATS.])
-		;;
-	no|''|*)
 		;;
 esac
 

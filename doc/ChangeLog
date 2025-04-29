@@ -3,6 +3,8 @@
 	  is described as enabled by default in usage.
 	- Fix contrib/nsd.spec to omit configure flags that are default or
 	  that do not exist.
+	- The --enable-zone-stats feature is enabled by default. It can be
+	  turned on with config like `zonestats: "%s"`.
 
 25 April 2025: Yorgos
 	- Prometheus metrics tests require --enable-zone-stats.

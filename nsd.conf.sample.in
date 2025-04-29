@@ -497,7 +497,7 @@ remote-control:
 	# 0 is no limits enforced.
 	# size-limit-xfr: 0
 
-	# if compiled with --enable-zone-stats, give name of stat block for
+	# if not compiled without zone-stats, give name of stat block for
 	# this zone (or group of zones).  Output from nsd-control stats.
 	# zonestats: "%s"
 

@@ -7,6 +7,8 @@ FEATURES:
 	  log output instead of '*' and '-'.
 	- The --enable-bind8-stats feature, was already enabled by default,
 	  is described as enabled by default in usage.
+	- The --enable-zone-stats feature is enabled by default. It can be
+	  turned on with config like `zonestats: "%s"`.
 
 BUG FIXES:
 	- Fix punctuation of nsd -h output for the -a option.
