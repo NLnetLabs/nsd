@@ -1432,8 +1432,6 @@ if test -n "$dnstap_config"; then
 		AC_MSG_NOTICE([In $srcdir: $dnstap_config_out is unchanged])
 		rm -f "$dnstap_config_tmp"
 	else
-		echo diff "$dnstap_config_out" "$dnstap_config_tmp"
-		diff "$dnstap_config_out" "$dnstap_config_tmp"
 		rm -f "$dnstap_config_out"
 		mv "$dnstap_config_tmp" "$dnstap_config_out" || AC_MSG_ERROR([Could not create $dnstap_config_out])
 	  fi

@@ -1,5 +1,6 @@
 30 April 2025: Wouter
 	- Fix to provide doc for --enable-systemd.
+	- Fix to remove debug printout for configure dnstap header.
 
 29 April 2025: Wouter
 	- The --enable-bind8-stats feature, was already enabled by default,
