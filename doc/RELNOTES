@@ -33,6 +33,7 @@ BUG FIXES:
 	- Fix to remove unneeded mkdir from Makefile.
 	- Fix dnstap to use protoc and keep dnstap_config.h unchanged if
 	  possible.
+	- Fix to provide doc for --enable-systemd.
 
 4.12.0
 ================

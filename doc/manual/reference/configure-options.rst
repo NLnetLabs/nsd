@@ -55,6 +55,11 @@ LIBS=libs
 
     Disable dnstap support (requires fstrm-devel, protobuf-c).
 
+--enable-systemd
+
+    Compile with systemd support, and then the server notifies libsystemd
+    when the server is up (it needs pkg-config and systemd-devel).
+
 --with-configdir=dir
     Specified, NSD configuration directory, default :file:`/etc/nsd`.
 
