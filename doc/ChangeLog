@@ -1,3 +1,45 @@
+30 April 2025: Wouter
+	- Fix to provide doc for --enable-systemd.
+	- Fix to remove debug printout for configure dnstap header.
+
+29 April 2025: Wouter
+	- The --enable-bind8-stats feature, was already enabled by default,
+	  is described as enabled by default in usage.
+	- Fix contrib/nsd.spec to omit configure flags that are default or
+	  that do not exist.
+	- The --enable-zone-stats feature is enabled by default. It can be
+	  turned on with config like `zonestats: "%s"`.
+	- Fix to remove mention of obsolete root-server option.
+	- The --enable-ratelimit feature is enabled by default. The
+	  ratelimit value is off by default. It can be turned on with
+	  config like `rrl-ratelimit: 200`.
+	- Fix mention of draft-rrtypes and root-server configure options.
+	- The --enable-dnstap feature is enabled by default. If fstrm-devel
+	  or protobuf-c are not found by configure it prints an error.
+	  It can be turned on with config like `dnstap-enable: yes`.
+	- Fix ci workflow for enable dnstap.
+	- Fix to remove use of sprintf from metrics.
+	- Fix for fstrm and protobuf-c for ci workflow coverity-scan.
+	- Fix for parallel build of dnstap protoc-c output.
+	- Fix to remove unneeded mkdir from Makefile.
+	- Fix dnstap to use protoc and keep dnstap_config.h unchanged if
+	  possible.
+
+25 April 2025: Yorgos
+	- Prometheus metrics tests require --enable-zone-stats.
+	- Use '(all)' and '(none)' for the socket server affinity
+	  log output instead of '*' and '-'.
+	- Add unit test for socket server affinity log output.
+	- Move xfrd-tcp unit test to its own file.
+
+25 April 2025: Wouter
+	- Fix punctuation of nsd -h output for the -a option.
+	- Fix checkconf unit test for when metrics are not enabled.
+	- make depend
+
+24 April 2025: Jannik
+	- The main branch continues with version 4.12.1 in development.
+
 17 April 2025: Wouter
 	- Add autoconf files to gitignore.
 

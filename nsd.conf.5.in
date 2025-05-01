@@ -442,7 +442,6 @@ regardless of this option.
 Write updated secondary zones to their zonefile every N seconds.  If the
 zone or pattern's "zonefile" option is set to "" (empty string), no zonefile
 is written. The default is 3600 (1 hour).
-.\" rrlstart
 .TP
 .B rrl\-size:\fR <numbuckets>
 This option gives the size of the hashtable. Default 1000000. More buckets
@@ -461,6 +460,8 @@ response rate will be one\-third, and so on.  If you set rrl\-slip to 10,
 traffic is reduced to 1/10th.  Ratelimit options rrl\-ratelimit, rrl\-size and
 rrl\-whitelist\-ratelimit are updated when nsd\-control reconfig is done (also
 the zone\-specific ratelimit options are updated).
+If not compiled in the option is ignored, the ratelimit can be on or off
+by default by compile time configuration.
 .TP
 .B rrl\-slip:\fR <numpackets>
 This option controls the number of packets discarded before we send back a SLIP response
@@ -479,7 +480,6 @@ The max qps for query sorts for a source, which have been
 whitelisted. Default @ratelimit_default@ (with a suggested 2000 qps). With the rrl\-whitelist option you can set
 specific queries to receive this qps limit instead of the normal limit.
 With the value 0 the rate is unlimited.
-.\" rrlend
 .TP
 .B answer\-cookie:\fR <yes or no>
 Enable to answer to requests containing DNS Cookies as specified in RFC7873.
@@ -610,7 +610,7 @@ traffic, for UDP, TCP and for TLS service.
 .B metrics\-enable:\fR <yes or no>
 Enable the prometheus metrics HTTP endpoint. It exposes the same statistics as
 the \fInsd\-control\fR(8) stats_noreset command, but with metric names
-following the prometheus specification.
+following the prometheus specification. (Requires libevent2)
 
 Beware, that when using \fInsd\-control\fR(8) stats (instead of stats_noreset),
 the statistics will be reset for the HTTP metrics endpoint as well.
@@ -1019,7 +1019,7 @@ configured with max\-refresh\-time, min\-refresh\-time, max\-retry\-time and
 min\-retry\-time if given.
 .TP
 .B zonestats:\fR <name>
-When compiled with \-\-enable\-zone\-stats NSD can collect statistics per zone.
+When not compiled without zone\-stats NSD can collect statistics per zone.
 This name gives the group where statistics are added to.  The groups are
 output from nsd\-control stats and stats_noreset.  Default is "".
 You can use "%s" to use the name of the zone to track its statistics.
@@ -1028,7 +1028,6 @@ If not compiled in, the option can be given but is ignored.
 .B include\-pattern:\fR <pattern\-name>
 The options from the given pattern are included at this point.
 The referenced pattern must be defined above this zone.
-.\" rrlstart
 .TP
 .B rrl\-whitelist:\fR <rrltype>
 This option causes queries of this rrltype to be whitelisted, for this
@@ -1039,7 +1038,6 @@ employs to make different types not interfere with one another.  The types
 are logged in the loglines when a subnet is blocked (in verbosity 2).
 The RRL classification types are: nxdomain, error, referral, any, rrsig,
 wildcard, nodata, dnskey, positive, all.
-.\" rrlend
 .TP
 .B multi\-primary\-check:\fR <yes or no>
 Default no.  If enabled, checks all primaries for the last version.  It uses

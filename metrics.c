@@ -382,7 +382,7 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 	if (name) {
 		snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
 	} else {
-		sprintf(prefix, "nsd_");
+		snprintf(prefix, sizeof(prefix), "nsd_");
 	}
 
 	/* nsd_queries_by_type_total */

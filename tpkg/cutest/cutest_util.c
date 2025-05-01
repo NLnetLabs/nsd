@@ -13,7 +13,6 @@
 #include "tpkg/cutest/cutest.h"
 #include "region-allocator.h"
 #include "util.h"
-#include "xfrd-tcp.h"
 
 static void util_1(CuTest *tc);
 static void util_2(CuTest *tc);
@@ -162,50 +161,68 @@ static void util_4(CuTest *tc)
 	CuAssert(tc, "test results of pton ntop", strcasecmp(buf, teststr)==0);
 }
 
-/* compare for sort of ID values */
-static int
-compare_value(const void* x, const void* y)
-{
-	const uint16_t* ax = (const uint16_t*)x;
-	const uint16_t* ay = (const uint16_t*)y;
-	if(*ax < *ay)
-		return -1;
-	if(*ax > *ay)
-		return 1;
-	return 0;
-}
-
-/* check if array contains no duplicates. */
-static void check_nodupes(CuTest* tc, uint16_t* array, int num)
-{
-	int i;
-	qsort(array, num, sizeof(array[0]), &compare_value);
-	for(i=0; i<num-1; i++) {
-		if(i+1 < num) {
-			CuAssert(tc, "checknodupes",
-				array[i] != array[i+1]);
-		}
-	}
-}
-
-static void testarray(CuTest* tc, int num, int max)
-{
-	uint16_t array[65536];
-	memset(array, 0, sizeof(array[0])*65536);
-	pick_id_values(array, num, max);
-	check_nodupes(tc, array, num);
-}
-
 static void util_5(CuTest *tc)
 {
-	/* test void pick_id_values(uint16_t* array, int num, int max); */
-	testarray(tc, 1, 1);
-	testarray(tc, 10, 10);
-	testarray(tc, 1, 1);
-	testarray(tc, 10, 10);
-	testarray(tc, 100, 100);
-	testarray(tc, 32768, 32768);
-	testarray(tc, 5, 10);
-	testarray(tc, 5, 10);
-	testarray(tc, 5, 65536);
+	/* test ssize_t print_socket_servers(struct nsd_bitset *bitset, char *buf, size_t bufsz) */
+	char *expect, result[100];
+	struct nsd_bitset *bset = xalloc(nsd_bitset_size(5));
+	nsd_bitset_init(bset, 5);
+
+	expect = "(none)";
+	nsd_bitset_zero(bset);
+	(void)print_socket_servers(bset, result, sizeof(result));
+	CuAssertStrEquals_Msg(tc, "test socket servers output: (none)",
+		expect, result);
+
+	expect = "(all)";
+	nsd_bitset_set(bset, 0);
+	nsd_bitset_set(bset, 1);
+	nsd_bitset_set(bset, 2);
+	nsd_bitset_set(bset, 3);
+	nsd_bitset_set(bset, 4);
+	(void)print_socket_servers(bset, result, sizeof(result));
+	CuAssertStrEquals_Msg(tc, "test socket servers output: (all)",
+		expect, result);
+
+	expect = "1 2 4 5";
+	nsd_bitset_zero(bset);
+	nsd_bitset_set(bset, 0);
+	nsd_bitset_set(bset, 1);
+	nsd_bitset_set(bset, 3);
+	nsd_bitset_set(bset, 4);
+	(void)print_socket_servers(bset, result, sizeof(result));
+	CuAssertStrEquals_Msg(tc, "test socket servers output: 1 2 4 5",
+		expect, result);
+
+	expect = "2-5";
+	nsd_bitset_zero(bset);
+	nsd_bitset_set(bset, 1);
+	nsd_bitset_set(bset, 2);
+	nsd_bitset_set(bset, 3);
+	nsd_bitset_set(bset, 4);
+	(void)print_socket_servers(bset, result, sizeof(result));
+	CuAssertStrEquals_Msg(tc, "test socket servers output: 2-5",
+		expect, result);
+
+	expect = "1-3 5";
+	nsd_bitset_zero(bset);
+	nsd_bitset_set(bset, 0);
+	nsd_bitset_set(bset, 1);
+	nsd_bitset_set(bset, 2);
+	nsd_bitset_set(bset, 4);
+	(void)print_socket_servers(bset, result, sizeof(result));
+	CuAssertStrEquals_Msg(tc, "test socket servers output: 1-3 5",
+		expect, result);
+
+	expect = "1-4";
+	nsd_bitset_zero(bset);
+	nsd_bitset_set(bset, 0);
+	nsd_bitset_set(bset, 1);
+	nsd_bitset_set(bset, 2);
+	nsd_bitset_set(bset, 3);
+	(void)print_socket_servers(bset, result, sizeof(result));
+	CuAssertStrEquals_Msg(tc, "test socket servers output: 1-4",
+		expect, result);
+
+	free(bset);
 }

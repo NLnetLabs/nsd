@@ -223,14 +223,14 @@ server:
 	# Reload nsd.conf and update TSIG keys and zones on SIGHUP.
 	# reload-config: no
 
-	# RRLconfig
 	# Response Rate Limiting, size of the hashtable. Default 1000000.
 	# rrl-size: 1000000
 
 	# Response Rate Limiting, maximum QPS allowed (from one query source).
 	# If set to 0, ratelimiting is disabled. Also set
 	# rrl-whitelist-ratelimit to 0 to disable ratelimit processing.
-	# Default is @ratelimit_default@.
+	# Default is @ratelimit_default@. If not compiled in, the option is
+	# ignored.
 	# rrl-ratelimit: 200
 
 	# Response Rate Limiting, number of packets to discard before
@@ -332,7 +332,7 @@ verify:
 	# Number of seconds before verifier is killed (0 is forever).
 	# verifier-timeout: 0
 
-# DNSTAP config section, if compiled with that
+# DNSTAP config section, ignored if not compiled with that
 # dnstap:
 	# set this to yes and set one or more of dnstap-log-..-messages to yes.
 	# dnstap-enable: no
@@ -497,7 +497,7 @@ remote-control:
 	# 0 is no limits enforced.
 	# size-limit-xfr: 0
 
-	# if compiled with --enable-zone-stats, give name of stat block for
+	# if not compiled without zone-stats, give name of stat block for
 	# this zone (or group of zones).  Output from nsd-control stats.
 	# zonestats: "%s"
 
@@ -556,7 +556,6 @@ remote-control:
 	# zonefile: "example.com.zone"
 	# request-xfr: 192.0.2.1 example.com.key
 
-	# RRLconfig
 	# Response Rate Limiting, whitelist types
 	# rrl-whitelist: nxdomain
 	# rrl-whitelist: error
@@ -568,5 +567,4 @@ remote-control:
 	# rrl-whitelist: dnskey
 	# rrl-whitelist: positive
 	# rrl-whitelist: all
-	# RRLend
 
