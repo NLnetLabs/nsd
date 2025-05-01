@@ -263,16 +263,6 @@ typedef int32_t(*nsd_rdata_field_length_type)(
 	uint16_t offset,
 	struct domain** domain);
 
-/**
- * Function signature to print RR
- * @param output: output buffer for text string.
- * @param rr: the resource record to print.
- * @return length, or MALFORMED.
- */
-typedef int32_t(*nsd_print_rdata_field_type)(
-	struct buffer* output,
-	const struct rr* rr);
-
 typedef struct nsd_rdata_descriptor nsd_rdata_descriptor_type;
 
 /*
@@ -313,9 +303,6 @@ struct nsd_rdata_descriptor {
 	 * function takes uncompressed wireformat in the rdata that is passed.
 	 */
 	nsd_rdata_field_length_type calculate_length_uncompressed_wire;
-
-	/* Print the rdata field */
-	nsd_print_rdata_field_type print;
 };
 
 typedef struct nsd_type_descriptor nsd_type_descriptor_type;
