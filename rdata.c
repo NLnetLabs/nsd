@@ -602,7 +602,7 @@ skip_nsec(struct buffer* packet, uint16_t rdlength, uint16_t *offset)
 		uint8_t window = buffer_read_u8(packet);
 		uint8_t blocks = buffer_read_u8(packet);
 		if (length > 0 && window <= last_window)
-			return -1; // could make this a semantic error...
+			return -1;
 		if (!blocks || blocks > 32)
 			return -1;
 		if (rdlength - *offset - length < 2 + blocks)

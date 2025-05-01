@@ -174,7 +174,7 @@ struct rr {
 	uint16_t         type;
 	uint16_t         klass;
 	uint16_t         rdlength;
-	uint8_t          rdata[]; // c99 flexible array
+	uint8_t          rdata[]; /* c99 flexible array */
 } ATTR_PACKED;
 
 /*
