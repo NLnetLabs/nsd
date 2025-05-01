@@ -139,7 +139,7 @@ int32_t zonec_accept(
 	buffer_create_from(&buffer, rdata, rdlength);
 
 	priority = parser->options.secondary ? ZONE_WARNING : ZONE_ERROR;
-	// limit to IN class
+	/* limit to IN class */
 	if (class != CLASS_IN)
 		zone_log(parser, priority, "only class IN is supported");
 
@@ -403,7 +403,7 @@ zonec_read(
 void
 apex_rrset_checks(namedb_type* db, rrset_type* rrset, domain_type* domain)
 {
-	uint32_t soa_minimum;
+	uint32_t soa_minimum = 0;
 	unsigned i;
 	zone_type* zone = rrset->zone;
 	assert(domain == zone->apex);

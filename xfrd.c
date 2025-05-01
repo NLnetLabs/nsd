@@ -612,7 +612,7 @@ apply_xfrs_to_consumer_zone(struct xfrd_catalog_consumer_zone* consumer_zone,
 	FILE* df;
 
 	if(xfr->msg_is_ixfr) {
-		uint32_t soa_serial, after_serial;
+		uint32_t soa_serial=0, after_serial=0;
 		xfrd_xfr_type* prev;
 
 		if(dbzone->soa_rrset == NULL || dbzone->soa_rrset->rrs == NULL

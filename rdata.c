@@ -520,7 +520,7 @@ print_base64(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 
 static void
 hex_to_string(buffer_type *output, const uint8_t *data, size_t size)
-{ 
+{
 	static const char hexdigits[] = {
 		'0', '1', '2', '3', '4', '5', '6', '7',
 		'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
@@ -831,7 +831,7 @@ print_svcparam_ipv4hint(struct buffer *output, uint16_t svcparamkey,
 	const uint8_t* data, uint16_t datalen)
 {
 	char ip_str[INET_ADDRSTRLEN + 1];
-	
+
 	assert(datalen > 0); /* Guaranteed by svcparam_print */
 
 	buffer_print_svcparamkey(output, svcparamkey);
@@ -2329,7 +2329,7 @@ print_srv_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(
 		output, "%" PRIu16 " %" PRIu16 " %" PRIu16 " ",
 		read_uint16(rr->rdata), read_uint16(rr->rdata+2),
-	 	read_uint16(rr->rdata+4));
+		read_uint16(rr->rdata+4));
 	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	assert(rr->rdlength == length);
@@ -2424,7 +2424,7 @@ print_naptr_rdata(struct buffer *output, const struct rr *rr)
 	assert(rr->rdlength > 4);
 	buffer_printf(
 		output, "%" PRIu16 " %" PRIu16 " ",
-	 	read_uint16(rr->rdata), read_uint16(rr->rdata+2));
+		read_uint16(rr->rdata), read_uint16(rr->rdata+2));
 	if (!print_string(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	buffer_printf(output, " ");

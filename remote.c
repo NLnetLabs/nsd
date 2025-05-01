@@ -1043,7 +1043,7 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 			return 0;
 	}
 	if(zone_is_catalog_consumer(zo)) {
-		uint32_t serial;
+		uint32_t serial = 0;
 		zone_type* zone = namedb_find_zone(xfrd->nsd->db,
 				(const dname_type*)zo->node.key);
 		struct xfrd_catalog_consumer_zone* consumer_zone =
