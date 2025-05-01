@@ -687,7 +687,6 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 	assert(query);
 	assert(answer);
 	assert(master_rrset);
-	//assert(rdata_atom_is_domain(rrset_rrtype(master_rrset), rdata_index));
 
 	for (i = 0; i < master_rrset->rr_count; ++i) {
 		int j;
@@ -1822,7 +1821,7 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 			&& q->zone->soa_rrset
 			&& q->zone->soa_rrset->rr_count >= 1
 			&& q->zone->soa_rrset->rrs[0]->rdlength >= 20+2*sizeof(void*)) {
-				uint32_t serial;
+				uint32_t serial = 0;
 				buffer_write_u16(q->packet, ZONEVERSION_CODE);
 				buffer_write_u16( q->packet
 				                , sizeof(uint8_t)

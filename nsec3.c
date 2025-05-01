@@ -243,20 +243,25 @@ static void
 nsec3param_to_str(struct rr* rr, char* str, size_t buflen)
 {
 	size_t len;
-	if(rr->rdlength < 5) {
+	if(rr->rdlength < 5 || rr->rdlength < 5 + (uint16_t)rr->rdata[4]) {
 		str[0]=0;
 		return;
 	}
 	len = snprintf(str, buflen, "%u %u %u ",
-		rr->rdata[0], rr->rdata[1], read_uint16(rr->rdata+2));
+		(unsigned)rr->rdata[0], (unsigned)rr->rdata[1],
+		(unsigned)read_uint16(rr->rdata+2));
 	if(rr->rdata[4] == 0) {
 		if(buflen > len + 2)
 			str[len++] = '-';
 	} else {
 		len += hex_ntop(rr->rdata+5, rr->rdata[4], str+len, buflen-len-1);
 	}
-	if(buflen > len + 1)
+	if(buflen > len + 1) {
 		str[len] = 0;
+	} else {
+		assert(buflen > 0);
+		str[buflen-1] = 0;
+	}
 }
 
 static struct rr*
