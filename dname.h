@@ -403,7 +403,13 @@ int dname_equal_nocase(uint8_t* a, uint8_t* b, uint16_t len);
 int is_dname_subdomain_of_case(const uint8_t* d, unsigned int len,
 	const uint8_t* d2, unsigned int len2);
 
-/* calculate length of dname in uncompressed wireformat in buffer */
+/*
+ * Calculate length of dname in uncompressed wireformat in buffer.
+ * @param buf: The buffer with the uncompressed dname.
+ * @param len: length of the buffer.
+ * @return 0 on error, otherwise the uncompressed wireformat dname
+ *	length is returned.
+ */
 size_t buf_dname_length(const uint8_t* buf, size_t len);
 
 /* This structure is sufficient in size for a struct dname. It can

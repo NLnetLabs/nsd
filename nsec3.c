@@ -95,6 +95,8 @@ detect_nsec3_params(rr_type* nsec3_apex,
 	assert(nsec3_apex);
 	if(nsec3_apex->rdlength < 5)
 		return;
+	if(nsec3_apex->rdlength < 5 + (uint16_t)(nsec3_apex->rdata[4]))
+		return;
 	*salt_len = nsec3_apex->rdata[4];
 	*salt = (unsigned char*)(nsec3_apex->rdata + 5);
 	*iter = read_uint16(nsec3_apex->rdata + 2);
@@ -169,12 +171,16 @@ nsec3_has_soa(rr_type* rr)
 	if(rr->rdlength < 6)
 		return 0;
 	offset = 4;
-	assert(rr->rdlength > offset);
+	if(rr->rdlength < offset+1 ||
+		rr->rdlength < offset+1+rr->rdata[offset])
+		return 0;
 	offset += 1 + rr->rdata[offset];
-	assert(rr->rdlength > offset);
+	if(rr->rdlength < offset+1 ||
+		rr->rdlength < offset+1+rr->rdata[offset])
+		return 0;
 	offset += 1 + rr->rdata[offset];
 	if (rr->rdlength >= offset + 3 && /* has types in bitmap */
-		 	rr->rdata[offset] == 0 && /* first window = 0, */
+			rr->rdata[offset] == 0 && /* first window = 0, */
 	    /* [1]: bitmap length must be >= 1 */
 	    /* [2]: bit[6] = SOA, thus mask first bitmap octet with 0x02 */
 	    (rr->rdata[offset+2] & 0x02))

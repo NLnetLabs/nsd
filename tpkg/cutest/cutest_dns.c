@@ -169,8 +169,6 @@ static void dns_2(CuTest *tc)
 		if(d->has_dnames) {
 			/* If the type has dnames, the fields should have
 			 * a dname. */
-			if(!saw_dname)
-				printf("no dname for type %s", d->name);
 			CuAssert(tc, "type has dnames", saw_dname);
 		}
 	}

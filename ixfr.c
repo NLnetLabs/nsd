@@ -262,7 +262,7 @@ static int ixfr_write_rdata_pkt(struct buffer* packet, uint16_t tp,
 		int already_written = 0;
 		if(rdlen == offset && field->is_optional)
 			break; /* There are no more rdata fields. */
-		if(field->calculate_length) {
+		if(field->calculate_length_uncompressed_wire) {
 			/* Call field length function. */
 			/* This is called with an uncompressed wireformat
 			 * data buffer, instead of the in-memory data buffer.
@@ -1285,7 +1285,7 @@ static int ixfr_putrr(const rr_type* rr, uint8_t** rrs, size_t* rrs_len,
 void ixfr_store_putrr(struct ixfr_store* ixfr_store, const rr_type* rr,
 	uint8_t** rrs, size_t* rrs_len, size_t* rrs_capacity)
 {
-	int32_t code;
+	int code;
 
 	if(ixfr_store->cancelled)
 		return;
@@ -1351,8 +1351,8 @@ int ixfr_store_add_newsoa_rdatas(struct ixfr_store* ixfr_store,
 		return 1;
 	if(!retrieve_soa_rdata_serial(rr, &ixfr_store->data->newserial))
 		return 0;
-	if(!ixfr_putrr(rr, &ixfr_store->data->newsoa,
-		&ixfr_store->data->newsoa_len, &ixfr_store->add_capacity))
+	if(ixfr_putrr(rr, &ixfr_store->data->newsoa,
+		&ixfr_store->data->newsoa_len, &ixfr_store->add_capacity) <= 0)
 		return 0;
 	ixfr_trim_capacity(&ixfr_store->data->newsoa,
 		&ixfr_store->data->newsoa_len, &capacity);
@@ -1428,25 +1428,25 @@ int ixfr_store_oldsoa_uncompressed(struct ixfr_store* ixfr_store,
 	uint32_t ttl, uint8_t* rdata, size_t rdata_len)
 {
 	uint32_t serial;
-	size_t capacity = 0, index, count = 0;
+	size_t capacity = 0, index, count;
 	if(ixfr_store->cancelled)
 		return 1;
 	if(!ixfr_storerr_uncompressed(dname, dname_len, type, klass,
 		ttl, rdata, rdata_len, &ixfr_store->data->oldsoa,
 		&ixfr_store->data->oldsoa_len, &capacity))
 		return 0;
-	{
-		if (!(count = skip_dname(rdata, rdata_len)))
-			return 0;
-		index = count;
-		if (!(count = skip_dname(rdata+index, rdata_len-index)))
-			return 0;
-		index += count;
-		if (rdata_len - index < 4)
-			return 0;
-		memcpy(&serial, rdata+index, sizeof(serial));
-		ixfr_store->data->oldserial = ntohl(serial);
-	}
+
+	if (!(count = skip_dname(rdata, rdata_len)))
+		return 0;
+	index = count;
+	if (!(count = skip_dname(rdata+index, rdata_len-index)))
+		return 0;
+	index += count;
+	if (rdata_len - index < 4)
+		return 0;
+	memcpy(&serial, rdata+index, sizeof(serial));
+	ixfr_store->data->oldserial = ntohl(serial);
+
 	ixfr_trim_capacity(&ixfr_store->data->oldsoa,
 		&ixfr_store->data->oldsoa_len, &capacity);
 	return 1;
@@ -2296,6 +2296,7 @@ static int ixfr_data_readnewsoa(struct ixfr_data* data, struct zone* zone,
 	uint32_t dest_serial)
 {
 	size_t capacity = 0;
+	int code;
 	if(rr->type != TYPE_SOA) {
 		zone_error(parser, "zone %s ixfr data: IXFR data does not start with SOA",
 			zone->opts->name);
@@ -2323,9 +2324,13 @@ static int ixfr_data_readnewsoa(struct ixfr_data* data, struct zone* zone,
 			dest_serial);
 		return 0;
 	}
-	if(!ixfr_putrr(rr, &data->newsoa, &data->newsoa_len, &capacity)) {
-		zone_error(parser, "zone %s ixfr data: cannot allocate space",
-			zone->opts->name);
+	if((code=ixfr_putrr(rr, &data->newsoa, &data->newsoa_len, &capacity))
+		<= 0) {
+		if(code == -1)
+			zone_error(parser, "zone %s ixfr data: cannot parse rdata format",
+				zone->opts->name);
+		else zone_error(parser, "zone %s ixfr data: cannot allocate space",
+				zone->opts->name);
 		return 0;
 	}
 	clear_temp_table_of_rr(temptable, tempzone, rr);

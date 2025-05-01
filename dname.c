@@ -686,7 +686,7 @@ dname_make_buffered(struct dname_buffer* dname, uint8_t *name, int normalize)
 	dname->dname.name_size = name_size;
 	dname->dname.label_count = label_count;
 	memcpy((uint8_t *) dname_label_offsets((void*)dname),
-	       label_offsets, label_count * sizeof(uint8_t));
+		label_offsets, label_count * sizeof(uint8_t));
 	if (normalize) {
 		uint8_t *src = (uint8_t *) dname_name((void*)dname);
 		while (!label_is_root(src)) {

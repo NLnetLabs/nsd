@@ -32,11 +32,11 @@ static lookup_table_type dns_rrclasses[] = {
 	{ 0, NULL }
 };
 
-/* For a standard field, it is not optional, has not special functions. */
+/* For a standard field, it is not optional, has no rdata field functions. */
 #define FIELD(name, size) { name, 0 /* is_optional */, size, NULL /* calc_len_func */, NULL /* calc_len_uncompressed_wire_func */ }
 
 /* For a field entry with all values, for optional fields, or with defined
- * functions. */
+ * rdata field functions. */
 #define FIELD_ENTRY(name, is_optional, size, calc_len_func, cal_len_uncompressed_wire_func ) { name, is_optional, size, calc_len_func, cal_len_uncompressed_wire_func }
 
 static const struct nsd_rdata_descriptor generic_rdata_fields[] = {
