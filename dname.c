@@ -35,7 +35,7 @@ dname_make(region_type *region, const uint8_t *name, int normalize)
 	assert(name);
 
 	while (1) {
-		if (label_is_pointer(label))
+		if (!label_is_normal(label))
 			return NULL;
 
 		label_offsets[label_count] = (uint8_t) (label - name);
@@ -44,6 +44,8 @@ dname_make(region_type *region, const uint8_t *name, int normalize)
 
 		if (label_is_root(label))
 			break;
+		if (name_size > MAXDOMAINLEN)
+			return NULL;
 
 		label = label_next(label);
 	}
@@ -634,12 +636,16 @@ buf_dname_length(const uint8_t* buf, size_t len)
 		l += lablen+1;
 		len -= lablen+1;
 		buf += lablen+1;
+		if(l > MAXDOMAINLEN)
+			return 0;
 	}
 	if(len == 0)
 		return 0; /* end label should fit in buffer */
 	if(buf[0] != 0)
 		return 0; /* must end in root label */
 	l += 1; /* for the end root label */
+	if(l > MAXDOMAINLEN)
+		return 0;
 	return l;
 }
 
@@ -655,7 +661,7 @@ dname_make_buffered(struct dname_buffer* dname, uint8_t *name, int normalize)
 	assert(name);
 
 	while (1) {
-		if (label_is_pointer(label))
+		if(!label_is_normal(label))
 			return 0;
 
 		label_offsets[label_count] = (uint8_t) (label - name);
@@ -664,6 +670,8 @@ dname_make_buffered(struct dname_buffer* dname, uint8_t *name, int normalize)
 
 		if (label_is_root(label))
 			break;
+		if (name_size > MAXDOMAINLEN)
+			return 0;
 
 		label = label_next(label);
 	}
