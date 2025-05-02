@@ -146,8 +146,9 @@ print_name_literal(struct buffer *output, uint16_t rdlength,
 
 	if(*label) {
 		do {
-			if (label - name > 255 || *label > 63
-				|| limit - label < 1 + *label)
+			/* space for labellen, label and a next root label. */
+			if (label - name > 255-1 || *label > 63
+				|| limit - label < 2 + *label)
 				return 0;
 			label += 1 + *label;
 		} while (*label);
@@ -293,7 +294,7 @@ print_unquoted(buffer_type *output, uint16_t rdlength,
 		char ch = (char) rdata[*offset + i];
 		if (isprint((unsigned char)ch)) {
 			if (ch == '"' || ch == '\\' || ch == '(' || ch == ')'
-			|| ch == '\'' || isspace((unsigned char)ch)) {
+			  || ch == '\'' || isspace((unsigned char)ch)) {
 				buffer_printf(output, "\\");
 			}
 			buffer_printf(output, "%c", ch);
@@ -652,7 +653,7 @@ print_nsec_bitmap(struct buffer *output, uint16_t rdlength,
 		bitmap = rdata + 2;
 		rdata += 2;
 		for(i=0; i<((int)bitmap_size)*8; i++) {
-			if(get_bit(bitmap, i)) {
+			if (get_bit(bitmap, i)) {
 				buffer_printf(output,
 					      "%s%s",
 					      insert_space ? " " : "",
