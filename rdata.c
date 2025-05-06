@@ -147,7 +147,8 @@ print_name_literal(struct buffer *output, uint16_t rdlength,
 	if(*label) {
 		do {
 			/* space for labellen, label and a next root label. */
-			if (label - name > 255-1 || *label > 63
+			if (label - name > MAXDOMAINLEN-1
+				|| *label > MAXLABELLEN
 				|| limit - label < 2 + *label)
 				return 0;
 			label += 1 + *label;
