@@ -35,6 +35,7 @@ BUG FIXES:
 	  possible.
 	- Fix to provide doc for --enable-systemd.
 	- Fix to remove debug printout for configure dnstap header.
+	- Fix #441: SystemD script for NSD prevents using chroot.
 
 4.12.0
 ================

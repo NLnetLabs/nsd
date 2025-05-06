@@ -1,3 +1,6 @@
+6 May 2025: Wouter
+	- Fix #441: SystemD script for NSD prevents using chroot.
+
 30 April 2025: Wouter
 	- Fix to provide doc for --enable-systemd.
 	- Fix to remove debug printout for configure dnstap header.
