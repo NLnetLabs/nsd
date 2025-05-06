@@ -719,18 +719,18 @@ delete_RR(namedb_type* db, const dname_type* dname,
 	} else {
 		/* find the RR in the rrset */
 		domain_table_type *temptable;
-		int32_t rrnum, rdata_num;
+		int32_t rrnum, code;
 		struct rr *rr;
 		temptable = domain_table_create(temp_region);
 		/* This will ensure that the dnames in rdata are
 		 * normalized, conform RFC 4035, section 6.2
 		 */
-		rdata_num = descriptor->read_rdata(temptable, rdatalen, packet, &rr);
-		if(rdata_num < 0) {
+		code = descriptor->read_rdata(temptable, rdatalen, packet, &rr);
+		if(code < 0) {
 			log_msg(LOG_ERR, "diff: could not read rdata for "
 				"%s %s %s", dname_to_string(dname,0),
 				rrtype_to_string(type),
-				read_rdata_fail_str(rdata_num));
+				read_rdata_fail_str(code));
 		}
 		rr->owner = domain;
 		rr->type = type;
@@ -811,7 +811,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	domain_type* domain;
 	rrset_type* rrset;
 	rr_type **rrs_old, *rr;
-	int32_t rdata_num;
+	int32_t code;
 	int rrnum;
 	const nsd_type_descriptor_type *descriptor;
 #ifdef NSEC3
@@ -843,12 +843,12 @@ add_RR(namedb_type* db, const dname_type* dname,
 	 * Section 6.2
 	 */
 	descriptor = nsd_type_descriptor(type);
-	rdata_num = descriptor->read_rdata(
+	code = descriptor->read_rdata(
 		db->domains, rdatalen, packet, &rr);
-	if(rdata_num < 0) {
+	if(code < 0) {
 		log_msg(LOG_ERR, "diff: could not read rdata for %s %s %s",
 			dname_to_string(dname,0), rrtype_to_string(type),
-			read_rdata_fail_str(rdata_num));
+			read_rdata_fail_str(code));
 		return 0;
 	}
 	rr->owner = domain;
