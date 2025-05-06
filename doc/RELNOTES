@@ -36,6 +36,8 @@ BUG FIXES:
 	- Fix to provide doc for --enable-systemd.
 	- Fix to remove debug printout for configure dnstap header.
 	- Fix #441: SystemD script for NSD prevents using chroot.
+	- Fix to add checks for compression pointers and too long dnames in
+	  internal dname routines, dname_make and ixfr dname_length.
 
 4.12.0
 ================

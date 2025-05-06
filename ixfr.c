@@ -200,12 +200,16 @@ static size_t dname_length(const uint8_t* buf, size_t len)
 		l += lablen+1;
 		len -= lablen+1;
 		buf += lablen+1;
+		if(l > MAXDOMAINLEN)
+			return 0;
 	}
 	if(len == 0)
 		return 0; /* end label should fit in buffer */
 	if(buf[0] != 0)
 		return 0; /* must end in root label */
 	l += 1; /* for the end root label */
+	if(l > MAXDOMAINLEN)
+		return 0;
 	return l;
 }
 
