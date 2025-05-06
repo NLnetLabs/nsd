@@ -57,6 +57,13 @@ typedef enum rr_section rr_section_type;
 #define RCODE_NOTAUTH		9	/* server not authoritative */
 #define RCODE_NOTZONE		10	/* name not inside zone */
 
+/* DNSKEY FLAGS */
+
+/* #define DNSKEY_FLAG_ZONE   (1 << (15 - 7)) */
+/* #define DNSKEY_FLAG_REVOKE (1 << (15 - 8)) */
+#define DNSKEY_FLAG_DELEG (1 << (15 - 14))
+/* #define DNSKEY_FLAG_SEP    (1 << (15 - 15)) */
+
 /* Standardized NSD return code.  Partially maps to DNS RCODE values.  */
 enum nsd_rc
 {
@@ -175,6 +182,7 @@ typedef enum nsd_rc nsd_rc_type;
 
 #define TYPE_TA		32768	/* http://www.watson.org/~weiler/INI1999-19.pdf */
 #define TYPE_DLV	32769	/* RFC 4431 */
+#define TYPE_DELEG	65432	/* draft-wesplaap-deleg */
 #define PSEUDO_TYPE_TA	RRTYPE_DESCRIPTORS_LENGTH
 #define PSEUDO_TYPE_DLV	(RRTYPE_DESCRIPTORS_LENGTH + 1)
 

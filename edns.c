@@ -69,6 +69,7 @@ edns_init_record(edns_record_type *edns)
 	edns->maxlen = 0;
 	edns->opt_reserved_space = 0;
 	edns->dnssec_ok = 0;
+	edns->deleg_ok = 0;
 	edns->nsid = 0;
 	edns->zoneversion = 0;
 	edns->cookie_status = COOKIE_NOT_PRESENT;
@@ -190,6 +191,7 @@ edns_parse_record(edns_record_type *edns, buffer_type *packet,
 	edns->status = EDNS_OK;
 	edns->maxlen = opt_class;
 	edns->dnssec_ok = opt_flags & DNSSEC_OK_MASK;
+	edns->deleg_ok = opt_flags & DELEG_OK_MASK;
 	return 1;
 }
 
