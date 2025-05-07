@@ -93,7 +93,7 @@ EDIT		= $(SED) \
 			-e 's,@sharedfilesdir\@,$(sharedfilesdir),g' \
 			-e 's/@date\@/$(DATE)/g'
 
-XDP_TARGETS=$(if @xdp@,xdp-dns-redirect_kern.o,)
+XDP_TARGETS=$(if @xdp@,xdp-dns-redirect_kern.o xdp-dns-redirect_kern_pinned.o,)
 TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf $(XDP_TARGETS)
 MANUALS=nsd.8 nsd-checkconf.8 nsd-checkzone.8 nsd-control.8 nsd.conf.5
 
@@ -196,6 +196,7 @@ install: all
 	$(INSTALL_DATA) nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	$(INSTALL_DATA) nsd.conf.sample $(DESTDIR)$(nsdconfigfile).sample
 	if test -n "@xdp@"; then $(INSTALL_DATA) xdp-dns-redirect_kern.o $(DESTDIR)$(sharedfilesdir)/xdp-dns-redirect_kern.o; fi
+	if test -n "@xdp@"; then $(INSTALL_DATA) xdp-dns-redirect_kern_pinned.o $(DESTDIR)$(sharedfilesdir)/xdp-dns-redirect_kern_pinned.o; fi
 
 uninstall:
 	@echo
@@ -204,6 +205,7 @@ uninstall:
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkzone.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
 	rm -f -- $(DESTDIR)$(pidfile)
 	rm -f -- $(DESTDIR)$(sharedfilesdir)/xdp-dns-redirect_kern.o
+	rm -f -- $(DESTDIR)$(sharedfilesdir)/xdp-dns-redirect_kern_pinned.o
 	@echo
 	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(xfrdfile), $(DESTDIR)$(zonelistfile) $(DESTDIR)$(cookiesecretsfile) directory by hand."
 
@@ -260,6 +262,7 @@ audit: nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem checksec
 .realclean: .distclean
 	rm -rf autom4te*
 	rm -f configlexer.c configparser.h configparser.c configparser.stamp
+	rm -f xdp-dns-redirect_kern_pinned.c
 
 clean: .clean
 	$(MAKE) -C simdzone clean
@@ -442,6 +445,11 @@ dnstap/dnstap.pb-c.c dnstap/dnstap.pb-c.h: $(srcdir)/dnstap/dnstap.proto
 # eBPF XDP program
 xdp-dns-redirect_kern.o: $(srcdir)/xdp-dns-redirect_kern.c
 	$(CLANG) -S -target bpf $(BPF_CFLAGS) -O2 -emit-llvm -c -g -o ${@:.o=.ll} $<
+	$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
+
+xdp-dns-redirect_kern_pinned.o: $(srcdir)/xdp-dns-redirect_kern.c
+	sed -E '/\/\/ SEDUNCOMMENTTHIS/s_(/\*|\*/)__g' < $< > ${@:.o=.c}
+	$(CLANG) -S -target bpf $(BPF_CFLAGS) -O2 -emit-llvm -c -g -o ${@:.o=.ll} ${@:.o=.c}
 	$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
 
 # autoconf rules

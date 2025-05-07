@@ -18,7 +18,9 @@ struct {
   __type(key, __u32);
   __type(value, __u32);
   __uint(max_entries, 128);
-  /* __uint(pinning, LIBBPF_PIN_BY_NAME); */
+  /* The commented line about pinning must stay, as it is used to generate
+   * a second bpf program */
+  /* __uint(pinning, LIBBPF_PIN_BY_NAME); // SEDUNCOMMENTTHIS */
 } xsks_map SEC(".maps");
 
 struct vlanhdr {
