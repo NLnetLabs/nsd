@@ -612,6 +612,9 @@ Enable the prometheus metrics HTTP endpoint. It exposes the same statistics as
 the \fInsd\-control\fR(8) stats_noreset command, but with metric names
 following the prometheus specification. (Requires libevent2)
 
+To generate per zone metrics, specify the \fBzonestats\fR option on the desired
+zones.
+
 Beware, that when using \fInsd\-control\fR(8) stats (instead of stats_noreset),
 the statistics will be reset for the HTTP metrics endpoint as well.
 .TP
