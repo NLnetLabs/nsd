@@ -529,8 +529,9 @@ int xdp_server_cleanup(struct xdp_server *xdp) {
 				 * about the pinned map and be able to unlink it themselves.
 				 */
 				log_msg(LOG_ERR, "xdp: failed to unpin bpf map during cleanup: \"%s\". "
-				        "This is usually ok, but you need to unpin the map yourself.\n",
-				        strerror(errno));
+				        "This is usually ok, but you need to unpin the map yourself. "
+				        "This can usually be fixed by executing chmod o+wx %s\n",
+				        strerror(errno), xdp->bpf_bpffs_path);
 				ret = -1;
 			}
 		}
