@@ -17,7 +17,7 @@ struct {
   __uint(type, BPF_MAP_TYPE_XSKMAP);
   __type(key, __u32);
   __type(value, __u32);
-  __uint(max_entries, 64);
+  __uint(max_entries, 128);
   /* __uint(pinning, LIBBPF_PIN_BY_NAME); */
 } xsks_map SEC(".maps");
 
