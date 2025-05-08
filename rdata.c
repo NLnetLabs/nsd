@@ -1035,7 +1035,8 @@ read_generic_rdata(struct domain_table *domains, uint16_t rdlength,
 void
 write_generic_rdata(struct query *query, const struct rr *rr)
 {
-	buffer_write(query->packet, rr->rdata, rr->rdlength);
+	if(rr->rdlength != 0)
+		buffer_write(query->packet, rr->rdata, rr->rdlength);
 }
 
 int
@@ -2236,7 +2237,9 @@ write_nxt_rdata(struct query *query, const struct rr *rr)
 	memcpy(&domain, rr->rdata, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
-	buffer_write(query->packet, rr->rdata + sizeof(void*), rr->rdlength - sizeof(void*));
+	if(rr->rdlength - sizeof(void*) != 0)
+		buffer_write(query->packet, rr->rdata + sizeof(void*),
+			rr->rdlength - sizeof(void*));
 }
 
 int
@@ -2318,7 +2321,7 @@ write_srv_rdata(struct query *query, const struct rr *rr)
 	const struct dname *dname;
 
 	assert(rr->rdlength == 6 + sizeof(void*));
-	memcpy(&domain, rr->rdata, sizeof(void*));
+	memcpy(&domain, rr->rdata + 6, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, rr->rdata, 6);
 	buffer_write(query->packet, dname_name(dname), dname->name_size);
