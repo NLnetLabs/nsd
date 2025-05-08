@@ -2900,8 +2900,9 @@ read_nsec_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + memrdlen)))
 		return TRUNCATED;
 	memcpy((*rr)->rdata, dname_name((void*)&next), next.dname.name_size);
-	buffer_read_at(packet, bitmapmark, (*rr)->rdata + next.dname.name_size,
-		bitmaplen);
+	if(bitmaplen != 0)
+		buffer_read_at(packet, bitmapmark,
+			(*rr)->rdata + next.dname.name_size, bitmaplen);
 	(*rr)->rdlength = memrdlen;
 	return rdlength;
 }
