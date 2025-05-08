@@ -1833,8 +1833,7 @@ print_afsdb_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t subtype, length=2;
 	assert(rr->rdlength == 2 + sizeof(void*));
-	memcpy(&subtype, rr->rdata, sizeof(subtype));
-	subtype = ntohs(subtype);
+	subtype = read_uint16(rr->rdata);
 	buffer_printf(output, "%" PRIu16 " ", subtype);
 	if(!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
