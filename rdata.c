@@ -1432,7 +1432,7 @@ read_soa_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct dname_buffer primary, mailbox;
 	size_t size;
 
-	/* name + name + long + long + long + long + long */
+	/* domain + domain + uint32 + uint32 + uint32 + uint32 + uint32 */
 	const size_t mark = buffer_position(packet);
 	if (!dname_make_from_packet_buffered(&primary, packet, 1, 1) ||
 	    !dname_make_from_packet_buffered(&mailbox, packet, 1, 1) ||
@@ -1458,7 +1458,7 @@ void
 write_soa_rdata(struct query *query, const struct rr *rr)
 {
 	struct domain *primary, *mailbox;
-	/* domain + domain + long + long + long + long + long */
+	/* domain + domain + uint32 + uint32 + uint32 + uint32 + uint32 */
 	assert(rr->rdlength == 2 * sizeof(void*) + 20);
 	memcpy(&primary, rr->rdata, sizeof(void*));
 	memcpy(&mailbox, rr->rdata + sizeof(void*), sizeof(void*));
@@ -2554,7 +2554,7 @@ read_apl_rdata(struct domain_table *domains, uint16_t rdlength,
 }
 
 /*
- * Print one ALP field.
+ * Print one APL field.
  * @param output: string is printed to the buffer.
  * @param rdlength: length of rdata.
  * @param rdata: the rdata
@@ -2598,7 +2598,7 @@ print_apl(struct buffer *output, size_t rdlength, const uint8_t *rdata,
 
 	buffer_printf(
 		output, "%s%" PRIu16 ":%s/%" PRIu8,
-		negated ? "!" : "", address_family, text_address, prefix);
+		(negated ? "!" : ""), address_family, text_address, prefix);
 	*offset += 4 + length;
 	return 1;
 }
@@ -2823,7 +2823,7 @@ read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 	const size_t mark = buffer_position(packet);
 	uint16_t memrdlen, b64len;
 
-	/* short + byte + byte + long + long + long + short */
+	/* short + byte + byte + uint32 + uint32 + uint32 + short */
 	if (buffer_remaining(packet) < rdlength || rdlength < 18)
 		return MALFORMED;
 	buffer_skip(packet, 18);
@@ -2839,7 +2839,8 @@ read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_read_at(packet, mark, (*rr)->rdata, 18);
 	memcpy((*rr)->rdata + 18, dname_name((void*)&signer),
 		signer.dname.name_size);
-	buffer_read(packet, (*rr)->rdata+memrdlen, b64len);
+	if(b64len != 0)
+		buffer_read(packet, (*rr)->rdata+memrdlen, b64len);
 	(*rr)->rdlength = memrdlen + b64len;
 	return rdlength;
 }
@@ -2849,7 +2850,7 @@ print_rrsig_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 8;
 
-	if(rr->rdlength < length)
+	if(rr->rdlength < 18)
 		return 0;
 	buffer_printf(
 		output, "%s %" PRIu8 " %" PRIu8 " %" PRIu32 " ",
@@ -2926,8 +2927,8 @@ int32_t
 read_dnskey_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
-	/* short + byte + byte + binary */
-	if (rdlength < 5)
+	/* short + byte + byte + binary of remainder */
+	if (rdlength < 4)
 		return MALFORMED;
 	return read_rdata(domains, rdlength, packet, rr);
 }
@@ -3103,9 +3104,7 @@ print_hip_rdata(struct buffer *output, const struct rr *rr)
 	hit_length = rr->rdata[0];
 	pk_algorithm = rr->rdata[1];
 	pk_length = read_uint16(rr->rdata+2);
-	buffer_printf(
-		output, "%" PRIu8 " ",
-			pk_algorithm);
+	buffer_printf(output, "%" PRIu8 " ", pk_algorithm);
 	if(!print_base16(output, length+hit_length, rr->rdata, &length))
 		return 0;
 	buffer_printf(output, " ");
@@ -3126,8 +3125,8 @@ int32_t
 read_rkey_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
-	/* short + byte + byte + binary */
-	if (rdlength < 5)
+	/* short + byte + byte + binary of remainder */
+	if (rdlength < 4)
 		return MALFORMED;
 	return read_rdata(domains, rdlength, packet, rr);
 }
@@ -3205,8 +3204,8 @@ int32_t
 read_csync_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
-	/* long + short + binary */
-	if (rdlength < 7)
+	/* long + short + binary bitmap in remainder */
+	if (rdlength < 6)
 		return MALFORMED;
 	return read_rdata(domains, rdlength, packet, rr);
 }
