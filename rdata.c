@@ -2085,10 +2085,11 @@ read_loc_rdata(struct domain_table *domains, uint16_t rdlength,
 	/* version (byte) */
 	if (rdlength < 1)
 		return MALFORMED;
-	/* version (byte) + size (byte) + horiz pre (byte) + vert pre (byte)
-	 * latitude (long) + longitude (long) + altitude (long) */
+	/* version (byte) + size (byte)
+	 * + horizontal precision (byte) + vertical precision (byte)
+	 * + latitude (uint32) + longitude (uint32) + altitude (uint32) */
 	mark = buffer_position(packet);
-	version = buffer_read_u8_at(packet, mark + 2);
+	version = buffer_read_u8_at(packet, mark + 0);
 	size_version_0 = 16u;
 	if (version == 0 && rdlength != size_version_0)
 		return MALFORMED;
@@ -2116,7 +2117,7 @@ loc_cm_print(struct buffer* output, uint8_t mantissa, uint8_t exponent)
 int
 print_loc_rdata(struct buffer *output, const struct rr *rr)
 {
-	/* we could do checking (ie degrees < 90 etc)? */
+	/* This does not perform checking (ie degrees < 90 etc). */
 	uint8_t version;
 	uint8_t size;
 	uint8_t horizontal_precision;
@@ -2196,6 +2197,7 @@ print_loc_rdata(struct buffer *output, const struct rr *rr)
 
 	return 1;
 }
+
 int32_t
 read_nxt_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
