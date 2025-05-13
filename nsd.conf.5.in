@@ -149,9 +149,14 @@ work on other systems.
 .TP
 .B send\-buffer\-size:\fR <number>
 Set the send buffer size for query-servicing sockets.  Set to 0 to use the default settings.
+It needs some space to be able to deal with packets that wait for local
+address resolution, from like ARP and NDP discovery, before they are sent
+out, hence it is elevated above the system default by default.
+The default is 4194304 bytes (4m).
 .TP
 .B receive\-buffer\-size:\fR <number>
 Set the receive buffer size for query-servicing sockets.  Set to 0 to use the default settings.
+The default is 1048576 bytes (1m).
 .TP
 .B debug\-mode:\fR <yes or no>
 Turns on debugging mode for nsd, does not fork a daemon process.
