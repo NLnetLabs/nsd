@@ -1,3 +1,9 @@
+13 May 2025: Wouter
+	- Change default for send-buffer-size to 4m, to mitigate a
+	  cross-layer issue where the UDP socket send buffers are
+	  exhausted waiting for ARP/NDP resolution. Thanks to Reflyable
+	  for the report.
+
 6 May 2025: Wouter
 	- Fix #441: SystemD script for NSD prevents using chroot.
 	- Fix to add checks for compression pointers and too long dnames in

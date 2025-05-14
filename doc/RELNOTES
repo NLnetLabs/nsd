@@ -15,6 +15,10 @@ FEATURES:
 	- The --enable-dnstap feature is enabled by default. If fstrm-devel
 	  or protobuf-c are not found by configure it prints an error.
 	  It can be turned on with config like `dnstap-enable: yes`.
+	- Change default for send-buffer-size to 4m, to mitigate a
+	  cross-layer issue where the UDP socket send buffers are
+	  exhausted waiting for ARP/NDP resolution. Thanks to Reflyable
+	  for the report.
 
 BUG FIXES:
 	- Fix punctuation of nsd -h output for the -a option.

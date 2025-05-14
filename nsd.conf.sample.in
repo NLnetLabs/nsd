@@ -73,8 +73,8 @@ server:
 	# reuseport: no
 
 	# override maximum socket send buffer size.  Default of 0 results in
-	# send buffer size being set to 1048576 (bytes).
-	# send-buffer-size: 1048576
+	# send buffer size being set to 4194304 (bytes).
+	# send-buffer-size: 4194304
 
 	# override maximum socket receive buffer size. Default of 0 results in
 	# receive buffer size being set to 1048576 (bytes).

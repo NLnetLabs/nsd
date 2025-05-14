@@ -1253,7 +1253,7 @@ set_setfib(struct nsd_socket *sock)
 static int
 open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 {
-	int rcv = 1*1024*1024, snd = 1*1024*1024;
+	int rcv = 1*1024*1024, snd = 4*1024*1024;
 
 	if(-1 == (sock->s = socket(
 		sock->addr.ai_family, sock->addr.ai_socktype, 0)))
