@@ -1315,7 +1315,7 @@ read_compressed_name_rdata(struct domain_table *domains, uint16_t rdlength,
 	const size_t mark = buffer_position(packet);
 
 	if (!dname_make_from_packet_buffered(&dname, packet, 1, 1) ||
-	    rdlength < buffer_position(packet) - mark)
+	    rdlength != buffer_position(packet) - mark)
 		return MALFORMED;
 	size = sizeof(**rr) + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1338,7 +1338,7 @@ read_uncompressed_name_rdata(struct domain_table *domains, uint16_t rdlength,
 
 	if (!dname_make_from_packet_buffered(&dname, packet,
 		1 /* Lenient, allows pointers. */, 1) ||
-		rdlength < buffer_position(packet)-mark)
+		rdlength != buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1436,7 +1436,7 @@ read_soa_rdata(struct domain_table *domains, uint16_t rdlength,
 	const size_t mark = buffer_position(packet);
 	if (!dname_make_from_packet_buffered(&primary, packet, 1, 1) ||
 	    !dname_make_from_packet_buffered(&mailbox, packet, 1, 1) ||
-	    rdlength < (buffer_position(packet) - mark) + 20)
+	    rdlength != (buffer_position(packet) - mark) + 20)
 		return MALFORMED;
 
 	size = sizeof(**rr) + 2 * sizeof(struct domain *) + 20;
@@ -1614,7 +1614,7 @@ read_minfo_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (buffer_remaining(packet) < rdlength ||
 	    !dname_make_from_packet_buffered(&rmailbx, packet, 1, 1) ||
 	    !dname_make_from_packet_buffered(&emailbx, packet, 1, 1) ||
-	    rdlength < buffer_position(packet)-mark)
+	    rdlength != buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 * sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1669,7 +1669,7 @@ read_mx_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, 2);
 	if (!dname_make_from_packet_buffered(&exchange, packet, 1, 1))
 		return MALFORMED;
-	if (rdlength < buffer_position(packet)-mark)
+	if (rdlength != buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1745,7 +1745,7 @@ read_rp_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (buffer_remaining(packet) < rdlength ||
 	    !dname_make_from_packet_buffered(&mbox, packet, 1 /*lenient*/, 1) ||
 	    !dname_make_from_packet_buffered(&txt, packet, 1 /*lenient*/, 1) ||
-	    rdlength < buffer_position(packet)-mark)
+	    rdlength != buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 * sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1803,7 +1803,7 @@ read_afsdb_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, 2);
 	if (!dname_make_from_packet_buffered(&hostname, packet,
 		1 /*lenient*/, 1) ||
-	    rdlength < buffer_position(packet)-mark)
+	    rdlength != buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1914,7 +1914,7 @@ read_rt_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, 2);
 	if (!dname_make_from_packet_buffered(&dname, packet, 1 /*lenient*/, 1))
 		return MALFORMED;
-	if (rdlength < buffer_position(packet)-mark)
+	if (rdlength != buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -1993,7 +1993,7 @@ read_px_rdata(struct domain_table *domains, uint16_t rdlength,
 		1 /*lenient*/, 1) ||
 	   !dname_make_from_packet_buffered(&mapx400, packet,
 		1 /*lenient*/, 1) ||
-	   rdlength < buffer_position(packet) - mark)
+	   rdlength != buffer_position(packet) - mark)
 		return MALFORMED;
 
 	size = sizeof(**rr) + 2 + 2*sizeof(void*);
@@ -2301,7 +2301,7 @@ read_srv_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, 6);
 	if (!dname_make_from_packet_buffered(&dname, packet,
 		1 /* lenient */, 1) ||
-	    rdlength < buffer_position(packet)-mark)
+	    rdlength != buffer_position(packet)-mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 6 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
@@ -2392,7 +2392,7 @@ read_naptr_rdata(struct domain_table *domains, uint16_t rdlength,
 	   skip_string(packet, rdlength, &length) < 0 ||
 	   skip_string(packet, rdlength, &length) < 0 ||
 	   !dname_make_from_packet_buffered(&dname, packet, 1, 1) ||
-	   rdlength < buffer_position(packet) - mark)
+	   rdlength != buffer_position(packet) - mark)
 		return MALFORMED;
 
 	size = sizeof(**rr) + length + sizeof(void*);
@@ -2461,7 +2461,7 @@ read_kx_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, 2);
 	if(!dname_make_from_packet_buffered(&dname, packet,
 		1 /* lenient */, 1) ||
-	    rdlength < buffer_position(packet) - mark)
+	    rdlength != buffer_position(packet) - mark)
 		return MALFORMED;
 
 	size = sizeof(**rr) + 2 + sizeof(void*);
@@ -2624,7 +2624,7 @@ read_ds_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
 	/* short + byte + byte + binary */
-	if (rdlength < 5)
+	if (rdlength < 4)
 		return MALFORMED;
 	return read_rdata(domains, rdlength, packet, rr);
 }
@@ -2651,7 +2651,7 @@ read_sshfp_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
 	/* byte + byte + binary */
-	if (rdlength < 3)
+	if (rdlength < 2)
 		return MALFORMED;
 	return read_rdata(domains, rdlength, packet, rr);
 }
@@ -2833,7 +2833,7 @@ read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 	if (rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 	memrdlen = 18 + signer.dname.name_size;
-	b64len = rdlength - memrdlen;
+	b64len = rdlength - (buffer_position(packet) - mark);
 	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + memrdlen + b64len)))
 		return TRUNCATED;
 	buffer_read_at(packet, mark, (*rr)->rdata, 18);
@@ -3162,7 +3162,7 @@ read_talink_rdata(struct domain_table *domains, uint16_t rdlength,
 	if(!dname_make_from_packet_buffered(&next, packet,
 		1 /* lenient */, 1))
 		return MALFORMED;
-	if(buffer_position(packet)-mark > rdlength)
+	if(buffer_position(packet)-mark != rdlength)
 		return MALFORMED;
 	if (!(*rr = region_alloc(domains->region,
 		sizeof(**rr) + prev.dname.name_size + next.dname.name_size)))
@@ -3350,7 +3350,7 @@ read_dsync_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, length);
 	if(!dname_make_from_packet_buffered(&target, packet,
 		1 /* lenient */, 1) ||
-	   rdlength < buffer_position(packet) - mark)
+	   rdlength != buffer_position(packet) - mark)
 		return MALFORMED;
 	length += target.dname.name_size;
 
@@ -3466,7 +3466,7 @@ read_lp_rdata(struct domain_table *domains, uint16_t rdlength,
 	buffer_skip(packet, 2);
 	if (!dname_make_from_packet_buffered(&target, packet,
 		1 /* lenient */, 1) ||
-	    rdlength < buffer_position(packet) - mark)
+	    rdlength != buffer_position(packet) - mark)
 		return MALFORMED;
 	size = sizeof(**rr) + 2 + sizeof(void*);
 	if (!(*rr = region_alloc(domains->region, size)))
