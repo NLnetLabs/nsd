@@ -181,7 +181,7 @@ print_domain(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 {
 	const struct dname *dname;
 	struct domain *domain;
-	if(rdlength < sizeof(void*))
+	if(rdlength - *offset < (uint16_t)sizeof(void*))
 		return 0;
 	memcpy(&domain, rdata+*offset, sizeof(void*));
 	dname = domain_dname(domain);
@@ -3486,7 +3486,7 @@ write_lp_rdata(struct query *query, const struct rr *rr)
 	const struct dname *dname;
 
 	/* short + uncompressed name */
-	assert(rr->rdlength != 2 + sizeof(void*));
+	assert(rr->rdlength == 2 + sizeof(void*));
 	memcpy(&domain, rr->rdata + 2, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, rr->rdata, 2);
@@ -3498,7 +3498,7 @@ print_lp_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 2;
 
-	assert(rr->rdlength > 2);
+	assert(rr->rdlength == 2 + sizeof(void*));
 	buffer_printf(output, "%" PRIu16 " ", read_uint16(rr->rdata));
 	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
@@ -3550,8 +3550,8 @@ int32_t
 read_uri_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
-	/* short + short + binary (must be greater than zero) */
-	if (rdlength < 5)
+	/* short + short + long string */
+	if (rdlength < 4)
 		return MALFORMED;
 	return read_rdata(domains, rdlength, packet, rr);
 }
@@ -3566,7 +3566,7 @@ print_uri_rdata(struct buffer *output, const struct rr *rr)
 	buffer_printf(
 		output, "%" PRIu16 " %" PRIu16 " ",
 		read_uint16(rr->rdata), read_uint16(rr->rdata + 2));
-	if (!print_string(output, rr->rdlength, rr->rdata, &length))
+	if(!print_text(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 	if(rr->rdlength != length)
 		return 0;
@@ -3702,6 +3702,8 @@ read_amtrelay_rdata(struct domain_table *domains, uint16_t rdlength,
 	default:
 		return MALFORMED;
 	}
+	if(rdlength != buffer_position(packet) - mark)
+		return MALFORMED; /* trailing bytes */
 
 	if (!(*rr = region_alloc(domains->region,
 		sizeof(**rr) + 2 + relay_length)))
@@ -3801,7 +3803,7 @@ read_dlv_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
 	/* short + byte + byte + binary */
-	if (rdlength < 5)
+	if (rdlength < 4)
 		return MALFORMED;
 	return read_rdata(domains, rdlength, packet, rr);
 }
