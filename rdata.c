@@ -3292,8 +3292,9 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 	domain->usage++;
 	buffer_read_at(packet, mark, (*rr)->rdata, 2);
 	memcpy((*rr)->rdata + 2, &domain, sizeof(void*));
-	buffer_read_at(packet, mark + length, (*rr)->rdata + 2 + sizeof(void*),
-		svcparams_length);
+	if(svcparams_length != 0)
+		buffer_read_at(packet, mark + length,
+			(*rr)->rdata + 2 + sizeof(void*), svcparams_length);
 	(*rr)->rdlength = 2 + sizeof(void*) + svcparams_length;
 	return rdlength;
 }
@@ -3311,7 +3312,9 @@ write_svcb_rdata(struct query *query, const struct rr *rr)
 	buffer_write(query->packet, rr->rdata, 2);
 	buffer_write(query->packet, dname_name(target), target->name_size);
 	length = 2 + sizeof(void*);
-	buffer_write(query->packet, rr->rdata + length, rr->rdlength - length);
+	if(rr->rdlength > length)
+		buffer_write(query->packet, rr->rdata + length,
+			rr->rdlength - length);
 }
 
 int
