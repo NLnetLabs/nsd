@@ -217,6 +217,11 @@ struct component {
 %token VAR_CATALOG
 %token VAR_CATALOG_MEMBER_PATTERN
 %token VAR_CATALOG_PRODUCER_ZONE
+%token VAR_XDP_INTERFACE
+%token VAR_XDP_PROGRAM_PATH
+%token VAR_XDP_PROGRAM_LOAD
+%token VAR_XDP_BPFFS_PATH
+%token VAR_XDP_FORCE_COPY
 
 /* zone */
 %token VAR_ZONE
@@ -591,6 +596,36 @@ server_option:
           }
         }
       }
+    }
+  | VAR_XDP_INTERFACE STRING
+    {
+#ifdef USE_XDP
+      cfg_parser->opt->xdp_interface = region_strdup(cfg_parser->opt->region, $2);
+#endif
+    }
+  | VAR_XDP_PROGRAM_PATH STRING
+    {
+#ifdef USE_XDP
+      cfg_parser->opt->xdp_program_path = region_strdup(cfg_parser->opt->region, $2);
+#endif
+    }
+  | VAR_XDP_PROGRAM_LOAD boolean
+    {
+#ifdef USE_XDP
+      cfg_parser->opt->xdp_program_load = $2;
+#endif
+    }
+  | VAR_XDP_BPFFS_PATH STRING
+    {
+#ifdef USE_XDP
+      cfg_parser->opt->xdp_bpffs_path = region_strdup(cfg_parser->opt->region, $2);
+#endif
+	}
+  | VAR_XDP_FORCE_COPY boolean
+    {
+#ifdef USE_XDP
+      cfg_parser->opt->xdp_force_copy = $2;
+#endif
     }
   | VAR_METRICS_ENABLE boolean
     {

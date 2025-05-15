@@ -48,6 +48,8 @@
 /tpkg/long/result.*
 /tpkg/long/.done-*
 /tpkg/long/*.log
+/*.ll
+/xdp-dns-redirect_kern_pinned.c
 
 # Eclipse IDE Project Settings
 .cproject

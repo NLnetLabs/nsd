@@ -283,6 +283,41 @@ server:
 	# expect PROXYv2. For UDP and TCP/TLS interfaces.
 	# proxy-protocol-port: portno for each of the port numbers.
 
+	# The interface to use XDP with. Default is "", disabled.
+	# xdp-interface: eth0
+
+	# The eBPF XDP program to extract the XSKMAP from. Specify your own
+	# program here, if you want to use a custom XDP program.
+	# The default program shipped with NSD only redirects UDP
+	# (over Ethernet[+VLAN]+IPv4/6) traffic to port 53. When using your own
+	# XDP program, it needs to define a BPF_MAP_TYPE_XSKMAP named "xsks_map"
+	# and pin it (see xdp-bpffs-path) with read and write permission for NSD.
+	# This option needs to be set even when NSD is configured not to load
+	# the specified XDP program (see xdp-program-load), to be able to
+	# access the XSKMAP. Default is "@sharedfilesdir@/xdp-dns-redirect_kern.o".
+	# xdp-program-path: "@sharedfilesdir@/xdp-dns-redirect_kern.o"
+
+	# Specify whether NSD should load the XDP program. If set to no, you need
+	# to load the XDP program yourself. Default is yes, if xdp-interface is set.
+	# xdp-program-load: yes
+
+	# The path to the bpffs to store/read the xsks_map pin. The default XDP
+	# program loaded by NSD doesn't need this option, it is only necessary if
+	# you load a program that pins its BPF map.
+	# If NSD is configured to load an XDP program that pins its map, NSD needs
+	# to have read/write/execute access to the specified bpffs to be able to
+	# create and later delete the map pin. If you load the XDP program
+	# yourself, NSD only needs read and write access to the pin file itself
+	# (but at least execute access to the parent directories). The default
+	# bpffs (/sys/fs/bpf) usually doesn't have the necessary permissions set
+	# for non-root users. You can either set the necessary permissions or mount
+	# your own bpffs. Default is "/sys/fs/bpf".
+	# xdp-bpffs-path: "/sys/fs/bpf"
+
+	# Force the use of XDP_COPY mode instead of zero copy for AF_XDP sockets.
+	# This can help with drivers with broken AF_XDP support. Default is no.
+	# xdp-force-copy: no
+
 	# Enable the prometheus metrics HTTP endpoint. Default is no.
 	# metrics-enable: no
 
