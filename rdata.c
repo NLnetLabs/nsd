@@ -212,8 +212,8 @@ rdata_unquoted_to_string(buffer_type *output, rdata_atom_type rdata,
 	for (i = 1; i <= length; ++i) {
 		char ch = (char) data[i];
 		if (isprint((unsigned char)ch)) {
-			if (ch == '"' || ch == '\\'
-			||  isspace((unsigned char)ch)) {
+			if (ch == '"' || ch == '\\' || ch == '(' || ch == ')'
+			  || ch == '\'' || isspace((unsigned char)ch)) {
 				buffer_printf(output, "\\");
 			}
 			buffer_printf(output, "%c", ch);

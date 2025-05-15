@@ -11,14 +11,14 @@ jobs:
           - os: ubuntu-24.04
             cc: gcc
             cflags: -g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all
-            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison
+            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison libfstrm-dev protobuf-c-compiler libprotobuf-c-dev
           - os: ubuntu-24.04
             cc: clang
             cflags: -g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all
-            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison
+            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison libfstrm-dev protobuf-c-compiler libprotobuf-c-dev
           - os: macos-15
             cflags: -g2 -O0 -fsanitize=address,undefined -fno-sanitize-recover=all
-            packages: autoconf automake libtool flex bison
+            packages: autoconf automake libtool flex bison fstrm protobuf-c
             # The libevent and openssl packages are already installed.
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
           (cd simdzone && autoconf && autoheader)
           libtoolize -c -i || glibtoolize -c -i
           if test "${{runner.os}}" = 'macOS'; then
-            ./configure --enable-checking --disable-flto --with-ssl=/opt/homebrew/opt/openssl --with-libevent=/opt/homebrew/opt/libevent
+            ./configure --enable-checking --disable-flto --with-ssl=/opt/homebrew/opt/openssl --with-libevent=/opt/homebrew/opt/libevent --with-libfstrm=/opt/homebrew/opt/fstrm --with-protobuf-c=/opt/homebrew/opt/protobuf-c
           else
             ./configure --enable-checking --disable-flto --with-ssl=yes --with-libevent=yes
           fi

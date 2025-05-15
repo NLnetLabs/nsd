@@ -16,20 +16,12 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
-#ifndef USE_MINI_EVENT
-#    include <event2/event.h>
-#else
-#    warning "Using metrics with mini_event is untested, and libevent is needed anyway for http"
-#    include "mini_event.h"
-#endif
-#include "event2/http.h"
+#include <event2/event.h>
+#include <event2/http.h>
+
 #include "nsd.h"
 #include "xfrd.h"
 #include "options.h"
-#include "ipc.h"
-/* remote.h: re-using create_local_accept_sock as it happens to not be static
- * and is not remote control specific (w.r.t. log messages and ssl).
- */
 #include "remote.h"
 #include "metrics.h"
 
@@ -343,8 +335,8 @@ metrics_http_callback(struct evhttp_request *req, void *p)
 	VERBOSITY(3, (LOG_INFO, "metrics operation completed, response sent"));
 #else
 	evhttp_send_reply(req, HTTP_NOCONTENT, "No Content - Statistics disabled", reply);
-	/* TODO: should this be verbosity 3 too? */
-	log_msg(LOG_NOTICE, "no stats enabled at compile time\n");
+	log_msg(LOG_NOTICE, "metrics requested, but no stats enabled at compile time\n");
+	(void)metrics;
 #endif /* BIND8_STATS */
 
 	evbuffer_free(reply);
@@ -390,7 +382,7 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 	if (name) {
 		snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
 	} else {
-		sprintf(prefix, "nsd_");
+		snprintf(prefix, sizeof(prefix), "nsd_");
 	}
 
 	/* nsd_queries_by_type_total */

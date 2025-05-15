@@ -64,6 +64,7 @@ attribution to NLnet Labs.
 
    reference/configure-options
    reference/log-diagnosis
+   reference/rfc-compliance
 
 .. history
 .. authors

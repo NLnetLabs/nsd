@@ -14,6 +14,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <time.h>
+#include "bitset.h"
 struct rr;
 struct buffer;
 struct region;
@@ -441,5 +442,18 @@ void activate_cookie_secret(struct nsd* nsd);
 void drop_cookie_secret(struct nsd* nsd);
 /* Configure nsd struct with how to respond to DNS Cookies based on options */
 void reconfig_cookies(struct nsd* nsd, struct nsd_options* options);
+
+/* print server affinity for given socket's bitset.
+ * o "(all)";	if socket has no affinity with any specific server,
+ * o "(none)";	if no server uses the socket,
+ * o "x-y";	if socket has affinity with 'more than two consecutively'
+ *		numbered servers,
+ * o "x";	if socket has affinity with a specific server number, which is
+ *		not necessarily just one server. e.g. "1 3" is printed if
+ *		socket has affinity with servers number one and three, but not
+ *		server number two. Likewise "1 2" is printed if socket has
+ *		affinity with servers one and two, but not server number three.
+ */
+ssize_t print_socket_servers(struct nsd_bitset *bitset, char *buf, size_t bufsz);
 
 #endif /* UTIL_H */

@@ -13,6 +13,12 @@ else
 	exit 0
 fi
 
+if grep "define USE_METRICS" $PRE/config.h; then
+	use_metrics="yes"
+else
+	use_metrics="no"
+fi
+
 # run nsd-checkconf on all files
 checkcmd="../../nsd-checkconf -vv"
 echo "start of check" > outfile.tmp
@@ -25,6 +31,16 @@ for x in *.conf; do
 	# delete dnstap lines.
 	$checkcmd $x 2>&1 | grep -v "rrl-" | awk '/dnstap:/ {f=1} !f&&NR>1 {print p} {p=$0;f=0} END {print p}' | grep -v "dnstap" >>outfile.tmp
 done
+
+if test "$use_metrics" = "no"; then
+	# delete metrics- lines.
+	grep -v "metrics-" < checkconf.check > out.tmp
+	mv out.tmp checkconf.check
+	grep -v "metrics-" < checkconf.check2 > out.tmp
+	mv out.tmp checkconf.check2
+	grep -v "metrics-" < outfile.tmp > out.tmp
+	mv out.tmp outfile.tmp
+fi
 
 if diff checkconf.check outfile.tmp; then
 	echo "diff OK"

@@ -26,10 +26,6 @@ LDFLAGS=flags
 LIBS=libs
     Specify additional libraries to link with.
 
---enable-root-server
-    Configure NSD as a root server. Unless this option is specified, NSD will
-    refuse to serve the ``.`` zone as a misconfiguration safeguard.
-
 --disable-ipv6
     Disables IPv6 support in NSD.
 
@@ -40,14 +36,29 @@ LIBS=libs
     This will instruct NSD to be stricter when validating its input. This could
     lead to a reduced service level.
 
---enable-bind8-stats
-    Enables BIND8-like statistics.
+--disable-bind8-stats
+    Disables BIND8-like statistics.
 
---enable-ratelimit
-    Enables rate limiting, based on query name, type and source.
+--disable-zone-stats
 
---enable-draft-rrtypes
-    Enables draft RRtypes.
+    Disable per-zone statistics gathering (if enabled, it needs
+    bind8-stats).
+
+--disable-ratelimit
+    Disables rate limiting, based on query name, type and source.
+
+--disable-ratelimit-default-is-off
+    Disable this to set default of ratelimit to on (this controls
+    the default, ratelimits can be enabled and disabled in nsd.conf).
+
+--disable-dnstap
+
+    Disable dnstap support (requires fstrm-devel, protobuf-c).
+
+--enable-systemd
+
+    Compile with systemd support, and then the server notifies libsystemd
+    when the server is up (it needs pkg-config and systemd-devel).
 
 --with-configdir=dir
     Specified, NSD configuration directory, default :file:`/etc/nsd`.
