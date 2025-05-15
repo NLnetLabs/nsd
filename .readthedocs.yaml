@@ -12,6 +12,9 @@ build:
     - flex
     - bison
     - mandoc
+    - libprotobuf-c-dev
+    - protobuf-c-compiler
+    - libfstrm-dev
   tools:
     python: "3"
   jobs:
