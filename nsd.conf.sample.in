@@ -303,12 +303,22 @@ server:
 	# to load the XDP program yourself. Default is yes, if xdp-interface is set.
 	# xdp-program-load: yes
 
-	# The path to the bpffs to store/read the xsks_map pin. NSD needs to have
-	# read/write access to the specified bpffs. The default of libbpf
-	# (/sys/fs/bpf) usually doesn't have the necessary permissions set for
-	# non-root users. Either set the necessary permissions or mount your
-	# own bpffs. Default is "", letting libbpf decide the default path.
-	# xdp-bpffs-path: ""
+	# The path to the bpffs to store/read the xsks_map pin. The default XDP
+	# program loaded by NSD doesn't need this option, it is only necessary if
+	# you load a program that pins its BPF map.
+	# If NSD is configured to load an XDP program that pins its map, NSD needs
+	# to have read/write/execute access to the specified bpffs to be able to
+	# create and later delete the map pin. If you load the XDP program
+	# yourself, NSD only needs read and write access to the pin file itself
+	# (but at least execute access to the parent directories). The default
+	# bpffs (/sys/fs/bpf) usually doesn't have the necessary permissions set
+	# for non-root users. You can either set the necessary permissions or mount
+	# your own bpffs. Default is "/sys/fs/bpf".
+	# xdp-bpffs-path: "/sys/fs/bpf"
+
+	# Force the use of XDP_COPY mode instead of zero copy for AF_XDP sockets.
+	# This can help with drivers with broken AF_XDP support. Default is no.
+	# xdp-force-copy: no
 	# XDPend
 
 	# Enable the prometheus metrics HTTP endpoint. Default is no.
