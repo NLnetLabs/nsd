@@ -1580,6 +1580,8 @@ read_hinfo_rdata(struct domain_table *domains, uint16_t rdlength,
 	uint16_t length = 0;
 	const size_t mark = buffer_position(packet);
 
+	if(!buffer_available(packet, rdlength))
+		return MALFORMED;
 	if (skip_string(packet, rdlength, &length) < 0
 	 || skip_string(packet, rdlength, &length) < 0
 	 || rdlength != length)
@@ -1710,6 +1712,8 @@ read_txt_rdata(struct domain_table *owners, uint16_t rdlength,
 {
 	uint16_t length = 0;
 	const size_t mark = buffer_position(packet);
+	if(!buffer_available(packet, rdlength))
+		return MALFORMED;
 	if (skip_strings(packet, rdlength, &length) < 0 || rdlength != length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
@@ -1847,6 +1851,8 @@ read_x25_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	uint16_t length = 0;
 	const size_t mark = buffer_position(packet);
+	if(!buffer_available(packet, rdlength))
+		return MALFORMED;
 	if (skip_string(packet, rdlength, &length) < 0 || rdlength != length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
@@ -1871,6 +1877,8 @@ read_isdn_rdata(struct domain_table *domains, uint16_t rdlength,
 	uint16_t length = 0;
 	const size_t mark = buffer_position(packet);
 
+	if(!buffer_available(packet, rdlength))
+		return MALFORMED;
 	if (skip_string(packet, rdlength, &length) < 0)
 		return MALFORMED;
 	if(rdlength > length) {
@@ -1909,6 +1917,8 @@ read_rt_rdata(struct domain_table *domains, uint16_t rdlength,
 	size_t size;
 	const size_t mark = buffer_position(packet);
 
+	if(!buffer_available(packet, rdlength))
+		return MALFORMED;
 	if (rdlength < 2)
 		return MALFORMED;
 	buffer_skip(packet, 2);
@@ -2083,6 +2093,8 @@ read_loc_rdata(struct domain_table *domains, uint16_t rdlength,
 	uint8_t version;
 	uint16_t size_version_0;
 
+	if(!buffer_available(packet, rdlength))
+		return MALFORMED;
 	/* version (byte) */
 	if (rdlength < 1)
 		return MALFORMED;
@@ -2210,6 +2222,8 @@ read_nxt_rdata(struct domain_table *domains, uint16_t rdlength,
 	const size_t mark = buffer_position(packet);
 
 	/* name + nxt */
+	if(!buffer_available(packet, rdlength))
+		return MALFORMED;
 	if (!dname_make_from_packet_buffered(&dname, packet, 1, 1))
 		return MALFORMED;
 	if(rdlength < buffer_position(packet) - mark)
@@ -3154,6 +3168,8 @@ read_talink_rdata(struct domain_table *domains, uint16_t rdlength,
 {
 	struct dname_buffer prev, next;
 	const size_t mark = buffer_position(packet);
+	if(!buffer_available(packet, rdlength))
+		return MALFORMED;
 	if(!dname_make_from_packet_buffered(&prev, packet,
 		1 /* lenient */, 1))
 		return MALFORMED;
