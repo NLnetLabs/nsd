@@ -17,6 +17,11 @@
 #define APL_NEGATION_MASK      0x80U
 #define APL_LENGTH_MASK	       (~APL_NEGATION_MASK)
 
+/* High bit of the AMTRELAY Type byte in rdata[1] is the Discovery Optional
+ * flag, the D-bit. */
+#define AMTRELAY_DISCOVERY_OPTIONAL_MASK 0x80U
+#define AMTRELAY_TYPE_MASK		 0x7fU
+
 extern lookup_table_type dns_certificate_types[];
 extern lookup_table_type dns_algorithms[];
 

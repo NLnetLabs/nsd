@@ -3668,7 +3668,7 @@ read_amtrelay_rdata(struct domain_table *domains, uint16_t rdlength,
 
 	buffer_skip(packet, 2);
 
-	switch (buffer_read_u8_at(packet, mark + 1)&0x7f) {
+	switch (buffer_read_u8_at(packet, mark + 1)&AMTRELAY_TYPE_MASK) {
 	case AMTRELAY_NOGATEWAY:
 		relay_length = 0;
 		relay_rdata = NULL;
@@ -3724,9 +3724,11 @@ print_amtrelay_rdata(struct buffer *output, const struct rr *rr)
 
 	if(rr->rdlength < length)
 		return 0;
-	relay_type = rr->rdata[1]&0x7f;
+	relay_type = rr->rdata[1]&AMTRELAY_TYPE_MASK;
 	buffer_printf(output, "%" PRIu8 " %c %" PRIu8,
-		rr->rdata[0], (rr->rdata[1] & 0x80 ? '1' : '0'), relay_type);
+		rr->rdata[0],
+		(rr->rdata[1] & AMTRELAY_DISCOVERY_OPTIONAL_MASK ? '1' : '0'),
+		relay_type);
 	switch(relay_type) {
 	case AMTRELAY_NOGATEWAY:
 		break;
@@ -3769,7 +3771,7 @@ amtrelay_relay_length(uint16_t rdlength, const uint8_t *rdata, uint16_t offset,
 	 * That is stored in an earlier field. */
 	if(rdlength < 2 || offset < 2)
 		return -1; /* too short */
-	relay_type = rdata[1]&0x7f;
+	relay_type = rdata[1]&AMTRELAY_TYPE_MASK;
 	switch(relay_type) {
 	case AMTRELAY_NOGATEWAY:
 		return 0;
