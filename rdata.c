@@ -4171,10 +4171,28 @@ equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
 				}
 			}
 		} else {
-			res = compare_bytestring(rr1->rdata + offset1,
-				field_len1, rr2_rdata + offset2, field_len2);
-			if(res != 0)
-				return 0;
+			if(domain2) {
+				if(buf_dname_length(rr1->rdata + offset1,
+					rr1->rdlength-offset1) !=
+					domain_dname(domain2)->name_size) {
+					/* not the same length dnames. */
+					return 0;
+				}
+				if(!dname_equal_nocase(
+					(uint8_t*)rr1->rdata+offset1,
+					(uint8_t*)dname_name(domain_dname(
+						domain2)),
+					rr1->rdlength-offset1)) {
+					/* name comparison not equal. */
+					return 0;
+				}
+			} else {
+				res = compare_bytestring(rr1->rdata + offset1,
+					field_len1, rr2_rdata + offset2,
+					field_len2);
+				if(res != 0)
+					return 0;
+			}
 		}
 		offset1 += field_len1;
 		offset2 += field_len2;
