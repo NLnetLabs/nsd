@@ -63,7 +63,7 @@ VERSION = @PACKAGE_VERSION@
 # BPF/XDP settings
 CLANG	= @CLANG@
 LLC		= @LLC@
-BPF_CFLAGS ?= -Wall -Wextra -Wconversion -Werror
+BPF_CFLAGS = @BPF_CFLAGS@
 
 COMPILE		= $(CC) $(CPPFLAGS) $(CFLAGS)
 LINK		= $(CC) $(CFLAGS) $(LDFLAGS)
@@ -91,7 +91,7 @@ EDIT		= $(SED) \
 			-e 's,@sharedfilesdir\@,$(sharedfilesdir),g' \
 			-e 's/@date\@/$(DATE)/g'
 
-XDP_TARGETS=$(if @xdp@,xdp-dns-redirect_kern.o xdp-dns-redirect_kern_pinned.o,)
+XDP_TARGETS=@xdp_targets@
 TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf $(XDP_TARGETS)
 MANUALS=nsd.8 nsd-checkconf.8 nsd-checkzone.8 nsd-control.8 nsd.conf.5
 

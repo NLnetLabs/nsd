@@ -1172,15 +1172,26 @@ AC_ARG_ENABLE(xdp, AS_HELP_STRING([--enable-xdp],[Enable XDP support.]))
 case "$enable_xdp" in
 	yes)
 	AC_DEFINE_UNQUOTED([USE_XDP], [], [Define this to enable the use of AF_XDP sockets.])
+
 	AC_SEARCH_LIBS(xdp_program__open_file, [xdp],, [AC_MSG_ERROR([Cannot find libxdp, but is needed for xdp support.])])
 	AC_SEARCH_LIBS(bpf_map__fd, [bpf],, [AC_MSG_ERROR([Cannot find libbpf, but is needed for xdp support.])])
 	AC_SEARCH_LIBS(cap_set_proc, [cap],, [AC_MSG_ERROR([Cannot find libcap, but is needed for xdp support.])])
+
+	# Using ARG_VAR here because AC_PROG_xxx doesn't exist for CLANG and LLC
 	AC_ARG_VAR(CLANG, [location of clang compiler (only needed for xdp)])
 	AC_ARG_VAR(LLC, [location of LLVM static compiler (only needed for xdp)])
+	# CHECK_PROG will not overwrite a variable if it is already provided by the user on the commandline
 	AC_CHECK_PROG(CLANG, clang, clang)
 	AC_CHECK_PROG(LLC, llc, llc)
 	test "$CLANG" = "" && AC_MSG_ERROR([Cannot find clang, but is needed for xdp support.])
 	test "$LLC" = "" && AC_MSG_ERROR([Cannot find llc, but is needed for xdp support.])
+
+	AC_ARG_VAR(BPF_CFLAGS, [The list of arguments passed to the BPF compiler])
+	test "$BPF_CFLAGS" = "" && BPF_CFLAGS="-Wall -Wextra -Wconversion -Werror"
+
+	xdp_targets="xdp-dns-redirect_kern.o xdp-dns-redirect_kern_pinned.o"
+	AC_SUBST(xdp_targets)
+
 	xdp="xx"
 	;;
 	no|*)
