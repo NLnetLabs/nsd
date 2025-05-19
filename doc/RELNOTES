@@ -42,6 +42,7 @@ BUG FIXES:
 	- Fix #441: SystemD script for NSD prevents using chroot.
 	- Fix to add checks for compression pointers and too long dnames in
 	  internal dname routines, dname_make and ixfr dname_length.
+	- Fix to remove shell assignment operator from Makefile for DATE.
 
 4.12.0
 ================
