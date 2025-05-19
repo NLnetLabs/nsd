@@ -133,6 +133,9 @@ int32_t zonec_accept(
 	int32_t code;
 	const struct nsd_type_descriptor *descriptor;
 	struct zonec_state *state = (struct zonec_state *)user_data;
+#ifdef PACKED_STRUCTS
+	rrset_type* rrset_prev;
+#endif
 
 	assert(state);
 
@@ -191,12 +194,22 @@ int32_t zonec_accept(
 	}
 
 	/* Do we have this type of rrset already? */
+#ifndef PACKED_STRUCTS
 	rrset = domain_find_rrset(domain, state->zone, type);
+#else
+	rrset = domain_find_rrset_and_prev(domain, state->zone, type, &rrset_prev);
+#endif
 	if (!rrset) {
-		rrset = region_alloc(state->database->region, sizeof(*rrset));
+		rrset = region_alloc(state->database->region, sizeof(*rrset)
+#ifdef PACKED_STRUCTS
+			+ sizeof(rr_type*) /* Add space for one RR. */
+#endif
+			);
 		rrset->zone = state->zone;
 		rrset->rr_count = 0;
+#ifndef PACKED_STRUCTS
 		rrset->rrs = region_alloc(state->database->region, sizeof(rr_type*));
+#endif
 
 		switch (type) {
 			case TYPE_CNAME:
@@ -220,7 +233,11 @@ int32_t zonec_accept(
 		/* Add it */
 		domain_add_rrset(domain, rrset);
 	} else {
+#ifndef PACKED_STRUCTS
 		struct rr **rrs;
+#else
+		struct rrset *rrset_orig;
+#endif
 		if (type != TYPE_RRSIG && ttl != rrset->rrs[0]->ttl) {
 			zone_log(parser, ZONE_WARNING, "%s TTL %"PRIu32" does not match TTL %u of %s RRset",
 				domain_to_string(domain), ttl, rrset->rrs[0]->ttl,
@@ -250,11 +267,27 @@ int32_t zonec_accept(
 		}
 
 		/* Add it... */
+#ifndef PACKED_STRUCTS
 		rrs = rrset->rrs;
 		rrset->rrs = region_alloc_array(
 			state->database->region, rrset->rr_count + 1, sizeof(*rrs));
 		memcpy(rrset->rrs, rrs, rrset->rr_count * sizeof(*rrs));
 		region_recycle(state->database->region, rrs, rrset->rr_count * sizeof(*rrs));
+#else
+		rrset_orig = rrset;
+		rrset = region_alloc(state->database->region,
+			sizeof(rrset_type) +
+			(rrset_orig->rr_count+1)*sizeof(rr_type*));
+		memcpy(rrset, rrset_orig,
+			sizeof(rrset_type) +
+			rrset_orig->rr_count*sizeof(rr_type*));
+		if(rrset_prev)
+			rrset_prev->next = rrset;
+		else	domain->rrsets = rrset;
+		region_recycle(state->database->region, rrset_orig,
+			sizeof(rrset_type) +
+			rrset_orig->rr_count*sizeof(rr_type*));
+#endif /* PACKED_STRUCTS */
 	}
 
 	rrset->rrs[rrset->rr_count++] = rr;
@@ -414,12 +447,18 @@ apex_rrset_checks(namedb_type* db, rrset_type* rrset, domain_type* domain)
 		/* BUG #103 add another soa with a tweaked ttl */
 		if(zone->soa_nx_rrset == 0) {
 			zone->soa_nx_rrset = region_alloc(db->region,
-				sizeof(rrset_type));
+				sizeof(rrset_type)
+#ifdef PACKED_STRUCTS
+				+ sizeof(rr_type*)
+#endif
+				);
 			zone->soa_nx_rrset->rr_count = 1;
 			zone->soa_nx_rrset->next = 0;
 			zone->soa_nx_rrset->zone = zone;
+#ifndef PACKED_STRUCTS
 			zone->soa_nx_rrset->rrs = region_alloc(db->region,
 				sizeof(rr_type*));
+#endif
 			zone->soa_nx_rrset->rrs[0] = region_alloc(db->region,
 				sizeof(rr_type)+rrset->rrs[0]->rdlength);
 		}

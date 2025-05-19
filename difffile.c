@@ -323,9 +323,15 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	/* recycle the memory space of the rrset */
 	for (i = 0; i < rrset->rr_count; ++i)
 		add_rr_to_recyclebin(db, rrset->rrs[i]);
+#ifndef PACKED_STRUCTS
 	region_recycle(db->region, rrset->rrs, sizeof(rr_type*) * rrset->rr_count);
 	rrset->rr_count = 0;
-	region_recycle(db->region, rrset, sizeof(rrset_type));
+#endif
+	region_recycle(db->region, rrset, sizeof(rrset_type)
+#ifdef PACKED_STRUCTS
+		+ rrset->rr_count*sizeof(rr_type*)
+#endif
+		);
 }
 
 static int
@@ -700,6 +706,9 @@ delete_RR(namedb_type* db, const dname_type* dname,
 {
 	domain_type *domain;
 	rrset_type *rrset;
+#ifdef PACKED_STRUCTS
+	rrset_type* rrset_prev;
+#endif
 	const nsd_type_descriptor_type *descriptor = nsd_type_descriptor(type);
 	domain = domain_table_find(db->domains, dname);
 	if(!domain) {
@@ -709,7 +718,11 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		*softfail = 1;
 		return 1; /* not fatal error */
 	}
+#ifndef PACKED_STRUCTS
 	rrset = domain_find_rrset(domain, zone, type);
+#else
+	rrset = domain_find_rrset_and_prev(domain, zone, type, &rrset_prev);
+#endif
 	if(!rrset) {
 		log_msg(LOG_WARNING, "diff: rrset %s does not exist",
 			dname_to_string(dname,0));
@@ -775,12 +788,17 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			domain_table_deldomain(db, domain);
 		} else {
 			/* swap out the bad RR and decrease the count */
+#ifndef PACKED_STRUCTS
 			rr_type** rrs_orig = rrset->rrs;
+#else
+			rrset_type* rrset_orig = rrset;
+#endif
 			add_rr_to_recyclebin(db, rrset->rrs[rrnum]);
 			if(rrnum < rrset->rr_count-1)
 				rrset->rrs[rrnum] = rrset->rrs[rrset->rr_count-1];
 			rrset->rrs[rrset->rr_count-1] = NULL;
 			/* realloc the rrs array one smaller */
+#ifndef PACKED_STRUCTS
 			rrset->rrs = region_alloc_array_init(db->region, rrs_orig,
 				(rrset->rr_count-1), sizeof(rr_type*));
 			if(!rrset->rrs) {
@@ -789,6 +807,21 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			}
 			region_recycle(db->region, rrs_orig,
 				sizeof(rr_type*) * rrset->rr_count);
+#else
+			rrset = region_alloc_init(db->region, rrset_orig,
+				sizeof(rrset_type) +
+				(rrset_orig->rr_count-1)*sizeof(rr_type*));
+			if(!rrset) {
+				log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+				exit(1);
+			}
+			if(rrset_prev)
+				rrset_prev->next = rrset;
+			else	domain->rrsets = rrset;
+			region_recycle(db->region, rrset_orig,
+				sizeof(rrset_type) +
+				rrset_orig->rr_count*sizeof(rr_type*));
+#endif /* PACKED_STRUCTS */
 			rrset->rr_count --;
 #ifdef NSEC3
 			/* for type nsec3, the domain may have become a
@@ -810,7 +843,12 @@ add_RR(namedb_type* db, const dname_type* dname,
 {
 	domain_type* domain;
 	rrset_type* rrset;
-	rr_type **rrs_old, *rr;
+#ifndef PACKED_STRUCTS
+	rr_type **rrs_old
+#else
+	rrset_type* rrset_prev;
+#endif
+	rr_type *rr;
 	int32_t code;
 	int rrnum;
 	const nsd_type_descriptor_type *descriptor;
@@ -822,16 +860,26 @@ add_RR(namedb_type* db, const dname_type* dname,
 		/* create the domain */
 		domain = domain_table_insert(db->domains, dname);
 	}
+#ifndef PACKED_STRUCTS
 	rrset = domain_find_rrset(domain, zone, type);
+#else
+	rrset = domain_find_rrset_and_prev(domain, zone, type, &rrset_prev);
+#endif
 	if(!rrset) {
 		/* create the rrset */
-		rrset = region_alloc(db->region, sizeof(rrset_type));
+		rrset = region_alloc(db->region, sizeof(rrset_type)
+#ifdef PACKED_STRUCTS
+			+ sizeof(rr_type*) /* ready for add of one RR */
+#endif
+			);
 		if(!rrset) {
 			log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
 			exit(1);
 		}
 		rrset->zone = zone;
+#ifndef PACKED_STRUCTS
 		rrset->rrs = 0;
+#endif
 		rrset->rr_count = 0;
 		domain_add_rrset(domain, rrset);
 #ifdef NSEC3
@@ -876,6 +924,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	}
 
 	/* re-alloc the rrs and add the new */
+#ifndef PACKED_STRUCTS
 	rrs_old = rrset->rrs;
 	rrset->rrs = region_alloc_array(db->region,
 		(rrset->rr_count+1), sizeof(rr_type*));
@@ -888,6 +937,30 @@ add_RR(namedb_type* db, const dname_type* dname,
 	region_recycle(db->region, rrs_old, sizeof(rr_type*) * rrset->rr_count);
 	rrset->rr_count ++;
 	rrset->rrs[rrset->rr_count - 1] = rr;
+#else
+	if(rrset->rr_count == 0) {
+		/* It was allocated with space for one RR. */
+		rrset->rr_count = 1;
+		rrset->rrs[0] = rr;
+	} else {
+		rrset_type* rrset_old = rrset;
+		rrset = region_alloc(db->region, sizeof(rrset_type) +
+			(rrset_old->rr_count+1)*sizeof(rr_type*));
+		if(!rrset) {
+			log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+			exit(1);
+		}
+		memcpy(rrset, rrset_old, sizeof(rrset_type) +
+			rrset_old->rr_count * sizeof(rr_type*));
+		if(rrset_prev)
+			rrset_prev->next = rrset;
+		else	domain->rrsets = rrset;
+		region_recycle(db->region, rrset_old, sizeof(rrset_type) +
+			rrset_old->rr_count * sizeof(rr_type*));
+		rrset->rr_count ++;
+		rrset->rrs[rrset->rr_count - 1] = rr;
+	}
+#endif /* PACKED_STRUCTS */
 
 	/* see if it is a SOA */
 	if(domain == zone->apex) {

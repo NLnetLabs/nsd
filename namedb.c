@@ -539,6 +539,23 @@ domain_find_any_rrset(domain_type* domain, zone_type* zone)
 	return NULL;
 }
 
+rrset_type *
+domain_find_rrset_and_prev(domain_type* domain, zone_type* zone, uint16_t type,
+	rrset_type** prev)
+{
+	rrset_type* result = domain->rrsets, *prevp = NULL;
+
+	while (result) {
+		if (result->zone == zone && rrset_rrtype(result) == type) {
+			*prev = prevp;
+			return result;
+		}
+		prevp = result;
+		result = result->next;
+	}
+	return NULL;
+}
+
 zone_type *
 domain_find_zone(namedb_type* db, domain_type* domain)
 {

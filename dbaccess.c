@@ -141,10 +141,16 @@ namedb_zone_delete(namedb_type* db, zone_type* zone)
 	if(zone->soa_nx_rrset) {
 		region_recycle(db->region, zone->soa_nx_rrset->rrs[0],
 			sizeof(rr_type)+zone->soa_nx_rrset->rrs[0]->rdlength);
+#ifndef PACKED_STRUCTS
 		region_recycle(db->region, zone->soa_nx_rrset->rrs,
 			sizeof(rr_type*));
+#endif
 		region_recycle(db->region, zone->soa_nx_rrset,
-			sizeof(rrset_type));
+			sizeof(rrset_type)
+#ifdef PACKED_STRUCTS
+			+ sizeof(rr_type*)
+#endif
+			);
 	}
 #ifdef NSEC3
 	hash_tree_delete(db->region, zone->nsec3tree);

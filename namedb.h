@@ -185,8 +185,25 @@ struct rrset
 {
 	rrset_type* next;
 	zone_type*  zone;
+#ifndef PACKED_STRUCTS
+	/* If the storage is not packed, there is a pointer to a separate
+	 * array of rr_type pointers. This is then accessed in an aligned
+	 * manner.
+	 * If the storage is packed, the pointer to the array is not there.
+	 * The rr_type pointers for the rrs are stored after the struct rrset,
+	 * contiguously allocated. This is then unaligned pointers, as they
+	 * are after the packed structure. The region also stores items when
+	 * packed structs is enabled without alignment, and thus there are
+	 * unaligned accesses. So unaligned access is used them. This saves
+	 * the space used by the rr_type** rrs array pointer.
+	 * There are accessor functions that hide the storage for rr pointers.
+	 */
 	rr_type**   rrs;
+#endif
 	uint16_t    rr_count;
+#ifdef PACKED_STRUCTS
+	rr_type*    rrs[]; /* c99 flexible array */
+#endif
 } ATTR_PACKED;
 
 /*
@@ -252,6 +269,8 @@ void domain_add_rrset(domain_type* domain, rrset_type* rrset);
 
 rrset_type* domain_find_rrset(domain_type* domain, zone_type* zone, uint16_t type);
 rrset_type* domain_find_any_rrset(domain_type* domain, zone_type* zone);
+rrset_type* domain_find_rrset_and_prev(domain_type* domain, zone_type* zone,
+	uint16_t type, rrset_type** prev);
 
 zone_type* domain_find_zone(namedb_type* db, domain_type* domain);
 zone_type* domain_find_parent_zone(namedb_type* db, zone_type* zone);
@@ -386,12 +405,50 @@ int create_dirs(const char* path);
 int file_get_mtime(const char* file, struct timespec* mtime, int* nonexist);
 void allocate_domain_nsec3(domain_table_type *table, domain_type *result);
 
+static inline rr_type*
+rrset_rrs(rrset_type* rrset, uint16_t index)
+{
+#ifndef PACKED_STRUCTS
+	assert(index < rrset->rr_count);
+	return rrset->rrs[index];
+#else
+#  if 0
+	rr_type* rr;
+	assert(index < rrset->rr_count);
+	memcpy(&rr, &rrset->rrs[index], sizeof(rr_type*));
+	return rr;
+#  else
+	/* Unaligned memory access. */
+	assert(index < rrset->rr_count);
+	return rrset->rrs[index];
+#  endif
+#endif /* PACKED_STRUCTS */
+}
+
+static inline void
+rrset_rrs_set(rrset_type* rrset, uint16_t index, rr_type* rr)
+{
+#ifndef PACKED_STRUCTS
+	assert(index < rrset->rr_count);
+	rrset->rrs[index] = rr;
+#else
+#  if 0
+	assert(index < rrset->rr_count);
+	memcpy(&rrset->rrs[index], &rr, sizeof(rr_type*));
+#  else
+	/* Unaligned memory access. */
+	assert(index < rrset->rr_count);
+	rrset->rrs[index] = rr;
+#  endif
+#endif /* PACKED_STRUCTS */
+}
+
 static inline uint16_t
 rrset_rrtype(rrset_type* rrset)
 {
 	assert(rrset);
 	assert(rrset->rr_count > 0);
-	return rrset->rrs[0]->type;
+	return rrset_rrs(rrset, 0)->type;
 }
 
 static inline uint16_t
@@ -399,7 +456,7 @@ rrset_rrclass(rrset_type* rrset)
 {
 	assert(rrset);
 	assert(rrset->rr_count > 0);
-	return rrset->rrs[0]->klass;
+	return rrset_rrs(rrset, 0)->klass;
 }
 
 /*

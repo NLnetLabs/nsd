@@ -898,11 +898,17 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 	*to_closest_match = cname_dest;
 
 	/* allocate the CNAME RR */
-	rrset = (rrset_type*) region_alloc(q->region, sizeof(rrset_type));
+	rrset = (rrset_type*) region_alloc(q->region, sizeof(rrset_type)
+#ifdef PACKED_STRUCTS
+		+ sizeof(rr_type*)
+#endif
+		);
 	memset(rrset, 0, sizeof(rrset_type));
 	rrset->zone = q->zone;
 	rrset->rr_count = 1;
+#ifndef PACKED_STRUCTS
 	rrset->rrs = (rr_type**) region_alloc(q->region, sizeof(rr_type*));
+#endif
 	rrset->rrs[0] = (rr_type*) region_alloc(q->region,
 		sizeof(rr_type)+sizeof(void*));
 	memset(rrset->rrs[0], 0, sizeof(rr_type));
