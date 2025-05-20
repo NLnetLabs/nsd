@@ -844,7 +844,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	domain_type* domain;
 	rrset_type* rrset;
 #ifndef PACKED_STRUCTS
-	rr_type **rrs_old
+	rr_type **rrs_old;
 #else
 	rrset_type* rrset_prev;
 #endif
