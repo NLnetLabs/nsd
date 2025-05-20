@@ -553,6 +553,7 @@ domain_find_rrset_and_prev(domain_type* domain, zone_type* zone, uint16_t type,
 		prevp = result;
 		result = result->next;
 	}
+	*prev = NULL;
 	return NULL;
 }
 
