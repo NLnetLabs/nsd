@@ -55,7 +55,7 @@ YACC 	= @YACC@
 LEX		= @LEX@
 PROTOC_C	= @PROTOC_C@
 
-DATE != date +'%b %e, %y'
+DATE = `date +'%b %e, %y'`
 PROJECT = @PACKAGE_NAME@
 VERSION = @PACKAGE_VERSION@
 
@@ -82,7 +82,7 @@ EDIT		= $(SED) \
 			-e 's,@user\@,$(user),g' \
 			-e 's/@project\@/$(PROJECT)/g' \
 			-e 's/@version\@/$(VERSION)/g' \
-			-e 's/@date\@/$(DATE)/g'
+			-e "s/@date\@/$(DATE)/g"
 
 TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf
 MANUALS=nsd.8 nsd-checkconf.8 nsd-checkzone.8 nsd-control.8 nsd.conf.5
