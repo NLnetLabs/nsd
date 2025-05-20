@@ -821,6 +821,15 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			region_recycle(db->region, rrset_orig,
 				sizeof(rrset_type) +
 				rrset_orig->rr_count*sizeof(rr_type*));
+			if(domain == zone->apex) {
+				/* Because the rrset struct is reallocated,
+				 * a pointer to it may need to be set again. */
+				if(type == TYPE_SOA) {
+					zone->soa_rrset = rrset;
+				} else if(type == TYPE_NS) {
+					zone->ns_rrset = rrset;
+				}
+			}
 #endif /* PACKED_STRUCTS */
 			rrset->rr_count --;
 #ifdef NSEC3
