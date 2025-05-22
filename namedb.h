@@ -194,9 +194,11 @@ struct rrset
 	 * contiguously allocated. This is then unaligned pointers, as they
 	 * are after the packed structure. The region also stores items when
 	 * packed structs is enabled without alignment, and thus there are
-	 * unaligned accesses. So unaligned access is used them. This saves
+	 * unaligned accesses. It then has unaligned access for like struct
+	 * domain. So unaligned access is used then, here too. This saves
 	 * the space used by the rr_type** rrs array pointer.
-	 * There are accessor functions that hide the storage for rr pointers.
+	 * The rr pointers can then be accessed through the rrs[] member and,
+	 * that is an unaligned access, and does not need an accessor function.
 	 */
 	rr_type**   rrs;
 #endif
@@ -405,50 +407,12 @@ int create_dirs(const char* path);
 int file_get_mtime(const char* file, struct timespec* mtime, int* nonexist);
 void allocate_domain_nsec3(domain_table_type *table, domain_type *result);
 
-static inline rr_type*
-rrset_rrs(rrset_type* rrset, uint16_t index)
-{
-#ifndef PACKED_STRUCTS
-	assert(index < rrset->rr_count);
-	return rrset->rrs[index];
-#else
-#  if 0
-	rr_type* rr;
-	assert(index < rrset->rr_count);
-	memcpy(&rr, &rrset->rrs[index], sizeof(rr_type*));
-	return rr;
-#  else
-	/* Unaligned memory access. */
-	assert(index < rrset->rr_count);
-	return rrset->rrs[index];
-#  endif
-#endif /* PACKED_STRUCTS */
-}
-
-static inline void
-rrset_rrs_set(rrset_type* rrset, uint16_t index, rr_type* rr)
-{
-#ifndef PACKED_STRUCTS
-	assert(index < rrset->rr_count);
-	rrset->rrs[index] = rr;
-#else
-#  if 0
-	assert(index < rrset->rr_count);
-	memcpy(&rrset->rrs[index], &rr, sizeof(rr_type*));
-#  else
-	/* Unaligned memory access. */
-	assert(index < rrset->rr_count);
-	rrset->rrs[index] = rr;
-#  endif
-#endif /* PACKED_STRUCTS */
-}
-
 static inline uint16_t
 rrset_rrtype(rrset_type* rrset)
 {
 	assert(rrset);
 	assert(rrset->rr_count > 0);
-	return rrset_rrs(rrset, 0)->type;
+	return rrset->rrs[0]->type;
 }
 
 static inline uint16_t
@@ -456,7 +420,7 @@ rrset_rrclass(rrset_type* rrset)
 {
 	assert(rrset);
 	assert(rrset->rr_count > 0);
-	return rrset_rrs(rrset, 0)->klass;
+	return rrset->rrs[0]->klass;
 }
 
 /*
