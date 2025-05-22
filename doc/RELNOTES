@@ -43,6 +43,7 @@ BUG FIXES:
 	- Fix to add checks for compression pointers and too long dnames in
 	  internal dname routines, dname_make and ixfr dname_length.
 	- Fix to remove shell assignment operator from Makefile for DATE.
+	- make depend.
 
 4.12.0
 ================
