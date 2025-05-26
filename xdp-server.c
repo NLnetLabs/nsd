@@ -55,6 +55,7 @@
 #include "xdp-util.h"
 #include "nsd.h"
 
+// TODO: make configurable
 #define DNS_PORT 53
 
 struct xdp_config {
