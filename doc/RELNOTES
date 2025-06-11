@@ -44,6 +44,7 @@ BUG FIXES:
 	  internal dname routines, dname_make and ixfr dname_length.
 	- Fix to remove shell assignment operator from Makefile for DATE.
 	- make depend.
+	- Fix bitwise operators in conditional expressions with parentheses.
 
 4.12.0
 ================
