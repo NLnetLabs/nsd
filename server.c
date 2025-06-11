@@ -3567,7 +3567,7 @@ server_child(struct nsd *nsd)
 		numifs = nsd->ifs;
 	}
 
-	if (nsd->server_kind & NSD_SERVER_UDP) {
+	if ((nsd->server_kind & NSD_SERVER_UDP)) {
 		int child = nsd->this_child->child_num;
 		memset(msgs, 0, sizeof(msgs));
 		for (i = 0; i < NUM_RECV_PER_SELECT; i++) {
@@ -3605,7 +3605,7 @@ server_child(struct nsd *nsd)
 	 * and disable them based on the current number of active TCP
 	 * connections.
 	 */
-	if (nsd->server_kind & NSD_SERVER_TCP) {
+	if ((nsd->server_kind & NSD_SERVER_TCP)) {
 		int child = nsd->this_child->child_num;
 		tcp_accept_handler_count = numifs;
 		tcp_accept_handlers = region_alloc_array(server_region,

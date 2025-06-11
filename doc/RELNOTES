@@ -45,6 +45,7 @@ BUG FIXES:
 	- Fix to remove shell assignment operator from Makefile for DATE.
 	- make depend.
 	- Fix bitwise operators in conditional expressions with parentheses.
+	- Fix conditional expressions with parentheses for bitwise and.
 
 4.12.0
 ================

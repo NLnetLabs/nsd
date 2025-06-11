@@ -1,5 +1,6 @@
 11 June 2025: Wouter
 	- Fix bitwise operators in conditional expressions with parentheses.
+	- Fix conditional expressions with parentheses for bitwise and.
 
 22 May 2025: Wouter
 	- make depend.

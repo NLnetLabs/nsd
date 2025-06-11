@@ -1890,7 +1890,7 @@ repat_patterns(xfrd_state_type* xfrd, struct nsd_options* newopt)
 				const dname_type* dname =
 					parse_implicit_name(xfrd, p->pname);
 				if (dname) {
-					if (newstate & REPAT_SLAVE) {
+					if ((newstate & REPAT_SLAVE)) {
 						struct zone_options* zopt =
 							zone_options_find(
 							oldopt, dname);
@@ -1898,11 +1898,11 @@ repat_patterns(xfrd_state_type* xfrd, struct nsd_options* newopt)
 							xfrd_init_slave_zone(
 								xfrd, zopt);
 						}
-					} else if (newstate & REPAT_MASTER) {
+					} else if ((newstate & REPAT_MASTER)) {
 						xfrd_del_slave_zone(xfrd,
 							dname);
 					}
-					if (newstate & REPAT_CATALOG_CONSUMER) {
+					if ((newstate & REPAT_CATALOG_CONSUMER)) {
 						struct zone_options* zopt =
 							zone_options_find(
 							oldopt, dname);
@@ -1910,7 +1910,7 @@ repat_patterns(xfrd_state_type* xfrd, struct nsd_options* newopt)
 							xfrd_init_catalog_consumer_zone(
 								xfrd, zopt);
 						}
-					} else if (newstate & REPAT_CATALOG_CONSUMER_DEINIT) {
+					} else if ((newstate & REPAT_CATALOG_CONSUMER_DEINIT)) {
 						xfrd_deinit_catalog_consumer_zone(
 								xfrd, dname);
 					}
@@ -1932,19 +1932,19 @@ repat_patterns(xfrd_state_type* xfrd, struct nsd_options* newopt)
 		RBTREE_FOR(zone_opt, struct zone_options*, oldopt->zone_options) {
 			struct pattern_options* oldp = zone_opt->pattern;
 			if (!oldp->implicit) {
-				if (oldp->xfrd_flags & REPAT_SLAVE) {
+				if ((oldp->xfrd_flags & REPAT_SLAVE)) {
 					/* xfrd needs stable reference so get
 					 * it from the oldopt(modified) tree */
 					xfrd_init_slave_zone(xfrd, zone_opt);
-				} else if (oldp->xfrd_flags & REPAT_MASTER) {
+				} else if ((oldp->xfrd_flags & REPAT_MASTER)) {
 					xfrd_del_slave_zone(xfrd,
 						(const dname_type*)
 						zone_opt->node.key);
 				}
-				if (oldp->xfrd_flags & REPAT_CATALOG_CONSUMER) {
+				if ((oldp->xfrd_flags & REPAT_CATALOG_CONSUMER)) {
 					xfrd_init_catalog_consumer_zone(xfrd,
 							zone_opt);
-				} else if (oldp->xfrd_flags & REPAT_CATALOG_CONSUMER_DEINIT) {
+				} else if ((oldp->xfrd_flags & REPAT_CATALOG_CONSUMER_DEINIT)) {
 					xfrd_deinit_catalog_consumer_zone(xfrd,
 						(const dname_type*)
 						zone_opt->node.key);
