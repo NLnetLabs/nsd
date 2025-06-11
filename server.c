@@ -2419,7 +2419,7 @@ static void server_reload_handle_sigchld(int sig, short event,
 		void* ATTR_UNUSED(arg))
 {
 	assert(sig == SIGCHLD);
-	assert(event & EV_SIGNAL);
+	assert((event & EV_SIGNAL));
 
 	/* reap the exited old-serve child(s) */
 	while(waitpid(-1, NULL, WNOHANG) > 0) {
@@ -2434,7 +2434,7 @@ static void server_reload_handle_quit_sync_ack(int cmdsocket, short event,
 		(struct quit_sync_event_data*)arg;
 	ssize_t r;
 
-	if(event & EV_TIMEOUT) {
+	if((event & EV_TIMEOUT)) {
 		sig_atomic_t cmd = NSD_QUIT_SYNC;
 
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
@@ -2447,7 +2447,7 @@ static void server_reload_handle_quit_sync_ack(int cmdsocket, short event,
 		 */
 		return;
 	}
-	assert(event & EV_READ);
+	assert((event & EV_READ));
 	assert(cb_data->read < sizeof(cb_data->to_read.cmd));
 
 	r = read(cmdsocket, cb_data->to_read.buf + cb_data->read,
@@ -3698,7 +3698,7 @@ server_child(struct nsd *nsd)
 static void remaining_tcp_timeout(int ATTR_UNUSED(fd), short event, void* arg)
 {
 	int* timed_out = (int*)arg;
-        assert(event & EV_TIMEOUT); (void)event;
+        assert((event & EV_TIMEOUT)); (void)event;
 	/* wake up the service tcp thread, note event is no longer
 	 * registered */
 	*timed_out = 1;
