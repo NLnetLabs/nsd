@@ -46,6 +46,8 @@ BUG FIXES:
 	- make depend.
 	- Fix bitwise operators in conditional expressions with parentheses.
 	- Fix conditional expressions with parentheses for bitwise and.
+	- Merge #445: contrib/nsd.openrc.in: use supervise-daemon and
+	  add `need net`.
 
 4.12.0
 ================
