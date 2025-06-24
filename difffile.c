@@ -1366,6 +1366,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 				i, num_parts, &is_axfr, &delete_mode,
 				&rr_count, zone,
 				&num_bytes, &softfail, ixfr_store);
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "part %d processed (total %d bytes)", (int)i, num_bytes));
 			if(ret == 0) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d in diff file for %s", (int)i, zone_buf);
 				diff_update_commit(
