@@ -1,6 +1,7 @@
 4 July 2025: Wouter
 	- Fix #446 nsd_size_db_in_mem_bytes (size.db.mem) metric not
 	  updated on reload.
+	- For #446, remove unused edit.
 
 13 June 2025: Wouter
 	- Merge #445: contrib/nsd.openrc.in: use supervise-daemon and
