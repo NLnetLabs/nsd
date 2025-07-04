@@ -120,6 +120,7 @@ typedef	unsigned long stc_type;
 /* Data structure to keep track of statistics */
 struct nsdst {
 	time_t	boot;
+	stc_type reloadcount;	/* counts reloads */
 	stc_type qtype[257];	/* Counters per qtype */
 	stc_type qclass[4];	/* Class IN or Class CH or other */
 	stc_type qudp, qudp6;	/* Number of queries udp and udp6 */

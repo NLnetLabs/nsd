@@ -1530,6 +1530,7 @@ server_prepare(struct nsd *nsd)
 #ifdef	BIND8_STATS
 	/* Initialize times... */
 	time(&nsd->st->boot);
+	nsd->st->reloadcount = 0;
 	set_bind8_alarm(nsd);
 #endif /* BIND8_STATS */
 
@@ -2579,6 +2580,12 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	if(nsd->mode == NSD_RELOAD_FAILED) {
 		exit(NSD_RELOAD_FAILED);
 	}
+#ifdef BIND8_STATS
+	nsd->stats_per_child[nsd->stat_current][0].reloadcount =
+		nsd->stats_per_child[(nsd->stat_current==0?1:0)][0].reloadcount+1;
+	nsd->stats_per_child[nsd->stat_current][0].db_mem =
+		region_get_mem(nsd->db->region);
+#endif
 
 	/* listen for the signals of failed children again */
 	sigaction(SIGCHLD, &old_sigchld, NULL);
@@ -3525,7 +3532,6 @@ server_child(struct nsd *nsd)
 #ifdef BIND8_STATS
 	nsd->st = &nsd->stats_per_child[nsd->stat_current]
 		[nsd->this_child->child_num];
-	nsd->st->boot = nsd->stat_map[0].boot;
 	memcpy(&nsd->stat_proc, nsd->st, sizeof(nsd->stat_proc));
 #endif
 

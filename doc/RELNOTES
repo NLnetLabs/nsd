@@ -48,6 +48,8 @@ BUG FIXES:
 	- Fix conditional expressions with parentheses for bitwise and.
 	- Merge #445: contrib/nsd.openrc.in: use supervise-daemon and
 	  add `need net`.
+	- Fix #446 nsd_size_db_in_mem_bytes (size.db.mem) metric not
+	  updated on reload.
 
 4.12.0
 ================

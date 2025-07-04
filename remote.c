@@ -3156,6 +3156,18 @@ process_stats_add_old_new(struct xfrd_state* xfrd, struct nsdst* stats)
 	size_t i;
 	uint64_t dbd = stats[0].db_disk;
 	uint64_t dbm = stats[0].db_mem;
+	stc_type count1, count2;
+
+	/* Pick up the latest database memory use value. */
+	count1 = stats[0].reloadcount;
+	count2 = stats[xfrd->nsd->child_count+0].reloadcount;
+	/* This comparison allows roll over, the check is count2 > count1. */
+	if((count2 > count1 && count2-count1 < 0xffff) ||
+	   (count2 < count1 && count1-count2 > 0xffff)) {
+		dbd = stats[xfrd->nsd->child_count+0].db_disk;
+		dbm = stats[xfrd->nsd->child_count+0].db_mem;
+	}
+
 	/* The old and new server processes have separate stat blocks,
 	 * and these are added up together. This results in the statistics
 	 * values per server-child. The reload task briefly forks both
