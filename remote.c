@@ -1759,7 +1759,144 @@ add_pat(xfrd_state_type* xfrd, struct pattern_options* p)
 	xfrd_set_reload_now(xfrd);
 }
 
-/** interrupt zones that are using changed or removed patterns */
+/** check if a zone's transfer configuration has actually changed */
+static int
+zone_transfer_config_changed(xfrd_zone_type* xz, struct pattern_options* oldp, struct pattern_options* newp)
+{
+	/* If pattern doesn't exist in new config, we must interrupt */
+	if(!newp) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: pattern removed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	/* Check if request_xfr ACL list has changed */
+	if(!acl_list_equal(oldp->request_xfr, newp->request_xfr)) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: request_xfr ACL changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	/* Check if other transfer-related settings have changed */
+	if(oldp->size_limit_xfr != newp->size_limit_xfr) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: size_limit_xfr changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->allow_axfr_fallback != newp->allow_axfr_fallback) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: allow_axfr_fallback changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->max_refresh_time != newp->max_refresh_time) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: max_refresh_time changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->min_refresh_time != newp->min_refresh_time) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: min_refresh_time changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->max_retry_time != newp->max_retry_time) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: max_retry_time changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->min_retry_time != newp->min_retry_time) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: min_retry_time changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->min_expire_time != newp->min_expire_time) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: min_expire_time changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	/* Check if TSIG key configuration has changed */
+	if(oldp->request_xfr && newp->request_xfr) {
+		struct acl_options* old_acl = oldp->request_xfr;
+		struct acl_options* new_acl = newp->request_xfr;
+		
+		while(old_acl && new_acl) {
+			/* Check if key names have changed */
+			if((old_acl->key_name && !new_acl->key_name) ||
+			   (!old_acl->key_name && new_acl->key_name) ||
+			   (old_acl->key_name && new_acl->key_name && 
+			    strcmp(old_acl->key_name, new_acl->key_name) != 0)) {
+				VERBOSITY(1, (LOG_INFO, "zone %s: TSIG key configuration changed, interrupting transfer", 
+					xz->zone_options->name));
+				return 1;
+			}
+			old_acl = old_acl->next;
+			new_acl = new_acl->next;
+		}
+	}
+	
+	/* No significant changes detected */
+	VERBOSITY(2, (LOG_INFO, "zone %s: no transfer configuration changes, preserving transfer", 
+		xz->zone_options->name));
+	return 0;
+}
+
+/** check if a zone's notify configuration has actually changed */
+static int
+zone_notify_config_changed(struct notify_zone* nz, struct pattern_options* oldp, struct pattern_options* newp)
+{
+	/* If pattern doesn't exist in new config, we must interrupt */
+	if(!newp) {
+		VERBOSITY(1, (LOG_INFO, "notify zone %s: pattern removed, interrupting notify", 
+			nz->options->name));
+		return 1;
+	}
+	
+	/* Check if notify ACL list has changed */
+	if(!acl_list_equal(oldp->notify, newp->notify)) {
+		VERBOSITY(1, (LOG_INFO, "notify zone %s: notify ACL changed, interrupting notify", 
+			nz->options->name));
+		return 1;
+	}
+	
+	/* Check if notify-related settings have changed */
+	if(oldp->notify_retry != newp->notify_retry) {
+		VERBOSITY(1, (LOG_INFO, "notify zone %s: notify_retry changed, interrupting notify", 
+			nz->options->name));
+		return 1;
+	}
+	
+	/* Check if TSIG key configuration has changed for notify */
+	if(oldp->notify && newp->notify) {
+		struct acl_options* old_acl = oldp->notify;
+		struct acl_options* new_acl = newp->notify;
+		
+		while(old_acl && new_acl) {
+			/* Check if key names have changed */
+			if((old_acl->key_name && !new_acl->key_name) ||
+			   (!old_acl->key_name && new_acl->key_name) ||
+			   (old_acl->key_name && new_acl->key_name && 
+			    strcmp(old_acl->key_name, new_acl->key_name) != 0)) {
+				VERBOSITY(1, (LOG_INFO, "notify zone %s: TSIG key configuration changed, interrupting notify", 
+					nz->options->name));
+				return 1;
+			}
+			old_acl = old_acl->next;
+			new_acl = new_acl->next;
+		}
+	}
+	
+	/* No significant changes detected */
+	VERBOSITY(2, (LOG_INFO, "notify zone %s: no notify configuration changes, preserving notify", 
+		nz->options->name));
+	return 0;
+}
+
 static void
 repat_interrupt_zones(xfrd_state_type* xfrd, struct nsd_options* newopt)
 {
@@ -1773,8 +1910,9 @@ repat_interrupt_zones(xfrd_state_type* xfrd, struct nsd_options* newopt)
 		struct pattern_options* oldp = xz->zone_options->pattern;
 		struct pattern_options* newp = pattern_options_find(newopt,
 			oldp->pname);
-		if(!newp || !acl_list_equal(oldp->request_xfr,
-			newp->request_xfr)) {
+		
+		/* Only interrupt if the zone's transfer configuration has actually changed */
+		if(zone_transfer_config_changed(xz, oldp, newp)) {
 			/* interrupt transfer */
 			if(xz->tcp_conn != -1) {
 				xfrd_tcp_release(xfrd->tcp_set, xz);
@@ -1797,7 +1935,9 @@ repat_interrupt_zones(xfrd_state_type* xfrd, struct nsd_options* newopt)
 		struct pattern_options* oldp = nz->options->pattern;
 		struct pattern_options* newp = pattern_options_find(newopt,
 			oldp->pname);
-		if(!newp || !acl_list_equal(oldp->notify, newp->notify)) {
+		
+		/* Only interrupt if the zone's notify configuration has actually changed */
+		if(zone_notify_config_changed(nz, oldp, newp)) {
 			/* interrupt notify */
 			if(nz->notify_send_enable) {
 				notify_disable(nz);
