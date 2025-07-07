@@ -1841,8 +1841,7 @@ zone_transfer_config_changed(xfrd_zone_type* xz, struct pattern_options* oldp, s
 	}
 	
 	/* No significant changes detected */
-	VERBOSITY(2, (LOG_INFO, "zone %s: no transfer configuration changes, preserving transfer", 
-		xz->zone_options->name));
+	/* Suppress logging when no changes detected to reduce log noise */
 	return 0;
 }
 
@@ -1892,8 +1891,7 @@ zone_notify_config_changed(struct notify_zone* nz, struct pattern_options* oldp,
 	}
 	
 	/* No significant changes detected */
-	VERBOSITY(2, (LOG_INFO, "notify zone %s: no notify configuration changes, preserving notify", 
-		nz->options->name));
+	/* Suppress logging when no changes detected to reduce log noise */
 	return 0;
 }
 
@@ -2193,6 +2191,7 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 	region_type* region = region_create(xalloc, free);
 	struct nsd_options* opt;
 	const char* cfgfile = xfrd->nsd->options->configfile;
+	int reload_needed_before = xfrd->need_to_send_shutdown;
 
 	/* check chroot and configfile, if possible to reread */
 	if(xfrd->nsd->chrootdir) {
@@ -2223,6 +2222,13 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 	repat_patterns(xfrd, opt);
 	repat_options(xfrd, opt);
 	zonestat_inc_ifneeded(xfrd);
+	
+	/* Check if any changes were actually made by comparing reload state */
+	if(xfrd->need_to_send_shutdown == reload_needed_before) {
+		(void)ssl_printf(ssl, "reconfig completed: no changes detected\n");
+	} else {
+		(void)ssl_printf(ssl, "reconfig completed: changes applied\n");
+	}
 	send_ok(ssl);
 	region_destroy(region);
 }
