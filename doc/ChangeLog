@@ -1,3 +1,7 @@
+7 July 2025: Willem
+	- Merge #448: Report larger transfer sizes correctly, also on 32bit
+	  systems. Thanks to Niek Willems for reporting.
+
 4 July 2025: Wouter
 	- Fix #446 nsd_size_db_in_mem_bytes (size.db.mem) metric not
 	  updated on reload.
