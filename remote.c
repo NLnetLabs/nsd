@@ -1771,6 +1771,7 @@ zone_transfer_config_changed(xfrd_zone_type* xz, struct pattern_options* oldp, s
 	}
 	
 	/* Check if request_xfr ACL list has changed */
+	/* This also tests for TSIG key name changes. */
 	if(!acl_list_equal(oldp->request_xfr, newp->request_xfr)) {
 		VERBOSITY(1, (LOG_INFO, "zone %s: request_xfr ACL changed, interrupting transfer", 
 			xz->zone_options->name));
@@ -1819,27 +1820,7 @@ zone_transfer_config_changed(xfrd_zone_type* xz, struct pattern_options* oldp, s
 			xz->zone_options->name));
 		return 1;
 	}
-	
-	/* Check if TSIG key configuration has changed */
-	if(oldp->request_xfr && newp->request_xfr) {
-		struct acl_options* old_acl = oldp->request_xfr;
-		struct acl_options* new_acl = newp->request_xfr;
-		
-		while(old_acl && new_acl) {
-			/* Check if key names have changed */
-			if((old_acl->key_name && !new_acl->key_name) ||
-			   (!old_acl->key_name && new_acl->key_name) ||
-			   (old_acl->key_name && new_acl->key_name && 
-			    strcmp(old_acl->key_name, new_acl->key_name) != 0)) {
-				VERBOSITY(1, (LOG_INFO, "zone %s: TSIG key configuration changed, interrupting transfer", 
-					xz->zone_options->name));
-				return 1;
-			}
-			old_acl = old_acl->next;
-			new_acl = new_acl->next;
-		}
-	}
-	
+
 	/* No significant changes detected */
 	/* Suppress logging when no changes detected to reduce log noise */
 	return 0;
@@ -1857,6 +1838,7 @@ zone_notify_config_changed(struct notify_zone* nz, struct pattern_options* oldp,
 	}
 	
 	/* Check if notify ACL list has changed */
+	/* This also tests for TSIG key name changes. */
 	if(!acl_list_equal(oldp->notify, newp->notify)) {
 		VERBOSITY(1, (LOG_INFO, "notify zone %s: notify ACL changed, interrupting notify", 
 			nz->options->name));
@@ -1869,27 +1851,7 @@ zone_notify_config_changed(struct notify_zone* nz, struct pattern_options* oldp,
 			nz->options->name));
 		return 1;
 	}
-	
-	/* Check if TSIG key configuration has changed for notify */
-	if(oldp->notify && newp->notify) {
-		struct acl_options* old_acl = oldp->notify;
-		struct acl_options* new_acl = newp->notify;
-		
-		while(old_acl && new_acl) {
-			/* Check if key names have changed */
-			if((old_acl->key_name && !new_acl->key_name) ||
-			   (!old_acl->key_name && new_acl->key_name) ||
-			   (old_acl->key_name && new_acl->key_name && 
-			    strcmp(old_acl->key_name, new_acl->key_name) != 0)) {
-				VERBOSITY(1, (LOG_INFO, "notify zone %s: TSIG key configuration changed, interrupting notify", 
-					nz->options->name));
-				return 1;
-			}
-			old_acl = old_acl->next;
-			new_acl = new_acl->next;
-		}
-	}
-	
+
 	/* No significant changes detected */
 	/* Suppress logging when no changes detected to reduce log noise */
 	return 0;
