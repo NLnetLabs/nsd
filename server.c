@@ -4650,7 +4650,11 @@ handle_tcp_writing(int fd, short event, void* arg)
 #ifdef EPIPE
 				  if(verbosity >= 2 || errno != EPIPE)
 #endif /* EPIPE 'broken pipe' */
-				    log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
+				{
+					char client_ip[128];
+					addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+					log_msg(LOG_ERR, "failed writing to tcp from %s: %s", client_ip, strerror(errno));
+				}
 				cleanup_tcp_handler(data);
 				return;
 			}
@@ -4689,7 +4693,11 @@ handle_tcp_writing(int fd, short event, void* arg)
 #ifdef EPIPE
 				  if(verbosity >= 2 || errno != EPIPE)
 #endif /* EPIPE 'broken pipe' */
-			log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
+		{
+			char client_ip[128];
+			addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+			log_msg(LOG_ERR, "failed writing to tcp from %s: %s", client_ip, strerror(errno));
+		}
 			cleanup_tcp_handler(data);
 			return;
 		}
@@ -5260,7 +5268,11 @@ handle_tls_writing(int fd, short event, void* arg)
 			tcp_handler_setup_event(data, handle_tls_reading, fd, EV_PERSIST | EV_READ | EV_TIMEOUT);
 		} else if(want != SSL_ERROR_WANT_WRITE) {
 			cleanup_tcp_handler(data);
-			log_crypto_err("could not SSL_write");
+			{
+				char client_ip[128];
+				addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+				log_msg(LOG_ERR, "failed writing to tls from %s: %s", client_ip, "SSL_write error");
+			}
 		}
 		return;
 	}
