@@ -56,6 +56,7 @@ BUG FIXES:
 	- For #447: use need_to_send_reload to detect if a reload is issued.
 	- For #447: acl_list_equal already tests for TSIG key changes, so
 	  removed the duplicate checks.
+	- For #447: log crypto error with the SSL_write error.
 
 4.12.0
 ================

@@ -5269,9 +5269,11 @@ handle_tls_writing(int fd, short event, void* arg)
 		} else if(want != SSL_ERROR_WANT_WRITE) {
 			cleanup_tcp_handler(data);
 			{
-				char client_ip[128];
+				char client_ip[128], e[188];
 				addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
-				log_msg(LOG_ERR, "failed writing to tls from %s: %s", client_ip, "SSL_write error");
+				snprintf(e, sizeof(e), "failed writing to tls from %s: %s",
+					client_ip, "SSL_write error");
+				log_crypto_err(e);
 			}
 		}
 		return;
