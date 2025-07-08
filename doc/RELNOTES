@@ -50,6 +50,9 @@ BUG FIXES:
 	  add `need net`.
 	- Fix #446 nsd_size_db_in_mem_bytes (size.db.mem) metric not
 	  updated on reload.
+	- Merge #447: Minimize disruptions on reconfig.
+	- For #447: Updated simdzone to latest commit. With the padding
+	  test changes.
 
 4.12.0
 ================

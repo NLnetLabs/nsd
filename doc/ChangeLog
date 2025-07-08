@@ -1,3 +1,8 @@
+8 July 2025: Wouter
+	- Merge #447: Minimize disruptions on reconfig.
+	- For #447: Updated simdzone to latest commit. With the padding
+	  test changes.
+
 7 July 2025: Willem
 	- Merge #448: Report larger transfer sizes correctly, also on 32bit
 	  systems. Thanks to Niek Willems for reporting.
