@@ -2191,7 +2191,7 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 	region_type* region = region_create(xalloc, free);
 	struct nsd_options* opt;
 	const char* cfgfile = xfrd->nsd->options->configfile;
-	int reload_needed_before = xfrd->need_to_send_shutdown;
+	int reload_needed_before = xfrd->need_to_send_reload;
 
 	/* check chroot and configfile, if possible to reread */
 	if(xfrd->nsd->chrootdir) {
@@ -2224,7 +2224,7 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 	zonestat_inc_ifneeded(xfrd);
 	
 	/* Check if any changes were actually made by comparing reload state */
-	if(xfrd->need_to_send_shutdown == reload_needed_before) {
+	if(xfrd->need_to_send_reload == reload_needed_before) {
 		(void)ssl_printf(ssl, "reconfig completed: no changes detected\n");
 	} else {
 		(void)ssl_printf(ssl, "reconfig completed: changes applied\n");
