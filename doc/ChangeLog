@@ -1,3 +1,6 @@
+9 July 2025: Wouter
+	- Update simdzone with support for --enable-pie.
+
 8 July 2025: Wouter
 	- Merge #447: Minimize disruptions on reconfig.
 	- For #447: Updated simdzone to latest commit. With the padding
