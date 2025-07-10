@@ -2638,7 +2638,7 @@ static void
 xfrd_handle_reload(int ATTR_UNUSED(fd), short event, void* ATTR_UNUSED(arg))
 {
 	/* reload timeout */
-	assert(event & EV_TIMEOUT);
+	assert((event & EV_TIMEOUT));
 	(void)event;
 	/* timeout wait period after this request is sent */
 	xfrd->reload_added = 0;
@@ -2960,7 +2960,7 @@ static void
 xfrd_handle_write_timer(int ATTR_UNUSED(fd), short event, void* ATTR_UNUSED(arg))
 {
 	/* timeout for write events */
-	assert(event & EV_TIMEOUT);
+	assert((event & EV_TIMEOUT));
 	(void)event;
 	if(xfrd->nsd->options->zonefiles_write == 0)
 		return;
@@ -2997,7 +2997,7 @@ static void xfrd_write_timer_set()
 static void xfrd_handle_child_timer(int ATTR_UNUSED(fd), short event,
 	void* ATTR_UNUSED(arg))
 {
-	assert(event & EV_TIMEOUT);
+	assert((event & EV_TIMEOUT));
 	(void)event;
 	/* only used to wakeup the process to reap children, note the
 	 * event is no longer registered */

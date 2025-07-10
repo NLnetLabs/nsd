@@ -1530,6 +1530,7 @@ server_prepare(struct nsd *nsd)
 #ifdef	BIND8_STATS
 	/* Initialize times... */
 	time(&nsd->st->boot);
+	nsd->st->reloadcount = 0;
 	set_bind8_alarm(nsd);
 #endif /* BIND8_STATS */
 
@@ -2419,7 +2420,7 @@ static void server_reload_handle_sigchld(int sig, short event,
 		void* ATTR_UNUSED(arg))
 {
 	assert(sig == SIGCHLD);
-	assert(event & EV_SIGNAL);
+	assert((event & EV_SIGNAL));
 
 	/* reap the exited old-serve child(s) */
 	while(waitpid(-1, NULL, WNOHANG) > 0) {
@@ -2434,7 +2435,7 @@ static void server_reload_handle_quit_sync_ack(int cmdsocket, short event,
 		(struct quit_sync_event_data*)arg;
 	ssize_t r;
 
-	if(event & EV_TIMEOUT) {
+	if((event & EV_TIMEOUT)) {
 		sig_atomic_t cmd = NSD_QUIT_SYNC;
 
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
@@ -2447,7 +2448,7 @@ static void server_reload_handle_quit_sync_ack(int cmdsocket, short event,
 		 */
 		return;
 	}
-	assert(event & EV_READ);
+	assert((event & EV_READ));
 	assert(cb_data->read < sizeof(cb_data->to_read.cmd));
 
 	r = read(cmdsocket, cb_data->to_read.buf + cb_data->read,
@@ -2579,6 +2580,12 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	if(nsd->mode == NSD_RELOAD_FAILED) {
 		exit(NSD_RELOAD_FAILED);
 	}
+#ifdef BIND8_STATS
+	nsd->stats_per_child[nsd->stat_current][0].reloadcount =
+		nsd->stats_per_child[(nsd->stat_current==0?1:0)][0].reloadcount+1;
+	nsd->stats_per_child[nsd->stat_current][0].db_mem =
+		region_get_mem(nsd->db->region);
+#endif
 
 	/* listen for the signals of failed children again */
 	sigaction(SIGCHLD, &old_sigchld, NULL);
@@ -3567,7 +3574,7 @@ server_child(struct nsd *nsd)
 		numifs = nsd->ifs;
 	}
 
-	if (nsd->server_kind & NSD_SERVER_UDP) {
+	if ((nsd->server_kind & NSD_SERVER_UDP)) {
 		int child = nsd->this_child->child_num;
 		memset(msgs, 0, sizeof(msgs));
 		for (i = 0; i < NUM_RECV_PER_SELECT; i++) {
@@ -3605,7 +3612,7 @@ server_child(struct nsd *nsd)
 	 * and disable them based on the current number of active TCP
 	 * connections.
 	 */
-	if (nsd->server_kind & NSD_SERVER_TCP) {
+	if ((nsd->server_kind & NSD_SERVER_TCP)) {
 		int child = nsd->this_child->child_num;
 		tcp_accept_handler_count = numifs;
 		tcp_accept_handlers = region_alloc_array(server_region,
@@ -3698,7 +3705,7 @@ server_child(struct nsd *nsd)
 static void remaining_tcp_timeout(int ATTR_UNUSED(fd), short event, void* arg)
 {
 	int* timed_out = (int*)arg;
-        assert(event & EV_TIMEOUT); (void)event;
+        assert((event & EV_TIMEOUT)); (void)event;
 	/* wake up the service tcp thread, note event is no longer
 	 * registered */
 	*timed_out = 1;
@@ -4643,7 +4650,11 @@ handle_tcp_writing(int fd, short event, void* arg)
 #ifdef EPIPE
 				  if(verbosity >= 2 || errno != EPIPE)
 #endif /* EPIPE 'broken pipe' */
-				    log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
+				{
+					char client_ip[128];
+					addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+					log_msg(LOG_ERR, "failed writing to tcp from %s: %s", client_ip, strerror(errno));
+				}
 				cleanup_tcp_handler(data);
 				return;
 			}
@@ -4682,7 +4693,11 @@ handle_tcp_writing(int fd, short event, void* arg)
 #ifdef EPIPE
 				  if(verbosity >= 2 || errno != EPIPE)
 #endif /* EPIPE 'broken pipe' */
-			log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
+		{
+			char client_ip[128];
+			addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+			log_msg(LOG_ERR, "failed writing to tcp from %s: %s", client_ip, strerror(errno));
+		}
 			cleanup_tcp_handler(data);
 			return;
 		}
@@ -5253,7 +5268,13 @@ handle_tls_writing(int fd, short event, void* arg)
 			tcp_handler_setup_event(data, handle_tls_reading, fd, EV_PERSIST | EV_READ | EV_TIMEOUT);
 		} else if(want != SSL_ERROR_WANT_WRITE) {
 			cleanup_tcp_handler(data);
-			log_crypto_err("could not SSL_write");
+			{
+				char client_ip[128], e[188];
+				addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+				snprintf(e, sizeof(e), "failed writing to tls from %s: %s",
+					client_ip, "SSL_write error");
+				log_crypto_err(e);
+			}
 		}
 		return;
 	}
