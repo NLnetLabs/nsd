@@ -2534,6 +2534,10 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 		buffer_printf(packet, " TSIG verified with key %s",
 			zone->master->key_options->name);
 	}
+	if(zone->master->tls_auth_options && zone->master->tls_auth_options->auth_domain_name) {
+		buffer_printf(packet, " TLS authenticated with domain %s",
+			zone->master->tls_auth_options->auth_domain_name);
+	}
 	buffer_flip(packet);
 	diff_write_commit(zone->apex_str, zone->latest_xfr->msg_old_serial,
 		zone->latest_xfr->msg_new_serial, zone->latest_xfr->msg_seq_nr, 1,
