@@ -1,3 +1,6 @@
+17 July 2025: Wouter
+	- Disable TLSv1.2 if TLSv1.3 is available.
+
 9 July 2025: Wouter
 	- Update simdzone with support for --enable-pie.
 

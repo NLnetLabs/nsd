@@ -19,6 +19,7 @@ FEATURES:
 	  cross-layer issue where the UDP socket send buffers are
 	  exhausted waiting for ARP/NDP resolution. Thanks to Reflyable
 	  for the report.
+	- Disable TLSv1.2 if TLSv1.3 is available.
 
 BUG FIXES:
 	- Fix punctuation of nsd -h output for the -a option.

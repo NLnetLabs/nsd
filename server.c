@@ -2146,6 +2146,15 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 		return 0;
 	}
 #endif
+#if defined(SSL_OP_NO_TLSv1_2) && defined(SSL_OP_NO_TLSv1_3)
+	/* if we have tls 1.3 disable 1.2 */
+	if((SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1_2) & SSL_OP_NO_TLSv1_2)
+		!= SSL_OP_NO_TLSv1_2){
+		log_crypto_err("could not set SSL_OP_NO_TLSv1_2");
+		SSL_CTX_free(ctx);
+		return 0;
+	}
+#endif
 #if defined(SSL_OP_NO_RENEGOTIATION)
 	/* disable client renegotiation */
 	if((SSL_CTX_set_options(ctx, SSL_OP_NO_RENEGOTIATION) &
