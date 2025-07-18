@@ -440,8 +440,17 @@ xfrd_shutdown()
 	if (xfrd->nsd->tls_ctx)
 		SSL_CTX_free(xfrd->nsd->tls_ctx);
 #  ifdef HAVE_TLS_1_3
-	if (xfrd->tcp_set->ssl_ctx)
+	if (xfrd->tcp_set->ssl_ctx) {
+		int i;
+		for(i=0; i<xfrd->tcp_set->tcp_max; i++) {
+			if(xfrd->tcp_set->tcp_state[i] &&
+				xfrd->tcp_set->tcp_state[i]->ssl) {
+				SSL_free(xfrd->tcp_set->tcp_state[i]->ssl);
+				xfrd->tcp_set->tcp_state[i]->ssl = NULL;
+			}
+		}
 		SSL_CTX_free(xfrd->tcp_set->ssl_ctx);
+	}
 #  endif
 #endif
 #ifdef USE_DNSTAP
@@ -2540,6 +2549,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 		buffer_printf(packet, " TSIG verified with key %s",
 			zone->master->key_options->name);
 	}
+
 	if(zone->master->tls_auth_options && zone->master->tls_auth_options->auth_domain_name) {
 		buffer_printf(packet, " TLS authenticated with domain %s",
 			zone->master->tls_auth_options->auth_domain_name);
@@ -2547,6 +2557,9 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 		/* Get certificate information from the TLS connection */
 		if (zone->tcp_conn != -1) {
 			struct xfrd_tcp_pipeline* tp = NULL;
+			struct region* tmpregion = region_create(xalloc, free);
+			char *cert_serial=NULL, *key_id=NULL,
+				*cert_algorithm=NULL, *tls_version=NULL;
 			/* Find the pipeline for this zone */
 			for (int i = 0; i < xfrd->tcp_set->tcp_max; i++) {
 				struct xfrd_tcp_pipeline* test_tp = xfrd->tcp_set->tcp_state[i];
@@ -2562,19 +2575,28 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 					if (tp) break;
 				}
 			}
-			
-			if (tp && tp->cert_serial && tp->cert_serial[0] != '\0') {
-				buffer_printf(packet, " cert-serial:%s", tp->cert_serial);
+			if(!tmpregion)
+				tp = NULL;
+			if(tp && tp->ssl) {
+				get_cert_info(tp->ssl, tmpregion, &cert_serial,
+					&key_id, &cert_algorithm, &tls_version);
+			} else {
+				tp = NULL;
 			}
-			if (tp && tp->key_id && tp->key_id[0] != '\0') {
-				buffer_printf(packet, " key-id:%s", tp->key_id);
+
+			if (tp && cert_serial && cert_serial[0] != '\0') {
+				buffer_printf(packet, " cert-serial:%s", cert_serial);
 			}
-			if (tp && tp->cert_algorithm && tp->cert_algorithm[0] != '\0') {
-				buffer_printf(packet, " cert-algo:%s", tp->cert_algorithm);
+			if (tp && key_id && key_id[0] != '\0') {
+				buffer_printf(packet, " key-id:%s", key_id);
 			}
-			if (tp && tp->tls_version && tp->tls_version[0] != '\0') {
-				buffer_printf(packet, " tls-version:%s", tp->tls_version);
+			if (tp && cert_algorithm && cert_algorithm[0] != '\0') {
+				buffer_printf(packet, " cert-algo:%s", cert_algorithm);
 			}
+			if (tp && tls_version && tls_version[0] != '\0') {
+				buffer_printf(packet, " tls-version:%s", tls_version);
+			}
+			region_destroy(tmpregion);
 		}
 #endif
 	}
@@ -3039,4 +3061,3 @@ static void xfrd_handle_child_timer(int ATTR_UNUSED(fd), short event,
 	 * event is no longer registered */
 	xfrd->child_timer_added = 0;
 }
-

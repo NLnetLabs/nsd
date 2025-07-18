@@ -111,3 +111,18 @@ fi
 
 # TODO: dig @127.0.0.1 -p ${TPKG_TER_PORT} -t A example.net +norec
 #       to fail because of an still to make acl that allows for transfer over TLS only
+
+# Check zonefiles that are written.
+$PRE/nsd-control -c xot.secondary.conf write
+$PRE/nsd-control -c xot.tertiary.conf write
+if test ! -f example.org.secondary; then sleep 1; fi
+if test ! -f example.net.tertiary; then sleep 1; fi
+if test ! -f example.org.secondary; then sleep 1; fi
+if test ! -f example.net.tertiary; then sleep 1; fi
+if test ! -f example.org.secondary; then sleep 1; fi
+if test ! -f example.net.tertiary; then sleep 1; fi
+for x in example*secondary example*tertiary; do
+	echo "zonefile: $x"
+	cat $x
+done
+exit 0

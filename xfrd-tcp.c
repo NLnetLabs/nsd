@@ -35,8 +35,8 @@
 void log_crypto_err(const char* str); /* in server.c */
 
 /* Extract certificate information for logging */
-static void
-get_cert_info(SSL* ssl, region_type* region, char** cert_serial, 
+void
+get_cert_info(SSL* ssl, region_type* region, char** cert_serial,
               char** key_id, char** cert_algorithm, char** tls_version)
 {
     X509* cert = NULL;
@@ -93,7 +93,7 @@ get_cert_info(SSL* ssl, region_type* region, char** cert_serial,
     /* Get certificate algorithm using OpenSSL's native functions */
     pkey = X509_get_pubkey(cert);
     if (pkey) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#ifdef HAVE_EVP_PKEY_GET0_TYPE_NAME
         pkey_name = EVP_PKEY_get0_type_name(pkey);
 #else
         pkey_name = OBJ_nid2sn(EVP_PKEY_type(EVP_PKEY_id(pkey)));
@@ -121,17 +121,6 @@ get_cert_info(SSL* ssl, region_type* region, char** cert_serial,
     }
 
     X509_free(cert);
-}
-
-/* Clear certificate information */
-static void
-clear_cert_info(struct xfrd_tcp_pipeline* tp)
-{
-    /* Clear certificate information pointers */
-    tp->cert_serial = NULL;
-    tp->key_id = NULL;
-    tp->cert_algorithm = NULL;
-    tp->tls_version = NULL;
 }
 
 static SSL_CTX*
@@ -200,8 +189,6 @@ setup_ssl(struct xfrd_tcp_pipeline* tp, struct xfrd_tcp_set* tcp_set,
 		log_msg(LOG_ERR, "xfrd tls: Unable to set TLS fd");
 		SSL_free(tp->ssl);
 		tp->ssl = NULL;
-		/* Clear certificate info on error */
-		clear_cert_info(tp);
 		return 0;
 	}
 
@@ -211,8 +198,6 @@ setup_ssl(struct xfrd_tcp_pipeline* tp, struct xfrd_tcp_set* tcp_set,
 		auth_domain_name);
 		SSL_free(tp->ssl);
 		tp->ssl = NULL;
-		/* Clear certificate info on error */
-		clear_cert_info(tp);
 		return 0;
 	}
 	return 1;
@@ -228,11 +213,6 @@ ssl_handshake(struct xfrd_tcp_pipeline* tp)
 	if(ret == 1) {
 		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "xfrd: TLS handshake successful"));
 		tp->handshake_done = 1;
-		
-		/* Extract certificate information for logging */
-		get_cert_info(tp->ssl, tp->region, &tp->cert_serial, 
-		             &tp->key_id, &tp->cert_algorithm, &tp->tls_version);
-		
 		return 1;
 	}
 	tp->handshake_want = SSL_get_error(tp->ssl, ret);
@@ -388,12 +368,6 @@ xfrd_tcp_pipeline_init(struct xfrd_tcp_pipeline* tp)
 	tp->key.num_skip = 0;
 	tp->tcp_send_first = NULL;
 	tp->tcp_send_last = NULL;
-#ifdef HAVE_TLS_1_3
-	tp->ssl = NULL;
-	tp->handshake_want = 0;
-	tp->handshake_done = 0;
-	clear_cert_info(tp);
-#endif
 	xfrd_tcp_pipeline_cleanup(tp);
 	pick_id_values(tp->unused, tp->pipe_num, 65536);
 }
@@ -422,9 +396,6 @@ xfrd_tcp_pipeline_create(region_type* region, int tcp_pipeline)
 		sizeof(tp->unused[0])*tp->pipe_num);
 	tp->tcp_r = xfrd_tcp_create(region, QIOBUFSZ);
 	tp->tcp_w = xfrd_tcp_create(region, QIOBUFSZ);
-#ifdef HAVE_TLS_1_3
-	tp->region = region;
-#endif
 	xfrd_tcp_pipeline_init(tp);
 	return tp;
 }
@@ -1774,9 +1745,6 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 		SSL_shutdown(tp->ssl);
 		SSL_free(tp->ssl);
 		tp->ssl = NULL;
-		
-		/* Clean up certificate information strings */
-		clear_cert_info(tp);
 	}
 #endif
 
