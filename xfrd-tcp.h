@@ -150,6 +150,13 @@ struct xfrd_tcp_pipeline {
 	int  handshake_want;
 	/* XoT: 1 if the SSL handshake has succeeded, 0 otherwise */
 	int  handshake_done;
+	/* XoT: Certificate information for logging */
+	char *cert_serial;
+	char *key_id;
+	char *cert_algorithm;
+	char *tls_version;
+	/* Region for dynamic allocation of certificate info */
+	region_type *region;
 #endif
 
 	/* list of queries that want to send, first to get write event,

@@ -24,13 +24,115 @@
 #include "xfrd.h"
 #include "xfrd-disk.h"
 #include "util.h"
-#ifdef HAVE_TLS_1_3
+#ifdef HAVE_SSL
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/x509.h>
+#include <openssl/evp.h>
 #endif
 
-#ifdef HAVE_TLS_1_3
+#ifdef HAVE_SSL
 void log_crypto_err(const char* str); /* in server.c */
+
+/* Extract certificate information for logging */
+static void
+get_cert_info(SSL* ssl, region_type* region, char** cert_serial, 
+              char** key_id, char** cert_algorithm, char** tls_version)
+{
+    X509* cert = NULL;
+    ASN1_INTEGER* serial = NULL;
+    EVP_PKEY* pkey = NULL;
+    unsigned char key_fingerprint[EVP_MAX_MD_SIZE];
+    unsigned int key_fingerprint_len = 0;
+    const EVP_MD* md = EVP_sha256();
+    const char* pkey_name = NULL;
+    const char* version_name = NULL;
+    int i;
+    char temp_buffer[1024]; /* Temporary buffer for serial number */
+
+    *cert_serial = NULL;
+    *key_id = NULL;
+    *cert_algorithm = NULL;
+    *tls_version = NULL;
+
+#ifdef HAVE_SSL_GET1_PEER_CERTIFICATE
+    cert = SSL_get1_peer_certificate(ssl);
+#else
+    cert = SSL_get_peer_certificate(ssl);
+#endif
+
+    if (!cert) {
+        return;
+    }
+
+    /* Get certificate serial number */
+    serial = X509_get_serialNumber(cert);
+    if (serial) {
+        BIGNUM* bn = ASN1_INTEGER_to_BN(serial, NULL);
+        if (bn) {
+            char* hex_serial = BN_bn2hex(bn);
+            if (hex_serial) {
+                snprintf(temp_buffer, sizeof(temp_buffer), "%s", hex_serial);
+                *cert_serial = region_strdup(region, temp_buffer);
+                OPENSSL_free(hex_serial);
+            }
+            BN_free(bn);
+        }
+    }
+
+    /* Get public key identifier (SHA-256 fingerprint) */
+    if (X509_pubkey_digest(cert, md, key_fingerprint, &key_fingerprint_len) == 1 && key_fingerprint_len >= 8) {
+        size_t id_len = 8; /* Use first 8 bytes as key identifier */
+        char key_id_buffer[17]; /* 8 bytes * 2 hex chars + null terminator */
+        for (i = 0; i < (int)id_len; i++) {
+            snprintf(key_id_buffer + (i * 2), sizeof(key_id_buffer) - (i * 2), "%02x", key_fingerprint[i]);
+        }
+        *key_id = region_strdup(region, key_id_buffer);
+    }
+
+    /* Get certificate algorithm using OpenSSL's native functions */
+    pkey = X509_get_pubkey(cert);
+    if (pkey) {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        pkey_name = EVP_PKEY_get0_type_name(pkey);
+#else
+        pkey_name = OBJ_nid2sn(EVP_PKEY_type(EVP_PKEY_id(pkey)));
+#endif
+        if (pkey_name) {
+            *cert_algorithm = region_strdup(region, pkey_name);
+        } else {
+            int pkey_type = EVP_PKEY_id(pkey);
+            char algo_buffer[32];
+            snprintf(algo_buffer, sizeof(algo_buffer), "Unknown(%d)", pkey_type);
+            *cert_algorithm = region_strdup(region, algo_buffer);
+        }
+        EVP_PKEY_free(pkey);
+    }
+
+    /* Get TLS version using OpenSSL's native function */
+    version_name = SSL_get_version(ssl);
+    if (version_name) {
+        *tls_version = region_strdup(region, version_name);
+    } else {
+        int version = SSL_version(ssl);
+        char version_buffer[16];
+        snprintf(version_buffer, sizeof(version_buffer), "Unknown(%d)", version);
+        *tls_version = region_strdup(region, version_buffer);
+    }
+
+    X509_free(cert);
+}
+
+/* Clear certificate information */
+static void
+clear_cert_info(struct xfrd_tcp_pipeline* tp)
+{
+    /* Clear certificate information pointers */
+    tp->cert_serial = NULL;
+    tp->key_id = NULL;
+    tp->cert_algorithm = NULL;
+    tp->tls_version = NULL;
+}
 
 static SSL_CTX*
 create_ssl_context()
@@ -98,6 +200,8 @@ setup_ssl(struct xfrd_tcp_pipeline* tp, struct xfrd_tcp_set* tcp_set,
 		log_msg(LOG_ERR, "xfrd tls: Unable to set TLS fd");
 		SSL_free(tp->ssl);
 		tp->ssl = NULL;
+		/* Clear certificate info on error */
+		clear_cert_info(tp);
 		return 0;
 	}
 
@@ -107,6 +211,8 @@ setup_ssl(struct xfrd_tcp_pipeline* tp, struct xfrd_tcp_set* tcp_set,
 		auth_domain_name);
 		SSL_free(tp->ssl);
 		tp->ssl = NULL;
+		/* Clear certificate info on error */
+		clear_cert_info(tp);
 		return 0;
 	}
 	return 1;
@@ -122,6 +228,11 @@ ssl_handshake(struct xfrd_tcp_pipeline* tp)
 	if(ret == 1) {
 		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "xfrd: TLS handshake successful"));
 		tp->handshake_done = 1;
+		
+		/* Extract certificate information for logging */
+		get_cert_info(tp->ssl, tp->region, &tp->cert_serial, 
+		             &tp->key_id, &tp->cert_algorithm, &tp->tls_version);
+		
 		return 1;
 	}
 	tp->handshake_want = SSL_get_error(tp->ssl, ret);
@@ -277,6 +388,12 @@ xfrd_tcp_pipeline_init(struct xfrd_tcp_pipeline* tp)
 	tp->key.num_skip = 0;
 	tp->tcp_send_first = NULL;
 	tp->tcp_send_last = NULL;
+#ifdef HAVE_TLS_1_3
+	tp->ssl = NULL;
+	tp->handshake_want = 0;
+	tp->handshake_done = 0;
+	clear_cert_info(tp);
+#endif
 	xfrd_tcp_pipeline_cleanup(tp);
 	pick_id_values(tp->unused, tp->pipe_num, 65536);
 }
@@ -305,6 +422,9 @@ xfrd_tcp_pipeline_create(region_type* region, int tcp_pipeline)
 		sizeof(tp->unused[0])*tp->pipe_num);
 	tp->tcp_r = xfrd_tcp_create(region, QIOBUFSZ);
 	tp->tcp_w = xfrd_tcp_create(region, QIOBUFSZ);
+#ifdef HAVE_TLS_1_3
+	tp->region = region;
+#endif
 	xfrd_tcp_pipeline_init(tp);
 	return tp;
 }
@@ -1654,6 +1774,9 @@ xfrd_tcp_pipe_release(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 		SSL_shutdown(tp->ssl);
 		SSL_free(tp->ssl);
 		tp->ssl = NULL;
+		
+		/* Clean up certificate information strings */
+		clear_cert_info(tp);
 	}
 #endif
 

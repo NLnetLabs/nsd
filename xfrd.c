@@ -43,6 +43,12 @@
 #include <systemd/sd-daemon.h>
 #endif
 
+#ifdef HAVE_SSL
+#include <openssl/ssl.h>
+#include <openssl/x509.h>
+#include <openssl/evp.h>
+#endif
+
 #define XFRD_UDP_TIMEOUT 10 /* seconds, before a udp request times out */
 #define XFRD_NO_IXFR_CACHE 172800 /* 48h before retrying ixfr's after notimpl */
 #define XFRD_MAX_ROUNDS 1 /* max number of rounds along the masters */
@@ -2534,6 +2540,44 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 		buffer_printf(packet, " TSIG verified with key %s",
 			zone->master->key_options->name);
 	}
+	if(zone->master->tls_auth_options && zone->master->tls_auth_options->auth_domain_name) {
+		buffer_printf(packet, " TLS authenticated with domain %s",
+			zone->master->tls_auth_options->auth_domain_name);
+#ifdef HAVE_TLS_1_3
+		/* Get certificate information from the TLS connection */
+		if (zone->tcp_conn != -1) {
+			struct xfrd_tcp_pipeline* tp = NULL;
+			/* Find the pipeline for this zone */
+			for (int i = 0; i < xfrd->tcp_set->tcp_max; i++) {
+				struct xfrd_tcp_pipeline* test_tp = xfrd->tcp_set->tcp_state[i];
+				if (test_tp && test_tp->ssl && test_tp->handshake_done) {
+					/* Check if this pipeline is handling our zone */
+					struct xfrd_tcp_pipeline_id* zid;
+					RBTREE_FOR(zid, struct xfrd_tcp_pipeline_id*, test_tp->zone_per_id) {
+						if (zid->zone == zone) {
+							tp = test_tp;
+							break;
+						}
+					}
+					if (tp) break;
+				}
+			}
+			
+			if (tp && tp->cert_serial && tp->cert_serial[0] != '\0') {
+				buffer_printf(packet, " cert-serial:%s", tp->cert_serial);
+			}
+			if (tp && tp->key_id && tp->key_id[0] != '\0') {
+				buffer_printf(packet, " key-id:%s", tp->key_id);
+			}
+			if (tp && tp->cert_algorithm && tp->cert_algorithm[0] != '\0') {
+				buffer_printf(packet, " cert-algo:%s", tp->cert_algorithm);
+			}
+			if (tp && tp->tls_version && tp->tls_version[0] != '\0') {
+				buffer_printf(packet, " tls-version:%s", tp->tls_version);
+			}
+		}
+#endif
+	}
 	buffer_flip(packet);
 	diff_write_commit(zone->apex_str, zone->latest_xfr->msg_old_serial,
 		zone->latest_xfr->msg_new_serial, zone->latest_xfr->msg_seq_nr, 1,
@@ -2995,3 +3039,4 @@ static void xfrd_handle_child_timer(int ATTR_UNUSED(fd), short event,
 	 * event is no longer registered */
 	xfrd->child_timer_added = 0;
 }
+
