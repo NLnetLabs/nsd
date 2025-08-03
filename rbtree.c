@@ -63,12 +63,13 @@ rbtree_create (region_type *region, int (*cmpf)(const void *, const void *))
 static void
 rbtree_rotate_left(rbtree_type *rbtree, rbnode_type *node)
 {
-	rbnode_type *right = node->right;
+	rbnode_type *right;
 
 	/* Check if rbtree is NULL */
 	if (!rbtree) {
 		return;
 	}
+	right = node->right;
 	node->right = right->left;
 	if (right->left != RBTREE_NULL)
 		right->left->parent = node;
@@ -95,12 +96,13 @@ rbtree_rotate_left(rbtree_type *rbtree, rbnode_type *node)
 static void
 rbtree_rotate_right(rbtree_type *rbtree, rbnode_type *node)
 {
-	rbnode_type *left = node->left;
+	rbnode_type *left;
 
 	/* Check if rbtree is NULL */
 	if (!rbtree) {
 		return;
 	}
+	left = node->left;
 	node->left = left->right;
 	if (left->right != RBTREE_NULL)
 		left->right->parent = node;
@@ -200,6 +202,8 @@ rbtree_insert (rbtree_type *rbtree, rbnode_type *data)
 {
 	/* XXX Not necessary, but keeps compiler quiet... */
 	int r = 0;
+	rbnode_type	*node;
+	rbnode_type	*parent;
 
 	/* Check if rbtree is NULL */
 	if (!rbtree) {
@@ -207,8 +211,8 @@ rbtree_insert (rbtree_type *rbtree, rbnode_type *data)
 	}
 
 	/* We start at the root of the tree */
-	rbnode_type	*node = rbtree->root;
-	rbnode_type	*parent = RBTREE_NULL;
+	node = rbtree->root;
+	parent = RBTREE_NULL;
 
 	/* Lets find the new parent... */
 	while (node != RBTREE_NULL) {
