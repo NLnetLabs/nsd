@@ -449,12 +449,12 @@ dnstap/dnstap.pb-c.h: dnstap/dnstap.pb-c.c
 
 # eBPF XDP program
 xdp-dns-redirect_kern.o: $(srcdir)/xdp-dns-redirect_kern.c
-	$(CLANG) -S -target bpf $(BPF_CFLAGS) -O2 -emit-llvm -c -g -o ${@:.o=.ll} $<
+	$(CLANG) -S -target bpf $(BPF_CFLAGS) -O2 -emit-llvm -g -o ${@:.o=.ll} $<
 	$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
 
 xdp-dns-redirect_kern_pinned.o: $(srcdir)/xdp-dns-redirect_kern.c
 	sed -E '/\/\/ SEDUNCOMMENTTHIS/s_(/\*|\*/)__g' < $< > ${@:.o=.c}
-	$(CLANG) -S -target bpf $(BPF_CFLAGS) -O2 -emit-llvm -c -g -o ${@:.o=.ll} ${@:.o=.c}
+	$(CLANG) -S -target bpf $(BPF_CFLAGS) -O2 -emit-llvm -g -o ${@:.o=.ll} ${@:.o=.c}
 	$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
 
 # autoconf rules
