@@ -115,7 +115,7 @@ static int load_xdp_program_and_map(struct xdp_server *xdp);
 /*
  * Unload eBPF/XDP program
  */
-static int unload_xdp_program(struct xdp_server *xdp);
+static void unload_xdp_program(struct xdp_server *xdp);
 
 /*
  * Figure out IP addresses to listen to.
@@ -146,7 +146,7 @@ static int xdp_sockets_init(struct xdp_server *xdp);
 /*
  * Cleanup XDP sockets and memory
  */
-static int xdp_sockets_cleanup(struct xdp_server *xdp);
+static void xdp_sockets_cleanup(struct xdp_server *xdp);
 
 /*
  * Allocate a block of shared memory
@@ -466,13 +466,11 @@ out_err_umem:
 	return -1;
 }
 
-static int xdp_sockets_cleanup(struct xdp_server *xdp) {
+static void xdp_sockets_cleanup(struct xdp_server *xdp) {
 	for (uint32_t i = 0; i < xdp->queue_count; ++i) {
 		xsk_socket__delete(xdp->xsks[i].xsk);
 		xsk_umem__delete(xdp->umems[i].umem);
 	}
-
-	return 0;
 }
 
 int xdp_server_init(struct xdp_server *xdp) {
@@ -515,9 +513,7 @@ int xdp_server_init(struct xdp_server *xdp) {
 	return 0;
 }
 
-int xdp_server_cleanup(struct xdp_server *xdp) {
-	int ret = 0;
-
+void xdp_server_cleanup(struct xdp_server *xdp) {
 	xdp_sockets_cleanup(xdp);
 
 	/* only unpin if we loaded the program */
@@ -533,29 +529,23 @@ int xdp_server_cleanup(struct xdp_server *xdp) {
 				        "This is usually ok, but you need to unpin the map yourself. "
 				        "This can usually be fixed by executing chmod o+wx %s\n",
 				        strerror(errno), xdp->bpf_bpffs_path);
-				ret = -1;
 			}
 		}
 
 		unload_xdp_program(xdp);
 	}
-
-	return ret;
 }
 
-static int unload_xdp_program(struct xdp_server *xdp) {
+static void unload_xdp_program(struct xdp_server *xdp) {
 	DECLARE_LIBBPF_OPTS(bpf_xdp_attach_opts, bpf_opts,
 	                    .old_prog_fd = xdp->bpf_prog_fd);
 
 	log_msg(LOG_INFO, "xdp: detaching xdp program %u from %s\n",
 			xdp->bpf_prog_id, xdp->interface_name);
 
-	int ret = bpf_xdp_detach((int) xdp->interface_index, 0, &bpf_opts);
-	if (ret)
+	if (bpf_xdp_detach((int) xdp->interface_index, 0, &bpf_opts))
 		log_msg(LOG_ERR, "xdp: failed to detach xdp program: %s\n",
-		        strerror(-ret));
-
-	return ret;
+		        strerror(errno));
 }
 
 static int dest_ip_allowed6(struct xdp_server *xdp, struct ipv6hdr *ipv6) {

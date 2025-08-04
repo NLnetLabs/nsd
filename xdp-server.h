@@ -104,6 +104,6 @@ int xdp_server_init(struct xdp_server *xdp);
  *	- unload XDP program if loaded by NSD
  *	- unpin BPF map if pinned and loaded by NSD
  */
-int xdp_server_cleanup(struct xdp_server *xdp);
+void xdp_server_cleanup(struct xdp_server *xdp);
 
 #endif /* XDP_SERVER_H */
