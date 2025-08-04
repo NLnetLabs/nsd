@@ -805,7 +805,10 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt,
 		struct sockaddr_in6* sock6 = (struct sockaddr_in6*)&query->remote_addr;
 		sock6->sin6_family = AF_INET6;
 		sock6->sin6_port = udp->dest;
+		sock6->sin6_flowinfo = 0;
+		sock6->sin6_scope_id = 0;
 		memcpy(&sock6->sin6_addr, &ipv6->saddr, sizeof(ipv6->saddr));
+		query->remote_addrlen = (socklen_t)sizeof(struct sockaddr_in6);
 #else
 		return 0; /* no inet6 no network */
 #endif /* INET6 */
@@ -817,12 +820,12 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt,
 		sock4->sin_family = AF_INET;
 		sock4->sin_port = udp->dest;
 		sock4->sin_addr.s_addr = ipv4->saddr;
+		query->remote_addrlen = (socklen_t)sizeof(struct sockaddr_in);
 #ifdef BIND8_STATS
 		STATUP(xdp->nsd, qudp);
 #endif /* BIND8_STATS */
 	}
 
-	query->remote_addrlen = (socklen_t)sizeof(query->remote_addr);
 	query->client_addr    = query->remote_addr;
 	query->client_addrlen = query->remote_addrlen;
 	query->is_proxied = 0;
