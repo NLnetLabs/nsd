@@ -102,11 +102,11 @@ agent_callback(int fd, short event, void *arg)
 	(void)fd;
 	assert(arg != NULL);
 
-	if (event & EV_TIMEOUT) {
+	if ((event & EV_TIMEOUT)) {
 		if(verb) log_msg(LOG_INFO, "agent_callback: timeout\n");
 		discard = write(fd, buf, strlen(buf));
 		(void)discard;
-	} else if(event & EV_WRITE) {
+	} else if((event & EV_WRITE)) {
 		if(verb) log_msg(LOG_INFO, "agent_callback: write\n");
 		discard = write(fd, buf, strlen(buf));
 		(void)discard;
@@ -126,7 +126,7 @@ child_callback(int fd, short event, void *arg)
 	if(verb && (proc->events&EV_READ) == 0)
 		log_msg(LOG_INFO, "child_callback\n");
 
-	if (event & EV_READ) {
+	if ((event & EV_READ)) {
 		proc->events |= EV_READ;
 	}
 }
@@ -140,7 +140,7 @@ sigchld_callback(int sig, short event, void *arg)
 	struct proc *proc;
 
 	assert(sig == SIGCHLD);
-	assert(event & EV_SIGNAL);
+	assert((event & EV_SIGNAL));
 	assert(arg != NULL);
 	if(verb) log_msg(LOG_INFO, "sigchld_callback\n");
 

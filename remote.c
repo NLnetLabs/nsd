@@ -1759,7 +1759,104 @@ add_pat(xfrd_state_type* xfrd, struct pattern_options* p)
 	xfrd_set_reload_now(xfrd);
 }
 
-/** interrupt zones that are using changed or removed patterns */
+/** check if a zone's transfer configuration has actually changed */
+static int
+zone_transfer_config_changed(xfrd_zone_type* xz, struct pattern_options* oldp, struct pattern_options* newp)
+{
+	/* If pattern doesn't exist in new config, we must interrupt */
+	if(!newp) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: pattern removed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	/* Check if request_xfr ACL list has changed */
+	/* This also tests for TSIG key name changes. */
+	if(!acl_list_equal(oldp->request_xfr, newp->request_xfr)) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: request_xfr ACL changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	/* Check if other transfer-related settings have changed */
+	if(oldp->size_limit_xfr != newp->size_limit_xfr) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: size_limit_xfr changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->allow_axfr_fallback != newp->allow_axfr_fallback) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: allow_axfr_fallback changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->max_refresh_time != newp->max_refresh_time) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: max_refresh_time changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->min_refresh_time != newp->min_refresh_time) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: min_refresh_time changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->max_retry_time != newp->max_retry_time) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: max_retry_time changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->min_retry_time != newp->min_retry_time) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: min_retry_time changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+	
+	if(oldp->min_expire_time != newp->min_expire_time) {
+		VERBOSITY(1, (LOG_INFO, "zone %s: min_expire_time changed, interrupting transfer", 
+			xz->zone_options->name));
+		return 1;
+	}
+
+	/* No significant changes detected */
+	/* Suppress logging when no changes detected to reduce log noise */
+	return 0;
+}
+
+/** check if a zone's notify configuration has actually changed */
+static int
+zone_notify_config_changed(struct notify_zone* nz, struct pattern_options* oldp, struct pattern_options* newp)
+{
+	/* If pattern doesn't exist in new config, we must interrupt */
+	if(!newp) {
+		VERBOSITY(1, (LOG_INFO, "notify zone %s: pattern removed, interrupting notify", 
+			nz->options->name));
+		return 1;
+	}
+	
+	/* Check if notify ACL list has changed */
+	/* This also tests for TSIG key name changes. */
+	if(!acl_list_equal(oldp->notify, newp->notify)) {
+		VERBOSITY(1, (LOG_INFO, "notify zone %s: notify ACL changed, interrupting notify", 
+			nz->options->name));
+		return 1;
+	}
+	
+	/* Check if notify-related settings have changed */
+	if(oldp->notify_retry != newp->notify_retry) {
+		VERBOSITY(1, (LOG_INFO, "notify zone %s: notify_retry changed, interrupting notify", 
+			nz->options->name));
+		return 1;
+	}
+
+	/* No significant changes detected */
+	/* Suppress logging when no changes detected to reduce log noise */
+	return 0;
+}
+
 static void
 repat_interrupt_zones(xfrd_state_type* xfrd, struct nsd_options* newopt)
 {
@@ -1773,8 +1870,9 @@ repat_interrupt_zones(xfrd_state_type* xfrd, struct nsd_options* newopt)
 		struct pattern_options* oldp = xz->zone_options->pattern;
 		struct pattern_options* newp = pattern_options_find(newopt,
 			oldp->pname);
-		if(!newp || !acl_list_equal(oldp->request_xfr,
-			newp->request_xfr)) {
+		
+		/* Only interrupt if the zone's transfer configuration has actually changed */
+		if(zone_transfer_config_changed(xz, oldp, newp)) {
 			/* interrupt transfer */
 			if(xz->tcp_conn != -1) {
 				xfrd_tcp_release(xfrd->tcp_set, xz);
@@ -1797,7 +1895,9 @@ repat_interrupt_zones(xfrd_state_type* xfrd, struct nsd_options* newopt)
 		struct pattern_options* oldp = nz->options->pattern;
 		struct pattern_options* newp = pattern_options_find(newopt,
 			oldp->pname);
-		if(!newp || !acl_list_equal(oldp->notify, newp->notify)) {
+		
+		/* Only interrupt if the zone's notify configuration has actually changed */
+		if(zone_notify_config_changed(nz, oldp, newp)) {
 			/* interrupt notify */
 			if(nz->notify_send_enable) {
 				notify_disable(nz);
@@ -1890,7 +1990,7 @@ repat_patterns(xfrd_state_type* xfrd, struct nsd_options* newopt)
 				const dname_type* dname =
 					parse_implicit_name(xfrd, p->pname);
 				if (dname) {
-					if (newstate & REPAT_SLAVE) {
+					if ((newstate & REPAT_SLAVE)) {
 						struct zone_options* zopt =
 							zone_options_find(
 							oldopt, dname);
@@ -1898,11 +1998,11 @@ repat_patterns(xfrd_state_type* xfrd, struct nsd_options* newopt)
 							xfrd_init_slave_zone(
 								xfrd, zopt);
 						}
-					} else if (newstate & REPAT_MASTER) {
+					} else if ((newstate & REPAT_MASTER)) {
 						xfrd_del_slave_zone(xfrd,
 							dname);
 					}
-					if (newstate & REPAT_CATALOG_CONSUMER) {
+					if ((newstate & REPAT_CATALOG_CONSUMER)) {
 						struct zone_options* zopt =
 							zone_options_find(
 							oldopt, dname);
@@ -1910,7 +2010,7 @@ repat_patterns(xfrd_state_type* xfrd, struct nsd_options* newopt)
 							xfrd_init_catalog_consumer_zone(
 								xfrd, zopt);
 						}
-					} else if (newstate & REPAT_CATALOG_CONSUMER_DEINIT) {
+					} else if ((newstate & REPAT_CATALOG_CONSUMER_DEINIT)) {
 						xfrd_deinit_catalog_consumer_zone(
 								xfrd, dname);
 					}
@@ -1932,19 +2032,19 @@ repat_patterns(xfrd_state_type* xfrd, struct nsd_options* newopt)
 		RBTREE_FOR(zone_opt, struct zone_options*, oldopt->zone_options) {
 			struct pattern_options* oldp = zone_opt->pattern;
 			if (!oldp->implicit) {
-				if (oldp->xfrd_flags & REPAT_SLAVE) {
+				if ((oldp->xfrd_flags & REPAT_SLAVE)) {
 					/* xfrd needs stable reference so get
 					 * it from the oldopt(modified) tree */
 					xfrd_init_slave_zone(xfrd, zone_opt);
-				} else if (oldp->xfrd_flags & REPAT_MASTER) {
+				} else if ((oldp->xfrd_flags & REPAT_MASTER)) {
 					xfrd_del_slave_zone(xfrd,
 						(const dname_type*)
 						zone_opt->node.key);
 				}
-				if (oldp->xfrd_flags & REPAT_CATALOG_CONSUMER) {
+				if ((oldp->xfrd_flags & REPAT_CATALOG_CONSUMER)) {
 					xfrd_init_catalog_consumer_zone(xfrd,
 							zone_opt);
-				} else if (oldp->xfrd_flags & REPAT_CATALOG_CONSUMER_DEINIT) {
+				} else if ((oldp->xfrd_flags & REPAT_CATALOG_CONSUMER_DEINIT)) {
 					xfrd_deinit_catalog_consumer_zone(xfrd,
 						(const dname_type*)
 						zone_opt->node.key);
@@ -2053,6 +2153,7 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 	region_type* region = region_create(xalloc, free);
 	struct nsd_options* opt;
 	const char* cfgfile = xfrd->nsd->options->configfile;
+	int reload_needed_before = xfrd->need_to_send_reload;
 
 	/* check chroot and configfile, if possible to reread */
 	if(xfrd->nsd->chrootdir) {
@@ -2083,6 +2184,13 @@ do_repattern(RES* ssl, xfrd_state_type* xfrd)
 	repat_patterns(xfrd, opt);
 	repat_options(xfrd, opt);
 	zonestat_inc_ifneeded(xfrd);
+	
+	/* Check if any changes were actually made by comparing reload state */
+	if(xfrd->need_to_send_reload == reload_needed_before) {
+		(void)ssl_printf(ssl, "reconfig completed: no changes detected\n");
+	} else {
+		(void)ssl_printf(ssl, "reconfig completed: changes applied\n");
+	}
 	send_ok(ssl);
 	region_destroy(region);
 }
@@ -3156,6 +3264,18 @@ process_stats_add_old_new(struct xfrd_state* xfrd, struct nsdst* stats)
 	size_t i;
 	uint64_t dbd = stats[0].db_disk;
 	uint64_t dbm = stats[0].db_mem;
+	stc_type count1, count2;
+
+	/* Pick up the latest database memory use value. */
+	count1 = stats[0].reloadcount;
+	count2 = stats[xfrd->nsd->child_count+0].reloadcount;
+	/* This comparison allows roll over, the check is count2 > count1. */
+	if((count2 > count1 && count2-count1 < 0xffff) ||
+	   (count2 < count1 && count1-count2 > 0xffff)) {
+		dbd = stats[xfrd->nsd->child_count+0].db_disk;
+		dbm = stats[xfrd->nsd->child_count+0].db_mem;
+	}
+
 	/* The old and new server processes have separate stat blocks,
 	 * and these are added up together. This results in the statistics
 	 * values per server-child. The reload task briefly forks both

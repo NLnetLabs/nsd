@@ -26,7 +26,8 @@
 
 # start NSD
 # control is not used in the test but convenient for test construction.
-TPKG_CONTROL_ENABLE="no"
+# control used for zonefiles write after the transfer.
+TPKG_CONTROL_ENABLE="yes"
 
 if [ "$TPKG_CONTROL_ENABLE" = "yes" ]
 then
@@ -88,10 +89,9 @@ sed -e "s/@TPKG_PRI_PORT@/$TPKG_PRI_PORT/g" \
     -e "s/@TPKG_CONTROL_ENABLE@/$TPKG_CONTROL_ENABLE/g" \
 	xot.tertiary.conf.in > xot.tertiary.conf
 
-$TPKG_NSD -c xot.primary.conf
-$TPKG_NSD -c xot.secondary.conf
-$TPKG_NSD -c xot.tertiary.conf
+$TPKG_NSD -c xot.primary.conf -V 2
+$TPKG_NSD -c xot.secondary.conf -V 2
+$TPKG_NSD -c xot.tertiary.conf -V 2
 wait_nsd_up nsd-tertiary.log
 wait_nsd_up nsd-secondary.log
 wait_nsd_up nsd-primary.log
-

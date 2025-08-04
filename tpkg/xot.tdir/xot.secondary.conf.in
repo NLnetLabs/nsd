@@ -54,4 +54,3 @@ zone:
 	allow-notify: 0.0.0.0/0 xot.
 	# A XoT transfer from a normal service should fail.
 	request-xfr: 127.0.0.1@@TPKG_PRI_PORT@ xot. primary.example.org
-

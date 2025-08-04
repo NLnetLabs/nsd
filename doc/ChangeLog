@@ -1,3 +1,44 @@
+18 July 2025: Wouter
+	- Merge #449: Add useful logging for XoT transfers.
+
+17 July 2025: Wouter
+	- Disable TLSv1.2 if TLSv1.3 is available.
+
+9 July 2025: Wouter
+	- Update simdzone with support for --enable-pie.
+
+8 July 2025: Wouter
+	- Merge #447: Minimize disruptions on reconfig.
+	- For #447: Updated simdzone to latest commit. With the padding
+	  test changes.
+	- For #447: use need_to_send_reload to detect if a reload is issued.
+	- For #447: acl_list_equal already tests for TSIG key changes, so
+	  removed the duplicate checks.
+	- For #447: log crypto error with the SSL_write error.
+
+7 July 2025: Willem
+	- Merge #448: Report larger transfer sizes correctly, also on 32bit
+	  systems. Thanks to Niek Willems for reporting.
+
+4 July 2025: Wouter
+	- Fix #446 nsd_size_db_in_mem_bytes (size.db.mem) metric not
+	  updated on reload.
+	- For #446, remove unused edit.
+
+13 June 2025: Wouter
+	- Merge #445: contrib/nsd.openrc.in: use supervise-daemon and
+	  add `need net`.
+
+11 June 2025: Wouter
+	- Fix bitwise operators in conditional expressions with parentheses.
+	- Fix conditional expressions with parentheses for bitwise and.
+
+22 May 2025: Wouter
+	- make depend.
+
+19 May 2025: Wouter
+	- Fix to remove shell assignment operator from Makefile for DATE.
+
 13 May 2025: Wouter
 	- Change default for send-buffer-size to 4m, to mitigate a
 	  cross-layer issue where the UDP socket send buffers are
