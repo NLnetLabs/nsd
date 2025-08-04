@@ -291,7 +291,7 @@ static int load_xdp_program_and_map(struct xdp_server *xdp) {
 		ret = bpf_map__fd(map);
 		if (ret < 0) {
 			log_msg(LOG_ERR, "xdp: no xsks map found in xdp program: %s\n", strerror(ret));
-			return err;
+			return ret;
 		}
 		xdp->xsk_map_fd = ret;
 		xdp->xsk_map = map;
@@ -334,7 +334,7 @@ xsk_configure_umem(struct xsk_umem_info *umem_info, uint64_t size) {
 	ret = xsk_umem__create(&umem_info->umem, umem_info->buffer, size, &umem_info->fq, &umem_info->cq, &umem_config);
 	if (ret) {
 		errno = -ret;
-		return -ret;
+		return ret;
 	}
 
 	return 0;
@@ -396,6 +396,9 @@ xsk_configure_socket(struct xdp_server *xdp, struct xsk_socket_info *xsk_info,
 	if (reserved != XSK_RING_PROD__NUM_DESCS) {
 		log_msg(LOG_ERR,
 		        "xdp: amount of reserved addr not as expected (is %d)", reserved);
+		// "ENOMEM 12 Cannot allocate memory" is the closest to the
+		// error that not as much memory was reserved as expected
+		ret = -12;
 		goto error_exit;
 	}
 
@@ -410,7 +413,7 @@ xsk_configure_socket(struct xdp_server *xdp, struct xsk_socket_info *xsk_info,
 
 error_exit:
 	errno = -ret;
-	return -ret;
+	return ret;
 }
 
 static void *alloc_shared_mem(size_t len) {
