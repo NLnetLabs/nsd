@@ -5650,7 +5650,7 @@ handle_tcp_accept(int fd, short event, void* arg)
 static void handle_xdp(int fd, short event, void* arg) {
 	struct xdp_handler_data *data = (struct xdp_handler_data*) arg;
 
-	if (event & EV_READ)
+	if ((event & EV_READ))
 		xdp_handle_recv_and_send(data->server);
 }
 #endif

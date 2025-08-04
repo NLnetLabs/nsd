@@ -117,7 +117,7 @@ int xdp_dns_redirect(struct xdp_md *ctx) {
     if (!(ipv6 = parse_ipv6hdr(&c)) || ipv6->nexthdr != IPPROTO_UDP)
       return DEFAULT_ACTION;
 
-    if (!(udp = parse_udphdr(&c)) || udp-> dest != __bpf_htons(DNS_PORT))
+    if (!(udp = parse_udphdr(&c)) || udp->dest != __bpf_htons(DNS_PORT))
       return DEFAULT_ACTION;
 
     goto redirect_map;
