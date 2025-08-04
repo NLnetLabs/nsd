@@ -152,4 +152,4 @@ Some drivers don't support AF_XDP sockets fully. For those you can try out the
 .. code-block:: text
 
     server:
-        xdp-force-copy: true
+        xdp-force-copy: yes
