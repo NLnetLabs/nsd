@@ -621,7 +621,7 @@ util.o: $(srcdir)/util.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/util.h $(s
 verify.o: $(srcdir)/verify.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/region-allocator.h $(srcdir)/namedb.h \
  $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/bitset.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h \
  $(srcdir)/options.h $(srcdir)/difffile.h $(srcdir)/udb.h $(srcdir)/verify.h $(srcdir)/popen3.h
-xdp-server.o: $(srcdir)/xdp-server.c config.h $(srcdir)/xdp-server.h $(srcdir)/xdp-util.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/query.h
+xdp-server.o: $(srcdir)/xdp-server.c config.h $(srcdir)/xdp-server.h $(srcdir)/xdp-util.h $(srcdir)/dns.h $(srcdir)/nsd.h $(srcdir)/query.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 xdp-util.o: $(srcdir)/xdp-util.c config.h $(srcdir)/xdp-util.h
 xfrd.o: $(srcdir)/xfrd.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/xfrd.h $(srcdir)/rbtree.h \
  $(srcdir)/region-allocator.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/bitset.h $(srcdir)/dns.h \
