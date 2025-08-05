@@ -4726,8 +4726,9 @@ handle_tcp_writing(int fd, short event, void* arg)
 	struct event_base* ev_base;
 	uint32_t now = 0;
 
-	if ((event & EV_TIMEOUT)) {
+	if ((event & EV_TIMEOUT) || !q) {
 		/* Connection timed out.  */
+		/* Or data->query is NULL, in which case nothing to do. */
 		cleanup_tcp_handler(data);
 		return;
 	}
@@ -5329,8 +5330,9 @@ handle_tls_writing(int fd, short event, void* arg)
 	buffer_type* write_buffer;
 	uint32_t now = 0;
 
-	if ((event & EV_TIMEOUT)) {
+	if ((event & EV_TIMEOUT) || !q) {
 		/* Connection timed out.  */
+		/* Or data->query is NULL, in which case nothing to do. */
 		cleanup_tcp_handler(data);
 		return;
 	}

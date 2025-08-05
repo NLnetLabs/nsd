@@ -4,6 +4,8 @@
 5 August 2025: Wouter
 	- Merge #454 from jaredmauch: handle rare case but seen in
 	  production where data->query is NULL.
+	- Fix code analyzer warning, and bail out of handle_tcp_writing
+	  and handle_tls_writing early when data->query is NULL.
 
 18 July 2025: Wouter
 	- Merge #449: Add useful logging for XoT transfers.
