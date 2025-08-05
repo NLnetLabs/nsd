@@ -4417,7 +4417,11 @@ more_read_buf_tcp(int fd, struct tcp_handler_data* data, void* bufpos,
 			return 0;
 		} else {
 			char buf[48];
-			addr2str(&data->query->remote_addr, buf, sizeof(buf));
+			if(data->query) {
+				addr2str(&data->query->remote_addr, buf, sizeof(buf));
+			} else {
+				snprintf(buf, sizeof(buf), "unknown");
+			}
 #ifdef ECONNRESET
 			if (verbosity >= 2 || errno != ECONNRESET)
 #endif /* ECONNRESET */
@@ -4761,7 +4765,11 @@ handle_tcp_writing(int fd, short event, void* arg)
 #endif /* EPIPE 'broken pipe' */
 				{
 					char client_ip[128];
-					addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+					if(data->query) {
+						addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+					} else {
+						snprintf(client_ip, sizeof(client_ip), "unknown");
+					}
 					log_msg(LOG_ERR, "failed writing to tcp from %s: %s", client_ip, strerror(errno));
 				}
 				cleanup_tcp_handler(data);
@@ -4804,7 +4812,11 @@ handle_tcp_writing(int fd, short event, void* arg)
 #endif /* EPIPE 'broken pipe' */
 		{
 			char client_ip[128];
-			addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+			if(data->query) {
+				addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+			} else {
+				snprintf(client_ip, sizeof(client_ip), "unknown");
+			}
 			log_msg(LOG_ERR, "failed writing to tcp from %s: %s", client_ip, strerror(errno));
 		}
 			cleanup_tcp_handler(data);
@@ -4965,7 +4977,11 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 				unsigned long err = ERR_get_error();
 				if(!squelch_err_ssl_handshake(err)) {
 					char a[64], s[256];
-					addr2str(&data->query->remote_addr, a, sizeof(a));
+					if(data->query) {
+						addr2str(&data->query->remote_addr, a, sizeof(a));
+					} else {
+						snprintf(a, sizeof(a), "unknown");
+					}
 					snprintf(s, sizeof(s), "TLS handshake failed from %s", a);
 					log_crypto_from_err(LOG_ERR, s, err);
 				}
@@ -5379,7 +5395,11 @@ handle_tls_writing(int fd, short event, void* arg)
 			cleanup_tcp_handler(data);
 			{
 				char client_ip[128], e[188];
-				addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+				if(data->query) {
+					addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+				} else {
+					snprintf(client_ip, sizeof(client_ip), "unknown");
+				}
 				snprintf(e, sizeof(e), "failed writing to tls from %s: %s",
 					client_ip, "SSL_write error");
 				log_crypto_err(e);
