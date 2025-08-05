@@ -21,6 +21,7 @@ FEATURES:
 	  for the report.
 	- Disable TLSv1.2 if TLSv1.3 is available.
 	- Merge #449: Add useful logging for XoT transfers.
+	- Merge #425: Add experimental XDP (AF_XDP) support for UDP traffic
 
 BUG FIXES:
 	- Fix punctuation of nsd -h output for the -a option.

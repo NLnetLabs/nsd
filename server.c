@@ -87,6 +87,9 @@
 #endif
 #include "verify.h"
 #include "util/proxy_protocol.h"
+#ifdef USE_XDP
+#include "xdp-server.h"
+#endif
 #ifdef USE_METRICS
 #include "metrics.h"
 #endif /* USE_METRICS */
@@ -171,6 +174,14 @@ struct tcp_accept_handler_data {
 	int pp2_enabled;
 };
 
+#ifdef USE_XDP
+struct xdp_handler_data {
+	struct nsd        *nsd;
+	struct xdp_server *server;
+	struct event event;
+};
+#endif
+
 /*
  * These globals are used to enable the TCP accept handlers
  * when the number of TCP connection drops below the maximum
@@ -205,6 +216,9 @@ struct mmsghdr {
 static struct mmsghdr msgs[NUM_RECV_PER_SELECT];
 static struct iovec iovecs[NUM_RECV_PER_SELECT];
 static struct query *queries[NUM_RECV_PER_SELECT];
+#ifdef USE_XDP
+static struct query *xdp_queries[XDP_RX_BATCH_SIZE];
+#endif
 
 /*
  * Data for the TCP connection handlers.
@@ -357,6 +371,10 @@ static void handle_tls_reading(int fd, short event, void* arg);
  * be called multiple times before a complete response is sent.
  */
 static void handle_tls_writing(int fd, short event, void* arg);
+#endif
+
+#ifdef USE_XDP
+static void handle_xdp(int fd, short event, void* arg);
 #endif
 
 /*
@@ -3183,6 +3201,10 @@ server_main(struct nsd *nsd)
 		(void)kill(nsd->pid, SIGTERM);
 	}
 
+#ifdef USE_XDP
+	xdp_server_cleanup(&nsd->xdp.xdp_server);
+#endif
+
 #ifdef MEMCLEAN /* OS collects memory pages */
 	region_destroy(server_region);
 #endif
@@ -3363,6 +3385,33 @@ add_tcp_handler(
 		log_msg(LOG_ERR, "nsd tcp: event_add failed");
 	data->event_added = 1;
 }
+
+#ifdef USE_XDP
+static void
+add_xdp_handler(struct nsd *nsd,
+	            struct xdp_server *xdp,
+	            struct xdp_handler_data *data) {
+
+	struct event *handler = &data->event;
+
+	data->nsd = nsd;
+	data->server = xdp;
+
+	memset(handler, 0, sizeof(*handler));
+	int sock = xsk_socket__fd(xdp->xsks[xdp->queue_index].xsk);
+	if (sock < 0) {
+		log_msg(LOG_ERR, "xdp: xsk socket file descriptor is invalid: %s",
+		        strerror(errno));
+		return;
+	}
+	// TODO: check which EV_flags are needed
+	event_set(handler, sock, EV_PERSIST|EV_READ, handle_xdp, data);
+	if (event_base_set(nsd->event_base, handler) != 0)
+		log_msg(LOG_ERR, "nsd xdp: event_base_set failed");
+	if (event_add(handler, NULL) != 0)
+		log_msg(LOG_ERR, "nsd xdp: event_add failed");
+}
+#endif
 
 /*
  * Serve DNS request to verifiers (short-lived)
@@ -3646,6 +3695,53 @@ server_child(struct nsd *nsd)
 		tcp_accept_handler_count = 0;
 	}
 
+#ifdef USE_XDP
+	if (nsd->options->xdp_interface) {
+		/* don't try to bind more sockets than there are queues available */
+		if (nsd->xdp.xdp_server.queue_count <= nsd->this_child->child_num) {
+			log_msg(LOG_WARNING,
+			        "xdp: server-count exceeds available queues (%d) on "
+			        "interface %s, skipping xdp in this process",
+			        nsd->xdp.xdp_server.queue_count,
+			        nsd->xdp.xdp_server.interface_name);
+		} else {
+			nsd->xdp.xdp_server.queue_index = nsd->this_child->child_num;
+			nsd->xdp.xdp_server.queries = xdp_queries;
+
+			log_msg(LOG_INFO,
+			        "xdp: using socket with queue_id %d on interface %s",
+			        nsd->xdp.xdp_server.queue_index,
+			        nsd->xdp.xdp_server.interface_name);
+
+			struct xdp_handler_data *data;
+			data = region_alloc_zero(nsd->server_region, sizeof(*data));
+			add_xdp_handler(nsd, &nsd->xdp.xdp_server, data);
+
+			const int scratch_data_len = 1;
+			void *scratch_data = region_alloc_zero(nsd->server_region,
+			                                       scratch_data_len);
+			for (i = 0; i < XDP_RX_BATCH_SIZE; i++) {
+				/* Be aware that the buffer is initialized with scratch data
+				 * and will be filled by the xdp handle and receive function
+				 * that receives the packet data.
+				 * Using scratch data so that the existing functions in regards
+				 * to queries and buffers don't break by use of NULL pointers */
+				struct buffer *buffer = region_alloc_zero(
+				                            nsd->server_region,
+				                            sizeof(struct buffer));
+				buffer_create_from(buffer, scratch_data, scratch_data_len);
+				xdp_queries[i] = query_create_with_buffer(
+				                                  server_region,
+				                                  compressed_dname_offsets,
+				                                  compression_table_size,
+				                                  compressed_dnames,
+				                                  buffer);
+				query_reset(xdp_queries[i], UDP_MAX_MESSAGE_LEN, 0);
+			}
+		}
+	}
+#endif
+
 	/* The main loop... */
 	while ((mode = nsd->mode) != NSD_QUIT) {
 		if(mode == NSD_RUN) nsd->mode = mode = server_signal_mode(nsd);
@@ -3695,6 +3791,10 @@ server_child(struct nsd *nsd)
 			nsd->mode = NSD_RUN;
 		}
 	}
+
+	/* This part is seemingly never reached as the loop WOULD exit on NSD_QUIT,
+	 * but nsd->mode is only set to NSD_QUIT in ipc_child_quit. However, that
+	 * function also calls exit(). */
 
 	service_remaining_tcp(nsd);
 #ifdef	BIND8_STATS
@@ -5575,6 +5675,15 @@ handle_tcp_accept(int fd, short event, void* arg)
 		configure_handler_event_types(0);
 	}
 }
+
+#ifdef USE_XDP
+static void handle_xdp(int fd, short event, void* arg) {
+	struct xdp_handler_data *data = (struct xdp_handler_data*) arg;
+
+	if ((event & EV_READ))
+		xdp_handle_recv_and_send(data->server);
+}
+#endif
 
 static void
 send_children_command(struct nsd* nsd, sig_atomic_t command, int timeout)

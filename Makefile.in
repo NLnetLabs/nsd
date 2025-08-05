@@ -31,6 +31,7 @@ chrootdir= @chrootdir@
 user = @user@
 DNSTAP_SRC=@DNSTAP_SRC@
 DNSTAP_OBJ=@DNSTAP_OBJ@
+sharedfilesdir = @sharedfilesdir@
 
 # override $U variable which is used by autotools for deansification (for
 # K&R C compilers), but causes problems if $U is defined in the env).
@@ -59,6 +60,11 @@ DATE = `date +'%b %e, %y'`
 PROJECT = @PACKAGE_NAME@
 VERSION = @PACKAGE_VERSION@
 
+# BPF/XDP settings
+CLANG	= @CLANG@
+LLC		= @LLC@
+BPF_CFLAGS = @BPF_CFLAGS@
+
 COMPILE		= $(CC) $(CPPFLAGS) $(CFLAGS)
 LINK		= $(CC) $(CFLAGS) $(LDFLAGS)
 EDIT		= $(SED) \
@@ -82,14 +88,17 @@ EDIT		= $(SED) \
 			-e 's,@user\@,$(user),g' \
 			-e 's/@project\@/$(PROJECT)/g' \
 			-e 's/@version\@/$(VERSION)/g' \
+			-e 's,@sharedfilesdir\@,$(sharedfilesdir),g' \
 			-e "s/@date\@/$(DATE)/g"
 
-TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf
+XDP_TARGETS=@xdp_targets@
+TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf $(XDP_TARGETS)
 MANUALS=nsd.8 nsd-checkconf.8 nsd-checkzone.8 nsd-control.8 nsd.conf.5
 
 COMMON_OBJ=answer.o axfr.o ixfr.o ixfrcreate.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o rrl.o siphash.o tsig.o tsig-openssl.o udb.o util.o bitset.o popen3.o proxy_protocol.o
 XFRD_OBJ=xfrd-catalog-zones.o xfrd-disk.o xfrd-notify.o xfrd-tcp.o xfrd.o remote.o metrics.o $(DNSTAP_OBJ)
-NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o mini_event.o netio.o nsd.o server.o dbaccess.o dbcreate.o zonec.o verify.o
+XDP_OBJ=xdp-server.o xdp-util.o
+NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) $(XDP_OBJ) difffile.o ipc.o mini_event.o netio.o nsd.o server.o dbaccess.o dbcreate.o zonec.o verify.o
 ALL_OBJ=$(NSD_OBJ) nsd-checkconf.o nsd-checkzone.o nsd-control.o nsd-mem.o xfr-inspect.o
 NSD_CHECKCONF_OBJ=$(COMMON_OBJ) nsd-checkconf.o
 NSD_CHECKZONE_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o mini_event.o netio.o server.o zonec.o nsd-checkzone.o verify.o
@@ -184,6 +193,8 @@ install: all
 	$(INSTALL_DATA) nsd-control.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
 	$(INSTALL_DATA) nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	$(INSTALL_DATA) nsd.conf.sample $(DESTDIR)$(nsdconfigfile).sample
+	if test -n "@xdp@"; then $(INSTALL_DATA) xdp-dns-redirect_kern.o $(DESTDIR)$(sharedfilesdir)/xdp-dns-redirect_kern.o; fi
+	if test -n "@xdp@"; then $(INSTALL_DATA) xdp-dns-redirect_kern_pinned.o $(DESTDIR)$(sharedfilesdir)/xdp-dns-redirect_kern_pinned.o; fi
 
 uninstall:
 	@echo
@@ -191,6 +202,8 @@ uninstall:
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd.8 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkzone.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
 	rm -f -- $(DESTDIR)$(pidfile)
+	rm -f -- $(DESTDIR)$(sharedfilesdir)/xdp-dns-redirect_kern.o
+	rm -f -- $(DESTDIR)$(sharedfilesdir)/xdp-dns-redirect_kern_pinned.o
 	@echo
 	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(xfrdfile), $(DESTDIR)$(zonelistfile) $(DESTDIR)$(cookiesecretsfile) directory by hand."
 
@@ -237,7 +250,7 @@ audit: nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem checksec
 	./checksec --file=nsd-mem
 
 .clean:
-	rm -f *.o $(TARGETS) $(MANUALS) cutest popen3_echo xfr-inspect nsd-mem
+	rm -f *.o *.ll $(TARGETS) $(MANUALS) cutest popen3_echo xfr-inspect nsd-mem
 	rm -f doc/manual/conf.py doc/manual/manpages/nsd.conf.5.html doc/manual/manpages/nsd.8.html doc/manual/manpages/nsd-checkconf.8.html doc/manual/manpages/nsd-checkzone.8.html doc/manual/manpages/nsd-control.8.html
 	rm -rf doc/manual/doctrees doc/manual/html
 
@@ -247,6 +260,7 @@ audit: nsd nsd-checkconf nsd-checkzone nsd-control nsd-mem checksec
 .realclean: .distclean
 	rm -rf autom4te*
 	rm -f configlexer.c configparser.h configparser.c configparser.stamp
+	rm -f xdp-dns-redirect_kern_pinned.c
 
 clean: .clean
 	$(MAKE) -C simdzone clean
@@ -433,6 +447,16 @@ dnstap/dnstap.pb-c.c: $(srcdir)/dnstap/dnstap.proto
 dnstap/dnstap.pb-c.h: dnstap/dnstap.pb-c.c
 	touch $@
 
+# eBPF XDP program
+xdp-dns-redirect_kern.o: $(srcdir)/xdp-dns-redirect_kern.c
+	$(CLANG) -S -target bpf $(BPF_CFLAGS) -O2 -emit-llvm -g -o ${@:.o=.ll} $<
+	$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
+
+xdp-dns-redirect_kern_pinned.o: $(srcdir)/xdp-dns-redirect_kern.c
+	sed -E '/\/\/ SEDUNCOMMENTTHIS/s_(/\*|\*/)__g' < $< > ${@:.o=.c}
+	$(CLANG) -S -target bpf $(BPF_CFLAGS) -O2 -emit-llvm -g -o ${@:.o=.ll} ${@:.o=.c}
+	$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
+
 # autoconf rules
 config.h.in:	configure.ac
 	autoheader
@@ -535,7 +559,7 @@ netio.o: $(srcdir)/netio.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/netio.h 
 nsd.o: $(srcdir)/nsd.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/bitset.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/tsig.h $(srcdir)/dname.h \
  $(srcdir)/remote.h $(srcdir)/xfrd-disk.h $(srcdir)/ipc.h $(srcdir)/netio.h $(srcdir)/metrics.h $(srcdir)/dnstap/dnstap_collector.h \
- $(srcdir)/util/proxy_protocol.h config.h $(srcdir)/compat/cpuset.h
+ $(srcdir)/util/proxy_protocol.h config.h $(srcdir)/compat/cpuset.h $(srcdir)/xdp-server.h $(srcdir)/xdp-util.h
 nsd-checkconf.o: $(srcdir)/nsd-checkconf.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/tsig.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/bitset.h $(srcdir)/dname.h $(srcdir)/dns.h $(srcdir)/options.h $(srcdir)/rbtree.h \
  $(srcdir)/rrl.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h
@@ -583,7 +607,7 @@ server.o: $(srcdir)/server.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/axfr.h
  $(srcdir)/radtree.h $(srcdir)/rbtree.h $(srcdir)/packet.h $(srcdir)/tsig.h $(srcdir)/netio.h $(srcdir)/xfrd.h $(srcdir)/options.h $(srcdir)/xfrd-tcp.h \
  $(srcdir)/xfrd-disk.h $(srcdir)/difffile.h $(srcdir)/udb.h $(srcdir)/nsec3.h $(srcdir)/ipc.h $(srcdir)/remote.h $(srcdir)/lookup3.h $(srcdir)/rrl.h \
  $(srcdir)/ixfr.h $(srcdir)/dnstap/dnstap_collector.h $(srcdir)/verify.h $(srcdir)/util/proxy_protocol.h config.h \
- $(srcdir)/compat/cpuset.h $(srcdir)/metrics.h
+ $(srcdir)/compat/cpuset.h $(srcdir)/metrics.h $(srcdir)/xdp-server.h
 siphash.o: $(srcdir)/siphash.c
 tsig.o: $(srcdir)/tsig.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/tsig.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/bitset.h $(srcdir)/dname.h $(srcdir)/dns.h $(srcdir)/tsig-openssl.h $(srcdir)/packet.h \
@@ -597,6 +621,8 @@ util.o: $(srcdir)/util.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/util.h $(s
 verify.o: $(srcdir)/verify.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/region-allocator.h $(srcdir)/namedb.h \
  $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/bitset.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h \
  $(srcdir)/options.h $(srcdir)/difffile.h $(srcdir)/udb.h $(srcdir)/verify.h $(srcdir)/popen3.h
+xdp-server.o: $(srcdir)/xdp-server.c config.h $(srcdir)/xdp-server.h $(srcdir)/xdp-util.h $(srcdir)/dns.h $(srcdir)/nsd.h $(srcdir)/query.h $(srcdir)/region-allocator.h $(srcdir)/util.h
+xdp-util.o: $(srcdir)/xdp-util.c config.h $(srcdir)/xdp-util.h
 xfrd.o: $(srcdir)/xfrd.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/xfrd.h $(srcdir)/rbtree.h \
  $(srcdir)/region-allocator.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/bitset.h $(srcdir)/dns.h \
  $(srcdir)/radtree.h $(srcdir)/options.h $(srcdir)/tsig.h $(srcdir)/xfrd-tcp.h $(srcdir)/xfrd-disk.h $(srcdir)/xfrd-notify.h \

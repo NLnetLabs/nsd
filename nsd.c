@@ -61,6 +61,11 @@
 #ifdef USE_DNSTAP
 #include "dnstap/dnstap_collector.h"
 #endif
+#ifdef USE_XDP
+#include <sys/prctl.h>
+#include "xdp-server.h"
+#include "xdp-util.h"
+#endif
 #include "util/proxy_protocol.h"
 
 /* The server handler... */
@@ -1100,6 +1105,32 @@ main(int argc, char *argv[])
 		nsd.child_count = nsd.options->server_count;
 	}
 
+#ifdef USE_XDP
+	/* make sure we will spawn enough servers to serve all queues of the
+	 * selected network device, otherwise traffic to these queues will take
+	 * the non-af_xdp path */
+	if (nsd.options->xdp_interface) {
+		int res = ethtool_channels_get(nsd.options->xdp_interface);
+		if (res <= 0) {
+			log_msg(LOG_ERR,
+			        "xdp: could not determine netdev queue count: %s. "
+			        "(attempting to continue with 1 queue)",
+			        strerror(errno));
+			nsd.xdp.xdp_server.queue_count = 1;
+		} else {
+			nsd.xdp.xdp_server.queue_count = res;
+		}
+
+		if (nsd.child_count < nsd.xdp.xdp_server.queue_count) {
+			log_msg(LOG_NOTICE,
+			        "xdp configured but server-count not high enough to serve "
+			        "all netdev queues, raising server-count to %u",
+			        nsd.xdp.xdp_server.queue_count);
+			nsd.child_count = nsd.xdp.xdp_server.queue_count;
+		}
+	}
+#endif
+
 #ifdef SO_REUSEPORT
 	if(nsd.options->reuseport && nsd.child_count > 1) {
 		nsd.reuseport = nsd.child_count;
@@ -1416,6 +1447,23 @@ main(int argc, char *argv[])
 	}
 #endif
 
+#ifdef USE_XDP
+	/* Set XDP config */
+	nsd.xdp.xdp_server.region = nsd.region;
+	nsd.xdp.xdp_server.interface_name = nsd.options->xdp_interface;
+	nsd.xdp.xdp_server.bpf_prog_filename = nsd.options->xdp_program_path;
+	nsd.xdp.xdp_server.bpf_prog_should_load = nsd.options->xdp_program_load;
+	nsd.xdp.xdp_server.bpf_bpffs_path = nsd.options->xdp_bpffs_path;
+	nsd.xdp.xdp_server.force_copy = nsd.options->xdp_force_copy;
+	nsd.xdp.xdp_server.nsd = &nsd;
+
+	if (!nsd.options->xdp_interface)
+		log_msg(LOG_NOTICE, "XDP support is enabled, but not configured. Not using XDP.");
+
+	/* moved xdp_server_init to after privilege drop to prevent
+	 * problems with file ownership of bpf object pins. */
+#endif
+
 	print_sockets(nsd.udp, nsd.tcp, nsd.ifs);
 
 	/* Setup the signal handling... */
@@ -1594,9 +1642,35 @@ main(int argc, char *argv[])
 			nsd.pidfile, strerror(errno));
 	}
 
+#ifdef USE_XDP
+	if (nsd.options->xdp_interface) {
+		/* initializing xdp needs the CAP_SYS_ADMIN, therefore doing it
+		 * before privilege drop (and not keeping CAP_SYS_ADMIN) */
+		if (xdp_server_init(&nsd.xdp.xdp_server)) {
+			log_msg(LOG_ERR, "failed to initialize XDP... disabling XDP.");
+			nsd.options->xdp_interface = NULL;
+		}
+	}
+#endif
+
 	/* Drop the permissions */
 #ifdef HAVE_GETPWNAM
 	if (*nsd.username) {
+#ifdef USE_XDP
+		if (nsd.options->xdp_interface) {
+			/* tell kernel to keep (permitted) privileges across uid change */
+			if (!prctl(PR_SET_KEEPCAPS, 1)) {
+				/* only keep needed capabilities across privilege drop */
+				/* this needs to be close to the privilege drop to prevent issues
+				 * with other setup functions like tls setup */
+				set_caps(0);
+			} else {
+				log_msg(LOG_ERR, "couldn't set keep capabilities... disabling XDP.");
+				nsd.options->xdp_interface = NULL;
+			}
+		}
+#endif /* USE_XDP */
+
 #ifdef HAVE_INITGROUPS
 		if(initgroups(nsd.username, nsd.gid) != 0)
 			log_msg(LOG_WARNING, "unable to initgroups %s: %s",
@@ -1626,8 +1700,17 @@ main(int argc, char *argv[])
 
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "dropped user privileges, run as %s",
 			nsd.username));
+
+#ifdef USE_XDP
+		/* enable capabilities after privilege drop */
+		if (nsd.options->xdp_interface) {
+			/* re-enable needed capabilities and drop setuid/gid capabilities */
+			set_caps(1);
+		}
+#endif /* USE_XDP */
 	}
 #endif /* HAVE_GETPWNAM */
+
 	xfrd_make_tempdir(&nsd);
 #ifdef USE_ZONE_STATS
 	options_zonestatnames_create(nsd.options);

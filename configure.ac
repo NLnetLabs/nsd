@@ -138,6 +138,11 @@ AC_ARG_WITH([xfrdir], AS_HELP_STRING([--with-xfrdir=path],[Pathname to where the
 AC_DEFINE_UNQUOTED(XFRDIR, ["`eval echo $xfrdir`"], [Pathname to where the NSD transfer dir is created.])
 AC_SUBST(xfrdir)
 
+sharedfilesdir=${datarootdir}/nsd
+AC_ARG_WITH([sharedfilesdir], AS_HELP_STRING([--with-sharedfilesdir=dir],[NSD shared files directory]), [sharedfilesdir=$withval])
+AC_DEFINE_UNQUOTED(SHAREDFILESDIR, ["`eval echo $sharedfilesdir`"], [NSD shared files dir])
+AC_SUBST(sharedfilesdir)
+
 # nsd sbin location. tmpinstantiate execprefix with defaults if not yet done.
 if test "x${exec_prefix}" = "xNONE"; then
 	if test "x${prefix}" = "xNONE"; then exec_prefix="$ac_default_prefix"
@@ -1163,6 +1168,37 @@ case "$enable_packed" in
 	;;
 esac
 
+AC_ARG_ENABLE(xdp, AS_HELP_STRING([--enable-xdp],[Enable XDP support.]))
+case "$enable_xdp" in
+	yes)
+	AC_DEFINE_UNQUOTED([USE_XDP], [], [Define this to enable the use of AF_XDP sockets.])
+
+	AC_SEARCH_LIBS(xdp_program__open_file, [xdp],, [AC_MSG_ERROR([Cannot find libxdp, but is needed for xdp support.])])
+	AC_SEARCH_LIBS(bpf_map__fd, [bpf],, [AC_MSG_ERROR([Cannot find libbpf, but is needed for xdp support.])])
+	AC_SEARCH_LIBS(cap_set_proc, [cap],, [AC_MSG_ERROR([Cannot find libcap, but is needed for xdp support.])])
+
+	# Using ARG_VAR here because AC_PROG_xxx doesn't exist for CLANG and LLC
+	AC_ARG_VAR(CLANG, [location of clang compiler (only needed for xdp)])
+	AC_ARG_VAR(LLC, [location of LLVM static compiler (only needed for xdp)])
+	# CHECK_PROG will not overwrite a variable if it is already provided by the user on the commandline
+	AC_CHECK_PROG(CLANG, clang, clang)
+	AC_CHECK_PROG(LLC, llc, llc)
+	test "$CLANG" = "" && AC_MSG_ERROR([Cannot find clang, but is needed for xdp support.])
+	test "$LLC" = "" && AC_MSG_ERROR([Cannot find llc, but is needed for xdp support.])
+
+	AC_ARG_VAR(BPF_CFLAGS, [The list of arguments passed to the BPF compiler])
+	test "$BPF_CFLAGS" = "" && BPF_CFLAGS="-Wall -Wextra -Wconversion -Werror"
+
+	xdp_targets="xdp-dns-redirect_kern.o xdp-dns-redirect_kern_pinned.o"
+	AC_SUBST(xdp_targets)
+
+	xdp="xx"
+	;;
+	no|*)
+	xdp=""
+	;;
+esac
+AC_SUBST(xdp)
 # check for dnstap if requested
 dt_DNSTAP([${localstatedir}/run/nsd-dnstap.sock],
     [

@@ -1,3 +1,6 @@
+05 August 2025: Jannik
+	- Merge #425: Add experimental XDP (AF_XDP) support for UDP traffic
+
 18 July 2025: Wouter
 	- Merge #449: Add useful logging for XoT transfers.
 
