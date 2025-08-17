@@ -82,6 +82,9 @@ AC_SUBST(logfile)
 # Database directory
 #
 dbdir=${localstatedir}/db/nsd
+AC_ARG_WITH([dbdir],
+	AS_HELP_STRING([--with-dbdir=dir],[NSD database directory]),
+	[dbdir=$withval])
 
 #
 # Determine the pidfile location. Check if /var/run exists, if so set pidfile
