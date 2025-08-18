@@ -25,6 +25,7 @@ FEATURES:
 	- Merge #455: --with-dbdir option for configure to set the base
 	  directory for the xfrd zone timer state file, the zone list file
 	  and the cookie secrets file. Thanks Simon Josefsson.
+	- Merge #456: Spelling fixes in metrics.c. Thanks Simon Josefsson.
 
 
 BUG FIXES:
