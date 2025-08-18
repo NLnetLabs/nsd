@@ -1,3 +1,6 @@
+18 August 2025: Willem
+	- Merge #456: Spelling fixes in metrics.c. Thanks Simon Josefsson.
+
 05 August 2025: Jannik
 	- Merge #425: Add experimental XDP (AF_XDP) support for UDP traffic
 
