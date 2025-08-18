@@ -22,6 +22,10 @@ FEATURES:
 	- Disable TLSv1.2 if TLSv1.3 is available.
 	- Merge #449: Add useful logging for XoT transfers.
 	- Merge #425: Add experimental XDP (AF_XDP) support for UDP traffic
+	- Merge #455: --with-dbdir option for configure to set the base
+	  directory for the xfrd zone timer state file, the zone list file
+	  and the cookie secrets file. Thanks Simon Josefsson.
+
 
 BUG FIXES:
 	- Fix punctuation of nsd -h output for the -a option.
