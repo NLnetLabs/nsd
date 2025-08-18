@@ -83,7 +83,7 @@ AC_SUBST(logfile)
 #
 dbdir=${localstatedir}/db/nsd
 AC_ARG_WITH([dbdir],
-	AS_HELP_STRING([--with-dbdir=dir],[NSD database directory]),
+	AS_HELP_STRING([--with-dbdir=dir],[Base directory for the xfrd zone timer state file, the zone list file and the cookie secrets file]),
 	[dbdir=$withval])
 
 #
