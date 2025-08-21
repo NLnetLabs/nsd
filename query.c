@@ -266,6 +266,7 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	q->cname_count = 0;
 	q->delegation_domain = NULL;
 	q->delegation_rrset = NULL;
+	q->deleg_rrset = NULL;
 	q->compressed_dname_count = 0;
 	q->number_temporary_domains = 0;
 
@@ -723,7 +724,9 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 
 		assert(additional);
 
-		if (!allow_glue && domain_is_glue(match, query->zone))
+		if (!allow_glue && ( query->edns.deleg_ok
+		                   ? domain_is_glue_DE(match, query->zone)
+		                   : domain_is_glue(match, query->zone)))
 			continue;
 
 		/*
@@ -950,7 +953,7 @@ answer_delegation(query_type *query, answer_type *answer)
 {
 	assert(answer);
 	assert(query->delegation_domain);
-	assert(query->delegation_rrset);
+	assert(query->delegation_rrset || query->deleg_rrset);
 
 	if (query->cname_count == 0) {
 		AA_CLR(query->packet);
@@ -958,16 +961,29 @@ answer_delegation(query_type *query, answer_type *answer)
 		AA_SET(query->packet);
 	}
 
-	add_rrset(query,
-		  answer,
-		  AUTHORITY_SECTION,
-		  query->delegation_domain,
-		  query->delegation_rrset);
+	if (query->delegation_rrset) {
+		add_rrset(query,
+			  answer,
+			  AUTHORITY_SECTION,
+			  query->delegation_domain,
+			  query->delegation_rrset);
+	}
 	if (query->edns.dnssec_ok && zone_is_secure(query->zone)) {
 		rrset_type *rrset;
+		int ds_found = 0, deleg_found = 0;
 		if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_DS))) {
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				  query->delegation_domain, rrset);
+			ds_found = 1;
+
+		}
+		if (query->deleg_rrset) {
+			add_rrset(query, answer, AUTHORITY_SECTION,
+				  query->delegation_domain, query->deleg_rrset);
+			deleg_found = 1;
+		}
+		if (ds_found && (!query->edns.deleg_ok || deleg_found)) {
+			; /* pass; No NSEC needed showing the absence of the other RRset */
 #ifdef NSEC3
 		} else if (query->zone->nsec3_param) {
 			nsec3_answer_delegation(query, answer);
@@ -976,6 +992,12 @@ answer_delegation(query_type *query, answer_type *answer)
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				  query->delegation_domain, rrset);
 		}
+	} else if (query->deleg_rrset) {
+		add_rrset(query,
+			  answer,
+			  AUTHORITY_SECTION,
+			  query->delegation_domain,
+			  query->deleg_rrset);
 	}
 }
 
@@ -1466,7 +1488,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	 * See RFC 4035 (DNSSEC protocol) section 3.1.4.1 Responding
 	 * to Queries for DS RRs.
 	 */
-	if (exact && q->qtype == TYPE_DS && closest_encloser == q->zone->apex) {
+	if (exact && (q->qtype == TYPE_DS || q->qtype == TYPE_DELEG) && closest_encloser == q->zone->apex) {
 		/*
 		 * Type DS query at a zone cut, use the responsible
 		 * parent zone to generate the answer if we are
@@ -1503,7 +1525,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 		return;
 	}
 
-	if (exact && q->qtype == TYPE_DS && closest_encloser == q->zone->apex) {
+	if (exact && (q->qtype == TYPE_DS || q->qtype == TYPE_DELEG) && closest_encloser == q->zone->apex) {
 		/*
 		 * Type DS query at the zone apex (and the server is
 		 * not authoritative for the parent zone).
@@ -1515,15 +1537,24 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 		}
 		answer_nodata(q, answer, closest_encloser);
 	} else {
-		q->delegation_domain = domain_find_ns_rrsets(
-			closest_encloser, q->zone, &q->delegation_rrset);
+		if(q->edns.deleg_ok)
+			q->delegation_domain =domain_find_delegation_rrsets(
+					closest_encloser, q->zone,
+					&q->delegation_rrset, &q->deleg_rrset);
+		else {
+			q->deleg_rrset = NULL;
+			q->delegation_domain =domain_find_ns_rrsets(
+					closest_encloser, q->zone,
+					&q->delegation_rrset);
+		}
+
 		if(q->delegation_domain && find_dname_above(q->delegation_domain, q->zone)) {
 			q->delegation_domain = NULL; /* use higher DNAME */
 		}
 
 		if (!q->delegation_domain
-		    || !q->delegation_rrset
-		    || (exact && q->qtype == TYPE_DS && closest_encloser == q->delegation_domain))
+		    || (!q->delegation_rrset && !q->deleg_rrset)
+		    || (exact && (q->qtype == TYPE_DS || q->qtype == TYPE_DELEG) && closest_encloser == q->delegation_domain))
 		{
 			if (q->qclass == CLASS_ANY) {
 				AA_CLR(q->packet);
@@ -1797,8 +1828,13 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 	case EDNS_NOT_PRESENT:
 		break;
 	case EDNS_OK:
-		if (q->edns.dnssec_ok)	edns->ok[7] = 0x80;
-		else			edns->ok[7] = 0x00;
+		edns->ok[7] = !q->edns.dnssec_ok
+		            ? !q->edns.deleg_ok ? 0
+		            : (( DELEG_OK_MASK & 0xFF00) >> 8)
+		            : !q->edns.deleg_ok 
+		            ? ((DNSSEC_OK_MASK & 0xFF00) >> 8)
+		            : (( DELEG_OK_MASK & 0xFF00) >> 8) 
+		            | ((DNSSEC_OK_MASK & 0xFF00) >> 8);
 		buffer_write(q->packet, edns->ok, OPT_LEN);
 
 		/* Add Extended DNS Error (RFC8914)
@@ -1880,8 +1916,13 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 		ZTATUP(nsd, q->zone, edns);
 		break;
 	case EDNS_ERROR:
-		if (q->edns.dnssec_ok)	edns->error[7] = 0x80;
-		else			edns->error[7] = 0x00;
+		edns->error[7] = !q->edns.dnssec_ok
+		               ? !q->edns.deleg_ok ? 0
+		               : (( DELEG_OK_MASK & 0xFF00) >> 8)
+		               : !q->edns.deleg_ok 
+		               ? ((DNSSEC_OK_MASK & 0xFF00) >> 8)
+		               : (( DELEG_OK_MASK & 0xFF00) >> 8) 
+		               | ((DNSSEC_OK_MASK & 0xFF00) >> 8);
 		buffer_write(q->packet, edns->error, OPT_LEN);
 		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
