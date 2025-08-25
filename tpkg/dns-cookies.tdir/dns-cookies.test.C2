@@ -48,7 +48,7 @@ sleep .1
 
 dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c2.2
 
-kill `cat /var/run/nsd.pid`
+kill `cat $TPKG_NSD_PID`
 sleep .1
 
 TZ=UTC faketime -f '2024-08-28 14:49:05' $TPKG_NSD -c dns-cookies.defaults.conf &
@@ -56,7 +56,7 @@ sleep .1
 
 dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c2.3
 
-kill `cat /var/run/nsd.pid`
+kill `cat $TPKG_NSD_PID`
 sleep .1
 rm -fr etc
 rm -fr var
