@@ -19,5 +19,8 @@ fi
 PRE="../.."
 TPKG_NSD="$PRE/nsd"
 $TPKG_NSD -c allow_query.conf -p $TPKG_PORT -P $TPKG_NSD_PID -L 5 -F 0xFFFF \
-|| $TPKG_NSD -c allow_query.conf -p $TPKG_PORT -P $TPKG_NSD_PID
+|| {
+	echo "NDEBUG is defined. This is ok. Starting NSD without -L option" >&2;
+	$TPKG_NSD -c allow_query.conf -p $TPKG_PORT -P $TPKG_NSD_PID;
+}
 wait_nsd_up nsd.log
