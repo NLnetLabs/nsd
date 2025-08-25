@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.12.1 (upcoming)
+4.13.0
 ================
 FEATURES:
 	- Use '(all)' and '(none)' for the socket server affinity
