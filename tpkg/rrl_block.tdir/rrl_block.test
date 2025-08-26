@@ -38,7 +38,7 @@ timeout="no"
 slip="no"
 while test $i -lt $num; do
 	dig @127.0.0.1 -p $TPKG_PORT nxdomain.example.nl A +time=0 +tries=1 +ignore > got.nl
-	if grep "connection timed out" got.nl; then timeout="yes"; fi
+	if grep "timed out" got.nl; then timeout="yes"; fi
 	if grep "aa tc" got.nl; then slip="yes"; fi
 
 	if test "$timeout$slip" = "yesyes"; then break; fi
@@ -57,7 +57,7 @@ else
 fi
 
 # now we are done, check that the qps ratelimit was reached by the tool
-if grep reflect.out "done" > /dev/null; then
+if grep "done" reflect.out > /dev/null; then
 	echo "reflect already done"
 else
 	echo "kill reflect $reflectpid"
