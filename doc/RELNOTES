@@ -74,6 +74,8 @@ BUG FIXES:
 	- Merge #454 from jaredmauch: handle rare case but seen in
 	  production where data->query is NULL.
 	- Fix zonestatfd check
+	- Fix code analyzer warning, and bail out of handle_tcp_writing
+	  and handle_tls_writing early when data->query is NULL.
 
 4.12.0
 ================
