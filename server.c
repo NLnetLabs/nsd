@@ -585,7 +585,7 @@ server_zonestat_alloc(struct nsd* nsd)
 		exit(1);
 	}
 	nsd->zonestatfd[1] = open(nsd->zonestatfname[1], O_CREAT|O_RDWR, 0600);
-	if(nsd->zonestatfd[0] == -1) {
+	if(nsd->zonestatfd[1] == -1) {
 		log_msg(LOG_ERR, "cannot create %s: %s", nsd->zonestatfname[1],
 			strerror(errno));
 		close(nsd->zonestatfd[0]);

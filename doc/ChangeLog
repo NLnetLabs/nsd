@@ -1,3 +1,6 @@
+03 September 2025: Jannik
+	- Fix zonestatfd check
+
 18 August 2025: Willem
 	- Merge #455: --with-dbdir option for configure to set the base
 	  directory for the xfrd zone timer state file, the zone list file
