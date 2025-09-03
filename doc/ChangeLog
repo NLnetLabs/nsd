@@ -1,5 +1,6 @@
 03 September 2025: Jannik
 	- Fix zonestatfd check
+	- The main branch continues with version 4.13.1 in development.
 
 18 August 2025: Willem
 	- Merge #455: --with-dbdir option for configure to set the base
