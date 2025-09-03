@@ -73,6 +73,7 @@ BUG FIXES:
 	- Update simdzone with support for --enable-pie.
 	- Merge #454 from jaredmauch: handle rare case but seen in
 	  production where data->query is NULL.
+	- Fix zonestatfd check
 
 4.12.0
 ================
