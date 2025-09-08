@@ -715,13 +715,14 @@ retry_adding:
 					member_id_to_delete_str));
 				catalog_del_consumer_member_zone(
 						consumer_zone, to_delete);
-				if(cursor != RBTREE_NULL)
+				if(cursor != RBTREE_NULL) {
 					DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 						"Comparing %s with %s",
 						member_id_str,
 						dname_to_string(
 							cursor_member_id(cursor),
 							NULL)));
+				}
 			}
 			if (cursor != RBTREE_NULL && cmp == 0) {
 				/* member_id is also in an current catalog

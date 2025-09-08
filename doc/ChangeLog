@@ -1,3 +1,6 @@
+8 September 2025: Wouter
+	- Fix empty debug statement body in catalog consumer zone process.
+
 03 September 2025: Jannik
 	- Fix zonestatfd check
 	- The main branch continues with version 4.13.1 in development.

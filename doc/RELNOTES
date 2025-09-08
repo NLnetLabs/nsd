@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix empty debug statement body in catalog consumer zone process.
 
 4.13.0
 ================
