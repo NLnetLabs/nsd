@@ -5,8 +5,8 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix empty debug statement body in catalog consumer zone process.
-	- Merge #458: Check for libfstrm version >= 0.4.
-	- For #458: Add configure check for fstrm_tcp_writer_options_init
+	- Merge #459: Check for libfstrm version >= 0.4.
+	- For #459: Add configure check for fstrm_tcp_writer_options_init
 	  in addition to the check for fstrm_iothr_init.
 
 4.13.0
