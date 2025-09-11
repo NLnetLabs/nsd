@@ -1,3 +1,6 @@
+11 September 2025: Jannik
+	- Merge #460: Add XDP_OBJ fixing link errors for XDP.
+
 11 September 2025: Wouter
 	- Merge #459: Check for libfstrm version >= 0.4.
 	- For #459: Add configure check for fstrm_tcp_writer_options_init
