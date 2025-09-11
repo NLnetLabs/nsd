@@ -211,7 +211,7 @@ static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk) {
 }
 
 static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint64_t frame) {
-	assert(xsk->umem_frame_free < XDP_NUM_FRAMES);
+	assert(xsk->umem->umem_frame_free < XDP_NUM_FRAMES);
 	xsk->umem->umem_frame_addr[xsk->umem->umem_frame_free++] = frame;
 }
 

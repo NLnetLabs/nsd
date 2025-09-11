@@ -9,6 +9,7 @@ BUG FIXES:
 	- For #459: Add configure check for fstrm_tcp_writer_options_init
 	  in addition to the check for fstrm_iothr_init.
 	- Merge #460: Add XDP_OBJ fixing link errors for XDP.
+	- Fix XDP build error with --enable-checking
 
 4.13.0
 ================
