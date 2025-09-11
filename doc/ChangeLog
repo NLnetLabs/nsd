@@ -1,6 +1,7 @@
 11 September 2025: Jannik
 	- Merge #460: Add XDP_OBJ fixing link errors for XDP.
 	- Fix XDP build error with --enable-checking
+	- Resolve warnings about mixed declaration and code and unused variable
 
 11 September 2025: Wouter
 	- Merge #459: Check for libfstrm version >= 0.4.

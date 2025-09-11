@@ -3392,13 +3392,14 @@ add_xdp_handler(struct nsd *nsd,
 	            struct xdp_server *xdp,
 	            struct xdp_handler_data *data) {
 
+	int sock;
 	struct event *handler = &data->event;
 
 	data->nsd = nsd;
 	data->server = xdp;
 
 	memset(handler, 0, sizeof(*handler));
-	int sock = xsk_socket__fd(xdp->xsks[xdp->queue_index].xsk);
+	sock = xsk_socket__fd(xdp->xsks[xdp->queue_index].xsk);
 	if (sock < 0) {
 		log_msg(LOG_ERR, "xdp: xsk socket file descriptor is invalid: %s",
 		        strerror(errno));
@@ -3698,13 +3699,18 @@ server_child(struct nsd *nsd)
 #ifdef USE_XDP
 	if (nsd->options->xdp_interface) {
 		/* don't try to bind more sockets than there are queues available */
-		if (nsd->xdp.xdp_server.queue_count <= nsd->this_child->child_num) {
+		if ((int)nsd->xdp.xdp_server.queue_count <= nsd->this_child->child_num) {
 			log_msg(LOG_WARNING,
 			        "xdp: server-count exceeds available queues (%d) on "
 			        "interface %s, skipping xdp in this process",
 			        nsd->xdp.xdp_server.queue_count,
 			        nsd->xdp.xdp_server.interface_name);
 		} else {
+			struct xdp_handler_data *data;
+			const int scratch_data_len = 1;
+			void *scratch_data = region_alloc_zero(nsd->server_region,
+			                                       scratch_data_len);
+
 			nsd->xdp.xdp_server.queue_index = nsd->this_child->child_num;
 			nsd->xdp.xdp_server.queries = xdp_queries;
 
@@ -3713,13 +3719,9 @@ server_child(struct nsd *nsd)
 			        nsd->xdp.xdp_server.queue_index,
 			        nsd->xdp.xdp_server.interface_name);
 
-			struct xdp_handler_data *data;
 			data = region_alloc_zero(nsd->server_region, sizeof(*data));
 			add_xdp_handler(nsd, &nsd->xdp.xdp_server, data);
 
-			const int scratch_data_len = 1;
-			void *scratch_data = region_alloc_zero(nsd->server_region,
-			                                       scratch_data_len);
 			for (i = 0; i < XDP_RX_BATCH_SIZE; i++) {
 				/* Be aware that the buffer is initialized with scratch data
 				 * and will be filled by the xdp handle and receive function
@@ -5704,6 +5706,7 @@ static void handle_xdp(int fd, short event, void* arg) {
 
 	if ((event & EV_READ))
 		xdp_handle_recv_and_send(data->server);
+	(void)fd;
 }
 #endif
 
