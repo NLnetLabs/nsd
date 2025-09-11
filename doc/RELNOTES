@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix empty debug statement body in catalog consumer zone process.
+	- Merge #458: Check for libfstrm version >= 0.4.
 
 4.13.0
 ================

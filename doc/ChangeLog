@@ -1,3 +1,6 @@
+11 September 2025: Wouter
+	- Merge #458: Check for libfstrm version >= 0.4.
+
 8 September 2025: Wouter
 	- Fix empty debug statement body in catalog consumer zone process.
 
