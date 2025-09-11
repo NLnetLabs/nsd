@@ -1,5 +1,7 @@
 11 September 2025: Wouter
 	- Merge #458: Check for libfstrm version >= 0.4.
+	- For #458: Add configure check for fstrm_tcp_writer_options_init
+	  in addition to the check for fstrm_iothr_init.
 
 8 September 2025: Wouter
 	- Fix empty debug statement body in catalog consumer zone process.
