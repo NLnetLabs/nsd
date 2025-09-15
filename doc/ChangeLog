@@ -1,3 +1,7 @@
+15 September 2025: Jannik
+	- Fix confusing report for default send and receive buffer-size by
+	  nsd-checkconf
+
 11 September 2025: Jannik
 	- Merge #460: Add XDP_OBJ fixing link errors for XDP.
 	- Fix XDP build error with --enable-checking
