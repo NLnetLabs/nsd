@@ -11,6 +11,8 @@ BUG FIXES:
 	- Merge #460: Add XDP_OBJ fixing link errors for XDP.
 	- Fix XDP build error with --enable-checking
 	- Resolve warnings about mixed declaration and code and unused variable
+	- Fix to log more details when send-buffer-size or receive-buffer-size
+	  is not granted, on verbosity level 2.
 
 4.13.0
 ================
