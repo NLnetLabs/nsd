@@ -889,10 +889,14 @@ set_rcvbuf(struct nsd_socket *sock, int rcv)
 		return 1;
 	}
 	if(errno == EPERM || errno == ENOBUFS) {
+		if(errno == ENOBUFS) {
+			VERBOSITY(2, (LOG_INFO, "setsockopt(..., SO_RCVBUFFORCE, %d) was not granted: %s",
+				rcv, strerror(errno)));
+		}
 		return 0;
 	}
-	log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, ...) failed: %s",
-		strerror(errno));
+	log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, %d) failed: %s",
+		rcv, strerror(errno));
 	return -1;
 #else /* !SO_RCVBUFFORCE */
 	if (0 == setsockopt(
@@ -901,10 +905,14 @@ set_rcvbuf(struct nsd_socket *sock, int rcv)
 		return 1;
 	}
 	if(errno == ENOSYS || errno == ENOBUFS) {
+		if(errno == ENOBUFS) {
+			VERBOSITY(2, (LOG_INFO, "setsockopt(..., SO_RCVBUF, %d) was not granted: %s",
+				rcv, strerror(errno)));
+		}
 		return 0;
 	}
-	log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, ...) failed: %s",
-		strerror(errno));
+	log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, %d) failed: %s",
+		rcv, strerror(errno));
 	return -1;
 #endif /* SO_RCVBUFFORCE */
 #endif /* SO_RCVBUF */
@@ -923,10 +931,14 @@ set_sndbuf(struct nsd_socket *sock, int snd)
 		return 1;
 	}
 	if(errno == EPERM || errno == ENOBUFS) {
+		if(errno == ENOBUFS) {
+			VERBOSITY(2, (LOG_INFO, "setsockopt(..., SO_SNDBUFFORCE, %d) was not granted: %s",
+				snd, strerror(errno)));
+		}
 		return 0;
 	}
-	log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, ...) failed: %s",
-		strerror(errno));
+	log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, %d) failed: %s",
+		snd, strerror(errno));
 	return -1;
 #else /* !SO_SNDBUFFORCE */
 	if(0 == setsockopt(
@@ -935,10 +947,14 @@ set_sndbuf(struct nsd_socket *sock, int snd)
 		return 1;
 	}
 	if(errno == ENOSYS || errno == ENOBUFS) {
+		if(errno == ENOBUFS) {
+			VERBOSITY(2, (LOG_INFO, "setsockopt(..., SO_SNDBUF, %d) was not granted: %s",
+				snd, strerror(errno)));
+		}
 		return 0;
 	}
-	log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUF, ...) failed: %s",
-		strerror(errno));
+	log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUF, %d) failed: %s",
+		snd, strerror(errno));
 	return -1;
 #endif /* SO_SNDBUFFORCE */
 #endif /* SO_SNDBUF */

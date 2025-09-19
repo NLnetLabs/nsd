@@ -1,3 +1,7 @@
+17 September 2025: Wouter
+	- Fix to log more details when send-buffer-size or receive-buffer-size
+	  is not granted, on verbosity level 2.
+
 15 September 2025: Jannik
 	- Fix confusing report for default send and receive buffer-size by
 	  nsd-checkconf
