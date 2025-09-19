@@ -1287,7 +1287,8 @@ set_setfib(struct nsd_socket *sock)
 static int
 open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 {
-	int rcv = 1*1024*1024, snd = 4*1024*1024;
+	int rcv = nsd->options->receive_buffer_size;
+	int snd = nsd->options->send_buffer_size;
 
 	if(-1 == (sock->s = socket(
 		sock->addr.ai_family, sock->addr.ai_socktype, 0)))
@@ -1311,13 +1312,9 @@ open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 	if(nsd->reuseport && reuseport_works && *reuseport_works)
 		*reuseport_works = (set_reuseport(sock) == 1);
 
-	if(nsd->options->receive_buffer_size > 0)
-		rcv = nsd->options->receive_buffer_size;
 	if(set_rcvbuf(sock, rcv) == -1)
 		return -1;
 
-	if(nsd->options->send_buffer_size > 0)
-		snd = nsd->options->send_buffer_size;
 	if(set_sndbuf(sock, snd) == -1)
 		return -1;
 #ifdef INET6

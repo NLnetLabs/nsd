@@ -65,8 +65,8 @@ nsd_options_create(region_type* region)
 	opt->ip_addresses = NULL;
 	opt->ip_transparent = 0;
 	opt->ip_freebind = 0;
-	opt->send_buffer_size = 0;
-	opt->receive_buffer_size = 0;
+	opt->send_buffer_size = 4*1024*1024;
+	opt->receive_buffer_size = 1*1024*1024;
 	opt->debug_mode = 0;
 	opt->verbosity = 0;
 	opt->hide_version = 0;

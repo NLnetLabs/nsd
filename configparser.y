@@ -295,9 +295,25 @@ server_option:
   | VAR_IP_FREEBIND boolean
     { cfg_parser->opt->ip_freebind = $2; }
   | VAR_SEND_BUFFER_SIZE number
-    { cfg_parser->opt->send_buffer_size = (int)$2; }
+    {
+      if ($2 > 0) {
+        cfg_parser->opt->send_buffer_size = (int)$2;
+      } else if ($2 == 0) {
+        /* do nothing and use the default value */
+      } else {
+        yyerror("expected a number equal to or greater than zero");
+      }
+    }
   | VAR_RECEIVE_BUFFER_SIZE number
-    { cfg_parser->opt->receive_buffer_size = (int)$2; }
+    {
+      if ($2 > 0) {
+        cfg_parser->opt->receive_buffer_size = (int)$2;
+      } else if ($2 == 0) {
+        /* do nothing and use the default value */
+      } else {
+        yyerror("expected a number equal to or greater than zero");
+      }
+    }
   | VAR_DEBUG_MODE boolean
     { cfg_parser->opt->debug_mode = $2; }
   | VAR_USE_SYSTEMD boolean
