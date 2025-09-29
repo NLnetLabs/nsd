@@ -1,5 +1,7 @@
 29 September 2025: Wouter
 	- Update in acx_nlnetlabs.m4 to version 49.
+	- Update in acx_nlnetlabs.m4 to version 50, with cache value for
+	  malloc function check.
 
 17 September 2025: Wouter
 	- Fix to log more details when send-buffer-size or receive-buffer-size

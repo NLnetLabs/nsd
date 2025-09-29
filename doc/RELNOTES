@@ -16,6 +16,8 @@ BUG FIXES:
 	- Fix to log more details when send-buffer-size or receive-buffer-size
 	  is not granted, on verbosity level 2.
 	- Update in acx_nlnetlabs.m4 to version 49.
+	- Update in acx_nlnetlabs.m4 to version 50, with cache value for
+	  malloc function check.
 
 4.13.0
 ================
