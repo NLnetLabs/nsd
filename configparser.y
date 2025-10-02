@@ -106,6 +106,7 @@ struct component {
 %token VAR_TCP_TIMEOUT
 %token VAR_TCP_MSS
 %token VAR_OUTGOING_TCP_MSS
+%token VAR_TCP_LISTEN_QUEUE
 %token VAR_IPV4_EDNS_SIZE
 %token VAR_IPV6_EDNS_SIZE
 %token VAR_STATISTICS
@@ -390,6 +391,9 @@ server_option:
     { cfg_parser->opt->tcp_mss = (int)$2; }
   | VAR_OUTGOING_TCP_MSS number
     { cfg_parser->opt->outgoing_tcp_mss = (int)$2; }
+  | VAR_TCP_LISTEN_QUEUE STRING
+    { /* With atoi is it allowed to be negative, for system chosen result. */
+      cfg_parser->opt->tcp_listen_queue = atoi($2); }
   | VAR_IPV4_EDNS_SIZE number
     { cfg_parser->opt->ipv4_edns_size = (size_t)$2; }
   | VAR_IPV6_EDNS_SIZE number

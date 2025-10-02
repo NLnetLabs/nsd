@@ -1422,7 +1422,7 @@ open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 	(void)set_tcp_fastopen(sock);
 #endif
 
-	if(listen(sock->s, TCP_BACKLOG) == -1) {
+	if(listen(sock->s, nsd->options->tcp_listen_queue) == -1) {
 		log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
 		return -1;
 	}

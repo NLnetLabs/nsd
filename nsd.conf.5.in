@@ -265,6 +265,12 @@ Note that not all platform supports socket option to set MSS (TCP_MAXSEG).
 Default is system default MSS determined by interface MTU and
 negotiation between NSD and other servers.
 .TP
+.B tcp\-listen\-queue:\fR <number>
+Set the TCP backlog for listening sockets. This allows more pending
+connections with their connection established waiting for TCP service.
+Higher is better for more connections coming in at the same time.
+Default 256.
+.TP
 .B xfrd\-tcp\-max:\fR <number>
 Number of sockets for xfrd to use for outgoing zone transfers. Default 128.
 Increase it to allow more zone transfer sockets, like to 256.

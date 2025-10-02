@@ -3,6 +3,8 @@ NSD RELEASE NOTES
 4.13.1
 ================
 FEATURES:
+	- Fix #137: Adds tcp-listen-queue: number config option to set
+	  the TCP backlog.
 BUG FIXES:
 	- Fix empty debug statement body in catalog consumer zone process.
 	- Merge #459: Check for libfstrm version >= 0.4.

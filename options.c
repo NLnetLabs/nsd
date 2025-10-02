@@ -94,6 +94,7 @@ nsd_options_create(region_type* region)
 	opt->tcp_timeout = TCP_TIMEOUT;
 	opt->tcp_mss = 0;
 	opt->outgoing_tcp_mss = 0;
+	opt->tcp_listen_queue = TCP_BACKLOG;
 	opt->ipv4_edns_size = EDNS_MAX_MESSAGE_LEN;
 	opt->ipv6_edns_size = EDNS_MAX_MESSAGE_LEN;
 	opt->pidfile = PIDFILE;

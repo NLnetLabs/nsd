@@ -1,3 +1,7 @@
+2 October 2025: Wouter
+	- Fix #137: Adds tcp-listen-queue: number config option to set
+	  the TCP backlog.
+
 29 September 2025: Wouter
 	- Update in acx_nlnetlabs.m4 to version 49.
 	- Update in acx_nlnetlabs.m4 to version 50, with cache value for
