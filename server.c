@@ -2997,8 +2997,8 @@ server_main(struct nsd *nsd)
 				udb_ptr_set(&last_task, nsd->task[nsd->mytask], 0);
 				udb_ptr_set(&xfrs2process, nsd->task[nsd->mytask], 0);
 				break;
-			default:
-				/* PARENT */
+			case 0:
+				/* CHILD */
 				close(reload_sockets[0]);
 				server_reload(nsd, server_region, netio
 				                 , reload_sockets[1]
@@ -3016,8 +3016,8 @@ server_main(struct nsd *nsd)
 				reload_listener.event_types = NETIO_EVENT_NONE;
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload resetup; run"));
 				break;
-			case 0:
-				/* CHILD */
+			default:
+				/* PARENT */
 				/* server_main keep running until NSD_QUIT_SYNC
 				 * received from reload. */
 				close(reload_sockets[1]);
@@ -3035,7 +3035,7 @@ server_main(struct nsd *nsd)
 				reload_listener.event_types = NETIO_EVENT_READ;
 				reload_listener.event_handler = parent_handle_reload_command; /* listens to Quit */
 				netio_add_handler(netio, &reload_listener);
-				reload_pid = getppid();
+				/* reload_pid = getppid(); */
 				break;
 			}
 			if(reload_pid == -1) {
