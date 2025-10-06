@@ -279,7 +279,7 @@ server_option:
     }
   | VAR_SERVER_COUNT number
     {
-      if ($2 > 0) {
+      if ($2 >= 0) {
         cfg_parser->opt->server_count = (int)$2;
       } else {
         yyerror("expected a number greater than zero");

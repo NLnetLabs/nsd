@@ -1382,9 +1382,11 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 				zone_buf);
 			snprintf(log_buf, sizeof(log_buf), "error reading log");
 		}
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s done, prehashing...", zone_buf));
 #ifdef NSEC3
 		prehash_zone(nsd->db, zone);
 #endif /* NSEC3 */
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "prehashing xfr: %s done", zone_buf));
 		zone->is_changed = 1;
 		zone->is_updated = 1;
 		zone->is_checked = (committed == DIFF_VERIFIED);
