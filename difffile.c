@@ -1290,6 +1290,9 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 	int num_bytes = 0;
 	assert(zone);
 
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+			"apply_ixfr_for_zone xfr: %"PRIu32, xfrfilenr));
+
 	/* read zone name and serial */
 	if(!diff_read_32(in, &type)) {
 		log_msg(LOG_ERR, "diff file too short");
