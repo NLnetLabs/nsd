@@ -160,7 +160,7 @@ int domain_is_prehash(domain_table_type* table, domain_type* domain)
 void
 zone_del_domain_in_hash_tree(rbtree_type* tree, rbnode_type* node)
 {
-	if(!node->key)
+	if(!node->key || !tree)
 		return;
 	rbtree_delete(tree, node->key);
 	/* note that domain is no longer in the tree */
