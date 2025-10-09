@@ -1,3 +1,6 @@
+9 October 2025: Willem
+	- Do not delete nodes from non-existent (hash_)trees
+
 17 April 2025: Wouter
 	- Add autoconf files to gitignore.
 
