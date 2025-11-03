@@ -1,3 +1,7 @@
+3 November 2025: Wouter
+	- For #137: Change default for the listen TCP backlog to -1 on
+	  BSDs and Linux.
+
 2 October 2025: Wouter
 	- Fix #137: Adds tcp-listen-queue: number config option to set
 	  the TCP backlog.

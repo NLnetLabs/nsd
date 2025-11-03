@@ -269,7 +269,9 @@ negotiation between NSD and other servers.
 Set the TCP backlog for listening sockets. This allows more pending
 connections with their connection established waiting for TCP service.
 Higher is better for more connections coming in at the same time.
-Default 256.
+High values also protect more against flooding and some side-channel issues.
+Default is -1 on BSDs and Linux, and 256 on other systems. The -1 selects
+the largest value allowed.
 .TP
 .B xfrd\-tcp\-max:\fR <number>
 Number of sockets for xfrd to use for outgoing zone transfers. Default 128.

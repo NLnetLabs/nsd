@@ -171,6 +171,7 @@ server:
 	# outgoing-tcp-mss: 0
 
 	# Set the TCP backlog for listening sockets.
+	# Default 256, or -1 on BSDs and Linux.
 	# tcp-listen-queue: 256
 
 	# reduce these settings to save memory for NSD, to about
