@@ -284,9 +284,9 @@ struct nsd_rdata_descriptor {
 
 	/* The length, in bytes, of the rdata field. Can be set to
 	 * a specialized value, like RDATA_COMPRESSED_DNAME,
-	 * RDATA_STRING, ...
-	 * If there is a length function, that is used. That is for any type
-	 * where the length depends on a value in the rdata itself. */
+	 * RDATA_STRING, ..., if there is a length function, that is used.
+	 * That is for any type where the length depends on a value in
+	 * the rdata itself. */
 	int32_t length;
 
 	/* Determine size of rdata field. Returns the size of uncompressed
@@ -384,7 +384,7 @@ struct nsd_type_descriptor {
 	int has_dnames;
 	/* Read function that copies rdata for this type to struct rr. */
 	nsd_read_rdata_type read_rdata;
-	/* Write function, that copie rdata from struct rr to packet. */
+	/* Write function, that copies rdata from struct rr to packet. */
 	nsd_write_rdata_type write_rdata;
 	/* Print function, that writes the struct rr to string. */
 	nsd_print_rdata_type print_rdata;
