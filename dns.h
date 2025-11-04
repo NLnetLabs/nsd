@@ -384,7 +384,7 @@ struct nsd_type_descriptor {
 	int has_dnames;
 	/* Read function that copies rdata for this type to struct rr. */
 	nsd_read_rdata_type read_rdata;
-	/* Write function, that copie rdata from struct rr to packet. */
+	/* Write function, that copies rdata from struct rr to packet. */
 	nsd_write_rdata_type write_rdata;
 	/* Print function, that writes the struct rr to string. */
 	nsd_print_rdata_type print_rdata;
