@@ -42,16 +42,13 @@ dname_make(region_type *region, const uint8_t *name, int normalize)
 		++label_count;
 		name_size += label_length(label) + 1;
 
-		if (label_is_root(label))
-			break;
 		if (name_size > MAXDOMAINLEN)
 			return NULL;
+		if (label_is_root(label))
+			break;
 
 		label = label_next(label);
 	}
-
-	if (name_size > MAXDOMAINLEN)
-		return NULL;
 
 	assert(label_count <= MAXDOMAINLEN / 2 + 1);
 
