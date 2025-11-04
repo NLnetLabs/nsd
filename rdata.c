@@ -520,6 +520,11 @@ print_base64(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 	return 1;
 }
 
+/* OpenSSL had a hex_to_string function before version 1.1.0. After 1.1.0
+ * the name became a define to map it to OPENSSL_buf2hexstr. The define caused
+ * a function signature collision on some systems.
+ */
+#undef hex_to_string
 static void
 hex_to_string(buffer_type *output, const uint8_t *data, size_t size)
 {
