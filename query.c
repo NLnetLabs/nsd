@@ -1801,7 +1801,7 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 		&& q->zone
 		&& q->zone->soa_rrset
 		&& q->zone->soa_rrset->rr_count >= 1
-		&& q->zone->soa_rrset->rrs[0]->rdlength >= 20+2*sizeof(void*))
+		&& q->zone->soa_rrset->rrs[0]->rdlength >= 20 /* 5x 32bit numbers */ +2*sizeof(void*) /* two pointers to domain names */)
 			q->edns.opt_reserved_space += sizeof(uint16_t)
 			                           +  sizeof(uint16_t)
 			                           +  sizeof(uint8_t)
@@ -1826,7 +1826,7 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 			&& q->zone
 			&& q->zone->soa_rrset
 			&& q->zone->soa_rrset->rr_count >= 1
-			&& q->zone->soa_rrset->rrs[0]->rdlength >= 20+2*sizeof(void*)) {
+			&& q->zone->soa_rrset->rrs[0]->rdlength >= 20+2*sizeof(void*) /* 5x4 bytes and 2 pointers to domains */ ) {
 				uint32_t serial = 0;
 				buffer_write_u16(q->packet, ZONEVERSION_CODE);
 				buffer_write_u16( q->packet
