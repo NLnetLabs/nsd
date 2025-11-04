@@ -7,7 +7,7 @@ sinclude(dnstap/dnstap.m4)
 
 # autoconf-2.70 is needed for @runstatedir@
 AC_PREREQ([2.70])
-AC_INIT([NSD],[4.12.1],[https://github.com/NLnetLabs/nsd/issues or nsd-bugs@nlnetlabs.nl])
+AC_INIT([NSD],[4.13.1],[https://github.com/NLnetLabs/nsd/issues or nsd-bugs@nlnetlabs.nl])
 AC_CONFIG_HEADERS([config.h])
 
 #
@@ -82,6 +82,9 @@ AC_SUBST(logfile)
 # Database directory
 #
 dbdir=${localstatedir}/db/nsd
+AC_ARG_WITH([dbdir],
+	AS_HELP_STRING([--with-dbdir=dir],[Base directory for the xfrd zone timer state file, the zone list file and the cookie secrets file]),
+	[dbdir=$withval])
 
 #
 # Determine the pidfile location. Check if /var/run exists, if so set pidfile
@@ -137,6 +140,11 @@ xfrdir="/tmp"
 AC_ARG_WITH([xfrdir], AS_HELP_STRING([--with-xfrdir=path],[Pathname to where the NSD transfer dir is created]), [xfrdir=$withval])
 AC_DEFINE_UNQUOTED(XFRDIR, ["`eval echo $xfrdir`"], [Pathname to where the NSD transfer dir is created.])
 AC_SUBST(xfrdir)
+
+sharedfilesdir=${datarootdir}/nsd
+AC_ARG_WITH([sharedfilesdir], AS_HELP_STRING([--with-sharedfilesdir=dir],[NSD shared files directory]), [sharedfilesdir=$withval])
+AC_DEFINE_UNQUOTED(SHAREDFILESDIR, ["`eval echo $sharedfilesdir`"], [NSD shared files dir])
+AC_SUBST(sharedfilesdir)
 
 # nsd sbin location. tmpinstantiate execprefix with defaults if not yet done.
 if test "x${exec_prefix}" = "xNONE"; then
@@ -912,7 +920,16 @@ dnl Some random defines's
 dnl
 AC_DEFINE_UNQUOTED([IDENTITY], ["unidentified server"], [Define to the default nsd identity.])
 AC_DEFINE_UNQUOTED([VERSION], [PACKAGE_STRING], [Define to the NSD version to answer version.server query.])
-AC_DEFINE_UNQUOTED([TCP_BACKLOG], [256], [Define to the backlog to be used with listen.])
+
+case "$host" in
+    *bsd*|*BSD*|*linux*|*Linux*)
+	AC_DEFINE_UNQUOTED([TCP_BACKLOG], [-1], [Define to the backlog to be used with listen.])
+	;;
+    *)
+	AC_DEFINE_UNQUOTED([TCP_BACKLOG], [256], [Define to the backlog to be used with listen.])
+	;;
+esac
+
 AC_DEFINE_UNQUOTED([TCP_PORT], ["53"], [Define to the default tcp port.])
 AC_DEFINE_UNQUOTED([TCP_MAX_MESSAGE_LEN], [65535], [Define to the default maximum message length.])
 AC_DEFINE_UNQUOTED([UDP_PORT], ["53"], [Define to the default udp port.])
@@ -1060,7 +1077,7 @@ if test x$HAVE_SSL = x"yes"; then
 	SSL_LIBS="-lssl"
 	AC_SUBST(SSL_LIBS)
 	AC_CHECK_HEADERS([openssl/ssl.h openssl/err.h openssl/rand.h openssl/ocsp.h openssl/core_names.h openssl/x509v3.h],,, [AC_INCLUDES_DEFAULT])
-	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new EVP_cleanup ERR_load_crypto_strings OPENSSL_init_crypto CRYPTO_memcmp EC_KEY_new_by_curve_name EVP_MAC_CTX_new EVP_MAC_CTX_set_params EVP_MAC_CTX_get_mac_size SHA1_Init ASN1_STRING_get0_data])
+	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new EVP_cleanup ERR_load_crypto_strings OPENSSL_init_crypto CRYPTO_memcmp EC_KEY_new_by_curve_name EVP_MAC_CTX_new EVP_MAC_CTX_set_params EVP_MAC_CTX_get_mac_size SHA1_Init ASN1_STRING_get0_data EVP_PKEY_get0_type_name])
 	if test "$ac_cv_func_SHA1_Init" = "yes"; then
 		ACX_FUNC_DEPRECATED([SHA1_Init], [(void)SHA1_Init(NULL);], [
 #include <openssl/sha.h>
@@ -1163,6 +1180,37 @@ case "$enable_packed" in
 	;;
 esac
 
+AC_ARG_ENABLE(xdp, AS_HELP_STRING([--enable-xdp],[Enable XDP support.]))
+case "$enable_xdp" in
+	yes)
+	AC_DEFINE_UNQUOTED([USE_XDP], [], [Define this to enable the use of AF_XDP sockets.])
+
+	AC_SEARCH_LIBS(xdp_program__open_file, [xdp],, [AC_MSG_ERROR([Cannot find libxdp, but is needed for xdp support.])])
+	AC_SEARCH_LIBS(bpf_map__fd, [bpf],, [AC_MSG_ERROR([Cannot find libbpf, but is needed for xdp support.])])
+	AC_SEARCH_LIBS(cap_set_proc, [cap],, [AC_MSG_ERROR([Cannot find libcap, but is needed for xdp support.])])
+
+	# Using ARG_VAR here because AC_PROG_xxx doesn't exist for CLANG and LLC
+	AC_ARG_VAR(CLANG, [location of clang compiler (only needed for xdp)])
+	AC_ARG_VAR(LLC, [location of LLVM static compiler (only needed for xdp)])
+	# CHECK_PROG will not overwrite a variable if it is already provided by the user on the commandline
+	AC_CHECK_PROG(CLANG, clang, clang)
+	AC_CHECK_PROG(LLC, llc, llc)
+	test "$CLANG" = "" && AC_MSG_ERROR([Cannot find clang, but is needed for xdp support.])
+	test "$LLC" = "" && AC_MSG_ERROR([Cannot find llc, but is needed for xdp support.])
+
+	AC_ARG_VAR(BPF_CFLAGS, [The list of arguments passed to the BPF compiler])
+	test "$BPF_CFLAGS" = "" && BPF_CFLAGS="-Wall -Wextra -Wconversion -Werror"
+
+	xdp_targets="xdp-dns-redirect_kern.o xdp-dns-redirect_kern_pinned.o"
+	AC_SUBST(xdp_targets)
+
+	xdp="xx"
+	;;
+	no|*)
+	xdp=""
+	;;
+esac
+AC_SUBST(xdp)
 # check for dnstap if requested
 dt_DNSTAP([${localstatedir}/run/nsd-dnstap.sock],
     [

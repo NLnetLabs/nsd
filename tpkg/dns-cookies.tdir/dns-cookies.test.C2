@@ -5,20 +5,28 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 . ../common.sh
 
+TPKG_NSD_CONFIGDIR=`grep '^#define CONFIGDIR ' ../../config.h | sed -e 's/^[^"]*"//g' -e 's/"[^"]*$//g'`
+# Using the CONFIGDIR to derive the PREFIX instead of parsing the --prefix arg
+# from CONFCMDLINE, because this script already makes a few assumptions about
+# using default paths, and because stripping /etc/nsd from CONFIGDIR is easier
+# than trying to parse the edge-cases of CONFCMDLINE.
+TPKG_NSD_PREFIX=`echo "$TPKG_NSD_CONFIGDIR" | sed -e 's_/etc/nsd__g'`
+
 mkdir -p var/db/nsd
 mkdir -p var/run
 mkdir -p var/log
 mkdir -p etc/nsd
 
-mount --bind var /var
-mount --bind etc /etc
+# If TPKG_NSD_PREFIX is empty or '/', this is equal to the previous behaviour
+mount --bind var "$TPKG_NSD_PREFIX"/var
+mount --bind etc "$TPKG_NSD_PREFIX"/etc
 
-cp -p dns-cookies.nsd_control.key /etc/nsd/nsd_control.key
-cp -p dns-cookies.nsd_control.pem /etc/nsd/nsd_control.pem
-cp -p dns-cookies.nsd_server.key /etc/nsd/nsd_server.key
-cp -p dns-cookies.nsd_server.pem /etc/nsd/nsd_server.pem
+cp -p dns-cookies.nsd_control.key "$TPKG_NSD_CONFIGDIR/nsd_control.key"
+cp -p dns-cookies.nsd_control.pem "$TPKG_NSD_CONFIGDIR/nsd_control.pem"
+cp -p dns-cookies.nsd_server.key "$TPKG_NSD_CONFIGDIR/nsd_server.key"
+cp -p dns-cookies.nsd_server.pem "$TPKG_NSD_CONFIGDIR/nsd_server.pem"
 
-cat << EOF > /etc/nsd/nsd_cookiesecrets.txt
+cat << EOF > "$TPKG_NSD_CONFIGDIR/nsd_cookiesecrets.txt"
 dd3bdf9344b678b185a6f5cb60fca715
 445536bcd2513298075a5d379663c962
 EOF
@@ -32,7 +40,6 @@ PRE="../.."
 TPKG_NSD_PID=`grep '^#define PIDFILE ' ../../config.h | sed -e 's/^[^"]*"//g' -e 's/"[^"]*$//g'`
 TPKG_NSD="$PRE/nsd"
 TPKG_NSD_CONTROL="$PRE/nsd-control"
-
 
 # start nsd with faketime
 TZ=UTC faketime -f '2024-08-28 14:49:05' $TPKG_NSD -c dns-cookies.defaults.conf &
@@ -48,7 +55,7 @@ sleep .1
 
 dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c2.2
 
-kill `cat /var/run/nsd.pid`
+kill `cat $TPKG_NSD_PID`
 sleep .1
 
 TZ=UTC faketime -f '2024-08-28 14:49:05' $TPKG_NSD -c dns-cookies.defaults.conf &
@@ -56,7 +63,7 @@ sleep .1
 
 dig @198.51.100.100 +cookie=2464c4abcf10c957 > dig.output.c2.3
 
-kill `cat /var/run/nsd.pid`
+kill `cat $TPKG_NSD_PID`
 sleep .1
 rm -fr etc
 rm -fr var

@@ -106,6 +106,7 @@ struct component {
 %token VAR_TCP_TIMEOUT
 %token VAR_TCP_MSS
 %token VAR_OUTGOING_TCP_MSS
+%token VAR_TCP_LISTEN_QUEUE
 %token VAR_IPV4_EDNS_SIZE
 %token VAR_IPV6_EDNS_SIZE
 %token VAR_STATISTICS
@@ -217,6 +218,11 @@ struct component {
 %token VAR_CATALOG
 %token VAR_CATALOG_MEMBER_PATTERN
 %token VAR_CATALOG_PRODUCER_ZONE
+%token VAR_XDP_INTERFACE
+%token VAR_XDP_PROGRAM_PATH
+%token VAR_XDP_PROGRAM_LOAD
+%token VAR_XDP_BPFFS_PATH
+%token VAR_XDP_FORCE_COPY
 
 /* zone */
 %token VAR_ZONE
@@ -290,9 +296,25 @@ server_option:
   | VAR_IP_FREEBIND boolean
     { cfg_parser->opt->ip_freebind = $2; }
   | VAR_SEND_BUFFER_SIZE number
-    { cfg_parser->opt->send_buffer_size = (int)$2; }
+    {
+      if ($2 > 0) {
+        cfg_parser->opt->send_buffer_size = (int)$2;
+      } else if ($2 == 0) {
+        /* do nothing and use the default value */
+      } else {
+        yyerror("expected a number equal to or greater than zero");
+      }
+    }
   | VAR_RECEIVE_BUFFER_SIZE number
-    { cfg_parser->opt->receive_buffer_size = (int)$2; }
+    {
+      if ($2 > 0) {
+        cfg_parser->opt->receive_buffer_size = (int)$2;
+      } else if ($2 == 0) {
+        /* do nothing and use the default value */
+      } else {
+        yyerror("expected a number equal to or greater than zero");
+      }
+    }
   | VAR_DEBUG_MODE boolean
     { cfg_parser->opt->debug_mode = $2; }
   | VAR_USE_SYSTEMD boolean
@@ -369,6 +391,9 @@ server_option:
     { cfg_parser->opt->tcp_mss = (int)$2; }
   | VAR_OUTGOING_TCP_MSS number
     { cfg_parser->opt->outgoing_tcp_mss = (int)$2; }
+  | VAR_TCP_LISTEN_QUEUE STRING
+    { /* With atoi is it allowed to be negative, for system chosen result. */
+      cfg_parser->opt->tcp_listen_queue = atoi($2); }
   | VAR_IPV4_EDNS_SIZE number
     { cfg_parser->opt->ipv4_edns_size = (size_t)$2; }
   | VAR_IPV6_EDNS_SIZE number
@@ -591,6 +616,36 @@ server_option:
           }
         }
       }
+    }
+  | VAR_XDP_INTERFACE STRING
+    {
+#ifdef USE_XDP
+      cfg_parser->opt->xdp_interface = region_strdup(cfg_parser->opt->region, $2);
+#endif
+    }
+  | VAR_XDP_PROGRAM_PATH STRING
+    {
+#ifdef USE_XDP
+      cfg_parser->opt->xdp_program_path = region_strdup(cfg_parser->opt->region, $2);
+#endif
+    }
+  | VAR_XDP_PROGRAM_LOAD boolean
+    {
+#ifdef USE_XDP
+      cfg_parser->opt->xdp_program_load = $2;
+#endif
+    }
+  | VAR_XDP_BPFFS_PATH STRING
+    {
+#ifdef USE_XDP
+      cfg_parser->opt->xdp_bpffs_path = region_strdup(cfg_parser->opt->region, $2);
+#endif
+	}
+  | VAR_XDP_FORCE_COPY boolean
+    {
+#ifdef USE_XDP
+      cfg_parser->opt->xdp_force_copy = $2;
+#endif
     }
   | VAR_METRICS_ENABLE boolean
     {

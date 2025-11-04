@@ -87,6 +87,9 @@
 #endif
 #include "verify.h"
 #include "util/proxy_protocol.h"
+#ifdef USE_XDP
+#include "xdp-server.h"
+#endif
 #ifdef USE_METRICS
 #include "metrics.h"
 #endif /* USE_METRICS */
@@ -171,6 +174,14 @@ struct tcp_accept_handler_data {
 	int pp2_enabled;
 };
 
+#ifdef USE_XDP
+struct xdp_handler_data {
+	struct nsd        *nsd;
+	struct xdp_server *server;
+	struct event event;
+};
+#endif
+
 /*
  * These globals are used to enable the TCP accept handlers
  * when the number of TCP connection drops below the maximum
@@ -205,6 +216,9 @@ struct mmsghdr {
 static struct mmsghdr msgs[NUM_RECV_PER_SELECT];
 static struct iovec iovecs[NUM_RECV_PER_SELECT];
 static struct query *queries[NUM_RECV_PER_SELECT];
+#ifdef USE_XDP
+static struct query *xdp_queries[XDP_RX_BATCH_SIZE];
+#endif
 
 /*
  * Data for the TCP connection handlers.
@@ -357,6 +371,10 @@ static void handle_tls_reading(int fd, short event, void* arg);
  * be called multiple times before a complete response is sent.
  */
 static void handle_tls_writing(int fd, short event, void* arg);
+#endif
+
+#ifdef USE_XDP
+static void handle_xdp(int fd, short event, void* arg);
 #endif
 
 /*
@@ -567,7 +585,7 @@ server_zonestat_alloc(struct nsd* nsd)
 		exit(1);
 	}
 	nsd->zonestatfd[1] = open(nsd->zonestatfname[1], O_CREAT|O_RDWR, 0600);
-	if(nsd->zonestatfd[0] == -1) {
+	if(nsd->zonestatfd[1] == -1) {
 		log_msg(LOG_ERR, "cannot create %s: %s", nsd->zonestatfname[1],
 			strerror(errno));
 		close(nsd->zonestatfd[0]);
@@ -871,10 +889,14 @@ set_rcvbuf(struct nsd_socket *sock, int rcv)
 		return 1;
 	}
 	if(errno == EPERM || errno == ENOBUFS) {
+		if(errno == ENOBUFS) {
+			VERBOSITY(2, (LOG_INFO, "setsockopt(..., SO_RCVBUFFORCE, %d) was not granted: %s",
+				rcv, strerror(errno)));
+		}
 		return 0;
 	}
-	log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, ...) failed: %s",
-		strerror(errno));
+	log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUFFORCE, %d) failed: %s",
+		rcv, strerror(errno));
 	return -1;
 #else /* !SO_RCVBUFFORCE */
 	if (0 == setsockopt(
@@ -883,10 +905,14 @@ set_rcvbuf(struct nsd_socket *sock, int rcv)
 		return 1;
 	}
 	if(errno == ENOSYS || errno == ENOBUFS) {
+		if(errno == ENOBUFS) {
+			VERBOSITY(2, (LOG_INFO, "setsockopt(..., SO_RCVBUF, %d) was not granted: %s",
+				rcv, strerror(errno)));
+		}
 		return 0;
 	}
-	log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, ...) failed: %s",
-		strerror(errno));
+	log_msg(LOG_ERR, "setsockopt(..., SO_RCVBUF, %d) failed: %s",
+		rcv, strerror(errno));
 	return -1;
 #endif /* SO_RCVBUFFORCE */
 #endif /* SO_RCVBUF */
@@ -905,10 +931,14 @@ set_sndbuf(struct nsd_socket *sock, int snd)
 		return 1;
 	}
 	if(errno == EPERM || errno == ENOBUFS) {
+		if(errno == ENOBUFS) {
+			VERBOSITY(2, (LOG_INFO, "setsockopt(..., SO_SNDBUFFORCE, %d) was not granted: %s",
+				snd, strerror(errno)));
+		}
 		return 0;
 	}
-	log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, ...) failed: %s",
-		strerror(errno));
+	log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUFFORCE, %d) failed: %s",
+		snd, strerror(errno));
 	return -1;
 #else /* !SO_SNDBUFFORCE */
 	if(0 == setsockopt(
@@ -917,10 +947,14 @@ set_sndbuf(struct nsd_socket *sock, int snd)
 		return 1;
 	}
 	if(errno == ENOSYS || errno == ENOBUFS) {
+		if(errno == ENOBUFS) {
+			VERBOSITY(2, (LOG_INFO, "setsockopt(..., SO_SNDBUF, %d) was not granted: %s",
+				snd, strerror(errno)));
+		}
 		return 0;
 	}
-	log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUF, ...) failed: %s",
-		strerror(errno));
+	log_msg(LOG_ERR, "setsockopt(..., SO_SNDBUF, %d) failed: %s",
+		snd, strerror(errno));
 	return -1;
 #endif /* SO_SNDBUFFORCE */
 #endif /* SO_SNDBUF */
@@ -1253,7 +1287,8 @@ set_setfib(struct nsd_socket *sock)
 static int
 open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 {
-	int rcv = 1*1024*1024, snd = 4*1024*1024;
+	int rcv = nsd->options->receive_buffer_size;
+	int snd = nsd->options->send_buffer_size;
 
 	if(-1 == (sock->s = socket(
 		sock->addr.ai_family, sock->addr.ai_socktype, 0)))
@@ -1277,13 +1312,9 @@ open_udp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 	if(nsd->reuseport && reuseport_works && *reuseport_works)
 		*reuseport_works = (set_reuseport(sock) == 1);
 
-	if(nsd->options->receive_buffer_size > 0)
-		rcv = nsd->options->receive_buffer_size;
 	if(set_rcvbuf(sock, rcv) == -1)
 		return -1;
 
-	if(nsd->options->send_buffer_size > 0)
-		snd = nsd->options->send_buffer_size;
 	if(set_sndbuf(sock, snd) == -1)
 		return -1;
 #ifdef INET6
@@ -1391,7 +1422,7 @@ open_tcp_socket(struct nsd *nsd, struct nsd_socket *sock, int *reuseport_works)
 	(void)set_tcp_fastopen(sock);
 #endif
 
-	if(listen(sock->s, TCP_BACKLOG) == -1) {
+	if(listen(sock->s, nsd->options->tcp_listen_queue) == -1) {
 		log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
 		return -1;
 	}
@@ -2142,6 +2173,15 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 	if((SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1_1) & SSL_OP_NO_TLSv1_1)
 		!= SSL_OP_NO_TLSv1_1){
 		log_crypto_err("could not set SSL_OP_NO_TLSv1_1");
+		SSL_CTX_free(ctx);
+		return 0;
+	}
+#endif
+#if defined(SSL_OP_NO_TLSv1_2) && defined(SSL_OP_NO_TLSv1_3)
+	/* if we have tls 1.3 disable 1.2 */
+	if((SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1_2) & SSL_OP_NO_TLSv1_2)
+		!= SSL_OP_NO_TLSv1_2){
+		log_crypto_err("could not set SSL_OP_NO_TLSv1_2");
 		SSL_CTX_free(ctx);
 		return 0;
 	}
@@ -3174,6 +3214,10 @@ server_main(struct nsd *nsd)
 		(void)kill(nsd->pid, SIGTERM);
 	}
 
+#ifdef USE_XDP
+	xdp_server_cleanup(&nsd->xdp.xdp_server);
+#endif
+
 #ifdef MEMCLEAN /* OS collects memory pages */
 	region_destroy(server_region);
 #endif
@@ -3354,6 +3398,34 @@ add_tcp_handler(
 		log_msg(LOG_ERR, "nsd tcp: event_add failed");
 	data->event_added = 1;
 }
+
+#ifdef USE_XDP
+static void
+add_xdp_handler(struct nsd *nsd,
+	            struct xdp_server *xdp,
+	            struct xdp_handler_data *data) {
+
+	int sock;
+	struct event *handler = &data->event;
+
+	data->nsd = nsd;
+	data->server = xdp;
+
+	memset(handler, 0, sizeof(*handler));
+	sock = xsk_socket__fd(xdp->xsks[xdp->queue_index].xsk);
+	if (sock < 0) {
+		log_msg(LOG_ERR, "xdp: xsk socket file descriptor is invalid: %s",
+		        strerror(errno));
+		return;
+	}
+	// TODO: check which EV_flags are needed
+	event_set(handler, sock, EV_PERSIST|EV_READ, handle_xdp, data);
+	if (event_base_set(nsd->event_base, handler) != 0)
+		log_msg(LOG_ERR, "nsd xdp: event_base_set failed");
+	if (event_add(handler, NULL) != 0)
+		log_msg(LOG_ERR, "nsd xdp: event_add failed");
+}
+#endif
 
 /*
  * Serve DNS request to verifiers (short-lived)
@@ -3637,6 +3709,54 @@ server_child(struct nsd *nsd)
 		tcp_accept_handler_count = 0;
 	}
 
+#ifdef USE_XDP
+	if (nsd->options->xdp_interface) {
+		/* don't try to bind more sockets than there are queues available */
+		if ((int)nsd->xdp.xdp_server.queue_count <= nsd->this_child->child_num) {
+			log_msg(LOG_WARNING,
+			        "xdp: server-count exceeds available queues (%d) on "
+			        "interface %s, skipping xdp in this process",
+			        nsd->xdp.xdp_server.queue_count,
+			        nsd->xdp.xdp_server.interface_name);
+		} else {
+			struct xdp_handler_data *data;
+			const int scratch_data_len = 1;
+			void *scratch_data = region_alloc_zero(nsd->server_region,
+			                                       scratch_data_len);
+
+			nsd->xdp.xdp_server.queue_index = nsd->this_child->child_num;
+			nsd->xdp.xdp_server.queries = xdp_queries;
+
+			log_msg(LOG_INFO,
+			        "xdp: using socket with queue_id %d on interface %s",
+			        nsd->xdp.xdp_server.queue_index,
+			        nsd->xdp.xdp_server.interface_name);
+
+			data = region_alloc_zero(nsd->server_region, sizeof(*data));
+			add_xdp_handler(nsd, &nsd->xdp.xdp_server, data);
+
+			for (i = 0; i < XDP_RX_BATCH_SIZE; i++) {
+				/* Be aware that the buffer is initialized with scratch data
+				 * and will be filled by the xdp handle and receive function
+				 * that receives the packet data.
+				 * Using scratch data so that the existing functions in regards
+				 * to queries and buffers don't break by use of NULL pointers */
+				struct buffer *buffer = region_alloc_zero(
+				                            nsd->server_region,
+				                            sizeof(struct buffer));
+				buffer_create_from(buffer, scratch_data, scratch_data_len);
+				xdp_queries[i] = query_create_with_buffer(
+				                                  server_region,
+				                                  compressed_dname_offsets,
+				                                  compression_table_size,
+				                                  compressed_dnames,
+				                                  buffer);
+				query_reset(xdp_queries[i], UDP_MAX_MESSAGE_LEN, 0);
+			}
+		}
+	}
+#endif
+
 	/* The main loop... */
 	while ((mode = nsd->mode) != NSD_QUIT) {
 		if(mode == NSD_RUN) nsd->mode = mode = server_signal_mode(nsd);
@@ -3686,6 +3806,10 @@ server_child(struct nsd *nsd)
 			nsd->mode = NSD_RUN;
 		}
 	}
+
+	/* This part is seemingly never reached as the loop WOULD exit on NSD_QUIT,
+	 * but nsd->mode is only set to NSD_QUIT in ipc_child_quit. However, that
+	 * function also calls exit(). */
 
 	service_remaining_tcp(nsd);
 #ifdef	BIND8_STATS
@@ -4308,7 +4432,11 @@ more_read_buf_tcp(int fd, struct tcp_handler_data* data, void* bufpos,
 			return 0;
 		} else {
 			char buf[48];
-			addr2str(&data->query->remote_addr, buf, sizeof(buf));
+			if(data->query) {
+				addr2str(&data->query->remote_addr, buf, sizeof(buf));
+			} else {
+				snprintf(buf, sizeof(buf), "unknown");
+			}
 #ifdef ECONNRESET
 			if (verbosity >= 2 || errno != ECONNRESET)
 #endif /* ECONNRESET */
@@ -4613,8 +4741,9 @@ handle_tcp_writing(int fd, short event, void* arg)
 	struct event_base* ev_base;
 	uint32_t now = 0;
 
-	if ((event & EV_TIMEOUT)) {
+	if ((event & EV_TIMEOUT) || !q) {
 		/* Connection timed out.  */
+		/* Or data->query is NULL, in which case nothing to do. */
 		cleanup_tcp_handler(data);
 		return;
 	}
@@ -4652,7 +4781,11 @@ handle_tcp_writing(int fd, short event, void* arg)
 #endif /* EPIPE 'broken pipe' */
 				{
 					char client_ip[128];
-					addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+					if(data->query) {
+						addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+					} else {
+						snprintf(client_ip, sizeof(client_ip), "unknown");
+					}
 					log_msg(LOG_ERR, "failed writing to tcp from %s: %s", client_ip, strerror(errno));
 				}
 				cleanup_tcp_handler(data);
@@ -4695,7 +4828,11 @@ handle_tcp_writing(int fd, short event, void* arg)
 #endif /* EPIPE 'broken pipe' */
 		{
 			char client_ip[128];
-			addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+			if(data->query) {
+				addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+			} else {
+				snprintf(client_ip, sizeof(client_ip), "unknown");
+			}
 			log_msg(LOG_ERR, "failed writing to tcp from %s: %s", client_ip, strerror(errno));
 		}
 			cleanup_tcp_handler(data);
@@ -4856,7 +4993,11 @@ tls_handshake(struct tcp_handler_data* data, int fd, int writing)
 				unsigned long err = ERR_get_error();
 				if(!squelch_err_ssl_handshake(err)) {
 					char a[64], s[256];
-					addr2str(&data->query->remote_addr, a, sizeof(a));
+					if(data->query) {
+						addr2str(&data->query->remote_addr, a, sizeof(a));
+					} else {
+						snprintf(a, sizeof(a), "unknown");
+					}
 					snprintf(s, sizeof(s), "TLS handshake failed from %s", a);
 					log_crypto_from_err(LOG_ERR, s, err);
 				}
@@ -5204,8 +5345,9 @@ handle_tls_writing(int fd, short event, void* arg)
 	buffer_type* write_buffer;
 	uint32_t now = 0;
 
-	if ((event & EV_TIMEOUT)) {
+	if ((event & EV_TIMEOUT) || !q) {
 		/* Connection timed out.  */
+		/* Or data->query is NULL, in which case nothing to do. */
 		cleanup_tcp_handler(data);
 		return;
 	}
@@ -5270,7 +5412,11 @@ handle_tls_writing(int fd, short event, void* arg)
 			cleanup_tcp_handler(data);
 			{
 				char client_ip[128], e[188];
-				addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+				if(data->query) {
+					addr2str(&data->query->client_addr, client_ip, sizeof(client_ip));
+				} else {
+					snprintf(client_ip, sizeof(client_ip), "unknown");
+				}
 				snprintf(e, sizeof(e), "failed writing to tls from %s: %s",
 					client_ip, "SSL_write error");
 				log_crypto_err(e);
@@ -5566,6 +5712,16 @@ handle_tcp_accept(int fd, short event, void* arg)
 		configure_handler_event_types(0);
 	}
 }
+
+#ifdef USE_XDP
+static void handle_xdp(int fd, short event, void* arg) {
+	struct xdp_handler_data *data = (struct xdp_handler_data*) arg;
+
+	if ((event & EV_READ))
+		xdp_handle_recv_and_send(data->server);
+	(void)fd;
+}
+#endif
 
 static void
 send_children_command(struct nsd* nsd, sig_atomic_t command, int timeout)

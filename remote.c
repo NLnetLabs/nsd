@@ -3423,7 +3423,7 @@ create_local_accept_sock(const char *path, int* noproto)
 		goto err;
 	}
 
-	if (listen(s, TCP_BACKLOG) == -1) {
+	if (listen(s, nsd.options->tcp_listen_queue) == -1) {
 		log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
 		goto err;
 	}

@@ -37,6 +37,7 @@ attribution to NLnet Labs.
    configuration
    zonefile
    catalog-zones
+   xdp
 
 .. toctree::
    :maxdepth: 2

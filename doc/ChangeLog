@@ -1,3 +1,67 @@
+3 November 2025: Wouter
+	- For #137: Change default for the listen TCP backlog to -1 on
+	  BSDs and Linux.
+
+2 October 2025: Wouter
+	- Fix #137: Adds tcp-listen-queue: number config option to set
+	  the TCP backlog.
+
+29 September 2025: Wouter
+	- Update in acx_nlnetlabs.m4 to version 49.
+	- Update in acx_nlnetlabs.m4 to version 50, with cache value for
+	  malloc function check.
+
+17 September 2025: Wouter
+	- Fix to log more details when send-buffer-size or receive-buffer-size
+	  is not granted, on verbosity level 2.
+
+15 September 2025: Jannik
+	- Fix confusing report for default send and receive buffer-size by
+	  nsd-checkconf
+
+11 September 2025: Jannik
+	- Merge #460: Add XDP_OBJ fixing link errors for XDP.
+	- Fix XDP build error with --enable-checking
+	- Resolve warnings about mixed declaration and code and unused variable
+
+11 September 2025: Wouter
+	- Merge #459: Check for libfstrm version >= 0.4.
+	- For #459: Add configure check for fstrm_tcp_writer_options_init
+	  in addition to the check for fstrm_iothr_init.
+
+8 September 2025: Wouter
+	- Fix empty debug statement body in catalog consumer zone process.
+
+03 September 2025: Jannik
+	- Fix zonestatfd check
+	- The main branch continues with version 4.13.1 in development.
+
+3 September 2025: Wouter
+	- Set code repository configure for version 4.13.1 in development.
+
+18 August 2025: Willem
+	- Merge #455: --with-dbdir option for configure to set the base
+	  directory for the xfrd zone timer state file, the zone list file
+	  and the cookie secrets file. Thanks Simon Josefsson.
+
+18 August 2025: Willem
+	- Merge #456: Spelling fixes in metrics.c. Thanks Simon Josefsson.
+
+05 August 2025: Jannik
+	- Merge #425: Add experimental XDP (AF_XDP) support for UDP traffic
+
+5 August 2025: Wouter
+	- Merge #454 from jaredmauch: handle rare case but seen in
+	  production where data->query is NULL.
+	- Fix code analyzer warning, and bail out of handle_tcp_writing
+	  and handle_tls_writing early when data->query is NULL.
+
+18 July 2025: Wouter
+	- Merge #449: Add useful logging for XoT transfers.
+
+17 July 2025: Wouter
+	- Disable TLSv1.2 if TLSv1.3 is available.
+
 9 July 2025: Wouter
 	- Update simdzone with support for --enable-pie.
 
