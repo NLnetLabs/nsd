@@ -713,8 +713,6 @@ dname_make_from_packet_buffered(struct dname_buffer* dname,
 		return 0;
 	if(!dname_make_buffered(dname, dname->storage, normalize))
 		return 0;
-	/* This could be an assertion. */
-	if(wirelen != dname->dname.name_size)
-		return 0;
+	assert(wirelen == dname->dname.name_size);
 	return wirelen;
 }
