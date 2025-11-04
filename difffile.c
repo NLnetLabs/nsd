@@ -373,7 +373,7 @@ rdatas_equal(const rr_type *rr1, const rr_type *rr2, uint16_t type,
 	descriptor = nsd_type_descriptor(type);
 	for (size_t i=0; i < descriptor->rdata.length && offset < rr1->rdlength; i++) {
 		uint16_t field_len1, field_len2;
-		struct domain* domain1, *domain2;
+		struct domain *domain1, *domain2;
 		if(offset == rr1->rdlength &&
 			descriptor->rdata.fields[i].is_optional)
 			break;
