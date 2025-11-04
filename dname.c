@@ -653,7 +653,7 @@ int
 dname_make_buffered(struct dname_buffer* dname, uint8_t *name, int normalize)
 {
 	size_t name_size = 0;
-	uint8_t label_offsets[MAXDOMAINLEN];
+	uint8_t label_offsets[MAXDOMAINLEN/2+1];
 	uint8_t label_count = 0;
 	const uint8_t *label = name;
 	ssize_t i;
