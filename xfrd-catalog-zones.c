@@ -546,10 +546,8 @@ xfrd_process_catalog_consumer_zone(
 	}
 	version_2_found = 0;
 	for (i = 0; i < rrset->rr_count; i++) {
-		if(rrset->rrs[i]->rdlength > 1 &&
-		   rrset->rrs[i]->rdata[0] == 1 &&
-		   rrset->rrs[i]->rdlength ==
-			((uint16_t)rrset->rrs[i]->rdata[0]) + 1 &&
+		if(rrset->rrs[i]->rdlength == 2 &&
+		   rrset->rrs[i]->rdata[0] == 1 /* TXT string length */ &&
 		   rrset->rrs[i]->rdata[1] == '2') {
 			version_2_found = 1;
 			break;

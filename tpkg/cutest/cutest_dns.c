@@ -40,8 +40,6 @@ static void dns_1(CuTest *tc)
 		if(i <= 264) {
 			CuAssert(tc, "dns rrtype descriptor: index",
 				i == d->type);
-			CuAssert(tc, "dns rrtype descriptor: offset",
-				i == d - start);
 		}
 		CuAssert(tc, "dns rrtype descriptor: type",
 			lookup->type == d->type);

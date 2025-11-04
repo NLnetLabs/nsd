@@ -26,7 +26,7 @@ const dname_type *
 dname_make(region_type *region, const uint8_t *name, int normalize)
 {
 	size_t name_size = 0;
-	uint8_t label_offsets[MAXDOMAINLEN];
+	uint8_t label_offsets[MAXDOMAINLEN/2+1];
 	uint8_t label_count = 0;
 	const uint8_t *label = name;
 	dname_type *result;
@@ -42,16 +42,13 @@ dname_make(region_type *region, const uint8_t *name, int normalize)
 		++label_count;
 		name_size += label_length(label) + 1;
 
-		if (label_is_root(label))
-			break;
 		if (name_size > MAXDOMAINLEN)
 			return NULL;
+		if (label_is_root(label))
+			break;
 
 		label = label_next(label);
 	}
-
-	if (name_size > MAXDOMAINLEN)
-		return NULL;
 
 	assert(label_count <= MAXDOMAINLEN / 2 + 1);
 
@@ -653,7 +650,7 @@ int
 dname_make_buffered(struct dname_buffer* dname, uint8_t *name, int normalize)
 {
 	size_t name_size = 0;
-	uint8_t label_offsets[MAXDOMAINLEN];
+	uint8_t label_offsets[MAXDOMAINLEN/2+1];
 	uint8_t label_count = 0;
 	const uint8_t *label = name;
 	ssize_t i;
@@ -668,16 +665,13 @@ dname_make_buffered(struct dname_buffer* dname, uint8_t *name, int normalize)
 		++label_count;
 		name_size += label_length(label) + 1;
 
-		if (label_is_root(label))
-			break;
 		if (name_size > MAXDOMAINLEN)
 			return 0;
+		if (label_is_root(label))
+			break;
 
 		label = label_next(label);
 	}
-
-	if (name_size > MAXDOMAINLEN)
-		return 0;
 
 	assert(label_count <= MAXDOMAINLEN / 2 + 1);
 
@@ -719,8 +713,6 @@ dname_make_from_packet_buffered(struct dname_buffer* dname,
 		return 0;
 	if(!dname_make_buffered(dname, dname->storage, normalize))
 		return 0;
-	/* This could be an assertion. */
-	if(wirelen != dname->dname.name_size)
-		return 0;
+	assert(wirelen == dname->dname.name_size);
 	return wirelen;
 }
