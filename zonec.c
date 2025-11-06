@@ -94,15 +94,15 @@ check_dname(zone_type* zone)
 	return 1;
 }
 
-static int
+static rrset_type*
 has_soa(domain_type* domain)
 {
 	rrset_type* p = NULL;
 	if(!domain) return 0;
 	for(p = domain->rrsets; p; p = p->next)
 		if(rrset_rrtype(p) == TYPE_SOA)
-			return 1;
-	return 0;
+			return p;
+	return NULL;
 }
 
 struct zonec_state {
@@ -136,6 +136,7 @@ int32_t zonec_accept(
 #ifdef PACKED_STRUCTS
 	rrset_type* rrset_prev;
 #endif
+	rrset_type* soa_rrset;
 
 	assert(state);
 
@@ -177,8 +178,16 @@ int32_t zonec_accept(
 			snprintf(s, sizeof(s), "%s", domain_to_string(domain));
 			zone_log(parser, priority, "SOA record with invalid domain name, '%s' is not '%s'",
 				domain_to_string(state->zone->apex), s);
-		} else if (has_soa(domain)) {
-			zone_log(parser, priority, "this SOA record was already encountered");
+		} else if ((soa_rrset = has_soa(domain))) {
+			zone_log( parser
+			        ,  priority == ZONE_WARNING ? ZONE_WARNING
+			        :  soa_rrset->rr_count == 1
+			        && soa_rrset->rrs[0]->type  == rr->type
+			        && soa_rrset->rrs[0]->klass == rr->klass
+			        && soa_rrset->rrs[0]->ttl   == rr->ttl
+			        && equal_rr_rdata(descriptor, rr, soa_rrset->rrs[0])
+			        ?  ZONE_WARNING : priority
+			        , "this SOA record was already encountered");
 		}
 		domain->is_apex = 1;
 	}
