@@ -21,6 +21,8 @@ BUG FIXES:
 	- Update in acx_nlnetlabs.m4 to version 49.
 	- Update in acx_nlnetlabs.m4 to version 50, with cache value for
 	  malloc function check.
+	- Update acx_nlnetlabs.m4 to version 51, with nonstring unknown
+	  attribute warning fix.
 
 4.13.0
 ================
