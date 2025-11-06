@@ -659,6 +659,7 @@ nsec3_precompile_newparam(namedb_type* db, zone_type* zone)
 				(n==0)?0:(int)(c*((unsigned long)100)/n)));
 		}
 	}
+	VERBOSITY(1, (LOG_INFO, "nsec3 %s 100%%", zone->opts->name));
 	region_destroy(tmpregion);
 }
 
