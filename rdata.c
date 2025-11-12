@@ -135,7 +135,7 @@ static int
 print_name_literal(struct buffer *output, uint16_t rdlength,
 	const uint8_t *rdata, uint16_t *offset)
 {
-	const uint8_t* name, *label, *limit;
+	const uint8_t *name, *label, *limit;
 	assert(rdlength >= *offset);
 	if (rdlength - *offset == 0)
 		return 0;
@@ -274,7 +274,7 @@ print_text(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 		}
 	}
 	buffer_printf(output, "\"");
-	*offset += (rdlength - *offset);
+	*offset = rdlength;
 	return 1;
 }
 
@@ -336,6 +336,7 @@ print_ip4(struct buffer *output, size_t rdlength, const uint8_t *rdata,
 	uint16_t *offset)
 {
 	char str[INET_ADDRSTRLEN + 1];
+	assert(rdlength >= *offset);
 	if(((size_t)*offset) + 4 > rdlength)
 		return 0;
 	if(!inet_ntop(AF_INET, rdata + *offset, str, sizeof(str)))
@@ -1439,7 +1440,7 @@ read_soa_rdata(struct domain_table *domains, uint16_t rdlength,
 	    rdlength != (buffer_position(packet) - mark) + 20)
 		return MALFORMED;
 
-	size = sizeof(**rr) + 2 * sizeof(struct domain *) + 20;
+	size = sizeof(**rr) + 2 * sizeof(void*) + 20;
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
 	primary_domain = domain_table_insert(domains, (void*)&primary);
@@ -2428,7 +2429,7 @@ write_naptr_rdata(struct query *query, const struct rr *rr)
 	uint16_t length;
 
 	/* short + short + string + string + string + uncompressed name */
-	assert(rr->rdlength < 7 + sizeof(void*));
+	assert(rr->rdlength >= 7 + sizeof(void*));
 	length = rr->rdlength - sizeof(void*);
 	memcpy(&domain, rr->rdata + length, sizeof(void*));
 	dname = domain_dname(domain);
@@ -2441,7 +2442,7 @@ print_naptr_rdata(struct buffer *output, const struct rr *rr)
 {
 	uint16_t length = 4;
 
-	assert(rr->rdlength > 4);
+	assert(rr->rdlength >= 7 + sizeof(void*));
 	buffer_printf(
 		output, "%" PRIu16 " %" PRIu16 " ",
 		read_uint16(rr->rdata), read_uint16(rr->rdata+2));
@@ -2496,7 +2497,7 @@ write_kx_rdata(struct query *query, const struct rr *rr)
 	const struct dname *dname;
 
 	/* short + uncompressed name */
-	assert(rr->rdlength != 2 + sizeof(void*));
+	assert(rr->rdlength == 2 + sizeof(void*));
 	memcpy(&domain, rr->rdata + 2, sizeof(void*));
 	dname = domain_dname(domain);
 	buffer_write(query->packet, rr->rdata, 2);
@@ -3747,6 +3748,7 @@ print_amtrelay_rdata(struct buffer *output, const struct rr *rr)
 		relay_type);
 	switch(relay_type) {
 	case AMTRELAY_NOGATEWAY:
+		buffer_printf(output, " .");
 		break;
 	case AMTRELAY_IP4:
 		buffer_printf(output, " ");
@@ -4063,12 +4065,10 @@ equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
 			descriptor->rdata.fields[i].is_optional) {
 			/* There are no more rdata fields. */
 			/* Check lengths. */
-			if(rr1->rdlength < rr2->rdlength)
+			if(rr1->rdlength == rr2->rdlength)
+				return 1;
+			else
 				return 0;
-			if(rr1->rdlength > rr2->rdlength)
-				return 0;
-			/* It is equal. */
-			return 1;
 		}
 		if(!lookup_rdata_field_entry(descriptor, i, rr1, offset,
 			&field_len1, &domain1))
@@ -4079,11 +4079,10 @@ equal_rr_rdata(const nsd_type_descriptor_type *descriptor,
 		if(malf1 || malf2) {
 			/* Malformed entries sort last, and are sorted
 			 * equal with other malformed entries. */
-			if(!malf1 && malf2)
+			if(malf1 && malf2)
+				return 1;
+			else
 				return 0;
-			if(malf1 && !malf2)
-				return 0;
-			return 1;
 		}
 		/* Compare the two fields. */
 		/* If they have a different type field, they are not the
@@ -4173,9 +4172,11 @@ equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
 				if(res != 0)
 					return 0;
 			} else {
+				uint16_t dname_len2 = buf_dname_length(
+					rr2_rdata+offset2,
+					rr2_rdlen-offset2);
 				if(domain_dname(domain1)->name_size !=
-					buf_dname_length(rr2_rdata+offset2,
-						rr2_rdlen-offset2)) {
+					dname_len2) {
 					/* not the same length dnames. */
 					return 0;
 				}
@@ -4183,7 +4184,7 @@ equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
 					(uint8_t*)dname_name(domain_dname(
 						domain1)),
 					(uint8_t*)rr2_rdata+offset2,
-					rr2_rdlen-offset2)) {
+					dname_len2)) {
 					/* name comparison not equal. */
 					return 0;
 				}
