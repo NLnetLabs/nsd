@@ -1,3 +1,7 @@
+6 November 2025: Wouter
+	- Update acx_nlnetlabs.m4 to version 51, with nonstring unknown
+	  attribute warning fix.
+
 3 November 2025: Wouter
 	- For #137: Change default for the listen TCP backlog to -1 on
 	  BSDs and Linux.
