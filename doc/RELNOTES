@@ -23,6 +23,8 @@ BUG FIXES:
 	  malloc function check.
 	- Update acx_nlnetlabs.m4 to version 51, with nonstring unknown
 	  attribute warning fix.
+	- Merge #466: Do not delete nodes from non-existent zone's NSEC3 hash   
+	  trees 
 
 4.13.0
 ================
