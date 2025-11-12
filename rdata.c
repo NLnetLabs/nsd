@@ -155,8 +155,8 @@ print_name_literal(struct buffer *output, uint16_t rdlength,
 		} while (*label);
 	} else {
 		/* root domain. */
-		if(limit - label < 1)
-			return 0;
+		/* The label is within the rdlength by the checks at start of
+		 * the function. */
 	}
 
 	buffer_printf(output, "%s", wiredname2str(name));
