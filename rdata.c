@@ -1140,9 +1140,11 @@ lookup_rdata_field_entry_uncompressed_wire(
 		switch(field->length) {
 		case RDATA_COMPRESSED_DNAME:
 		case RDATA_UNCOMPRESSED_DNAME:
-			/* It is not a reference, but in uncompressed
-			 * wireformat in the rdata buffer, for
-			 * RDATA_COMPRESSED_DNAME and
+			/* In the case that the field type is of type dname,
+			 * since this function deals with uncompressed
+			 * wireformat in the rdata buffer, the dname is
+			 * going to be there as an uncompressed wireformat
+			 * dname, for RDATA_COMPRESSED_DNAME and
 			 * RDATA_UNCOMPRESSED_DNAME. */
 		case RDATA_LITERAL_DNAME:
 			dlen = buf_dname_length(rdata+offset, rdlength-offset);
