@@ -522,7 +522,7 @@ print_base64(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 }
 
 static void
-hex_to_string(buffer_type *output, const uint8_t *data, size_t size)
+buffer_print_hex(buffer_type *output, const uint8_t *data, size_t size)
 {
 	static const char hexdigits[] = {
 		'0', '1', '2', '3', '4', '5', '6', '7',
@@ -557,7 +557,7 @@ print_base16(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 		buffer_write(output, "0", 1);
 		return 1;
 	} else {
-		hex_to_string(output, rdata+*offset, size);
+		buffer_print_hex(output, rdata+*offset, size);
 	}
 	*offset += size;
 	return 1;
@@ -588,7 +588,7 @@ print_salt(struct buffer *output, uint16_t rdlength, const uint8_t *rdata,
 		/* NSEC3 salt hex can be empty */
 		buffer_printf(output, "-");
 	else
-		hex_to_string(output, rdata + *offset + 1, length);
+		buffer_print_hex(output, rdata + *offset + 1, length);
 	*offset += 1 + (uint16_t)length;
 	return 1;
 }
@@ -1265,7 +1265,7 @@ int print_unknown_rdata_field(buffer_type *output,
 		/* There are no references to the domain table, the
 		 * rdata can be printed literally. */
 		buffer_printf(output, "\\# %lu ", (unsigned long)rr->rdlength);
-		hex_to_string(output, rr->rdata, rr->rdlength);
+		buffer_print_hex(output, rr->rdata, rr->rdlength);
 		return 1;
 	}
 
@@ -1295,7 +1295,7 @@ int print_unknown_rdata_field(buffer_type *output,
 			to_print = rr->rdata+length;
 			to_print_len = field_len;
 		}
-		hex_to_string(output, to_print, to_print_len);
+		buffer_print_hex(output, to_print, to_print_len);
 		length += field_len;
 	}
 	return 1;
@@ -1957,7 +1957,7 @@ int
 print_nsap_rdata(struct buffer *output, const struct rr *rr)
 {
 	buffer_printf(output, "0x");
-	hex_to_string(output, rr->rdata, rr->rdlength);
+	buffer_print_hex(output, rr->rdata, rr->rdlength);
 	return 1;
 }
 
