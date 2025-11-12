@@ -4191,8 +4191,10 @@ equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
 			}
 		} else {
 			if(domain2) {
-				if(buf_dname_length(rr1->rdata + offset1,
-					rr1->rdlength-offset1) !=
+				uint16_t dname_len1 = buf_dname_length(
+					rr1->rdata + offset1,
+					rr1->rdlength-offset1);
+				if(dname_len1 !=
 					domain_dname(domain2)->name_size) {
 					/* not the same length dnames. */
 					return 0;
@@ -4201,7 +4203,7 @@ equal_rr_rdata_uncompressed_wire(const nsd_type_descriptor_type *descriptor,
 					(uint8_t*)rr1->rdata+offset1,
 					(uint8_t*)dname_name(domain_dname(
 						domain2)),
-					rr1->rdlength-offset1)) {
+					dname_len1)) {
 					/* name comparison not equal. */
 					return 0;
 				}
