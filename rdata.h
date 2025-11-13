@@ -559,26 +559,6 @@ int lookup_rdata_field_entry_uncompressed_wire(
 	uint16_t* field_len, struct domain** domain);
 
 /*
- * Compare rdata for two RRs. They have to be of the same type already.
- * It iterates over the RR type fields. The RRs and the rdatas are the
- * namedb format, that is with references stored as pointers.
- * The comparison is in canonical order, by looping over the uncompressed
- * wireformat bytes. It does not canonicalize the domain names.
- * References to the domain table are canonical domain names.
- * But literal domain names are not canonicalized by the routine.
- * That is for types RRSIG, SIG. But for these two types, the read_rrsig_rdata
- * routine normalizes the signer name when it is read in. Both from zonefile
- * format and from wire format. So that is canonicalized already.
- * For types NSEC and HINFO it should not be downcased, and it does not.
- * @param descriptor: type descriptor for the type.
- * @param rr1: RR to compare rdata 1. The rdata can contain pointers.
- * @param rr2: RR to compare rdata 2. The rdata can contain pointers.
- * @return comparison of rdata1 and rdata2, -1 smaller, 0 equal, 1 larger.
- */
-int compare_rr_rdata(const nsd_type_descriptor_type *descriptor,
-	const struct rr *rr1, const struct rr *rr2);
-
-/*
  * Compare rdata for equality. This is easier than the sorted compare,
  * it treats field types as a difference too, so a reference instead of
  * a wireformat field makes for a different RR.
