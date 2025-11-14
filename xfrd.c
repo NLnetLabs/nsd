@@ -627,13 +627,13 @@ apply_xfrs_to_consumer_zone(struct xfrd_catalog_consumer_zone* consumer_zone,
 	FILE* df;
 
 	if(xfr->msg_is_ixfr) {
-		uint32_t soa_serial;
+		uint32_t soa_serial=0, after_serial=0;
 		xfrd_xfr_type* prev;
 
 		if(dbzone->soa_rrset == NULL || dbzone->soa_rrset->rrs == NULL
-		|| dbzone->soa_rrset->rrs[0].rdata_count <= 2
-		|| rdata_atom_size(dbzone->soa_rrset->rrs[0].rdatas[2])
-				!= sizeof(uint32_t)) {
+		|| dbzone->soa_rrset->rrs[0]->rdlength < 20+2*sizeof(void*)
+		|| !retrieve_soa_rdata_serial(dbzone->soa_rrset->rrs[0],
+			&soa_serial)) {
 
 			make_catalog_consumer_invalid(consumer_zone,
 			       "could not apply ixfr on catalog consumer zone "
@@ -641,8 +641,6 @@ apply_xfrs_to_consumer_zone(struct xfrd_catalog_consumer_zone* consumer_zone,
 			       consumer_zone->options->name);
 			return;
 		}
-		soa_serial = read_uint32(rdata_atom_data(
-				dbzone->soa_rrset->rrs[0].rdatas[2]));
 		if(soa_serial == xfr->msg_old_serial) 
 			goto apply_xfr;
 		for(prev = xfr->prev; prev; prev = prev->prev) {
@@ -653,8 +651,10 @@ apply_xfrs_to_consumer_zone(struct xfrd_catalog_consumer_zone* consumer_zone,
 			apply_xfrs_to_consumer_zone(consumer_zone, dbzone, prev);
 			break;
 		}
-		if(!prev || xfr->msg_old_serial != read_uint32(rdata_atom_data(
-					dbzone->soa_rrset->rrs[0].rdatas[2]))){
+		if(!prev
+		|| !retrieve_soa_rdata_serial(dbzone->soa_rrset->rrs[0],
+			&after_serial)
+		|| xfr->msg_old_serial != after_serial) {
 			make_catalog_consumer_invalid(consumer_zone,
 			       "could not find and/or apply xfrs for catalog "
 			       "consumer zone \'%s\': to update to serial %u",
@@ -729,7 +729,6 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 		soa.klass = htons(CLASS_IN);
 		memmove(&soa.ttl, p, sizeof(uint32_t));
 		p += sizeof(uint32_t);
-		soa.rdata_count = htons(7);
 		memmove(soa.prim_ns, p, sizeof(uint8_t));
 		p += sizeof(uint8_t);
 		memmove(soa.prim_ns+1, p, soa.prim_ns[0]);
@@ -1377,22 +1376,24 @@ xfrd_time()
 void
 xfrd_copy_soa(xfrd_soa_type* soa, rr_type* rr)
 {
-	const uint8_t* rr_ns_wire = dname_name(domain_dname(rdata_atom_domain(rr->rdatas[0])));
-	uint8_t rr_ns_len = domain_dname(rdata_atom_domain(rr->rdatas[0]))->name_size;
-	const uint8_t* rr_em_wire = dname_name(domain_dname(rdata_atom_domain(rr->rdatas[1])));
-	uint8_t rr_em_len = domain_dname(rdata_atom_domain(rr->rdatas[1]))->name_size;
+	const uint8_t* rr_ns_wire = dname_name(domain_dname(rdata_domain_ref(rr)));
+	uint8_t rr_ns_len = domain_dname(rdata_domain_ref(rr))->name_size;
+	const uint8_t* rr_em_wire = dname_name(domain_dname(
+		rdata_domain_ref_offset(rr, sizeof(void*))));
+	uint8_t rr_em_len = domain_dname(rdata_domain_ref_offset(rr,
+		sizeof(void*)))->name_size;
+	uint8_t* p;
 
-	if(rr->type != TYPE_SOA || rr->rdata_count != 7) {
+	if(rr->type != TYPE_SOA || rr->rdlength != 20+2*sizeof(void*)) {
 		log_msg(LOG_ERR, "xfrd: copy_soa called with bad rr, type %d rrs %u.",
-			rr->type, rr->rdata_count);
+			rr->type, (unsigned)rr->rdlength);
 		return;
 	}
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: copy_soa rr, type %d rrs %u, ttl %u.",
-			(int)rr->type, (unsigned)rr->rdata_count, (unsigned)rr->ttl));
+			(int)rr->type, (unsigned)rr->rdlength, (unsigned)rr->ttl));
 	soa->type = htons(rr->type);
 	soa->klass = htons(rr->klass);
 	soa->ttl = htonl(rr->ttl);
-	soa->rdata_count = htons(rr->rdata_count);
 
 	/* copy dnames */
 	soa->prim_ns[0] = rr_ns_len;
@@ -1401,11 +1402,12 @@ xfrd_copy_soa(xfrd_soa_type* soa, rr_type* rr)
 	memcpy(soa->email+1, rr_em_wire, rr_em_len);
 
 	/* already in network format */
-	memcpy(&soa->serial, rdata_atom_data(rr->rdatas[2]), sizeof(uint32_t));
-	memcpy(&soa->refresh, rdata_atom_data(rr->rdatas[3]), sizeof(uint32_t));
-	memcpy(&soa->retry, rdata_atom_data(rr->rdatas[4]), sizeof(uint32_t));
-	memcpy(&soa->expire, rdata_atom_data(rr->rdatas[5]), sizeof(uint32_t));
-	memcpy(&soa->minimum, rdata_atom_data(rr->rdatas[6]), sizeof(uint32_t));
+	p = rr->rdata + 2*sizeof(void*);
+	memcpy(&soa->serial, p, sizeof(uint32_t));
+	memcpy(&soa->refresh, p+4, sizeof(uint32_t));
+	memcpy(&soa->retry, p+8, sizeof(uint32_t));
+	memcpy(&soa->expire, p+12, sizeof(uint32_t));
+	memcpy(&soa->minimum, p+16, sizeof(uint32_t));
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 		"xfrd: copy_soa rr, serial %u refresh %u retry %u expire %u",
 		(unsigned)ntohl(soa->serial), (unsigned)ntohl(soa->refresh),
@@ -1979,7 +1981,6 @@ static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_type* soa)
 	{
 		return 0;
 	}
-	soa->rdata_count = 7; /* rdata in SOA */
 	soa->serial = htonl(buffer_read_u32(packet));
 	soa->refresh = htonl(buffer_read_u32(packet));
 	soa->retry = htonl(buffer_read_u32(packet));
@@ -2002,12 +2003,14 @@ xfrd_xfr_check_rrs(xfrd_zone_type* zone, buffer_type* packet, size_t count,
 	int *done, xfrd_soa_type* soa, region_type* temp)
 {
 	/* first RR has already been checked */
+	const struct nsd_type_descriptor *descriptor;
 	uint32_t tmp_serial = 0;
 	uint16_t type, rrlen;
 	size_t i, soapos, mempos;
 	const dname_type* dname;
+	struct rr* rr;
+	int32_t code;
 	domain_table_type* owners;
-	rdata_atom_type* rdatas;
 
 	for(i=0; i<count; ++i,++zone->latest_xfr->msg_rr_count)
 	{
@@ -2041,10 +2044,15 @@ xfrd_xfr_check_rrs(xfrd_zone_type* zone, buffer_type* packet, size_t count,
 			return 0;
 		}
 		mempos = buffer_position(packet);
-		if(rdata_wireformat_to_rdata_atoms(temp, owners, type, rrlen,
-			packet, &rdatas) == -1) {
+
+		descriptor = nsd_type_descriptor(type);
+		code = descriptor->read_rdata(owners, rrlen, packet, &rr);
+		if(code < 0) {
 			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr unable "
-				"to parse rdata", zone->apex_str));
+				"to parse rdata %s %s %s", zone->apex_str,
+				dname_to_string(dname,0),
+				rrtype_to_string(type),
+				read_rdata_fail_str(code)));
 			return 0;
 		}
 		if(type == TYPE_SOA) {

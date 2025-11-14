@@ -15,11 +15,13 @@
 #include "dname.h"
 
 static void dname_1(CuTest *tc);
+static void dname_2(CuTest *tc);
 
 CuSuite* reg_cutest_dname(void)
 {
 	CuSuite* suite = CuSuiteNew();
 	SUITE_ADD_TEST(suite, dname_1);
+	SUITE_ADD_TEST(suite, dname_2);
 	return suite;
 }
 
@@ -203,5 +205,224 @@ dname_1(CuTest *tc)
 
 	check_dname_subdomain(tc);
 
+	region_destroy(region);
+}
+
+/** Test entries for the dname_2 test */
+struct d_test_entry {
+	/* The wireformat to parse. */
+	char* wire;
+	/* Length of wire data */
+	size_t wirelen;
+	/* If the parse should fail or succeed. */
+	int parse_succeed;
+};
+
+static void
+dname_2(CuTest *tc)
+{
+	/* Test from dname.h: buf_name_length, dname_make_buffered,
+	 * dname_make_from_packet_buffered, dname_make,
+	 * dname_make_wire_from_packet, and dname_make_from_packet
+	 * with uncompressed names. */
+
+	/* List of uncompressed wireformat for test. */
+	struct d_test_entry test_entries_uncompressed[] = {
+		/* Test success cases */
+		{"", 1, 1},
+		{"\003foo\004barq", 10, 1},
+		{"\003www\003foo\004barq", 14, 1},
+		{"\001*\003wld\003foo\004barq", 16, 1},
+
+		/* This string is zero length, and fails. */
+		{NULL, 0, 0},
+
+		/* This has a label too long for the buffer. */
+		{"\100foo\004barq", 10, 0},
+
+		/* This has a compressed label. */
+		{"\303foo\004barq", 10, 0},
+
+		/* This has a compressed label. */
+		{"\303\004barq", 7, 0},
+
+		/* This has a label length that is wrong */
+		{"\003fooblablablabla\004barq", 19, 0},
+
+		/* This has a label too long, labellen=64 */
+		{"\100x123456789x123456789x123456789x123456789x123456789x123456789xyzz\004barq", 71, 0},
+
+		/* This has a label too long, labellen=72 */
+		{"\110x123456789x123456789x123456789x123456789x123456789x123456789xyzz12345678\004barq", 79, 0},
+
+		/* This has a label len 63. */
+		{"\077x123456789x123456789x123456789x123456789x123456789x123456789xyz\004barq", 70, 1},
+
+		/* This name is long, 11*23+1=254 */
+		{"\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789"
+		 "", 254, 1},
+
+		/* This name is long, 11*22+12+1=255 */
+		{"\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\013x123456789z"
+		 "", 255, 1},
+
+		/* This name is too long, 11*22+13+1=256 */
+		{"\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\014x123456789zz"
+		 "", 256, 0},
+
+		/* This name is too long, 11*24+1=265 */
+		{"\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "\012x123456789\012x123456789\012x123456789\012x123456789"
+		 "", 265, 0},
+
+	};
+	size_t test_entries_uncompressed_num =
+		sizeof(test_entries_uncompressed)/
+		sizeof(*test_entries_uncompressed);
+	size_t i;
+	region_type* region;
+	int verb=0; /* Enable to 1 for verbose output in this test. */
+	if(verb)
+		printf("num test entries %d\n",
+			(int)test_entries_uncompressed_num);
+	region = region_create(xalloc, free);
+
+	for(i=0; i<test_entries_uncompressed_num; i++) {
+		uint8_t* wire = (uint8_t*)test_entries_uncompressed[i].wire;
+		size_t wirelen = test_entries_uncompressed[i].wirelen;
+		struct dname_buffer buffer;
+		buffer_type packet;
+		size_t res;
+		int r;
+		if(verb)
+			printf("entry %d, len %d\n", (int)i, (int)wirelen);
+
+		res = buf_dname_length(wire, wirelen);
+		if(verb)
+			printf("entry %d: buf_dname_length=%d\n",
+				(int)i, (int)res);
+		if(test_entries_uncompressed[i].parse_succeed) {
+			CuAssert(tc, "test buf_dname_length parse",
+				res == wirelen);
+		} else {
+			CuAssert(tc, "test buf_dname_length parse failure",
+				res == 0);
+		}
+
+		if(wire != NULL) {
+			memset(&buffer, 0, sizeof(buffer));
+			r = dname_make_buffered(&buffer, wire, 0);
+			if(verb)
+				printf("entry %d: dname_make_buffered=%d\n",
+					(int)i, r);
+			if(test_entries_uncompressed[i].parse_succeed) {
+				CuAssert(tc, "test dname_make_buffered parse",
+					r == 1);
+				CuAssert(tc, "test dname_make_buffered string",
+					strcmp(wiredname2str(wire),
+					dname_to_string((void*)&buffer, NULL))
+					== 0);
+			} else {
+				CuAssert(tc, "test dname_make_buffered parse failure",
+					r == 0);
+			}
+		}
+
+		if(wire == NULL)
+			buffer_create_from(&packet, "", wirelen);
+		else buffer_create_from(&packet, wire, wirelen);
+		memset(&buffer, 0, sizeof(buffer));
+		r = dname_make_from_packet_buffered(&buffer,
+			&packet, 0, 0);
+		if(verb)
+			printf("entry %d: dname_make_from_packet_buffered=%d\n",
+				(int)i, r);
+		if(test_entries_uncompressed[i].parse_succeed) {
+			CuAssert(tc, "test dname_make_from_packet_buffered parse",
+				r == (int)wirelen);
+			CuAssert(tc, "test dname_make_from_packet_buffered string",
+				strcmp(wiredname2str(wire),
+				dname_to_string((void*)&buffer, NULL)) == 0);
+		} else {
+			CuAssert(tc, "test dname_make_from_packet_buffered parse failure",
+				r == 0);
+		}
+
+		/* dname_make */
+		if(wire != NULL) {
+			uint8_t wbuf[MAXDOMAINLEN+1];
+			const dname_type* dn;
+			dn = dname_make(region, wire, 0);
+			if(verb)
+				printf("entry %d: dname_make=%s\n",
+					(int)i,
+					(dn?dname_to_string(dn, NULL):"NULL"));
+			if(test_entries_uncompressed[i].parse_succeed) {
+				CuAssert(tc, "test dname_make parse",
+					dn != NULL);
+				CuAssert(tc, "test dname_make string",
+					strcmp(wiredname2str(wire),
+					dname_to_string(dn, NULL)) == 0);
+			} else {
+				CuAssert(tc, "test dname_make parse failure",
+					dn == NULL);
+			}
+
+			buffer_set_position(&packet, 0);
+			r = dname_make_wire_from_packet(wbuf, &packet, 0);
+			if(verb)
+				printf("entry %d: dname_make_wire_from_packet=%d %s\n",
+					(int)i, r,
+					(r?wiredname2str(wbuf):"none"));
+			if(test_entries_uncompressed[i].parse_succeed) {
+				CuAssert(tc, "test dname_make_wire_from_packet parse",
+					r == (int)wirelen);
+				CuAssert(tc, "test dname_make_wire_from_packet string",
+					strcmp(wiredname2str(wire),
+					wiredname2str(wbuf)) == 0);
+			} else {
+				CuAssert(tc, "test dname_make_wire_from_packet parse failure",
+					r == 0);
+			}
+
+			buffer_set_position(&packet, 0);
+			dn = dname_make_from_packet(region, &packet, 0, 0);
+			if(verb)
+				printf("entry %d: dname_make_from_packet=%s\n",
+					(int)i,
+					(dn?dname_to_string(dn, NULL):"NULL"));
+			if(test_entries_uncompressed[i].parse_succeed) {
+				CuAssert(tc, "test dname_make_from_packet parse",
+					dn != NULL);
+				CuAssert(tc, "test dname_make_from_packet string",
+					strcmp(wiredname2str(wire),
+					dname_to_string(dn, NULL)) == 0);
+			} else {
+				CuAssert(tc, "test dname_make_from_packet parse failure",
+					dn == NULL);
+			}
+
+			region_free_all(region);
+		}
+	}
 	region_destroy(region);
 }
