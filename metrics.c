@@ -387,7 +387,7 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 
 	/* nsd_queries_by_type_total */
 	print_metric_help_and_type(buf, prefix, "queries_by_type_total",
-	                           "Total number of queries recieved by type.",
+	                           "Total number of queries received by type.",
 	                           "counter");
 	for(i=0; i<= 255; i++) {
 		if(metrics_inhibit_zero && st->qtype[i] == 0 &&
@@ -399,7 +399,7 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 
 	/* nsd_queries_by_class_total */
 	print_metric_help_and_type(buf, prefix, "queries_by_class_total",
-	                           "Total number of queries recieved by class.",
+	                           "Total number of queries received by class.",
 	                           "counter");
 	for(i=0; i<4; i++) {
 		if(metrics_inhibit_zero && st->qclass[i] == 0 && i != CLASS_IN)
@@ -410,7 +410,7 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 
 	/* nsd_queries_by_opcode_total */
 	print_metric_help_and_type(buf, prefix, "queries_by_opcode_total",
-	                           "Total number of queries recieved by opcode.",
+	                           "Total number of queries received by opcode.",
 	                           "counter");
 	for(i=0; i<6; i++) {
 		if(metrics_inhibit_zero && st->opcode[i] == 0 && i != OPCODE_QUERY)
@@ -421,7 +421,7 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 
 	/* nsd_queries_by_rcode_total */
 	print_metric_help_and_type(buf, prefix, "queries_by_rcode_total",
-	                           "Total number of queries recieved by rcode.",
+	                           "Total number of queries received by rcode.",
 	                           "counter");
 	for(i=0; i<17; i++) {
 		if(metrics_inhibit_zero && st->rcode[i] == 0 &&
@@ -433,20 +433,20 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 
 	/* nsd_queries_by_transport_total */
 	print_metric_help_and_type(buf, prefix, "queries_by_transport_total",
-		"Total number of queries recieved by transport.",
+		"Total number of queries received by transport.",
 		"counter");
 	evbuffer_add_printf(buf, "%squeries_by_transport_total{transport=\"udp\"} %lu\n", prefix, (unsigned long)st->qudp);
 	evbuffer_add_printf(buf, "%squeries_by_transport_total{transport=\"udp6\"} %lu\n", prefix, (unsigned long)st->qudp6);
 
 	/* nsd_queries_with_edns_total */
 	print_metric_help_and_type(buf, prefix, "queries_with_edns_total",
-		"Total number of queries recieved with EDNS OPT.",
+		"Total number of queries received with EDNS OPT.",
 		"counter");
 	evbuffer_add_printf(buf, "%squeries_with_edns_total %lu\n", prefix, (unsigned long)st->edns);
 
 	/* nsd_queries_with_edns_failed_total */
 	print_metric_help_and_type(buf, prefix, "queries_with_edns_failed_total",
-		"Total number of queries recieved with EDNS OPT where EDNS parsing failed.",
+		"Total number of queries received with EDNS OPT where EDNS parsing failed.",
 		"counter");
 	evbuffer_add_printf(buf, "%squeries_with_edns_failed_total %lu\n", prefix, (unsigned long)st->ednserr);
 
@@ -506,7 +506,7 @@ metrics_zonestat_print_one(struct evbuffer *buf, char *name,
 	snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
 
 	print_metric_help_and_type(buf, prefix, "queries_total",
-		"Total number of queries recieved.", "counter");
+		"Total number of queries received.", "counter");
 	evbuffer_add_printf(buf, "nsd_zonestats_%s_queries_total %lu\n", name,
 		(unsigned long)(zst->qudp + zst->qudp6 + zst->ctcp +
 			zst->ctcp6 + zst->ctls + zst->ctls6));
@@ -524,7 +524,7 @@ metrics_print_stats(struct evbuffer *buf, xfrd_state_type *xfrd,
 
 	/* nsd_queries_total */
 	print_metric_help_and_type(buf, "nsd_", "queries_total",
-	                           "Total number of queries recieved.", "counter");
+	                           "Total number of queries received.", "counter");
 	/*per CPU and total*/
 	for(i=0; i<xfrd->nsd->child_count; i++) {
 		evbuffer_add_printf(buf, "nsd_queries_total{server=\"%d\"} %lu\n",

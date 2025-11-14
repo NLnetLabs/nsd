@@ -103,6 +103,7 @@ struct nsd_options {
 	int tcp_timeout;
 	int tcp_mss;
 	int outgoing_tcp_mss;
+	int tcp_listen_queue;
 	size_t ipv4_edns_size;
 	size_t ipv6_edns_size;
 	const char* pidfile;
@@ -162,6 +163,19 @@ struct nsd_options {
 	char* control_key_file;
 	/** certificate file for nsd-control */
 	char* control_cert_file;
+
+#ifdef USE_XDP
+	/** XDP interface name */
+	const char* xdp_interface;
+	/** XDP/eBPF program file path */
+	const char* xdp_program_path;
+	/** if NSD should load the XDP/eBPF program */
+	int xdp_program_load;
+	/** path to bpffs for pinned BPF objects */
+	const char* xdp_bpffs_path;
+	/** force copy mode instead of zero copy mode */
+	int xdp_force_copy;
+#endif
 
 #ifdef USE_METRICS
 	/** metrics section. enable toggle. */

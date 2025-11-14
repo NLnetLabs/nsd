@@ -14,3 +14,10 @@ kill_from_pidfile nsd-primary.pid
 kill_from_pidfile nsd-secondary.pid
 kill_from_pidfile nsd-tertiary.pid
 
+echo "nsd-primary.log"
+cat nsd-primary.log
+echo "nsd-secondary.log"
+cat nsd-secondary.log
+echo "nsd-tertiary.log"
+cat nsd-tertiary.log
+exit 0

@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	if ((fl = fcntl(fd, F_GETFL)) != -1 && (fl & (O_WRONLY | O_RDWR)))
 		fds |= 4;
 
-	if (fds & 1)
+	if ((fds & 1))
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-result" 
 		fgets(buf, sizeof(buf), stdin);

@@ -1,6 +1,32 @@
 NSD RELEASE NOTES
 
-4.12.1 (upcoming)
+4.13.1
+================
+FEATURES:
+	- Fix #137: Adds tcp-listen-queue: number config option to set
+	  the TCP backlog. And the default for the listen TCP backlog is
+	  set to -1 on BSDs and Linux.
+BUG FIXES:
+	- Fix empty debug statement body in catalog consumer zone process.
+	- Merge #459: Check for libfstrm version >= 0.4.
+	- For #459: Add configure check for fstrm_tcp_writer_options_init
+	  in addition to the check for fstrm_iothr_init.
+	- Merge #460: Add XDP_OBJ fixing link errors for XDP.
+	- Fix XDP build error with --enable-checking
+	- Resolve warnings about mixed declaration and code and unused variable
+	- Fix confusing report for default send and receive buffer-size by
+	  nsd-checkconf
+	- Fix to log more details when send-buffer-size or receive-buffer-size
+	  is not granted, on verbosity level 2.
+	- Update in acx_nlnetlabs.m4 to version 49.
+	- Update in acx_nlnetlabs.m4 to version 50, with cache value for
+	  malloc function check.
+	- Update acx_nlnetlabs.m4 to version 51, with nonstring unknown
+	  attribute warning fix.
+	- Merge #466: Do not delete nodes from non-existent zone's NSEC3 hash   
+	  trees 
+
+4.13.0
 ================
 FEATURES:
 	- Use '(all)' and '(none)' for the socket server affinity
@@ -19,6 +45,14 @@ FEATURES:
 	  cross-layer issue where the UDP socket send buffers are
 	  exhausted waiting for ARP/NDP resolution. Thanks to Reflyable
 	  for the report.
+	- Disable TLSv1.2 if TLSv1.3 is available.
+	- Merge #449: Add useful logging for XoT transfers.
+	- Merge #425: Add experimental XDP (AF_XDP) support for UDP traffic
+	- Merge #455: --with-dbdir option for configure to set the base
+	  directory for the xfrd zone timer state file, the zone list file
+	  and the cookie secrets file. Thanks Simon Josefsson.
+	- Merge #456: Spelling fixes in metrics.c. Thanks Simon Josefsson.
+
 
 BUG FIXES:
 	- Fix punctuation of nsd -h output for the -a option.
@@ -44,6 +78,25 @@ BUG FIXES:
 	  internal dname routines, dname_make and ixfr dname_length.
 	- Fix to remove shell assignment operator from Makefile for DATE.
 	- make depend.
+	- Fix bitwise operators in conditional expressions with parentheses.
+	- Fix conditional expressions with parentheses for bitwise and.
+	- Merge #445: contrib/nsd.openrc.in: use supervise-daemon and
+	  add `need net`.
+	- Fix #446 nsd_size_db_in_mem_bytes (size.db.mem) metric not
+	  updated on reload.
+	- Merge #447: Minimize disruptions on reconfig.
+	- For #447: Updated simdzone to latest commit. With the padding
+	  test changes.
+	- For #447: use need_to_send_reload to detect if a reload is issued.
+	- For #447: acl_list_equal already tests for TSIG key changes, so
+	  removed the duplicate checks.
+	- For #447: log crypto error with the SSL_write error.
+	- Update simdzone with support for --enable-pie.
+	- Merge #454 from jaredmauch: handle rare case but seen in
+	  production where data->query is NULL.
+	- Fix zonestatfd check
+	- Fix code analyzer warning, and bail out of handle_tcp_writing
+	  and handle_tls_writing early when data->query is NULL.
 
 4.12.0
 ================

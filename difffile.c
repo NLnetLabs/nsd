@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <inttypes.h>
 #include "difffile.h"
 #include "xfrd-disk.h"
 #include "util.h"
@@ -1096,7 +1097,7 @@ static int
 apply_ixfr(nsd_type* nsd, FILE *in, uint32_t serialno,
 	uint32_t seq_nr, uint32_t seq_total,
 	int* is_axfr, int* delete_mode, int* rr_count,
-	struct zone* zone, int* bytes,
+	struct zone* zone, uint64_t* bytes,
 	int* softfail, struct ixfr_store* ixfr_store)
 {
 	uint32_t msglen, checklen, pkttype;
@@ -1382,7 +1383,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 	uint32_t time_end_1, time_start_1;
 	uint8_t committed;
 	uint32_t i;
-	int num_bytes = 0;
+	uint64_t num_bytes = 0;
 	assert(zone);
 
 	/* read zone name and serial */
@@ -1507,7 +1508,7 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 			double elapsed = (double)(time_end_0 - time_start_0)+
 				(double)((double)time_end_1
 				-(double)time_start_1) / 1000000.0;
-			VERBOSITY(1, (LOG_INFO, "zone %s %s of %d bytes in %g seconds",
+			VERBOSITY(1, (LOG_INFO, "zone %s %s of %"PRIu64" bytes in %g seconds",
 				zone_buf, log_buf, num_bytes, elapsed));
 		}
 	}

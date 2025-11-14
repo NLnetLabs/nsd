@@ -26,6 +26,9 @@
 #include "dns.h"
 #include "edns.h"
 #include "bitset.h"
+#ifdef USE_XDP
+#include "xdp-server.h"
+#endif
 struct netio_handler;
 struct nsd_options;
 struct udb_base;
@@ -120,6 +123,7 @@ typedef	unsigned long stc_type;
 /* Data structure to keep track of statistics */
 struct nsdst {
 	time_t	boot;
+	stc_type reloadcount;	/* counts reloads */
 	stc_type qtype[257];	/* Counters per qtype */
 	stc_type qclass[4];	/* Class IN or Class CH or other */
 	stc_type qudp, qudp6;	/* Number of queries udp and udp6 */
@@ -302,6 +306,13 @@ struct	nsd
 	size_t verifier_limit; /* Maximum number of active verifiers */
 	int verifier_pipe[2]; /* Pipe to trigger verifier exit handler */
 	struct verifier *verifiers;
+
+#ifdef USE_XDP
+	struct {
+		/* only one interface for now */
+		struct xdp_server xdp_server;
+	} xdp;
+#endif
 
 	edns_data_type edns_ipv4;
 #if defined(INET6)
