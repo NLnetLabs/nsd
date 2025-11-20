@@ -3,9 +3,10 @@ name: Build container
 on:
   workflow_run:
     workflows:
-      - "Tests"
+      - "build-test"
     branches:
-      - "main"
+      - "master"
+      - "container"
     types:
       - completed
   release:
