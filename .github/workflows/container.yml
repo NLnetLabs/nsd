@@ -1,4 +1,4 @@
-name: Build container
+name: build-container
 
 on:
   workflow_run:
