@@ -6,7 +6,6 @@ on:
       - "build-test"
     branches:
       - "master"
-      - "container"
     types:
       - completed
   release:
