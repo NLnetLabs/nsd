@@ -22,6 +22,7 @@
 #include "zonec.h"
 #include "nsd.h"
 #include "zone.h"
+#include "rdata.h"
 
 static void namedb_1(CuTest *tc);
 static void namedb_2(CuTest *tc);
@@ -234,9 +235,9 @@ check_rrsets(CuTest* tc, domain_type* domain)
 		NoTypeInRest(tc, rrset->next, rrset_rrtype(rrset), rrset->zone);
 		/* rrsets: rr owner is d */
 		for(i=0; i<rrset->rr_count; i++) {
-			CuAssertTrue(tc, rrset->rrs[i].type ==
+			CuAssertTrue(tc, rrset->rrs[i]->type ==
 				rrset_rrtype(rrset));
-			CuAssertTrue(tc, rrset->rrs[i].owner == domain);
+			CuAssertTrue(tc, rrset->rrs[i]->owner == domain);
 		}
 	}
 }
@@ -420,18 +421,27 @@ has_data_below(domain_type* domain)
 static void
 usage_for_rr(rr_type* rr, size_t* usage)
 {
-	unsigned i;
-	domain_type* d;
-	for(i=0; i<rr->rdata_count; i++) {
-		switch(rdata_atom_wireformat_type(rr->type, i)) {
-		case RDATA_WF_COMPRESSED_DNAME:
-		case RDATA_WF_UNCOMPRESSED_DNAME:
-			d = rdata_atom_domain(rr->rdatas[i]);
-			usage[d->number] ++;
-			break;
-		default:
-			break;
+	size_t i;
+	const nsd_type_descriptor_type* descriptor =
+		nsd_type_descriptor(rr->type);
+	uint16_t offset = 0;
+	if(!descriptor->has_references)
+		return;
+	for(i=0; i < descriptor->rdata.length; i++) {
+		uint16_t field_len;
+		struct domain* domain;
+		if(rr->rdlength == offset &&
+			descriptor->rdata.fields[i].is_optional)
+			break; /* There are no more rdata fields. */
+		if(!lookup_rdata_field_entry(descriptor, i, rr, offset,
+			&field_len, &domain))
+			return; /* malformed rdata buffer */
+		if(domain != NULL) {
+			/* Handle RDATA_COMPRESSED_DNAME and
+			 * RDATA_UNCOMPRESSED_DNAME fields. */
+			usage[domain->number] ++;
 		}
+		offset += field_len;
 	}
 }
 
@@ -442,7 +452,7 @@ usage_for_rrsets(rrset_type* list, size_t* usage)
 	unsigned i;
 	for(; list; list=list->next) {
 		for(i=0; i<list->rr_count; i++) {
-			usage_for_rr(&list->rrs[i], usage);
+			usage_for_rr(list->rrs[i], usage);
 		}
 	}
 }
@@ -647,9 +657,9 @@ parse_rr_str(struct zone *zone, char *input, struct parse_rr_state *state)
 
 	length = strlen(input);
 	string = malloc(length + 1 + ZONE_BLOCK_SIZE);
+	memset(string, 0, length + 1 + ZONE_BLOCK_SIZE);
 	memcpy(string, input, length);
 	string[length] = 0;
-	memset(string+length+1, 0, ZONE_BLOCK_SIZE);
 
 	/* Parse and process all RRs.  */
 	code = zone_parse_string(&parser, &options, &buffers, string, length, state);
@@ -691,7 +701,7 @@ add_str(namedb_type* db, zone_type* zone, char* str)
 	}
 	buffer_create_from(&buffer, state.rdata, state.rdlength);
 	if(!add_RR(db, state.owner, state.type, state.class, state.ttl,
-		&buffer, state.rdlength, zone, &softfail)) {
+		&buffer, state.rdlength, zone, &softfail, NULL)) {
 		printf("cannot add RR: %s\n", str);
 		exit(1);
 	}
@@ -714,8 +724,8 @@ del_str(namedb_type* db, zone_type* zone, char* str)
 		exit(1);
 	}
 	buffer_create_from(&buffer, state.rdata, state.rdlength);
-	if(!delete_RR(db, state.owner, state.type, state.class,
-		&buffer, state.rdlength, zone, state.region, &softfail)) {
+	if(!delete_RR(db, state.owner, state.type, state.class, state.ttl,
+		&buffer, state.rdlength, zone, state.region, &softfail, NULL)) {
 		printf("cannot delete RR: %s\n", str);
 		exit(1);
 	}

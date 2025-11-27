@@ -82,8 +82,8 @@ query_axfr(struct nsd *nsd, struct query *query, int wstats)
 		assert(query->axfr_zone->soa_rrset->rr_count == 1);
 		added = packet_encode_rr(query,
 					 query->axfr_zone->apex,
-					 &query->axfr_zone->soa_rrset->rrs[0],
-					 query->axfr_zone->soa_rrset->rrs[0].ttl);
+					 query->axfr_zone->soa_rrset->rrs[0],
+					 query->axfr_zone->soa_rrset->rrs[0]->ttl);
 		if (!added) {
 			/* XXX: This should never happen... generate error code? */
 			abort();
@@ -123,8 +123,8 @@ query_axfr(struct nsd *nsd, struct query *query, int wstats)
 					added = packet_encode_rr(
 						query,
 						query->axfr_current_domain,
-						&query->axfr_current_rrset->rrs[query->axfr_current_rr],
-						query->axfr_current_rrset->rrs[query->axfr_current_rr].ttl);
+						query->axfr_current_rrset->rrs[query->axfr_current_rr],
+						query->axfr_current_rrset->rrs[query->axfr_current_rr]->ttl);
 					if(total_added == 0) {
 						query->maxlen = oldmaxlen;
 						if(query_overflow(query)) {
@@ -154,8 +154,8 @@ query_axfr(struct nsd *nsd, struct query *query, int wstats)
 	assert(query->axfr_zone->soa_rrset->rr_count == 1);
 	added = packet_encode_rr(query,
 				 query->axfr_zone->apex,
-				 &query->axfr_zone->soa_rrset->rrs[0],
-				 query->axfr_zone->soa_rrset->rrs[0].ttl);
+				 query->axfr_zone->soa_rrset->rrs[0],
+				 query->axfr_zone->soa_rrset->rrs[0]->ttl);
 	if (added) {
 		++total_added;
 		query->tsig_sign_it = 1; /* sign last packet */

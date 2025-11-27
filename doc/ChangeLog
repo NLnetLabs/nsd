@@ -1,3 +1,6 @@
+27 November 2025: Jannik
+	- Merge #444: Refactor RDATA storage to reduce memory footprint
+
 12 November 2025: Willem
 	- Merge #466: Do not delete nodes from non-existent zone's NSEC3 hash
 	  trees

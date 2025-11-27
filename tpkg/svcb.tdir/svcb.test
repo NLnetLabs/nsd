@@ -246,6 +246,7 @@ then
 else
 	echo "Could not load failure-cases zone in secondary"
 	cat f01.failure-cases.out
+	cat nsd-secondary.log
 	exit  1
 fi
 
