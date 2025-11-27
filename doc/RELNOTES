@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.13.1
+4.14.0
 ================
 FEATURES:
 	- Fix #137: Adds tcp-listen-queue: number config option to set
