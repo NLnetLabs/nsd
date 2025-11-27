@@ -6,6 +6,7 @@ FEATURES:
 	- Fix #137: Adds tcp-listen-queue: number config option to set
 	  the TCP backlog. And the default for the listen TCP backlog is
 	  set to -1 on BSDs and Linux.
+	- Merge #444: Refactor RDATA storage to reduce memory footprint
 BUG FIXES:
 	- Fix empty debug statement body in catalog consumer zone process.
 	- Merge #459: Check for libfstrm version >= 0.4.
