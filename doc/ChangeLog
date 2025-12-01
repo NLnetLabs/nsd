@@ -1,5 +1,6 @@
 1 December 2025: Jannik
 	- The master branch continues with version 4.14.1 in development
+	- Merge #469 from jschlyter: Add container build files
 
 27 November 2025: Jannik
 	- Merge #444: Refactor RDATA storage to reduce memory footprint
