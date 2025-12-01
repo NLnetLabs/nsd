@@ -162,7 +162,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_EUI48      108     /* RFC 7043 */
 #define TYPE_EUI64      109     /* RFC 7043 */
 
-#define TYPE_NXNAME	128	/* draft-ietf-dnsop-compact-denial-of-existence-04 */
+#define TYPE_NXNAME	128	/* RFC 9824 */
 
 #define TYPE_TSIG	250	/* RFC 2845 */
 #define TYPE_IXFR	251	/* RFC 1995 */

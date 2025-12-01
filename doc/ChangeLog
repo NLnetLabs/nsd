@@ -4,6 +4,7 @@
 
 1 December 2025: Wouter
 	- Fix to note DSYNC RFC9859 reference.
+	- Fix to note reference for NXNAME in comment.
 
 27 November 2025: Jannik
 	- Merge #444: Refactor RDATA storage to reduce memory footprint
