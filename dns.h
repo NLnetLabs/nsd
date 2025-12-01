@@ -151,7 +151,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_ZONEMD	63	/* RFC 8976 */
 #define TYPE_SVCB	64	/* RFC 9460 */
 #define TYPE_HTTPS	65	/* RFC 9460 */
-#define TYPE_DSYNC	66	/* draft-ietf-dnsop-generalized-notify */
+#define TYPE_DSYNC	66	/* RFC 9859 */
 
 #define TYPE_SPF        99      /* RFC 4408 */
 

@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 	- Merge #469 from jschlyter: Add container build files
 BUG FIXES:
+	- Fix to note DSYNC RFC9859 reference.
 
 4.14.0
 ================
