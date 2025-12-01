@@ -4,7 +4,7 @@
 
 Build container using:
 
-   docker build -f container/Dockerfile -t nsd .
+   docker build -f contrib/container/Dockerfile -t nsd .
 
 ## Runtime
 
