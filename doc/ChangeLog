@@ -1,6 +1,8 @@
 1 December 2025: Jannik
 	- The master branch continues with version 4.14.1 in development
 	- Merge #469 from jschlyter: Add container build files
+	- Merge #470 from jschlyter: Update path to default container
+	  configuration and entrypoint
 
 1 December 2025: Wouter
 	- Fix to note DSYNC RFC9859 reference.

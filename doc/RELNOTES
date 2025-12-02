@@ -7,6 +7,8 @@ FEATURES:
 BUG FIXES:
 	- Fix to note DSYNC RFC9859 reference.
 	- Fix to note reference for NXNAME in comment.
+	- Merge #470 from jschlyter: Update path to default container
+	  configuration and entrypoint
 
 4.14.0
 ================
