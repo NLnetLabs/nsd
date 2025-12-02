@@ -61,10 +61,10 @@ RUN apt-get update && \
     chown -R nsd:nsd /config /storage
 
 # Add default config
-ADD container/nsd.conf /config
+ADD contrib/container/nsd.conf /config
 
 # Add entrypoint
-ADD container/entrypoint.sh /
+ADD contrib/container/entrypoint.sh /
 ENTRYPOINT ["bash", "/entrypoint.sh"]
 
 # Expose port
