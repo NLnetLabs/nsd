@@ -125,7 +125,7 @@ struct zonec_state {
 #ifdef PACKED_STRUCTS
 	struct rrset *rrset_prev;
 #endif
-	size_t rr_count;
+	int rr_count;
 	struct rr* rrs[256];
 };
 
@@ -213,7 +213,9 @@ static void zonec_commit_rrset(zone_parser_t *parser, struct zonec_state *state)
 	state->domain = NULL;
 	state->type = -1;
 	state->rrset = NULL;
+#ifdef PACKED_STRUCTS
 	state->rrset_prev = NULL;
+#endif
 	state->rr_count = 0;
 }
 
@@ -251,7 +253,7 @@ int32_t zonec_accept(
 	domain = domain_table_insert(state->domains, (void*)&dname);
 	assert(domain);
 	if (domain != state->domain || type != state->type
-	||  state->rr_count >= sizeof(state->rrs) / sizeof(*state->rrs)) {
+	||  state->rr_count >= (int)(sizeof(state->rrs) / sizeof(*state->rrs))){
 		zonec_commit_rrset(parser, state);
 		state->domain = domain;
 		state->type = type;
