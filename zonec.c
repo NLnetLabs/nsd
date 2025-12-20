@@ -309,13 +309,19 @@ int32_t zonec_accept(
 		state->rrset = domain_find_rrset_and_prev(state->domain, state->zone, state->type, &state->rrset_prev);
 #endif
 	}
-	if (type != TYPE_RRSIG
-	&&  ((state->rrset    && ttl != state->rrset->rrs[0]->ttl)
-	||   (state->rr_count && ttl != state->rrs[0]->ttl))) {
+	if (type == TYPE_RRSIG)
+		; /* pass */
+	else if (state->rrset && ttl != state->rrset->rrs[0]->ttl) {
 		zone_log(parser, ZONE_WARNING,
 			"%s TTL %"PRIu32" does not match TTL %u of %s RRset",
-			domain_to_string(domain), ttl, state->rrset->rrs[0]->ttl,
-			rrtype_to_string(type));
+			domain_to_string(domain), ttl,
+			state->rrset->rrs[0]->ttl, rrtype_to_string(type));
+
+	} else if (state->rr_count && ttl != state->rrs[0]->ttl) {
+		zone_log(parser, ZONE_WARNING,
+			"%s TTL %"PRIu32" does not match TTL %u of %s RRset",
+			domain_to_string(domain), ttl,
+			state->rrs[0]->ttl, rrtype_to_string(type));
 	}
 	if (state->rrset || state->rr_count) {
 		switch (type) {
