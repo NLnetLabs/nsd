@@ -1,3 +1,9 @@
+21 December 2025: Willem
+	- Fix rr-test.tdir so AMTRELAY relay field is "." with type 0
+	- Fix checkconf.tdir test to anticipate default values for
+	  send-buffer-size and receive-buffer-size when configured with 0
+	- skip dns-cookies.tdir test with restricted unpriviledged userns
+
 1 December 2025: Jannik
 	- The master branch continues with version 4.14.1 in development
 	- Merge #469 from jschlyter: Add container build files

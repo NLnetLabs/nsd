@@ -9,6 +9,10 @@ BUG FIXES:
 	- Fix to note reference for NXNAME in comment.
 	- Merge #470 from jschlyter: Update path to default container
 	  configuration and entrypoint
+	- Fix rr-test.tdir so AMTRELAY relay field is "." with type 0
+	- Fix checkconf.tdir test to anticipate default values for
+	  send-buffer-size and receive-buffer-size when configured with 0
+	- skip dns-cookies.tdir test with restricted unpriviledged userns
 
 4.14.0
 ================
