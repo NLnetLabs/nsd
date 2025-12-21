@@ -29,7 +29,11 @@ for x in *.conf; do
 	# delete line before dnstap: tail -r|sed '/pattern/{n;d;}'|tail -r
 	# 	or awk '/dnstap:/ {f=1} !f&&NR>1 {print p} {p=$0;f=0} END {print p}'
 	# delete dnstap lines.
-	$checkcmd $x 2>&1 | grep -v "rrl-" | awk '/dnstap:/ {f=1} !f&&NR>1 {print p} {p=$0;f=0} END {print p}' | grep -v "dnstap" >>outfile.tmp
+	# send-buffer-size and receive-buffer-size have default values when
+	# initialized with 0. sed them into 0 again, so we can compare.
+	$checkcmd $x 2>&1 | grep -v "rrl-" | awk '/dnstap:/ {f=1} !f&&NR>1 {print p} {p=$0;f=0} END {print p}' | grep -v "dnstap" \
+	| sed -e 's/	send-buffer-size: 4194304$/	send-buffer-size: 0/g' \
+	      -e 's/	receive-buffer-size: 1048576$/	receive-buffer-size: 0/g' >>outfile.tmp
 done
 
 if test "$use_metrics" = "no"; then
