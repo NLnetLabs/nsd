@@ -188,6 +188,8 @@ AC_PROG_YACC
 AC_PROG_LN_S
 AC_PROG_INSTALL
 
+PKG_PROG_PKG_CONFIG
+
 if test "$LEX" != ":" -a "$LEX" != ""; then
 # Solaris provides anemic tools, and they don't offer GNU extensions like
 # 'flex -i'. Solaris also does not offer GNU replacements in /usr/gnu/bin.
@@ -361,78 +363,6 @@ ACX_CHECK_MEMCMP_SIGNED
 AC_CHECK_CTIME_R
 
 # Checks for libraries.
-
-# Check for SSL, original taken from
-# http://www.gnu.org/software/ac-archive/htmldoc/check_ssl.html and
-# modified for NSD.
-AC_DEFUN([CHECK_SSL], [
-    AC_ARG_WITH(ssl, AS_HELP_STRING([--with-ssl=pathname],[enable SSL (will check /usr/local/ssl
-                /usr/lib/ssl /usr/ssl /usr/pkg /usr/sfw /usr/local /usr /usr/local/opt/openssl)]),[
-        ],[
-            withval="yes"
-        ])
-    if test x_$withval != x_no; then
-        AC_MSG_CHECKING(for SSL)
-        if test -n "$withval"; then
-            dnl look for openssl install with different version, eg.
-            dnl in /usr/include/openssl11/openssl/ssl.h
-            dnl and /usr/lib64/openssl11/libssl.so
-            dnl with the --with-ssl=/usr/include/openssl11
-                if test ! -f "$withval/include/openssl/ssl.h" -a -f "$withval/openssl/ssl.h"; then
-                        ssldir="$withval"
-                        found_ssl="yes"
-                        withval=""
-                        ssldir_include="$ssldir"
-                        CPPFLAGS="$CPPFLAGS -I$ssldir_include";
-                        dnl find the libdir
-                        ssldir_lib=`echo $ssldir | sed -e 's/include/lib/'`
-                        if test -f "$ssldir_lib/libssl.a" -o -f "$ssldir_lib/libssl.so"; then
-                                : # found here
-                        else
-                                ssldir_lib=`echo $ssldir | sed -e 's/include/lib64/'`
-                                if test -f "$ssldir_lib/libssl.a" -o -f "$ssldir_lib/libssl.so"; then
-                                        : # found here
-                                else
-                                        AC_MSG_ERROR([Could not find openssl lib file, $ssldir_lib/libssl.[so,a], pass like "/usr/local" or "/usr/include/openssl11"])
-                                fi
-                        fi
-                fi
-            fi
-        if test x_$withval = x_ -o x_$withval = x_yes; then
-            withval="/usr/local/ssl /usr/lib/ssl /usr/ssl /usr/pkg /usr/sfw /usr/local /usr /usr/local/opt/openssl"
-        fi
-        for dir in $withval; do
-            ssldir="$dir"
-            if test -f "$dir/include/openssl/ssl.h"; then
-                found_ssl="yes";
-                if test x_$ssldir != x_/usr; then
-                    CPPFLAGS="$CPPFLAGS -I$ssldir/include";
-                fi
-                ssldir_include="$ssldir/include"
-                if test ! -d "$ssldir/lib" -a -d "$ssldir/lib64"; then
-                    ssldir_lib="$ssldir/lib64"
-                else
-                    ssldir_lib="$ssldir/lib"
-                fi
-                break;
-            fi
-        done
-        if test x_$found_ssl != x_yes; then
-            AC_MSG_ERROR([Cannot find the SSL libraries in $withval])
-        else
-            AC_MSG_RESULT([found in $ssldir])
-            HAVE_SSL=yes
-            AC_DEFINE_UNQUOTED([HAVE_SSL], [], [Define if you have the SSL libraries installed.])
-            if test x_$ssldir != x_/usr; then
-                LDFLAGS="$LDFLAGS -L$ssldir_lib";
-            fi
-            if test x_$ssldir = x_/usr/sfw; then
-                LDFLAGS="$LDFLAGS -R$ssldir_lib";
-            fi
-        fi
-        AC_SUBST(HAVE_SSL)
-    fi
-])dnl
 
 # check for libevent
 AC_ARG_WITH(libevent, AS_HELP_STRING([--with-libevent=pathname],[use libevent (will check /usr/local /opt/local /usr/lib /usr/pkg /usr/sfw /usr /usr/local/opt/libevent or you can specify an explicit path), useful when the zone count is high.]),
@@ -1042,40 +972,22 @@ esac
 AC_SUBST(ratelimit_default)
 
 # we need SSL for TSIG (and maybe also for NSEC3).
-CHECK_SSL
-if test x$HAVE_SSL = x"yes"; then
-	ACX_LIB_SSL
-	# remove space after -ldl if there.
-	LIBS=`echo "$LIBS" | sed -e 's/ $//'`
-
-	# Check for -pthread
-	BAKLIBS="$LIBS"
-	LIBS="-lcrypto $LIBS"
-	AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[
-		int EVP_sha256(void);
-		(void)EVP_sha256();
-	]])],[],[
-		dnl so link fails for EVP_sha256, try with -pthread.
-		BAKCFLAGS="$CFLAGS"
-		CFLAGS="$CFLAGS -pthread"
-		AC_MSG_CHECKING([if libcrypto needs -pthread])
-		AC_TRY_LINK_FUNC([EVP_sha256], [
-			AC_MSG_RESULT([yes])
-		] , [
-			AC_MSG_RESULT([no])
-			dnl restore the nonpthread value
-			CFLAGS="$BAKCFLAGS"
-		])
+AC_ARG_WITH([ssl], AS_HELP_STRING([--with-ssl], [enable SSL]))
+AS_IF([test "x$with_ssl" != "xno"], [
+	PKG_CHECK_MODULES([SSL], [openssl >= 0.9.7], [
+		CPPFLAGS="$CPPFLAGS $SSL_CFLAGS"
+		HAVE_SSL=yes
 	])
-	LIBS="$BAKLIBS"
-
-	if test -n "$ssldir"; then
-            AC_CHECK_LIB(crypto, EVP_sha256,, [
-                    AC_MSG_ERROR([OpenSSL found in $ssldir, but version 0.9.7 or higher is required])
-                ])
-	fi
-	SSL_LIBS="-lssl"
+	AC_SUBST(HAVE_SSL)
+	AC_SUBST(SSL_CFLAGS)
 	AC_SUBST(SSL_LIBS)
+	AC_DEFINE_UNQUOTED([HAVE_SSL], [], [Define if you have the SSL libraries installed.])
+])
+
+if test x$HAVE_SSL = x"yes"; then
+	BAKLIBS="$LIBS"
+	LIBS="$SSL_LIBS $LIBS"
+
 	AC_CHECK_HEADERS([openssl/ssl.h openssl/err.h openssl/rand.h openssl/ocsp.h openssl/core_names.h openssl/x509v3.h],,, [AC_INCLUDES_DEFAULT])
 	AC_CHECK_FUNCS([HMAC_CTX_reset HMAC_CTX_new EVP_cleanup ERR_load_crypto_strings OPENSSL_init_crypto CRYPTO_memcmp EC_KEY_new_by_curve_name EVP_MAC_CTX_new EVP_MAC_CTX_set_params EVP_MAC_CTX_get_mac_size SHA1_Init ASN1_STRING_get0_data EVP_PKEY_get0_type_name])
 	if test "$ac_cv_func_SHA1_Init" = "yes"; then
@@ -1110,8 +1022,6 @@ AC_INCLUDES_DEFAULT
 		[AC_DEFINE([HAVE_TLS_1_3], [1], [Define if TLS 1.3 is supported by OpenSSL])],
 		[AC_MSG_WARN([No TLS 1.3, therefore XFR-over-TLS is disabled])], [[#include <openssl/ssl.h>]])
 
-	BAKLIBS="$LIBS"
-	LIBS="-lssl $LIBS"
 	AC_CHECK_FUNCS([OPENSSL_init_ssl SSL_get1_peer_certificate SSL_CTX_set_security_level ERR_load_SSL_strings])
 	if test "$ac_cv_func_ERR_load_SSL_strings" = "yes"; then
 		ACX_FUNC_DEPRECATED([ERR_load_SSL_strings], [(void)ERR_load_SSL_strings();], [
