@@ -1,3 +1,7 @@
+6 January 2026: Wouter
+	- Fix #474: metrics output with zone statistics to change
+	  disallowed characters in metric names to underscores.
+
 21 December 2025: Willem
 	- Fix rr-test.tdir so AMTRELAY relay field is "." with type 0
 	- Fix checkconf.tdir test to anticipate default values for

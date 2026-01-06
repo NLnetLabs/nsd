@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <event2/event.h>
 #include <event2/http.h>
+#include <ctype.h>
 
 #include "nsd.h"
 #include "xfrd.h"
@@ -343,6 +344,22 @@ metrics_http_callback(struct evhttp_request *req, void *p)
 }
 
 #ifdef BIND8_STATS
+/** Change disallowed characters, '.' ':' to underscores '_'. */
+static void
+change_string_underscores(char* prefix)
+{
+	/* Prometheus does not want '.' in the metric names. But the zone
+	 * statistics could have then in their name.
+	 * Also ':' is not allowed. This routine enforeces that it
+	 * has letters,digits,underscores. */
+	char* s = prefix;
+	while(*s) {
+		if(!isalnum((unsigned char)*s) && *s != '_')
+			*s = '_';
+		s++;
+	}
+}
+
 /** print long number*/
 static int
 print_longnum(struct evbuffer *buf, char* desc, uint64_t x)
@@ -381,6 +398,7 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 	char prefix[512] = {0};
 	if (name) {
 		snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
+		change_string_underscores(prefix);
 	} else {
 		snprintf(prefix, sizeof(prefix), "nsd_");
 	}
@@ -504,6 +522,7 @@ metrics_zonestat_print_one(struct evbuffer *buf, char *name,
 {
 	char prefix[512] = {0};
 	snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
+	change_string_underscores(prefix);
 
 	print_metric_help_and_type(buf, prefix, "queries_total",
 		"Total number of queries received.", "counter");
