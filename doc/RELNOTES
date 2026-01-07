@@ -15,6 +15,7 @@ BUG FIXES:
 	- skip dns-cookies.tdir test with restricted unpriviledged userns
 	- Fix #474: metrics output with zone statistics to change
 	  disallowed characters in metric names to underscores.
+	- Fix that non normalized NSEC next owner names are preserved.
 
 4.14.0
 ================

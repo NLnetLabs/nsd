@@ -1,3 +1,6 @@
+7 January 2026: Wouter
+	- Fix that non normalized NSEC next owner names are preserved.
+
 6 January 2026: Wouter
 	- Fix #474: metrics output with zone statistics to change
 	  disallowed characters in metric names to underscores.
