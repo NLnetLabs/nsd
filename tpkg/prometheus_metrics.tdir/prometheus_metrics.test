@@ -61,6 +61,9 @@ if ! curl -Ssi "http://127.0.0.1:$TPKG_METRICS_PORT/metrics" -o metrics.out; the
 	exit 1
 fi
 
+echo ">> metrics output"
+cat metrics.out
+
 if grep -Fx "nsd_queries_total{server=\"0\"} $((NUM_NS_QUERIES+NUM_A_QUERIES))" metrics.out; then
 	echo "OK"
 else
@@ -99,6 +102,9 @@ if grep "num.type.A=$NUM_A_QUERIES" stats; then echo "OK"; else echo "FAIL"; exi
 
 # check metrics again
 curl -Ssi "http://127.0.0.1:$TPKG_METRICS_PORT/metrics" -o metrics.out2
+
+echo ">> metrics output"
+cat metrics.out2
 
 if grep -Fx "nsd_queries_total{server=\"0\"} 0" metrics.out2; then
 	echo "OK"

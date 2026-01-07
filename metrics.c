@@ -526,7 +526,7 @@ metrics_zonestat_print_one(struct evbuffer *buf, char *name,
 
 	print_metric_help_and_type(buf, prefix, "queries_total",
 		"Total number of queries received.", "counter");
-	evbuffer_add_printf(buf, "nsd_zonestats_%s_queries_total %lu\n", name,
+	evbuffer_add_printf(buf, "%squeries_total %lu\n", prefix,
 		(unsigned long)(zst->qudp + zst->qudp6 + zst->ctcp +
 			zst->ctcp6 + zst->ctls + zst->ctls6));
 	print_stat_block(buf, zst, name);
