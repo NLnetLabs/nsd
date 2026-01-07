@@ -21,6 +21,7 @@ BUG FIXES:
 	- Fix for #474: Fix metrics name for zone statistics for
 	  the queries_total to have disallowed characters changed
 	  to underscores.
+	- Fix to silence restricted userns check in test script.
 
 4.14.0
 ================
