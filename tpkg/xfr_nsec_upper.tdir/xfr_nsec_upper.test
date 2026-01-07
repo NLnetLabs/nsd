@@ -1,0 +1,53 @@
+# #-- xfr_nsec_upper.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+# start NSD
+. ../common.sh
+PRE="../.."
+NSD_CTRL="${PRE}/nsd-control"
+
+dig @127.0.0.1 -p $TPKG_PORT example.com. SOA 2>&1 | tee outfile
+
+# In case the AXFR needs a couple of seconds to time to complete.
+if ! grep -q "hostmaster.example.com" outfile; then
+	sleep 1
+	dig @127.0.0.1 -p $TPKG_PORT example.com. SOA 2>&1 | tee outfile
+fi
+if ! grep -q "hostmaster.example.com" outfile; then
+	sleep 1
+	dig @127.0.0.1 -p $TPKG_PORT example.com. SOA 2>&1 | tee outfile
+fi
+if ! grep -q "hostmaster.example.com" outfile; then
+	sleep 1
+	dig @127.0.0.1 -p $TPKG_PORT example.com. SOA 2>&1 | tee outfile
+fi
+
+if grep "hostmaster.example.com" outfile; then
+	echo "SOA answered, zone is loaded"
+else
+	echo "SOA not answered, zone not loaded"
+	exit 1
+fi
+
+dig @127.0.0.1 -p $TPKG_PORT ntest.example.com. NSEC 2>&1 | tee outfile
+if grep "CHLL" outfile; then
+	echo "NSEC next owner in upper case"
+else
+	echo "NSEC next owner not in upper case"
+	exit 1
+fi
+
+${NSD_CTRL} -c nsd_1.conf write example.com
+echo ">>> zonefile: xfr_nsec_upper.zone"
+cat xfr_nsec_upper.zone
+echo ">>> EOF of zonefile"
+echo ""
+if grep "CHLL" xfr_nsec_upper.zone; then
+	echo "NSEC next owner in upper case in zonefile written out"
+else
+	echo "NSEC next owner not in upper case in zonefile written out"
+	exit 1
+fi

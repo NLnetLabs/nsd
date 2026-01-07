@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+4.14.3
+================
+FEATURES:
+BUG FIXES:
+	- Fix that non normalized NSEC next owner names are preserved.
+
 4.14.0
 ================
 FEATURES:

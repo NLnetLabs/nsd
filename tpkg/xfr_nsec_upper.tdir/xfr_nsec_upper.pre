@@ -1,0 +1,40 @@
+# #-- xfr_nsec_upper.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+PRE="../.."
+
+# start NSD
+get_random_port 2
+LDNS_PORT=$RND_PORT
+TPKG_PORT=$(($RND_PORT + 1))
+
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+NSD_CTRL_PATH=$(realpath $(dirname ${0}))/nsd-control.pipe
+
+echo "testns port: $LDNS_PORT"
+echo "nsd port: $TPKG_PORT"
+
+# start ldns-testns, be extra verbose
+ldns-testns -vvv -p $LDNS_PORT xfr_nsec_upper.datafile >testns.log 2>&1 &
+echo "export TESTNS_PID=$!" >> .tpkg.var.test
+wait_ldns_testns_up testns.log
+
+# share the vars
+echo "export LDNS_PORT=$LDNS_PORT" >> .tpkg.var.test
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+echo "NSD_CTRL_PATH=${NSD_CTRL_PATH}" >> .tpkg.var.test
+
+# replace RANDOM with $LDNS_PORT and put it in nsd_1.conf
+cat xfr_nsec_upper.conf | sed -e "s/RANDOM/$LDNS_PORT/g" -e "s#NSD_CTRL_PATH#${NSD_CTRL_PATH}#" > nsd_1.conf
+if [[ $? -ne 0 ]]; then
+        exit 1
+fi
+
+# start nsd
+$TPKG_NSD -c nsd_1.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID
+wait_nsd_up nsd.log

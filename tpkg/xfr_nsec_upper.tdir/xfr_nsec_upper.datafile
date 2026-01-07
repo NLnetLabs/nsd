@@ -1,0 +1,19 @@
+$ORIGIN example.com.
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR AA
+ADJUST copy_id		; ’copy_id’ copies the ID from the query to the answer.
+
+SECTION QUESTION
+example.com. IN AXFR
+SECTION ANSWER
+example.com. 3600 IN SOA ns.example.com. hostmaster.example.com. 1381 14400 3600 1209600 3600
+
+ntest A 1.2.3.4
+; uppercase next owner name in the NSEC record.
+ntest NSEC CHLLenge.example.com. A AAAA RRSIG NSEC
+
+example.com. 3600 IN SOA ns.example.com. hostmaster.example.com. 1381 14400 3600 1209600 3600
+ENTRY_END
+

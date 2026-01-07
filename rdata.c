@@ -2904,7 +2904,9 @@ read_nsec_rdata(struct domain_table *domains, uint16_t rdlength,
 	/* uncompressed name + nsec */
 	if(buffer_remaining(packet) < rdlength ||
 	   !dname_make_from_packet_buffered(&next, packet,
-		1 /* lenient */, 1) ||
+		1 /* lenient */, 0 /* The NSEC record can have a non normalized
+		dname as the next owner name. And if so this should be
+		preserved, so that the RRSIG verifies. */ ) ||
 	   rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 
