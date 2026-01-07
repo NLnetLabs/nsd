@@ -1,5 +1,7 @@
 7 January 2026: Wouter
 	- Fix that non normalized NSEC next owner names are preserved.
+	- Fix to preserve case in literal dnames in RR types RRSIG,
+	  IPSECKEY, TALINK, DSYNC and AMTRELAY.
 
 6 January 2026: Wouter
 	- Fix #474: metrics output with zone statistics to change

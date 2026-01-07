@@ -16,6 +16,8 @@ BUG FIXES:
 	- Fix #474: metrics output with zone statistics to change
 	  disallowed characters in metric names to underscores.
 	- Fix that non normalized NSEC next owner names are preserved.
+	- Fix to preserve case in literal dnames in RR types RRSIG,
+	  IPSECKEY, TALINK, DSYNC and AMTRELAY.
 
 4.14.0
 ================
