@@ -1,3 +1,6 @@
+15 January 2026: Wouter
+	- Fix #475 info: axfr for domain from not-verified.
+
 7 January 2026: Wouter
 	- Fix that non normalized NSEC next owner names are preserved.
 	- Fix to preserve case in literal dnames in RR types RRSIG,

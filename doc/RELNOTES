@@ -22,6 +22,7 @@ BUG FIXES:
 	  the queries_total to have disallowed characters changed
 	  to underscores.
 	- Fix to silence restricted userns check in test script.
+	- Fix #475 info: axfr for domain from not-verified.
 
 4.14.0
 ================
