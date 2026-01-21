@@ -6,6 +6,7 @@ build:
     - autoconf
     - automake
     - libtool
+    - pkgconf
     - make
     - libevent-dev
     - libssl-dev
@@ -20,7 +21,7 @@ build:
   jobs:
     pre_build:
       - |
-        autoconf && autoheader
+        aclocal && autoconf && autoheader
         libtoolize -c -i
         ./configure --with-libevent=yes --with-libssl=yes
         make html

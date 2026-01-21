@@ -11,14 +11,14 @@ jobs:
           - os: ubuntu-24.04
             cc: gcc
             cflags: -g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all
-            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison libfstrm-dev protobuf-c-compiler libprotobuf-c-dev
+            packages: autoconf automake libtool pkgconf make libevent-dev libssl-dev flex bison libfstrm-dev protobuf-c-compiler libprotobuf-c-dev
           - os: ubuntu-24.04
             cc: clang
             cflags: -g2 -O0 -fsanitize=address,undefined,leak -fno-sanitize-recover=all
-            packages: autoconf automake libtool make libevent-dev libssl-dev flex bison libfstrm-dev protobuf-c-compiler libprotobuf-c-dev
+            packages: autoconf automake libtool pkgconf make libevent-dev libssl-dev flex bison libfstrm-dev protobuf-c-compiler libprotobuf-c-dev
           - os: macos-15
             cflags: -g2 -O0 -fsanitize=address,undefined -fno-sanitize-recover=all
-            packages: autoconf automake libtool flex bison fstrm protobuf-c
+            packages: autoconf automake libtool pkgconf flex bison fstrm protobuf-c
             # The libevent and openssl packages are already installed.
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
           CFLAGS: ${{matrix.cflags}}
         run: |
           set -e -x
-          autoconf && autoheader
+          aclocal && autoconf && autoheader
           (cd simdzone && autoconf && autoheader)
           libtoolize -c -i || glibtoolize -c -i
           if test "${{runner.os}}" = 'macOS'; then
