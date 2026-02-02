@@ -96,6 +96,7 @@ void daemon_metrics_close(struct daemon_metrics* metrics)
 
 	if (metrics->http_server) {
 		evhttp_free(metrics->http_server);
+		metrics->http_server = NULL;
 	}
 }
 
@@ -292,6 +293,10 @@ daemon_metrics_attach(struct daemon_metrics* metrics, struct xfrd_state* xfrd)
 	metrics->xfrd = xfrd;
 
 	metrics->http_server = evhttp_new(xfrd->event_base);
+	if(!metrics->http_server) {
+		log_msg(LOG_ERR, "metrics: out of memory in evhttp_new");
+		return;
+	}
 	for(p = metrics->accept_list; p; p = p->next) {
 		fd = p->accept_fd;
 		if (evhttp_accept_socket(metrics->http_server, fd)) {

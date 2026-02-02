@@ -23,6 +23,8 @@ BUG FIXES:
 	  to underscores.
 	- Fix to silence restricted userns check in test script.
 	- Fix #475 info: axfr for domain from not-verified.
+	- Fix metrics to clear server variable after close and log error
+	  on allocation failure.
 
 4.14.0
 ================
