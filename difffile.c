@@ -865,14 +865,14 @@ commit_RRset(namedb_type* db, zone_type* zone, struct collect_rrs* collect_rrs)
 		rrset->zone = zone;
 		rrset->rr_count = collect_rrs->rr_count;
 #ifndef PACKED_STRUCTS
-		rrset->rrs = region_alloc(state->database->region,
+		rrset->rrs = region_alloc(db->region,
 				sizeof(rr_type*) * collect_rrs->rr_count);
 #endif
 		memcpy(rrset->rrs, collect_rrs->rrs, collect_rrs->rr_count * sizeof(rr_type*));
 		/* Add it */
 		domain_add_rrset(collect_rrs->domain, rrset);
 #ifdef NSEC3
-		domain_type* p = domain->parent;
+		domain_type* p = collect_rrs->domain->parent;
 		nsec3_add_rrset_trigger(db, collect_rrs->domain, zone, collect_rrs->type);
 		/* go up and process (possibly created) empty nonterminals, 
 		 * until we hit the apex or root */
