@@ -132,10 +132,6 @@ struct zonec_state {
 static void zonec_commit_rrset(zone_parser_t *parser, struct zonec_state *state)
 {
 	struct rrset *rrset;
-
-#ifdef PACKED_STRUCTS
-	rrset_type* rrset_prev;
-#endif
 	int priority = parser->options.secondary ? ZONE_WARNING : ZONE_ERROR;
 
 	if(!state->domain || state->rr_count == 0)

@@ -630,7 +630,10 @@ apply_xfrs_to_consumer_zone(struct xfrd_catalog_consumer_zone* consumer_zone,
 		uint32_t soa_serial=0, after_serial=0;
 		xfrd_xfr_type* prev;
 
-		if(dbzone->soa_rrset == NULL || dbzone->soa_rrset->rrs == NULL
+		if(dbzone->soa_rrset == NULL
+#ifndef PACKED_STRUCTS
+		|| dbzone->soa_rrset->rrs == NULL
+#endif
 		|| dbzone->soa_rrset->rrs[0]->rdlength < 20+2*sizeof(void*)
 		|| !retrieve_soa_rdata_serial(dbzone->soa_rrset->rrs[0],
 			&soa_serial)) {
