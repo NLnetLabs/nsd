@@ -67,7 +67,7 @@ if test -f "`which faketime 2>&1`"; then HAVE_FAKETIME=yes; fi
 HAVE_DEBUG=no
 if $NSD -h 2>&1 | grep -- '-L' >/dev/null; then HAVE_DEBUG=yes; fi
 HAVE_UNPRIVILEGED_USERNS=yes
-if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns -a "x`cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns`" = "x1" ]; then HAVE_UNPRIVILEGED_USERNS=no; fi
+if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ] && [ "x`cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns`" = "x1" ]; then HAVE_UNPRIVILEGED_USERNS=no; fi
 
 # run the tests
 tdir -a ../../ $tdirarg fake 0000_nsd-compile.tdir

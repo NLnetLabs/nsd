@@ -2732,7 +2732,7 @@ read_ipseckey_rdata(struct domain_table *domains, uint16_t rdlength,
 		 * skip possibly compressed format, in the rdata there
 		 * is an uncompressed wire format. */
 		if (!dname_make_from_packet_buffered(&gateway, packet,
-			1 /* lenient */, 1))
+			1 /* lenient */, 0))
 			return MALFORMED;
 		if(rdlength < buffer_position(packet) - mark)
 			return MALFORMED;
@@ -2845,7 +2845,7 @@ read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
 		return MALFORMED;
 	buffer_skip(packet, 18);
 	if (!dname_make_from_packet_buffered(&signer, packet,
-		1 /* lenient */, 1))
+		1 /* lenient */, 0))
 		return MALFORMED;
 	if (rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
@@ -2904,7 +2904,9 @@ read_nsec_rdata(struct domain_table *domains, uint16_t rdlength,
 	/* uncompressed name + nsec */
 	if(buffer_remaining(packet) < rdlength ||
 	   !dname_make_from_packet_buffered(&next, packet,
-		1 /* lenient */, 1) ||
+		1 /* lenient */, 0 /* The NSEC record can have a non normalized
+		dname as the next owner name. And if so this should be
+		preserved, so that the RRSIG verifies. */ ) ||
 	   rdlength < buffer_position(packet) - mark)
 		return MALFORMED;
 
@@ -3174,12 +3176,12 @@ read_talink_rdata(struct domain_table *domains, uint16_t rdlength,
 	if(!buffer_available(packet, rdlength))
 		return MALFORMED;
 	if(!dname_make_from_packet_buffered(&prev, packet,
-		1 /* lenient */, 1))
+		1 /* lenient */, 0))
 		return MALFORMED;
 	if(buffer_position(packet)-mark > rdlength)
 		return MALFORMED;
 	if(!dname_make_from_packet_buffered(&next, packet,
-		1 /* lenient */, 1))
+		1 /* lenient */, 0))
 		return MALFORMED;
 	if(buffer_position(packet)-mark != rdlength)
 		return MALFORMED;
@@ -3368,7 +3370,7 @@ read_dsync_rdata(struct domain_table *domains, uint16_t rdlength,
 		return MALFORMED;
 	buffer_skip(packet, length);
 	if(!dname_make_from_packet_buffered(&target, packet,
-		1 /* lenient */, 1) ||
+		1 /* lenient */, 0) ||
 	   rdlength != buffer_position(packet) - mark)
 		return MALFORMED;
 	length += target.dname.name_size;
@@ -3711,7 +3713,7 @@ read_amtrelay_rdata(struct domain_table *domains, uint16_t rdlength,
 		 * skip possibly compressed format, in the rdata there
 		 * is an uncompressed wire format. */
 		if(!dname_make_from_packet_buffered(&relay, packet,
-			1 /* lenient */, 1))
+			1 /* lenient */, 0))
 			return MALFORMED;
 		if(rdlength < buffer_position(packet) - mark)
 			return MALFORMED;

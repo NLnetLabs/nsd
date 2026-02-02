@@ -1,3 +1,19 @@
+15 January 2026: Wouter
+	- Fix #475 info: axfr for domain from not-verified.
+
+7 January 2026: Wouter
+	- Fix that non normalized NSEC next owner names are preserved.
+	- Fix to preserve case in literal dnames in RR types RRSIG,
+	  IPSECKEY, TALINK, DSYNC and AMTRELAY.
+	- Fix for #474: Fix metrics name for zone statistics for
+	  the queries_total to have disallowed characters changed
+	  to underscores.
+	- Fix to silence restricted userns check in test script.
+
+6 January 2026: Wouter
+	- Fix #474: metrics output with zone statistics to change
+	  disallowed characters in metric names to underscores.
+
 21 December 2025: Willem
 	- Fix rr-test.tdir so AMTRELAY relay field is "." with type 0
 	- Fix checkconf.tdir test to anticipate default values for

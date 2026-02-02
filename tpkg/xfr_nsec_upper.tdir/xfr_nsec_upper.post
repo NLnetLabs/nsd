@@ -1,11 +1,12 @@
-# #-- bug056_axfr.post --#
+# #-- xfr_nsec_upper.post --#
 # source the master var file when it's there
 [ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 # source the test var file when it's there
 [ -f .tpkg.var.test ] && source .tpkg.var.test
+
 . ../common.sh
 
-rm -f acl_range.current_respons1
+kill_pid $TESTNS_PID
 
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then
@@ -15,4 +16,6 @@ fi
 # kill NSD
 NSD_PID=`cat $TPKG_NSD_PID`
 kill_pid $NSD_PID
+
+cat testns.log
 cat nsd.log
