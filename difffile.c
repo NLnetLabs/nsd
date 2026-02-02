@@ -935,6 +935,11 @@ commit_RRset(namedb_type* db, zone_type* zone, struct collect_rrs* collect_rrs)
 #ifdef PACKED_STRUCTS
 	collect_rrs->rrset_prev = NULL;
 #endif
+#ifdef NSEC3
+	for (int i = 0; i < collect_rrs->rr_count; i++) {
+		nsec3_add_rr_trigger(db, collect_rrs->rrs[i], zone);
+	}
+#endif /* NSEC3 */
 	collect_rrs->rr_count = 0;
 }
 
@@ -1048,9 +1053,6 @@ add_RR(namedb_type* db, const dname_type* dname,
 		return 0;
 	}
 	collect_rrs->rrs[collect_rrs->rr_count++] = rr;
-#ifdef NSEC3
-	nsec3_add_rr_trigger(db, rr, zone);
-#endif /* NSEC3 */
 	return 1;
 }
 
