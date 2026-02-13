@@ -904,6 +904,10 @@ The string is processed so that one string can be used (in a pattern)
 for a lot of different zones.  If the label or character does not exist the
 percent-character is replaced with a period for output (i.e. for the
 third character in a two letter domain name).
+The '/' slash character is escaped as "\\047" when it is inside the '%s'
+string.
+Directories are created as necessary, when the directory is specified
+as part of the zonefile string. Useful for "%1/%2/%s.zone" or so.
 .sp
 .B %s\fR is replaced with the zone name.
 .sp

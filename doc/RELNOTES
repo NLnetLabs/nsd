@@ -25,6 +25,8 @@ BUG FIXES:
 	- Fix #475 info: axfr for domain from not-verified.
 	- Fix metrics to clear server variable after close and log error
 	  on allocation failure.
+	- Fix to escape slashes when they appear in the zone name for a
+	  pattern zonefile that is created. Also for per zone statistics.
 
 4.14.0
 ================
