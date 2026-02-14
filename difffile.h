@@ -16,6 +16,7 @@
 struct nsd;
 struct nsdst;
 struct ixfr_store;
+struct collect_rrs;
 
 #define DIFF_PART_XXFR ('X'<<24 | 'X'<<16 | 'F'<<8 | 'R')
 #define DIFF_PART_XFRF ('X'<<24 | 'F'<<16 | 'R'<<8 | 'F')
@@ -66,7 +67,8 @@ int delete_RR(namedb_type* db, const dname_type* dname,
 int add_RR(namedb_type* db, const dname_type* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
-	int* softfail, struct ixfr_store* ixfr_store);
+	int* softfail, struct ixfr_store* ixfr_store,
+	struct collect_rrs* collect_rrs);
 
 /* apply the xfr file identified by xfrfilenr to zone */
 int apply_ixfr_for_zone(struct nsd* nsd, zone_type* zone, FILE* in,

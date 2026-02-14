@@ -1053,7 +1053,10 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 
 		if(!ssl_printf(ssl, "	catalog: consumer"))
 			return 0;
-		if(zone && zone->soa_rrset && zone->soa_rrset->rrs
+		if(zone && zone->soa_rrset
+#ifndef PACKED_STRUCTS
+		&& zone->soa_rrset->rrs
+#endif
 		&& retrieve_soa_rdata_serial(zone->soa_rrset->rrs[0],
 			&serial)) {
 			if(!ssl_printf(ssl, " (serial: %u, # members: %zu)\n",

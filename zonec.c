@@ -109,10 +109,97 @@ struct zonec_state {
 	struct namedb *database;
 	struct domain_table *domains;
 	struct zone *zone;
-	struct domain *domain;
 	size_t errors;
 	size_t records;
+
+	struct collect_rrs c;
 };
+
+static void zonec_commit_rrset(zone_parser_t *parser, struct zonec_state *state)
+{
+	struct rrset *rrset;
+	int priority = parser->options.secondary ? ZONE_WARNING : ZONE_ERROR;
+
+	if(!state->c.domain || state->c.rr_count == 0)
+		return;
+	if (!state->c.rrset) {
+		rrset = region_alloc(state->database->region, sizeof(*rrset)
+#ifdef PACKED_STRUCTS
+			+ sizeof(rr_type*) * state->c.rr_count /* Add space for RRs. */
+#endif
+			);
+		rrset->zone = state->zone;
+		rrset->rr_count = state->c.rr_count;
+#ifndef PACKED_STRUCTS
+		rrset->rrs = region_alloc(state->database->region,
+				sizeof(rr_type*) * state->c.rr_count);
+#endif
+		memcpy(rrset->rrs, state->c.rrs, state->c.rr_count * sizeof(rr_type*));
+		switch (state->c.type) {
+			case TYPE_CNAME:
+				if (!domain_find_non_cname_rrset(state->c.domain, state->zone))
+					break;
+				zone_log(parser, priority, "CNAME and other data at the same name");
+				break;
+			case TYPE_RRSIG:
+			case TYPE_NXT:
+			case TYPE_SIG:
+			case TYPE_NSEC:
+			case TYPE_NSEC3:
+				break;
+			default:
+				if (!domain_find_rrset(state->c.domain, state->zone, TYPE_CNAME))
+					break;
+				zone_log(parser, priority, "CNAME and other data at the same name");
+				break;
+		}
+		/* Add it */
+		domain_add_rrset(state->c.domain, rrset);
+	} else {
+#ifndef PACKED_STRUCTS
+		struct rr **rrs;
+#else
+		struct rrset *rrset_orig;
+#endif
+		/* Add it... */
+		rrset = state->c.rrset;
+#ifndef PACKED_STRUCTS
+		rrs = rrset->rrs;
+		rrset->rrs = region_alloc_array(
+			state->database->region, rrset->rr_count + state->c.rr_count, sizeof(*rrs));
+		memcpy(rrset->rrs, rrs, rrset->rr_count * sizeof(*rrs));
+		region_recycle(state->database->region, rrs, rrset->rr_count * sizeof(*rrs));
+#else
+		rrset_orig = rrset;
+		rrset = region_alloc(state->database->region,
+			sizeof(rrset_type) +
+			(rrset_orig->rr_count+state->c.rr_count)*sizeof(rr_type*));
+		memcpy(rrset, rrset_orig,
+			sizeof(rrset_type) +
+			rrset_orig->rr_count*sizeof(rr_type*));
+		if(state->c.rrset_prev)
+			state->c.rrset_prev->next = rrset;
+		else	state->c.domain->rrsets = rrset;
+		region_recycle(state->database->region, rrset_orig,
+			sizeof(rrset_type) +
+			rrset_orig->rr_count*sizeof(rr_type*));
+#endif /* PACKED_STRUCTS */
+		memcpy(rrset->rrs + rrset->rr_count, state->c.rrs, state->c.rr_count * sizeof(rr_type*));
+		rrset->rr_count += state->c.rr_count;
+	}
+	state->records += state->c.rr_count;;
+	/* Check we have SOA */
+	if (state->c.rrs[0]->owner == state->zone->apex)
+		apex_rrset_checks(state->database, rrset, state->c.rrs[0]->owner);
+
+	state->c.domain = NULL;
+	state->c.type = -1;
+	state->c.rrset = NULL;
+#ifdef PACKED_STRUCTS
+	state->c.rrset_prev = NULL;
+#endif
+	state->c.rr_count = 0;
+}
 
 int32_t zonec_accept(
 	zone_parser_t *parser,
@@ -125,7 +212,6 @@ int32_t zonec_accept(
 	void *user_data)
 {
 	struct rr *rr;
-	struct rrset *rrset;
 	struct dname_buffer dname;
 	struct domain *domain;
 	struct buffer buffer;
@@ -133,10 +219,6 @@ int32_t zonec_accept(
 	int32_t code;
 	const struct nsd_type_descriptor *descriptor;
 	struct zonec_state *state = (struct zonec_state *)user_data;
-#ifdef PACKED_STRUCTS
-	rrset_type* rrset_prev;
-#endif
-
 	assert(state);
 
 	buffer_create_from(&buffer, rdata, rdlength);
@@ -150,10 +232,18 @@ int32_t zonec_accept(
 		zone_log(parser, ZONE_ERROR, "the owner cannot be converted");
 		return ZONE_BAD_PARAMETER;
 	}
-
 	domain = domain_table_insert(state->domains, (void*)&dname);
 	assert(domain);
-
+	if (domain != state->c.domain || type != state->c.type
+	||  state->c.rr_count >= (int)(sizeof(state->c.rrs) / sizeof(*state->c.rrs))){
+		zonec_commit_rrset(parser, state);
+		state->c.domain = domain;
+		state->c.type = type;
+		state->c.rrset = NULL;
+#ifdef PACKED_STRUCTS
+		state->c.rrset_prev = NULL;
+#endif
+	}
 	descriptor = nsd_type_descriptor(type);
 	code = descriptor->read_rdata(state->domains, rdlength, &buffer, &rr);
 	if(code < 0) {
@@ -192,69 +282,30 @@ int32_t zonec_accept(
 			return ZONE_SEMANTIC_ERROR;
 		}
 	}
-
-	/* Do we have this type of rrset already? */
+	/* With the first RR for a RRset in this position in the zone file,
+	 * find the RRset */
+	if (state->c.rr_count == 0)  {
 #ifndef PACKED_STRUCTS
-	rrset = domain_find_rrset(domain, state->zone, type);
+		state->c.rrset = domain_find_rrset(state->c.domain, state->zone, state->c.type);
 #else
-	rrset = domain_find_rrset_and_prev(domain, state->zone, type, &rrset_prev);
+		state->c.rrset = domain_find_rrset_and_prev(state->c.domain, state->zone, state->c.type, &state->c.rrset_prev);
 #endif
-	if (!rrset) {
-		rrset = region_alloc(state->database->region, sizeof(*rrset)
-#ifdef PACKED_STRUCTS
-			+ sizeof(rr_type*) /* Add space for one RR. */
-#endif
-			);
-		rrset->zone = state->zone;
-		rrset->rr_count = 0;
-#ifndef PACKED_STRUCTS
-		rrset->rrs = region_alloc(state->database->region, sizeof(rr_type*));
-#endif
+	}
+	if (type == TYPE_RRSIG)
+		; /* pass */
+	else if (state->c.rrset && ttl != state->c.rrset->rrs[0]->ttl) {
+		zone_log(parser, ZONE_WARNING,
+			"%s TTL %"PRIu32" does not match TTL %u of %s RRset",
+			domain_to_string(domain), ttl,
+			state->c.rrset->rrs[0]->ttl, rrtype_to_string(type));
 
-		switch (type) {
-			case TYPE_CNAME:
-				if (!domain_find_non_cname_rrset(domain, state->zone))
-					break;
-				zone_log(parser, priority, "CNAME and other data at the same name");
-				break;
-			case TYPE_RRSIG:
-			case TYPE_NXT:
-			case TYPE_SIG:
-			case TYPE_NSEC:
-			case TYPE_NSEC3:
-				break;
-			default:
-				if (!domain_find_rrset(domain, state->zone, TYPE_CNAME))
-					break;
-				zone_log(parser, priority, "CNAME and other data at the same name");
-				break;
-		}
-
-		/* Add it */
-		domain_add_rrset(domain, rrset);
-	} else {
-#ifndef PACKED_STRUCTS
-		struct rr **rrs;
-#else
-		struct rrset *rrset_orig;
-#endif
-		if (type != TYPE_RRSIG && ttl != rrset->rrs[0]->ttl) {
-			zone_log(parser, ZONE_WARNING, "%s TTL %"PRIu32" does not match TTL %u of %s RRset",
-				domain_to_string(domain), ttl, rrset->rrs[0]->ttl,
-					rrtype_to_string(type));
-		}
-
-		/* Search for possible duplicates... */
-		for (int i = 0; i < rrset->rr_count; i++) {
-			if (!equal_rr_rdata(descriptor, rr, rrset->rrs[i]))
-				continue;
-			/* Discard the duplicates... */
-			/* Lower the usage counter for domains in the rdata. */
-			rr_lower_usage(state->database, rr);
-			region_recycle(state->database->region, rr, sizeof(*rr) + rr->rdlength);
-			return 0;
-		}
-
+	} else if (state->c.rr_count && ttl != state->c.rrs[0]->ttl) {
+		zone_log(parser, ZONE_WARNING,
+			"%s TTL %"PRIu32" does not match TTL %u of %s RRset",
+			domain_to_string(domain), ttl,
+			state->c.rrs[0]->ttl, rrtype_to_string(type));
+	}
+	if (state->c.rrset || state->c.rr_count) {
 		switch (type) {
 			case TYPE_CNAME:
 				zone_log(parser, priority, "multiple CNAMEs at the same name");
@@ -265,38 +316,30 @@ int32_t zonec_accept(
 			default:
 				break;
 		}
-
-		/* Add it... */
-#ifndef PACKED_STRUCTS
-		rrs = rrset->rrs;
-		rrset->rrs = region_alloc_array(
-			state->database->region, rrset->rr_count + 1, sizeof(*rrs));
-		memcpy(rrset->rrs, rrs, rrset->rr_count * sizeof(*rrs));
-		region_recycle(state->database->region, rrs, rrset->rr_count * sizeof(*rrs));
-#else
-		rrset_orig = rrset;
-		rrset = region_alloc(state->database->region,
-			sizeof(rrset_type) +
-			(rrset_orig->rr_count+1)*sizeof(rr_type*));
-		memcpy(rrset, rrset_orig,
-			sizeof(rrset_type) +
-			rrset_orig->rr_count*sizeof(rr_type*));
-		if(rrset_prev)
-			rrset_prev->next = rrset;
-		else	domain->rrsets = rrset;
-		region_recycle(state->database->region, rrset_orig,
-			sizeof(rrset_type) +
-			rrset_orig->rr_count*sizeof(rr_type*));
-#endif /* PACKED_STRUCTS */
 	}
-
-	rrset->rrs[rrset->rr_count++] = rr;
-
-	/* Check we have SOA */
-	if (rr->owner == state->zone->apex)
-		apex_rrset_checks(state->database, rrset, rr->owner);
-
-	state->records++;
+	if (state->c.rrset) {
+		/* Search for possible duplicates in existing RRset */
+		for (int i = 0; i < state->c.rrset->rr_count; i++) {
+			if (!equal_rr_rdata(descriptor, rr, state->c.rrset->rrs[i]))
+				continue;
+			/* Discard the duplicates... */
+			/* Lower the usage counter for domains in the rdata. */
+			rr_lower_usage(state->database, rr);
+			region_recycle(state->database->region, rr, sizeof(*rr) + rr->rdlength);
+			return 0;
+		}
+	}
+	/* Search for possible duplicates in already batched RRs */
+	for (int i = 0; i < state->c.rr_count; i++) {
+		if (!equal_rr_rdata(descriptor, rr, state->c.rrs[i]))
+			continue;
+		/* Discard the duplicates... */
+		/* Lower the usage counter for domains in the rdata. */
+		rr_lower_usage(state->database, rr);
+		region_recycle(state->database->region, rr, sizeof(*rr) + rr->rdlength);
+		return 0;
+	}
+	state->c.rrs[state->c.rr_count++] = rr;
 	return 0;
 }
 
@@ -393,10 +436,16 @@ zonec_read(
 	state.database = database;
 	state.domains = domains;
 	state.zone = zone;
-	state.domain = NULL;
 	state.errors = 0;
 	state.records = 0;
 
+	state.c.domain = NULL;
+	state.c.type = -1;
+	state.c.rrset = NULL;
+#ifdef PACKED_STRUCTS
+	state.c.rrset_prev = NULL;
+#endif
+	state.c.rr_count = 0;
 	origin = domain_dname(zone->apex);
 	memset(&options, 0, sizeof(options));
 	options.origin.octets = dname_name(origin);
@@ -413,6 +462,7 @@ zonec_read(
 	if (zone_parse(&parser, &options, &buffers, zonefile, &state) != 0) {
 		return state.errors;
 	}
+	zonec_commit_rrset(&parser, &state);
 
 	/* Check if zone file contained a correct SOA record */
 	if (!zone) {

@@ -845,41 +845,20 @@ delete_RR(namedb_type* db, const dname_type* dname,
 	return 1;
 }
 
-int
-add_RR(namedb_type* db, const dname_type* dname,
-	uint16_t type, uint16_t klass, uint32_t ttl,
-	buffer_type* packet, size_t rdatalen, zone_type *zone,
-	int* softfail, struct ixfr_store* ixfr_store)
+static void
+commit_RRset(namedb_type* db, zone_type* zone, struct collect_rrs* collect_rrs)
 {
-	domain_type* domain;
-	rrset_type* rrset;
-#ifndef PACKED_STRUCTS
-	rr_type **rrs_old;
-#else
-	rrset_type* rrset_prev;
-#endif
-	rr_type *rr;
-	int32_t code;
-	int rrnum;
-	const nsd_type_descriptor_type *descriptor;
+	struct rrset *rrset;
+
+	if(!collect_rrs->domain || collect_rrs->rr_count == 0)
+		return;
+	if (!collect_rrs->rrset) {
 #ifdef NSEC3
-	int rrset_added = 0;
+		domain_type* p;
 #endif
-	domain = domain_table_find(db->domains, dname);
-	if(!domain) {
-		/* create the domain */
-		domain = domain_table_insert(db->domains, dname);
-	}
-#ifndef PACKED_STRUCTS
-	rrset = domain_find_rrset(domain, zone, type);
-#else
-	rrset = domain_find_rrset_and_prev(domain, zone, type, &rrset_prev);
-#endif
-	if(!rrset) {
-		/* create the rrset */
-		rrset = region_alloc(db->region, sizeof(rrset_type)
+		rrset = region_alloc(db->region, sizeof(*rrset)
 #ifdef PACKED_STRUCTS
-			+ sizeof(rr_type*) /* ready for add of one RR */
+			+ sizeof(rr_type*) * collect_rrs->rr_count /* Add space for RRs. */
 #endif
 			);
 		if(!rrset) {
@@ -887,13 +866,123 @@ add_RR(namedb_type* db, const dname_type* dname,
 			exit(1);
 		}
 		rrset->zone = zone;
+		rrset->rr_count = collect_rrs->rr_count;
 #ifndef PACKED_STRUCTS
-		rrset->rrs = 0;
+		rrset->rrs = region_alloc(db->region,
+				sizeof(rr_type*) * collect_rrs->rr_count);
 #endif
-		rrset->rr_count = 0;
-		domain_add_rrset(domain, rrset);
+		memcpy(rrset->rrs, collect_rrs->rrs, collect_rrs->rr_count * sizeof(rr_type*));
+		/* Add it */
+		domain_add_rrset(collect_rrs->domain, rrset);
 #ifdef NSEC3
-		rrset_added = 1;
+		p = collect_rrs->domain->parent;
+		nsec3_add_rrset_trigger(db, collect_rrs->domain, zone, collect_rrs->type);
+		/* go up and process (possibly created) empty nonterminals, 
+		 * until we hit the apex or root */
+		while(p && p->rrsets == NULL && !p->is_apex) {
+			nsec3_rrsets_changed_add_prehash(db, p, zone);
+			p = p->parent;
+		}
+#endif
+	} else {
+#ifndef PACKED_STRUCTS
+		struct rr **rrs;
+#else
+		struct rrset *rrset_orig;
+#endif
+		/* Add it... */
+		rrset = collect_rrs->rrset;
+#ifndef PACKED_STRUCTS
+		rrs = rrset->rrs;
+		rrset->rrs = region_alloc_array(
+			db->region, rrset->rr_count + collect_rrs->rr_count, sizeof(*rrs));
+		if(!rrset->rrs) {
+			log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+			exit(1);
+		}
+		if(rrs)
+			memcpy(rrset->rrs, rrs, rrset->rr_count * sizeof(*rrs));
+		region_recycle(db->region, rrs, rrset->rr_count * sizeof(*rrs));
+#else
+		rrset_orig = rrset;
+		rrset = region_alloc(db->region,
+			sizeof(rrset_type) +
+			(rrset_orig->rr_count+collect_rrs->rr_count)*sizeof(rr_type*));
+		if(!rrset) {
+			log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+			exit(1);
+		}
+		memcpy(rrset, rrset_orig,
+			sizeof(rrset_type) +
+			rrset_orig->rr_count*sizeof(rr_type*));
+		if(collect_rrs->rrset_prev)
+			collect_rrs->rrset_prev->next = rrset;
+		else	collect_rrs->domain->rrsets = rrset;
+		region_recycle(db->region, rrset_orig,
+			sizeof(rrset_type) +
+			rrset_orig->rr_count*sizeof(rr_type*));
+#endif /* PACKED_STRUCTS */
+		memcpy(rrset->rrs + rrset->rr_count, collect_rrs->rrs, collect_rrs->rr_count * sizeof(rr_type*));
+		rrset->rr_count += collect_rrs->rr_count;
+	}
+	/* Check we have SOA */
+	if (collect_rrs->domain == zone->apex)
+		apex_rrset_checks(db, rrset, collect_rrs->domain);
+
+	collect_rrs->domain = NULL;
+	collect_rrs->type = -1;
+	collect_rrs->rrset = NULL;
+#ifdef PACKED_STRUCTS
+	collect_rrs->rrset_prev = NULL;
+#endif
+#ifdef NSEC3
+	for (int i = 0; i < collect_rrs->rr_count; i++) {
+		nsec3_add_rr_trigger(db, collect_rrs->rrs[i], zone);
+	}
+#endif /* NSEC3 */
+	collect_rrs->rr_count = 0;
+}
+
+
+int
+add_RR(namedb_type* db, const dname_type* dname,
+	uint16_t type, uint16_t klass, uint32_t ttl,
+	buffer_type* packet, size_t rdatalen, zone_type *zone,
+	int* softfail, struct ixfr_store* ixfr_store,
+	struct collect_rrs* collect_rrs)
+{
+	domain_type* domain;
+	rr_type *rr;
+	int32_t code;
+	const nsd_type_descriptor_type *descriptor;
+
+	if (collect_rrs == NULL) {
+		struct collect_rrs collect_rrs2;
+
+		collect_rrs2.domain = NULL;
+		collect_rrs2.type = -1;
+		collect_rrs2.rrset = NULL;
+#ifdef PACKED_STRUCTS
+		collect_rrs2.rrset_prev = NULL;
+#endif
+		collect_rrs2.rr_count = 0;
+		if (!add_RR(db, dname, type, klass, ttl, packet, rdatalen,
+				zone, softfail, ixfr_store, &collect_rrs2)) {
+			return 0;
+		}
+		commit_RRset(db, zone, &collect_rrs2);
+		return 1;
+	}
+	domain = domain_table_insert(db->domains, dname);
+	assert(domain);
+	if (domain != collect_rrs->domain || type != collect_rrs->type
+	||  collect_rrs->rr_count >= (int)(sizeof(collect_rrs->rrs) / sizeof(*collect_rrs->rrs))){
+		commit_RRset(db, zone, collect_rrs);
+		collect_rrs->domain = domain;
+		collect_rrs->type = type;
+		collect_rrs->rrset = NULL;
+#ifdef PACKED_STRUCTS
+		collect_rrs->rrset_prev = NULL;
 #endif
 	}
 
@@ -901,8 +990,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	 * Section 6.2
 	 */
 	descriptor = nsd_type_descriptor(type);
-	code = descriptor->read_rdata(
-		db->domains, rdatalen, packet, &rr);
+	code = descriptor->read_rdata(db->domains, rdatalen, packet, &rr);
 	if(code < 0) {
 		log_msg(LOG_ERR, "diff: could not read rdata for %s %s %s",
 			dname_to_string(dname,0), rrtype_to_string(type),
@@ -916,80 +1004,55 @@ add_RR(namedb_type* db, const dname_type* dname,
 
 	/* Now that the RR has been read with its RRtype specific read
 	 * routine, store the read data and rdata, for an ixfr store. */
-	if (ixfr_store)
+	if (ixfr_store) {
 		ixfr_store_addrr(ixfr_store, rr);
-
-	rrnum = find_rr_num(rrset, type, klass, rr, 1);
-	if(rrnum != -1) {
+	}
+	/* With the first RR for a RRset in this position in the zone file,
+	 * find the RRset */
+	if (collect_rrs->rr_count == 0)  {
+#ifndef PACKED_STRUCTS
+		collect_rrs->rrset = domain_find_rrset(collect_rrs->domain, zone, collect_rrs->type);
+#else
+		collect_rrs->rrset = domain_find_rrset_and_prev(collect_rrs->domain, zone, collect_rrs->type, &collect_rrs->rrset_prev);
+#endif
+	}
+	if (collect_rrs->rrset) {
+		/* Search for possible duplicates in existing RRset */
+		for (int i = 0; i < collect_rrs->rrset->rr_count; i++) {
+			if (!equal_rr_rdata(descriptor, rr, collect_rrs->rrset->rrs[i]))
+				continue;
+			/* Discard the duplicates... */
+			/* Lower the usage counter for domains in the rdata. */
+			rr_lower_usage(db, rr);
+			region_recycle(db->region, rr, sizeof(*rr) + rr->rdlength);
+			DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR <%s, %s> already exists",
+				dname_to_string(dname,0), rrtype_to_string(type)));
+			/* ignore already existing RR: lenient accepting of messages */
+			*softfail = 1;
+			return 1;
+		}
+	}
+	/* Search for possible duplicates in already batched RRs */
+	for (int i = 0; i < collect_rrs->rr_count; i++) {
+		if (!equal_rr_rdata(descriptor, rr, collect_rrs->rrs[i]))
+			continue;
+		/* Discard the duplicates... */
+		/* Lower the usage counter for domains in the rdata. */
+		rr_lower_usage(db, rr);
+		region_recycle(db->region, rr, sizeof(*rr) + rr->rdlength);
 		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR <%s, %s> already exists",
 			dname_to_string(dname,0), rrtype_to_string(type)));
 		/* ignore already existing RR: lenient accepting of messages */
 		*softfail = 1;
 		return 1;
 	}
-	if(rrset->rr_count == 65535) {
+	if(collect_rrs->rr_count + ( collect_rrs->rrset 
+	                           ? collect_rrs->rrset->rr_count : 0) >= 65535) {
 		log_msg(LOG_ERR, "diff: too many RRs at %s",
 			dname_to_string(dname,0));
 		return 0;
 	}
-
-	/* re-alloc the rrs and add the new */
-#ifndef PACKED_STRUCTS
-	rrs_old = rrset->rrs;
-	rrset->rrs = region_alloc_array(db->region,
-		(rrset->rr_count+1), sizeof(rr_type*));
-	if(!rrset->rrs) {
-		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
-		exit(1);
-	}
-	if(rrs_old)
-		memcpy(rrset->rrs, rrs_old, rrset->rr_count * sizeof(rr_type*));
-	region_recycle(db->region, rrs_old, sizeof(rr_type*) * rrset->rr_count);
-	rrset->rr_count ++;
-	rrset->rrs[rrset->rr_count - 1] = rr;
-#else
-	if(rrset->rr_count == 0) {
-		/* It was allocated with space for one RR. */
-		rrset->rr_count = 1;
-		rrset->rrs[0] = rr;
-	} else {
-		rrset_type* rrset_old = rrset;
-		rrset = region_alloc(db->region, sizeof(rrset_type) +
-			(rrset_old->rr_count+1)*sizeof(rr_type*));
-		if(!rrset) {
-			log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
-			exit(1);
-		}
-		memcpy(rrset, rrset_old, sizeof(rrset_type) +
-			rrset_old->rr_count * sizeof(rr_type*));
-		if(rrset_prev)
-			rrset_prev->next = rrset;
-		else	domain->rrsets = rrset;
-		region_recycle(db->region, rrset_old, sizeof(rrset_type) +
-			rrset_old->rr_count * sizeof(rr_type*));
-		rrset->rr_count ++;
-		rrset->rrs[rrset->rr_count - 1] = rr;
-	}
-#endif /* PACKED_STRUCTS */
-
-	/* see if it is a SOA */
-	if(domain == zone->apex) {
-		apex_rrset_checks(db, rrset, domain);
-	}
-
-#ifdef NSEC3
-	if(rrset_added) {
-		domain_type* p = domain->parent;
-		nsec3_add_rrset_trigger(db, domain, zone, type);
-		/* go up and process (possibly created) empty nonterminals, 
-		 * until we hit the apex or root */
-		while(p && p->rrsets == NULL && !p->is_apex) {
-			nsec3_rrsets_changed_add_prehash(db, p, zone);
-			p = p->parent;
-		}
-	}
-	nsec3_add_rr_trigger(db, rrset->rrs[rrset->rr_count - 1], zone);
-#endif /* NSEC3 */
+	collect_rrs->rrs[collect_rrs->rr_count++] = rr;
 	return 1;
 }
 
@@ -1104,6 +1167,7 @@ apply_ixfr(nsd_type* nsd, FILE *in, uint32_t serialno,
 	int qcount, ancount;
 	buffer_type* packet;
 	region_type* region;
+	struct collect_rrs collect_rrs;
 
 	/* note that errors could not really happen due to format of the
 	 * packet since xfrd has checked all dnames and RRs before commit,
@@ -1174,8 +1238,16 @@ apply_ixfr(nsd_type* nsd, FILE *in, uint32_t serialno,
 		}
 	}
 
-	DEBUG(DEBUG_XFRD, 2, (LOG_INFO, "diff: started packet for zone %s",
-			domain_to_string(zone->apex)));
+	collect_rrs.domain = NULL;
+	collect_rrs.type = -1;
+	collect_rrs.rrset = NULL;
+#ifdef PACKED_STRUCTS
+	collect_rrs.rrset_prev = NULL;
+#endif
+	collect_rrs.rr_count = 0;
+
+	DEBUG(DEBUG_XFRD, 2, (LOG_INFO, "diff: started packet %d/%d for zone %s",
+		(int)seq_nr, (int)seq_total, domain_to_string(zone->apex)));
 
 	for(int i=0; i < ancount; ++i, ++(*rr_count)) {
 		const dname_type *owner;
@@ -1336,12 +1408,13 @@ axfr:
 		} else {
 			/* add this rr */
 			if(!(add_RR(nsd->db, owner, type, klass, ttl, packet,
-				rrlen, zone, softfail, ixfr_store))) {
+				rrlen, zone, softfail, ixfr_store, &collect_rrs))) {
 				region_destroy(region);
 				return 0;
 			}
 		}
 	}
+	commit_RRset(nsd->db, zone, &collect_rrs);
 	region_destroy(region);
 	return 1;
 }

@@ -701,7 +701,7 @@ add_str(namedb_type* db, zone_type* zone, char* str)
 	}
 	buffer_create_from(&buffer, state.rdata, state.rdlength);
 	if(!add_RR(db, state.owner, state.type, state.class, state.ttl,
-		&buffer, state.rdlength, zone, &softfail, NULL)) {
+		&buffer, state.rdlength, zone, &softfail, NULL, NULL)) {
 		printf("cannot add RR: %s\n", str);
 		exit(1);
 	}
