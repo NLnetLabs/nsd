@@ -1,3 +1,7 @@
+20 February 2026: Wouter
+	- Fix man page for ip-address, add text about process numbers,
+	  bindtodevice and setfib.
+
 13 February 2026: Wouter
 	- Fix to escape slashes when they appear in the zone name for a
 	  pattern zonefile that is created. Also for per zone statistics.
