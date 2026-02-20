@@ -1121,6 +1121,25 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 #endif
 	} else if ((rrset = domain_find_rrset(domain, q->zone, q->qtype))) {
 		add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
+		if (q->qtype == TYPE_A || q->qtype == TYPE_AAAA) {
+			int exact;
+			const dname_type *_dns_dname;
+			domain_type *closest_match, *closest_encloser;
+
+			_dns_dname = dname_parse(q->region, "_dns");
+			_dns_dname = dname_concatenate(q->region, _dns_dname,
+				domain_dname(domain));
+			exact = namedb_lookup(nsd->db, _dns_dname,
+				&closest_match, &closest_encloser);
+			if (exact) {
+				if ((rrset = domain_find_rrset(closest_match,
+					q->zone, TYPE_SVCB))) {
+					add_rrset(q, answer,
+						ADDITIONAL_SECTION,
+						closest_match, rrset);
+				}
+			}
+		}
 	} else if ((rrset = domain_find_rrset(domain, q->zone, TYPE_CNAME))) {
 		int added;
 
