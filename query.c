@@ -753,6 +753,29 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 			additional = temp;
 		}
 
+		if (master_rrset->rrs[i]->type == TYPE_NS) {
+			int exact;
+			const dname_type *_dns_dname;
+			domain_type *closest_match, *closest_encloser;
+			rrset_type *rrset;
+
+			_dns_dname = dname_parse(query->region, "_dns");
+			_dns_dname = dname_concatenate(query->region,
+				_dns_dname,
+				domain_dname(additional));
+			/* Can we use the global nsd here? */
+			exact = namedb_lookup(nsd.db, _dns_dname,
+				&closest_match, &closest_encloser);
+			if (exact) {
+				if ((rrset = domain_find_rrset(closest_match,
+					query->zone, TYPE_SVCB))) {
+					add_rrset(query, answer,
+						ADDITIONAL_SECTION,
+						closest_match, rrset);
+				}
+			}
+		}
+
 		for (j = 0; types[j].rr_type != 0; ++j) {
 			rrset_type *rrset = domain_find_rrset(
 				additional, query->zone, types[j].rr_type);
