@@ -1,3 +1,8 @@
+23 February 2026: Wouter
+	- Fix systemd signalling so that it does not reload for too long.
+	  The reload is not signalled to systemd, so that long operations
+	  can complete, without systemd acting on a timer to stop them.
+
 20 February 2026: Wouter
 	- Fix man page for ip-address, add text about process numbers,
 	  bindtodevice and setfib.

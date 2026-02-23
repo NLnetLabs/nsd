@@ -3016,9 +3016,14 @@ void xfrd_process_task_result(xfrd_state_type* xfrd, struct udb_base* taskudb)
 
 void xfrd_set_reload_now(xfrd_state_type* xfrd)
 {
-#ifdef HAVE_SYSTEMD
-	sd_notify(0, "RELOADING=1");
-#endif
+	/* systemd kills after a timer, but a large zone can take time.
+	 * so there is no, 
+	 * #ifdef HAVE_SYSTEMD
+	 * 	sd_notify(0, "RELOADING=1");
+	 * #endif
+	 * message.
+	 * Also, NSD stays responsive during that time, due to the forked
+	 * operation. */
 	xfrd->need_to_send_reload = 1;
 	if(!(xfrd->ipc_handler_flags&EV_WRITE)) {
 		ipc_xfrd_set_listening(xfrd, EV_PERSIST|EV_READ|EV_WRITE);
