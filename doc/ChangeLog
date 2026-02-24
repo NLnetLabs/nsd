@@ -1,3 +1,6 @@
+24 February 2026: Willem
+	- The master branch continues with version 4.14.2 in development
+
 23 February 2026: Wouter
 	- Fix systemd signalling so that it does not reload for too long.
 	  The reload is not signalled to systemd, so that long operations
