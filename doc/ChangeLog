@@ -1,3 +1,8 @@
+4 March 2026: Willem
+	- Merge devel/reduce-fragmentation-with-many-RR-RRsets (PR #472)
+	  Up to the point (but excluding) where the issue is addressed
+	  for apply_ixfr, so for zone loading only.
+
 24 February 2026: Willem
 	- The master branch continues with version 4.14.2 in development
 

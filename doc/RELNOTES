@@ -4,6 +4,9 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+        - Merge devel/reduce-fragmentation-with-many-RR-RRsets (PR #472)
+          Up to the point (but excluding) where the issue is addressed
+	  for apply_ixfr, so for zone loading only.
 
 4.14.1
 ================
