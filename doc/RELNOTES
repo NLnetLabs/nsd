@@ -1,9 +1,10 @@
 NSD RELEASE NOTES
 
-4.14.2
+4.14.2 (in development)
 ================
 FEATURES:
 BUG FIXES:
+	- Merge #477: Improve ignored old serial log message.
 
 4.14.1
 ================
