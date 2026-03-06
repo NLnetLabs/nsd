@@ -2303,10 +2303,10 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 			zone->state != xfrd_zone_expired /* if expired - accept anything */ &&
 			compare_serial(ntohl(soa->serial), ntohl(zone->soa_disk.serial)) < 0) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-				"xfrd: zone %s ignoring old serial (%u/%u) from %s",
+				"xfrd: zone %s ignoring old serial (local: %u, remote: %u) from %s",
 				zone->apex_str, ntohl(zone->soa_disk.serial), ntohl(soa->serial), zone->master->ip_address_spec));
 			VERBOSITY(1, (LOG_INFO,
-				"xfrd: zone %s ignoring old serial (%u/%u) from %s",
+				"xfrd: zone %s ignoring old serial (local: %u, remote: %u) from %s",
 				zone->apex_str, ntohl(zone->soa_disk.serial), ntohl(soa->serial), zone->master->ip_address_spec));
 			region_destroy(tempregion);
 			return xfrd_packet_bad;
