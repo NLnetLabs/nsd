@@ -5,6 +5,8 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Merge #477: Improve ignored old serial log message.
+	- Fix in IXFR processing, to commit the collected RRs before
+	  deletions.
 
 4.14.1
 ================

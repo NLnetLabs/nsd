@@ -1399,6 +1399,8 @@ axfr:
 			dname_to_string(owner, 0), rrtype_to_string(type)));
 		if(*delete_mode) {
 			assert(!*is_axfr);
+			/* commit previous additions, if any. */
+			commit_RRset(nsd->db, zone, &collect_rrs);
 			/* delete this rr */
 			if(!delete_RR(nsd->db, owner, type, klass, ttl, packet,
 				rrlen, zone, region, softfail, ixfr_store)) {
