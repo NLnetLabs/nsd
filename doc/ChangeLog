@@ -1,3 +1,6 @@
+19 March 2026: Jannik
+	- Continue with 4.14.3 for development
+
 11 March 2026: Wouter
 	- Fix in IXFR processing, to commit the collected RRs before
 	  deletions.
