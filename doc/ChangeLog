@@ -1,3 +1,8 @@
+25 March 2026: Wouter
+	- Fix #478: Feature request: reduce syslog noise from frequent
+	  read-only control commands (e.g. stats_noreset). It logs the
+	  verbosity command always, and others at 2 and higher.
+
 19 March 2026: Jannik
 	- Continue with 4.14.3 for development
 

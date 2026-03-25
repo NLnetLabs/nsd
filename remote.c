@@ -2838,8 +2838,17 @@ handle_req(struct daemon_remote* rc, struct rc_state* s, RES* res)
 		(void)ssl_printf(res, "error version mismatch\n");
 		return;
 	}
-	/* always log control commands */
-	VERBOSITY(0, (LOG_INFO, "control cmd: %s", buf));
+	/* always log control command 'verbosity', others at 2, so
+	 * they can be squelched if needed. */
+	if(verbosity < 2) {
+		/* only the 'verbosity' command. */
+		if(strncmp(skipwhite(buf), "verbosity", 9) == 0) {
+			VERBOSITY(0, (LOG_INFO, "control cmd: %s", buf));
+		}
+	} else {
+		/* always log every control command. */
+		VERBOSITY(2, (LOG_INFO, "control cmd: %s", buf));
+	}
 
 	/* figure out what to do */
 	execute_cmd(rc, res, buf);

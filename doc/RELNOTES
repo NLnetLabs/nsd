@@ -4,6 +4,9 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix #478: Feature request: reduce syslog noise from frequent
+	  read-only control commands (e.g. stats_noreset). It logs the
+	  verbosity command always, and others at 2 and higher.
 
 4.14.2
 ================
