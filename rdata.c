@@ -701,7 +701,7 @@ svcparam_must_not_have_value(uint16_t svcparamkey)
 		break;
 	}
 	return 0;
-};
+}
 
 /*
  * Skip over the svcparams in the packet. Moves position.
