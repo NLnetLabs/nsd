@@ -365,30 +365,6 @@ change_string_underscores(char* prefix)
 	}
 }
 
-/** print long number*/
-static int
-print_longnum(struct evbuffer *buf, char* desc, uint64_t x)
-{
-	if(x > (uint64_t)1024*1024*1024) {
-		/*more than a Gb*/
-		size_t front = (size_t)(x / (uint64_t)1000000);
-		size_t back = (size_t)(x % (uint64_t)1000000);
-		return evbuffer_add_printf(buf, "%s%lu%6.6lu\n", desc,
-			(unsigned long)front, (unsigned long)back);
-	} else {
-		return evbuffer_add_printf(buf, "%s%lu\n", desc, (unsigned long)x);
-	}
-}
-
-// TODO: Delete this after migrating everything to `struct metrics_metric`.
-static void
-print_metric_help_and_type(struct evbuffer *buf, char *prefix, char *name,
-						   char *help, char *type)
-{
-	evbuffer_add_printf(buf, "# HELP %s%s %s\n# TYPE %s%s %s\n",
-	                    prefix, name, help, prefix, name, type);
-}
-
 #define METRIC_MAX_LABELS 2
 
 struct metrics_metric {
@@ -428,7 +404,7 @@ metric_pop_label(struct metrics_metric *metric) {
 }
 
 static void
-metric_print(struct metrics_metric *metric, struct evbuffer *buf, unsigned long value) {
+metric_print(struct metrics_metric *metric, struct evbuffer *buf, uint64_t value) {
 	evbuffer_add_printf(buf, "%s%s", metric->prefix, metric->name);
 	for (size_t i = 0; i < metric->label_count; i++) {
 		evbuffer_add_printf(buf, "%c%s=\"%s\"",
@@ -437,14 +413,25 @@ metric_print(struct metrics_metric *metric, struct evbuffer *buf, unsigned long 
 			metric->label_values[i]);
 	}
 	if (metric->label_count > 0) {
-		evbuffer_add_printf(buf, "} %lu\n", value);
+		evbuffer_add_printf(buf, "} %" PRIu64 "\n", value);
 	} else {
-		evbuffer_add_printf(buf, " %lu\n", value);
+		evbuffer_add_printf(buf, " %" PRIu64 "\n", value);
 	}
 }
 
+/** Print a metric value of `integral + decimals_micro * 1e-6`. */
 static void
-metric_print_pop(struct metrics_metric *metric, struct evbuffer *buf, unsigned long value) {
+metric_print_micros(struct metrics_metric *metric, struct evbuffer *buf,
+	unsigned long integral, unsigned long decimals_micro)
+{
+	assert(metric->label_count == 0
+		&& "metric_print_micros is not implemented for metrics with labels");
+	evbuffer_add_printf(buf, "%s%s %lu.%6.6lu\n",
+		metric->prefix, metric->name, integral, decimals_micro);
+}
+
+static void
+metric_print_pop(struct metrics_metric *metric, struct evbuffer *buf, uint64_t value) {
 	metric_print(metric, buf, value);
 	metric_pop_label(metric);
 }
@@ -474,7 +461,7 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st, struct metrics_metric *
 			strncmp(rrtype_to_string(i), "TYPE", 4) == 0)
 			continue;
 		metric_push_label(metric, "type", rrtype_to_string(i));
-		metric_print_pop(metric, buf, (unsigned long)st->qtype[i]);
+		metric_print_pop(metric, buf, (uint64_t)st->qtype[i]);
 	}
 
 	/* nsd_queries_by_class_total */
@@ -484,7 +471,7 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st, struct metrics_metric *
 		if(metrics_inhibit_zero && st->qclass[i] == 0 && i != CLASS_IN)
 			continue;
 		metric_push_label(metric, "class", rrclass_to_string(i));
-		metric_print_pop(metric, buf, (unsigned long)st->qclass[i]);
+		metric_print_pop(metric, buf, (uint64_t)st->qclass[i]);
 	}
 
 	/* nsd_queries_by_opcode_total */
@@ -494,7 +481,7 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st, struct metrics_metric *
 		if(metrics_inhibit_zero && st->opcode[i] == 0 && i != OPCODE_QUERY)
 			continue;
 		metric_push_label(metric, "opcode", opcode2str(i));
-		metric_print_pop(metric, buf, (unsigned long)st->opcode[i]);
+		metric_print_pop(metric, buf, (uint64_t)st->opcode[i]);
 	}
 
 	/* nsd_queries_by_rcode_total */
@@ -505,71 +492,71 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st, struct metrics_metric *
 			i > RCODE_YXDOMAIN) /*NSD does not use larger*/
 			continue;
 		metric_push_label(metric, "rcode", rcstr[i]);
-		metric_print_pop(metric, buf, (unsigned long)st->rcode[i]);
+		metric_print_pop(metric, buf, (uint64_t)st->rcode[i]);
 	}
 
 	/* nsd_queries_by_transport_total */
 	metric_set_name_and_type(metric, "queries_by_transport_total", "counter");
 	metric_print_help(metric, buf, "Total number of queries received by transport.");
 	metric_push_label(metric, "transport", "udp");
-	metric_print_pop(metric, buf, (unsigned long)st->qudp);
+	metric_print_pop(metric, buf, (uint64_t)st->qudp);
 	metric_push_label(metric, "transport", "udp6");
-	metric_print_pop(metric, buf, (unsigned long)st->qudp6);
+	metric_print_pop(metric, buf, (uint64_t)st->qudp6);
 
 	/* nsd_queries_with_edns_total */
 	metric_set_name_and_type(metric, "queries_with_edns_total", "counter");
 	metric_print_help(metric, buf, "Total number of queries received with EDNS OPT.");
-	metric_print(metric, buf, (unsigned long)st->edns);
+	metric_print(metric, buf, (uint64_t)st->edns);
 
 	/* nsd_queries_with_edns_failed_total */
 	metric_set_name_and_type(metric, "queries_with_edns_failed_total", "counter");
 	metric_print_help(metric, buf, "Total number of queries received with EDNS OPT where EDNS parsing failed.");
-	metric_print(metric, buf, (unsigned long)st->ednserr);
+	metric_print(metric, buf, (uint64_t)st->ednserr);
 
 	/* nsd_connections_total */
 	metric_set_name_and_type(metric, "connections_total", "counter");
 	metric_print_help(metric, buf, "Total number of connections.");
 	metric_push_label(metric, "transport", "tcp");
-	metric_print_pop(metric, buf, (unsigned long)st->ctcp);
+	metric_print_pop(metric, buf, (uint64_t)st->ctcp);
 	metric_push_label(metric, "transport", "tcp6");
-	metric_print_pop(metric, buf, (unsigned long)st->ctcp6);
+	metric_print_pop(metric, buf, (uint64_t)st->ctcp6);
 	metric_push_label(metric, "transport", "tls");
-	metric_print_pop(metric, buf, (unsigned long)st->ctls);
+	metric_print_pop(metric, buf, (uint64_t)st->ctls);
 	metric_push_label(metric, "transport", "tls6");
-	metric_print_pop(metric, buf, (unsigned long)st->ctls6);
+	metric_print_pop(metric, buf, (uint64_t)st->ctls6);
 
 	/* nsd_xfr_requests_served_total */
 	metric_set_name_and_type(metric, "xfr_requests_served_total", "counter");
 	metric_print_help(metric, buf, "Total number of answered zone transfers.");
 	metric_push_label(metric, "xfrtype", "AXFR");
-	metric_print_pop(metric, buf, (unsigned long)st->raxfr);
+	metric_print_pop(metric, buf, (uint64_t)st->raxfr);
 	metric_push_label(metric, "xfrtype", "IXFR");
-	metric_print_pop(metric, buf, (unsigned long)st->rixfr);
+	metric_print_pop(metric, buf, (uint64_t)st->rixfr);
 
 	/* nsd_queries_dropped_total */
 	metric_set_name_and_type(metric, "queries_dropped_total", "counter");
 	metric_print_help(metric, buf, "Total number of dropped queries.");
-	metric_print(metric, buf, (unsigned long)st->dropped);
+	metric_print(metric, buf, (uint64_t)st->dropped);
 
 	/* nsd_queries_rx_failed_total */
 	metric_set_name_and_type(metric, "queries_rx_failed_total", "counter");
 	metric_print_help(metric, buf, "Total number of queries where receive failed.");
-	metric_print(metric, buf, (unsigned long)st->rxerr);
+	metric_print(metric, buf, (uint64_t)st->rxerr);
 
 	/* nsd_answers_tx_failed_total */
 	metric_set_name_and_type(metric, "answers_tx_failed_total", "counter");
 	metric_print_help(metric, buf, "Total number of answers where transmit failed.");
-	metric_print(metric, buf, (unsigned long)st->txerr);
+	metric_print(metric, buf, (uint64_t)st->txerr);
 
 	/* nsd_answers_without_aa_total */
 	metric_set_name_and_type(metric, "answers_without_aa_total", "counter");
 	metric_print_help(metric, buf, "Total number of NOERROR answers without AA flag set.");
-	metric_print(metric, buf, (unsigned long)st->nona);
+	metric_print(metric, buf, (uint64_t)st->nona);
 
 	/* nsd_answers_truncated_total */
 	metric_set_name_and_type(metric, "answers_truncated_total", "counter");
 	metric_print_help(metric, buf, "Total number of truncated answers.");
-	metric_print(metric, buf, (unsigned long)st->truncated);
+	metric_print(metric, buf, (uint64_t)st->truncated);
 }
 
 #ifdef USE_ZONE_STATS
@@ -586,7 +573,7 @@ metrics_zonestat_print_one(struct evbuffer *buf, char *name,
 	metric_set_name_and_type(&metric, "queries_total", "counter");
 	metric_print_help(&metric, buf, "Total number of queries received.");
 	metric_print(&metric, buf,
-		(unsigned long)(zst->qudp + zst->qudp6 + zst->ctcp +
+		(uint64_t)(zst->qudp + zst->qudp6 + zst->ctcp +
 			zst->ctcp6 + zst->ctls + zst->ctls6));
 	print_stat_block(buf, zst, &metric);
 }
@@ -600,24 +587,27 @@ metrics_print_stats(struct evbuffer *buf, xfrd_state_type *xfrd,
 	size_t i;
 	struct timeval elapsed, uptime;
 	struct metrics_metric metric;
-
-	/* nsd_queries_total */
-	print_metric_help_and_type(buf, "nsd_", "queries_total",
-	                           "Total number of queries received.", "counter");
-	/*per CPU and total*/
-	for(i=0; i<xfrd->nsd->child_count; i++) {
-		evbuffer_add_printf(buf, "nsd_queries_total{server=\"%d\"} %lu\n",
-			(int)i, (unsigned long)xfrd->nsd->children[i].query_count);
-	}
+	char server_str[16] = {0};
 
 	metric_init_with_prefix(&metric, "nsd_");
+
+	/* nsd_queries_total */
+	metric_set_name_and_type(&metric, "queries_total", "counter");
+	metric_print_help(&metric, buf, "Total number of queries received.");
+	/*per CPU and total*/
+	for(i=0; i<xfrd->nsd->child_count; i++) {
+		sprintf(server_str, "%d", (int)i);
+		metric_push_label(&metric, "server", server_str);
+		metric_print_pop(&metric, buf, (uint64_t)xfrd->nsd->children[i].query_count);
+	}
+
 	print_stat_block(buf, st, &metric);
 
 	/* uptime (in seconds) */
 	timeval_subtract(&uptime, now, &xfrd->nsd->metrics->boot_time);
-	print_metric_help_and_type(buf, "nsd_", "time_up_seconds_total",
-	                           "Uptime since server boot in seconds.", "counter");
-	evbuffer_add_printf(buf, "nsd_time_up_seconds_total %lu.%6.6lu\n",
+	metric_set_name_and_type(&metric, "time_up_seconds_total", "counter");
+	metric_print_help(&metric, buf, "Uptime since server boot in seconds.");
+	metric_print_micros(&metric, buf,
 		(unsigned long)uptime.tv_sec, (unsigned long)uptime.tv_usec);
 
 	/* time elapsed since last nsd-control stats reset (in seconds) */
@@ -628,48 +618,43 @@ metrics_print_stats(struct evbuffer *buf, xfrd_state_type *xfrd,
 	} else {
 		timeval_subtract(&elapsed, now, &xfrd->nsd->metrics->stats_time);
 	}
-	print_metric_help_and_type(buf, "nsd_", "time_elapsed_seconds",
-	                           "Time since last statistics printout and "
-	                           "reset (by nsd-control stats) in seconds.",
-	                           "untyped");
-	evbuffer_add_printf(buf, "nsd_time_elapsed_seconds %lu.%6.6lu\n",
+	metric_set_name_and_type(&metric, "time_elapsed_seconds", "untyped");
+	metric_print_help(&metric, buf,
+		"Time since last statistics printout and "
+	        "reset (by nsd-control stats) in seconds.");
+	metric_print_micros(&metric, buf,
 		(unsigned long)elapsed.tv_sec, (unsigned long)elapsed.tv_usec);
 
 	/*mem info, database on disksize*/
-	print_metric_help_and_type(buf, "nsd_", "size_db_on_disk_bytes",
-	                           "Size of DNS database on disk.", "gauge");
-	print_longnum(buf, "nsd_size_db_on_disk_bytes ", st->db_disk);
+	metric_set_name_and_type(&metric, "size_db_on_disk_bytes", "gauge");
+	metric_print_help(&metric, buf, "Size of DNS database on disk.");
+	metric_print(&metric, buf, st->db_disk);
 
-	print_metric_help_and_type(buf, "nsd_", "size_db_in_mem_bytes",
-	                           "Size of DNS database in memory.", "gauge");
-	print_longnum(buf, "nsd_size_db_in_mem_bytes ", st->db_mem);
+	metric_set_name_and_type(&metric, "size_db_in_mem_bytes", "gauge");
+	metric_print_help(&metric, buf, "Size of DNS database in memory.");
+	metric_print(&metric, buf, st->db_mem);
 
-	print_metric_help_and_type(buf, "nsd_", "size_xfrd_in_mem_bytes",
-	                           "Size of zone transfers and notifies in xfrd process, excluding TSIG data.",
-	                           "gauge");
-	print_longnum(buf, "nsd_size_xfrd_in_mem_bytes ", region_get_mem(xfrd->region));
+	metric_set_name_and_type(&metric, "size_xfrd_in_mem_bytes", "gauge");
+	metric_print_help(&metric, buf, "Size of zone transfers and notifies in xfrd process, excluding TSIG data.");
+	metric_print(&metric, buf, region_get_mem(xfrd->region));
 
-	print_metric_help_and_type(buf, "nsd_", "size_config_on_disk_bytes",
-	                           "Size of zonelist file on disk, excluding nsd.conf.",
-	                           "gauge");
-	print_longnum(buf, "nsd_size_config_on_disk_bytes ",
-		xfrd->nsd->options->zonelist_off);
+	metric_set_name_and_type(&metric, "size_config_on_disk_bytes", "gauge");
+	metric_print_help(&metric, buf, "Size of zonelist file on disk, excluding nsd.conf.");
+	metric_print(&metric, buf, xfrd->nsd->options->zonelist_off);
 
-	print_metric_help_and_type(buf, "nsd_", "size_config_in_mem_bytes",
-	                           "Size of config data in memory.", "gauge");
-	print_longnum(buf, "nsd_size_config_in_mem_bytes ", region_get_mem(
-		xfrd->nsd->options->region));
+	metric_set_name_and_type(&metric, "size_config_in_mem_bytes", "gauge");
+	metric_print_help(&metric, buf, "Size of config data in memory.");
+	metric_print(&metric, buf, region_get_mem(xfrd->nsd->options->region));
 
 	/* number of zones serverd */
-	print_metric_help_and_type(buf, "nsd_", "zones_primary",
-	                           "Number of primary zones served.", "gauge");
-	evbuffer_add_printf(buf, "nsd_zones_primary %lu\n",
-		(unsigned long)(xfrd->notify_zones->count - xfrd->zones->count));
+	metric_set_name_and_type(&metric, "zones_primary", "gauge");
+	metric_print_help(&metric, buf, "Number of primary zones served.");
+	metric_print(&metric, buf,
+		(uint64_t)(xfrd->notify_zones->count - xfrd->zones->count));
 
-	print_metric_help_and_type(buf, "nsd_", "zones_secondary",
-	                           "Number of secondary zones served.", "gauge");
-	evbuffer_add_printf(buf, "nsd_zones_secondary %lu\n",
-		(unsigned long)xfrd->zones->count);
+	metric_set_name_and_type(&metric, "zones_secondary", "gauge");
+	metric_print_help(&metric, buf, "Number of secondary zones served.");
+	metric_print(&metric, buf, (uint64_t)xfrd->zones->count);
 
 #ifdef USE_ZONE_STATS
 	zonestat_print(NULL, buf, xfrd, clear, zonestats); /*per-zone statistics*/
