@@ -349,17 +349,21 @@ metrics_http_callback(struct evhttp_request *req, void *p)
 }
 
 #ifdef BIND8_STATS
-/** Change disallowed characters to underscores '_'. */
-static void
-replace_disallowed_label_chars(char* value)
-{
-	/* Replace characters that are not allowed in quoted label values. */
-	char* s = value;
+const char*
+metrics_validate_label_value(const char* value) {
+	const char* s = value;
 	while(*s) {
-		if (*s == '\\' || *s == '\n' || *s == '"')
-			*s = '_';
+		switch (*s) {
+			case '\\':
+				return "character '\\' is not allowed";
+			case '"':
+				return "charater '\"' is not allowed";
+			case '\n':
+				return "newline is not allowed";
+		}
 		s++;
 	}
+	return NULL;
 }
 
 #define METRIC_MAX_LABELS 2
@@ -565,8 +569,7 @@ metrics_zonestat_print_one(struct evbuffer *buf, char *name,
 {
 	struct metrics_metric metric;
 	metric_init_with_prefix(&metric, "nsd_zonestats_");
-	/* TODO: Can we instead validate at startup? */
-	replace_disallowed_label_chars(name);
+	/* The zonestat name is validated at startup to be a valid label value. */
 	metric_push_label(&metric, "zone", name);
 
 	metric_set_name_and_type(&metric, "queries_total", "counter");

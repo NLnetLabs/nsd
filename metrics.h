@@ -60,6 +60,21 @@ int daemon_metrics_open_ports(struct daemon_metrics* m,
 void daemon_metrics_attach(struct daemon_metrics* m, struct xfrd_state* xfrd);
 
 #ifdef BIND8_STATS
+
+/**
+ * Check that a Prometheus label value contains no disallowed characters.
+ *
+ * According to [1], label values can be any UTF-8 characters, but backslash,
+ * double-quote, and line feed must be escaped. We could do full validation but
+ * in practice for zonestats names you don't need these characters anyway so we
+ * just ban them.
+ * [1]: https://prometheus.io/docs/instrumenting/exposition_formats/#comments-help-text-and-type-information>
+ *
+ * @param value: the label value to validate.
+ * @return NULL on success or the failure reason on error.
+ */
+const char* metrics_validate_label_value(const char* value);
+
 /**
  * Print stats as prometheus metrics to HTTP buffer
  * @param buf: the HTTP buffer to write to

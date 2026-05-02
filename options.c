@@ -29,6 +29,7 @@
 #include "rrl.h"
 #include "bitset.h"
 #include "xfrd.h"
+#include "metrics.h"
 
 #include "configparser.h"
 config_parser_state_type* cfg_parser = 0;
@@ -2947,6 +2948,13 @@ unsigned getzonestatid(struct nsd_options* opt, struct zone_options* zopt)
 	if(!zopt->pattern->zonestats || zopt->pattern->zonestats[0]==0)
 		return 0; /* no zone stats */
 	statname = config_cook_string(zopt, zopt->pattern->zonestats);
+
+	const char* statname_error = metrics_validate_label_value(statname);
+	if (statname_error) {
+		log_msg(LOG_ERR, "invalid zonestats name \"%s\": %s",
+			statname, statname_error);
+		exit(1);
+	}
 	res = rbtree_search(opt->zonestatnames, statname);
 	if(res)
 		return ((struct zonestatname*)res)->id;
