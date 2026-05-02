@@ -380,6 +380,7 @@ print_longnum(struct evbuffer *buf, char* desc, uint64_t x)
 	}
 }
 
+// TODO: Delete this after migrating everything to `struct metrics_metric`.
 static void
 print_metric_help_and_type(struct evbuffer *buf, char *prefix, char *name,
 						   char *help, char *type)
@@ -388,10 +389,75 @@ print_metric_help_and_type(struct evbuffer *buf, char *prefix, char *name,
 	                    prefix, name, help, prefix, name, type);
 }
 
+#define METRIC_MAX_LABELS 2
+
+struct metrics_metric {
+	const char *prefix;
+	const char *name;
+	const char *type;
+	size_t label_count;
+	const char *label_names[METRIC_MAX_LABELS];
+	const char *label_values[METRIC_MAX_LABELS];
+};
+
 static void
-print_stat_block(struct evbuffer *buf, struct nsdst* st,
-                  char *name)
-{
+metric_init_with_prefix(struct metrics_metric *metric, const char *prefix) {
+	metric->prefix = prefix;
+	metric->name = "";
+	metric->label_count = 0;
+}
+
+static void
+metric_set_name_and_type(struct metrics_metric *metric, const char *name, const char *type) {
+	metric->name = name;
+	metric->type = type;
+}
+
+static void
+metric_push_label(struct metrics_metric *metric, const char *name, const char *value) {
+	assert(metric->label_count < METRIC_MAX_LABELS);
+	metric->label_names[metric->label_count] = name;
+	metric->label_values[metric->label_count] = value;
+	metric->label_count++;
+}
+
+static void
+metric_pop_label(struct metrics_metric *metric) {
+	assert(metric->label_count > 0);
+	metric->label_count--;
+}
+
+static void
+metric_print(struct metrics_metric *metric, struct evbuffer *buf, unsigned long value) {
+	evbuffer_add_printf(buf, "%s%s", metric->prefix, metric->name);
+	for (size_t i = 0; i < metric->label_count; i++) {
+		evbuffer_add_printf(buf, "%c%s=\"%s\"",
+			i == 0 ? '{' : ',',
+			metric->label_names[i],
+			metric->label_values[i]);
+	}
+	if (metric->label_count > 0) {
+		evbuffer_add_printf(buf, "} %lu\n", value);
+	} else {
+		evbuffer_add_printf(buf, " %lu\n", value);
+	}
+}
+
+static void
+metric_print_pop(struct metrics_metric *metric, struct evbuffer *buf, unsigned long value) {
+	metric_print(metric, buf, value);
+	metric_pop_label(metric);
+}
+
+static void
+metric_print_help(struct metrics_metric *metric, struct evbuffer *buf, const char *help) {
+	evbuffer_add_printf(buf, "# HELP %s%s %s\n# TYPE %s%s %s\n",
+		metric->prefix, metric->name, help,
+		metric->prefix, metric->name, metric->type);
+}
+
+static void
+print_stat_block(struct evbuffer *buf, struct nsdst* st, struct metrics_metric *metric) {
 	size_t i;
 
 	const char* rcstr[] = {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN",
@@ -400,124 +466,110 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st,
 		"BADVERS"
 	};
 
-	char prefix[512] = {0};
-	if (name) {
-		snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
-		change_string_underscores(prefix);
-	} else {
-		snprintf(prefix, sizeof(prefix), "nsd_");
-	}
-
 	/* nsd_queries_by_type_total */
-	print_metric_help_and_type(buf, prefix, "queries_by_type_total",
-	                           "Total number of queries received by type.",
-	                           "counter");
+	metric_set_name_and_type(metric, "queries_by_type_total", "counter");
+	metric_print_help(metric, buf, "Total number of queries received by type.");
 	for(i=0; i<= 255; i++) {
 		if(metrics_inhibit_zero && st->qtype[i] == 0 &&
 			strncmp(rrtype_to_string(i), "TYPE", 4) == 0)
 			continue;
-		evbuffer_add_printf(buf, "%squeries_by_type_total{type=\"%s\"} %lu\n",
-			prefix, rrtype_to_string(i), (unsigned long)st->qtype[i]);
+		metric_push_label(metric, "type", rrtype_to_string(i));
+		metric_print_pop(metric, buf, (unsigned long)st->qtype[i]);
 	}
 
 	/* nsd_queries_by_class_total */
-	print_metric_help_and_type(buf, prefix, "queries_by_class_total",
-	                           "Total number of queries received by class.",
-	                           "counter");
+	metric_set_name_and_type(metric, "queries_by_class_total", "counter");
+	metric_print_help(metric, buf, "Total number of queries received by class.");
 	for(i=0; i<4; i++) {
 		if(metrics_inhibit_zero && st->qclass[i] == 0 && i != CLASS_IN)
 			continue;
-		evbuffer_add_printf(buf, "%squeries_by_class_total{class=\"%s\"} %lu\n",
-			prefix, rrclass_to_string(i), (unsigned long)st->qclass[i]);
+		metric_push_label(metric, "class", rrclass_to_string(i));
+		metric_print_pop(metric, buf, (unsigned long)st->qclass[i]);
 	}
 
 	/* nsd_queries_by_opcode_total */
-	print_metric_help_and_type(buf, prefix, "queries_by_opcode_total",
-	                           "Total number of queries received by opcode.",
-	                           "counter");
+	metric_set_name_and_type(metric, "queries_by_opcode_total", "counter");
+	metric_print_help(metric, buf, "Total number of queries received by opcode.");
 	for(i=0; i<6; i++) {
 		if(metrics_inhibit_zero && st->opcode[i] == 0 && i != OPCODE_QUERY)
 			continue;
-		evbuffer_add_printf(buf, "%squeries_by_opcode_total{opcode=\"%s\"} %lu\n",
-			prefix, opcode2str(i), (unsigned long)st->opcode[i]);
+		metric_push_label(metric, "opcode", opcode2str(i));
+		metric_print_pop(metric, buf, (unsigned long)st->opcode[i]);
 	}
 
 	/* nsd_queries_by_rcode_total */
-	print_metric_help_and_type(buf, prefix, "queries_by_rcode_total",
-	                           "Total number of queries received by rcode.",
-	                           "counter");
+	metric_set_name_and_type(metric, "queries_by_rcode_total", "counter");
+	metric_print_help(metric, buf, "Total number of queries received by rcode.");
 	for(i=0; i<17; i++) {
 		if(metrics_inhibit_zero && st->rcode[i] == 0 &&
 			i > RCODE_YXDOMAIN) /*NSD does not use larger*/
 			continue;
-		evbuffer_add_printf(buf, "%squeries_by_rcode_total{rcode=\"%s\"} %lu\n",
-			prefix, rcstr[i], (unsigned long)st->rcode[i]);
+		metric_push_label(metric, "rcode", rcstr[i]);
+		metric_print_pop(metric, buf, (unsigned long)st->rcode[i]);
 	}
 
 	/* nsd_queries_by_transport_total */
-	print_metric_help_and_type(buf, prefix, "queries_by_transport_total",
-		"Total number of queries received by transport.",
-		"counter");
-	evbuffer_add_printf(buf, "%squeries_by_transport_total{transport=\"udp\"} %lu\n", prefix, (unsigned long)st->qudp);
-	evbuffer_add_printf(buf, "%squeries_by_transport_total{transport=\"udp6\"} %lu\n", prefix, (unsigned long)st->qudp6);
+	metric_set_name_and_type(metric, "queries_by_transport_total", "counter");
+	metric_print_help(metric, buf, "Total number of queries received by transport.");
+	metric_push_label(metric, "transport", "udp");
+	metric_print_pop(metric, buf, (unsigned long)st->qudp);
+	metric_push_label(metric, "transport", "udp6");
+	metric_print_pop(metric, buf, (unsigned long)st->qudp6);
 
 	/* nsd_queries_with_edns_total */
-	print_metric_help_and_type(buf, prefix, "queries_with_edns_total",
-		"Total number of queries received with EDNS OPT.",
-		"counter");
-	evbuffer_add_printf(buf, "%squeries_with_edns_total %lu\n", prefix, (unsigned long)st->edns);
+	metric_set_name_and_type(metric, "queries_with_edns_total", "counter");
+	metric_print_help(metric, buf, "Total number of queries received with EDNS OPT.");
+	metric_print(metric, buf, (unsigned long)st->edns);
 
 	/* nsd_queries_with_edns_failed_total */
-	print_metric_help_and_type(buf, prefix, "queries_with_edns_failed_total",
-		"Total number of queries received with EDNS OPT where EDNS parsing failed.",
-		"counter");
-	evbuffer_add_printf(buf, "%squeries_with_edns_failed_total %lu\n", prefix, (unsigned long)st->ednserr);
+	metric_set_name_and_type(metric, "queries_with_edns_failed_total", "counter");
+	metric_print_help(metric, buf, "Total number of queries received with EDNS OPT where EDNS parsing failed.");
+	metric_print(metric, buf, (unsigned long)st->ednserr);
 
 	/* nsd_connections_total */
-	print_metric_help_and_type(buf, prefix, "connections_total",
-		"Total number of connections.",
-		"counter");
-	evbuffer_add_printf(buf, "%sconnections_total{transport=\"tcp\"} %lu\n", prefix, (unsigned long)st->ctcp);
-	evbuffer_add_printf(buf, "%sconnections_total{transport=\"tcp6\"} %lu\n", prefix, (unsigned long)st->ctcp6);
-	evbuffer_add_printf(buf, "%sconnections_total{transport=\"tls\"} %lu\n", prefix, (unsigned long)st->ctls);
-	evbuffer_add_printf(buf, "%sconnections_total{transport=\"tls6\"} %lu\n", prefix, (unsigned long)st->ctls6);
+	metric_set_name_and_type(metric, "connections_total", "counter");
+	metric_print_help(metric, buf, "Total number of connections.");
+	metric_push_label(metric, "transport", "tcp");
+	metric_print_pop(metric, buf, (unsigned long)st->ctcp);
+	metric_push_label(metric, "transport", "tcp6");
+	metric_print_pop(metric, buf, (unsigned long)st->ctcp6);
+	metric_push_label(metric, "transport", "tls");
+	metric_print_pop(metric, buf, (unsigned long)st->ctls);
+	metric_push_label(metric, "transport", "tls6");
+	metric_print_pop(metric, buf, (unsigned long)st->ctls6);
 
 	/* nsd_xfr_requests_served_total */
-	print_metric_help_and_type(buf, prefix, "xfr_requests_served_total",
-		"Total number of answered zone transfers.",
-		"counter");
-	evbuffer_add_printf(buf, "%sxfr_requests_served_total{xfrtype=\"AXFR\"} %lu\n", prefix, (unsigned long)st->raxfr);
-	evbuffer_add_printf(buf, "%sxfr_requests_served_total{xfrtype=\"IXFR\"} %lu\n", prefix, (unsigned long)st->rixfr);
+	metric_set_name_and_type(metric, "xfr_requests_served_total", "counter");
+	metric_print_help(metric, buf, "Total number of answered zone transfers.");
+	metric_push_label(metric, "xfrtype", "AXFR");
+	metric_print_pop(metric, buf, (unsigned long)st->raxfr);
+	metric_push_label(metric, "xfrtype", "IXFR");
+	metric_print_pop(metric, buf, (unsigned long)st->rixfr);
 
 	/* nsd_queries_dropped_total */
-	print_metric_help_and_type(buf, prefix, "queries_dropped_total",
-		"Total number of dropped queries.",
-		"counter");
-	evbuffer_add_printf(buf, "%squeries_dropped_total %lu\n", prefix, (unsigned long)st->dropped);
+	metric_set_name_and_type(metric, "queries_dropped_total", "counter");
+	metric_print_help(metric, buf, "Total number of dropped queries.");
+	metric_print(metric, buf, (unsigned long)st->dropped);
 
 	/* nsd_queries_rx_failed_total */
-	print_metric_help_and_type(buf, prefix, "queries_rx_failed_total",
-		"Total number of queries where receive failed.",
-		"counter");
-	evbuffer_add_printf(buf, "%squeries_rx_failed_total %lu\n", prefix, (unsigned long)st->rxerr);
+	metric_set_name_and_type(metric, "queries_rx_failed_total", "counter");
+	metric_print_help(metric, buf, "Total number of queries where receive failed.");
+	metric_print(metric, buf, (unsigned long)st->rxerr);
 
 	/* nsd_answers_tx_failed_total */
-	print_metric_help_and_type(buf, prefix, "answers_tx_failed_total",
-		"Total number of answers where transmit failed.",
-		"counter");
-	evbuffer_add_printf(buf, "%sanswers_tx_failed_total %lu\n", prefix, (unsigned long)st->txerr);
+	metric_set_name_and_type(metric, "answers_tx_failed_total", "counter");
+	metric_print_help(metric, buf, "Total number of answers where transmit failed.");
+	metric_print(metric, buf, (unsigned long)st->txerr);
 
 	/* nsd_answers_without_aa_total */
-	print_metric_help_and_type(buf, prefix, "answers_without_aa_total",
-		"Total number of NOERROR answers without AA flag set.",
-		"counter");
-	evbuffer_add_printf(buf, "%sanswers_without_aa_total %lu\n", prefix, (unsigned long)st->nona);
+	metric_set_name_and_type(metric, "answers_without_aa_total", "counter");
+	metric_print_help(metric, buf, "Total number of NOERROR answers without AA flag set.");
+	metric_print(metric, buf, (unsigned long)st->nona);
 
 	/* nsd_answers_truncated_total */
-	print_metric_help_and_type(buf, prefix, "answers_truncated_total",
-		"Total number of truncated answers.",
-		"counter");
-	evbuffer_add_printf(buf, "%sanswers_truncated_total %lu\n", prefix, (unsigned long)st->truncated);
+	metric_set_name_and_type(metric, "answers_truncated_total", "counter");
+	metric_print_help(metric, buf, "Total number of truncated answers.");
+	metric_print(metric, buf, (unsigned long)st->truncated);
 }
 
 #ifdef USE_ZONE_STATS
@@ -526,15 +578,17 @@ metrics_zonestat_print_one(struct evbuffer *buf, char *name,
                            struct nsdst *zst)
 {
 	char prefix[512] = {0};
+	struct metrics_metric metric;
 	snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
 	change_string_underscores(prefix);
+	metric_init_with_prefix(&metric, prefix);
 
-	print_metric_help_and_type(buf, prefix, "queries_total",
-		"Total number of queries received.", "counter");
-	evbuffer_add_printf(buf, "%squeries_total %lu\n", prefix,
+	metric_set_name_and_type(&metric, "queries_total", "counter");
+	metric_print_help(&metric, buf, "Total number of queries received.");
+	metric_print(&metric, buf,
 		(unsigned long)(zst->qudp + zst->qudp6 + zst->ctcp +
 			zst->ctcp6 + zst->ctls + zst->ctls6));
-	print_stat_block(buf, zst, name);
+	print_stat_block(buf, zst, &metric);
 }
 #endif /*USE_ZONE_STATS*/
 
@@ -545,6 +599,7 @@ metrics_print_stats(struct evbuffer *buf, xfrd_state_type *xfrd,
 {
 	size_t i;
 	struct timeval elapsed, uptime;
+	struct metrics_metric metric;
 
 	/* nsd_queries_total */
 	print_metric_help_and_type(buf, "nsd_", "queries_total",
@@ -555,7 +610,8 @@ metrics_print_stats(struct evbuffer *buf, xfrd_state_type *xfrd,
 			(int)i, (unsigned long)xfrd->nsd->children[i].query_count);
 	}
 
-	print_stat_block(buf, st, NULL);
+	metric_init_with_prefix(&metric, "nsd_");
+	print_stat_block(buf, st, &metric);
 
 	/* uptime (in seconds) */
 	timeval_subtract(&uptime, now, &xfrd->nsd->metrics->boot_time);
