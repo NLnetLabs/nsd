@@ -86,7 +86,7 @@ else
 fi
 
 # check zonestats metrics
-if grep -Fx "nsd_zonestats_examplestats_queries_by_type_total{type=\"NS\"} $NUM_NS_QUERIES" metrics.out; then
+if grep -Fx "nsd_zonestats_queries_by_type_total{zone=\"examplestats\",type=\"NS\"} $NUM_NS_QUERIES" metrics.out; then
 	echo "OK"
 else
 	echo "FAIL"
@@ -127,7 +127,7 @@ else
 	exit 1
 fi
 
-if grep -Fx "nsd_zonestats_examplestats_queries_by_type_total{type=\"NS\"} 0" metrics.out2; then
+if grep -Fx "nsd_zonestats_queries_by_type_total{zone=\"examplestats\",type=\"NS\"} 0" metrics.out2; then
 	echo "OK"
 else
 	echo "FAIL"

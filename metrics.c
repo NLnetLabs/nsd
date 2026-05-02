@@ -349,17 +349,14 @@ metrics_http_callback(struct evhttp_request *req, void *p)
 }
 
 #ifdef BIND8_STATS
-/** Change disallowed characters, '.' ':' to underscores '_'. */
+/** Change disallowed characters to underscores '_'. */
 static void
-change_string_underscores(char* prefix)
+replace_disallowed_label_chars(char* value)
 {
-	/* Prometheus does not want '.' in the metric names. But the zone
-	 * statistics could have then in their name.
-	 * Also ':' is not allowed. This routine enforeces that it
-	 * has letters,digits,underscores. */
-	char* s = prefix;
+	/* Replace characters that are not allowed in quoted label values. */
+	char* s = value;
 	while(*s) {
-		if(!isalnum((unsigned char)*s) && *s != '_')
+		if (*s == '\\' || *s == '\n' || *s == '"')
 			*s = '_';
 		s++;
 	}
@@ -389,6 +386,8 @@ metric_set_name_and_type(struct metrics_metric *metric, const char *name, const 
 	metric->type = type;
 }
 
+/* Add a `name="value"` label to the metric.
+ * The value must not contain `\`, `\n`, or `"`. */
 static void
 metric_push_label(struct metrics_metric *metric, const char *name, const char *value) {
 	assert(metric->label_count < METRIC_MAX_LABELS);
@@ -564,11 +563,11 @@ void
 metrics_zonestat_print_one(struct evbuffer *buf, char *name,
                            struct nsdst *zst)
 {
-	char prefix[512] = {0};
 	struct metrics_metric metric;
-	snprintf(prefix, sizeof(prefix), "nsd_zonestats_%s_", name);
-	change_string_underscores(prefix);
-	metric_init_with_prefix(&metric, prefix);
+	metric_init_with_prefix(&metric, "nsd_zonestats_");
+	/* TODO: Can we instead validate at startup? */
+	replace_disallowed_label_chars(name);
+	metric_push_label(&metric, "zone", name);
 
 	metric_set_name_and_type(&metric, "queries_total", "counter");
 	metric_print_help(&metric, buf, "Total number of queries received.");
