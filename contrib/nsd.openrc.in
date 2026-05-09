@@ -66,6 +66,13 @@ stop_pre() {
 reload() {
 	checkconfig || return $?
 	ebegin "Reloading config and zone files"
-	supervise-daemon "${RC_SVCNAME}" -s SIGHUP
+	case "${supervisor}" in
+		supervise-daemon)
+			supervise-daemon "${RC_SVCNAME}" -s SIGHUP
+			;;
+		*)
+			start-stop-daemon --signal HUP --pidfile "${pidfile}"
+			;;
+	esac
 	eend $?
 }
