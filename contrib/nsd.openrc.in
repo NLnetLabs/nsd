@@ -28,7 +28,6 @@ required_files="${config_file}"
 
 depend() {
 	use logger
-	need net
 }
 
 checkconfig() {
