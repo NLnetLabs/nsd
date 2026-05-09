@@ -1,5 +1,4 @@
 #!/sbin/openrc-run
-supervisor=supervise-daemon
 
 description="The NLnet Labs Name Server Daemon (NSD)"
 extra_commands="configtest"
