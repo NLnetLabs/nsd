@@ -1,3 +1,7 @@
+12 May 2026: Jannik
+	- Merge #484 from orlitzky: OpenRC: fix network deps and support both
+	  supervisors
+
 24 April 2026: Jannik
 	- Merge #481 from jaredmauch: Fix pedantic/CodeQL warning in sources
 

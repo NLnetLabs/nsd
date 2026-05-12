@@ -9,6 +9,8 @@ BUG FIXES:
 	  verbosity command always, and others at 2 and higher.
 	- Fix XDP cleanup code being executed even if xdp is not configured
 	- Merge #481 from jaredmauch: Fix pedantic/CodeQL warning in sources
+	- Merge #484 from orlitzky: OpenRC: fix network deps and support both
+	  supervisors
 
 4.14.2
 ================
