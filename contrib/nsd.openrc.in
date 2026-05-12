@@ -1,5 +1,4 @@
 #!/sbin/openrc-run
-supervisor=supervise-daemon
 
 description="The NLnet Labs Name Server Daemon (NSD)"
 extra_commands="configtest"
@@ -28,7 +27,6 @@ required_files="${config_file}"
 
 depend() {
 	use logger
-	need net
 }
 
 checkconfig() {
@@ -68,6 +66,13 @@ stop_pre() {
 reload() {
 	checkconfig || return $?
 	ebegin "Reloading config and zone files"
-	supervise-daemon "${RC_SVCNAME}" -s SIGHUP
+	case "${supervisor}" in
+		supervise-daemon)
+			supervise-daemon "${RC_SVCNAME}" -s SIGHUP
+			;;
+		*)
+			start-stop-daemon --signal HUP --pidfile "${pidfile}"
+			;;
+	esac
 	eend $?
 }
