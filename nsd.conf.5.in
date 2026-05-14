@@ -142,7 +142,7 @@ the routing table, from the interface for the socket. That bypasses the
 routing selection for traffic. It is used as a performance optimisation.
 .TP
 .B interface:\fR <ip4 or ip6 or interface\-name>[@port] [servers] [bindtodevice] [setfib]
-Same as ip\-address (for ease of compatibility with unbound.conf).
+Same as ip-address (for ease of compatibility with unbound.conf).
 .TP
 .B ip\-transparent:\fR <yes or no>
 Allows NSD to bind to non local addresses. This is useful to have NSD
