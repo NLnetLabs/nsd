@@ -349,21 +349,23 @@ metrics_http_callback(struct evhttp_request *req, void *p)
 }
 
 #ifdef BIND8_STATS
-const char*
-metrics_validate_label_value(const char* value) {
-	const char* s = value;
+/** Change characters disallowed in Prometheus label values to underscores.
+ * Return whether any changes were made. */
+int
+metrics_make_label_value_valid(char* value) {
+	int made_changes = 0;
+	char* s = value;
 	while(*s) {
 		switch (*s) {
 			case '\\':
-				return "character '\\' is not allowed";
 			case '"':
-				return "charater '\"' is not allowed";
 			case '\n':
-				return "newline is not allowed";
+				*s = '_';
+				made_changes = 1;
 		}
 		s++;
 	}
-	return NULL;
+	return made_changes;
 }
 
 #define METRIC_MAX_LABELS 2
@@ -567,10 +569,19 @@ void
 metrics_zonestat_print_one(struct evbuffer *buf, char *name,
                            struct nsdst *zst)
 {
+	char* name_valid;
 	struct metrics_metric metric;
 	metric_init_with_prefix(&metric, "nsd_zonestats_");
-	/* The zonestat name is validated at startup to be a valid label value. */
-	metric_push_label(&metric, "zone", name);
+
+	/* The zonestat name can contain characters like '"' that would break the
+	 * label value; replace them. */
+	name_valid = strdup(name);
+	if (!name_valid) {
+		log_msg(LOG_ERR, "malloc failure");
+		return;
+	}
+	metrics_make_label_value_valid(name_valid);
+	metric_push_label(&metric, "zone", name_valid);
 
 	metric_set_name_and_type(&metric, "queries_total", "counter");
 	metric_print_help(&metric, buf, "Total number of queries received.");
@@ -578,6 +589,7 @@ metrics_zonestat_print_one(struct evbuffer *buf, char *name,
 		(uint64_t)(zst->qudp + zst->qudp6 + zst->ctcp +
 			zst->ctcp6 + zst->ctls + zst->ctls6));
 	print_stat_block(buf, zst, &metric);
+	free(name_valid);
 }
 #endif /*USE_ZONE_STATS*/
 

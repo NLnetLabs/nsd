@@ -2942,6 +2942,8 @@ unsigned getzonestatid(struct nsd_options* opt, struct zone_options* zopt)
 {
 #ifdef USE_ZONE_STATS
 	const char* statname;
+	char* statname_valid;
+	int name_was_modified;
 	struct zonestatname* n;
 	rbnode_type* res;
 	/* try to find the instantiated zonestat name */
@@ -2949,12 +2951,19 @@ unsigned getzonestatid(struct nsd_options* opt, struct zone_options* zopt)
 		return 0; /* no zone stats */
 	statname = config_cook_string(zopt, zopt->pattern->zonestats);
 
-	const char* statname_error = metrics_validate_label_value(statname);
-	if (statname_error) {
-		log_msg(LOG_ERR, "invalid zonestats name \"%s\": %s",
-			statname, statname_error);
+	/* warn when we will lossily change the zonestat name in metrics */
+	statname_valid = strdup(statname);
+	if(!statname_valid) {
+		log_msg(LOG_ERR, "malloc failed: %s", strerror(errno));
 		exit(1);
 	}
+	name_was_modified = metrics_make_label_value_valid(statname_valid);
+	if (name_was_modified) {
+		log_msg(LOG_WARNING, "zonestats name \"%s\" contains disallowed characters, using \"%s\" in metrics",
+			statname, statname_valid);
+	}
+	free(statname_valid);
+
 	res = rbtree_search(opt->zonestatnames, statname);
 	if(res)
 		return ((struct zonestatname*)res)->id;
