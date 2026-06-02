@@ -1395,6 +1395,9 @@ main(int argc, char *argv[])
 		} else if (!file_inside_chroot(nsd.options->xfrdir, nsd.chrootdir)) {
 			error("xfrdir %s is not relative to %s: chroot not possible",
 				nsd.options->xfrdir, nsd.chrootdir);
+		} else if (!file_inside_chroot(nsd.options->tls_cert_bundle, nsd.chrootdir)) {
+			error("tls-cert-bundle %s is not relative to %s: chroot not possible",
+				nsd.options->tls_cert_bundle, nsd.chrootdir);
 		}
 	}
 
@@ -1602,6 +1605,9 @@ main(int argc, char *argv[])
 			nsd.options->zonelistfile += l;
 		if (nsd.options->xfrdir[0] == '/')
 			nsd.options->xfrdir += l;
+		if (nsd.options->tls_cert_bundle && nsd.options->tls_cert_bundle[0] == '/') {
+			nsd.options->tls_cert_bundle += l;
+		}
 
 		/* strip chroot from pathnames of "include:" statements
 		 * on subsequent repattern commands */
