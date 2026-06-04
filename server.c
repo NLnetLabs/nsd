@@ -2140,7 +2140,7 @@ server_alpn_cb(SSL* ATTR_UNUSED(s),
 SSL_CTX*
 server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 {
-	SSL_CTX *ctx = SSL_CTX_new(SSLv23_server_method());
+	SSL_CTX *ctx = SSL_CTX_new(TLS_server_method());
 	if(!ctx) {
 		log_crypto_err("could not SSL_CTX_new");
 		return NULL;
