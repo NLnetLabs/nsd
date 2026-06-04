@@ -995,24 +995,36 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	if (zone->master->tls_auth_options &&
 		zone->master->tls_auth_options->auth_domain_name) {
 #ifdef HAVE_TLS_1_3
-		/* Load client certificate (if provided) */
+		// password callback is only available on global ctx
 		if (zone->master->tls_auth_options->client_cert &&
-		    zone->master->tls_auth_options->client_key) {
-			if (SSL_CTX_use_certificate_chain_file(set->ssl_ctx,
-			                                       zone->master->tls_auth_options->client_cert) != 1) {
-				log_msg(LOG_ERR, "xfrd tls: Unable to load client certificate from file %s", zone->master->tls_auth_options->client_cert);
-			}
-
-			if (zone->master->tls_auth_options->client_key_pw) {
+		    zone->master->tls_auth_options->client_key &&
+		    zone->master->tls_auth_options->client_key_pw) {
 				SSL_CTX_set_default_passwd_cb(set->ssl_ctx, password_cb);
 				SSL_CTX_set_default_passwd_cb_userdata(set->ssl_ctx, zone->master->tls_auth_options->client_key_pw);
 			}
 
-			if (SSL_CTX_use_PrivateKey_file(set->ssl_ctx, zone->master->tls_auth_options->client_key, SSL_FILETYPE_PEM) != 1) {
+		// create a new SSL structure (tp->ssl) that inherits from global ctx (set->ctx)
+		if (!setup_ssl(tp, set, zone->master->tls_auth_options->auth_domain_name)) {
+			log_msg(LOG_ERR, "xfrd: Cannot setup TLS on pipeline for %s to %s",
+					zone->apex_str, zone->master->ip_address_spec);
+			close(fd);
+			xfrd_set_refresh_now(zone);
+			return 0;
+		}
+
+		/* Load client certificate (if provided) */
+		if (zone->master->tls_auth_options->client_cert &&
+		    zone->master->tls_auth_options->client_key) {
+			if (SSL_use_certificate_chain_file(tp->ssl,
+			                                       zone->master->tls_auth_options->client_cert) != 1) {
+				log_msg(LOG_ERR, "xfrd tls: Unable to load client certificate from file %s", zone->master->tls_auth_options->client_cert);
+			}
+
+			if (SSL_use_PrivateKey_file(tp->ssl, zone->master->tls_auth_options->client_key, SSL_FILETYPE_PEM) != 1) {
 				log_msg(LOG_ERR, "xfrd tls: Unable to load private key from file %s", zone->master->tls_auth_options->client_key);
 			}
 
-			if (!SSL_CTX_check_private_key(set->ssl_ctx)) {
+			if (!SSL_check_private_key(tp->ssl)) {
 				log_msg(LOG_ERR, "xfrd tls: Client private key from file %s does not match the certificate from file %s",
 				                 zone->master->tls_auth_options->client_key,
 				                 zone->master->tls_auth_options->client_cert);
@@ -1026,14 +1038,6 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 		   there is something wrong from our side. Alternatively make it obvious
 		   to the operator that we're not being authenticated to the server.
 		*/
-		}
-
-		if (!setup_ssl(tp, set, zone->master->tls_auth_options->auth_domain_name)) {
-			log_msg(LOG_ERR, "xfrd: Cannot setup TLS on pipeline for %s to %s",
-					zone->apex_str, zone->master->ip_address_spec);
-			close(fd);
-			xfrd_set_refresh_now(zone);
-			return 0;
 		}
 
 		tp->handshake_done = 0;
