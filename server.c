@@ -4092,6 +4092,10 @@ consume_pp2_header(struct buffer* buf, struct query* q, int stream)
 			{
 			struct sockaddr_in* addr =
 				(struct sockaddr_in*)&q->client_addr;
+			if(ntohs(header->len) < PP2_HEADER_LEN_INET) {
+				VERBOSITY(4, (LOG_ERR, "proxy_protocol: header too short for IPv4 address"));
+				return 0;
+			}
 			addr->sin_family = AF_INET;
 			memmove(&addr->sin_addr.s_addr,
 				&header->addr.addr4.src_addr, 4);
@@ -4107,6 +4111,10 @@ consume_pp2_header(struct buffer* buf, struct query* q, int stream)
 			{
 			struct sockaddr_in6* addr =
 				(struct sockaddr_in6*)&q->client_addr;
+			if(ntohs(header->len) < PP2_HEADER_LEN_INET6) {
+				VERBOSITY(4, (LOG_ERR, "proxy_protocol: header too short for IPv6 address"));
+				return 0;
+			}
 			memset(addr, 0, sizeof(*addr));
 			addr->sin6_family = AF_INET6;
 			memmove(&addr->sin6_addr,
