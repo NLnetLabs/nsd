@@ -1,0 +1,22 @@
+# #-- print_hip_malformed.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../.."
+
+$PRE/nsd-checkzone -p example.com. print_hip_malformed.zone >outfile
+res=$?
+cat outfile
+if test $res -ne 0 -a $res -ne 1; then
+	echo "nsd-checkzone failed"
+	exit 1
+fi
+if grep "HIP" outfile; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+exit 0

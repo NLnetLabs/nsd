@@ -1,0 +1,12 @@
+$ORIGIN example.com.
+$TTL 3600
+@       IN      SOA     example.com. hostmaster.example.com. (
+                        1557659646              ; serial number
+                        3600                    ; refresh
+                        900                     ; retry
+                        1209600                 ; expire
+                        1800                    ; ttl
+                        )
+
+; malformed HIP
+hip HIP \# 4 ff01ffff
