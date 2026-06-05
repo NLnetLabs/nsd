@@ -3282,7 +3282,7 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct domain *domain;
 	struct dname_buffer target;
 	uint16_t length = 2, svcparams_length = 0;
-	uint16_t size;
+	size_t size;
 	const size_t mark = buffer_position(packet);
 
 	/* short + name + svc_params */
