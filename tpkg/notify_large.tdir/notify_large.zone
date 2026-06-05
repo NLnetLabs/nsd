@@ -1,0 +1,10 @@
+@       IN      SOA     ns0.example.org. host.example.org.   (
+                        2003070707              ; serial, todays date + todays serial #
+                        1H                      ; refresh, seconds
+                        8H                      ; retry, seconds
+                        4W                      ; expire, seconds
+                        1H                      ; minimum ttl, seconds
+                )
+;
+example.com.   NS      ns0.example.org.
+example.com.   NS      ns1.example.org.

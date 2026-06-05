@@ -1,0 +1,29 @@
+# #-- notify_fmt.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+DIG=dig
+
+len=65472
+large=""
+for((; len>100; len-=100)); do
+	large="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"$large
+done
+for((i=0; i<len; i++)); do large="aa$large"; done
+echo "large has length"
+echo $large | wc
+echo $large > large.file
+
+# send a notify with packet length 65528
+dig @127.0.0.1 -p $TPKG_PORT +tcp +opcode=NOTIFY "+ednsopt=12345:`cat large.file`" example.com.
+
+if grep "xfrd_handle_notify invalid message size" nsd.log; then
+	echo "not OK"
+	exit 1
+else
+	echo "OK"
+fi
+
+exit 0
