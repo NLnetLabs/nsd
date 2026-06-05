@@ -13,6 +13,7 @@
 #include "xfrd.h"
 #ifdef HAVE_TLS_1_3
 #include <openssl/ssl.h>
+void xfrd_tls_auth_load(struct nsd_options* opts);
 #endif
 
 
@@ -43,10 +44,6 @@ struct xfrd_tcp_set {
 	int tcp_timeout;
 	/* rbtree with pipelines sorted by master */
 	rbtree_type* pipetree;
-#ifdef HAVE_TLS_1_3
-	/* XoT: SSL context */
-	SSL_CTX* ssl_ctx;
-#endif
 	/* double linked list of zones waiting for a TCP connection */
 	struct xfrd_zone *tcp_waiting_first, *tcp_waiting_last;
 };
@@ -179,7 +176,7 @@ struct xfrd_tcp_pipeline {
 };
 
 /* create set of tcp connections */
-struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_cert_bundle, int tcp_max, int tcp_pipeline);
+struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, int tcp_max, int tcp_pipeline);
 
 /* init tcp state */
 struct xfrd_tcp* xfrd_tcp_create(struct region* region, size_t bufsize);
