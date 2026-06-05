@@ -1,0 +1,6 @@
+$TTL    300
+$ORIGIN victim.
+@  IN  SOA  ns1.victim. admin.victim. 1 3600 900 86400 60
+@  IN  NS   ns1.victim.
+ns1 IN A   127.0.0.1 
+

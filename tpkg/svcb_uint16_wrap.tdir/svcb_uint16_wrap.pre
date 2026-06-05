@@ -1,0 +1,28 @@
+# #-- svcb_uint16_wrap.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+LDNS_PORT=$RND_PORT
+echo port: $LDNS_PORT
+
+# start ldns-testns, be extra verbose
+ldns-testns -vvv -p $LDNS_PORT svcb_uint16_wrap.datafile >testns.log 2>&1 &
+echo "export TESTNS_PID=$!" >> .tpkg.var.test
+echo "export LDNS_PORT=$LDNS_PORT" >> .tpkg.var.test
+wait_server_up_or_fail testns.log "Listening on port" "buffer overflow"
+if grep -q "buffer overflow" testns.log; then
+	echo "ERROR: ldns-testns could not load the datafile." >&2
+	echo "ERROR: ldns-testns version >= 1.9.2 is needed for this test." >&2
+	exit 1
+fi
+# replace RANDOM with $LDNS_PORT and put it in nsd_axfr.conf
+cat svcb_uint16_wrap.conf | sed "s/RANDOM/$LDNS_PORT/g" > nsd_axfr.conf
+if [[ $? -ne 0 ]]; then
+	exit 1
+fi
+
