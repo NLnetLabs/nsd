@@ -570,7 +570,9 @@ appended to the IP-address.  This creates the extra socket on which the
 DNS over TLS service is provided.
 .sp
 The file is the private key for the TLS session. The public certificate is
-in the tls-service-pem file. Default is "", turned off. Requires a
+in the
+.BR tls-service-pem
+file. Default is "", turned off. Requires a
 restart (a reload is not enough) if changed, because the private key is
 read while root permissions are held and before chroot (if any).
 .TP
@@ -626,7 +628,8 @@ Requests for zone transfers on other ports are refused.
 .B tls\-cert\-bundle:\fR <filename>
 If null or "", the default verify locations are used. Set it to the certificate
 bundle file, for example "/etc/pki/tls/certs/ca-bundle.crt". These certificates
-are used for authenticating Transfer over TLS (XoT) connections.
+are loaded before privilege drop and before chroot and are used for authenticating
+Transfer over TLS (XoT) connections.
 .TP
 .B proxy\-protocol\-port:\fR <number>
 The port number for proxy protocol service. If the statement is given multiple
@@ -1254,13 +1257,62 @@ be configured here. Also configure a private key with client\-key.
 .TP
 .B client\-key: <file name of clientkey.key>
 If you want to use mutual TLS authentication, the private key file can
-be configured here for the client authentication.
+be configured here for the client authentication (the client authenticates
+itself to the server).
+.sp
+NSD requires a restart (a reload is not enough) if
+.BR client-key
+or
+.BR client-cert
+is changed, because the files are read while root permissions are held
+and before chroot (if any).
 .TP
 .B client\-key\-pw: <string>
 If the client\-key file uses a password to decrypt the key before it can
 be used, then the password can be specified here as a string.
 It is possible to include other config files with the include: option, and
 this can be used to move that sensitive data to another file, if you wish.
+.LP
+Example of Mutual TLS Authenticated Zone Transfers (XoT).
+.sp
+.nf
+# Server side (primary server)
+# chroot: /var/nsd
+
+tls-auth-port: 1853
+tls-service-key: /etc/nsd/server.key
+tls-service-pem: /etc/nsd/server.pem
+
+# secondary's cert must be included in the tls-cert-bundle
+tls-cert-bundle: /etc/nsd/cert-bundle.pem
+
+tls-auth:
+	name: "secondary-tls"
+	auth-domain-name: "secondary.example.com"
+
+zone:
+	name: example.com
+	zonefile: /var/nsd/zones/%s
+	notify: <secondary_ip>
+	provide-xfr: <secondary_ip> <secondary_tsig> "secondary-tls"
+.sp
+# Client side (secondary server).
+# chroot: /var/nsd
+
+# primary's cert must be included in the tls-cert-bundle
+tls-cert-bundle: /etc/nsd/cert-bundle.pem
+
+tls-auth:
+	name: "primary-tls"
+	client-cert: /etc/nsd/client.pem
+	client-key: /etc/nsd/client.key
+	auth-domain-name: "primary.example.com"
+
+zone:
+	name: example.com
+	zonefile: /var/nsd/zones/%s
+	request-xfr: AXFR <primary_ip>@1853 <primary_tsig> "primary-tls"
+.fi
 .SS DNSTAP Logging Options
 DNSTAP support, when compiled in, is enabled in the \fBdnstap:\fR section.
 This starts a collector process that writes the log information to the
