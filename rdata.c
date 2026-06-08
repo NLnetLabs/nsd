@@ -2266,7 +2266,7 @@ print_nxt_rdata(struct buffer *output, const struct rr *rr)
 	int bitmap_size;
 	const uint8_t* bitmap;
 
-	assert(rr->rdlength > sizeof(void*));
+	assert(rr->rdlength >= sizeof(void*));
 	if (!print_domain(output, rr->rdlength, rr->rdata, &length))
 		return 0;
 
