@@ -327,6 +327,8 @@ nsec3_rr_uses_params(rr_type* rr, zone_type* zone)
 {
 	if(!rr || rr->rdlength < 6)
 		return 0;
+	if(dname_name(domain_dname_const(rr->owner))[0] != 32)
+		return 0; /* owner label not valid base32hex SHA-1 hash */
 	return nsec3_rdata_params_ok(zone->nsec3_param, rr);
 }
 
