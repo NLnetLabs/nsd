@@ -1,0 +1,6 @@
+$ORIGIN victim.                                                              
+$TTL 300                                                                     
+@ IN SOA p0.victim. hostmaster.victim. 1 3600 900 86400 60                   
+@ IN NS p0.victim.                                                           
+p0 IN A  127.0.0.1
+n IN NXT .
