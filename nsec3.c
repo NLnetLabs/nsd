@@ -123,6 +123,7 @@ nsec3_hash_and_store(zone_type* zone, const dname_type* dname, uint8_t* store)
 	detect_nsec3_params(zone->nsec3_param, &nsec3_salt,
 		&nsec3_saltlength, &nsec3_iterations);
 	assert(nsec3_iterations >= 0 && nsec3_iterations <= 65536);
+	assert(dname);
 	iterated_hash((unsigned char*)store, nsec3_salt, nsec3_saltlength,
 		dname_name(dname), dname->name_size, nsec3_iterations);
 }
@@ -144,9 +145,11 @@ nsec3_lookup_hash_and_wc(region_type* region, zone_type* zone,
 	domain->nsec3->hash_wc->hash.node.key = NULL;
 	domain->nsec3->hash_wc->wc.node.key = NULL;
 	nsec3_hash_and_store(zone, dname, domain->nsec3->hash_wc->hash.hash);
-	wcard = dname_parse(tmpregion, "*");
-	wcard = dname_concatenate(tmpregion, wcard, dname);
-	nsec3_hash_and_store(zone, wcard, domain->nsec3->hash_wc->wc.hash);
+	if(dname->name_size + 2 <= MAXDOMAINLEN) {
+		wcard = dname_parse(tmpregion, "*");
+		wcard = dname_concatenate(tmpregion, wcard, dname);
+		nsec3_hash_and_store(zone, wcard, domain->nsec3->hash_wc->wc.hash);
+	}
 }
 
 static void
@@ -561,8 +564,6 @@ nsec3_precompile_domain(struct namedb* db, struct domain* domain,
 	/* add into tree */
 	zone_add_domain_in_hash_tree(db->region, &zone->hashtree,
 		cmp_hash_tree, domain, &domain->nsec3->hash_wc->hash.node);
-	zone_add_domain_in_hash_tree(db->region, &zone->wchashtree,
-		cmp_wchash_tree, domain, &domain->nsec3->hash_wc->wc.node);
 
 	/* lookup in tree cover ptr (or exact) */
 	exact = nsec3_find_cover(zone, domain->nsec3->hash_wc->hash.hash,
@@ -572,10 +573,23 @@ nsec3_precompile_domain(struct namedb* db, struct domain* domain,
 		domain->nsec3->nsec3_is_exact = 1;
 	else	domain->nsec3->nsec3_is_exact = 0;
 
-	/* find cover for *.domain for wildcard denial */
-	(void)nsec3_find_cover(zone, domain->nsec3->hash_wc->wc.hash,
-		sizeof(domain->nsec3->hash_wc->wc.hash), &result);
-	domain->nsec3->nsec3_wcard_child_cover = result;
+	/* If the wildcard (*.domain) fits within MAXDOMAINLEN, then add it to
+	 * the wildcard hashtree and find the cover for it. Note that, in this 
+	 * case, its hash value has been computed (nsec3_lookup_hash_and_wc()).
+	 */
+	if(domain_dname(domain)->name_size + 2 <= MAXDOMAINLEN) {
+		zone_add_domain_in_hash_tree(db->region, &zone->wchashtree,
+			cmp_wchash_tree, domain, &domain->nsec3->hash_wc->wc.node);
+		(void)nsec3_find_cover(zone, domain->nsec3->hash_wc->wc.hash,
+			sizeof(domain->nsec3->hash_wc->wc.hash), &result);
+		domain->nsec3->nsec3_wcard_child_cover = result;
+	} else {
+		/* Setting to NULL is safe, because nsec3_add_rrset() is the
+		 * only usage of nsec3_wcard_child_cover, and simply doesn't
+		 * try to add anythin if it is NULL
+		 */
+		domain->nsec3->nsec3_wcard_child_cover = NULL;
+	}
 }
 
 void
