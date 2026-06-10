@@ -1,0 +1,60 @@
+# #-- nsec3_long_dname_overflow.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+PRE="../.."
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+# share the vars
+(  rm -f crash.txt \
+&& $TPKG_NSD -c nsec3_long_dname_overflow.conf -u "" -p $TPKG_PORT \
+	-P $TPKG_NSD_PID -V 6 -l nsd.log -d \
+|| echo "NSD crashed" > crash.txt ) &
+sleep 1
+if [ -e crash.txt ]; then
+	echo "NSD could not handle loading NSEC3 zones with a 255 octets long name and crashed"
+	exit 1
+fi
+wait_nsd_up nsd.log
+echo "Do a query"
+dig @127.0.0.1 -p $TPKG_PORT x.p-251-247-243-239-235-231-227-223-219-215-211-207-203-199-195.191-187-183-179-175-171-167-163-159-155-151-147-143-139-135-131.127-123-119-115-111-107-103-099-095-091-087-081-079-075-071-067.063-059-055-051-047-043-039-035-031-027-021-019-015-011-007.x. TXT +dnssec 2>&1 | tee dig-output.txt
+
+# x.p-251-247-243-...   i9o9188tc9h1a9o1j32lnmuiupkcc226 (name to cover (also next closer))
+# *.p-251-247-243-...   uotavlk93httj5c0aubirkrvvom19i9g (wildcard to cover)
+#
+# p-251-247-243-23...   4nm7d4svouui3tf8b69epjukaoopocvp (closest encloser)
+# 191-187-183-179-...   cn798oo2le1t0ae8ht3hl86v1072g58g
+# 127-123-119-115-...   b6ee28ddj20rvsr0gpoe3luura4skqcl
+# 063-059-055-051-...   gjig94re37clglqv273lnnu2m4tpgq96
+# x                     8in0e14rf39g7c6spqf042binrh5m3vn
+#
+# In order:
+# 4nm7d4svouui3tf8b69epjukaoopocvp (closest encloser)
+# 8in0e14rf39g7c6spqf042binrh5m3vn
+# b6ee28ddj20rvsr0gpoe3luura4skqcl
+# cn798oo2le1t0ae8ht3hl86v1072g58g
+# gjig94re37clglqv273lnnu2m4tpgq96 ( wraps to 4nm7d4svouui3tf8b69epjukaoopocvp
+#                                    to cover the wildcard as well as the next closer )
+
+echo -n "Closest encloser: "
+if ! grep -i '^4nm7d4svouui3tf8b69epjukaoopocvp\..*8in0e14rf39g7c6spqf042binrh5m3vn' dig-output.txt; then
+	echo "missing!"
+	exit 1
+fi
+
+echo -n "NSEC3 covering the wildcard and next closer: "
+if ! grep -i '^gjig94re37clglqv273lnnu2m4tpgq96\..*4nm7d4svouui3tf8b69epjukaoopocvp' dig-output.txt; then
+	echo "missing!"
+	exit 1
+fi
+# exit nsd
+NSD_PID=`cat $TPKG_NSD_PID`
+kill_pid $NSD_PID
+
