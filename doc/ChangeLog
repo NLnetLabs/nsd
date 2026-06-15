@@ -1,4 +1,8 @@
 15 Jun 2026: Willem
+	- Fix to not fail on NSEC3 records with a bad owner name.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+
+15 Jun 2026: Willem
 	- Fix print of malformed HIP records.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report, and
 	  Haruki Oyama (Waseda University) for also reporting this issue.
