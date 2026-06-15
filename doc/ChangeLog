@@ -1,4 +1,8 @@
 15 Jun 2026: Willem
+	- Fix print of NXT RR without bitmap
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+
+15 Jun 2026: Willem
 	- Fix to not fail on NSEC3 records with a bad owner name.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 

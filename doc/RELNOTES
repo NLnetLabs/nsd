@@ -21,7 +21,8 @@ BUG FIXES:
 	  Haruki Oyama (Waseda University) for also reporting this issue.
 	- Fix to not fail on NSEC3 records with a bad owner name.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
-
+	- Fix print of NXT RR without bitmap
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 4.14.2
 ================
