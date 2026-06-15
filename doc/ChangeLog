@@ -1,4 +1,9 @@
 15 Jun 2026: Willem
+	- Fix notify relay ipc to check for large size.
+	  This stops desync of the internal notify pipe.
+	  Thanks to Qifan Zhang, Palo Alto Networks for the report.
+
+15 Jun 2026: Willem
 	- Fix PROXYv2 header read and consume, it checks the header size.
 	  Thanks to Qifan Zhang, Palo Alto Networks for the report.
 

@@ -13,6 +13,9 @@ BUG FIXES:
 	  supervisors
 	- Fix PROXYv2 header read and consume, it checks the header size.
 	  Thanks to Qifan Zhang, Palo Alto Networks for the report.
+	- Fix notify relay ipc to check for large size.
+	  This stops desync of the internal notify pipe.
+	  Thanks to Qifan Zhang, Palo Alto Networks for the report.
 
 4.14.2
 ================
