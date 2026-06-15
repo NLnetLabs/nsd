@@ -1,4 +1,9 @@
 15 Jun 2026: Willem
+	- Fix print of malformed HIP records.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report, and
+	  Haruki Oyama (Waseda University) for also reporting this issue.
+
+15 Jun 2026: Willem
 	- Fix notify relay ipc to check for large size.
 	  This stops desync of the internal notify pipe.
 	  Thanks to Qifan Zhang, Palo Alto Networks for the report.
