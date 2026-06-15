@@ -11,6 +11,8 @@ BUG FIXES:
 	- Merge #481 from jaredmauch: Fix pedantic/CodeQL warning in sources
 	- Merge #484 from orlitzky: OpenRC: fix network deps and support both
 	  supervisors
+	- Fix PROXYv2 header read and consume, it checks the header size.
+	  Thanks to Qifan Zhang, Palo Alto Networks for the report.
 
 4.14.2
 ================
