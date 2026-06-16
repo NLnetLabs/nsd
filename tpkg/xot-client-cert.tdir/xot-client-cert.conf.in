@@ -1,0 +1,34 @@
+server:
+	logfile: "nsd.log"
+	username: ""
+	zonesdir: ""
+	zonelistfile: "zone.list"
+	pidfile: "nsd.pid"
+	interface: 127.0.0.1@@TPKG_Do53_PORT@
+	interface: 127.0.0.1@@TPKG_DoT_PORT@
+	interface: 127.0.0.1@@TPKG_XoT_PORT@
+	port: @TPKG_Do53_PORT@
+	tls-port: @TPKG_DoT_PORT@
+	tls-auth-port: @TPKG_XoT_PORT@
+	xfrdfile: "nsd.xfrd_state"
+	tls-service-key: "xot-client-cert.primary.key"
+	tls-service-pem: "xot-client-cert.primary.crt"
+	tls-cert-bundle: "xot-client-cert.ca-bundle.pem"
+	debug-mode: no
+	verbosity: 6
+
+key:
+	name: otherwise-tsig.
+	algorithm: hmac-sha256
+	secret: "SXMgdGhpcyBhIHNlY3JldCBvciBqdXN0IHRleHQ/Pz8="
+
+tls-auth:
+	name: for-your-eyes-only.test
+	auth-domain-name: for-your-eyes-only.test
+
+zone:
+	name: victim.test
+	zonefile: "xot-client-cert.zone"
+	provide-xfr: 0.0.0.0/0 NOKEY for-your-eyes-only.test
+	provide-xfr: 0.0.0.0/0 otherwise-tsig.
+

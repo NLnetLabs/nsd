@@ -1,0 +1,82 @@
+# #-- xot-client-cert.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+grep -v '^[[:space:]]*tls-auth-port:[[:space:]][0-9][0-9]*[[:space:]]*$' nsd.conf > bad-config.conf
+N_WARNINGS=`../../nsd-checkconf bad-config.conf 2>&1 | wc -l`
+if [[ $N_WARNINGS -lt 1 ]]; then
+	echo "nsd-checkconf did not warn about provide-xfr tls-auth-name usage without tls-auth-port"
+	exit 1
+fi
+
+dig -p $TPKG_XoT_PORT @127.0.0.1 +tls +tls-ca=xot-client-cert.ca.crt \
+	+tls-certfile=xot-client-cert.secondary.crt \
+	+tls-keyfile=xot-client-cert.secondary.key victim.test AXFR \
+	2>&1 > success.result.txt
+if ! grep -q CONFIDENTIAL success.result.txt; then
+	echo "Error: Transfer with good client certificate failed!"
+	exit 1
+fi
+
+dig -p $TPKG_XoT_PORT @127.0.0.1 +tls +tls-ca=xot-client-cert.ca.crt \
+	+tls-certfile=xot-client-cert.wrong-name.crt \
+	+tls-keyfile=xot-client-cert.secondary.key victim.test AXFR \
+	2>&1 > wrong-name.result.txt
+if grep -q CONFIDENTIAL wrong-name.result.txt; then
+	echo "Error: Transfer with client certificate with wrong name succeeded!"
+	exit 1
+fi
+
+dig -p $TPKG_XoT_PORT @127.0.0.1 +tls +tls-ca=xot-client-cert.ca.crt \
+	+tls-certfile=xot-client-cert.different-ca-secondary.crt \
+	+tls-keyfile=xot-client-cert.secondary.key victim.test AXFR \
+	2>&1 > different-ca.result.txt
+if ! grep -q CONFIDENTIAL different-ca.result.txt; then
+	echo "Error: Transfer with good client certificate (from a different CA) failed!"
+	exit 1
+fi
+
+dig -p $TPKG_XoT_PORT @127.0.0.1 +tls +tls-ca=xot-client-cert.ca.crt \
+	+tls-certfile=xot-client-cert.wrong-ca.crt \
+	+tls-keyfile=xot-client-cert.secondary.key victim.test AXFR \
+	2>&1 > wrong-ca.result.txt
+if grep -q CONFIDENTIAL wrong-ca.result.txt; then
+	echo "Error: Transfer with client certificate signed by an unknown CA succeeded!"
+	exit 1
+fi
+
+dig -p $TPKG_DoT_PORT @127.0.0.1 +tls victim.test AXFR \
+	2>&1 > regular-dot.result.txt
+if grep -q CONFIDENTIAL regular-dot.result.txt; then
+	echo "Error: Transfer over regular DoT port without client cert succeeded!"
+	exit 1
+fi
+
+dig -p $TPKG_Do53_PORT @127.0.0.1 victim.test AXFR \
+	2>&1 > regular-do53.result.txt
+if grep -q CONFIDENTIAL regular-do53.result.txt; then
+	echo "Error: Transfer over TCP over the regular Do53 port without client cert succeeded!"
+	exit 1
+fi
+
+# But TSIG should work (we have another acl)
+#
+dig -p $TPKG_DoT_PORT @127.0.0.1 +tls victim.test AXFR \
+	-y "hmac-sha256:otherwise-tsig:SXMgdGhpcyBhIHNlY3JldCBvciBqdXN0IHRleHQ/Pz8=" \
+	2>&1 > regular-dot.result.txt
+if ! grep -q CONFIDENTIAL regular-dot.result.txt; then
+	echo "Error: Transfer over regular DoT with valid TSIG failed!"
+	exit 1
+fi
+
+dig -p $TPKG_Do53_PORT @127.0.0.1 victim.test AXFR \
+	-y "hmac-sha256:otherwise-tsig:SXMgdGhpcyBhIHNlY3JldCBvciBqdXN0IHRleHQ/Pz8=" \
+	2>&1 > regular-do53.result.txt
+if ! grep -q CONFIDENTIAL regular-do53.result.txt; then
+	echo "Error: Transfer over TCP with valid TSIG failed!"
+	exit 1
+fi
+
+

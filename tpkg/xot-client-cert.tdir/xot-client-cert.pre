@@ -1,0 +1,28 @@
+# #-- xot-client-cert.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+if [ -z "$TPKG_Do53_PORT" ]; then
+	get_random_port 3 
+	TPKG_Do53_PORT=$RND_PORT
+	TPKG_DoT_PORT=`expr $RND_PORT + 1`
+	TPKG_XoT_PORT=`expr $RND_PORT + 2`
+	echo "export TPKG_Do53_PORT=$TPKG_Do53_PORT" >> .tpkg.var.test
+	echo "export TPKG_DoT_PORT=$TPKG_DoT_PORT" >> .tpkg.var.test
+	echo "export TPKG_XoT_PORT=$TPKG_XoT_PORT" >> .tpkg.var.test
+fi
+
+sed \
+	-e "s/@TPKG_Do53_PORT@/$TPKG_Do53_PORT/g" \
+	-e "s/@TPKG_DoT_PORT@/$TPKG_DoT_PORT/g" \
+	-e "s/@TPKG_XoT_PORT@/$TPKG_XoT_PORT/g" \
+	xot-client-cert.conf.in > nsd.conf
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+$TPKG_NSD -c nsd.conf
+wait_nsd_up nsd.log
+
