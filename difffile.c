@@ -1316,10 +1316,9 @@ apply_ixfr(nsd_type* nsd, FILE *in, uint32_t serialno,
 					region_destroy(region);
 					return 0;
 				}
-				buffer_skip(packet, rrlen);
-
 				if(ixfr_store)
 					ixfr_store_add_newsoa(ixfr_store, ttl, packet, rrlen);
+				buffer_skip(packet, rrlen);
 
 				continue;
 			} else if (*rr_count == 1) {
