@@ -1,0 +1,36 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply IXFR request
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+b	3600	IN	A	10.0.0.1
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+c	3600	IN	A	10.0.0.3
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+ENTRY_END
+
+# reply AXFR request, for example2.com
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+example2.com. IN AXFR
+SECTION ANSWER
+# malformed SOA record
+example2.com. 345600 IN SOA \# 18 056e7330657800 05686f73746d00 01020304
+# example2.com. 345600 IN SOA ns0.example2.org. root.example2.com. 1 3600 28800 2419200 3600
+#a.example2.com.	3600	IN	A	10.0.0.1
+#example2.com. 345600 IN SOA ns0.example2.org. root.example2.com. 1 3600 28800 2419200 3600
+ENTRY_END

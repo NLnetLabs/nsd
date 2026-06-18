@@ -1,0 +1,41 @@
+# #-- soa_short_info.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+# test with notify
+echo ""
+echo "> notify example.com"
+drill -f soa_short_info.pkthex @127.0.0.1 -p $TPKG_PORT
+
+# test with zone transfer
+wait_logfile nsd.log "xfrd: zone example2.com. bad transfer"
+echo ""
+echo "> dig example2.com"
+dig @127.0.0.1 -p $TPKG_PORT example2.com SOA > cur
+cat cur
+if grep "SERVFAIL" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# test that server is up
+echo ""
+echo "> dig example3.com"
+dig @127.0.0.1 -p $TPKG_PORT example3.com SOA > cur
+cat cur
+if grep "root.example3.com." cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo "OK"
+exit 0

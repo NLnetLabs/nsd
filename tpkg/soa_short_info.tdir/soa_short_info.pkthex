@@ -1,0 +1,9 @@
+ 1a bc 21 00 00 01 00 01 00 00 00 00  ; NOTIFY RD QDCOUNT=1 ANCOUNT=1
+ 07 65 78 61 6d 70 6c 65 03 63 6f 6d 00 00 06 00 01  ; example.com. SOA IN
+ c0 0c 00 06 00 01 00 00 04 01   ; example.com.(compr). SOA IN TTL=1025
+ ; rdata:
+ 00 0e ; rdlen
+ 02 6e 73 c0 0c ; ns.example.com.
+ 04 68 6f 73 74 c0 0c ; host.example.com.
+ 01 02 	; malformed: missing rdata.
+
