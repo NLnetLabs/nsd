@@ -1,3 +1,8 @@
+18 Jun 2026: Willem
+	- Fix overflow for NSEC3 zones with 255-octet name
+	  Thanks to Haruki Oyama (Waseda University) for the report, and
+	  Qifan Zhang, Palo Alto Networks, for also reporting this issue.
+
 15 Jun 2026: Willem
 	- Fix print of NXT RR without bitmap
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
