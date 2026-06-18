@@ -1,0 +1,33 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+catalog.tld. IN AXFR
+SECTION ANSWER
+catalog.tld. IN SOA ns0.example2.org. root.example2.com. 1 3600 28800 2419200 3600
+version.catalog.tld. TXT "2"
+aaaaaaa1.zones.catalog.tld. PTR child.parent.tld.
+catalog.tld. IN SOA ns0.example2.org. root.example2.com. 1 3600 28800 2419200 3600
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+child.parent.tld. IN AXFR
+SECTION ANSWER
+child.parent.tld. IN SOA ns0.example2.org. root.example2.com. 1 3600 28800 2419200 3600
+child.parent.tld. NS ns.child.parent.tld.
+ns.child.parent.tld. A 192.0.2.2
+# above apex record
+parent.tld. NS bad.ns.tld.
+child.parent.tld. IN SOA ns0.example2.org. root.example2.com. 1 3600 28800 2419200 3600
+ENTRY_END

@@ -1,0 +1,35 @@
+# #-- outofzone_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+# the consumer zone is read to serial 1,
+# the child.parent.tld zone is read to serial 1.
+wait_logfile nsd.log "zone child.parent.tld serial 0 is updated to 1" 10
+
+echo ""
+echo "> dig child.parent.tld"
+dig @127.0.0.1 -p $TPKG_PORT child.parent.tld SOA > cur
+cat cur
+if grep "root.example2.com" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo ""
+echo "> dig parent.tld DS"
+dig @127.0.0.1 -p $TPKG_PORT parent.tld DS > cur
+cat cur
+if grep "child.parent.tld." cur; then
+	echo "not OK"
+	exit 1
+fi
+
+echo "OK"
+exit 0
