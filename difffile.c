@@ -711,6 +711,16 @@ delete_RR(namedb_type* db, const dname_type* dname,
 	rrset_type* rrset_prev;
 #endif
 	const nsd_type_descriptor_type *descriptor = nsd_type_descriptor(type);
+	if (!dname_is_subdomain(dname, domain_dname(zone->apex))) {
+		char zname[MAXDOMAINLEN * 5];
+		domain_to_string_buf(zone->apex, zname);
+		VERBOSITY(2, (LOG_WARNING,
+			"out-of-zone record deletion in transfer for zone %s: "
+			"owner %s is outside zone; skipping",
+			zname, dname_to_string(dname, NULL)));
+		buffer_skip(packet, rdatalen);
+		return 1;
+	}
 	domain = domain_table_find(db->domains, dname);
 	if(!domain) {
 		log_msg(LOG_WARNING, "diff: domain %s does not exist",
@@ -992,6 +1002,16 @@ add_RR(namedb_type* db, const dname_type* dname,
 			return 0;
 		}
 		commit_RRset(db, zone, &collect_rrs2);
+		return 1;
+	}
+	if (!dname_is_subdomain(dname, domain_dname(zone->apex))) {
+		char zname[MAXDOMAINLEN * 5];
+		domain_to_string_buf(zone->apex, zname);
+		VERBOSITY(2, (LOG_WARNING,
+			"out-of-zone record in transfer for zone %s: "
+			"owner %s is outside zone; skipping",
+			zname, dname_to_string(dname, NULL)));
+		buffer_skip(packet, rdatalen);
 		return 1;
 	}
 	domain = domain_table_insert(db->domains, dname);
