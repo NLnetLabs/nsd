@@ -745,6 +745,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 				"%s %s %s", dname_to_string(dname,0),
 				rrtype_to_string(type),
 				read_rdata_fail_str(code));
+			return 0;
 		}
 		rr->owner = domain;
 		rr->type = type;
