@@ -2114,6 +2114,11 @@ xfrd_xfr_check_rrs(xfrd_zone_type* zone, buffer_type* packet, size_t count,
 						"serial decreasing not allowed", zone->apex_str));
 					return 0; /* middle serial decreases in IXFR */
 				}
+				if(ntohl(soa->serial) == tmp_serial) {
+					DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
+						"serial duplicate not allowed", zone->apex_str));
+					return 0; /* middle serial is the same as the previous in IXFR */
+				}
 				/* serial ok, update tmp serial */
 				tmp_serial = ntohl(soa->serial);
 			}
