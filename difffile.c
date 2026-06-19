@@ -1276,6 +1276,14 @@ apply_ixfr(nsd_type* nsd, FILE *in, uint32_t serialno,
 			region_destroy(region);
 			return 0;
 		}
+		if (klass != CLASS_IN) {
+			log_msg(LOG_ERR, "bad xfr non-IN-class RR %s %s %s",
+				dname_to_string(owner,0),
+				rrclass_to_string(klass),
+				rrtype_to_string(type));
+			region_destroy(region);
+			return 0;
+		}
 
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s parsed count %d, ax %d, delmode %d",
 			domain_to_string(zone->apex), *rr_count, *is_axfr, *delete_mode));
@@ -1300,11 +1308,6 @@ apply_ixfr(nsd_type* nsd, FILE *in, uint32_t serialno,
 			if (*rr_count == 0) {
 				assert(!*is_axfr);
 				assert(!*delete_mode);
-				if (klass != CLASS_IN) {
-					log_msg(LOG_ERR, "first RR not SOA IN");
-					region_destroy(region);
-					return 0;
-				}
 				if(dname_compare(domain_dname(zone->apex), owner) != 0) {
 					log_msg(LOG_ERR, "SOA dname not equal to zone %s",
 						domain_to_string(zone->apex));

@@ -2010,7 +2010,7 @@ xfrd_xfr_check_rrs(xfrd_zone_type* zone, buffer_type* packet, size_t count,
 	/* first RR has already been checked */
 	const struct nsd_type_descriptor *descriptor;
 	uint32_t tmp_serial = 0;
-	uint16_t type, rrlen;
+	uint16_t type, klass, rrlen;
 	size_t i, soapos, mempos;
 	const dname_type* dname;
 	struct rr* rr;
@@ -2040,7 +2040,15 @@ xfrd_xfr_check_rrs(xfrd_zone_type* zone, buffer_type* packet, size_t count,
 		}
 		soapos = buffer_position(packet);
 		type = buffer_read_u16(packet);
-		(void)buffer_read_u16(packet); /* class */
+		klass = buffer_read_u16(packet);
+		if(klass != CLASS_IN && type != TYPE_OPT) {
+			log_msg(LOG_ERR, "xfrd: zone %s xfr "
+				"non-IN-class RR (%s type=%s class=%s), rejected",
+				zone->apex_str, dname_to_string(dname,0),
+				rrtype_to_string(type),
+				rrclass_to_string(klass));
+			return 0;
+		}
 		(void)buffer_read_u32(packet); /* ttl */
 		rrlen = buffer_read_u16(packet);
 		if(!buffer_available(packet, rrlen)) {
