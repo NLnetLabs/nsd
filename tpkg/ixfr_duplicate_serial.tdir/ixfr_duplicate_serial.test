@@ -1,0 +1,48 @@
+# #-- ixfr_duplicate_serial.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+# test with zone transfer
+wait_logfile nsd.log "xfrd: zone example.com. bad transfer" 10
+#wait_logfile nsd.log "zone example.com. serial 1 is updated to 9" 10
+echo ""
+echo "> dig example.com"
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA > cur
+cat cur
+if grep "root.example.com" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	#exit 1
+fi
+
+# zonefiles write
+sleep 3
+
+# test that server is up
+echo ""
+echo "> dig example.com"
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA > cur
+cat cur
+if grep "root.example.com." cur; then
+	echo "OK"
+else
+	echo "not OK"
+	#exit 1
+fi
+
+dig @127.0.0.1 -p $TPKG_PORT example.com IXFR=1
+
+ls -l ixfr_duplicate_serial.zone*
+echo "cat ixfr_duplicate_serial.zone"
+cat ixfr_duplicate_serial.zone
+echo "cat ixfr_duplicate_serial.zone.ixfr*"
+cat ixfr_duplicate_serial.zone.ixfr*
+
+echo "OK"
+exit 0
