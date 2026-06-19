@@ -48,7 +48,7 @@ jobs:
             cross_platform_config: "--enable-checking --disable-flto --with-libevent=/usr/pkg --with-libfstrm=/usr/pkg --with-protobuf-c=/usr/pkg"
  
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           persist-credentials: false

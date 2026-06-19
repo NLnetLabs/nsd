@@ -1,3 +1,6 @@
+19 Jun 2026: Wouter
+	- Fix to update github ci actions/checkout to v7.
+
 18 Jun 2026: Willem
 	- Fix overflow for NSEC3 zones with 255-octet name
 	  Thanks to Haruki Oyama (Waseda University) for the report, and
