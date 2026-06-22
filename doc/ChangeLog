@@ -2,6 +2,9 @@
 	- More robust removing of RRs from an IXFR processing.
 	  Thanks zhangph for reporting this issue
 
+22 Jun 2026: Wouter
+	- Fix unit test for stopmany for process role logs.
+
 22 Jun 2026: Willem
 	- Fix that wrong buffer position in IXFR for the first SOA causes the
 	  storage to retrieve wrong information. Later data would overwrite it

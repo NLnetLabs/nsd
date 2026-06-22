@@ -12,7 +12,8 @@ sleep 10
 ps axu | grep nsd
 # copy to make sure we stop it from extending while we grep.
 cp log log2
-pids=`cat log2 | sed -e 's/^.*nsd\[\([0-9]*\)\]:.*$/\1/' | sort -u`
+# nsd main xfrd load old-main dnstap_collector
+pids=`cat log2 | sed -e 's/^.*nsd\[\([0-9]*\)\]:.*$/\1/' -e 's/^.*main\[\([0-9]*\)\]:.*$/\1/' -e 's/^.*xfrd\[\([0-9]*\)\]:.*$/\1/' -e 's/^.*load\[\([0-9]*\)\]:.*$/\1/' -e 's/^.*old-main\[\([0-9]*\)\]:.*$/\1/' -e 's/^.*dnstap_collector\[\([0-9]*\)\]:.*$/\1/' | sort -u`
 echo $pids
 
 tail -1 log

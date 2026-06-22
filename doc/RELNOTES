@@ -36,6 +36,7 @@ BUG FIXES:
 	  (@TristanInSec) from Talence Security for the report.
 	- More robust removing of RRs from an IXFR processing.
 	  Thanks zhangph for reporting this issue
+	- Fix unit test for stopmany for process role logs.
 
 4.14.2
 ================
