@@ -2740,6 +2740,12 @@ xfrd_handle_notify_and_start_xfr(xfrd_zone_type* zone, xfrd_soa_type* soa)
 	}
 }
 
+struct xfrd_zone*
+xfrd_find_zone(xfrd_state_type* xfrd, const dname_type* dname)
+{
+	return (xfrd_zone_type*)rbtree_search(xfrd->zones, dname);
+}
+
 void
 xfrd_handle_passed_packet(buffer_type* packet,
 	int acl_num, int acl_num_xfr)
