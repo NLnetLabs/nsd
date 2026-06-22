@@ -34,6 +34,8 @@ BUG FIXES:
 	  storage to retrieve wrong information. Later data would overwrite it
 	  so it did not cause observable trouble. Thanks to Tristan Madani
 	  (@TristanInSec) from Talence Security for the report.
+	- More robust removing of RRs from an IXFR processing.
+	  Thanks zhangph for reporting this issue
 
 4.14.2
 ================
