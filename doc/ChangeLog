@@ -1,3 +1,8 @@
+22 Jun 2026: Willem
+	- Fix notify and zone transfer processing for malformed SOA records,
+	  with a short rdata content. It stops an assertion failure. Thanks to
+	  Tristan Madani (@TristanInSec) from Talence Security for the report.
+
 18 Jun 2026: Willem
 	- Fix overflow for NSEC3 zones with 255-octet name
 	  Thanks to Haruki Oyama (Waseda University) for the report, and
