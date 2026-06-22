@@ -1629,6 +1629,9 @@ xfrd_udp_read_packet(buffer_type* packet, int fd, struct sockaddr* src,
 		log_msg(LOG_ERR, "xfrd: recvfrom failed: %s",
 			strerror(errno));
 		return 0;
+	} else if(received < QHEADERSZ) {
+		log_msg(LOG_ERR, "xfrd: UDP packet too small");
+		return 0;
 	}
 	buffer_set_limit(packet, received);
 	return 1;
