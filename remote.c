@@ -2494,11 +2494,21 @@ do_del_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg) {
 	}
 	RBTREE_FOR(zone, struct zone_options*, xfrd->nsd->options->zone_options)
 	{
+		xfrd_zone_type* xzone;
 		if(acl_contains_tsig_key(zone->pattern->allow_notify, arg) ||
 		   acl_contains_tsig_key(zone->pattern->notify, arg) ||
 		   acl_contains_tsig_key(zone->pattern->request_xfr, arg) ||
 		   acl_contains_tsig_key(zone->pattern->provide_xfr, arg) ||
 		   acl_contains_tsig_key(zone->pattern->allow_query, arg)) {
+			if(!ssl_printf(ssl, "zone %s uses key %s\n",
+				zone->name, arg))
+				return;
+			used_key = 1;
+			break;
+		}
+		xzone = xfrd_find_zone(xfrd, (dname_type*)zone->node.key);
+		if(xzone && xzone->latest_xfr &&
+			xzone->latest_xfr->tsig.key == key_opt->tsig_key) {
 			if(!ssl_printf(ssl, "zone %s uses key %s\n",
 				zone->name, arg))
 				return;
