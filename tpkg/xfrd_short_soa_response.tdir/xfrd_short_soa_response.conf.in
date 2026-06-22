@@ -1,0 +1,12 @@
+server:
+	logfile: "nsd.log"
+	xfrdfile: xfrd.state
+	zonesdir: ""
+	zonelistfile: "zone.list"
+	interface: 127.0.0.1
+
+zone:
+	name: victim
+	allow-notify: 127.0.0.0/8 NOKEY
+	request-xfr: UDP 127.0.0.1@@LDNS_TESTNS_PORT@ NOKEY
+

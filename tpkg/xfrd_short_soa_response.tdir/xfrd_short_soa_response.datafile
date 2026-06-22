@@ -1,0 +1,28 @@
+$ORIGIN victim.
+$TTL 300
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+MATCH TCP
+REPLY QUERY
+REPLY NOERROR
+REPLY AA AD
+ADJUST copy_id          ; copy_id copies the ID from the query to the answer.
+SECTION QUESTION
+@   IN  AXFR
+SECTION ANSWER
+@   IN  SOA ns1 admin 1 5 5 3600 300
+@   IN  NS  ns1.victim.
+ns1 IN  A   172.20.0.10
+@   IN  SOA ns1 admin 1 5 5 3600 300
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH UDP
+ADJUST copy_id
+HEX_ANSWER_BEGIN
+ 00 00 00 00
+HEX_ANSWER_END
+ENTRY_END
