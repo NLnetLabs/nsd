@@ -21,7 +21,7 @@ jobs:
             packages: autoconf automake libtool flex bison fstrm protobuf-c
             # The libevent and openssl packages are already installed.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           persist-credentials: false
