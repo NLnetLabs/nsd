@@ -2110,7 +2110,15 @@ task_process_add_zone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 		return;
 	}
 	/* create zone */
+#ifdef NSEC3
+	nsec3_superzone_clear_for_apex(nsd->db, zdname);
+#endif
 	z = find_or_create_zone(nsd->db, zdname, nsd->options, zname, pname);
+#ifdef NSEC3
+	/* If no z, it reinstates the content, if z created, it creates
+	 * the content around the new zone apex (created with zone create). */
+	nsec3_superzone_precompile_for_apex(nsd->db, zdname);
+#endif
 	if(!z) {
 		region_recycle(nsd->db->region, (void*)zdname,
 			dname_total_size(zdname));
@@ -2139,6 +2147,7 @@ task_process_del_zone(struct nsd* nsd, struct task_list_d* task)
 		return;
 
 #ifdef NSEC3
+	nsec3_superzone_clear_for_apex(nsd->db, task->zname);
 	nsec3_clear_precompile(nsd->db, zone);
 	zone->nsec3_param = NULL;
 #endif
@@ -2147,6 +2156,9 @@ task_process_del_zone(struct nsd* nsd, struct task_list_d* task)
 	/* remove from zonetree, apex, soa */
 	zopt = zone->opts;
 	namedb_zone_delete(nsd->db, zone);
+#ifdef NSEC3
+	nsec3_superzone_precompile_for_apex(nsd->db, task->zname);
+#endif
 	/* remove from options (zone_list already edited by xfrd) */
 	zone_options_delete(nsd->options, zopt);
 }

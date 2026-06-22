@@ -409,6 +409,89 @@ hash_tree_clear(rbtree_type* tree)
 	tree->root = RBTREE_NULL;
 }
 
+/* Clear nsec3 precompile for walked to domain */
+static void
+nsec3_clear_precompile_walk(struct namedb* db, zone_type* zone,
+	domain_type* walk)
+{
+	if(walk->nsec3) {
+		if(nsec3_condition_hash(walk, zone)) {
+			walk->nsec3->nsec3_node.key = NULL;
+			walk->nsec3->nsec3_cover = NULL;
+			walk->nsec3->nsec3_wcard_child_cover = NULL;
+			walk->nsec3->nsec3_is_exact = 0;
+			if (walk->nsec3->hash_wc) {
+				region_recycle(db->domains->region,
+					walk->nsec3->hash_wc,
+					sizeof(nsec3_hash_wc_node_type));
+				walk->nsec3->hash_wc = NULL;
+			}
+		}
+		if(nsec3_condition_dshash(walk, zone)) {
+			walk->nsec3->nsec3_ds_parent_cover = NULL;
+			walk->nsec3->nsec3_ds_parent_is_exact = 0;
+			if (walk->nsec3->ds_parent_hash) {
+				region_recycle(db->domains->region,
+					walk->nsec3->ds_parent_hash,
+					sizeof(nsec3_hash_node_type));
+				walk->nsec3->ds_parent_hash = NULL;
+			}
+		}
+	}
+}
+
+/* Find the zone above apex (that is the apex of a zone), NULL if none. */
+static struct zone*
+find_superzone_of(struct namedb* db, const dname_type* apex)
+{
+	struct domain* apex_domain = domain_table_find(db->domains, apex);
+	if(apex_domain && apex_domain->parent)
+		return domain_find_zone(db, apex_domain->parent);
+	return NULL;
+}
+
+void
+nsec3_superzone_clear_for_apex(struct namedb* db, const dname_type* apex)
+{
+	domain_type* apex_domain, *walk;
+	struct zone* zone; /* the super zone of apex */
+	zone = find_superzone_of(db, apex);
+	if(!zone) return; /* no super zone above the apex */
+	if(!zone->nsec3_param) return; /* super is not an NSEC3 zone */
+
+	apex_domain = domain_table_find(db->domains, apex);
+	if(!domain_is_subdomain(apex_domain, zone->apex))
+		return; /* robustness check */
+	walk = apex_domain;
+	while(walk && domain_is_subdomain(walk, apex_domain)) {
+		if(walk->nsec3) {
+			if(nsec3_condition_hash(walk, zone)) {
+				zone_del_domain_in_hash_tree(zone->nsec3tree,
+					&walk->nsec3->nsec3_node);
+				if(walk->nsec3->hash_wc) {
+					zone_del_domain_in_hash_tree(
+						zone->hashtree,
+						&walk->nsec3->hash_wc->hash.node);
+					zone_del_domain_in_hash_tree(
+						zone->wchashtree,
+						&walk->nsec3->hash_wc->wc.node);
+				}
+			}
+			if(nsec3_condition_dshash(walk, zone)) {
+				if(walk->nsec3->ds_parent_hash) {
+					zone_del_domain_in_hash_tree(zone->dshashtree,
+						&walk->nsec3->ds_parent_hash->node);
+				}
+			}
+		}
+		nsec3_clear_precompile_walk(db, zone, walk);
+		walk = domain_next(walk);
+	}
+	/* clear nsec3_last if that was cleared */
+	zone->nsec3_last = ((zone->nsec3tree && rbtree_last(zone->nsec3tree))?
+		(domain_type*)rbtree_last(zone->nsec3tree)->key:NULL);
+}
+
 void
 nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 {
@@ -425,30 +508,7 @@ nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 	/* wipe precompile */
 	walk = zone->apex;
 	while(walk && domain_is_subdomain(walk, zone->apex)) {
-		if(walk->nsec3) {
-			if(nsec3_condition_hash(walk, zone)) {
-				walk->nsec3->nsec3_node.key = NULL;
-				walk->nsec3->nsec3_cover = NULL;
-				walk->nsec3->nsec3_wcard_child_cover = NULL;
-				walk->nsec3->nsec3_is_exact = 0;
-				if (walk->nsec3->hash_wc) {
-					region_recycle(db->domains->region,
-						walk->nsec3->hash_wc,
-						sizeof(nsec3_hash_wc_node_type));
-					walk->nsec3->hash_wc = NULL;
-				}
-			}
-			if(nsec3_condition_dshash(walk, zone)) {
-				walk->nsec3->nsec3_ds_parent_cover = NULL;
-				walk->nsec3->nsec3_ds_parent_is_exact = 0;
-				if (walk->nsec3->ds_parent_hash) {
-					region_recycle(db->domains->region,
-						walk->nsec3->ds_parent_hash,
-						sizeof(nsec3_hash_node_type));
-					walk->nsec3->ds_parent_hash = NULL;
-				}
-			}
-		}
+		nsec3_clear_precompile_walk(db, zone, walk);
 		walk = domain_next(walk);
 	}
 	zone->nsec3_last = NULL;
@@ -660,6 +720,46 @@ nsec3_precompile_nsec3rr(namedb_type* db, struct domain* domain,
 	}
 }
 
+/* nsec3 precompile for walked to domain */
+static void
+nsec3_precompile_walk(struct namedb* db, zone_type* zone, domain_type* walk,
+	struct region* tmpregion)
+{
+	if(nsec3_condition_hash(walk, zone)) {
+		nsec3_precompile_domain(db, walk, zone, tmpregion);
+		region_free_all(tmpregion);
+	}
+	if(nsec3_condition_dshash(walk, zone))
+		nsec3_precompile_domain_ds(db, walk, zone);
+}
+
+void
+nsec3_superzone_precompile_for_apex(struct namedb* db, const dname_type* apex)
+{
+	region_type* tmpregion;
+	domain_type* apex_domain, *walk;
+	struct zone* zone; /* the super zone of apex */
+	zone = find_superzone_of(db, apex);
+	if(!zone) return; /* no super zone above the apex */
+	if(!zone->nsec3_param) return; /* super is not an NSEC3 zone */
+
+	apex_domain = domain_table_find(db->domains, apex);
+	if(!domain_is_subdomain(apex_domain, zone->apex))
+		return; /* robustness check */
+	tmpregion = region_create(xalloc, free);
+	for(walk=apex_domain; walk && domain_is_subdomain(walk, apex_domain);
+		walk = domain_next(walk)) {
+		if(nsec3_in_chain_count(walk, zone) != 0) {
+			nsec3_precompile_nsec3rr(db, walk, zone);
+		}
+	}
+	for(walk=apex_domain; walk && domain_is_subdomain(walk, apex_domain);
+		walk = domain_next(walk)) {
+		nsec3_precompile_walk(db, zone, walk, tmpregion);
+	}
+	region_destroy(tmpregion);
+}
+
 void
 nsec3_precompile_newparam(namedb_type* db, zone_type* zone)
 {
@@ -679,12 +779,7 @@ nsec3_precompile_newparam(namedb_type* db, zone_type* zone)
 	/* hash and precompile zone */
 	for(walk=zone->apex; walk && domain_is_subdomain(walk, zone->apex);
 		walk = domain_next(walk)) {
-		if(nsec3_condition_hash(walk, zone)) {
-			nsec3_precompile_domain(db, walk, zone, tmpregion);
-			region_free_all(tmpregion);
-		}
-		if(nsec3_condition_dshash(walk, zone))
-			nsec3_precompile_domain_ds(db, walk, zone);
+		nsec3_precompile_walk(db, zone, walk, tmpregion);
 		if(++c % ZONEC_PCT_COUNT == 0 && time(NULL) > s + ZONEC_PCT_TIME) {
 			s = time(NULL);
 			VERBOSITY(1, (LOG_INFO, "nsec3 %s %d %%",
