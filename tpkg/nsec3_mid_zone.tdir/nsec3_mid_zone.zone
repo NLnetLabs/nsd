@@ -1,0 +1,5 @@
+catalog.tld. 345600 IN SOA ns0.example.org. root.example.com. 1 3600 28800 2419200 3600
+catalog.tld. NS ns.catalog.tld.
+ns.catalog.tld. A 192.0.2.1
+version.catalog.tld. TXT "2"
+aaaaaaaa.zones.catalog.tld. PTR v.

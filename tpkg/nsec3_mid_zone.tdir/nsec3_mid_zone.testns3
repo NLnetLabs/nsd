@@ -1,0 +1,36 @@
+#!
+# premade query answers
+$TTL 3600
+
+# reply IXFR request, for catalog.tld.
+$ORIGIN catalog.tld.
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=2
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root.example.com. 2 3600 28800 2419200 3600
+aaaaaaaa.zones PTR v.
+@ 345600 IN SOA ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+# nothing added
+@ 345600 IN SOA ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request, for mid.v.
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=1
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+mid.v. IN IXFR
+SECTION ANSWER
+mid.v. 345600 IN SOA ns0.example.org. root.mid.v. 2 3600 28800 2419200 3600
+mid.v. 345600 IN SOA ns0.example.org. root.mid.v. 1 3600 28800 2419200 3600
+cut.mid.v. A 10.0.0.1
+mid.v. 345600 IN SOA ns0.example.org. root.mid.v. 2 3600 28800 2419200 3600
+# nothing added
+mid.v. 345600 IN SOA ns0.example.org. root.mid.v. 2 3600 28800 2419200 3600
+ENTRY_END

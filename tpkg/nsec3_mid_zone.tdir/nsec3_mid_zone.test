@@ -1,0 +1,74 @@
+# #-- nsec3_mid_zone.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+# test with zone transfer
+wait_logfile nsd.log "zone v serial 0 is updated to 1" 10
+echo ""
+echo "> dig v."
+dig @127.0.0.1 -p $TPKG_PORT v. SOA > cur
+cat cur
+if grep "root.v" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# the server now has the catalog zone, and v. (nsec3 zone).
+# update catalog zone.
+echo "> move to testns2"
+echo ""; echo "testns.log"; cat testns.log
+kill_pid $TESTNS_PID
+ldns-testns -p $TESTNS_PORT nsec3_mid_zone.testns2 >testns.log 2>&1 &
+TESTNS_PID=$!
+echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
+wait_ldns_testns_up testns.log
+dig @127.0.0.1 -p $TPKG_PORT +opcode=notify catalog.tld. SOA
+wait_logfile nsd.log "zone mid.v serial 0 is updated to 1" 10
+
+echo "> dig mid.v."
+dig @127.0.0.1 -p $TPKG_PORT mid.v. SOA > cur
+cat cur
+if grep "root.mid.v" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# the server now has the catalog zone, and v. (nsec3 zone). and mid.v.
+# update catalog zone.
+echo "> move to testns3"
+echo ""; echo "testns.log"; cat testns.log
+kill_pid $TESTNS_PID
+ldns-testns -p $TESTNS_PORT nsec3_mid_zone.testns3 >testns.log 2>&1 &
+TESTNS_PID=$!
+echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
+wait_ldns_testns_up testns.log
+dig @127.0.0.1 -p $TPKG_PORT +opcode=notify catalog.tld. SOA
+wait_logfile nsd.log "zone catalog.tld. serial 2 is updated to 3" 10
+sleep 2
+
+# update mid.v.
+dig @127.0.0.1 -p $TPKG_PORT +opcode=notify mid.v. SOA
+wait_logfile nsd.log "zone mid.v serial 1 is updated to 2" 10
+
+# test if server still up
+echo "> dig mid.v."
+dig @127.0.0.1 -p $TPKG_PORT mid.v. SOA > cur
+cat cur
+if grep "root.mid.v" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo "OK"
+exit 0

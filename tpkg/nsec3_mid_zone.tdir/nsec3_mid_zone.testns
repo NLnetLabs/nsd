@@ -1,0 +1,22 @@
+#!
+# premade query answers
+$TTL 3600
+
+# reply AXFR request for v.
+$ORIGIN v.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN AXFR
+SECTION ANSWER
+v. 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+v. NS ns.v.
+v. NSEC3PARAM 1 0 0 -
+ns.v. A 192.0.2.1
+cut.mid.v. NS ns1.example.com.
+# v. -> l2re2oa26blpc63s8ui2sj3qvkgua8hr.
+l2re2oa26blpc63s8ui2sj3qvkgua8hr.v. NSEC3 1 0 0 - l2re2oa26blpc63s8ui2sj3qvkgua8hr SOA NS NSEC3PARAM
+@ 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+ENTRY_END
