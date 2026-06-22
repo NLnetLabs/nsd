@@ -1,4 +1,10 @@
 22 Jun 2026: Willem
+	- Fix that wrong buffer position in IXFR for the first SOA causes the
+	  storage to retrieve wrong information. Later data would overwrite it
+	  so it did not cause observable trouble. Thanks to Tristan Madani
+	  (@TristanInSec) from Talence Security for the report.
+
+22 Jun 2026: Willem
 	- Fix notify and zone transfer processing for malformed SOA records,
 	  with a short rdata content. It stops an assertion failure. Thanks to
 	  Tristan Madani (@TristanInSec) from Talence Security for the report.
