@@ -1,0 +1,30 @@
+# #-- catalog_long_consumer.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+# test with zone transfer
+# it fetches the consumer catalog zone.
+# the new zone is attempted to get added.
+# later, test if the server is still up.
+wait_logfile nsd.log "zone xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy.zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. serial 0 is updated to 1" 10
+wait_logfile nsd.log "zone member.example serial 0 is updated to 1" 10
+
+# test that server is up
+echo ""
+echo "> dig version.server CH TXT"
+dig @127.0.0.1 -p $TPKG_PORT version.server. CH TXT > cur
+cat cur
+if grep "NSD" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo "OK"
+exit 0

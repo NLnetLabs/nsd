@@ -1,0 +1,31 @@
+#!
+# premade query answers
+
+$ORIGIN xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy.zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.
+$TTL 3600
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN AXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+@ 3600 IN NS ns1
+version 0 IN TXT "2"
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu.zones 0 IN PTR member.example.
+@ 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+member.example. IN AXFR
+SECTION ANSWER
+member.example. 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+www.member.example. IN A 192.0.2.1
+member.example. 345600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+ENTRY_END
