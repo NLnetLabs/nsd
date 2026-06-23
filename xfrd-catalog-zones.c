@@ -582,6 +582,7 @@ retry_adding:
 		int valid_group_values;
 		struct pattern_options *pattern = NULL;
 		struct catalog_member_zone* to_add;
+		const dname_type* group_dname;
 
 		if (domain_dname(member_id)->label_count > dname->label_count+2
 		||  !(rrset = domain_find_rrset(member_id, zone, TYPE_PTR)))
@@ -610,8 +611,12 @@ retry_adding:
 
 		valid_group_values = 0;
 		/* Lookup group.<member_id> TXT for matching patterns  */
-		if(!namedb_lookup(xfrd->nsd->db, label_plus_dname("group",
-						domain_dname(member_id)),
+		group_dname = label_plus_dname("group",
+			domain_dname(member_id));
+		/* If group_dname is NULL, then the group name is too long,
+		 * and group properties are skipped for this member. */
+		if(!group_dname
+		|| !namedb_lookup(xfrd->nsd->db, group_dname,
 					&group, &closest_encloser)
 		|| !(rrset = domain_find_rrset(group, zone, TYPE_TXT))) {
 			; /* pass */
