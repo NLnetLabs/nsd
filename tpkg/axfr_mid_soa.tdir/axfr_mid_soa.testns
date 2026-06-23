@@ -1,0 +1,21 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply AXFR request
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN AXFR
+SECTION ANSWER
+# there is a SOA record in the middle of the AXFR.
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+b	3600	IN	A	10.0.0.1
+@ 345600 IN SOA ns0.example.org. root 99 3600 28800 2419200 3600
+c	3600	IN	A	10.0.0.3
+@ 345600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+ENTRY_END
