@@ -2117,6 +2117,17 @@ xfrd_xfr_check_rrs(xfrd_zone_type* zone, buffer_type* packet, size_t count,
 				/* serial ok, update tmp serial */
 				tmp_serial = ntohl(soa->serial);
 			}
+			else {
+				/* AXFR mode, rr_count>1, serial!=new_serial,
+				 * RFC 5936 s2.2 forbids SOA in a non-terminal
+				 * position with a different serial. Reject
+				 * the stream. */
+				DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s axfr "
+					"unexpected mid-stream SOA serial %u",
+					zone->apex_str,
+					(unsigned)ntohl(soa->serial)));
+				return 0; /* SOA in middle of AXFR */
+			}
 		}
 		buffer_set_position(packet, mempos);
 		buffer_skip(packet, rrlen);

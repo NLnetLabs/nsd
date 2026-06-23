@@ -1367,6 +1367,14 @@ apply_ixfr(nsd_type* nsd, FILE *in, uint32_t serialno,
 				   just before soa - so it gets deleted and added too */
 				DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s IXFRswapdel count %d, ax %d, delmode %d",
 					domain_to_string(zone->apex), *rr_count, *is_axfr, *delete_mode));
+			} else if(*is_axfr) {
+				if(!(seq_nr == seq_total-1 && i == ancount-1)) {
+					/* AXFR mode: a SOA at rr_count>=2
+					 * should not exist. Skip it rather
+					 * than passing it to add_RR. */
+					buffer_skip(packet, rrlen);
+					continue;
+				}
 			}
 		} else {
 			if (*rr_count == 0) {
