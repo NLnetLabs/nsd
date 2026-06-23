@@ -1,0 +1,25 @@
+# #-- catalog_long_producer.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+CONTROLPORT=`expr $RND_PORT + 1`
+
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+sed -e "s/TESTNS_PORT/"$TESTNS_PORT"/" \
+	-e "s/CONTROLPORT/"$CONTROLPORT"/" \
+	< catalog_long_producer.conf > edit.conf
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export CONTROLPORT=$CONTROLPORT" >> .tpkg.var.test
+
+$TPKG_NSD -c edit.conf -u "" -p $TPKG_PORT
+wait_nsd_up nsd.log
