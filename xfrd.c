@@ -2113,6 +2113,12 @@ xfrd_xfr_check_rrs(xfrd_zone_type* zone, buffer_type* packet, size_t count,
 		buffer_set_position(packet, mempos);
 		buffer_skip(packet, rrlen);
 	}
+	if(buffer_position(packet) != buffer_limit(packet)) {
+		DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr bad, "
+			"trailing data %d bytes", zone->apex_str,
+			(int)(buffer_limit(packet)-buffer_position(packet))));
+		return 0; /* trailing data */
+	}
 	/* packet seems to have a valid DNS RR structure */
 	return 1;
 }
