@@ -204,6 +204,23 @@ check_apex_soa(namedb_type* namedb, zone_type *zone, int nolog)
 	nsec3_hash_and_store(zone, dname, h);
 	tmpregion = region_create(xalloc, free);
 	hashed_apex = nsec3_b32_create(tmpregion, zone, h);
+	if(!hashed_apex) {
+		if(!nolog) {
+			if((int)domain_dname(zone->apex)->name_size >= 223) {
+				log_msg( LOG_ERR
+				       , "apex %s too long for NSEC3 hash label"
+				       , dname_to_string(
+					       domain_dname(zone->apex), NULL));
+			} else {
+				log_msg( LOG_ERR
+				       , "cannot create NSEC3 hash label at %s"
+				       , dname_to_string(
+					       domain_dname(zone->apex), NULL));
+			}
+		}
+		region_destroy(tmpregion);
+		return NULL;
+	}
 	domain = domain_table_find(namedb->domains, hashed_apex);
 	if(!domain) {
 		if(!nolog) {
