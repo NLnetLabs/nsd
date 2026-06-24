@@ -1546,6 +1546,8 @@ static void zone_ixfr_remove_oldest(struct zone_ixfr* ixfr)
 {
 	if(ixfr->data->count > 0) {
 		struct ixfr_data* oldest = ixfr_data_first(ixfr);
+		if(!oldest)
+			return; /* oldest_serial is stale, skip eviction */
 		if(ixfr->oldest_serial == oldest->oldserial) {
 			if(ixfr->data->count > 1) {
 				struct ixfr_data* next = ixfr_data_next(ixfr, oldest);
