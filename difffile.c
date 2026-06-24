@@ -735,6 +735,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		domain_table_type *temptable;
 		int32_t rrnum, code;
 		struct rr *rr;
+		int was_rrsig_dnskey = 0;
 		temptable = domain_table_create(temp_region);
 		/* This will ensure that the dnames in rdata are
 		 * normalized, conform RFC 4035, section 6.2
@@ -774,6 +775,10 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		/* process triggers for RR deletions */
 		nsec3_delete_rr_trigger(db, rrset->rrs[rrnum], zone);
 #endif
+		if(domain == zone->apex && type == TYPE_RRSIG &&
+			rr_rrsig_type_covered(rrset->rrs[rrnum])==TYPE_DNSKEY)
+			was_rrsig_dnskey = 1;
+
 		/* lower usage (possibly deleting other domains, and thus
 		 * invalidating the current RR's domain pointers) */
 		rr_lower_usage(db, rrset->rrs[rrnum]);
@@ -823,6 +828,8 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			region_recycle(db->region, rrset_orig,
 				sizeof(rrset_type) +
 				rrset_orig->rr_count*sizeof(rr_type*));
+#endif /* PACKED_STRUCTS */
+			rrset->rr_count --;
 			if(domain == zone->apex) {
 				/* Because the rrset struct is reallocated,
 				 * a pointer to it may need to be set again. */
@@ -830,10 +837,23 @@ delete_RR(namedb_type* db, const dname_type* dname,
 					zone->soa_rrset = rrset;
 				} else if(type == TYPE_NS) {
 					zone->ns_rrset = rrset;
+				} else if(type == TYPE_RRSIG
+					&& was_rrsig_dnskey) {
+					/* See if the zone is still signed */
+					unsigned i;
+					int has_dnskey_rrsig = 0;
+					for (i = 0; i < rrset->rr_count; i++) {
+						if(rr_rrsig_type_covered(
+							rrset->rrs[i])==
+							TYPE_DNSKEY){
+							has_dnskey_rrsig = 1;
+							break;
+						}
+					}
+					if(!has_dnskey_rrsig)
+						zone->is_secure = 0;
 				}
 			}
-#endif /* PACKED_STRUCTS */
-			rrset->rr_count --;
 #ifdef NSEC3
 			/* for type nsec3, the domain may have become a
 			 * 'normal' domain with its remaining data now */
