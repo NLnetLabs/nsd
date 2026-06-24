@@ -1,0 +1,125 @@
+# #-- ixfr_del_rrsig_dnskey.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+# test with zone transfer
+# The zone (serial 1) starts as AXFR of unsigned zone.
+wait_logfile nsd.log "info: zone example.com. serial 0 is updated to 1" 10
+echo ""
+echo "> dig example.com SOA (serial 1)"
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA > cur
+cat cur
+if grep "root.example.com. 1 " cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# The zone (serial 2) has IXFR that adds RRSIG(SOA), DNSKEY, RRSIG(DNSKEY),
+# it is a signed zone.
+# change testns
+echo ""
+echo "> ldns-testns testns2"
+cat testns.log
+kill_pid $TESTNS_PID
+ldns-testns -p $TESTNS_PORT ixfr_del_rrsig_dnskey.testns2 >testns.log 2>&1 &
+TESTNS_PID=$!
+echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
+wait_ldns_testns_up testns.log
+
+# notify for version 2.
+echo ""
+echo "> notify example.com"
+dig @127.0.0.1 -p $TPKG_PORT +opcode=notify example.com. SOA > cur
+cat cur
+wait_logfile nsd.log "info: zone example.com. serial 1 is updated to 2" 10
+
+echo ""
+echo "> dig example.com SOA (serial 2)"
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA > cur
+cat cur
+if grep "root.example.com. 2 " cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# The zone (serial 3) has IXFR that deletes RRSIG(DNSKEY)
+# change testns
+echo ""
+echo "> ldns-testns testns3"
+cat testns.log
+kill_pid $TESTNS_PID
+ldns-testns -p $TESTNS_PORT ixfr_del_rrsig_dnskey.testns3 >testns.log 2>&1 &
+TESTNS_PID=$!
+echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
+wait_ldns_testns_up testns.log
+
+# notify for version 3.
+echo ""
+echo "> notify example.com"
+dig @127.0.0.1 -p $TPKG_PORT +opcode=notify example.com. SOA > cur
+cat cur
+wait_logfile nsd.log "info: zone example.com. serial 2 is updated to 3" 10
+
+echo ""
+echo "> dig example.com SOA (serial 3)"
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA > cur
+cat cur
+if grep "root.example.com. 3 " cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# The zone (serial 4) has AXFR with unsigned zone.
+# change testns
+echo ""
+echo "> ldns-testns testns4"
+cat testns.log
+kill_pid $TESTNS_PID
+ldns-testns -p $TESTNS_PORT ixfr_del_rrsig_dnskey.testns4 >testns.log 2>&1 &
+TESTNS_PID=$!
+echo "export TESTNS_PID=$TESTNS_PID" >> .tpkg.var.test
+wait_ldns_testns_up testns.log
+
+# notify for version 4.
+echo ""
+echo "> notify example.com"
+dig @127.0.0.1 -p $TPKG_PORT +opcode=notify example.com. SOA > cur
+cat cur
+wait_logfile nsd.log "info: zone example.com. serial 3 is updated to 4" 10
+
+echo ""
+echo "> dig example.com SOA (serial 4)"
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA > cur
+cat cur
+if grep "root.example.com. 4 " cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# test that server is up
+echo ""
+echo "> dig example.com"
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA > cur
+cat cur
+if grep "root.example.com." cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo "OK"
+exit 0

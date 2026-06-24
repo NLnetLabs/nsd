@@ -1,0 +1,21 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply IXFR request
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=2
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 3600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+@ 3600 IN SOA ns0.example.org. root 2 3600 28800 2419200 3600
+example.com.	3600	IN	RRSIG	DNSKEY 13 2 3600 20260722005000 20260624005000 43985 example.com. Q9qROkFA5pi2e3/SVB1AMNz5/Nc1IUYQUFv+2vK6x4URX7zkHZ9EYGTdQposxNCT6UkK9uMZRKEe6j/LPMZU3Q==
+@ 3600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+# no additions
+@ 3600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+ENTRY_END
