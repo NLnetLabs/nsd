@@ -1,0 +1,35 @@
+# #-- nsec3_no_space.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+PRE="../.."
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+(  rm -f crash.txt \
+&& $TPKG_NSD -c nsec3_no_space.conf -u "" -p $TPKG_PORT \
+        -P $TPKG_NSD_PID -V 6 -l nsd.log -d \
+|| echo "NSD crashed" > crash.txt ) &
+sleep 1
+if [ -e crash.txt ]; then
+        echo "NSD tried to NSEC3 prehash even though the apex didn't leave space for NSEC3 owner names"
+        exit 1
+fi
+wait_nsd_up nsd.log
+echo "Do some queries"
+dig @127.0.0.1 -p $TPKG_PORT something-else.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddd. TXT +dnssec +norec 2>&1 | tee nxdomain.txt
+
+dig @127.0.0.1 -p $TPKG_PORT something.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddd. A +dnssec +norec 2>&1 | tee nodata.txt
+
+dig @127.0.0.1 -p $TPKG_PORT something.wc.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddd. TXT +dnssec +norec 2>&1 | tee wildcard.txt
+
+# exit nsd
+NSD_PID=`cat $TPKG_NSD_PID`
+kill_pid $NSD_PID
+

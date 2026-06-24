@@ -1,0 +1,6 @@
+$ORIGIN aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddd.
+
+@ SOA . . 1 1800 900 7200 3600
+@ NSEC3PARAM 1 0 0 -
+something TXT "to query for"
+*.wc	TXT "something at the wildcard"
