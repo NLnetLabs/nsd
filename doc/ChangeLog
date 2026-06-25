@@ -1,5 +1,6 @@
 25 June 2026: Willem
 	- Merge the NSD version 4.14.3 security release branch into master.
+	- Continue with 4.14.4 for development
 
 24 June 2026: Willem
 	- Fix for CVE-2026-12244: A specially crafted SVCB RR can cause a heap
