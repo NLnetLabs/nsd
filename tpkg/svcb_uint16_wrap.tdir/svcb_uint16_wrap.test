@@ -1,0 +1,55 @@
+# #-- svcb_uint16_wrap.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+PRE="../.."
+
+if [ ! -e nsd_axfr.conf ]; then
+	echo "Trying to load zone with problematic SVCB instead of AXFR from ldns-testns"
+	$PRE/nsd-checkzone . svcb_uint16_wrap.problem-zone
+	if [ $? -eq 0 ]; then
+		echo "Zone with SVCB that wraps the uint16_t is loaded successfully"
+		echo "This version of NSD does not have the issue"
+		exit 0
+	else
+		echo "ERROR: Zone with SVCB that wraps the uint16_t could not be loaded"
+		echo "ERROR: This version of NSD does NOT have the issuei, yay!"
+		exit 1
+	fi
+fi
+
+# start NSD
+get_random_port 1
+TPKG_PORT=$RND_PORT
+
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+
+(  rm -f crash.txt \
+&& $TPKG_NSD -c nsd_axfr.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -V 6 -l nsd.log -d \
+|| echo "NSD crashed" > crash.txt ) &
+
+wait_nsd_up nsd.log
+sleep 1
+if [ -e crash.txt ]; then
+	echo "NSD could not handle out-of-bounds SVCB RR and crashed"
+	exit 1
+fi
+echo ""
+echo "NSD log:"
+cat nsd.log
+echo ""
+echo "Tranfer of zone with dig:"
+dig -p $TPKG_PORT @127.0.0.1 victim. AXFR
+echo ""
+sleep 1
+echo "Written out zone by NSD:"
+$PRE/nsd-control -c nsd_axfr.conf write
+cat svcb_uint16_wrap.zone
+NSD_PID=`cat $TPKG_NSD_PID`
+kill_pid $NSD_PID
+exit 0

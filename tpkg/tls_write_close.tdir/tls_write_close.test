@@ -1,0 +1,58 @@
+# #-- tls_write_close.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+# check the server is up
+dig @127.0.0.1 -p $TPKG_PORT soa example.com &> out
+cat out
+if grep "d.example.com" out; then
+	echo "OK"
+else
+	echo "Not OK"
+	exit 1
+fi
+
+# use DNS over TLS
+# but close the stream straight away if possible
+#
+if test -f `which nc` 2>&1 >/dev/null; then
+	echo "have nc"
+else
+	echo "do not have nc; skip this part"
+	exit 0
+fi
+
+# sends query but closes the ssl channel straight away.
+printf "\x00\x1d\x12\x34\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x03www\x07example\x00\x00\x01\x00\x01" | nc --ssl --send-only 127.0.0.1 $TPKG_PORT2
+
+# this is the failure:
+#main[1257866]: warning: server 1257887 died unexpectedly, restarting
+#main[1257866]: warning: process 1257887 terminated with status 134
+sleep 1
+echo ""
+tail nsd.log
+echo ""
+if grep "died unexpectedly" nsd.log; then
+	echo "server not OK"
+	exit 1
+fi
+if grep "terminated with status" nsd.log; then
+	echo "server not OK"
+	exit 1
+fi
+
+# check the server is up
+echo ""
+echo "> check server is up"
+dig @127.0.0.1 -p $TPKG_PORT soa example.com &> out
+cat out
+if grep "d.example.com" out; then
+	echo "OK"
+else
+	echo "Not OK"
+	exit 1
+fi
+
+exit 0

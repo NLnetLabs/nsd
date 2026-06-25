@@ -1,0 +1,5 @@
+$ORIGIN victim.test.
+$TTL 300
+@ SOA invalid. invalid. 1 3600 900 86400 60
+@ TXT "CONFIDENTIAL: only to be fetched with client cert"
+
