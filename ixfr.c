@@ -1624,7 +1624,7 @@ void zone_ixfr_add(struct zone_ixfr* ixfr, struct ixfr_data* data, int isnew,
 		ixfr_data_free(data);
 		return;
 	}
-	if(ixfr->data->count == 0) {
+	if(ixfr->data->count == 1) {
 		ixfr->oldest_serial = data->oldserial;
 		ixfr->newest_serial = data->oldserial;
 	} else if(isnew) {
