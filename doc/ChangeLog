@@ -14,6 +14,9 @@
 	  Also such records are not added from a transfer. This stops an
 	  assertion failure.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to disallow a SOA record in the middle of an AXFR. This stops an
+	  assertion failure.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 25 June 2026: Willem
 	- Merge the NSD version 4.14.3 security release branch into master.

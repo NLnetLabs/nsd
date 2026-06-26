@@ -52,6 +52,9 @@ BUG FIXES:
 	  Also such records are not added from a transfer. This stops an
 	  assertion failure.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to disallow a SOA record in the middle of an AXFR. This stops an
+	  assertion failure.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 4.14.3
 ================
