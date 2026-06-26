@@ -37,6 +37,9 @@ BUG FIXES:
 	- More robust removing of RRs from an IXFR processing.
 	  Thanks zhangph for reporting this issue
 	- Fix unit test for stopmany for process role logs.
+	- Fix nsd-control assoc_tsig, if that interrupts a zone transfer in
+	  progress, to not crash. It restarts the transfer from the primary.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 4.14.3
 ================
