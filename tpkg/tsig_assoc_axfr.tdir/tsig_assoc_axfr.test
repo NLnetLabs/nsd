@@ -28,5 +28,12 @@ else
 	exit 1
 fi
 
+$PRE/nsd-control -c edit.conf assoc_tsig example.net. k1
+# interrupts the zone transfer with the control command.
+if test $? -ne 0; then
+	echo "control command assoc_tsig for primary zone not OK"
+	exit 1
+fi
+
 echo "OK"
 exit 0

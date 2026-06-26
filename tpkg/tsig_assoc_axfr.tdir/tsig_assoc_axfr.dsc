@@ -10,6 +10,7 @@ Help:
 Pre: tsig_assoc_axfr.pre
 Post: tsig_assoc_axfr.post
 Test: tsig_assoc_axfr.test
-AuxFiles: tsig_assoc_axfr.conf, tsig_assoc_axfr.zone, tsig_assoc_axfr.testns
+AuxFiles: tsig_assoc_axfr.conf, tsig_assoc_axfr.zone, tsig_assoc_axfr.testns,
+	tsig_assoc_axfr.zone2
 Passed:
 Failure:
