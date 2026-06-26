@@ -43,6 +43,8 @@ BUG FIXES:
 	- Fix nsd-control del_tsig, if that interrupts a zone transfer in
 	  progress, to not crash. It does not delete the key, if in use.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix catalog producer zone with long name, so that it does not crash
+	  on that. Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 4.14.3
 ================
