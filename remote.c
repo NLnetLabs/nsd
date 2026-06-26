@@ -2439,7 +2439,7 @@ do_assoc_tsig(RES* ssl, xfrd_state_type* xfrd, char* arg)
 		if(xzone->next_master == -1)
 			xzone->next_master = xzone->master_num;
 		xfrd_set_refresh_now(xzone);
-	} else if(xzone->zone_handler.ev_fd != -1) {
+	} else if(xzone && xzone->zone_handler.ev_fd != -1) {
 		/* Also UDP can use the TSIG for signature. */
 		xfrd_udp_release(xzone);
 		if(xzone->next_master == -1)
