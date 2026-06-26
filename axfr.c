@@ -156,7 +156,6 @@ query_axfr(struct nsd *nsd, struct query *query, int wstats)
 	}
 
 	/* Add terminating SOA RR.  */
-	assert(query->axfr_zone->soa_rrset->rr_count == 1);
 	added = packet_encode_rr(query,
 				 query->axfr_zone->apex,
 				 query->axfr_zone->soa_rrset->rrs[0],

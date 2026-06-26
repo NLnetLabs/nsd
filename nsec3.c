@@ -488,7 +488,7 @@ nsec3_superzone_clear_for_apex(struct namedb* db, const dname_type* apex)
 		walk = domain_next(walk);
 	}
 	/* clear nsec3_last if that was cleared */
-	zone->nsec3_last = ((zone->nsec3tree && rbtree_last(zone->nsec3tree))?
+	zone->nsec3_last = ((zone->nsec3tree && rbtree_last(zone->nsec3tree) != RBTREE_NULL)?
 		(domain_type*)rbtree_last(zone->nsec3tree)->key:NULL);
 }
 
