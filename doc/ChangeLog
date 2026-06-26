@@ -8,8 +8,12 @@
 	- Fix catalog producer zone with long name, so that it does not crash
 	  on that. Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 	- Fix catalog consumer zone with long name for member unique label that
-	  is long, so that it does not crash on that. Thanks to Qifan Zhang,
-	  Palo Alto Networks, for the report.
+	  is long, so that it does not crash on that.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix that non-IN-class records cause a zone transfer to be rejected.
+	  Also such records are not added from a transfer. This stops an
+	  assertion failure.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 25 June 2026: Willem
 	- Merge the NSD version 4.14.3 security release branch into master.
