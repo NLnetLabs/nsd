@@ -30,6 +30,10 @@
 	- Fix for xfrd crash with too short response to a UDP SOA query
 	  Only for release builds and only when configured for XFR over UDP
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix that out-of-zone records are skipped from zone transfers.
+	  Otherwise such records could stick around after zone deletion and
+	  cause failures for DS queries.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 25 June 2026: Willem
 	- Merge the NSD version 4.14.3 security release branch into master.
