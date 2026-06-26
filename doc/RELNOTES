@@ -65,6 +65,9 @@ BUG FIXES:
 	  Thanks Qifan Zhang, Palo Alto Networks, for the report
 	- Fix to add hardening to zone_ixfr_remove_oldest, for IXFR processing.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix for xfrd crash with too short response to a UDP SOA query
+	  Only for release builds and only when configured for XFR over UDP
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 4.14.3
 ================
