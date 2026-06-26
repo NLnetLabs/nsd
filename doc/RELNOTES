@@ -63,6 +63,8 @@ BUG FIXES:
 	  domain name length >= 223 bytes, that have a NSEC3PARAM must not be
 	  prehashed, since the hashed owner name would not fit.
 	  Thanks Qifan Zhang, Palo Alto Networks, for the report
+	- Fix to add hardening to zone_ixfr_remove_oldest, for IXFR processing.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 4.14.3
 ================
