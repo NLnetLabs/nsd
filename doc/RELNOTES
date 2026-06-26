@@ -55,6 +55,10 @@ BUG FIXES:
 	- Fix to disallow a SOA record in the middle of an AXFR. This stops an
 	  assertion failure.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to set zone is_secure to false when IXFR removes RRSIG DNSKEY.
+	  This stops an assertion failure. Also fix soa and ns rrset change in
+	  IXFR when packed rrsets are disabled.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 4.14.3
 ================
