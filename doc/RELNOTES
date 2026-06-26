@@ -59,6 +59,10 @@ BUG FIXES:
 	  This stops an assertion failure. Also fix soa and ns rrset change in
 	  IXFR when packed rrsets are disabled.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to handle NSEC3 zones without space for hashes. Zones with a apex
+	  domain name length >= 223 bytes, that have a NSEC3PARAM must not be
+	  prehashed, since the hashed owner name would not fit.
+	  Thanks Qifan Zhang, Palo Alto Networks, for the report
 
 4.14.3
 ================
