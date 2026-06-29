@@ -2981,6 +2981,7 @@ unsigned getzonestatid(struct nsd_options* opt, struct zone_options* zopt)
 		return 0; /* no zone stats */
 	statname = config_cook_string(zopt, zopt->pattern->zonestats);
 
+	#ifdef USE_METRICS
 	/* warn when we will lossily change the zonestat name in metrics */
 	statname_valid = strdup(statname);
 	if(!statname_valid) {
@@ -2993,6 +2994,7 @@ unsigned getzonestatid(struct nsd_options* opt, struct zone_options* zopt)
 			statname, statname_valid);
 	}
 	free(statname_valid);
+	#endif /* USE_METRICS */
 
 	res = rbtree_search(opt->zonestatnames, statname);
 	if(res)
