@@ -91,7 +91,7 @@ void metrics_print_stats(struct evbuffer *buf, struct xfrd_state *xfrd,
  * @param value: the label value to edit.
  * @return 1 if any changes were needed, 0 if the value was already valid.
  */
-static int metrics_make_label_value_valid(char* value) {
+static inline int metrics_make_label_value_valid(char* value) {
 	int made_changes = 0;
 	char* s = value;
 	while(*s) {
