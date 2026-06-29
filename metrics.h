@@ -65,7 +65,7 @@ void daemon_metrics_attach(struct daemon_metrics* m, struct xfrd_state* xfrd);
  * Replace characters disallowed in Prometheus label values with '_'.
  *
  * According to [1], label values can be any UTF-8 characters, but backslash,
- * double-quote, and line feed must be escaped. We could escape them bad that
+ * double-quote, and line feed must be escaped. We could escape them but that
  * changes the length of the string, and in practice for zonestats names you
  * don't need these characters anyway so we just replace them.
  * [1]: https://prometheus.io/docs/instrumenting/exposition_formats/#comments-help-text-and-type-information>
