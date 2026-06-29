@@ -2019,6 +2019,7 @@ xfrd_xfr_check_rrs(xfrd_zone_type* zone, buffer_type* packet, size_t count,
 	struct rr* rr;
 	int32_t code;
 	domain_table_type* owners;
+	enum { DELETING_RRs = 0, ADDING_RRs } ixfr_state = DELETING_RRs;
 
 	for(i=0; i<count; ++i,++zone->latest_xfr->msg_rr_count)
 	{
@@ -2095,6 +2096,7 @@ xfrd_xfr_check_rrs(xfrd_zone_type* zone, buffer_type* packet, size_t count,
 				}
 				zone->latest_xfr->msg_old_serial = ntohl(soa->serial);
 				tmp_serial = ntohl(soa->serial);
+				ixfr_state = DELETING_RRs;
 			}
 			else if(ntohl(soa->serial) == zone->latest_xfr->msg_new_serial) {
 				/* saw another SOA of new serial. */
@@ -2118,9 +2120,18 @@ xfrd_xfr_check_rrs(xfrd_zone_type* zone, buffer_type* packet, size_t count,
 					return 0; /* middle serial decreases in IXFR */
 				}
 				if(ntohl(soa->serial) == tmp_serial) {
-					DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s xfr "
-						"serial duplicate not allowed", zone->apex_str));
-					return 0; /* middle serial is the same as the previous in IXFR */
+					if(ixfr_state == DELETING_RRs) {
+						DEBUG(DEBUG_XFRD,1, ( LOG_ERR, "xfrd: zone %s xfr serial duplicate "
+							  "not allowed for serial %"PRIu32" while %s",
+							  zone->apex_str, tmp_serial,
+							  ( ixfr_state == DELETING_RRs
+							  ? "deleting RRs" : "adding RRs")));
+						return 0; /* middle serial is the same as the previous in IXFR */
+					}
+					ixfr_state = DELETING_RRs;
+				} else {
+					assert(ntohl(soa->serial) > tmp_serial);
+					ixfr_state = ADDING_RRs;
 				}
 				/* serial ok, update tmp serial */
 				tmp_serial = ntohl(soa->serial);
