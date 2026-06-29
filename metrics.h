@@ -91,7 +91,21 @@ void metrics_print_stats(struct evbuffer *buf, struct xfrd_state *xfrd,
  * @param value: the label value to edit.
  * @return 1 if any changes were needed, 0 if the value was already valid.
  */
-int metrics_make_label_value_valid(char* value);
+static int metrics_make_label_value_valid(char* value) {
+	int made_changes = 0;
+	char* s = value;
+	while(*s) {
+		switch (*s) {
+			case '\\':
+			case '"':
+			case '\n':
+				*s = '_';
+				made_changes = 1;
+		}
+		s++;
+	}
+	return made_changes;
+}
 
 /**
  * Print zonestat metrics for a single zonestats object

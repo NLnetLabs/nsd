@@ -546,24 +546,6 @@ print_stat_block(struct evbuffer *buf, struct nsdst* st, struct metrics_metric *
 }
 
 #ifdef USE_ZONE_STATS
-/** Change characters disallowed in Prometheus label values to underscores.
- * Return whether any changes were made. */
-int
-metrics_make_label_value_valid(char* value) {
-	int made_changes = 0;
-	char* s = value;
-	while(*s) {
-		switch (*s) {
-			case '\\':
-			case '"':
-			case '\n':
-				*s = '_';
-				made_changes = 1;
-		}
-		s++;
-	}
-	return made_changes;
-}
 
 void
 metrics_zonestat_print_one(struct evbuffer *buf, char *name,
