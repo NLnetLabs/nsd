@@ -1,5 +1,12 @@
 NSD RELEASE NOTES
 
+4.15.0
+================
+FEATURES:
+	- Merge #483 from ruuda: Improve Prometheus metrics: Move zonestats from
+	  metric name to label
+BUG FIXES:
+
 4.14.4
 ================
 FEATURES:
