@@ -7,7 +7,7 @@ Category:
 Component:
 CmdDepends: 
 Depends: 
-Help: tls_write_close.help
+Help:
 Pre: tls_write_close.pre
 Post: tls_write_close.post
 Test: tls_write_close.test

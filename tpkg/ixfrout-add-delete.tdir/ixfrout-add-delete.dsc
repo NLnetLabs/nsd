@@ -11,6 +11,6 @@ Help:
 Pre: ixfrout-add-delete.pre
 Post: ixfrout-add-delete.post
 Test: ixfrout-add-delete.test
-AuxFiles: ixfrout-add-delete.datafile, ixfrout-add-delete.conf, ixfrout-add-delete.script, ixfrout-add-delete.zone
+AuxFiles: ixfrout-add-delete.datafile, ixfrout-add-delete.conf, ixfrout-add-delete.zone
 Passed:
 Failure:
