@@ -123,35 +123,6 @@ get_cert_info(SSL* ssl, region_type* region, char** cert_serial,
     X509_free(cert);
 }
 
-static SSL_CTX*
-create_ssl_context()
-{
-	SSL_CTX *ctx;
-	unsigned char protos[] = { 3, 'd', 'o', 't' };
-	ctx = SSL_CTX_new(TLS_client_method());
-	if (!ctx) {
-		log_msg(LOG_ERR, "xfrd tls: Unable to create SSL ctxt");
-	}
-	else if (SSL_CTX_set_default_verify_paths(ctx) != 1) {
-		SSL_CTX_free(ctx);
-		log_msg(LOG_ERR, "xfrd tls: Unable to set default SSL verify paths");
-		return NULL;
-	}
-	/* Only trust 1.3 as per the specification */
-	else if (!SSL_CTX_set_min_proto_version(ctx, TLS1_3_VERSION)) {
-		SSL_CTX_free(ctx);
-		log_msg(LOG_ERR, "xfrd tls: Unable to set minimum TLS version 1.3");
-		return NULL;
-	}
-
-	if (SSL_CTX_set_alpn_protos(ctx, protos, sizeof(protos)) != 0) {
-		SSL_CTX_free(ctx);
-		log_msg(LOG_ERR, "xfrd tls: Unable to set ALPN protocols");
-		return NULL;
-	}
-	return ctx;
-}
-
 static int
 tls_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 {
@@ -169,16 +140,16 @@ tls_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 }
 
 static int
-setup_ssl(struct xfrd_tcp_pipeline* tp, struct xfrd_tcp_set* tcp_set, 
+setup_ssl(struct xfrd_tcp_pipeline* tp, SSL_CTX* ctx,
 		  const char* auth_domain_name)
 {
-	if (!tcp_set->ssl_ctx) {
+	if (!ctx) {
 		log_msg(LOG_ERR, "xfrd tls: No TLS CTX, cannot set up XFR-over-TLS");
 		return 0;
 	}
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: setting up TLS for tls_auth domain name %s", 
 						 auth_domain_name));
-	tp->ssl = SSL_new((SSL_CTX*)tcp_set->ssl_ctx);
+	tp->ssl = SSL_new(ctx);
 	if(!tp->ssl) {
 		log_msg(LOG_ERR, "xfrd tls: Unable to create TLS object");
 		return 0;
@@ -254,7 +225,100 @@ xfrd_pipe_cmp(const void* a, const void* b)
 	return (uintptr_t)x < (uintptr_t)y ? -1 : 1;
 }
 
-struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_cert_bundle, int tcp_max, int tcp_pipeline)
+#ifdef HAVE_TLS_1_3
+void
+xfrd_tls_auth_load(struct nsd_options* opts)
+{
+	unsigned char protos[] = { 3, 'd', 'o', 't' };
+	struct tls_auth_options* tls_auth;
+
+	RBTREE_FOR(tls_auth, struct tls_auth_options*, opts->tls_auths) {
+		tls_auth->ssl_ctx = SSL_CTX_new(TLS_client_method());
+		if (!tls_auth->ssl_ctx) {
+			log_msg(LOG_ERR, "xfrd tls: Unable to create SSL_CTX "
+			    "for tls-auth %s", tls_auth->name);
+			continue;
+		}
+		/* XoT requires TLS 1.3 or later */
+		if (!SSL_CTX_set_min_proto_version(tls_auth->ssl_ctx, TLS1_3_VERSION)) {
+			log_msg(LOG_ERR, "xfrd tls: Unable to set TLS 1.3 minimum "
+			    "for tls-auth %s", tls_auth->name);
+			SSL_CTX_free(tls_auth->ssl_ctx);
+			tls_auth->ssl_ctx = NULL;
+			continue;
+		}
+
+		/* XoT requires DoT-ALPN */
+		if (SSL_CTX_set_alpn_protos(tls_auth->ssl_ctx, protos, sizeof(protos)) != 0) {
+			log_msg(LOG_ERR, "xfrd tls: Unable to set ALPN protocols");
+			SSL_CTX_free(tls_auth->ssl_ctx);
+			tls_auth->ssl_ctx = NULL;
+			continue;
+		}
+
+		if (opts->tls_cert_bundle && opts->tls_cert_bundle[0]) {
+			if (SSL_CTX_load_verify_locations(tls_auth->ssl_ctx,
+			    opts->tls_cert_bundle, NULL) != 1) {
+				log_msg(LOG_ERR, "xfrd tls: Unable to load cert bundle "
+				    "%s for tls-auth %s",
+				    opts->tls_cert_bundle, tls_auth->name);
+				SSL_CTX_free(tls_auth->ssl_ctx);
+				tls_auth->ssl_ctx = NULL;
+				continue;
+			}
+		} else if (SSL_CTX_set_default_verify_paths(tls_auth->ssl_ctx) != 1) {
+			log_msg(LOG_ERR, "xfrd tls: Unable to set default SSL verify "
+			    "paths for tls-auth %s", tls_auth->name);
+			SSL_CTX_free(tls_auth->ssl_ctx);
+			tls_auth->ssl_ctx = NULL;
+			continue;
+		}
+
+		if (tls_auth->client_cert && tls_auth->client_key) {
+			if (SSL_CTX_use_certificate_chain_file(tls_auth->ssl_ctx,
+				    tls_auth->client_cert) != 1) {
+				log_msg(LOG_ERR, "xfrd tls: Unable to load client certificate "
+				    "%s for tls-auth %s",
+				    tls_auth->client_cert, tls_auth->name);
+				SSL_CTX_free(tls_auth->ssl_ctx);
+				tls_auth->ssl_ctx = NULL;
+				continue;
+			}
+
+			if (tls_auth->client_key_pw) {
+				SSL_CTX_set_default_passwd_cb(tls_auth->ssl_ctx, password_cb);
+				SSL_CTX_set_default_passwd_cb_userdata(tls_auth->ssl_ctx,
+				    tls_auth->client_key_pw);
+			}
+
+			if (SSL_CTX_use_PrivateKey_file(tls_auth->ssl_ctx,
+			    tls_auth->client_key, SSL_FILETYPE_PEM) != 1) {
+				log_msg(LOG_ERR, "xfrd tls: Unable to load client private key "
+				    "%s for tls-auth %s",
+				    tls_auth->client_key, tls_auth->name);
+				SSL_CTX_free(tls_auth->ssl_ctx);
+				tls_auth->ssl_ctx = NULL;
+				continue;
+			}
+
+			if (!SSL_CTX_check_private_key(tls_auth->ssl_ctx)) {
+				log_msg(LOG_ERR, "xfrd tls: Client private key %s does not "
+				    "match certificate %s for tls-auth %s",
+				    tls_auth->client_key, tls_auth->client_cert,
+				    tls_auth->name);
+				SSL_CTX_free(tls_auth->ssl_ctx);
+				tls_auth->ssl_ctx = NULL;
+				continue;
+			}
+
+		VERBOSITY(2, (LOG_INFO, "xfrd tls: loaded cert/key for tls-auth %s",
+		    tls_auth->name));
+		}
+	}
+}
+#endif
+
+struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, int tcp_max, int tcp_pipeline)
 {
 	int i;
 	struct xfrd_tcp_set* tcp_set = region_alloc(region,
@@ -266,21 +330,6 @@ struct xfrd_tcp_set* xfrd_tcp_set_create(struct region* region, const char *tls_
 	tcp_set->tcp_count = 0;
 	tcp_set->tcp_waiting_first = 0;
 	tcp_set->tcp_waiting_last = 0;
-#ifdef HAVE_TLS_1_3
-	/* Set up SSL context */
-	tcp_set->ssl_ctx = create_ssl_context();
-	if (tcp_set->ssl_ctx == NULL)
-		log_msg(LOG_ERR, "xfrd: XFR-over-TLS not available");
-
-	else if (tls_cert_bundle && tls_cert_bundle[0] && SSL_CTX_load_verify_locations(
-				tcp_set->ssl_ctx, tls_cert_bundle, NULL) != 1) {
-		log_msg(LOG_ERR, "xfrd tls: Unable to set the certificate bundle file %s",
-				tls_cert_bundle);
-	}
-#else
-	(void)tls_cert_bundle;
-	log_msg(LOG_INFO, "xfrd: No TLS 1.3 support - XFR-over-TLS not available");
-#endif
 	tcp_set->tcp_state = region_alloc(region,
 		sizeof(*tcp_set->tcp_state)*tcp_set->tcp_max);
 	for(i=0; i<tcp_set->tcp_max; i++)
@@ -990,47 +1039,26 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	tp->tcp_r->fd = fd;
 	tp->tcp_w->fd = fd;
 
+#ifdef HAVE_TLS_1_3
 	/* Check if an tls_auth name is configured which means we should try to
 	   establish an SSL connection */
 	if (zone->master->tls_auth_options &&
-		zone->master->tls_auth_options->auth_domain_name) {
-#ifdef HAVE_TLS_1_3
-		/* Load client certificate (if provided) */
-		if (zone->master->tls_auth_options->client_cert &&
-		    zone->master->tls_auth_options->client_key) {
-			if (SSL_CTX_use_certificate_chain_file(set->ssl_ctx,
-			                                       zone->master->tls_auth_options->client_cert) != 1) {
-				log_msg(LOG_ERR, "xfrd tls: Unable to load client certificate from file %s", zone->master->tls_auth_options->client_cert);
-			}
+	    zone->master->tls_auth_options->auth_domain_name) {
 
-			if (zone->master->tls_auth_options->client_key_pw) {
-				SSL_CTX_set_default_passwd_cb(set->ssl_ctx, password_cb);
-				SSL_CTX_set_default_passwd_cb_userdata(set->ssl_ctx, zone->master->tls_auth_options->client_key_pw);
-			}
-
-			if (SSL_CTX_use_PrivateKey_file(set->ssl_ctx, zone->master->tls_auth_options->client_key, SSL_FILETYPE_PEM) != 1) {
-				log_msg(LOG_ERR, "xfrd tls: Unable to load private key from file %s", zone->master->tls_auth_options->client_key);
-			}
-
-			if (!SSL_CTX_check_private_key(set->ssl_ctx)) {
-				log_msg(LOG_ERR, "xfrd tls: Client private key from file %s does not match the certificate from file %s",
-				                 zone->master->tls_auth_options->client_key,
-				                 zone->master->tls_auth_options->client_cert);
-			}
-		/* If client certificate/private key loading has failed,
-		   client will not try to authenticate to the server but the connection
-		   will procceed and will be up to the server to allow or deny the
-		   unauthenticated connection. A server that does not enforce authentication
-		   (or a badly configured server?) might allow the transfer.
-		   XXX: Maybe we should close the connection now to make it obvious that
-		   there is something wrong from our side. Alternatively make it obvious
-		   to the operator that we're not being authenticated to the server.
-		*/
+		if (!zone->master->tls_auth_options->ssl_ctx) {
+			log_msg(LOG_ERR, "xfrd: No SSL context for tls-auth %s, "
+			    "zone %s - check startup errors",
+				 zone->master->tls_auth_options->name,
+				 zone->apex_str);
+			close(fd);
+			xfrd_set_refresh_now(zone);
+			return 0;
 		}
 
-		if (!setup_ssl(tp, set, zone->master->tls_auth_options->auth_domain_name)) {
+		if (!setup_ssl(tp, zone->master->tls_auth_options->ssl_ctx,
+		    zone->master->tls_auth_options->auth_domain_name)) {
 			log_msg(LOG_ERR, "xfrd: Cannot setup TLS on pipeline for %s to %s",
-					zone->apex_str, zone->master->ip_address_spec);
+			    zone->apex_str, zone->master->ip_address_spec);
 			close(fd);
 			xfrd_set_refresh_now(zone);
 			return 0;
