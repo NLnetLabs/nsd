@@ -71,6 +71,7 @@ edns_init_record(edns_record_type *edns)
 	edns->dnssec_ok = 0;
 	edns->nsid = 0;
 	edns->zoneversion = 0;
+	edns->padding = 0;
 	edns->cookie_status = COOKIE_NOT_PRESENT;
 	edns->cookie_len = 0;
 	edns->ede = -1; /* -1 means no Extended DNS Error */
@@ -116,6 +117,11 @@ edns_handle_option(uint16_t optcode, uint16_t optlen, buffer_type* packet,
 		} else {
 			buffer_skip(packet, optlen);
 		}
+		break;
+	case PADDING_CODE:
+		if(query->tls)
+			edns->padding = 1;
+		buffer_skip(packet, optlen);
 		break;
 	case ZONEVERSION_CODE:
 		edns->zoneversion = 1;

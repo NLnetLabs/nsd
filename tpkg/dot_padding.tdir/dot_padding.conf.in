@@ -1,0 +1,14 @@
+server:
+	zonesdir: ""
+	verbosity: 2
+	ip-address: 127.0.0.1
+	ip-address: 127.0.0.1@@TPKG_DOT_PORT@
+	tls-port: @TPKG_DOT_PORT@
+	xfrdfile: "xfrd.state"
+	zonelistfile: "zone.list"
+	tls-service-key: "dot_padding.key"
+	tls-service-pem: "dot_padding.pem"
+
+zone:
+	name: "example.com"
+	zonefile: "dot_padding.zone"
