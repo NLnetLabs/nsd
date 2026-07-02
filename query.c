@@ -1848,6 +1848,8 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 			                : to_padd >  0 ? (PADDING_BLOCK_SZ + to_padd) 
 					: 0; /* Multiple of PADDING_BLOCK_SZ,
 			                      * so no outgoing padding option */
+			if(!buffer_available(q->packet, 2+q->edns.opt_reserved_space+q->edns.padding) || cur_sz + q->edns.padding > 65535)
+				q->edns.padding = 0;
 			if(q->edns.padding) {
 				q->edns.opt_reserved_space += q->edns.padding;
 			}
