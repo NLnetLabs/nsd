@@ -2,6 +2,10 @@
 	- Merge the NSD 4.15.0 release into master.
 	- Continue with 4.15.1 for development
 
+7 July 2026: Wouter
+	- (part of 4.15.1):
+	- Merge #495 from ruuda: Include inttypes.h from metrics.c.
+
 29 June 2026: Jannik
 	- Merge #483 from ruuda: Improve Prometheus metrics: Move zonestats from
 	  metric name to label
