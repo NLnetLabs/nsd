@@ -1,3 +1,7 @@
+7 July 2026: Willem
+	- Merge the NSD 4.15.0 release into master.
+	- Continue with 4.15.1 for development
+
 29 June 2026: Jannik
 	- Merge #483 from ruuda: Improve Prometheus metrics: Move zonestats from
 	  metric name to label
