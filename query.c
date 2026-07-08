@@ -1839,7 +1839,21 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 			                           +  sizeof(uint8_t)
 			                           +  sizeof(uint8_t)
 			                           +  sizeof(uint32_t);
-
+		if(q->edns.padding) {
+			size_t cur_sz = buffer_position(q->packet) + 2 + q->edns.opt_reserved_space;
+			size_t padded_sz = (((cur_sz - 1) / PADDING_BLOCK_SZ) + 1) * PADDING_BLOCK_SZ;
+			size_t to_padd = padded_sz - cur_sz;
+			/* Need 4 bytes for option code and length */
+			q->edns.padding = to_padd >= 4 ? to_padd
+			                : to_padd >  0 ? (PADDING_BLOCK_SZ + to_padd) 
+					: 0; /* Multiple of PADDING_BLOCK_SZ,
+			                      * so no outgoing padding option */
+			if(!buffer_available(q->packet, 2+q->edns.opt_reserved_space+q->edns.padding) || cur_sz + q->edns.padding > 65535)
+				q->edns.padding = 0;
+			if(q->edns.padding) {
+				q->edns.opt_reserved_space += q->edns.padding;
+			}
+		}
 		if(q->edns.opt_reserved_space == 0 || !buffer_available(
 			q->packet, 2+q->edns.opt_reserved_space)) {
 			/* fill with NULLs */
@@ -1894,6 +1908,12 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 					buffer_write(q->packet,
 							q->edns.ede_text,
 							q->edns.ede_text_len);
+			}
+			if(q->edns.padding) {
+				assert(q->edns.padding >= 4);
+				buffer_write_u16(q->packet, PADDING_CODE);
+				buffer_write_u16(q->packet, q->edns.padding - 4);
+				buffer_fill(q->packet, 0, q->edns.padding - 4);
 			}
 		}
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);

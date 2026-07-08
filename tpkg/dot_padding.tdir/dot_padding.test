@@ -1,0 +1,72 @@
+# #-- dot_padding.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+for SIZE_PADDED in 463:468 464:468 465:936 466:936 467:936 468:468 469:936 \
+	    931:936 932:936 933:1404 934:1404 935:1404 936:936 937:1404
+do
+	SIZE=${SIZE_PADDED%:*}
+	PADDED=${SIZE_PADDED#*:}
+
+	dig @127.0.0.1 -p $TPKG_PORT ${SIZE}.example.com. TXT +padding=128 2>&1 > UDP-${SIZE}.out
+	if ! grep -q ';; SERVER:.*(UDP)$' UDP-${SIZE}.out; then
+		cat UDP-${SIZE}.out
+		echo "Error: transport was not UDP"
+		exit 1
+	fi
+	if grep -q '^; PAD:' UDP-${SIZE}.out; then
+		cat UDP-${SIZE}.out
+		echo "Error: padding option seen in UDP message"
+		exit 1
+	fi
+	if ! grep -q "^;; MSG SIZE[[:space:]][[:space:]]*rcvd: ${SIZE}$" UDP-${SIZE}.out; then
+		cat UDP-${SIZE}.out
+		echo "Error: UDP message has wrong message size"
+		exit 1
+	fi
+
+	dig @127.0.0.1 -p $TPKG_PORT ${SIZE}.example.com. TXT +padding=128 +tcp 2>&1 > TCP-${SIZE}.out
+	if ! grep -q ';; SERVER:.*(TCP)$' TCP-${SIZE}.out; then
+		cat TCP-${SIZE}.out
+		echo "Error: transport was not TCP"
+		exit 1
+	fi
+	if grep -q '^; PAD:' TCP-${SIZE}.out; then
+		cat TCP-${SIZE}.out
+		echo "Error: padding option seen in TCP message"
+		exit 1
+	fi
+	if ! grep -q "^;; MSG SIZE[[:space:]][[:space:]]*rcvd: ${SIZE}$" TCP-${SIZE}.out; then
+		cat TCP-${SIZE}.out
+		echo "Error: TCP message has wrong message size"
+		exit 1
+	fi
+
+	dig @127.0.0.1 -p $TPKG_DOT_PORT ${SIZE}.example.com. TXT +padding=128 +tls 2>&1 > TLS-${SIZE}.out
+	if ! grep -q ';; SERVER:.*(TLS)$' TLS-${SIZE}.out; then
+		cat TLS-${SIZE}.out
+		echo "Error: transport was not TLS"
+		exit 1
+	fi
+	if [ $SIZE -eq 468 -o $SIZE -eq 936 ]; then
+		if grep -q '^; PAD:' TLS-${SIZE}.out; then
+			cat TLS-${SIZE}.out
+			echo "Error: padding option seen in TLS message of size $SIZE"
+			exit 1
+		fi
+	else
+		if ! grep -q '^; PAD:' TLS-${SIZE}.out; then
+			cat TLS-${SIZE}.out
+			echo "Error: padding option not seen in TLS message"
+			exit 1
+		fi
+	fi
+	if ! grep -q "^;; MSG SIZE[[:space:]][[:space:]]*rcvd: ${PADDED}$" TLS-${SIZE}.out; then
+		cat TLS-${SIZE}.out
+		echo "Error: TLS message has wrong message size (should have been $PADDED)"
+		exit 1
+	fi
+done
+
