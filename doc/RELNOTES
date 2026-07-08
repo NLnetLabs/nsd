@@ -3,6 +3,10 @@ NSD RELEASE NOTES
 4.15.1 (in development)
 ================
 FEATURES:
+	- Merge #494: RFC 7830 EDNS0 padding option support with DoT
+	  With padding suggestions from RFC 8467 for responses
+	  Thanks kdrenard for the suggestion
+
 BUG FIXES:
 	- Merge #495 from ruuda: Include inttypes.h from metrics.c.
 

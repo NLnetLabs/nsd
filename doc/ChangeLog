@@ -1,3 +1,8 @@
+8 July 2026: Willem
+	- Merge #494: RFC 7830 EDNS0 padding option support with DoT
+	  With padding suggestions from RFC 8467 for responses
+	  Thanks kdrenard for the suggestion
+
 7 July 2026: Willem
 	- Merge the NSD 4.15.0 release into master.
 	- Continue with 4.15.1 for development
@@ -10,7 +15,7 @@
 	- Merge #483 from ruuda: Improve Prometheus metrics: Move zonestats from
 	  metric name to label
 
-26 June 2026: Willem
+2g June 2026: Willem
 	- Fix nsd-control assoc_tsig, if that interrupts a zone transfer in
 	  progress, to not crash. It restarts the transfer from the primary.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
