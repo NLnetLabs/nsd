@@ -703,6 +703,7 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 	zone_type* dbzone = NULL;
 	xfrd_xfr_type* xfr;
 	xfrd_xfr_type* prev_xfr;
+	int xfr_was_ixfr = 0;
 	enum soainfo_hint hint;
 #ifndef NDEBUG
 	time_t before;
@@ -825,6 +826,10 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 		dbzone = namedb_find_or_create_zone( xfrd->nsd->db, task->zname
 		                                   , consumer_zone->options);
 	}
+	if(zone->latest_xfr) {
+		xfr_was_ixfr = (zone->latest_xfr->query_type == TYPE_IXFR);
+	}
+
 	/* soainfo_gone and soainfo_bad are straightforward, delete all updates
 	   that were transfered, i.e. acquired != 0. soainfo_ok is more
 	   complicated as it is possible that there are subsequent corrupt or
@@ -913,6 +918,28 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 			break;
 		/* fall through */
 	case soainfo_gone:
+		if(hint == soainfo_gone) {
+			/* "rollback" on-disk soa information */
+			zone->soa_disk_acquired = zone->soa_nsd_acquired;
+			zone->soa_disk = zone->soa_nsd;
+		}
+		if(hint == soainfo_gone && !soa_ptr) {
+			if(xfr_was_ixfr) {
+				/* Attempt without IXFR, maybe AXFR works. */
+				xfrd_disable_ixfr(zone);
+				xfrd_set_zone_state(zone, xfrd_zone_refreshing);
+				xfrd_set_refresh_now(zone);
+				break;
+			}
+			/* The zone transfer update failed to apply.
+			 * Okay to fallback from IXFR to AXFR, but after failed
+			 * AXFR, wait for retry instead of immediate fetch */
+			VERBOSITY(2, (LOG_INFO, "xfrd: zone %s transfer "
+				"failed to apply, waiting for retry",
+				zone->apex_str));
+			xfrd_set_timer_retry(zone);
+			break;
+		}
 		xfrd_handle_incoming_soa(zone, soa_ptr, acquired);
 		break;
 	}
