@@ -1,0 +1,23 @@
+$ORIGIN example.com.
+$TTL 3600
+@ SOA  . . 1 1800 900 7200 3600
+  RRSIG  SOA 253 2 3600 20940101000000 20260101000000 17098 example.com. ZnJvZG8=
+  DNSKEY  257 3 253 YmlsYm8= ;{id = 17098 (ksk), size = 5b}
+  RRSIG  DNSKEY 253 2 3600 20940101000000 20260101000000 17098 example.com. c2Ft
+  NSEC3PARAM  1 0 0 - 
+  RRSIG  NSEC3PARAM 253 2 3600 20940101000000 20260101000000 17098 example.com. cGlwcGlu
+gimli  TXT  son of Glóin
+       RRSIG  TXT 253 3 3600 20940101000000 20260101000000 17098 example.com. c29uIG9mIEdsw7Npbg==
+legolas  TXT  son of Thranduil
+         RRSIG  TXT 253 3 3600 20940101000000 20260101000000 17098 example.com. c29uIG9mIFRocmFuZHVpbA==
+c07pdjfet1d3er9g9e0dodg2ctojkv5g  NSEC3  1 0 0 - onib9mgub9h0rml3cdf5bgrj59dkjhvk TXT
+                                  RRSIG  NSEC3 253 3 3600 20940101000000 20260101000000 17098 example.com. bGVnb2xhcw==
+onib9mgub9h0rml3cdf5bgrj59dkjhvk  NSEC3  1 0 0 - opnn9fofm3k1l5pgvg5qc8epf0mm8b2m SOA RRSIG DNSKEY NSEC3PARAM 
+                                  RRSIG  NSEC3 253 3 3600 20940101000000 20260101000000 17098 example.com. bWVycnk=
+opnn9fofm3k1l5pgvg5qc8epf0mm8b2m  NSEC3  1 0 0 - c07pdjfet1d3er9g9e0dodg2ctojkv5g TXT
+                                  RRSIG  NSEC3 253 3 3600 20940101000000 20260101000000 17098 example.com. Z2ltbGk=
+; wxyzwxyzwxyzwxyzwxyzwxyzwxyzwxyz is not a base32 encoded value and this NSEC3
+; RR must never be included in authenticated denial of existence responses
+wxyzwxyzwxyzwxyzwxyzwxyzwxyzwxyz  NSEC3  1 0 0 - vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv SOA DS
+                                  RRSIG  NSEC3 253 3 3600 20940101000000 20260101000000 17098 example.com. c2F1cm9u
+

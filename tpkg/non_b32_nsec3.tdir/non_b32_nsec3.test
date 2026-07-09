@@ -1,0 +1,13 @@
+# #-- non_b32_nsec3.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+drill -Dp $TPKG_PORT @127.0.0.1 rivendell.example.com. 2>&1 > drill.out
+if grep ^wxyz drill.out; then
+	cat drill.out
+	echo "Error: The wxyz... NSEC3 must never be returned in NX responses"
+	exit 1
+fi
+
