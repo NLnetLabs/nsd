@@ -209,6 +209,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define EUI64ADDRLEN	(64/8)
 
 #define NSEC3_HASH_LEN 20
+#define NSEC3_OWNER_LABEL_LEN (NSEC3_HASH_LEN * 8 / 5)
 
 /*
  * The following RDATA values are used in nsd_rdata_descriptor.length to
