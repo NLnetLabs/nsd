@@ -1,0 +1,142 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# the reply has an AXFR for the IXFR query.
+# reply IXFR request, for example1.com
+$ORIGIN example1.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QR AA NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+a IN A 10.0.0.2
+b IN A 10.0.0.2
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request, for example2.com
+$ORIGIN example2.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QR AA NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+a IN A 10.0.0.2
+b IN A 10.0.0.2
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request, for example3.com
+$ORIGIN example3.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QR AA NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+a IN A 10.0.0.2
+b IN A 10.0.0.2
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request, for example4.com
+$ORIGIN example4.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QR AA NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+a IN A 10.0.0.2
+b IN A 10.0.0.2
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request, for example6.com
+$ORIGIN example6.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QR AA NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+a IN A 10.0.0.2
+b IN A 10.0.0.2
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request, for example7.com
+$ORIGIN example7.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QR AA NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+a IN A 10.0.0.2
+b IN A 10.0.0.2
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request, for example8.com
+$ORIGIN example8.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QR AA NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+a IN A 10.0.0.2
+b IN A 10.0.0.2
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request, for example9.com
+$ORIGIN example9.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QR AA NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+a IN A 10.0.0.2
+b IN A 10.0.0.2
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request, for example10.com
+$ORIGIN example10.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QR AA NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+a IN A 10.0.0.2
+b IN A 10.0.0.2
+@ 345600 IN SOA ns0.example.org. root.example.com. 5 3600 28800 2419200 3600
+ENTRY_END
+

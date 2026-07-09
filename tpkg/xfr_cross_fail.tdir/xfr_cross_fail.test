@@ -1,0 +1,57 @@
+# #-- xfr_cross_fail.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+# test with zone transfer
+for i in 1 2 3 4 6 7 8 9 10; do
+wait_logfile nsd.log "zone example$i.com. serial 1 is updated to 5" 60
+done
+
+echo ""
+echo "> dig example5.com"
+dig @127.0.0.1 -p $TPKG_PORT example5.com SOA > cur
+cat cur
+if grep "root.example.com. 1" cur; then
+	echo "example5.com content OK; it has the original version"
+else
+	echo "example5.com content not OK"
+	exit 1
+fi
+
+# test that the zones are updated.
+for i in 1 2 3 4 6 7 8 9 10; do
+	echo ""
+	echo "> dig example$i.com"
+	dig @127.0.0.1 -p $TPKG_PORT example$i.com SOA > cur
+	cat cur
+	if grep "root.example.com. 5 " cur; then
+		echo "example$i.com OK, it has updated"
+	else
+		echo "example$i.com not OK, it was not updated"
+		exit 1
+	fi
+done
+
+# the example5.com zone fails to update
+echo "> waiting for logline 'example5.com. transfer failed'"
+wait_logfile nsd.log "zone example5.com. transfer failed to apply, waiting for retry" 60
+
+# test that server is up
+echo ""
+echo "> dig example3.com"
+dig @127.0.0.1 -p $TPKG_PORT example3.com SOA > cur
+cat cur
+if grep "root.example.com." cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo "OK"
+exit 0
