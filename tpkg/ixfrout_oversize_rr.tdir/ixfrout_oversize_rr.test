@@ -1,0 +1,44 @@
+# #-- ixfrout_oversize_rr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+# update the zone.
+mv ixfrout_oversize_rr.zone ixfrout_oversize_rr.test.orig
+mv ixfrout_oversize_rr.zone2 ixfrout_oversize_rr.zone
+$PRE/nsd-control -c edit.conf reload example.com
+sleep 3
+
+# transfer the zone.
+echo ""
+echo "> dig example.com IXFR=1"
+dig @127.0.0.1 -p $TPKG_PORT example.com IXFR=1 > cur
+cat cur
+if grep "Transfer failed" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# The error must show up in log
+wait_logfile nsd.log "ixfr_out: RR at txt.example.com. in zone example.com. too large for any DNS message (wire encoding exceeds 65535 bytes), aborting IXFR transfer" 10
+
+# test that server is up
+echo ""
+echo "> dig example.com"
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA > cur
+cat cur
+if grep "root.example.com." cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo "OK"
+exit 0
