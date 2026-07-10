@@ -439,6 +439,7 @@ static int parse_qserial(struct buffer* packet, uint32_t* qserial,
 {
 	unsigned int i;
 	uint16_t type, rdlen;
+	size_t rdpos;
 	/* we must have a SOA in the authority section */
 	if(NSCOUNT(packet) == 0)
 		return 0;
@@ -460,6 +461,7 @@ static int parse_qserial(struct buffer* packet, uint32_t* qserial,
 		type = buffer_read_u16(packet);
 		buffer_skip(packet, 6);
 		rdlen = buffer_read_u16(packet);
+		rdpos = buffer_position(packet);
 		if(!buffer_available(packet, rdlen))
 			return 0;
 		if(type == TYPE_SOA) {
@@ -471,6 +473,9 @@ static int parse_qserial(struct buffer* packet, uint32_t* qserial,
 				return 0; /* malformed rname */
 			if(!buffer_available(packet, 4))
 				return 0;
+			if(buffer_position(packet) + 20 !=
+				rdpos + (size_t)rdlen)
+				return 0; /* malformed SOA rdata */
 			*qserial = buffer_read_u32(packet);
 			return 1;
 		}
@@ -757,8 +762,10 @@ query_state_type query_ixfr(struct nsd *nsd, struct query *query)
 		return QUERY_PROCESSED;
 
 	pktcompression_init(&pcomp);
-	if (query->maxlen > IXFR_MAX_MESSAGE_LEN)
+	if (query->maxlen > IXFR_MAX_MESSAGE_LEN) {
+		buffer_set_position(query->packet, QHEADERSZ);
 		query->maxlen = IXFR_MAX_MESSAGE_LEN;
+	}
 
 	assert(!query_overflow(query));
 	/* only keep running values for most packets */
