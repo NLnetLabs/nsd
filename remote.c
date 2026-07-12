@@ -1044,8 +1044,10 @@ print_zonestatus(RES* ssl, xfrd_state_type* xfrd, struct zone_options* zo)
 	}
 	if(zone_is_catalog_consumer(zo)) {
 		uint32_t serial = 0;
-		zone_type* zone = namedb_find_zone(xfrd->nsd->db,
-				(const dname_type*)zo->node.key);
+		zone_type* zone = xfrd->nsd->db
+			? namedb_find_zone(xfrd->nsd->db,
+				(const dname_type*)zo->node.key)
+			: NULL;
 		struct xfrd_catalog_consumer_zone* consumer_zone =
 			(struct xfrd_catalog_consumer_zone*)
 			rbtree_search( xfrd->catalog_consumer_zones
