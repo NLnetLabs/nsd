@@ -1,0 +1,14 @@
+# #-- multi_cat_consumers.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+../../nsd-control -c nsd.conf zonestatus
+sleep 1
+if [ -f nsd-crashed ]; then
+	echo "NSD crashed on getting zonestatus from catalog consumer zones when more than one is configured"
+	exit 1
+fi
+

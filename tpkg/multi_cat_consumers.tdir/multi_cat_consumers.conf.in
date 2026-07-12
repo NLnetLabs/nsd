@@ -1,0 +1,19 @@
+server:
+	zonesdir: ""
+	verbosity: 2
+	ip-address: 127.0.0.1
+	xfrdfile: "xfrd.state"
+	zonelistfile: "zone.list"
+
+remote-control:
+	control-enable: yes
+	control-interface: "@PWD@/nsd.sock"
+zone:
+	name: cat1.
+	zonefile: "multi_cat_consumers.cat1.zone"
+	catalog: consumer
+
+zone:
+	name: cat2.
+	zonefile: "multi_cat_consumers.cat2.zone"
+	catalog: consumer

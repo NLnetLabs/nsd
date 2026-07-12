@@ -1,0 +1,5 @@
+$ORIGIN cat2.
+$TTL 3600
+@        SOA  ns1 hostmaster 1 3600 900 86400 3600
+@        NS   ns1
+version  TXT  "2"
