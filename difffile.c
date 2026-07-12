@@ -505,7 +505,7 @@ find_rr_num(rrset_type* rrset, uint16_t type, uint16_t klass,
 		}
 	}
 	/* this is odd. Log why rr cannot be found. */
-	if (!add) {
+	if (!add && verbosity >= 3) {
 		debug_find_rr_num(rrset, type, klass, rr);
 	}
 	return -1;
@@ -735,8 +735,9 @@ delete_RR(namedb_type* db, const dname_type* dname,
 	rrset = domain_find_rrset_and_prev(domain, zone, type, &rrset_prev);
 #endif
 	if(!rrset) {
-		log_msg(LOG_WARNING, "diff: rrset %s does not exist",
-			dname_to_string(dname,0));
+		VERBOSITY(2, (LOG_WARNING,
+			"diff: RRset to delete from <%s, %s> does not exist",
+			dname_to_string(dname,0), rrtype_to_string(type)));
 		buffer_skip(packet, rdatalen);
 		*softfail = 1;
 		return 1; /* not fatal error */
@@ -776,8 +777,9 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			&& rrset->rr_count != 0)
 			rrnum = 0; /* replace existing SOA if no match */
 		if(rrnum == -1) {
-			log_msg(LOG_WARNING, "diff: RR <%s, %s> does not exist",
-				dname_to_string(dname,0), rrtype_to_string(type));
+			VERBOSITY(2, (LOG_WARNING,
+				"diff: RR to delete from RRset <%s, %s> does not exist",
+				dname_to_string(dname,0), rrtype_to_string(type)));
 			*softfail = 1;
 			return 1; /* not fatal error */
 		}
