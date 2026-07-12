@@ -1,0 +1,15 @@
+# #-- ixfr_excessive_logging.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+wait_logfile nsd.log "zone example.com. serial 1 is updated to 2" 10
+N_WARNINGS=`grep warning nsd.log|wc -l`
+echo "$N_WARNINGS warnings"
+if [ $N_WARNINGS -gt 150000 ]; then
+	echo "Error: trying to delete RRs causes excessive logging!"
+	exit 1
+fi
+

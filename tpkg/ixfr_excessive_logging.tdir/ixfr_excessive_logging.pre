@@ -1,0 +1,26 @@
+# #-- ixfr_excessive_logging.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 2
+TPKG_PORT=$RND_PORT
+TPKG_NSD_PID="nsd.pid.$$"
+TESTNS_PORT=`expr $RND_PORT + 1`
+PRE="../.."
+TPKG_NSD="$PRE/nsd"
+
+# start ldns-testns, be extra verbose
+ldns-testns -vvv -p $TESTNS_PORT ixfr_excessive_logging.datafile >testns.log 2>&1 &
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+echo "export TESTNS_PORT=$TESTNS_PORT" >> .tpkg.var.test
+echo "export TESTNS_PID=$!" >> .tpkg.var.test
+
+sed "s/@TESTNS_PORT@/${TESTNS_PORT}/g" ixfr_excessive_logging.conf.in > nsd.conf
+$TPKG_NSD -c nsd.conf -u "" -l "nsd.log" -p $TPKG_PORT -P $TPKG_NSD_PID -V 2
+wait_nsd_up nsd.log
+
