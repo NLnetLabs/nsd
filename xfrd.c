@@ -1251,6 +1251,16 @@ xfrd_make_request(xfrd_zone_type* zone)
 		if(zone->round_num >= XFRD_MAX_ROUNDS) {
 			/* tried all servers that many times, wait */
 			zone->round_num = -1;
+			/* Discard NOTIFY serial hint. After one round of
+			 * searching for it, at the upstream primaries, the
+			 * notify hint need no longer be used. The retry
+			 * timer is used, for one, earlier re-attempt. This
+			 * is useful if the upstream is in-progress of loading
+			 * the zone information. After the brief wait it may
+			 * have completed that task. And this may catch the
+			 * case where it notify is sent before the load
+			 * activity has completed at the primary. */
+			zone->soa_notified_acquired = 0;
 			xfrd_set_timer_retry(zone);
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 				"xfrd zone %s makereq wait_retry, rd %d mr %d nx %d",
