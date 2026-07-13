@@ -1,0 +1,12 @@
+# #-- unbounded_cname_chain.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+if ! drill @127.0.0.1 -tp $TPKG_PORT x. TXT ; then
+        echo "NSD serve child crashed when building the CNAME chain (only on ASAN builds)"
+        exit 1
+fi
+
