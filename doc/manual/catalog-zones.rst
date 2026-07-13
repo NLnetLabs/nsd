@@ -37,7 +37,8 @@ could look like this:
 		request-xfr: 192.0.2.1@853 tsig-key.name primary.example
 		allow-notify: 192.0.2.1 tsig-key.name
 
-		allow-query: BLOCKED
+		allow-query: 0.0.0.0/0 BLOCKED
+		allow-query: ::0/0     BLOCKED
 
 The consumer zone ``catalog1.invalid`` is configured in the example as a
 secondary zone. It transfers the catalog from the primary at ``192.0.2.1``.
