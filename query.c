@@ -1142,6 +1142,9 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 			zone_type* origzone = q->zone;
 			++q->cname_count;
 
+			if (q->cname_count >= MAX_CNAME_CHAIN) {
+				return;
+			}
 			answer_lookup_zone(nsd, q, answer, closest_match->number,
 					     closest_match == closest_encloser,
 					     closest_match, closest_encloser,
@@ -1236,6 +1239,10 @@ answer_authoritative(struct nsd   *nsd,
 			return;
 		}
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->result is %s", dname_to_string(newname, NULL)));
+		if (q->cname_count >= MAX_CNAME_CHAIN) {
+			return;
+		}
+
 		/* follow the DNAME */
 		(void)namedb_lookup(nsd->db, newname, &closest_match, &closest_encloser);
 		/* synthesize CNAME record */

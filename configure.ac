@@ -960,6 +960,16 @@ AC_ARG_WITH([tcp_timeout],
 AC_DEFINE_UNQUOTED([TCP_TIMEOUT], $tcp_timeout, [Define to the default tcp timeout.])
 
 dnl
+dnl Determine the maximum CNAME chain length to return
+dnl Defaults to 18 as a tribute to our dear colleague
+dnl
+max_cname_chain=18
+AC_ARG_WITH([max_cname_chain],
+	AS_HELP_STRING([--with-max-cname-chain=number],[Limit the maximum number of CNAMEs to follow]),
+	[max_cname_chain=$withval])
+AC_DEFINE_UNQUOTED([MAX_CNAME_CHAIN], $max_cname_chain, [Define to the default maximum number of CNAMEs to follow.])
+
+dnl
 dnl Features
 dnl
 AC_ARG_ENABLE(root-server, AS_HELP_STRING([--enable-root-server],[Configure NSD as a root server (obsolete)]))
