@@ -1,0 +1,22 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply IXFR request, with AXFR content.
+ENTRY_BEGIN
+# no serial=1 match, it matches all IXFRs.
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 101 3600 5 2419200 3600
+a.example.com. 3600 IN A 10.0.0.1
+b.example.com. 3600 IN A 10.0.0.1
+c.example.com. 3600 IN A 10.0.0.3
+d.example.com. 3600 IN A 10.0.0.4
+@ 345600 IN SOA ns0.example.org. root 101 3600 5 2419200 3600
+ENTRY_END
