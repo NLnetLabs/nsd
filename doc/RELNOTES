@@ -9,6 +9,8 @@ FEATURES:
 
 BUG FIXES:
 	- Merge #495 from ruuda: Include inttypes.h from metrics.c.
+	- Merge #496 from maertsen: Fix allow-query syntax in catalog
+	  documentation.
 
 4.15.0
 ================
