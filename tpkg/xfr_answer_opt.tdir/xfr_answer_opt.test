@@ -1,0 +1,33 @@
+# #-- xfr_answer_opt.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+# test with zone transfer
+#
+# The zone transfer contains a TYPE OPT RR in the ANSWER section.
+# This is malformed content. The type OPT is allowed by xfr check rrs,
+# and should be skipped for processing by the difffile.c xfr processing.
+# It should not be logged as having a bad class.
+#
+# Wait for the update to be applied successfully.
+wait_logfile nsd.log "zone example.com. serial 1 is updated to 3" 10
+
+# test that server is up
+echo ""
+echo "> dig example.com"
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA > cur
+cat cur
+if grep "root.example.com. 3" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo "OK"
+exit 0
