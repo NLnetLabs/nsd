@@ -1318,7 +1318,7 @@ apply_ixfr(nsd_type* nsd, FILE *in, uint32_t serialno,
 			region_destroy(region);
 			return 0;
 		}
-		if (klass != CLASS_IN) {
+		if (klass != CLASS_IN && type != TYPE_OPT) {
 			log_msg(LOG_ERR, "bad xfr non-IN-class RR %s %s %s",
 				dname_to_string(owner,0),
 				rrclass_to_string(klass),
