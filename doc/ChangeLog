@@ -1,3 +1,40 @@
+14 July 2026: Willem
+	- Fix that IXFR queries with overly large SOA records do not cause an
+	  assertion failure in the server child process. The malformed SOA
+	  record is rejected with FORMERR.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix that notify ahead of the zone serial does not cause perpetual
+	  retransfer. After one round, and after another retry, it gives up,
+	  and forgets the notified serial number. This allows the primary a
+	  moment to retrieve the new zone version.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix that AXFR out for a zone with an oversize record does not loop.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix that IXFR out for a zone with an oversize record does not loop.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix serve childs crashing when queried for a very long CNAME chain
+	  on ASAN builds. The maximum CNAME chain in responses is set to 18.
+	  The value can be configured with the --with-max-cname-chain=number
+	  option to configure.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to have failed zone transfers retry after a time, instead of in a
+	  loop, for transfers with failed contents.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix that an increase verbosity level is needed to warn about unfound
+	  RRs to be deleted (from IXFR). Verbosity 2 for unfound RRsets and
+	  unfound RDATA. Verbosity 3 to log which RR in the existing set does
+	  not match.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to ignore NSEC3s with wrong non-base32hex chars in owner label.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix Y2038 bug, where the server process would fail with undefined
+	  behaviour, if it was built with address sanitizer undefined checks
+	  enabled, for the timestamp in EDNS cookies.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to not let `nsd-control zonestatus` crash the xfrd processes
+	  when configured with multiple catalog consumers.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+
 13 July 2026: Wouter
 	- Merge #496 from maertsen: Fix allow-query syntax in catalog
 	  documentation.
