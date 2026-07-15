@@ -3430,6 +3430,50 @@ print_dsync_rdata(struct buffer *output, const struct rr *rr)
 }
 
 int32_t
+read_hhit_rdata(struct domain_table *domains, uint16_t rdlength,
+	struct buffer *packet, struct rr **rr)
+{
+	/* A CBOR blob has at least 1 byte */
+	if (rdlength < 1)
+		return MALFORMED;
+	return read_rdata(domains, rdlength, packet, rr);
+}
+
+int
+print_hhit_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+
+	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	if(rr->rdlength != length)
+		return 0;
+	return 1;
+}
+
+int32_t
+read_brid_rdata(struct domain_table *domains, uint16_t rdlength,
+	struct buffer *packet, struct rr **rr)
+{
+	/* A CBOR blob has at least 1 byte */
+	if (rdlength < 1)
+		return MALFORMED;
+	return read_rdata(domains, rdlength, packet, rr);
+}
+
+int
+print_brid_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+
+	if (!print_base64(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	if(rr->rdlength != length)
+		return 0;
+	return 1;
+}
+
+int32_t
 read_nid_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
