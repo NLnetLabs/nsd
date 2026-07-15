@@ -152,6 +152,8 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_SVCB	64	/* RFC 9460 */
 #define TYPE_HTTPS	65	/* RFC 9460 */
 #define TYPE_DSYNC	66	/* RFC 9859 */
+#define TYPE_HHIT	67	/* RFC 9886 */
+#define TYPE_BRID	68	/* RFC 9886 */
 
 #define TYPE_SPF        99      /* RFC 4408 */
 
