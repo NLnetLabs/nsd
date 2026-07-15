@@ -7,6 +7,8 @@ FEATURES:
 	  With padding suggestions from RFC 8467 for responses
 	  Thanks kdrenard for the suggestion
 	- Merge #498: Support for the HHIT and BRID RR types
+	- Merge #499: Support for the "docpath" and "pvd"
+	  SVCB Service Parameter Keys
 
 BUG FIXES:
 	- Merge #495 from ruuda: Include inttypes.h from metrics.c.
