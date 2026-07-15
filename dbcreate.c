@@ -27,14 +27,14 @@
 #define PATHSEP '/'
 
 int
-print_rrs(FILE* out, struct zone* zone)
+print_rrs(FILE* out, struct zone* zone, int fqdn)
 {
 	rrset_type *rrset;
 	domain_type *domain = zone->apex;
 	region_type* region = region_create(xalloc, free);
 	region_type* rr_region = region_create(xalloc, free);
 	buffer_type* rr_buffer = buffer_create(region, MAX_RDLENGTH);
-	struct state_pretty_rr* state = create_pretty_rr(region);
+	struct state_pretty_rr* state = fqdn ? NULL : create_pretty_rr(region);
 	/* first print the SOA record for the zone */
 	if(zone->soa_rrset) {
 		size_t i;
@@ -107,7 +107,7 @@ write_to_zonefile(zone_type* zone, const char* filename, const char* logs)
 			"the header to zone %s", zone->opts->name);
 		return 0;
 	}
-	if(!print_rrs(out, zone)) {
+	if(!print_rrs(out, zone, 0)) {
 		fclose(out);
 		return 0;
 	}

@@ -373,7 +373,7 @@ zone_type *namedb_find_zone(namedb_type *db, const dname_type *dname);
 void domain_table_deldomain(namedb_type* db, domain_type* domain);
 
 /** dbcreate.c */
-int print_rrs(FILE* out, struct zone* zone);
+int print_rrs(FILE* out, struct zone* zone, int fqdn);
 
 /* dbaccess.c */
 int namedb_lookup (struct namedb* db,

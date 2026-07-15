@@ -33,6 +33,9 @@ contents as it has been parsed, not literally a copy of the input, but
 as printed by the formatting routines in NSD, much like the nsd-control
 command write does.
 .TP
+.B \-f
+Print the zone, as with the \-p option, with all domain names fully qualified.
+.TP
 .B \-i \fI<oldzonefile>
 Create an IXFR from the differences between the old zone file and the
 new zone file. The argument to the \-i option is the old zone file,
