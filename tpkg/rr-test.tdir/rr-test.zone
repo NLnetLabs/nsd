@@ -201,3 +201,47 @@ VENERA	EID	813F 4B7C DAB3 4217
 VAXA	EID	3141 5926 5358 9793
 	NIMLOC	752341 59EAC4 5780 0921
 
+; HHIT and BRID examples from https://www.rfc-editor.org/rfc/rfc9886.html#name-registrant-hhit-and-brid
+2.b.6.c.b.4.a.9.9.6.4.2.8.0.3.1 IN HHIT (
+    gxJpM2ZmOCAwMDBhWQEYMIIBFDCBx6AD
+    AgECAgFUMAUGAytlcDArMSkwJwYDVQQD
+    DCAyMDAxMDAzZmZlMDAwYTA1MjYwZWQ0
+    Mzc2YjI1NmUyODAeFw0yNTA0MDkyMTEz
+    MDBaFw0yNTA0MDkyMjEzMDBaMAAwKjAF
+    BgMrZXADIQDJLi+dl+iWD5tfFlT4sJA5
+    +drcW88GHqxPDOp56Oh3+qM7MDkwNwYD
+    VR0RAQH/BC0wK4cQIAEAP/4ACgUTCCRp
+    mkvGsoYXaHR0cHM6Ly9oZGEuZXhhbXBs
+    ZS5jb20wBQYDK2VwA0EA0DbcdngC7/BB
+    /aLjZmLieo0ZFCDbd/KIxAy+3X2KtT4J
+    todVxRMPAkN6o008gacbNfTG8p9npEcD
+    eYhesl2jBQ==
+)
+2.b.6.c.b.4.a.9.9.6.4.2.8.0.3.1 IN BRID (
+    owAAAYIEUQEgAQA//gAKBRMIJGmaS8ay
+    AogFWIkB+t72Zwrt9mcgAQA//gAABV5g
+    oVcekaC3mZDVsEtyoYBm1AkrUsfUmU+3
+    wWvX6MH0QP+o0E/x4T8gAQA//gAABV5g
+    oVcekaC3vC9m1JguvXt7W2o4wxPumaT1
+    IP3TQN3fQP28hpInSIlsSwq8UCNjm2ad
+    7pdTvm2EqfOJQNPKClvRZm4qTO5FDAVY
+    iQGX4PZnp+72ZyABAD/+AAoFZhXuRdQn
+    CaDOaB424RQa61YNbna8eWt7fLRU5GPM
+    sfEt4wo4AQGAPyABAD/+AAAFXmChVx6R
+    oLfv3q+mLRB3ya5TmjY8+3CzdoDZT9RZ
+    +XpN5hDiA6JyyxBJvUewxLzPNhTXQp8v
+    ED71XAE82tMmt3fB4zbzWNQLBViJAQrh
+    9mca7/ZnIAEAP/4ACgUmDtQ3ayVuKIIz
+    /a61BovBSFnRE6Dt/PjcB4FOPdJ2Xmtb
+    guBNBwWXIAEAP/4ACgVmFe5F1CcJoIjy
+    CriJCxAyAWTOHPmlHL02MKSpsHviiTze
+    qwBH9K/Rrz41CYix9HazAIOAZO8FcfU5
+    M+WLLJZoaQWBHnMbTQwFWIkB3OL2Z+zw
+    9mcgAQA//gAKBRMIJGmaS8ayyS4vnZfo
+    lg+bXxZU+LCQOfna3FvPBh6sTwzqeejo
+    d/ogAQA//gAKBSYO1DdrJW4ogOfc8jTi
+    mYLmTOOyFZoUx2jOOwtB1jnqUJr6bYaw
+    MoPrR3MlKGBGWsVz1yXNqUURoCqYdwsY
+    e61vd5i6YJqnAQ==
+)
+
