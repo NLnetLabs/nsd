@@ -122,8 +122,8 @@ static const nsd_svcparam_descriptor_type svcparams[] = {
 	{ SVCB_KEY_OHTTP, "ohttp", print_svcparam_no_value },
 	{ SVCB_KEY_TLS_SUPPORTED_GROUPS, "tls-supported-groups",
 		print_svcparam_tls_supported_groups },
-	{ SVCB_KEY_DOCPATH, "docpath",
-		print_svcparam_docpath},
+	{ SVCB_KEY_DOCPATH, "docpath", print_svcparam_docpath},
+	{ SVCB_KEY_PVD, "pvd", print_svcparam_no_value },
 };
 
 /*

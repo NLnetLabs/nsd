@@ -280,3 +280,9 @@ docpath-s4	429	IN	SVCB	\# 44 (
  00 07 00 07 2f 7b 3f 64 6e 73 7d                   ; dohpath=/{?dns}
  00 0a 00 00                                        ; docpath
 )
+pvd-s1	3600	IN	HTTPS	\# 17 (
+ 00 01                                              ; priority (1)
+ 00 ; target (dns.example.org)
+ 00 01 00 06 02 68 33 02 68 32                      ; alpn=h3,h2
+ 00 0b 00 00                                        ; pvd
+)

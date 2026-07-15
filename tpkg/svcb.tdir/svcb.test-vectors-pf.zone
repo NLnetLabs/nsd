@@ -107,3 +107,6 @@ docpath-s3   1643  IN SVCB 1 dns.example.org. (
 docpath-s4   429  IN SVCB 1 dns.example.org. (
      alpn=h3,co dohpath=/{?dns} docpath )
 
+; Example from draft-ietf-intarea-proxy-config-13 Section-2.1 Discovery via HTTPS/SVCB Records:
+pvd-s1 3600 IN HTTPS 1 . alpn="h3,h2" pvd
+
