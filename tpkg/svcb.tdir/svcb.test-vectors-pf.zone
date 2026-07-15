@@ -96,3 +96,14 @@ ohttp-s3 	SVCB	1 doh.example.net. ( alpn=h2 dohpath=/dns-query{?dns} ohttp )
 tsg-s1	7200	IN	SVCB	3 server.example.net. (
 	port="8004" tls-supported-groups=29,23 )
 
+; Examples from RFC 9953 Section 3.2.1. Examples:
+;
+docpath-s1  1576  IN SVCB 1 dns.example.org. (
+     alpn=co docpath )
+docpath-s2    85  IN SVCB 1 dns.example.org. (
+     alpn=co docpath=dns )
+docpath-s3   1643  IN SVCB 1 dns.example.org. (
+     alpn=co docpath=n,s )
+docpath-s4   429  IN SVCB 1 dns.example.org. (
+     alpn=h3,co dohpath=/{?dns} docpath )
+

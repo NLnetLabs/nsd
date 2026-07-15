@@ -255,4 +255,28 @@ tsg-s1	7200	IN	SVCB	\# 36 (
 00 03 00 02 1f 44                                           ; port="8004"
 00 09 00 04 00 1d 00 17                                     ; tls-supported-groups=2923
 )
-
+docpath-s1	1576	IN	SVCB	\# 30 (
+ 00 01                                              ; priority (1)
+ 03 64 6e 73 07 65 78 61 6d 70 6c 65 03 6f 72 67 00 ; target (dns.example.org)
+ 00 01 00 03 02 63 6f                               ; alpn=co
+ 00 0a 00 00                                        ; docpath
+)
+docpath-s2	85	IN	SVCB	\# 34 (
+ 00 01                                              ; priority (1)
+ 03 64 6e 73 07 65 78 61 6d 70 6c 65 03 6f 72 67 00 ; target (dns.example.org)
+ 00 01 00 03 02 63 6f                               ; alpn=co
+ 00 0a 00 04 03 64 6e 73                            ; docpath=dns
+)
+docpath-s3	1643	IN	SVCB	\# 34 (
+ 00 01                                              ; priority (1)
+ 03 64 6e 73 07 65 78 61 6d 70 6c 65 03 6f 72 67 00 ; target (dns.example.org)
+ 00 01 00 03 02 63 6f                               ; alpn=co
+ 00 0a 00 04 01 6e 01 73                            ; docpath=n,s
+)
+docpath-s4	429	IN	SVCB	\# 44 (
+ 00 01                                              ; priority (1)
+ 03 64 6e 73 07 65 78 61 6d 70 6c 65 03 6f 72 67 00 ; target (dns.example.org)
+ 00 01 00 06 02 68 33 02 63 6f                      ; alpn=h3,co
+ 00 07 00 07 2f 7b 3f 64 6e 73 7d                   ; dohpath=/{?dns}
+ 00 0a 00 00                                        ; docpath
+)
