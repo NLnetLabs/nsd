@@ -1,3 +1,6 @@
+15 July 2026: Willem
+	- Merge #498: Support for the HHIT and BRID RR types
+
 14 July 2026: Willem
 	- Fix that IXFR queries with overly large SOA records do not cause an
 	  assertion failure in the server child process. The malformed SOA

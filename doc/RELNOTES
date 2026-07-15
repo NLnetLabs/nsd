@@ -6,6 +6,7 @@ FEATURES:
 	- Merge #494: RFC 7830 EDNS0 padding option support with DoT
 	  With padding suggestions from RFC 8467 for responses
 	  Thanks kdrenard for the suggestion
+	- Merge #498: Support for the HHIT and BRID RR types
 
 BUG FIXES:
 	- Merge #495 from ruuda: Include inttypes.h from metrics.c.
