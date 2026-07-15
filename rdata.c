@@ -105,6 +105,10 @@ static int print_svcparam_dohpath(struct buffer *output,
 static int print_svcparam_tls_supported_groups(struct buffer *output,
 	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen);
 
+/* Print svcparam docpath */
+static int print_svcparam_docpath(struct buffer *output,
+	uint16_t svcparamkey, const uint8_t* data, uint16_t datalen);
+
 static const nsd_svcparam_descriptor_type svcparams[] = {
 	{ SVCB_KEY_MANDATORY, "mandatory", print_svcparam_mandatory },
 	{ SVCB_KEY_ALPN, "alpn", print_svcparam_alpn },
@@ -118,6 +122,8 @@ static const nsd_svcparam_descriptor_type svcparams[] = {
 	{ SVCB_KEY_OHTTP, "ohttp", print_svcparam_no_value },
 	{ SVCB_KEY_TLS_SUPPORTED_GROUPS, "tls-supported-groups",
 		print_svcparam_tls_supported_groups },
+	{ SVCB_KEY_DOCPATH, "docpath", print_svcparam_docpath},
+	{ SVCB_KEY_PVD, "pvd", print_svcparam_no_value },
 };
 
 /*
@@ -948,6 +954,16 @@ print_svcparam_tls_supported_groups(struct buffer *output,
 		buffer_printf(output, ",%d", (int)read_uint16(data));
 		data += 2;
 	}
+	return 1;
+}
+
+static int
+print_svcparam_docpath(struct buffer *output, uint16_t svcparamkey,
+	const uint8_t* data, uint16_t datalen)
+{
+	if(datalen > 0)
+		return print_svcparam_alpn(output, svcparamkey, data, datalen);
+	buffer_print_svcparamkey(output, svcparamkey);
 	return 1;
 }
 
