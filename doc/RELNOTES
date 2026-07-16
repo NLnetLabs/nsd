@@ -9,6 +9,7 @@ FEATURES:
 	- Merge #498: Support for the HHIT and BRID RR types
 	- Merge #499: Support for the "docpath" and "pvd"
 	  SVCB Service Parameter Keys
+	- Merge #500: Support for the "oots" SVCB Service Parameter Key
 
 BUG FIXES:
 	- Merge #495 from ruuda: Include inttypes.h from metrics.c.
