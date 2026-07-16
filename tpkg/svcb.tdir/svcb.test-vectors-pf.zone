@@ -110,3 +110,8 @@ docpath-s4   429  IN SVCB 1 dns.example.org. (
 ; Example from draft-ietf-intarea-proxy-config-13 Section-2.1 Discovery via HTTPS/SVCB Records:
 pvd-s1 3600 IN HTTPS 1 . alpn="h3,h2" pvd
 
+; Examples from draft-johani-dnsop-svcb-oots-00 Section-2.2
+oots-s1 300 IN SVCB 1 . oots="do53:100,dot:10"
+oots-s2 300 IN SVCB 1 . oots="do53:100,dot:5,doq:5"
+oots-s3 300 IN SVCB 1 . oots="do53:100,dot:25,doh:10,doq:10"
+

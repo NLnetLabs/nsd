@@ -1,0 +1,7 @@
+$ORIGIN failure-cases.
+$TTL 3600
+
+@       SOA     primary admin 0 0 0 0 0
+
+pvd-f1 3600 IN HTTPS 1 . alpn="h3,h2" pvd="something"
+

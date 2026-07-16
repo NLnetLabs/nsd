@@ -201,10 +201,45 @@ then
 	echo "Failure case 26: A tls-supported-groups list containing duplicates is invalid"
 	echo "Incorrectly succeeded"
 	exit 1
+
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-27
+then
+	echo "Failure case 27: A pvd with a value"
+	echo "Incorrectly succeeded"
+	exit 1
+
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-28
+then
+	echo "Failure case 28: Missing percentage in oots"
+	echo "Incorrectly succeeded"
+	exit 1
+
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-29
+then
+	echo "Failure case 29: Missing transport in oots"
+	echo "Incorrectly succeeded"
+	exit 1
+
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-30
+then
+	echo "Failure case 30: Invalid percentage in oots"
+	echo "Incorrectly succeeded"
+	exit 1
+
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-31
+then
+	echo "Failure case 31: Invalid percentage in oots"
+	echo "Incorrectly succeeded"
+	exit 1
+
+elif $PRE/nsd-checkzone failure-cases svcb.failure-cases-32
+then
+	echo "Failure case 32: Duplicate transport in oots"
+	echo "Incorrectly succeeded"
+	exit 1
 else
 	echo "All failure cases test successfully"
 fi
-
 
 if ! $PRE/nsd-checkzone -p success-cases svcb.success-cases.zone > svcb.success-cases.zone.out
 then

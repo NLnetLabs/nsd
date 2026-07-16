@@ -1,0 +1,8 @@
+$ORIGIN failure-cases.
+$TTL 3600
+
+@       SOA     primary admin 0 0 0 0 0
+
+; Duplicate transport
+oots-f5 300 IN SVCB 1 . oots="do53:100,dot:25,dot:10"
+
