@@ -197,6 +197,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define SVCB_KEY_TLS_SUPPORTED_GROUPS	9
 #define SVCB_KEY_DOCPATH		10
 #define SVCB_KEY_PVD			11
+#define SVCB_KEY_OOTS			12
 
 #define MAXLABELLEN	63
 #define MAXDOMAINLEN	255
