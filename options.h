@@ -461,6 +461,10 @@ struct tls_auth_options {
 	char* client_cert;
 	char* client_key;
 	char* client_key_pw;
+#ifdef HAVE_TLS_1_3
+	/* XoT: SSL context */
+	SSL_CTX* ssl_ctx;
+#endif
 };
 
 /* proxy protocol port option list */

@@ -225,7 +225,7 @@ xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active,
 	daemon_metrics_attach(xfrd->nsd->metrics, xfrd);
 #endif /* USE_METRICS */
 
-	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region, nsd->options->tls_cert_bundle, nsd->options->xfrd_tcp_max, nsd->options->xfrd_tcp_pipeline);
+	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region, nsd->options->xfrd_tcp_max, nsd->options->xfrd_tcp_pipeline);
 	xfrd->tcp_set->tcp_timeout = nsd->tcp_timeout;
 #if !defined(HAVE_ARC4RANDOM) && !defined(HAVE_GETRANDOM)
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
@@ -440,16 +440,15 @@ xfrd_shutdown()
 	if (xfrd->nsd->tls_ctx)
 		SSL_CTX_free(xfrd->nsd->tls_ctx);
 #  ifdef HAVE_TLS_1_3
-	if (xfrd->tcp_set->ssl_ctx) {
-		int i;
-		for(i=0; i<xfrd->tcp_set->tcp_max; i++) {
-			if(xfrd->tcp_set->tcp_state[i] &&
-				xfrd->tcp_set->tcp_state[i]->ssl) {
-				SSL_free(xfrd->tcp_set->tcp_state[i]->ssl);
-				xfrd->tcp_set->tcp_state[i]->ssl = NULL;
+	/* Free tls-auth SSL contexts */
+	if (xfrd->nsd->options) {
+		struct tls_auth_options* tls_auth;
+		RBTREE_FOR(tls_auth, struct tls_auth_options*,
+		    xfrd->nsd->options->tls_auths) {
+			if (tls_auth->ssl_ctx) {
+				SSL_CTX_free(tls_auth->ssl_ctx);
 			}
 		}
-		SSL_CTX_free(xfrd->tcp_set->ssl_ctx);
 	}
 #  endif
 #endif
