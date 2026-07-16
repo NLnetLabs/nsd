@@ -982,7 +982,7 @@ print_svcparam_oots(struct buffer *output, uint16_t svcparamkey,
 
 	buffer_print_svcparamkey(output, svcparamkey);
 	buffer_printf(output, "=\"");
-	while(*data + 2 <= datalen) {
+	while(((size_t)(*data)) + 2 <= (size_t)datalen) {
 		size_t transport_len = *data;
 		uint8_t percentage = data[transport_len + 1];
 		size_t i;
