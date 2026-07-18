@@ -1908,7 +1908,7 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 				/* nsid payload */
 				buffer_write(q->packet, nsd->nsid, nsd->nsid_len);
 			}
-			if(!q->edns.zoneversion)
+			if(!q->edns.zoneversion || !q->zone)
 				; /* pass */
 			else if(q->edns.backend_version_rr) {
 				uint8_t *rdp = q->edns.backend_version_rr->rdata;
@@ -1931,8 +1931,7 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 				}
 				assert(rdp == eo_rd);
 
-			} else if (q->zone
-			       && q->zone->soa_rrset
+			} else if(q->zone->soa_rrset
 			       && q->zone->soa_rrset->rr_count >= 1
 			       && q->zone->soa_rrset->rrs[0]->rdlength >= 20+2*sizeof(void*) /* 5x4 bytes and 2 pointers to domains */ ) {
 				uint32_t serial = 0;
