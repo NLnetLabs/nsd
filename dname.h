@@ -448,4 +448,7 @@ int dname_make_buffered(struct dname_buffer* dname, uint8_t *name,
 int dname_make_from_packet_buffered(struct dname_buffer* dname,
 	buffer_type *packet, int allow_pointers, int normalize);
 
+/** return (static) dname with label prepended to dname */
+dname_type* label_plus_dname(const char* label,const dname_type* dname);
+
 #endif /* DNAME_H */

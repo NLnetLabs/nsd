@@ -1813,6 +1813,8 @@ void
 query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 {
 	struct edns_data *edns = &nsd->edns_ipv4;
+	domain_type *match, *closest_encloser;
+	rrset_type *rrset;
 #if defined(INET6)
 	if (q->client_addr.ss_family == AF_INET6) {
 		edns = &nsd->edns_ipv6;
@@ -1836,11 +1838,42 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 				6 + ( q->edns.ede_text_len
 			            ? q->edns.ede_text_len : 0);
 
-		if(q->edns.zoneversion
-		&& q->zone
-		&& q->zone->soa_rrset
-		&& q->zone->soa_rrset->rr_count >= 1
-		&& q->zone->soa_rrset->rrs[0]->rdlength >= 20 /* 5x 32bit numbers */ +2*sizeof(void*) /* two pointers to domain names */)
+		if(!q->edns.zoneversion || !q->zone)
+			; /* pass */
+		else if(namedb_lookup( nsd->db
+		                     , label_plus_dname("_backend-version"
+		                                       , domain_dname_const(q->zone->apex))
+				     , &match, &closest_encloser)
+		     && (rrset = domain_find_rrset(match, q->zone, TYPE_TXT))
+		     && rrset->rr_count == 1) {
+			uint8_t *rdp = rrset->rrs[0]->rdata;
+			uint8_t *eo_rd = rrset->rrs[0]->rdata
+			               + rrset->rrs[0]->rdlength;
+			while (rdp < eo_rd) {
+				q->edns.backend_version_len += *rdp;
+				rdp += *rdp + 1;
+			}
+			if(rdp == eo_rd) {
+				q->edns.backend_version_rr = rrset->rrs[0];
+				q->edns.opt_reserved_space += sizeof(uint16_t)
+							   +  sizeof(uint16_t)
+							   +  sizeof(uint8_t)
+							   +  sizeof(uint8_t)
+							   +  q->edns.backend_version_len;
+
+			} else if(q->zone->soa_rrset
+			       && q->zone->soa_rrset->rr_count >= 1
+			       && q->zone->soa_rrset->rrs[0]->rdlength >= 20+2*sizeof(void*)) {
+				q->edns.opt_reserved_space += sizeof(uint16_t)
+							   +  sizeof(uint16_t)
+							   +  sizeof(uint8_t)
+							   +  sizeof(uint8_t)
+							   +  sizeof(uint32_t);
+			}
+		}
+		else if(q->zone->soa_rrset
+		     && q->zone->soa_rrset->rr_count >= 1
+		     && q->zone->soa_rrset->rrs[0]->rdlength >= 20 /* 5x 32bit numbers */ +2*sizeof(void*) /* two pointers to domain names */)
 			q->edns.opt_reserved_space += sizeof(uint16_t)
 			                           +  sizeof(uint16_t)
 			                           +  sizeof(uint8_t)
@@ -1875,11 +1908,33 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
 				/* nsid payload */
 				buffer_write(q->packet, nsd->nsid, nsd->nsid_len);
 			}
-			if(q->edns.zoneversion
-			&& q->zone
-			&& q->zone->soa_rrset
-			&& q->zone->soa_rrset->rr_count >= 1
-			&& q->zone->soa_rrset->rrs[0]->rdlength >= 20+2*sizeof(void*) /* 5x4 bytes and 2 pointers to domains */ ) {
+			if(!q->edns.zoneversion)
+				; /* pass */
+			else if(q->edns.backend_version_rr) {
+				uint8_t *rdp = q->edns.backend_version_rr->rdata;
+				uint8_t *eo_rd = q->edns.backend_version_rr->rdata
+					       + q->edns.backend_version_rr->rdlength;
+
+				buffer_write_u16(q->packet, ZONEVERSION_CODE);
+				buffer_write_u16( q->packet
+				                , sizeof(uint8_t)
+						+ sizeof(uint8_t)
+						+ q->edns.backend_version_len);
+				buffer_write_u8(q->packet,
+				    domain_dname(q->zone->apex)->label_count - 1);
+				buffer_write_u8( q->packet
+				               , ZONEVERSION_BACKEND_SERIAL);
+				while (rdp < eo_rd) {
+					buffer_write(q->packet, rdp+1, *rdp);
+					q->edns.backend_version_len += *rdp;
+					rdp += *rdp + 1;
+				}
+				assert(rdp == eo_rd);
+
+			} else if (q->zone
+			       && q->zone->soa_rrset
+			       && q->zone->soa_rrset->rr_count >= 1
+			       && q->zone->soa_rrset->rrs[0]->rdlength >= 20+2*sizeof(void*) /* 5x4 bytes and 2 pointers to domains */ ) {
 				uint32_t serial = 0;
 				buffer_write_u16(q->packet, ZONEVERSION_CODE);
 				buffer_write_u16( q->packet
