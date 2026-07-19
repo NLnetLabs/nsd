@@ -144,6 +144,7 @@ struct component {
 %token VAR_METRICS_INTERFACE
 %token VAR_METRICS_PORT
 %token VAR_METRICS_PATH
+%token VAR_PADDING_ON_UDP
 
 /* dnstap */
 %token VAR_DNSTAP
@@ -681,6 +682,8 @@ server_option:
       cfg_parser->opt->metrics_path = region_strdup(cfg_parser->opt->region, $2);
 #endif /* USE_METRICS */
     }
+  | VAR_PADDING_ON_UDP boolean
+    { cfg_parser->opt->padding_on_udp = $2; }
   ;
 
 socket_options:

@@ -177,6 +177,7 @@ nsd_options_create(region_type* region)
 	opt->metrics_port = NSD_METRICS_PORT;
 	opt->metrics_path = "/metrics";
 #endif /* USE_METRICS */
+	opt->padding_on_udp = 0;
 
 	opt->verify_enable = 0;
 	opt->verify_ip_addresses = NULL;

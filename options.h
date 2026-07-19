@@ -187,6 +187,7 @@ struct nsd_options {
 	/** HTTP path for the metrics endpoint */
 	char* metrics_path;
 #endif /* USE_METRICS */
+	int padding_on_udp;
 
 #ifdef RATELIMIT
 	/** number of buckets in rrl hashtable */

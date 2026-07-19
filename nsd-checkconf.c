@@ -421,6 +421,7 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_BIN(refuse_any, o);
 		SERV_GET_BIN(tcp_reject_overflow, o);
 		SERV_GET_BIN(log_only_syslog, o);
+		SERV_GET_BIN(padding_on_udp, o);
 		/* str */
 		SERV_GET_STR(identity, o);
 		SERV_GET_STR(version, o);
@@ -747,6 +748,7 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\tmetrics-port: %d\n", opt->metrics_port);
 	print_string_var("metrics-path:", opt->metrics_path);
 #endif /* USE_METRICS */
+	printf("\tpadding-on-udp: %s\n", opt->hide_identity?"yes":"no");
 
 #ifdef USE_DNSTAP
 	printf("\ndnstap:\n");
