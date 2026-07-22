@@ -748,7 +748,7 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\tmetrics-port: %d\n", opt->metrics_port);
 	print_string_var("metrics-path:", opt->metrics_path);
 #endif /* USE_METRICS */
-	printf("\tpadding-on-udp: %s\n", opt->hide_identity?"yes":"no");
+	printf("\tpadding-on-udp: %s\n", opt->padding_on_udp?"yes":"no");
 
 #ifdef USE_DNSTAP
 	printf("\ndnstap:\n");
