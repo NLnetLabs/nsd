@@ -721,6 +721,10 @@ Default is 127.0.0.1 and ::1.
 .B metrics\-port:\fR <number>
 The port number for the HTTP service. Default is 9100.
 .TP
+.B padding\-on\-udp:\fR <yes or no>
+When set to yes, the EDNS0 padding option will be returned on UDP too. Default
+is no.
+.TP
 .B metrics\-path:\fR <string>
 The HTTP path to expose the metrics at. Default is "/metrics".
 .SS "Remote Control"
