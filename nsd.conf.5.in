@@ -634,6 +634,11 @@ times, additional port numbers can be used for proxy protocol service. The
 interface definitions that use this port number expect PROXYv2 proxy protocol
 traffic, for UDP, TCP and for TLS service.
 .TP
+.B udp\-padding\-port:\fR <number>
+UDP requests received over this port containing an EDNS0 padding option will,
+unlike ordinary UDP requests, be answered with a padded response. The option
+may be given more than once.
+.TP
 .B xdp\-interface:\fR <string>
 The interface to use XDP with. This enables the use of AF_XDP sockets for UDP
 queries. Default is "", disabled. (EXPERIMENTAL)
@@ -720,10 +725,6 @@ Default is 127.0.0.1 and ::1.
 .TP
 .B metrics\-port:\fR <number>
 The port number for the HTTP service. Default is 9100.
-.TP
-.B padding\-on\-udp:\fR <yes or no>
-When set to yes, the EDNS0 padding option will be returned on UDP too. Default
-is no.
 .TP
 .B metrics\-path:\fR <string>
 The HTTP path to expose the metrics at. Default is "/metrics".

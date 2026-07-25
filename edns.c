@@ -120,7 +120,7 @@ edns_handle_option(uint16_t optcode, uint16_t optlen, buffer_type* packet,
 		}
 		break;
 	case PADDING_CODE:
-		if(query->tls || nsd->options->padding_on_udp)
+		if(query->tcp || query->may_pad)
 			edns->padding = 1;
 		buffer_skip(packet, optlen);
 		break;

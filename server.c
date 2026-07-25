@@ -158,6 +158,8 @@ struct udp_handler_data
 	struct event       event;
 	/* if set, PROXYv2 is expected on this connection */
 	int pp2_enabled;
+	/* if set, padding is allowed on this connection */
+	int may_pad;
 };
 
 struct tcp_accept_handler_data {
@@ -3331,10 +3333,13 @@ add_udp_handler(
 	data->nsd = nsd;
 	data->socket = sock;
 
-	if(nsd->options->proxy_protocol_port &&
-		sockaddr_uses_proxy_protocol_port(nsd->options,
-		(struct sockaddr *)&sock->addr.ai_addr)) {
+	if(sockaddr_uses_port((struct sockaddr *)&sock->addr.ai_addr,
+				nsd->options->proxy_protocol_port)) {
 		data->pp2_enabled = 1;
+	}
+	if(sockaddr_uses_port((struct sockaddr *)&sock->addr.ai_addr,
+				nsd->options->udp_padding_port)) {
+		data->may_pad = 1;
 	}
 
 	memset(handler, 0, sizeof(*handler));
@@ -3356,9 +3361,8 @@ add_tcp_handler(
 	data->nsd = nsd;
 	data->socket = sock;
 
-	if(nsd->options->proxy_protocol_port &&
-		sockaddr_uses_proxy_protocol_port(nsd->options,
-		(struct sockaddr *)&sock->addr.ai_addr)) {
+	if(sockaddr_uses_port((struct sockaddr *)&sock->addr.ai_addr,
+				nsd->options->proxy_protocol_port)) {
 		data->pp2_enabled = 1;
 	}
 
@@ -4173,6 +4177,7 @@ handle_udp(int fd, short event, void* arg)
 		queries[i]->remote_addrlen = msgs[i].msg_hdr.msg_namelen;
 		queries[i]->client_addrlen = (socklen_t)sizeof(queries[i]->client_addr);
 		queries[i]->is_proxied = 0;
+		queries[i]->may_pad = data->may_pad;
 		q = queries[i];
 		if (received == -1) {
 			log_msg(LOG_ERR, "recvmmsg %d failed %s", i, strerror(

@@ -421,7 +421,6 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 		SERV_GET_BIN(refuse_any, o);
 		SERV_GET_BIN(tcp_reject_overflow, o);
 		SERV_GET_BIN(log_only_syslog, o);
-		SERV_GET_BIN(padding_on_udp, o);
 		/* str */
 		SERV_GET_STR(identity, o);
 		SERV_GET_STR(version, o);
@@ -513,8 +512,14 @@ config_print_zone(nsd_options_type* opt, const char* k, int s, const char *o,
 			return;
 		}
 		if(strcasecmp(o, "proxy_protocol_port") == 0) {
-			struct proxy_protocol_port_list* p;
+			struct port_list* p;
 			for(p = opt->proxy_protocol_port; p; p = p->next)
+				printf("%d\n", p->port);
+			return;
+		}
+		if(strcasecmp(o, "udp_padding_port") == 0) {
+			struct port_list* p;
+			for(p = opt->udp_padding_port; p; p = p->next)
 				printf("%d\n", p->port);
 			return;
 		}
@@ -736,9 +741,14 @@ config_test_print_server(nsd_options_type* opt)
 		print_string_var("cookie-secret-file:", "");
 	}
 	if(opt->proxy_protocol_port) {
-		struct proxy_protocol_port_list* p;
+		struct port_list* p;
 		for(p = opt->proxy_protocol_port; p; p = p->next)
 			printf("\tproxy-protocol-port: %d\n", p->port);
+	}
+	if(opt->udp_padding_port) {
+		struct port_list* p;
+		for(p = opt->udp_padding_port; p; p = p->next)
+			printf("\tudp-padding-port: %d\n", p->port);
 	}
 
 #ifdef USE_METRICS
@@ -748,7 +758,6 @@ config_test_print_server(nsd_options_type* opt)
 	printf("\tmetrics-port: %d\n", opt->metrics_port);
 	print_string_var("metrics-path:", opt->metrics_path);
 #endif /* USE_METRICS */
-	printf("\tpadding-on-udp: %s\n", opt->padding_on_udp?"yes":"no");
 
 #ifdef USE_DNSTAP
 	printf("\ndnstap:\n");

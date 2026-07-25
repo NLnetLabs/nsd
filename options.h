@@ -21,7 +21,7 @@ struct dname;
 struct tsig_key;
 struct buffer;
 struct nsd;
-struct proxy_protocol_port_list;
+struct port_list;
 
 
 typedef struct nsd_options nsd_options_type;
@@ -147,7 +147,9 @@ struct nsd_options {
 	int tls_auth_xfr_only;
 
 	/* proxy protocol port list */
-	struct proxy_protocol_port_list* proxy_protocol_port;
+	struct port_list* proxy_protocol_port;
+	/* udp-padding-port list */
+	struct port_list* udp_padding_port;
 
 	/** remote control section. enable toggle. */
 	int control_enable;
@@ -187,7 +189,6 @@ struct nsd_options {
 	/** HTTP path for the metrics endpoint */
 	char* metrics_path;
 #endif /* USE_METRICS */
-	int padding_on_udp;
 
 #ifdef RATELIMIT
 	/** number of buckets in rrl hashtable */
@@ -464,9 +465,9 @@ struct tls_auth_options {
 	char* client_key_pw;
 };
 
-/* proxy protocol port option list */
-struct proxy_protocol_port_list {
-	struct proxy_protocol_port_list* next;
+/* port option list */
+struct port_list {
+	struct port_list* next;
 	int port;
 };
 
@@ -667,8 +668,7 @@ void warn_if_directory(const char* filetype, FILE* f, const char* fname);
  * names. */
 void resolve_interface_names(struct nsd_options* options);
 
-/* See if the sockaddr port number is listed in the proxy protocol ports. */
-int sockaddr_uses_proxy_protocol_port(struct nsd_options* options,
-	struct sockaddr* addr);
+/* See if the sockaddr port number is listed in the ports. */
+int sockaddr_uses_port(struct sockaddr* addr, struct port_list* ports);
 
 #endif /* OPTIONS_H */

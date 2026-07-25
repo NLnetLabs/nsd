@@ -1,4 +1,4 @@
-# #-- dot_padding.test --#
+# #-- padding.test --#
 # source the master var file when it's there
 [ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 # use .tpkg.var.test for in test variable passing
@@ -33,12 +33,20 @@ do
 		echo "Error: transport was not TCP"
 		exit 1
 	fi
-	if grep -q '^; PAD:' TCP-${SIZE}.out; then
-		cat TCP-${SIZE}.out
-		echo "Error: padding option seen in TCP message"
-		exit 1
+	if [ $SIZE -eq $PADDED ]; then
+		if grep -q '^; PAD:' TCP-${SIZE}.out; then
+			cat TCP-${SIZE}.out
+			echo "Error: padding option seen in TCP message of size $SIZE"
+			exit 1
+		fi
+	else
+		if ! grep -q '^; PAD:' TCP-${SIZE}.out; then
+			cat TCP-${SIZE}.out
+			echo "Error: padding option not seen in TCP message"
+			exit 1
+		fi
 	fi
-	if ! grep -q "^;; MSG SIZE[[:space:]][[:space:]]*rcvd: ${SIZE}$" TCP-${SIZE}.out; then
+	if ! grep -q "^;; MSG SIZE[[:space:]][[:space:]]*rcvd: ${PADDED}$" TCP-${SIZE}.out; then
 		cat TCP-${SIZE}.out
 		echo "Error: TCP message has wrong message size"
 		exit 1
@@ -50,7 +58,7 @@ do
 		echo "Error: transport was not TLS"
 		exit 1
 	fi
-	if [ $SIZE -eq 468 -o $SIZE -eq 936 ]; then
+	if [ $SIZE -eq $PADDED ]; then
 		if grep -q '^; PAD:' TLS-${SIZE}.out; then
 			cat TLS-${SIZE}.out
 			echo "Error: padding option seen in TLS message of size $SIZE"
@@ -66,6 +74,31 @@ do
 	if ! grep -q "^;; MSG SIZE[[:space:]][[:space:]]*rcvd: ${PADDED}$" TLS-${SIZE}.out; then
 		cat TLS-${SIZE}.out
 		echo "Error: TLS message has wrong message size (should have been $PADDED)"
+		exit 1
+	fi
+
+	dig @127.0.0.1 -p $UDP_PAD_PORT ${SIZE}.example.com. TXT +padding=128 2>&1 > UDP-PAD-${SIZE}.out
+	if ! grep -q ';; SERVER:.*(UDP)$' UDP-PAD-${SIZE}.out; then
+		cat UDP-PAD-${SIZE}.out
+		echo "Error: transport was not UDP for UDP padding allowed port"
+		exit 1
+	fi
+	if [ $SIZE -eq $PADDED ]; then
+		if grep -q '^; PAD:' UDP-PAD-${SIZE}.out; then
+			cat UDP-PAD-${SIZE}.out
+			echo "Error: padding option seen in UDP padding allowed  message of size $SIZE"
+			exit 1
+		fi
+	else
+		if ! grep -q '^; PAD:' UDP-PAD-${SIZE}.out; then
+			cat UDP-PAD-${SIZE}.out
+			echo "Error: padding option not seen in UDP padding allowed message"
+			exit 1
+		fi
+	fi
+	if ! grep -q "^;; MSG SIZE[[:space:]][[:space:]]*rcvd: ${PADDED}$" UDP-PAD-${SIZE}.out; then
+		cat UDP-PAD-${SIZE}.out
+		echo "Error: UDP padding allowed message has wrong message size (should have been $PADDED)"
 		exit 1
 	fi
 done
