@@ -2,13 +2,15 @@ server:
 	zonesdir: ""
 	verbosity: 2
 	ip-address: 127.0.0.1
+	ip-address: 127.0.0.1@@UDP_PAD_PORT@
 	ip-address: 127.0.0.1@@TPKG_DOT_PORT@
+	udp-padding-port: @UDP_PAD_PORT@
 	tls-port: @TPKG_DOT_PORT@
 	xfrdfile: "xfrd.state"
 	zonelistfile: "zone.list"
-	tls-service-key: "dot_padding.key"
-	tls-service-pem: "dot_padding.pem"
+	tls-service-key: "padding.key"
+	tls-service-pem: "padding.pem"
 
 zone:
 	name: "example.com"
-	zonefile: "dot_padding.zone"
+	zonefile: "padding.zone"

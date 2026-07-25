@@ -20,6 +20,7 @@
 #include "edns.h"
 #include "nsd.h"
 #include "query.h"
+#include "options.h"
 
 #if !defined(HAVE_SSL) || !defined(HAVE_CRYPTO_MEMCMP)
 /* we need fixed time compare, pull it in from tsig.c */
@@ -119,7 +120,7 @@ edns_handle_option(uint16_t optcode, uint16_t optlen, buffer_type* packet,
 		}
 		break;
 	case PADDING_CODE:
-		if(query->tls)
+		if(query->tcp || query->may_pad)
 			edns->padding = 1;
 		buffer_skip(packet, optlen);
 		break;

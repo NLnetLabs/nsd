@@ -337,6 +337,7 @@ xdp-program-path{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_XDP_PROGRAM_PA
 xdp-program-load{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_XDP_PROGRAM_LOAD; }
 xdp-bpffs-path{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_XDP_BPFFS_PATH; }
 xdp-force-copy{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_XDP_FORCE_COPY; }
+udp-padding-port{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_UDP_PADDING_PORT;}
 {NEWLINE}		{ LEXOUT(("NL\n")); cfg_parser->line++;}
 
 servers={UNQUOTEDLETTER}*	{
