@@ -5,29 +5,37 @@
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 
 PRE="../../"
+N_ERRORS=0
 
 # should work
-dig @localhost -p $TPKG_PORT example.nl AXFR > got.nl
-if grep "^example.nl" got.nl; then
-	echo "xfer OK"
-else
-	echo "acl failed"
-	exit 1
-fi
+for DOMAIN in example.nl example.com example.net; do
+	dig @127.0.0.1 -p $TPKG_PORT ${DOMAIN}. AXFR > dig.out
+	if ! grep -q "^$DOMAIN" dig.out; then
+		echo "IPv4 $DOMAIN acl failed"
+		N_ERRORS=`expr $N_ERRORS + 1`
+	fi
+	dig @::1 -p $TPKG_PORT ${DOMAIN}. AXFR > dig.out
+	if ! grep -q "^$DOMAIN" dig.out; then
+		echo "IPv6 $DOMAIN acl failed"
+		N_ERRORS=`expr $N_ERRORS + 1`
+	fi
+done
 
-dig @localhost -p $TPKG_PORT example.com AXFR > got.com
-if grep "^example.com" got.com; then
-	echo "xfer OK"
-else
-	echo "acl failed"
-	exit 1
-fi
+# should not work
+for DOMAIN in example.org; do
+	dig @127.0.0.1 -p $TPKG_PORT ${DOMAIN}. AXFR > dig.out
+	if grep -q "^$DOMAIN" dig.out; then
+		echo "IPv4 $DOMAIN acl failed"
+		N_ERRORS=`expr $N_ERRORS + 1`
+	fi
+	dig @::1 -p $TPKG_PORT ${DOMAIN}. AXFR > dig.out
+	if grep -q "^$DOMAIN" dig.out; then
+		echo "IPv6 $DOMAIN acl failed"
+		N_ERRORS=`expr $N_ERRORS + 1`
+	fi
+done
 
-dig @localhost -p $TPKG_PORT example.net AXFR > got.net
-if grep "^example.net" got.net; then
-	echo "xfer OK"
-else
-	echo "acl failed"
+if [ $N_ERRORS -gt 0 ]; then
 	exit 1
 fi
 
