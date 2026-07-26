@@ -249,7 +249,7 @@ enum xfrd_packet_result {
 	xfrd_packet_bad, /* drop the packet/connection */
 	xfrd_packet_drop, /* drop the connection, but not report bad */
 	xfrd_packet_more, /* more packets to follow on tcp */
-	xfrd_packet_notimpl, /* server responded with NOTIMPL or FORMATERR */
+	xfrd_packet_notimpl, /* NOTIMPL, FORMERR, or SERVFAIL (IXFR->AXFR) */
 	xfrd_packet_tcp, /* try tcp connection */
 	xfrd_packet_transfer, /* server responded with transfer*/
 	xfrd_packet_newlease /* no changes, soa OK */

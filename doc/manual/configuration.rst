@@ -126,8 +126,8 @@ are made over TCP. If you want the IXFR request be transmitted over UDP, use
     request-xfr: 168.192.199.2 NOKEY
 
 By default, a secondary will fallback to AXFR requests if the primary told us it
-does not support IXFR. You can configure the secondary not to do AXFR fallback
-with:
+does not support IXFR, or if an IXFR fails with SERVFAIL. You can configure the
+secondary not to do AXFR fallback with:
 
 .. code-block:: text
 

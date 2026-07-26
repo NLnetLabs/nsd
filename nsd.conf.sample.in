@@ -512,7 +512,8 @@ remote-control:
 	#request-xfr: 192.0.2.2 the_tsig_key_name the_tls_auth_name
 	# Attention: You cannot use UDP and AXFR together. AXFR is always over
 	# TCP. If you use UDP, we highly recommend you to deploy TSIG.
-	# Allow AXFR fallback if the primary does not support IXFR. Default
+	# Allow AXFR fallback if the primary does not support IXFR
+	# (NOTIMPL/FORMERR) or cannot serve the IXFR (SERVFAIL). Default
 	# is yes.
 	#allow-axfr-fallback: yes
 	# set local interface for sending zone transfer requests.
