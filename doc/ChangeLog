@@ -1,3 +1,9 @@
+26 July 2026: Jared
+	- Fall back to AXFR when an IXFR response is SERVFAIL (if
+	  allow-axfr-fallback is enabled), matching the existing NOTIMPL
+	  and FORMERR fallback. This recovers automatically when a primary
+	  cannot serve IXFR due to inconsistent history (GitHub #479).
+
 16 July 2026: Willem
 	- Merge #500: Support for the "oots" SVCB Service Parameter Key
 

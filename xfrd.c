@@ -2296,7 +2296,12 @@ xfrd_parse_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet,
 				zone->master->ip_address_spec);
 		}
 		if (RCODE(packet) == RCODE_IMPL ||
-			RCODE(packet) == RCODE_FORMAT) {
+			RCODE(packet) == RCODE_FORMAT ||
+			RCODE(packet) == RCODE_SERVFAIL) {
+			/* NOTIMPL/FORMERR: primary does not support IXFR.
+			 * SERVFAIL: primary cannot serve this IXFR (for
+			 * example inconsistent IXFR history). Fall back to
+			 * AXFR when allow-axfr-fallback is enabled. */
 			return xfrd_packet_notimpl;
 		}
 		if (RCODE(packet) != RCODE_NOTAUTH) {
