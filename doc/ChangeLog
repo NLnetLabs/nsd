@@ -1,3 +1,10 @@
+26 July 2026: Jared
+	- Fix #364: Make TCP and AXFR-over-TLS transfers honor
+	  outgoing-interface. Fix SO_REUSEADDR when binding the local
+	  source address, and key TCP/TLS pipeline reuse by destination
+	  and local source so connections are not shared across
+	  different outgoing interfaces.
+
 16 July 2026: Willem
 	- Merge #500: Support for the "oots" SVCB Service Parameter Key
 

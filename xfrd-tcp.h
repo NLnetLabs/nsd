@@ -95,8 +95,8 @@ struct xfrd_tcp_pipeline_id {
 };
 
 /**
- * The tcp pipeline key structure. By ip_len, ip, num_unused and unique by
- * pointer value.
+ * The tcp pipeline key structure. By ip_len, ip, src_len, src, num_unused
+ * and unique by pointer value.
  */
 struct xfrd_tcp_pipeline_key {
 	/* the rbtree node, sorted by IP and nr of unused queries */
@@ -108,6 +108,13 @@ struct xfrd_tcp_pipeline_key {
 	struct sockaddr_in ip;
 #endif /* INET6 */
 	socklen_t ip_len;
+	/* local (outgoing-interface) source address; src_len 0 if unbound */
+#ifdef INET6
+	struct sockaddr_storage src;
+#else
+	struct sockaddr_in src;
+#endif /* INET6 */
+	socklen_t src_len;
 	/* number of unused IDs.  used IDs are waiting to send their query,
 	 * or have been sent but not not all answer packets have been received.
 	 * Sorted by num_unused, so a lookup smaller-equal for 65536 finds the

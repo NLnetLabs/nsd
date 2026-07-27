@@ -1841,7 +1841,7 @@ xfrd_send_udp(struct acl_options* acl, buffer_type* packet,
 	}
 
 	/* bind it */
-	if (!xfrd_bind_local_interface(fd, ifc, acl, 0)) {
+	if (!xfrd_bind_local_interface(fd, ifc, acl, 0, NULL, NULL)) {
 		log_msg(LOG_ERR, "xfrd: cannot bind outgoing interface '%s' to "
 				 "udp socket: No matching ip addresses found",
 			ifc->ip_address_spec);
@@ -1865,7 +1865,13 @@ xfrd_send_udp(struct acl_options* acl, buffer_type* packet,
 
 int
 xfrd_bind_local_interface(int sockd, struct acl_options* ifc,
-	struct acl_options* acl, int tcp)
+	struct acl_options* acl, int tcp,
+#ifdef INET6
+	struct sockaddr_storage* bound_addr,
+#else
+	struct sockaddr_in* bound_addr,
+#endif
+	socklen_t* bound_len)
 {
 #ifdef SO_LINGER
 	struct linger linger = {1, 0};
@@ -1877,6 +1883,11 @@ xfrd_bind_local_interface(int sockd, struct acl_options* ifc,
 	struct sockaddr_in frm;
 #endif /* INET6 */
 	int ret = 1;
+
+	if(bound_len)
+		*bound_len = 0;
+	if(bound_addr)
+		memset(bound_addr, 0, sizeof(*bound_addr));
 
 	if (!ifc) /* no outgoing interface set */
 		return 1;
@@ -1895,8 +1906,11 @@ xfrd_bind_local_interface(int sockd, struct acl_options* ifc,
 
 		if (tcp) {
 #ifdef SO_REUSEADDR
-			if (setsockopt(sockd, SOL_SOCKET, SO_REUSEADDR, &frm,
-				frm_len) < 0) {
+			/* Enable address reuse so a fixed source port can be
+			 * rebound after a previous TCP/TLS connection. */
+			int on = 1;
+			if (setsockopt(sockd, SOL_SOCKET, SO_REUSEADDR, &on,
+				sizeof(on)) < 0) {
 				VERBOSITY(2, (LOG_WARNING, "xfrd: setsockopt "
 			     "SO_REUSEADDR failed: %s", strerror(errno)));
 			}
@@ -1924,6 +1938,11 @@ xfrd_bind_local_interface(int sockd, struct acl_options* ifc,
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: bind() %s to %s "
 						       "socket was successful",
 			ifc->ip_address_spec, tcp? "tcp":"udp"));
+			if(bound_addr) {
+				memcpy(bound_addr, &frm, frm_len);
+				if(bound_len)
+					*bound_len = frm_len;
+			}
 			return 1;
 		}
 
