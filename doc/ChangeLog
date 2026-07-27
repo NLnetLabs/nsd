@@ -1,3 +1,9 @@
+26 July 2026: Jared
+	- Recognize DNSSEC algorithms SM2SM3 (17, RFC 9563) and ECC-GOST12
+	  (23, RFC 9558) in presentation and zone parsing, and recognize
+	  ED25519/ED448 mnemonics in simdzone. Mark ECC-GOST (12) as obsolete.
+	  Based on a patch by Igor V. Ruzanov (GitHub #473).
+
 16 July 2026: Willem
 	- Merge #500: Support for the "oots" SVCB Service Parameter Key
 

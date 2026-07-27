@@ -58,11 +58,13 @@ lookup_table_type dns_algorithms[] = {
 	{ 7, "RSASHA1-NSEC3-SHA1" },	/* RFC 5155 */
 	{ 8, "RSASHA256" },		/* RFC 5702 */
 	{ 10, "RSASHA512" },		/* RFC 5702 */
-	{ 12, "ECC-GOST" },		/* RFC 5933 */
+	{ 12, "ECC-GOST" },		/* RFC 5933, obsolete (RFC 9906) */
 	{ 13, "ECDSAP256SHA256" },	/* RFC 6605 */
 	{ 14, "ECDSAP384SHA384" },	/* RFC 6605 */
 	{ 15, "ED25519" },		/* RFC 8080 */
 	{ 16, "ED448" },		/* RFC 8080 */
+	{ 17, "SM2SM3" },		/* RFC 9563 */
+	{ 23, "ECC-GOST12" },		/* RFC 9558 */
 	{ 252, "INDIRECT" },
 	{ 253, "PRIVATEDNS" },
 	{ 254, "PRIVATEOID" },
