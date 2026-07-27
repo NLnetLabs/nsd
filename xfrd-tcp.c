@@ -231,7 +231,26 @@ int password_cb(char *buf, int size, int ATTR_UNUSED(rwflag), void *u)
 
 #endif
 
-/* sort tcppipe, first on IP address, for an IPaddresss, sort on num_unused */
+/* Fill addr with the first outgoing-interface matching acl's address family.
+ * Returns sockaddr length, or 0 if none. Clears addr when returning 0. */
+static socklen_t
+xfrd_select_outgoing_sockaddr(struct acl_options* ifc, struct acl_options* acl,
+#ifdef INET6
+	struct sockaddr_storage* addr)
+#else
+	struct sockaddr_in* addr)
+#endif /* INET6 */
+{
+	memset(addr, 0, sizeof(*addr));
+	while(ifc) {
+		if(ifc->is_ipv6 == acl->is_ipv6)
+			return xfrd_acl_sockaddr_frm(ifc, addr);
+		ifc = ifc->next;
+	}
+	return 0;
+}
+
+/* sort tcppipe, first on destination IP, then source IP, then num_unused */
 static int
 xfrd_pipe_cmp(const void* a, const void* b)
 {
@@ -246,6 +265,14 @@ xfrd_pipe_cmp(const void* a, const void* b)
 	r = memcmp(&x->key.ip, &y->key.ip, x->key.ip_len);
 	if(r != 0)
 		return r;
+	/* also match on local (outgoing-interface) source address */
+	if(y->key.src_len != x->key.src_len)
+		return (int)y->key.src_len - (int)x->key.src_len;
+	if(x->key.src_len != 0) {
+		r = memcmp(&x->key.src, &y->key.src, x->key.src_len);
+		if(r != 0)
+			return r;
+	}
 	/* sort that num_unused is sorted ascending, */
 	if(x->key.num_unused != y->key.num_unused) {
 		return (x->key.num_unused < y->key.num_unused) ? -1 : 1;
@@ -636,6 +663,9 @@ pipeline_find(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	struct xfrd_tcp_pipeline_key k, *key=&k;
 	key->node.key = key;
 	key->ip_len = xfrd_acl_sockaddr_to(zone->master, &key->ip);
+	key->src_len = xfrd_select_outgoing_sockaddr(
+		zone->zone_options->pattern->outgoing_interface,
+		zone->master, &key->src);
 	key->num_unused = set->tcp_pipeline;
 	/* lookup existing tcp transfer to the master with highest unused */
 	if(rbtree_find_less_equal(set->pipetree, key, &sme)) {
@@ -649,6 +679,12 @@ pipeline_find(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	if(r->key.ip_len != key->ip_len)
 		return NULL;
 	if(memcmp(&r->key.ip, &key->ip, key->ip_len) != 0)
+		return NULL;
+	/* also require the same outgoing-interface (source address) */
+	if(r->key.src_len != key->src_len)
+		return NULL;
+	if(key->src_len != 0 &&
+		memcmp(&r->key.src, &key->src, key->src_len) != 0)
 		return NULL;
 	/* correct master, is there a slot free for this transfer? */
 	if(r->key.num_unused == 0)
@@ -970,10 +1006,13 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	}
 
 	tp->key.ip_len = xfrd_acl_sockaddr_to(zone->master, &tp->key.ip);
+	tp->key.src_len = 0;
+	memset(&tp->key.src, 0, sizeof(tp->key.src));
 
-	/* bind it */
+	/* bind it (records the successful outgoing-interface in tp->key.src) */
 	if (!xfrd_bind_local_interface(fd, zone->zone_options->pattern->
-		outgoing_interface, zone->master, 1)) {
+		outgoing_interface, zone->master, 1,
+		&tp->key.src, &tp->key.src_len)) {
 		close(fd);
 		xfrd_set_refresh_now(zone);
 		return 0;
@@ -1702,13 +1741,19 @@ xfrd_tcp_release(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 	 * for the same master, and can fill the unused ID */
 	if(tp->key.num_unused == 1 && set->tcp_waiting_first) {
 #ifdef INET6
-		struct sockaddr_storage to;
+		struct sockaddr_storage to, src;
 #else
-		struct sockaddr_in to;
+		struct sockaddr_in to, src;
 #endif
 		socklen_t to_len = xfrd_acl_sockaddr_to(
 			set->tcp_waiting_first->master, &to);
-		if(to_len == tp->key.ip_len && memcmp(&to, &tp->key.ip, to_len) == 0) {
+		socklen_t src_len = xfrd_select_outgoing_sockaddr(
+			set->tcp_waiting_first->zone_options->pattern->
+			outgoing_interface, set->tcp_waiting_first->master,
+			&src);
+		if(to_len == tp->key.ip_len && memcmp(&to, &tp->key.ip, to_len) == 0 &&
+		   src_len == tp->key.src_len &&
+		   (src_len == 0 || memcmp(&src, &tp->key.src, src_len) == 0)) {
 			/* use this connection for the waiting zone */
 			zone = set->tcp_waiting_first;
 			assert(zone->tcp_conn == -1);
@@ -1720,7 +1765,7 @@ xfrd_tcp_release(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 			pipeline_setup_new_zone(set, tp, zone);
 			return;
 		}
-		/* waiting zone did not go to same server */
+		/* waiting zone did not go to same server/source */
 	}
 
 	/* if all unused, or only skipped leftover, close the pipeline */

@@ -463,9 +463,17 @@ xfrd_prepare_updates_for_reload(void);
  */
 void xfrd_prepare_zones_for_reload(void);
 
-/* Bind a local interface to a socket descriptor, return 1 on success */
+/* Bind a local interface to a socket descriptor, return 1 on success.
+ * If bound_addr is non-NULL, it is filled with the source address that was
+ * bound (or cleared when no outgoing-interface matched / was configured). */
 int xfrd_bind_local_interface(int sockd, struct acl_options* ifc,
-	struct acl_options* acl, int tcp);
+	struct acl_options* acl, int tcp,
+#ifdef INET6
+	struct sockaddr_storage* bound_addr,
+#else
+	struct sockaddr_in* bound_addr,
+#endif
+	socklen_t* bound_len);
 
 /* process results and soa info from reload */
 void xfrd_process_task_result(xfrd_state_type* xfrd, struct udb_base* taskudb);
