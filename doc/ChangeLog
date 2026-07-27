@@ -1,3 +1,9 @@
+26 July 2026: Jared
+	- Fix TLS ALPN selection to only accept "dot" (DNS-over-TLS).
+	  Previously OPENSSL_NPN_NO_OVERLAP was ignored, so a client that
+	  offered only HTTP-related ALPNs could have that protocol selected.
+	  Thanks to Andreas Schulze for the report (GitHub #476).
+
 16 July 2026: Willem
 	- Merge #500: Support for the "oots" SVCB Service Parameter Key
 

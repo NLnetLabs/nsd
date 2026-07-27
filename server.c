@@ -2129,10 +2129,20 @@ server_alpn_cb(SSL* ATTR_UNUSED(s),
 		const unsigned char* in, unsigned int inlen,
 		void* ATTR_UNUSED(arg))
 {
+	/* Only DNS-over-TLS ("dot"). Do not accept unrelated client ALPNs
+	 * (h2, http/1.1, spdy, ...): SSL_select_next_proto returns the first
+	 * client protocol on OPENSSL_NPN_NO_OVERLAP. */
 	static const unsigned char alpns[] = { 3, 'd', 'o', 't' };
 	unsigned char* tmp_out;
+	int ret;
 
-	SSL_select_next_proto(&tmp_out, outlen, alpns, sizeof(alpns), in, inlen);
+	ret = SSL_select_next_proto(&tmp_out, outlen, alpns, sizeof(alpns),
+		in, inlen);
+	if(ret == OPENSSL_NPN_NO_OVERLAP) {
+		/* Client sent ALPN but no overlap with "dot". Continue
+		 * without ALPN rather than selecting a non-DNS protocol. */
+		return SSL_TLSEXT_ERR_NOACK;
+	}
 	*out = tmp_out;
 	return SSL_TLSEXT_ERR_OK;
 }
