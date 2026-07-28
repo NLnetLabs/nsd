@@ -1,0 +1,73 @@
+# #-- proxy_acl_deny.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+# Is streamtcp available?
+if test -f "`which streamtcp 2>&1`"; then
+	echo "streamtcp available, do test"
+else
+	echo "streamtcp not available, skip test"
+	exit 0
+fi
+
+# use proxy protocol to query server
+echo ""
+echo "> UDP test"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 -n -u www.example.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "not OK"
+	exit 1
+else
+	echo "OK"
+fi
+wait_logfile nsd.log "proxy-protocol: 127.0.0.1 is not in allow-proxy list" 5
+if grep "proxy-protocol: 127.0.0.1 is not in allow-proxy list" nsd.log; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TCP test"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@1234 www.example.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "not OK"
+	exit 1
+else
+	echo "OK"
+fi
+sleep 2
+grep "proxy-protocol: 127.0.0.1 is not in allow-proxy list" nsd.log
+if test `grep "proxy-protocol: 127.0.0.1 is not in allow-proxy list" nsd.log | wc -l` -eq 2; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+echo ""
+echo "> TLS test"
+streamtcp -f 127.0.0.1@$TPKG_PORT2 -p 10.20.30.40@1234 -s www.example.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "not OK"
+	exit 1
+else
+	echo "OK"
+fi
+sleep 2
+grep "proxy-protocol: 127.0.0.1 is not in allow-proxy list" nsd.log
+if test `grep "proxy-protocol: 127.0.0.1 is not in allow-proxy list" nsd.log | wc -l` -eq 3; then
+	echo "nsd.log OK"
+else
+	echo "nsd.log not OK"
+	exit 1
+fi
+
+exit 0
