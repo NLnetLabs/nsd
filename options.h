@@ -148,6 +148,8 @@ struct nsd_options {
 
 	/* proxy protocol port list */
 	struct proxy_protocol_port_list* proxy_protocol_port;
+	/* Allowed proxy senders (the outer IP addr), it allows all if empty */
+	struct acl_options* allow_proxy;
 
 	/** remote control section. enable toggle. */
 	int control_enable;
@@ -605,6 +607,9 @@ int acl_addr_match_range_v4(uint32_t* minval, uint32_t* x, uint32_t* maxval, siz
 
 /* check acl list for blocks on address, return 0 if none, -1 if blocked. */
 int acl_check_incoming_block_proxy(struct acl_options* acl, struct query* q,
+	struct acl_options** reason);
+/* check acl list, proxy addr, if match return 1, -1 if no matches. */
+int acl_check_incoming_proxy(struct acl_options* acl, struct query* q,
 	struct acl_options** reason);
 
 /* returns true if acls are both from the same host */

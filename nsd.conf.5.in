@@ -634,6 +634,12 @@ times, additional port numbers can be used for proxy protocol service. The
 interface definitions that use this port number expect PROXYv2 proxy protocol
 traffic, for UDP, TCP and for TLS service.
 .TP
+.B allow\-proxy:\fR <IP netblock>
+The allowed proxy senders, that can send PROXYv2 traffic. Without an
+allow\-proxy option any IP address is allowed. It can be given multiple times
+to allow multiple netblocks, or with /32 or /128 specific addresses can be
+listed.
+.TP
 .B xdp\-interface:\fR <string>
 The interface to use XDP with. This enables the use of AF_XDP sockets for UDP
 queries. Default is "", disabled. (EXPERIMENTAL)

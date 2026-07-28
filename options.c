@@ -152,6 +152,7 @@ nsd_options_create(region_type* region)
 	opt->tls_cert_bundle = NULL;
 	opt->tls_auth_xfr_only = 0;
 	opt->proxy_protocol_port = NULL;
+	opt->allow_proxy = NULL;
 	opt->answer_cookie = 0;
 	opt->cookie_secret = NULL;
 	opt->cookie_staging_secret = NULL;
@@ -1960,6 +1961,28 @@ key_options_add_modify(struct nsd_options* opt, struct key_options* key)
 		orig->secret = region_strdup(opt->region, key->secret);
 		key_options_setup(opt->region, orig);
 	}
+}
+
+int
+acl_check_incoming_proxy(struct acl_options* acl, struct query* q,
+	struct acl_options** reason)
+{
+	if(reason)
+		*reason = NULL;
+
+	while(acl)
+	{
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "proxy testing allow-proxy acl %s",
+			acl->ip_address_spec));
+		if(acl_addr_matches_proxy(acl, q)) {
+			if(reason)
+				*reason = acl;
+			return 1;
+		}
+		acl = acl->next;
+	}
+
+	return -1;
 }
 
 int
