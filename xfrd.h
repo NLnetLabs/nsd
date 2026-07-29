@@ -85,6 +85,8 @@ struct xfrd_state {
 	uint8_t reload_failed;
 	uint8_t can_send_reload;
 	pid_t reload_pid;
+	int num_reload_failed_repeat;
+	int num_xfrs_in_reload;
 	/* timeout for lost sigchild and reaping children */
 	struct event child_timer;
 	int child_timer_added;

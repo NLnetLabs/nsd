@@ -2711,6 +2711,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 			zone->latest_xfr->xfrfilenumber))
 	{
 		zone->latest_xfr->sent = xfrd->nsd->mytask + 1;
+		xfrd->num_xfrs_in_reload++;
 	}
 	/* reset msg seq nr, so if that is nonnull we know xfr file exists */
 	zone->latest_xfr->msg_seq_nr = 0;
@@ -3031,6 +3032,8 @@ xfrd_prepare_zones_for_reload(void)
 					xfr->msg_old_serial,
 					xfr->msg_new_serial,
 					xfr->xfrfilenumber);
+				if(send)
+					xfrd->num_xfrs_in_reload++;
 				if(send && !reload) {
 					reload = 1;
 					xfrd_set_reload_timeout();

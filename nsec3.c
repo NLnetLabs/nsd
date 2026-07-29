@@ -420,6 +420,17 @@ nsec3_in_chain_count(domain_type* domain, zone_type* zone)
 	int count = 0;
 	if(!rrset || !zone->nsec3_param)
 		return 0; /* no NSEC3s, none in the chain */
+	if(dname_name(domain_dname_const(domain))[0] != NSEC3_OWNER_LABEL_LEN)
+		return 0; /* not b32.name */
+	if(!(((size_t)domain_dname(domain)->label_count) ==
+		((size_t)domain_dname(zone->apex)->label_count)+1 &&
+		((size_t)domain_dname(domain)->name_size) ==
+		((size_t)domain_dname(zone->apex)->name_size) +
+		NSEC3_OWNER_LABEL_LEN+1 &&
+		memcmp(dname_name(domain_dname_const(domain))+
+		NSEC3_OWNER_LABEL_LEN+1, dname_name(domain_dname_const(
+		zone->apex)), domain_dname(zone->apex)->name_size) == 0))
+		return 0; /* not b32.zonename */
 	for(i=0; i<rrset->rr_count; i++) {
 		if(nsec3_rr_uses_params(rrset->rrs[i], zone))
 			count++;
