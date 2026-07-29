@@ -1,3 +1,8 @@
+29 July 2026: Wouter
+	- Fix that when DNAME is limited due to the maximum CNAME chain
+	  length, it copies the final DNAME with its CNAME into the
+	  packet. Also fix unit test for limit on CNAME chain length.
+
 16 July 2026: Willem
 	- Merge #500: Support for the "oots" SVCB Service Parameter Key
 
