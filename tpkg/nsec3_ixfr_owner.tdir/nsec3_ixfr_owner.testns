@@ -1,0 +1,30 @@
+#!
+# premade query answers
+
+$ORIGIN example.com.
+$TTL 3600
+
+# reply IXFR request
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=3
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+# no deletes for serial 3
+@ 345600 IN SOA ns0.example.org. root 4 3600 28800 2419200 3600
+# add for serial 4
+# wrong NSEC3 owner name, it is 'sub.example.com' instead of 'example.com',
+# and it has the identical owner b32 label as an existing NSEC3 record,
+# for a.example.com.
+h64kfa4p1acer2ebps9qsdk6dnp8b3jq.sub.example.com. IN NSEC3 1 0 0 - onib9mgub9h0rml3cdf5bgrj59dkjhvk A
+@ 345600 IN SOA ns0.example.org. root 4 3600 28800 2419200 3600
+# del for serial 4
+h64kfa4p1acer2ebps9qsdk6dnp8b3jq.sub.example.com. IN NSEC3 1 0 0 - onib9mgub9h0rml3cdf5bgrj59dkjhvk A
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+# no add for serial 5
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+ENTRY_END
