@@ -286,6 +286,19 @@ else
 fi
 
 echo ""
+echo "> TCP provide-xfr test for block proxy on second query"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.41@1234 ex8.com. AXFR IN ex8.com. AXFR IN &> out2
+cat out2
+# The second AXFR query should also be considered is_proxied, and then blocked
+# by the acl.
+if grep "www.ex8.com." out2; then
+	echo "not OK"
+	exit 1
+else
+	echo "OK"
+fi
+
+echo ""
 echo "> TLS test"
 streamtcp -f 127.0.0.1@$TPKG_PORT2 -p 10.20.30.40@1234 -s www.example.com. A IN &> out2
 cat out2
@@ -388,6 +401,19 @@ if grep "axfr for ex6.com. from 10.20.30.42 via proxy 127.0.0.1 refused because 
 else
 	echo "nsd.log not OK"
 	exit 1
+fi
+
+echo ""
+echo "> TLS provide-xfr test for block proxy on second query"
+streamtcp -f 127.0.0.1@$TPKG_PORT2 -p 10.20.30.41@1234 -s ex8.com. AXFR IN ex8.com. AXFR IN &> out2
+cat out2
+# The second AXFR query should also be considered is_proxied, and then blocked
+# by the acl.
+if grep "www.ex8.com." out2; then
+	echo "not OK"
+	exit 1
+else
+	echo "OK"
 fi
 
 exit 0
