@@ -1776,6 +1776,16 @@ query_process(query_type *q, nsd_type *nsd, uint32_t *now_p)
 		cookie_verify(q, nsd, now_p);
 
 	query_prepare_response(q);
+	if(q->reserved_space + QHEADERSZ + (size_t)q->qname->name_size +
+		2 /* qtype */ + 2 /* qclass */ > q->maxlen) {
+		/* Clear out some space, and return error, it does not fit. */
+		q->edns.status = EDNS_NOT_PRESENT;
+		q->tsig.status = TSIG_NOT_PRESENT;
+		if(q->tcp)
+			return query_error(q, NSD_RC_SERVFAIL);
+		TC_SET(q->packet);
+		return query_error(q, NSD_RC_OK);
+	}
 
 	if (q->qclass != CLASS_IN && q->qclass != CLASS_ANY) {
 		if (q->qclass == CLASS_CH) {
