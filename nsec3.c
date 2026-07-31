@@ -246,13 +246,14 @@ check_apex_soa(namedb_type* namedb, zone_type *zone, int nolog)
 		return NULL;
 	}
 	for(j=0; j<nsec3_rrset->rr_count; j++) {
-		if(nsec3_has_soa(nsec3_rrset->rrs[j])) {
+		if(nsec3_has_soa(nsec3_rrset->rrs[j]) &&
+			nsec3_rr_uses_params(nsec3_rrset->rrs[j], zone)) {
 			region_destroy(tmpregion);
 			return nsec3_rrset->rrs[j];
 		}
 	}
 	if(!nolog) {
-		log_msg(LOG_ERR, "%s NSEC3PARAM entry: hash(apex) NSEC3 has no SOA flag.",
+		log_msg(LOG_ERR, "%s NSEC3PARAM entry: hash(apex) NSEC3 has no SOA flag or different params.",
 			domain_to_string(zone->apex));
 		log_msg(LOG_ERR, "hash(apex)= %s",
 			dname_to_string(hashed_apex, NULL));
