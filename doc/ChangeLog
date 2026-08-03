@@ -1,3 +1,8 @@
+3 August 2026: Willem
+	- An `allow-proxy` configuration file option to specify allow access
+	  control list for the PROXYv2 protocol port.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the suggestion.
+
 29 July 2026: Wouter
 	- Fix that when DNAME is limited due to the maximum CNAME chain
 	  length, it copies the final DNAME with its CNAME into the

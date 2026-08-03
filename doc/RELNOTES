@@ -10,6 +10,9 @@ FEATURES:
 	- Merge #499: Support for the "docpath" and "pvd"
 	  SVCB Service Parameter Keys
 	- Merge #500: Support for the "oots" SVCB Service Parameter Key
+	- An `allow-proxy` configuration file option to specify allow access
+	  control list for the PROXYv2 protocol port.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the suggestion.
 
 BUG FIXES:
 	- Merge #495 from ruuda: Include inttypes.h from metrics.c.
