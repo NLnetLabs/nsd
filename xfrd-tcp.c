@@ -1252,8 +1252,8 @@ int conn_write(struct xfrd_tcp* tcp)
 		}
 
 		tcp->total_bytes += sent;
-		if(sent > (ssize_t)sizeof(tcp->msglen))
-			buffer_skip(tcp->packet, sent-sizeof(tcp->msglen));
+		if(tcp->total_bytes > (ssize_t)sizeof(tcp->msglen))
+			buffer_skip(tcp->packet, tcp->total_bytes-sizeof(tcp->msglen));
 		if(tcp->total_bytes < sizeof(tcp->msglen)) {
 			/* incomplete write, resume later */
 			return 0;

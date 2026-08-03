@@ -4813,7 +4813,8 @@ handle_tcp_writing(int fd, short event, void* arg)
 		}
 
 #ifdef HAVE_WRITEV
-		sent -= sizeof(n_tcplen);
+		/* The number of bytes transmitted for the message content. */
+		sent = data->bytes_transmitted - sizeof(n_tcplen);
 		/* handle potential 'packet done' code */
 		goto packet_could_be_done;
 #endif
