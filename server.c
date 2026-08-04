@@ -4236,6 +4236,7 @@ handle_udp(int fd, short event, void* arg)
 			if(!consume_pp2_header(q->packet, q, 0)) {
 				VERBOSITY(6, (LOG_ERR, "proxy-protocol: could not "
 					"consume PROXYv2 header"));
+				query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
 				goto swap_drop;
 			}
 		}
