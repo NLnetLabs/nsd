@@ -1,0 +1,64 @@
+# #-- proxy_consume_reset.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+# Is streamtcp available?
+if test -f "`which streamtcp 2>&1`"; then
+	echo "streamtcp available, do test"
+else
+	echo "streamtcp not available, skip test"
+	exit 0
+fi
+
+if test -f `which nc` 2>&1 >/dev/null; then
+	echo "have nc"
+else
+	echo "do not have nc; skip this part"
+	exit 0
+fi
+
+# After a failure to consume the proxy protocol header,
+# the buffer should be reset properly. Otherwise the packet after
+# it can have an assertion failure.
+
+# Send the packet with an invalid proxy header
+echo "> send malformed proxy header"
+printf "\x12\x34\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x03www\x07example\x00\x00\x01\x00\x01" | nc --udp --send-only 127.0.0.1 $TPKG_PORT
+
+# Wait briefly so that the two queries do not end up in the same recvmmsg
+# array. The second message wants to use the same array index as the first.
+sleep 0.15
+
+# Send a proxy protocol packet, send only.
+echo "> send proxy packet"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@12345 -u -n www.example.com. A IN
+
+# Test there is no failure in the logs.
+# wait for logs for a bit
+sleep 1
+if grep "died unexpectedly" nsd.log; then
+	echo "not OK"
+	exit 1
+else
+	echo "OK"
+fi
+
+# test that server is up
+echo ""
+echo "> query example.com"
+streamtcp -f 127.0.0.1@$TPKG_PORT -p 10.20.30.40@12345 -u www.example.com. A IN > cur
+cat cur
+if grep "root.example.com." cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo "OK"
+exit 0
