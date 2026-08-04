@@ -13,6 +13,7 @@
 #include "buffer.h"
 struct nsd;
 struct query;
+struct rr;
 
 #define OPT_LEN 9U                      /* Length of the NSD EDNS response record minus 2 */
 #define OPT_RDATA 2                     /* holds the rdata length comes after OPT_LEN */
@@ -25,7 +26,8 @@ struct query;
 #define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
 
 /* https://iana.org/assignments/dns-parameters/#zoneversion-type-values */
-#define ZONEVERSION_SOA_SERIAL 0
+#define ZONEVERSION_SOA_SERIAL     0
+#define ZONEVERSION_BACKEND_SERIAL 247 /* BACKEND-SERIAL ZONEVERSION type */
 
 /* See RFC 8467 */
 #define PADDING_BLOCK_SZ 468
@@ -68,6 +70,8 @@ struct edns_record
 	int                dnssec_ok;
 	int                nsid;
 	int                zoneversion;
+	struct rr*         backend_version_rr;
+	size_t             backend_version_len;
 	int                padding;
 	cookie_status_type cookie_status;
 	size_t             cookie_len;

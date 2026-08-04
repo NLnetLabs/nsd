@@ -71,6 +71,8 @@ edns_init_record(edns_record_type *edns)
 	edns->dnssec_ok = 0;
 	edns->nsid = 0;
 	edns->zoneversion = 0;
+	edns->backend_version_rr = NULL;
+	edns->backend_version_len = 0;
 	edns->padding = 0;
 	edns->cookie_status = COOKIE_NOT_PRESENT;
 	edns->cookie_len = 0;
