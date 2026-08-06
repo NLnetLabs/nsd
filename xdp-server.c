@@ -767,24 +767,43 @@ process_packet(struct xdp_server *xdp, uint8_t *pkt,
 		if (!(udp = parse_ipv6(ipv6)))
 			return -3;
 
+		uint16_t udp6_old_check = udp->check;
+		uint16_t udp6_check = calc_csum_udp6(udp, ipv6);
+
+		if (udp6_check != udp6_old_check)
+			return -4;
+
 		dnslen -= (uint32_t) (sizeof(*eth) + sizeof(*ipv6) + sizeof(*udp));
 		data_before_dnshdr_len += sizeof(*ipv6);
 
 		if (!dest_ip_allowed6(xdp, ipv6))
-			return -4;
+			return -5;
 
 		break;
 	} case ETH_P_IP: {
 		ipv4 = (struct iphdr *)(eth + 1);
 
+		__sum16 ipv4_old_check = ipv4->check;	
+		ipv4->check = 0;
+		ipv4->check = ip_fast_csum(ipv4, ipv4->ihl);
+
+		if (ipv4->check != ipv4_old_check)
+			return -6;
+
 		if (!(udp = parse_ipv4(ipv4)))
-			return -5;
+			return -7;
+
+		uint16_t udp4_old_check = udp->check;
+		uint16_t udp4_check = calc_csum_udp4(udp, ipv4);
+
+		if (udp4_check != udp4_old_check)
+			return -8;
 
 		dnslen -= (uint32_t) (sizeof(*eth) + sizeof(*ipv4) + sizeof(*udp));
 		data_before_dnshdr_len += sizeof(*ipv4);
 
 		if (!dest_ip_allowed4(xdp, ipv4))
-			return -6;
+			return -9;
 
 		break;
 	}
