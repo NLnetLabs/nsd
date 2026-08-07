@@ -983,6 +983,15 @@ case "$enable_ipv6" in
 		;;
 esac
 
+AC_ARG_ENABLE(multiple-catalog-zones, AS_HELP_STRING([--enable-multiple-catzones],[Enable experimental support for more than one catalog consumer zone]))
+case "$enable_multiple_catalog_zones" in
+        yes)
+		AC_DEFINE_UNQUOTED([MULTIPLE_CATALOG_CONSUMER_ZONES], [], [Define this to enable experimental support for more than one catalog consumer zone.])
+		;;
+        no|*)
+                ;;
+esac
+
 AC_ARG_ENABLE(bind8-stats, AS_HELP_STRING([--disable-bind8-stats],[Disable BIND8 like NSTATS & XSTATS and statistics in nsd-control]))
 
 case "$enable_bind8_stats" in
