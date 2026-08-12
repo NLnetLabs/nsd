@@ -4,7 +4,7 @@
 $ORIGIN example.com.
 $TTL 3600
 
-# reply IXFR request
+# reply IXFR request for example.com
 ENTRY_BEGIN
 MATCH opcode qtype qname serial=3
 REPLY QUERY NOERROR
@@ -26,5 +26,101 @@ h64kfa4p1acer2ebps9qsdk6dnp8b3jq.sub.example.com. IN NSEC3 1 0 0 - onib9mgub9h0r
 h64kfa4p1acer2ebps9qsdk6dnp8b3jq.sub.example.com. IN NSEC3 1 0 0 - onib9mgub9h0rml3cdf5bgrj59dkjhvk A
 @ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
 # no add for serial 5
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request for example2.com
+$ORIGIN example2.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=3
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+# no deletes for serial 3
+@ 345600 IN SOA ns0.example.org. root 4 3600 28800 2419200 3600
+# add for serial 4
+# wrong NSEC3 owner name, it is 'sub.example2.com' instead of 'example2.com',
+# and it has the identical owner b32 label as an existing NSEC3 record,
+# for a.example2.com.
+p91ctgdav9mk0j3bfeu6eu3qvj18i7vq.sub.example2.com. IN NSEC3 1 0 0 - onib9mgub9h0rml3cdf5bgrj59dkjhvk A
+@ 345600 IN SOA ns0.example.org. root 4 3600 28800 2419200 3600
+# no del for serial 4
+# the NSEC3 is not deleted
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+# no add for serial 5
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request for example3.com
+$ORIGIN example3.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=3
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+# no deletes for serial 3
+@ 345600 IN SOA ns0.example.org. root 4 3600 28800 2419200 3600
+# add for serial 4
+# wrong NSEC3 owner name, it is 'sub.example3.com' instead of 'example3.com',
+# it collides with the other NSEC3 in the IXFR.
+11111111111111111111111111111111.sub.example3.com. IN NSEC3 1 0 0 - onib9mgub9h0rml3cdf5bgrj59dkjhvk A
+11111111111111111111111111111111.example3.com. IN NSEC3 1 0 0 - onib9mgub9h0rml3cdf5bgrj59dkjhvk A
+@ 345600 IN SOA ns0.example.org. root 4 3600 28800 2419200 3600
+# no del for serial 4
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+# no add for serial 5
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply IXFR request for example4.com
+$ORIGIN example4.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=3
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN IXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+@ 345600 IN SOA ns0.example.org. root 3 3600 28800 2419200 3600
+# no deletes for serial 3
+@ 345600 IN SOA ns0.example.org. root 4 3600 28800 2419200 3600
+# add for serial 4
+# wrong NSEC3 owner name, it is 'sub.example4.com' instead of 'example4.com',
+# and it has the identical owner b32 label as an existing NSEC3 record,
+# for a.example4.com.
+jprlnuok8d9rb86onpq8i5b97mcpuj6n.sub.example4.com. IN NSEC3 1 0 0 - q3v8ioripngtagf8efmv0dgnc5v9sp13 A
+@ 345600 IN SOA ns0.example.org. root 4 3600 28800 2419200 3600
+# del for serial 4
+# The delete mismatches the rdata of the added NSEC3
+jprlnuok8d9rb86onpq8i5b97mcpuj6n.sub.example4.com. IN NSEC3 1 0 0 - q3v8ioripngtagf8efmv0dgnc5v9sp13 A AAAA TXT
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+# no add for serial 5
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+ENTRY_END
+
+# reply AXFR request for example4.com
+$ORIGIN example4.com.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IN AXFR
+SECTION ANSWER
+@ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
+@ 3600 IN NSEC3PARAM 1 0 0 -
+a 3600 IN A 10.0.0.1
+b 3600 IN A 10.0.0.1
+q3v8ioripngtagf8efmv0dgnc5v9sp13 IN NSEC3 1 0 0 - jprlnuok8d9rb86onpq8i5b97mcpuj6n SOA NSEC3PARAM
+jprlnuok8d9rb86onpq8i5b97mcpuj6n IN NSEC3 1 0 0 - q3v8ioripngtagf8efmv0dgnc5v9sp13 A
 @ 345600 IN SOA ns0.example.org. root 5 3600 28800 2419200 3600
 ENTRY_END
