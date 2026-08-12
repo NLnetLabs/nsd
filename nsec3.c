@@ -413,13 +413,8 @@ nsec3_rr_uses_params(rr_type* rr, zone_type* zone)
 }
 
 int
-nsec3_in_chain_count(domain_type* domain, zone_type* zone)
+nsec3_has_owner_for_zone(domain_type* domain, zone_type* zone)
 {
-	rrset_type* rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
-	unsigned i;
-	int count = 0;
-	if(!rrset || !zone->nsec3_param)
-		return 0; /* no NSEC3s, none in the chain */
 	if(dname_name(domain_dname_const(domain))[0] != NSEC3_OWNER_LABEL_LEN)
 		return 0; /* not b32.name */
 	if(!(((size_t)domain_dname(domain)->label_count) ==
@@ -431,6 +426,19 @@ nsec3_in_chain_count(domain_type* domain, zone_type* zone)
 		NSEC3_OWNER_LABEL_LEN+1, dname_name(domain_dname_const(
 		zone->apex)), domain_dname(zone->apex)->name_size) == 0))
 		return 0; /* not b32.zonename */
+	return 1;
+}
+
+int
+nsec3_in_chain_count(domain_type* domain, zone_type* zone)
+{
+	rrset_type* rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
+	unsigned i;
+	int count = 0;
+	if(!rrset || !zone->nsec3_param)
+		return 0; /* no NSEC3s, none in the chain */
+	if(!nsec3_has_owner_for_zone(domain, zone))
+		return 0; /* wrong owner name */
 	for(i=0; i<rrset->rr_count; i++) {
 		if(nsec3_rr_uses_params(rrset->rrs[i], zone))
 			count++;
