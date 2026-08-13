@@ -53,6 +53,11 @@ BUG FIXES:
 	- Fix to not let `nsd-control zonestatus` crash the xfrd processes
 	  when configured with multiple catalog consumers.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to prevent a configured primary from hampering loading its own
+	  zone by providing a transfer with the OPT RR in the answer section
+	  and the UDP Payload size (i.e. class) of the OPT RR set to something
+	  else than 1 (IN).
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 4.15.0
 ================

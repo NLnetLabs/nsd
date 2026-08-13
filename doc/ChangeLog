@@ -2,6 +2,11 @@
 	- An `allow-proxy` configuration file option to specify allow access
 	  control list for the PROXYv2 protocol port.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the suggestion.
+	- Fix to prevent a configured primary from hampering loading its own
+	  zone by providing a transfer with the OPT RR in the answer section
+	  and the UDP Payload size (i.e. class) of the OPT RR set to something
+	  else than 1 (IN).
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 29 July 2026: Wouter
 	- Fix that when DNAME is limited due to the maximum CNAME chain
