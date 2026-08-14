@@ -1,3 +1,25 @@
+14 August 2026: Willem
+	- Fix to ignore NSEC3 records with malformed owner name. In depth fix
+	  to clear key for NSEC3 tree collisions. And a fix to limit the
+	  reenactment of failed reloads, that ordinarily marks transfers as
+	  corrupt, so that for crashes it waits with that zone for retry. This
+	  allows other zones to update in the meantime.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix nsd-control reconfig so that change of a secondary zone while it
+	  is on the udp or tcp waiting list does not crash after that.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to reset the length of the incoming packet buffer after a failed
+	  PROXYv2 header on UDP. It can cause an assertion failure on the next
+	  packet.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix XoT transfer authentication to not fall back to the common name
+	  if a DNS name is present in the certificate. This fixes the RFC6125
+	  conformance.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix dnstap over TLS certificate check for reconnection. Also clean up
+	  file descriptor and SSL state on connection failures.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+
 3 August 2026: Willem
 	- An `allow-proxy` configuration file option to specify allow access
 	  control list for the PROXYv2 protocol port.
