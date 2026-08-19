@@ -1,3 +1,6 @@
+19 August 2026: Willem
+	- Continue with 4.15.2 for development
+
 14 August 2026: Willem
 	- Fix to ignore NSEC3 records with malformed owner name. In depth fix
 	  to clear key for NSEC3 tree collisions. And a fix to limit the
