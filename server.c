@@ -4058,6 +4058,35 @@ port_is_zero(
 #endif
 }
 
+/* Check if proxy is allowed */
+static int
+pp2_is_allowed(struct query* q)
+{
+	if(nsd.options->allow_proxy) {
+		struct acl_options* why = NULL;
+		if(acl_check_incoming_proxy(nsd.options->allow_proxy, q,
+			&why) == -1) {
+			if(verbosity >= 2) {
+				char proxy[128];
+				addr2str(&q->remote_addr, proxy, sizeof(proxy));
+				VERBOSITY(2, (LOG_INFO, "proxy-protocol: %s is not "
+					"in allow-proxy list", proxy));
+			}
+			return 0;
+		}
+#ifndef NDEBUG
+		/* It was allowed from acl 'why'. */
+		if(why) {
+			char proxy[128];
+			addr2str(&q->remote_addr, proxy, sizeof(proxy));
+			DEBUG(DEBUG_QUERY,1, (LOG_INFO, "proxy %s passed acl %s",
+				proxy, why->ip_address_spec));
+		}
+#endif /* NDEBUG */
+	}
+	return 1;
+}
+
 /* Parses the PROXYv2 header from buf and updates the struct.
  * Returns 1 on success, 0 on failure. */
 static int
@@ -4206,10 +4235,15 @@ handle_udp(int fd, short event, void* arg)
 
 		buffer_skip(q->packet, received);
 		buffer_flip(q->packet);
-		if(data->pp2_enabled && !consume_pp2_header(q->packet, q, 0)) {
-			VERBOSITY(2, (LOG_ERR, "proxy-protocol: could not "
-				"consume PROXYv2 header"));
-			goto swap_drop;
+		if(data->pp2_enabled) {
+			if(!pp2_is_allowed(q))
+				goto swap_drop;
+			if(!consume_pp2_header(q->packet, q, 0)) {
+				VERBOSITY(6, (LOG_ERR, "proxy-protocol: could not "
+					"consume PROXYv2 header"));
+				query_reset(queries[i], UDP_MAX_MESSAGE_LEN, 0);
+				goto swap_drop;
+			}
 		}
 		if(!q->is_proxied) {
 			q->client_addrlen = q->remote_addrlen;
@@ -4569,6 +4603,10 @@ handle_tcp_reading(int fd, short event, void* arg)
 			return;
 		}
 		buffer_flip(data->query->packet);
+		if(!pp2_is_allowed(data->query)) {
+			cleanup_tcp_handler(data);
+			return;
+		}
 		if(!consume_pp2_header(data->query->packet, data->query, 1)) {
 			VERBOSITY(6, (LOG_ERR, "proxy-protocol: could not consume PROXYv2 header"));
 
@@ -5183,6 +5221,10 @@ handle_tls_reading(int fd, short event, void* arg)
 			return;
 		}
 		buffer_flip(data->query->packet);
+		if(!pp2_is_allowed(data->query)) {
+			cleanup_tcp_handler(data);
+			return;
+		}
 		if(!consume_pp2_header(data->query->packet, data->query, 1)) {
 			VERBOSITY(6, (LOG_ERR, "proxy-protocol: could not consume PROXYv2 header"));
 			cleanup_tcp_handler(data);

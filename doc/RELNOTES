@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.15.1 (in development)
+4.15.2 (in development)
 ================
 FEATURES:
 	- Merge #494: RFC 7830 EDNS0 padding option support with DoT
@@ -10,6 +10,9 @@ FEATURES:
 	- Merge #499: Support for the "docpath" and "pvd"
 	  SVCB Service Parameter Keys
 	- Merge #500: Support for the "oots" SVCB Service Parameter Key
+	- An `allow-proxy` configuration file option to specify allow access
+	  control list for the PROXYv2 protocol port.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the suggestion.
 
 BUG FIXES:
 	- Merge #495 from ruuda: Include inttypes.h from metrics.c.
@@ -49,6 +52,31 @@ BUG FIXES:
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 	- Fix to not let `nsd-control zonestatus` crash the xfrd processes
 	  when configured with multiple catalog consumers.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to prevent a configured primary from hampering loading its own
+	  zone by providing a transfer with the OPT RR in the answer section
+	  and the UDP Payload size (i.e. class) of the OPT RR set to something
+	  else than 1 (IN).
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to ignore NSEC3 records with malformed owner name. In depth fix
+	  to clear key for NSEC3 tree collisions. And a fix to limit the
+	  reenactment of failed reloads, that ordinarily marks transfers as
+	  corrupt, so that for crashes it waits with that zone for retry. This
+	  allows other zones to update in the meantime.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix nsd-control reconfig so that change of a secondary zone while it
+	  is on the udp or tcp waiting list does not crash after that.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix to reset the length of the incoming packet buffer after a failed
+	  PROXYv2 header on UDP. It can cause an assertion failure on the next
+	  packet.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix XoT transfer authentication to not fall back to the common name
+	  if a DNS name is present in the certificate. This fixes the RFC6125
+	  conformance.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix dnstap over TLS certificate check for reconnection. Also clean up
+	  file descriptor and SSL state on connection failures.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 
 4.15.0

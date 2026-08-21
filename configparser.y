@@ -134,6 +134,7 @@ struct component {
 %token VAR_TLS_AUTH_XFR_ONLY
 %token VAR_TLS_CERT_BUNDLE
 %token VAR_PROXY_PROTOCOL_PORT
+%token VAR_ALLOW_PROXY
 %token VAR_CPU_AFFINITY
 %token VAR_XFRD_CPU_AFFINITY
 %token <llng> VAR_SERVER_CPU_AFFINITY
@@ -545,6 +546,12 @@ server_option:
       elem->port = $2;
       elem->next = cfg_parser->opt->proxy_protocol_port;
       cfg_parser->opt->proxy_protocol_port = elem;
+    }
+  | VAR_ALLOW_PROXY STRING
+    {
+      acl_options_type* acl = parse_acl_info(cfg_parser->opt->region, $2,
+	"NOKEY");
+      append_acl(&cfg_parser->opt->allow_proxy, acl);
     }
   | VAR_ANSWER_COOKIE boolean
     { cfg_parser->opt->answer_cookie = $2; }

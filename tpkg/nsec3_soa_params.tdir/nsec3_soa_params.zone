@@ -1,0 +1,8 @@
+example.com. 345600 IN SOA ns0.example.org. root.example.com. 1 3600 28800 2419200 3600
+example.com. 3600 IN NSEC3PARAM 1 0 0 AABB
+; example.com. -> 0sc7qshrek878fcmnag1u0ooenstf0rp.
+
+; note wrong params in NSEC3 record
+0sc7qshrek878fcmnag1u0ooenstf0rp.example.com. IN NSEC3 1 0 0 CCDD 0sc7qshrek878fcmnag1u0ooenstf0rp SOA NSEC3PARAM
+a.example.com. 3600 IN A 10.0.0.1
+b.example.com. 3600 IN A 10.0.0.1

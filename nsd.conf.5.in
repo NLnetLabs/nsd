@@ -634,6 +634,12 @@ times, additional port numbers can be used for proxy protocol service. The
 interface definitions that use this port number expect PROXYv2 proxy protocol
 traffic, for UDP, TCP and for TLS service.
 .TP
+.B allow\-proxy:\fR <IP netblock>
+The allowed proxy senders, that can send PROXYv2 traffic. Without an
+allow\-proxy option any IP address is allowed. It can be given multiple times
+to allow multiple netblocks, or with /32 or /128 specific addresses can be
+listed.
+.TP
 .B udp\-padding\-port:\fR <number>
 UDP requests received over this port containing an EDNS0 padding option will,
 unlike ordinary UDP requests, be answered with a padded response. The option

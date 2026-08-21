@@ -246,13 +246,14 @@ check_apex_soa(namedb_type* namedb, zone_type *zone, int nolog)
 		return NULL;
 	}
 	for(j=0; j<nsec3_rrset->rr_count; j++) {
-		if(nsec3_has_soa(nsec3_rrset->rrs[j])) {
+		if(nsec3_has_soa(nsec3_rrset->rrs[j]) &&
+			nsec3_rr_uses_params(nsec3_rrset->rrs[j], zone)) {
 			region_destroy(tmpregion);
 			return nsec3_rrset->rrs[j];
 		}
 	}
 	if(!nolog) {
-		log_msg(LOG_ERR, "%s NSEC3PARAM entry: hash(apex) NSEC3 has no SOA flag.",
+		log_msg(LOG_ERR, "%s NSEC3PARAM entry: hash(apex) NSEC3 has no SOA flag or different params.",
 			domain_to_string(zone->apex));
 		log_msg(LOG_ERR, "hash(apex)= %s",
 			dname_to_string(hashed_apex, NULL));
@@ -413,6 +414,23 @@ nsec3_rr_uses_params(rr_type* rr, zone_type* zone)
 }
 
 int
+nsec3_has_owner_for_zone(domain_type* domain, zone_type* zone)
+{
+	if(dname_name(domain_dname_const(domain))[0] != NSEC3_OWNER_LABEL_LEN)
+		return 0; /* not b32.name */
+	if(!(((size_t)domain_dname(domain)->label_count) ==
+		((size_t)domain_dname(zone->apex)->label_count)+1 &&
+		((size_t)domain_dname(domain)->name_size) ==
+		((size_t)domain_dname(zone->apex)->name_size) +
+		NSEC3_OWNER_LABEL_LEN+1 &&
+		memcmp(dname_name(domain_dname_const(domain))+
+		NSEC3_OWNER_LABEL_LEN+1, dname_name(domain_dname_const(
+		zone->apex)), domain_dname(zone->apex)->name_size) == 0))
+		return 0; /* not b32.zonename */
+	return 1;
+}
+
+int
 nsec3_in_chain_count(domain_type* domain, zone_type* zone)
 {
 	rrset_type* rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
@@ -420,6 +438,8 @@ nsec3_in_chain_count(domain_type* domain, zone_type* zone)
 	int count = 0;
 	if(!rrset || !zone->nsec3_param)
 		return 0; /* no NSEC3s, none in the chain */
+	if(!nsec3_has_owner_for_zone(domain, zone))
+		return 0; /* wrong owner name */
 	for(i=0; i<rrset->rr_count; i++) {
 		if(nsec3_rr_uses_params(rrset->rrs[i], zone))
 			count++;

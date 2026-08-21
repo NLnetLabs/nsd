@@ -479,7 +479,8 @@ testexpect x10. A 10.0.0.10
 setup_zone_chained DNAME 100
 testquery a.x0. A
 testretcode NOERROR
-testexpect a.x100. A 10.0.0.10
+testexpect DNAME   # a partial answer
+testexpect CNAME   # a partial answer
 testquery foo.foo.foo.foo.foo.foo.foo.foo.foo.foo.foo.foo.foo.foo.foo.foo.foo.foo.x0 A
 testretcode NOERROR
 testexpect DNAME   # a partial answer
@@ -488,7 +489,7 @@ testexpect CNAME   # a partial answer
 setup_zone_chained CNAME 100
 testquery x0. A
 testretcode NOERROR
-testexpect x100. A 10.0.0.10
+testexpect CNAME   # a partial answer
 # try with 1000
 setup_zone_chained DNAME 1000
 testquery a.x0. A

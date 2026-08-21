@@ -1,0 +1,67 @@
+# #-- nsec3_ixfr_owner.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+# test with zone transfer
+# add and delete of collidinghash.sub.zonename
+wait_logfile nsd.log "zone example.com. serial 3 is updated to 5" 4
+echo ""
+echo "> dig example.com"
+dig @127.0.0.1 -p $TPKG_PORT example.com SOA > cur
+cat cur
+if grep "root.example.com." cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# example2.com
+# add only of collidinghash.sub.zonename
+wait_logfile nsd.log "zone example2.com. serial 3 is updated to 5" 4
+echo ""
+echo "> dig example2.com"
+dig @127.0.0.1 -p $TPKG_PORT example2.com SOA > cur
+cat cur
+if grep "root.example2.com." cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# example3.com
+# add of 1*32.sub.zonename and 1*32.zonename
+wait_logfile nsd.log "zone example3.com. serial 3 is updated to 5" 4
+echo ""
+echo "> dig example3.com"
+dig @127.0.0.1 -p $TPKG_PORT example3.com SOA > cur
+cat cur
+if grep "root.example3.com." cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# example4.com
+# add and delete with wrong rdata.
+wait_logfile nsd.log "zone example4.com. serial 3 is updated to 5" 4
+echo ""
+echo "> dig example4.com"
+dig @127.0.0.1 -p $TPKG_PORT example4.com SOA > cur
+cat cur
+if grep "root.example4.com." cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo "OK"
+exit 0

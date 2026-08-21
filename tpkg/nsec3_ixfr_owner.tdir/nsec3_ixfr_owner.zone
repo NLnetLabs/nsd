@@ -1,0 +1,8 @@
+example.com. 345600 IN SOA ns0.example.org. root.example.com. 3 3600 28800 2419200 3600
+example.com. 3600 IN NSEC3PARAM 1 0 0 -
+a.example.com. 3600 IN A 10.0.0.1
+b.example.com. 3600 IN A 10.0.0.1
+; example.com. -> onib9mgub9h0rml3cdf5bgrj59dkjhvk.
+; a.example.com. -> h64kfa4p1acer2ebps9qsdk6dnp8b3jq.
+onib9mgub9h0rml3cdf5bgrj59dkjhvk.example.com. IN NSEC3 1 0 0 - h64kfa4p1acer2ebps9qsdk6dnp8b3jq SOA NSEC3PARAM
+h64kfa4p1acer2ebps9qsdk6dnp8b3jq.example.com. IN NSEC3 1 0 0 - onib9mgub9h0rml3cdf5bgrj59dkjhvk A

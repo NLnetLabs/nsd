@@ -1,0 +1,61 @@
+# #-- dnstap_tls_connect.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+if grep "define USE_DNSTAP " $PRE/config.h; then
+	echo "USE_DNSTAP enabled"
+else
+	echo "USE_DNSTAP not enabled, skip test"
+	exit 0
+fi
+# Is unbound-dnstap-socket available?
+if test -f "`which unbound-dnstap-socket 2>&1`"; then
+	echo "unbound-dnstap-socket available, do test"
+else
+	echo "unbound-dnstap-socket not available, skip test"
+	exit 0
+fi
+
+# wait for connect retry
+# The connect uses the wrong servername for the certificate, so it
+# is a certificate mismatch. This waits to reconnect, that may then
+# wrongly connect, and continue due to not having a tls cert bundle
+# configured. With a tls cert bundle, the ssl write fails, but without
+# the write continues and the dnstap server is written to.
+sleep 10
+
+# query server
+echo ""
+echo "> query server"
+dig @127.0.0.1 -p$TPKG_PORT www.example.com. A IN &> out2
+cat out2
+if grep "192.0.2.10" out2; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# check dnstap logs
+sleep 2
+if grep "AUTH_QUERY 127.0.0.1 www.example.com." dnstap.log; then
+	# it should not have connected.
+	echo "not OK AUTH_QUERY"
+	exit 1
+else
+	echo "OK AUTH_QUERY"
+fi
+if grep "AUTH_RESPONSE 127.0.0.1 www.example.com." dnstap.log; then
+	# it should not have connected.
+	echo "not OK AUTH_RESPONSE"
+	exit 1
+else
+	echo "OK AUTH_RESPONSE"
+fi
+
+exit 0

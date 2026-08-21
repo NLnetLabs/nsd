@@ -1046,24 +1046,8 @@ xfrd_deactivate_zone(xfrd_zone_type* z)
 }
 
 void
-xfrd_del_slave_zone(xfrd_state_type* xfrd, const dname_type* dname)
+udp_zone_waiting_list_remove(xfrd_zone_type* z)
 {
-	xfrd_zone_type* z = (xfrd_zone_type*)rbtree_delete(xfrd->zones, dname);
-	if(!z) return;
-	
-	/* io */
-	if(z->tcp_waiting) {
-		/* delete from tcp waiting list */
-		if(z->tcp_waiting_prev)
-			z->tcp_waiting_prev->tcp_waiting_next =
-				z->tcp_waiting_next;
-		else xfrd->tcp_set->tcp_waiting_first = z->tcp_waiting_next;
-		if(z->tcp_waiting_next)
-			z->tcp_waiting_next->tcp_waiting_prev =
-				z->tcp_waiting_prev;
-		else xfrd->tcp_set->tcp_waiting_last = z->tcp_waiting_prev;
-		z->tcp_waiting = 0;
-	}
 	if(z->udp_waiting) {
 		/* delete from udp waiting list */
 		if(z->udp_waiting_prev)
@@ -1075,6 +1059,23 @@ xfrd_del_slave_zone(xfrd_state_type* xfrd, const dname_type* dname)
 				z->udp_waiting_prev;
 		else	xfrd->udp_waiting_last = z->udp_waiting_prev;
 		z->udp_waiting = 0;
+	}
+}
+
+void
+xfrd_del_slave_zone(xfrd_state_type* xfrd, const dname_type* dname)
+{
+	xfrd_zone_type* z = (xfrd_zone_type*)rbtree_delete(xfrd->zones, dname);
+	if(!z) return;
+
+	/* io */
+	if(z->tcp_waiting) {
+		/* delete from tcp waiting list */
+		tcp_zone_waiting_list_remove(z);
+	}
+	if(z->udp_waiting) {
+		/* delete from udp waiting list */
+		udp_zone_waiting_list_remove(z);
 	}
 	xfrd_deactivate_zone(z);
 	if(z->tcp_conn != -1) {
@@ -2711,6 +2712,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_type* zone, buffer_type* packet)
 			zone->latest_xfr->xfrfilenumber))
 	{
 		zone->latest_xfr->sent = xfrd->nsd->mytask + 1;
+		xfrd->num_xfrs_in_reload++;
 	}
 	/* reset msg seq nr, so if that is nonnull we know xfr file exists */
 	zone->latest_xfr->msg_seq_nr = 0;
@@ -3031,6 +3033,8 @@ xfrd_prepare_zones_for_reload(void)
 					xfr->msg_old_serial,
 					xfr->msg_new_serial,
 					xfr->xfrfilenumber);
+				if(send)
+					xfrd->num_xfrs_in_reload++;
 				if(send && !reload) {
 					reload = 1;
 					xfrd_set_reload_timeout();
