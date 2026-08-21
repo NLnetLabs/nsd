@@ -1,0 +1,2 @@
+example.net. 3600 SOA ns0.example.org. root.example.net. 1 3600 28800 2419200 3600
+example.net. 3600 IPSECKEY 10 3 2 Gateway.EXAMPLE. AAAA

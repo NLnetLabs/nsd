@@ -1,0 +1,2 @@
+example.com. 3600 SOA ns0.example.org. root.example.com. 1 3600 28800 2419200 3600
+example.com. 3600 AMTRELAY 10 0 3 Relay.EXAMPLE.

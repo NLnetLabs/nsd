@@ -1,0 +1,21 @@
+server:
+	logfile: "nsd.log"
+	pidfile: "nsd.pid"
+	username: ""
+	zonesdir: ""
+	zonelistfile: "zones.list"
+	xfrdfile: "nsd.xfrd"
+	interface: 127.0.0.1
+
+zone:
+	name: example.com.
+	zonefile: amtrelay_nocase_cmp.zone
+	request-xfr: 127.0.0.1@@TESTNS_PORT@ NOKEY
+	allow-notify: 127.0.0.0/8 NOKEY
+
+zone:
+	name: example.net.
+	zonefile: amtrelay_nocase_cmp.zone2
+	request-xfr: 127.0.0.1@@TESTNS_PORT@ NOKEY
+	allow-notify: 127.0.0.0/8 NOKEY
+

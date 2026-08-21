@@ -1,0 +1,29 @@
+# #-- amtrelay_nocase_cmp.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+#ldns-notify -p $TPKG_PORT -z example.com. -s 2 127.0.0.1
+#ldns-notify -p $TPKG_PORT -z example.net. -s 2 127.0.0.1
+# Sleep 1.1 because second zone will update after 1 second
+sleep 1.1
+SERIAL=`dig @127.0.0.1 -p $TPKG_PORT example.com. SOA +short | awk '{print$3}'`
+if [ "$SERIAL" -ne "2" ]; then
+	cat testns.log
+	cat nsd.log
+	dig @127.0.0.1 -p $TPKG_PORT example.com. SOA
+	echo "Error example.com did not update to serial 2"
+	exit 1
+fi
+SERIAL=`dig @127.0.0.1 -p $TPKG_PORT example.net. SOA +short | awk '{print$3}'`
+if [ "$SERIAL" -ne "2" ]; then
+	cat testns.log
+	cat nsd.log
+	dig @127.0.0.1 -p $TPKG_PORT example.net. SOA
+	echo "Error example.net did not update to serial 2"
+	exit 1
+fi
+exit 0
+
