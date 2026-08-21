@@ -1,0 +1,12 @@
+ENTRY_BEGIN
+MATCH opcode qtype qname
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+example.com. IN AXFR
+SECTION ANSWER
+example.com. 3600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+example.com. 3600 CAA \# 2 0000
+example.com. 3600 IN SOA ns0.example.org. root 1 3600 28800 2419200 3600
+ENTRY_END
+

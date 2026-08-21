@@ -1,0 +1,13 @@
+server:
+	logfile: "nsd.log"
+	pidfile: "nsd.pid"
+	username: ""
+	zonesdir: ""
+	zonelistfile: "zones.list"
+	xfrdfile: "nsd.xfrd"
+	interface: 127.0.0.1
+
+zone:
+	name: example.com.
+	request-xfr: 127.0.0.1@@TESTNS_PORT@ NOKEY
+
