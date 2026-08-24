@@ -17,6 +17,8 @@ FEATURES:
 	  responding to the padding option on UDP, but on specific ports only.
 	  This is convenient for setups where NSD is behind a frontend handling
 	  the DNS over TLS.
+	- `--enable-multiple-catalog-zones` option to configure to enable
+	  experimental support for multiple catalog consumer zones.
 
 BUG FIXES:
 	- Merge #495 from ruuda: Include inttypes.h from metrics.c.
