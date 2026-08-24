@@ -1,3 +1,9 @@
+24 August 2026: Willem
+	- Merge #502: An `udp-padding-port` configuration file option to enable
+	  responding to the padding option on UDP, but on specific ports only.
+	  This is convenient for setups where NSD is behind a frontend handling
+	  the DNS over TLS.
+
 19 August 2026: Willem
 	- Continue with 4.15.2 for development
 

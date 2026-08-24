@@ -13,6 +13,10 @@ FEATURES:
 	- An `allow-proxy` configuration file option to specify allow access
 	  control list for the PROXYv2 protocol port.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the suggestion.
+	- Merge #502: An `udp-padding-port` configuration file option to enable
+	  responding to the padding option on UDP, but on specific ports only.
+	  This is convenient for setups where NSD is behind a frontend handling
+	  the DNS over TLS.
 
 BUG FIXES:
 	- Merge #495 from ruuda: Include inttypes.h from metrics.c.
