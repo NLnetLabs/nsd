@@ -153,6 +153,7 @@ nsd_options_create(region_type* region)
 	opt->tls_auth_xfr_only = 0;
 	opt->proxy_protocol_port = NULL;
 	opt->allow_proxy = NULL;
+	opt->udp_padding_port = NULL;
 	opt->answer_cookie = 0;
 	opt->cookie_secret = NULL;
 	opt->cookie_staging_secret = NULL;
@@ -3203,10 +3204,8 @@ resolve_interface_names(struct nsd_options* options)
 }
 
 int
-sockaddr_uses_proxy_protocol_port(struct nsd_options* options,
-	struct sockaddr* addr)
+sockaddr_uses_port(struct sockaddr* addr, struct port_list* p)
 {
-	struct proxy_protocol_port_list* p;
 	int port;
 #ifdef INET6
 	struct sockaddr_storage* ss = (struct sockaddr_storage*)addr;
@@ -3226,7 +3225,6 @@ sockaddr_uses_proxy_protocol_port(struct nsd_options* options,
 		return 0; /* unknown family */
 	}
 #endif
-	p = options->proxy_protocol_port;
 	while(p) {
 		if(p->port == port)
 			return 1;
