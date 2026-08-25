@@ -249,7 +249,6 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	region_free_all(q->region);
 	q->remote_addrlen = (socklen_t)sizeof(q->remote_addr);
 	q->client_addrlen = (socklen_t)sizeof(q->client_addr);
-	q->is_proxied = 0;
 	q->may_pad = 0;
 	if(!is_tcp)
 		q->is_proxied = 0;
