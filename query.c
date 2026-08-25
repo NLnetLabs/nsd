@@ -251,6 +251,8 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	q->client_addrlen = (socklen_t)sizeof(q->client_addr);
 	q->is_proxied = 0;
 	q->may_pad = 0;
+	if(!is_tcp)
+		q->is_proxied = 0;
 	q->maxlen = maxlen;
 	q->reserved_space = 0;
 	buffer_clear(q->packet);
@@ -1785,6 +1787,16 @@ query_process(query_type *q, nsd_type *nsd, uint32_t *now_p)
 		cookie_verify(q, nsd, now_p);
 
 	query_prepare_response(q);
+	if(q->reserved_space + QHEADERSZ + (size_t)q->qname->name_size +
+		2 /* qtype */ + 2 /* qclass */ > q->maxlen) {
+		/* Clear out some space, and return error, it does not fit. */
+		q->edns.status = EDNS_NOT_PRESENT;
+		q->tsig.status = TSIG_NOT_PRESENT;
+		if(q->tcp)
+			return query_error(q, NSD_RC_SERVFAIL);
+		TC_SET(q->packet);
+		return query_error(q, NSD_RC_OK);
+	}
 
 	if (q->qclass != CLASS_IN && q->qclass != CLASS_ANY) {
 		if (q->qclass == CLASS_CH) {

@@ -1,0 +1,31 @@
+# #-- edns-many-cookies.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+. ../common.sh
+PRE="../.."
+
+echo ""
+echo "> dig www.example.com with many edns options"
+# This has 17 EDNS cookie options, and EDNS bufsize 512.
+# Having them in the reply uses reserved space 487, total 520 (with qname,
+# qtype,qclass and header), of 512 bufsize. But the fix ignores the duplicate
+# edns cookie options.
+dig @127.0.0.1 -p $TPKG_PORT +bufsize=512 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 +ednsopt=10:0102030405060708 www.example.com. IN A +nocookie >cur 2>&1
+cat cur
+if grep "10.0.0.1" cur; then
+	echo "OK"
+else
+	echo "not OK"
+	exit 1
+fi
+
+# There should be no log of a server process that terminated.
+if grep "died unexpectedly, restarting" nsd.log; then
+	echo "not OK"
+	exit 1
+fi
+echo "OK"
+exit 0

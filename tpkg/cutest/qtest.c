@@ -80,6 +80,8 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 		printf("failed to read %s\n", config);
 		exit(1);
 	}
+	nsd->ipv4_edns_size = nsd->options->ipv4_edns_size;
+	nsd->ipv6_edns_size = nsd->options->ipv6_edns_size;
 	/* EDNS0 */
 	edns_init_data(&nsd->edns_ipv4, nsd->options->ipv4_edns_size);
 #if defined(INET6)

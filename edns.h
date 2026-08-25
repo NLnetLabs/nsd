@@ -69,6 +69,7 @@ struct edns_record
 	int                nsid;
 	int                zoneversion;
 	int                padding;
+	int		   cookie_seen;
 	cookie_status_type cookie_status;
 	size_t             cookie_len;
 	uint8_t            cookie[40];

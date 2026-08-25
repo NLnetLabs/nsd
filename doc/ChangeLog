@@ -9,6 +9,24 @@
 19 August 2026: Willem
 	- Continue with 4.15.2 for development
 
+17 August 2026: Willem
+	- Fix for CVE-2026-18664: IP range access control restrictions are
+	  bypassed for some unintended IP.
+	  Thanks to Qifan Zhang, Palo Alto Networks for the report
+	  https://www.nlnetlabs.nl/downloads/nsd/CVE-2026-18664.txt
+	- Fix for CVE-2026-18916: Any remote client can denial TCP service by
+	  throttling the TCP receive window (down to 1).
+	  Thanks to Qifan Zhang, Palo Alto Networks for the report
+	  https://www.nlnetlabs.nl/downloads/nsd/CVE-2026-18916.txt
+	- Fix for CVE-2026-19401: Any remote client can denial UDP service by
+	  sending a specifically crafted query with multiple DNS Cookie options.
+	  Thanks to Qifan Zhang, Palo Alto Networks for the report
+	  https://www.nlnetlabs.nl/downloads/nsd/CVE-2026-19401.txt
+	- Fix for CVE-2026-19538: Anyone with access to the proxy protocol port
+	  over TCP or TLS can bypass BLOCKED access control items.
+	  Thanks to Qifan Zhang, Palo Alto Networks for the report
+	  https://www.nlnetlabs.nl/downloads/nsd/CVE-2026-19538.txt
+
 14 August 2026: Willem
 	- Fix to ignore NSEC3 records with malformed owner name. In depth fix
 	  to clear key for NSEC3 tree collisions. And a fix to limit the

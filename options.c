@@ -2245,9 +2245,9 @@ acl_addr_match_range_v4(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t 
 	/* check treats x as one huge number */
 
 	/* if outside bounds, we are done */
-	if(*minval > *x)
+	if(ntohl(*minval) > ntohl(*x))
 		return 0;
-	if(*maxval < *x)
+	if(ntohl(*maxval) < ntohl(*x))
 		return 0;
 
 	return 1;
@@ -2268,10 +2268,10 @@ acl_addr_match_range_v6(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t 
 	{
 		/* if outside bounds, we are done */
 		if(checkmin)
-			if(minval[i] > x[i])
+			if(ntohl(minval[i]) > ntohl(x[i]))
 				return 0;
 		if(checkmax)
-			if(maxval[i] < x[i])
+			if(ntohl(maxval[i]) < ntohl(x[i]))
 				return 0;
 		/* if x is equal to a bound, that bound needs further checks */
 		if(checkmin && minval[i]!=x[i])
