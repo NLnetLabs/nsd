@@ -84,6 +84,10 @@ BUG FIXES:
 	- Fix dnstap over TLS certificate check for reconnection. Also clean up
 	  file descriptor and SSL state on connection failures.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix client certificate checking by linking the tls-auth-name
+	  requirement on an access control list item, to the other requirements
+	  (IP address and/or TSIG key) on the same list item.
+	  Thanks to voguemerry for the report
 
 4.15.1
 ================

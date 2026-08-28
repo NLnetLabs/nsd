@@ -1,3 +1,9 @@
+28 August 2026: Willem
+	- Fix client certificate checking by linking the tls-auth-name
+	  requirement on an access control list item, to the other requirements
+	  (IP address and/or TSIG key) on the same list item.
+	  Thanks to voguemerry for the report
+
 24 August 2026: Willem
 	- Merge #502: An `udp-padding-port` configuration file option to enable
 	  responding to the padding option on UDP, but on specific ports only.
