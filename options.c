@@ -2049,7 +2049,11 @@ acl_check_incoming(struct acl_options* acl, struct query* q,
 			continue;
 		}
 #endif
-		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)) {
+		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)
+#ifdef HAVE_SSL
+		&& acl_tls_auth_name_matches(acl, q)
+#endif
+		) {
 			if(!match)
 			{
 				match = acl; /* remember first match */
@@ -2061,27 +2065,6 @@ acl_check_incoming(struct acl_options* acl, struct query* q,
 				return -1;
 			}
 		}
-#ifdef HAVE_SSL
-		/* we are in a acl with tls_auth */
-		if (acl->tls_auth_name) {
-			/* we have auth_domain_name in tls_auth */
-			if (acl->tls_auth_options && acl->tls_auth_options->auth_domain_name) {
-				if (!acl_tls_hostname_matches(q->tls_auth, acl->tls_auth_options->auth_domain_name)) {
-					VERBOSITY(3, (LOG_WARNING,
-							"client cert does not match %s %s",
-							acl->tls_auth_name, acl->tls_auth_options->auth_domain_name));
-					q->cert_cn = NULL;
-					return -1;
-				}
-				VERBOSITY(5, (LOG_INFO, "%s %s verified",
-					acl->tls_auth_name, acl->tls_auth_options->auth_domain_name));
-				q->cert_cn = acl->tls_auth_options->auth_domain_name;
-			} else {
-				/* nsd gives error on start for this, but check just in case */
-				log_msg(LOG_ERR, "auth-domain-name not defined in %s", acl->tls_auth_name);
-			}
-		}
-#endif
 		number++;
 		acl = acl->next;
 	}
@@ -2492,6 +2475,35 @@ acl_key_matches(struct acl_options* acl, struct query* q)
 	}
 	return 1;
 }
+
+#ifdef HAVE_SSL
+int
+acl_tls_auth_name_matches(struct acl_options* acl, struct query* q)
+{
+	/* If no name specified, no name is required  */
+	if (!acl->tls_auth_name)
+		return 1;
+
+	/* we have auth_domain_name in tls_auth */
+	if (!acl->tls_auth_options
+	||  !acl->tls_auth_options->auth_domain_name) {
+		/* nsd gives error on start for this, but check just in case */
+		log_msg(LOG_ERR, "auth-domain-name not defined in %s", acl->tls_auth_name);
+		return 0;
+	}
+	if (!acl_tls_hostname_matches(q->tls_auth,
+				acl->tls_auth_options->auth_domain_name)) {
+		VERBOSITY(6, (LOG_DEBUG, "client cert does not match %s %s",
+			acl->tls_auth_name,
+			acl->tls_auth_options->auth_domain_name));
+		return 0;
+	}
+	VERBOSITY(5, (LOG_INFO, "%s %s verified", acl->tls_auth_name,
+		acl->tls_auth_options->auth_domain_name));
+	q->cert_cn = acl->tls_auth_options->auth_domain_name;
+	return 1;
+}
+#endif
 
 int
 acl_same_host(struct acl_options* a, struct acl_options* b)

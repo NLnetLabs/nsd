@@ -603,6 +603,7 @@ int acl_addr_matches_proxy(struct acl_options* acl, struct query* q);
 int acl_tls_hostname_matches(SSL* ssl, const char* acl_cert_cn);
 #endif
 int acl_key_matches(struct acl_options* acl, struct query* q);
+int acl_tls_auth_name_matches(struct acl_options* acl, struct query* q);
 int acl_addr_match_mask(uint32_t* a, uint32_t* b, uint32_t* mask, size_t sz);
 int acl_addr_match_range_v6(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz);
 int acl_addr_match_range_v4(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz);
