@@ -35,6 +35,19 @@ openssl x509 -req -days 32850 -CA xot-client-cert.ca.crt \
 	-in xot-client-cert.secondary.csr \
 	-out xot-client-cert.secondary.crt
 
+# Create key and certificate for another secondary:
+#
+openssl genrsa -out xot-client-cert.another-secondary.key 2048
+openssl req -new -key xot-client-cert.another-secondary.key \
+	-out xot-client-cert.another-secondary.csr \
+	-subj "/CN=for-your-eyes-too.test" \
+	-addext "subjectAltName=DNS:for-your-eyes-too.test"
+openssl x509 -req -days 32850 -CA xot-client-cert.ca.crt \
+	-CAkey xot-client-cert.ca.key -CAserial xot-client-cert.ca.serial \
+	-copy_extensions copyall \
+	-in xot-client-cert.another-secondary.csr \
+	-out xot-client-cert.another-secondary.crt
+
 # Create key and certificate for the secondary (with wrong name):
 #
 openssl req -new -key xot-client-cert.secondary.key \

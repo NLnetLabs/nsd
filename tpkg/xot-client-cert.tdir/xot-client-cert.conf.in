@@ -26,9 +26,14 @@ tls-auth:
 	name: for-your-eyes-only.test
 	auth-domain-name: for-your-eyes-only.test
 
+tls-auth:
+	name: for-your-eyes-too.test
+	auth-domain-name: for-your-eyes-too.test
+
 zone:
 	name: victim.test
 	zonefile: "xot-client-cert.zone"
 	provide-xfr: 0.0.0.0/0 NOKEY for-your-eyes-only.test
+	provide-xfr: 0.0.0.0/0 NOKEY for-your-eyes-too.test
 	provide-xfr: 0.0.0.0/0 otherwise-tsig.
 

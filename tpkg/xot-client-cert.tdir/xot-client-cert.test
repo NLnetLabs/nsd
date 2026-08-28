@@ -21,6 +21,15 @@ if ! grep -q CONFIDENTIAL success.result.txt; then
 fi
 
 dig -p $TPKG_XoT_PORT @127.0.0.1 +tls +tls-ca=xot-client-cert.ca.crt \
+	+tls-certfile=xot-client-cert.another-secondary.crt \
+	+tls-keyfile=xot-client-cert.another-secondary.key victim.test AXFR \
+	2>&1 > another-success.result.txt
+if ! grep -q CONFIDENTIAL another-success.result.txt; then
+	echo "Error: Transfer with another good client certificate failed!"
+	exit 1
+fi
+
+dig -p $TPKG_XoT_PORT @127.0.0.1 +tls +tls-ca=xot-client-cert.ca.crt \
 	+tls-certfile=xot-client-cert.wrong-name.crt \
 	+tls-keyfile=xot-client-cert.secondary.key victim.test AXFR \
 	2>&1 > wrong-name.result.txt
