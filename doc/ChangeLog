@@ -1,3 +1,6 @@
+2 September 2026: Willem
+	- Continue with 4.15.3 for development
+
 28 August 2026: Willem
 	- Fix client certificate checking by linking the tls-auth-name
 	  requirement on an access control list item, to the other requirements
