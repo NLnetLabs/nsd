@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-4.15.2 (in development)
+4.15.2
 ================
 FEATURES:
 	- Merge #494: RFC 7830 EDNS0 padding option support with DoT
