@@ -5,6 +5,8 @@ NSD RELEASE NOTES
 FEATURES:
 BUG FIXES:
 	- Fix makedist.sh to omit .cirrus.yml ci integration.
+	- Fix handling malformed SOA records with a short rdata content with
+	  incremental transfers. Thanks to Tristan Madani for the report.
 
 4.15.2
 ================

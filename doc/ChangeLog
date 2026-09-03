@@ -1,3 +1,7 @@
+3 September 2026: Willem
+	- Fix handling malformed SOA records with a short rdata content with
+	  incremental transfers. Thanks to Tristan Madani for the report.
+
 3 September 2026: Wouter
 	- Fix makedist.sh to omit .cirrus.yml ci integration.
 
