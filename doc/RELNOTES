@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 FEATURES:
 BUG FIXES:
+	- Fix makedist.sh to omit .cirrus.yml ci integration.
 
 4.15.2
 ================
