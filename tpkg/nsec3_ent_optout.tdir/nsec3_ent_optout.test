@@ -1,0 +1,26 @@
+# #-- nsec3_ent_optout.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+PRE="../../.."
+DIG=dig
+$DIG @127.0.0.1 -p $TPKG_PORT +dnssec b.example.com. DS > cur
+cat cur
+if grep "onib9mgub9h0rml3cdf5bgrj59dkjhvk.example.com." cur >/dev/null; then
+	echo "closest encloser present"
+else
+	echo "not OK"
+	exit 1
+fi
+
+if grep "2qnilc4qrc2p5crn7jgvb5s3bpg0shuv.example.com." cur >/dev/null; then
+	echo "next closer present"
+else
+	echo "not OK"
+	exit 1
+fi
+
+echo "OK"
+exit 0

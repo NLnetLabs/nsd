@@ -1,3 +1,7 @@
+9 September 2026: Wouter
+	- Fix #510: Missing NSEC3 records for next-closer in case of
+	  ENT, NSEC3 and opt-out.
+
 3 September 2026: Willem
 	- Fix handling malformed SOA records with a short rdata content with
 	  incremental transfers. Thanks to Tristan Madani for the report.
