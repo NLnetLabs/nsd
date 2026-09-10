@@ -139,6 +139,9 @@ usage()
 	printf("  drop_cookie_secret		drop a staging cookie secret\n");
 	printf("  activate_cookie_secret	make a staging cookie secret active\n");
 	printf("  print_cookie_secrets		show all cookie secrets with their status\n");
+#ifdef TESTING_CODE
+	printf("  testing <proc role> <on|off>	Do not use! For non-production builds only!\n");
+#endif
 	exit(1);
 }
 

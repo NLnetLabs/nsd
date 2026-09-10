@@ -916,7 +916,9 @@ main(int argc, char *argv[])
 	nsd.options = nsd_options_create(region_create_custom(xalloc, free,
 		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE,
 		DEFAULT_INITIAL_CLEANUP_SIZE, 1));
-
+#ifdef TESTING_CODE
+	nsd.testing = 0;
+#endif
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46a:c:df:hi:I:l:N:n:P:p:s:u:t:X:V:v"
 #ifndef NDEBUG /* <mattthijs> only when configured with --enable-checking */
