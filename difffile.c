@@ -1592,6 +1592,15 @@ apply_ixfr_for_zone(nsd_type* nsd, zone_type* zone, FILE* in,
 			"skipping diff file commit with bad serial"));
 		return -2; /* Success in "main" process, failure in "xfrd" */
 	}
+#ifdef TESTING_CODE
+	if(nsd->testing && new_serial == 0xBADFEED) {
+		log_msg(LOG_ERR,
+			"Pretending an error occured for testing purposes for "
+			"difffile %s from serial %" PRIu32 " -> %" PRIu32,
+			zone_buf, old_serial, new_serial);
+		return -2;
+	}
+#endif
 
 	if(!zone->is_skipped)
 	{
