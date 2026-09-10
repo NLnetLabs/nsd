@@ -1,0 +1,30 @@
+$TTL 3600
+
+$ORIGIN catalog.invalid.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+MATCH TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ AXFR
+SECTION ANSWER
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+version TXT "2"
+1.zones PTR one.invalid.
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+ENTRY_END
+
+$ORIGIN one.invalid.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+MATCH TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ AXFR
+SECTION ANSWER
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+ENTRY_END
+

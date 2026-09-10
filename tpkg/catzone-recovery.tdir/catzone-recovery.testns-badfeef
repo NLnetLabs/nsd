@@ -1,0 +1,94 @@
+$TTL 3600
+
+$ORIGIN catalog.invalid.
+
+ENTRY_BEGIN
+MATCH opcode qtype qname serial=195952365
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ IXFR
+SECTION ANSWER
+@ SOA testns.example. root 195952367 3600 28800 2419200 3600
+@ SOA testns.example. root 195952365 3600 28800 2419200 3600
+;; Nothing to be removed from 195952365 to  195952366
+@ SOA testns.example. root 195952366 3600 28800 2419200 3600
+;; Added with 195952366
+3.zones PTR three.invalid.
+@ SOA testns.example. root 195952366 3600 28800 2419200 3600
+;; Nothing to be removed from 195952366 to 195952367
+@ SOA testns.example. root 195952367 3600 28800 2419200 3600
+;; Added with 195952367
+4.zones PTR four.invalid.
+@ SOA testns.example. root 195952367 3600 28800 2419200 3600
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode qtype qname
+MATCH TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ AXFR
+SECTION ANSWER
+@ SOA testns.example. root 195952367 3600 28800 2419200 3600
+version TXT "2"
+1.zones PTR one.invalid.
+2.zones PTR two.invalid.
+3.zones PTR three.invalid.
+4.zones PTR four.invalid.
+@ SOA testns.example. root 195952367 3600 28800 2419200 3600
+ENTRY_END
+
+$ORIGIN one.invalid.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+MATCH TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ AXFR
+SECTION ANSWER
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+ENTRY_END
+
+$ORIGIN two.invalid.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+MATCH TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ AXFR
+SECTION ANSWER
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+ENTRY_END
+
+$ORIGIN three.invalid.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+MATCH TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ AXFR
+SECTION ANSWER
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+ENTRY_END
+
+$ORIGIN four.invalid.
+ENTRY_BEGIN
+MATCH opcode qtype qname
+MATCH TCP
+REPLY QUERY NOERROR
+ADJUST copy_id
+SECTION QUESTION
+@ AXFR
+SECTION ANSWER
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+@ SOA testns.example. root 1 3600 28800 2419200 3600
+ENTRY_END
+

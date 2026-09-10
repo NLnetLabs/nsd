@@ -1,0 +1,4 @@
+This test requires a specially for the purpose compiled version of NSD with
+modifications in the main code.  The additional code is available on the
+features/testing-code branch.  With this branch is merged in, the additional
+code needs to be enabled with the `enable-testing` option to configure.
