@@ -46,6 +46,7 @@ NEED_CPU_AFFINITY="bad_cpu_affinity no_cpu_affinity cpu_affinity"
 NEED_FAKETIME="dnscookies"
 NEED_DEBUG="verify_again nsec3_ixfr_neg ixfrout-add-delete ixfr_badformat cpu_affinity ixfr_superlong"
 NEED_UNPRIVILEGED_USERNS="dns-cookies"
+NEED_TESTING_BUILD="catzone-recovery"
 
 # do we have dig9?
 DIG9=no
@@ -68,6 +69,8 @@ HAVE_DEBUG=no
 if $NSD -h 2>&1 | grep -- '-L' >/dev/null; then HAVE_DEBUG=yes; fi
 HAVE_UNPRIVILEGED_USERNS=yes
 if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ] && [ "x`cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns`" = "x1" ]; then HAVE_UNPRIVILEGED_USERNS=no; fi
+HAVE_TESTING_BUILD=no
+if $NSD -v 2>&1 | grep -- '--enable-testing' >/dev/null; then HAVE_TESTING_BUILD=yes; fi
 
 # run the tests
 tdir -a ../../ $tdirarg fake 0000_nsd-compile.tdir
@@ -112,6 +115,10 @@ for i in *.tdir; do
 	fi
 	if [ $HAVE_UNPRIVILEGED_USERNS = no ] && echo $NEED_UNPRIVILEGED_USERNS | grep `basename $i .tdir` >/dev/null; then
 		echo ">>> skipped $i: test needs unpriviledged userns"
+		skip=yes
+	fi
+	if [ $HAVE_TESTING_BUILD = no ] && echo $NEED_TESTING_BUILD | grep `basename $i .tdir` >/dev/null; then
+		echo ">>> skipped $i: test needs testing build"
 		skip=yes
 	fi
 	if [ $skip = no ]; then
