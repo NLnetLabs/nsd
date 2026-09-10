@@ -1,3 +1,7 @@
+10 September 2026: Willem
+	- Merge #511: Fix to retry a catalog consumer zone over AXFR if IXFR
+	  failed to apply
+
 9 September 2026: Wouter
 	- Fix #510: Missing NSEC3 records for next-closer in case of
 	  ENT, NSEC3 and opt-out.

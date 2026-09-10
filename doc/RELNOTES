@@ -9,6 +9,8 @@ BUG FIXES:
 	  incremental transfers. Thanks to Tristan Madani for the report.
 	- Fix #510: Missing NSEC3 records for next-closer in case of
 	  ENT, NSEC3 and opt-out.
+	- Merge #511: Fix to retry a catalog consumer zone over AXFR if IXFR
+	  failed to apply
 
 4.15.2
 ================
