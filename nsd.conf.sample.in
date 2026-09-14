@@ -337,6 +337,10 @@ server:
 	# metrics-interface: ::1
 	# metrics-interface: lo
 
+	# With an absolute path, a unix local socket is used for the HTTP
+	# endpoint (metrics-port is not used for it).
+	# metrics-interface: @runstatedir@/nsd/metrics.sock
+
 	# Port number for the HTTP metrics endpoint. Default is 9100.
 	# metrics-port: 9100
 
