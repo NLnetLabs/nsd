@@ -720,13 +720,16 @@ Beware, that when using \fInsd\-control stats\fR (instead of \fInsd\-control
 stats_noreset\fR), the statistics will be reset for the HTTP metrics endpoint
 as well.
 .TP
-.B metrics\-interface:\fR <ip4 or ip6 | interface name>
+.B metrics\-interface:\fR <ip4 or ip6 | interface name | absolute path>
 NSD will bind to the listed addresses or interfaces to serve the prometheus
 metrics. Can be given multiple times to bind multiple ip\-addresses. Use
 0.0.0.0 and ::0 to bind to the wildcard interface.
 
 If an interface name is used instead of ip4 or ip6, the list of IP addresses
 associated with that interface is picked up and used at server start.
+
+With an absolute path, the metrics are served over a unix local socket and
+\fBmetrics\-port\fR is not used for it.
 
 Default is 127.0.0.1 and ::1.
 .TP
