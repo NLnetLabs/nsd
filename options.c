@@ -78,6 +78,7 @@ nsd_options_create(region_type* region)
 	opt->identity = 0;
 	opt->version = 0;
 	opt->nsid = 0;
+	opt->report_channel = NULL;
 	opt->logfile = 0;
 	opt->log_only_syslog = 0;
 	opt->log_time_ascii = 1;
@@ -188,6 +189,8 @@ nsd_options_create(region_type* region)
 	opt->verifier_count = 1;
 	opt->verifier_feed_zone = 1;
 	opt->verifier_timeout = 0;
+
+	opt->report_channel = NULL;
 
 	return opt;
 }
@@ -1168,6 +1171,7 @@ pattern_options_create(region_type* region)
 	p->catalog_role_is_default = 1;
 	p->catalog_member_pattern = NULL;
 	p->catalog_producer_zone = NULL;
+	p->report_channel = NULL;
 	return p;
 }
 
@@ -1233,7 +1237,9 @@ pattern_options_remove(struct nsd_options* opt, const char* name)
 	acl_list_delete(opt->region, p->allow_query);
 	acl_list_delete(opt->region, p->outgoing_interface);
 	verifier_delete(opt->region, p->verifier);
-
+	if(p->report_channel)
+		region_recycle(opt->region, (void*)p->report_channel,
+			dname_total_size(p->report_channel));
 	region_recycle(opt->region, p, sizeof(struct pattern_options));
 }
 
@@ -1379,6 +1385,9 @@ copy_pat_fixed(region_type* region, struct pattern_options* orig,
 		orig->catalog_producer_zone =
 			region_strdup(region, p->catalog_producer_zone);
 	else orig->catalog_producer_zone = NULL;
+	if(p->report_channel)
+		orig->report_channel = dname_copy(region, p->report_channel);
+	else orig->report_channel = NULL;
 }
 
 void
@@ -1526,6 +1535,11 @@ pattern_options_equal(struct pattern_options* p, struct pattern_options* q)
 	else if(p->catalog_producer_zone && q->catalog_producer_zone) {
 		if(strcmp(p->catalog_producer_zone, q->catalog_producer_zone) != 0) return 0;
 	}
+	if(!p->report_channel && q->report_channel) return 0;
+	else if(p->report_channel && !q->report_channel) return 0;
+	else if(p->report_channel && q->report_channel) {
+		if(dname_compare(p->report_channel, q->report_channel) != 0) return 0;
+	}
 	return 1;
 }
 
@@ -1605,6 +1619,30 @@ unmarshal_str(region_type* r, struct buffer* b)
 		char* result = region_strdup(r, (char*)buffer_current(b));
 		size_t len = strlen((char*)buffer_current(b));
 		buffer_skip(b, len+1);
+		return result;
+	} else return NULL;
+}
+
+static void
+marshal_dname(struct buffer* b, const struct dname* d)
+{
+	if(!d) marshal_u8(b, 0);
+	else {
+		marshal_u8(b, d->name_size);
+		buffer_reserve(b, d->name_size);
+		buffer_write(b, dname_name(d), d->name_size);
+	}
+}
+
+
+static const struct dname*
+unmarshal_dname(region_type* r, struct buffer* b)
+{
+	uint8_t nonnull = unmarshal_u8(b);
+	if(nonnull) {
+		const struct dname* result = dname_make(r, (const uint8_t*)buffer_current(b), 0);
+		assert(nonnull == result->name_size);
+		buffer_skip(b, nonnull);
 		return result;
 	} else return NULL;
 }
@@ -1754,6 +1792,7 @@ pattern_options_marshal(struct buffer* b, struct pattern_options* p)
 	marshal_u8(b, p->catalog_role_is_default);
 	marshal_str(b, p->catalog_member_pattern);
 	marshal_str(b, p->catalog_producer_zone);
+	marshal_dname(b, p->report_channel);
 }
 
 struct pattern_options*
@@ -1808,6 +1847,7 @@ pattern_options_unmarshal(region_type* r, struct buffer* b)
 	p->catalog_role_is_default = unmarshal_u8(b);
 	p->catalog_member_pattern = unmarshal_str(r, b);
 	p->catalog_producer_zone = unmarshal_str(r, b);
+	p->report_channel = unmarshal_dname(r, b);
 	return p;
 }
 
@@ -3000,6 +3040,10 @@ config_apply_pattern(struct pattern_options *dest, const char* name)
 	if(pat->catalog_producer_zone)
 		dest->catalog_producer_zone = region_strdup(
 			cfg_parser->opt->region, pat->catalog_producer_zone);
+	if(pat->report_channel)
+		dest->report_channel = dname_copy(
+			cfg_parser->opt->region, pat->report_channel);
+
 }
 
 void

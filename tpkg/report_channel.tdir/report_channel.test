@@ -1,0 +1,23 @@
+# #-- report_channel.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+
+dig @localhost -p $TPKG_PORT +norec @localhost soa example.com 2<&1 | tee out1
+dig @localhost -p $TPKG_PORT +norec @localhost soa example.org 2<&1 | tee out2
+dig @localhost -p $TPKG_PORT +norec @localhost soa example.net 2<&1 | tee out3
+
+if ! grep "agent\.example\.com" out1; then
+	echo "Report-Channel option not found in packet 1"
+	exit 1
+fi
+if ! grep "agent\.example\.org" out2; then
+	echo "Report-Channel option not found in packet 2"
+	exit 1
+fi
+if ! grep "agent\.example\.net" out3; then
+	echo "Report-Channel option not found in packet 3"
+	exit 1
+fi
+exit 0
