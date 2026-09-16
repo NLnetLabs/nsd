@@ -1,3 +1,7 @@
+16 September 2026: Willem
+	- A report-channel config option to return a Report-Channel EDNS option
+	  in responses
+
 10 September 2026: Willem
 	- Merge #511: Fix to retry a catalog consumer zone over AXFR if IXFR
 	  failed to apply

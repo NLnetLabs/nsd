@@ -3,6 +3,9 @@ NSD RELEASE NOTES
 4.15.3 (in development)
 ================
 FEATURES:
+	- A report-channel config option to return a Report-Channel EDNS option
+	  in responses
+
 BUG FIXES:
 	- Fix makedist.sh to omit .cirrus.yml ci integration.
 	- Fix handling malformed SOA records with a short rdata content with
