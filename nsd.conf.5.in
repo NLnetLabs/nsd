@@ -215,6 +215,9 @@ with an NSID EDNS enabled packet.  As a sequence of hex characters or
 with ascii_ prefix and then an ascii string.  Same as command-line option
 .BR \-I .
 .TP
+.B report\-channel:\fR <domain name>
+Adds an Report\-Channel option with this name to the EDNS section of responses.
+.TP
 .B logfile:\fR <filename>
 Log messages to the logfile. The default is to log to stderr and
 syslog (with facility LOG_DAEMON). Same as command-line option
@@ -905,8 +908,9 @@ The zone options such as
 .BR verifier\-feed\-zone ,
 .BR verifier\-timeout ,
 .BR catalog ,
+.BR catalog\-member\-pattern , 
 and
-.B catalog\-member\-pattern
+.B report\-channel
 can be given.  They are applied to the patterns and zones that include
 this pattern.
 .SS "Zone Options"

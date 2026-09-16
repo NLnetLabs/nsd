@@ -22,6 +22,7 @@ struct tsig_key;
 struct buffer;
 struct nsd;
 struct port_list;
+struct dname;
 
 
 typedef struct nsd_options nsd_options_type;
@@ -260,6 +261,8 @@ struct nsd_options {
 	uint8_t verifier_feed_zone;
 	/** maximum number of seconds that a verifier may take */
 	uint32_t verifier_timeout;
+	/** default report_channel */
+	const struct dname* report_channel;
 
 	region_type* region;
 };
@@ -358,6 +361,7 @@ struct pattern_options {
 	uint8_t catalog_role_is_default;
 	const char* catalog_member_pattern;
 	const char* catalog_producer_zone;
+	const struct dname* report_channel;
 } ATTR_PACKED;
 
 #define PATTERN_IMPLICIT_MARKER "_implicit_"

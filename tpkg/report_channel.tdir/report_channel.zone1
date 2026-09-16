@@ -1,0 +1,5 @@
+$ORIGIN example.com.
+$TTL 3600
+@  SOA sysadmin ns 1 10000 2400 604800 1800
+   NS  ns
+ns A   192.0.2.53

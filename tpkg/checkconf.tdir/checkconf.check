@@ -17,6 +17,7 @@ server:
 	identity: "server number 23"
 	#version:
 	nsid: "123456"
+	report-channel: something.to.report.
 	logfile: "/var/log/nsdlogfile.log"
 	log-only-syslog: no
 	server-count: 1
@@ -159,6 +160,7 @@ server:
 	#identity:
 	#version:
 	#nsid:
+	#report-channel:
 	logfile: "/var/log/nsdlogfile.log"
 	log-only-syslog: no
 	server-count: 1
@@ -242,6 +244,7 @@ server:
 	#identity:
 	#version:
 	#nsid:
+	#report-channel:
 	#logfile:
 	log-only-syslog: no
 	server-count: 1
@@ -334,6 +337,7 @@ server:
 	#identity:
 	#version:
 	#nsid:
+	#report-channel:
 	#logfile:
 	log-only-syslog: no
 	server-count: 1
@@ -470,6 +474,7 @@ server:
 	#identity:
 	#version:
 	#nsid:
+	report-channel: blabla.example.com.
 	#logfile:
 	log-only-syslog: no
 	server-count: 1
@@ -604,6 +609,7 @@ server:
 	#identity:
 	#version:
 	#nsid:
+	#report-channel:
 	#logfile:
 	log-only-syslog: no
 	server-count: 1
