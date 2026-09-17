@@ -244,4 +244,32 @@ VAXA	EID	3141 5926 5358 9793
     MoPrR3MlKGBGWsVz1yXNqUURoCqYdwsY
     e61vd5i6YJqnAQ==
 )
+; UNECE and ISO examples from draft-woodcock-faltstrom-external-registry-rrtypes
+@ IN UNECE 16 - JPTYO "place of inspection"
+@ IN UNECE 16 - KENBO "distribution hub"
+@ IN UNECE 19 - 1 "mode: maritime"
+@ IN UNECE 19 - 4 "mode: air"
+@ IN UNECE 20 640 H18 "protected wetland area"
+@ IN UNECE 20 12500 MTQ "reservoir volume"
+@ IN UNECE 20 5 MGM "active ingredient per dose"
+@ IN UNECE 20 8500 E22 "container capacity, TEU"
+@ IN UNECE 20 -18 CEL "cold-chain storage temperature"
+@ IN UNECE 20 90 DAY "shelf life"
+@ IN UNECE 20 24 MON "warranty period"
+@ IN UNECE 20 230 VLT "supply voltage"
+@ IN UNECE 20 11 KWT "charger output"
+@ IN UNECE 20 ? P1 "moisture content, assay pending"
+@ IN UNECE 21 12 PX "pallets"
+@ IN UNECE 21 2 CR "crates, artworks on loan"
+@ IN UNECE 21 3 RL "reels, fibre-optic cable"
+@ IN UNECE 21 2 PO "diplomatic pouches"
+@ IN UNECE 24 - 219 "status: delivery pending"
+@ IN ISO 639 - ar "working language"
+@ IN ISO 639 - yue "crew lingua franca"
+@ IN ISO 3166-1 - QA "flag state"
+@ IN ISO 3166-2 - US-CA "state of incorporation"
+@ IN ISO 4217 125000 USD "declared cargo value"
+@ IN ISO 4217 2400000+-50000 EUR "insured value, hull and machinery"
+@ IN ISO 4217 780000+-? CHF "salvage award, assessment ongoing"
+@ IN ISO 4217 ? ZAR "customs value pending appraisal"
 

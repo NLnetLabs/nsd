@@ -3517,6 +3517,60 @@ print_brid_rdata(struct buffer *output, const struct rr *rr)
 }
 
 int32_t
+read_unece_iso_rdata(struct domain_table *domains, uint16_t rdlength,
+	struct buffer *packet, struct rr **rr)
+{
+	const size_t mark = buffer_position(packet);
+	uint16_t length = 0;
+
+	/* standard or recommendation (at least 2) plus value (at least 1)
+	 * plus code (at least 2) plus description (remainder)
+	 */
+	if (buffer_remaining(packet) < rdlength || rdlength < 2 + 1 + 2)
+		return MALFORMED;
+	if (skip_string(packet, rdlength, &length) < 0
+	||  skip_string(packet, rdlength, &length) < 0
+	||  skip_string(packet, rdlength, &length) < 0
+	||  rdlength < length)
+		return MALFORMED;
+	buffer_set_position(packet, mark);
+	return read_rdata(domains, rdlength, packet, rr);
+}
+
+int
+print_unece_iso_rdata(struct buffer *output, const struct rr *rr)
+{
+	uint16_t length = 0;
+	/* recommendation/standard MUST have at least 1 char */
+	if(rr->rdlength <= length || rr->rdata[length] == 0)
+		return 0;
+	if(!print_unquoted(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	/* value may be empty (printed as -) */
+	if(rr->rdlength <= length)
+		return 0;
+	if(rr->rdata[length] == 0) {
+		buffer_printf(output, "-");
+		length += 1;
+	} else if(!print_unquoted(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	/* recommendation/standard MUST have at least 1 char */
+	if(rr->rdlength <= length || rr->rdata[length] == 0)
+		return 0;
+	if(!print_unquoted(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	buffer_printf(output, " ");
+	/* description */
+	if(!print_text(output, rr->rdlength, rr->rdata, &length))
+		return 0;
+	if(rr->rdlength != length)
+		return 0;
+	return 1;
+}
+
+int32_t
 read_nid_rdata(struct domain_table *domains, uint16_t rdlength,
 	struct buffer *packet, struct rr **rr)
 {
