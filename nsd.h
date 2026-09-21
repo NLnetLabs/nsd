@@ -29,6 +29,9 @@
 #ifdef USE_XDP
 #include "xdp-server.h"
 #endif
+#ifdef HAVE_TLS_1_3
+#include "xfrd-tcp.h"
+#endif
 struct netio_handler;
 struct nsd_options;
 struct udb_base;
