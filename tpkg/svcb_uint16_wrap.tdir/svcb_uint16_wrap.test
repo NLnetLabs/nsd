@@ -12,7 +12,20 @@ if [ ! -e nsd_axfr.conf ]; then
 	if [ $? -eq 0 ]; then
 		echo "Zone with SVCB that wraps the uint16_t is loaded successfully"
 		echo "This version of NSD does not have the issue"
-		exit 0
+		$PRE/nsd-checkzone . svcb_uint16_wrap.problem-zone2
+		RETURN_CODE=$?
+		if [ $RETURN_CODE -eq 1 ]; then
+			echo "SVCB with longer than 65528 rdata results in a normal error"
+			exit 0
+		elif [ $RETURN_CODE -eq 0 ]; then
+			echo "SVCB with longer than 65528 rdata does not cause an error"
+			echo "with non-checking builds. rdata is too small!"
+			$PRE/nsd-checkzone -p . svcb_uint16_wrap.problem-zone2
+			exit 1
+		else
+			echo "SVCB with longer than 65528 rdata crashes nsd on checking builds"
+			exit 1
+		fi
 	else
 		echo "ERROR: Zone with SVCB that wraps the uint16_t could not be loaded"
 		echo "ERROR: This version of NSD does NOT have the issuei, yay!"
@@ -32,13 +45,13 @@ echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 (  rm -f crash.txt \
 && $TPKG_NSD -c nsd_axfr.conf -u "" -p $TPKG_PORT -P $TPKG_NSD_PID -V 6 -l nsd.log -d \
 || echo "NSD crashed" > crash.txt ) &
-
-wait_nsd_up nsd.log
 sleep 1
 if [ -e crash.txt ]; then
+	cat nsd.log
 	echo "NSD could not handle out-of-bounds SVCB RR and crashed"
 	exit 1
 fi
+wait_nsd_up nsd.log
 echo ""
 echo "NSD log:"
 cat nsd.log
@@ -49,7 +62,21 @@ echo ""
 sleep 1
 echo "Written out zone by NSD:"
 $PRE/nsd-control -c nsd_axfr.conf write
+sleep 1
 cat svcb_uint16_wrap.zone
-NSD_PID=`cat $TPKG_NSD_PID`
-kill_pid $NSD_PID
-exit 0
+
+$PRE/nsd-checkzone . svcb_uint16_wrap.problem-zone2
+RETURN_CODE=$?
+if [ $RETURN_CODE -eq 1 ]; then
+	echo "SVCB with longer than 65528 rdata results in a normal error"
+	exit 0
+elif [ $RETURN_CODE -eq 0 ]; then
+	echo "SVCB with longer than 65528 rdata does not cause an error"
+	echo "with non-checking builds. rdata is too small!"
+	$PRE/nsd-checkzone -p . svcb_uint16_wrap.problem-zone2
+	exit 1
+else
+	echo "SVCB with longer than 65528 rdata crashes nsd on checking builds"
+	exit 1
+fi
+
