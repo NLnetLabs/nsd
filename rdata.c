@@ -3378,6 +3378,8 @@ read_svcb_rdata(struct domain_table *domains, uint16_t rdlength,
 	svcparams_length = rdlength - length;
 	buffer_skip(packet, svcparams_length);
 
+	if (2 + sizeof(void*) + svcparams_length > UINT16_MAX)
+		return MALFORMED;
 	size = sizeof(**rr) + 2 + sizeof(void*) + svcparams_length;
 	if (!(*rr = region_alloc(domains->region, size)))
 		return TRUNCATED;
