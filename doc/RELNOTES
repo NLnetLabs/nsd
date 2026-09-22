@@ -14,6 +14,9 @@ BUG FIXES:
 	  ENT, NSEC3 and opt-out.
 	- Merge #511: Fix to retry a catalog consumer zone over AXFR if IXFR
 	  failed to apply
+	- Fix to not wrap the rdlength variable for SVCB RRs with an rdlength
+	  larger than 65528 (and a short TargetName rdata field, like .).
+	  Thanks to Zanya <tea915656@gmail.com> for the report.
 
 4.15.2
 ================

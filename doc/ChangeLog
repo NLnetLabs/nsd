@@ -1,3 +1,8 @@
+22 September 2026: Willem
+	- Fix to not wrap the rdlength variable for SVCB RRs with an rdlength
+	  larger than 65528 (and a short TargetName rdata field, like .).
+	  Thanks to Zanya <tea915656@gmail.com> for the report.
+
 16 September 2026: Willem
 	- A report-channel config option to return a Report-Channel EDNS option
 	  in responses
