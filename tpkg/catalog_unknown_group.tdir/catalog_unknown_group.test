@@ -1,0 +1,27 @@
+# #-- catalog_unknown_group.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+# start NSD
+get_random_port 1
+
+TPKG_NSD_PID="nsd.pid.$$"
+(  rm -f crash.txt \
+&& ../../nsd -c catalog_unknown_group.conf -p $RND_PORT -P $TPKG_NSD_PID -d \
+|| echo "NSD crashed" > crash.txt ) &
+sleep 1
+
+if [ -e crash.txt ]; then
+        echo "NSD crashed with a catalog zone with two group values of which " \
+	     "the second is unkown."
+        exit 1
+fi
+wait_nsd_up nsd.log
+
+# exit nsd
+kill_pid `cat $TPKG_NSD_PID`
+
+
