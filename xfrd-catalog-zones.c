@@ -580,7 +580,7 @@ retry_adding:
 		char member_domain_str[5 * MAXDOMAINLEN];
 		struct zone_options* zopt;
 		int valid_group_values;
-		struct pattern_options *pattern = NULL;
+		struct pattern_options *pattern = NULL, *pattern_found;
 		struct catalog_member_zone* to_add;
 		const dname_type* group_dname;
 
@@ -641,9 +641,11 @@ retry_adding:
 			group_value[
 			       rrset->rrs[i]->rdata[0]
 			] = 0;
-			if ((pattern = pattern_options_find(
-					xfrd->nsd->options, group_value)))
+			if ((pattern_found = pattern_options_find(
+					xfrd->nsd->options, group_value))) {
+				pattern = pattern_found;
 				valid_group_values += 1;
+			}
 		}
 		if (valid_group_values > 1) {
 	                log_msg(LOG_ERR, "member zone '%s': only a single "
