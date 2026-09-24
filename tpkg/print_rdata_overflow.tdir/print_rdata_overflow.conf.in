@@ -1,0 +1,16 @@
+server:
+	logfile: nsd.log
+	xfrdfile: xfrd.state
+	zonesdir: ""
+	interface: 127.00.1
+	username: ""
+	verbosity: 6
+
+remote-control:
+	control-enable: yes
+	control-interface: @PWD@/nsd.sock
+
+zone:
+	name: evil.test
+	zonefile: "%s"
+	request-xfr: 127.0.0.1@@LDNS_TESTNS_PORT@ NOKEY

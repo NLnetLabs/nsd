@@ -1,0 +1,29 @@
+# #-- print_rdata_overflow.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+. ../common.sh
+
+PRE="../.."
+TPKG_NSD_PID="nsd.pid.$$"
+TPKG_NSD="$PRE/nsd"
+
+get_random_port 2
+TPKG_PORT=$RND_PORT
+LDNS_TESTNS_PORT=`expr $RND_PORT + 1`
+
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export LDNS_TESTNS_PORT=$LDNS_TESTNS_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+
+python3 print_rdata_overflow.py
+ldns-testns -vvv -p $LDNS_TESTNS_PORT print_rdata_overflow.datafile >testns.log 2>&1 &
+echo "export LDNS_TESTNS_PID=$!" >> .tpkg.var.test
+wait_ldns_testns_up testns.log
+
+sed -e "s/@LDNS_TESTNS_PORT@/$LDNS_TESTNS_PORT/g" \
+    -e "s#@PWD@#$(pwd)#g" print_rdata_overflow.conf.in > nsd.conf
+$TPKG_NSD -c nsd.conf -p $TPKG_PORT -P $TPKG_NSD_PID
+wait_nsd_up nsd.log
