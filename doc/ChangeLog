@@ -1,3 +1,13 @@
+26 September 2026: Willem
+	- Fix to not crash when more than one group property is parsed from a
+	  consumer catalog member zone, with only one of them valid.
+	  Thanks to Yuxiao Wu, Yunyi Zhang, Baojun Liu, and Haixin Duan
+	  from Tsinghua University, for the report and suggested fix.
+	- Fix that when printing rdata, fixed sized writes will not overflow
+	  the buffer.
+	  Thanks to Yuxiao Wu, Yunyi Zhang, Baojun Liu, and Haixin Duan
+	  from Tsinghua University, for the report and suggested fix.
+
 22 September 2026: Willem
 	- Fix to not wrap the rdlength variable for SVCB RRs with an rdlength
 	  larger than 65528 (and a short TargetName rdata field, like .).
