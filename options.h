@@ -22,7 +22,7 @@ struct tsig_key;
 struct buffer;
 struct nsd;
 struct proxy_protocol_port_list;
-
+struct group_arr;
 
 typedef struct nsd_options nsd_options_type;
 typedef struct pattern_options pattern_options_type;
@@ -354,6 +354,7 @@ struct pattern_options {
 	uint8_t catalog_role_is_default;
 	const char* catalog_member_pattern;
 	const char* catalog_producer_zone;
+	struct group_arr* catalog_group_pattern;
 } ATTR_PACKED;
 
 #define PATTERN_IMPLICIT_MARKER "_implicit_"
@@ -439,6 +440,18 @@ struct acl_options {
 	const char* tls_auth_name;
 	struct tls_auth_options* tls_auth_options;
 } ATTR_PACKED;
+
+/*
+ * Sorted array of group names
+ * To be used with the catalog-group-pattern option to specify a set of groups
+ * that are allowed to be used for a catalog consumer
+ */
+struct group_arr {
+	size_t nmemb;
+	char*  groups[];
+} ATTR_PACKED;
+#define GROUP_ARR_NULL &group_arr_null;
+extern struct group_arr group_arr_null;
 
 /*
  * Key definition

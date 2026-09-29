@@ -1166,6 +1166,7 @@ pattern_options_create(region_type* region)
 	p->catalog_role_is_default = 1;
 	p->catalog_member_pattern = NULL;
 	p->catalog_producer_zone = NULL;
+	p->catalog_group_pattern = NULL;
 	return p;
 }
 
@@ -1323,6 +1324,34 @@ copy_changed_verifier(struct nsd_options* opt, char ***ov, char **nv)
 	assert(ovc == nvc);
 }
 
+struct group_arr group_arr_null = { 0 };
+static struct group_arr*
+region_group_arr_dup(region_type* region, struct group_arr* src)
+{
+	struct group_arr* dst;
+	int i;
+
+	if(!src)
+		return NULL;
+	dst = region_alloc(region, sizeof(*dst)+sizeof(char*)*src->nmemb);
+	if(!dst)
+		return GROUP_ARR_NULL;
+	dst->nmemb = src->nmemb;
+	for(i = 0; (size_t)i < src->nmemb; i++) {
+		if(!(dst->groups[i] = region_strdup(region, src->groups[i])))
+			break;
+	}
+	if((size_t)i < src->nmemb) {
+		while(--i > 0) {
+			region_recycle( region, dst->groups[i]
+			              ,  strlen(dst->groups[i]) + 1);
+			dst->groups[i] = NULL;
+		}
+		dst->nmemb = 0;
+	}
+	return dst;
+}
+
 static void
 copy_pat_fixed(region_type* region, struct pattern_options* orig,
 	struct pattern_options* p)
@@ -1377,6 +1406,10 @@ copy_pat_fixed(region_type* region, struct pattern_options* orig,
 		orig->catalog_producer_zone =
 			region_strdup(region, p->catalog_producer_zone);
 	else orig->catalog_producer_zone = NULL;
+	if(p->catalog_group_pattern)
+		orig->catalog_group_pattern =
+			region_group_arr_dup(region, p->catalog_group_pattern);
+	else orig->catalog_group_pattern = NULL;
 }
 
 void
@@ -1442,6 +1475,29 @@ pattern_verifiers_equal(const char **vp, const char **vq)
 			return 0;
 	}
 	return 1;
+}
+
+static int
+group_arr_cmp(struct group_arr* a, struct group_arr* b)
+{
+	size_t i;
+	int r;
+
+	if(!a) return b ? -1 : 0;
+	else if(!b) return 1;
+	else if(a->nmemb < b->nmemb) return -1;
+	else if(a->nmemb > b->nmemb) return  1;
+	else for (i = 0; i < a->nmemb; i++) {
+		if(!a->groups[i]) {
+			if (!b->groups[i])
+				continue;
+			return -1;
+		} else if(!b->groups[i])
+			return 1;
+		if((r = strcmp(a->groups[i], b->groups[i])) != 0)
+			return r;
+	}
+	return 0;
 }
 
 int
@@ -1524,6 +1580,7 @@ pattern_options_equal(struct pattern_options* p, struct pattern_options* q)
 	else if(p->catalog_producer_zone && q->catalog_producer_zone) {
 		if(strcmp(p->catalog_producer_zone, q->catalog_producer_zone) != 0) return 0;
 	}
+	if(group_arr_cmp(p->catalog_group_pattern, q->catalog_group_pattern) != 0) return 0;
 	return 1;
 }
 
@@ -1604,6 +1661,52 @@ unmarshal_str(region_type* r, struct buffer* b)
 		size_t len = strlen((char*)buffer_current(b));
 		buffer_skip(b, len+1);
 		return result;
+	} else return NULL;
+}
+
+static void
+marshal_group_arr(struct buffer* b, const struct group_arr* a)
+{
+	if(!a) marshal_u64(b, 0);
+	else {
+		size_t i;
+		marshal_u64(b, a->nmemb + 1);
+		for(i = 0; i< a->nmemb; i++)
+			marshal_str(b, a->groups[i]);
+	}
+}
+
+static struct group_arr*
+unmarshal_group_arr(region_type* r, struct buffer* b)
+{
+	size_t nmemb = unmarshal_u64(b);
+	if(nmemb) {
+		struct group_arr* a;
+		size_t i;
+		int fail;
+
+		nmemb -= 1;
+		a = region_alloc(r, sizeof(*a) + sizeof(char*) * nmemb);
+		if(!a)
+			return GROUP_ARR_NULL;
+		a->nmemb = nmemb;
+		fail = 0;
+		for(i = 0; i < nmemb; i++) {
+			a->groups[i] = unmarshal_str(r, b);
+			if(!a->groups[i])
+				fail = 1;
+		}
+		if(fail) {
+			for(i = 0; i < nmemb; i++) {
+				if(!a->groups[i])
+					continue;
+				region_recycle( r, a->groups[i]
+				              , strlen(a->groups[i]) + 1);
+				a->groups[i] = NULL;
+			}
+			a->nmemb = 0;
+		}
+		return a;
 	} else return NULL;
 }
 
@@ -1752,6 +1855,7 @@ pattern_options_marshal(struct buffer* b, struct pattern_options* p)
 	marshal_u8(b, p->catalog_role_is_default);
 	marshal_str(b, p->catalog_member_pattern);
 	marshal_str(b, p->catalog_producer_zone);
+	marshal_group_arr(b, p->catalog_group_pattern);
 }
 
 struct pattern_options*
@@ -1806,6 +1910,7 @@ pattern_options_unmarshal(region_type* r, struct buffer* b)
 	p->catalog_role_is_default = unmarshal_u8(b);
 	p->catalog_member_pattern = unmarshal_str(r, b);
 	p->catalog_producer_zone = unmarshal_str(r, b);
+	p->catalog_group_pattern = unmarshal_group_arr(r, b);
 	return p;
 }
 
@@ -2957,6 +3062,9 @@ config_apply_pattern(struct pattern_options *dest, const char* name)
 	if(pat->catalog_producer_zone)
 		dest->catalog_producer_zone = region_strdup(
 			cfg_parser->opt->region, pat->catalog_producer_zone);
+	if(pat->catalog_group_pattern)
+		dest->catalog_group_pattern = region_group_arr_dup(
+			cfg_parser->opt->region, pat->catalog_group_pattern);
 }
 
 void

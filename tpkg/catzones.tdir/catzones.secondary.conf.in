@@ -33,9 +33,19 @@ pattern:
 	name: "group1"
 	include-pattern: "xfr-from-primary"
 
+pattern:
+	name: "group2"
+	include-pattern: "xfr-from-primary"
+
+pattern:
+	name: "group3"
+	include-pattern: "xfr-from-primary"
+
 zone:
         name: "catalog1.invalid"
 	zonefile: "secondary.%s.zone"
 	catalog: consumer
+	catalog-group-pattern: "group0"
+	catalog-group-pattern: "group1"
 	include-pattern: "xfr-from-primary"
 
