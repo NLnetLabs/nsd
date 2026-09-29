@@ -3730,9 +3730,12 @@ read_caa_rdata(struct domain_table *domains, uint16_t rdlength,
 	uint16_t length = 1;
 
 	/* byte + string + long string */
-	if (buffer_remaining(packet) < rdlength || rdlength < 2)
+	if (buffer_remaining(packet) < rdlength || rdlength < 3)
 		return MALFORMED;
 	buffer_skip(packet, 1);
+	/* RFC 8659 section 4.1.1: tag length MUST be at least 1 */
+	if (buffer_read_u8_at(packet, mark + 1) == 0)
+		return MALFORMED;
 	if (skip_string(packet, rdlength, &length) < 0 || rdlength < length)
 		return MALFORMED;
 	buffer_set_position(packet, mark);
