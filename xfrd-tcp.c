@@ -9,10 +9,12 @@
 
 #include "config.h"
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/uio.h>
 #include "nsd.h"
 #include "xfrd-tcp.h"
@@ -182,6 +184,25 @@ ssl_handshake(struct xfrd_tcp_pipeline* tp)
 	ERR_clear_error();
 	ret = SSL_do_handshake(tp->ssl);
 	if(ret == 1) {
+		const unsigned char* alpn = NULL;
+		unsigned int alpn_len = 0;
+
+		/* XoT requires the server to select the "dot" ALPN (RFC 9103,
+		 * section 7.1). Reject servers that selected nothing. */
+		SSL_get0_alpn_selected(tp->ssl, &alpn, &alpn_len);
+		if(alpn_len != 3 || memcmp(alpn, "dot", 3) != 0) {
+			char buf[32];
+			unsigned int i;
+			for(i = 0; i < alpn_len && i < sizeof(buf)-1; i++)
+				buf[i] = isprint((unsigned char)alpn[i])
+					? (char)alpn[i] : '?';
+			buf[i] = 0;
+			log_msg(LOG_ERR, "xfrd: TLS handshake failed: server did "
+				"not select ALPN \"dot\" (selected: %s)",
+				alpn_len ? buf : "none");
+			tp->handshake_want = XFRD_TLS_ERROR_ALPN;
+			return 0;
+		}
 		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "xfrd: TLS handshake successful"));
 		tp->handshake_done = 1;
 		return 1;
@@ -1066,7 +1087,9 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 
 		tp->handshake_done = 0;
 		if(!ssl_handshake(tp)) {
-			if(tp->handshake_want == SSL_ERROR_SYSCALL) {
+			if(tp->handshake_want == XFRD_TLS_ERROR_ALPN) {
+				/* already logged by ssl_handshake() */
+			} else if(tp->handshake_want == SSL_ERROR_SYSCALL) {
 				log_msg(LOG_ERR, "xfrd: TLS handshake failed "
 					"for %s to %s: %s", zone->apex_str,
 					zone->master->ip_address_spec,
@@ -1357,7 +1380,9 @@ xfrd_tcp_write(struct xfrd_tcp_pipeline* tp, xfrd_zone_type* zone)
 			return;
 
 		} else {
-			if(tp->handshake_want == SSL_ERROR_SYSCALL) {
+			if(tp->handshake_want == XFRD_TLS_ERROR_ALPN) {
+				/* already logged by ssl_handshake() */
+			} else if(tp->handshake_want == SSL_ERROR_SYSCALL) {
 				log_msg(LOG_ERR, "xfrd: TLS handshake failed: %s",
 					strerror(errno));
 
@@ -1618,7 +1643,9 @@ xfrd_tcp_read(struct xfrd_tcp_pipeline* tp)
 			return;
 
 		} else {
-			if(tp->handshake_want == SSL_ERROR_SYSCALL) {
+			if(tp->handshake_want == XFRD_TLS_ERROR_ALPN) {
+				/* already logged by ssl_handshake() */
+			} else if(tp->handshake_want == SSL_ERROR_SYSCALL) {
 				log_msg(LOG_ERR, "xfrd: TLS handshake failed: %s",
 					strerror(errno));
 

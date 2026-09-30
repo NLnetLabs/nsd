@@ -121,6 +121,12 @@ struct xfrd_tcp_pipeline_key {
  * Sorted by the master IP address so you can use lookup with
  * smaller-or-equal to find the tcp connection most suitable.
  */
+#ifdef HAVE_TLS_1_3
+/* handshake_want value for a failed ALPN check
+ * not an SSL_ERROR_* value, those are all >= 0 */
+#define XFRD_TLS_ERROR_ALPN (-1)
+#endif
+
 struct xfrd_tcp_pipeline {
 	/* the key information for the tcp pipeline, in its own
 	 * struct so it can be referenced on its own for comparison funcs */
@@ -142,7 +148,8 @@ struct xfrd_tcp_pipeline {
 	SSL *ssl;
 	/* XoT: if SSL handshake is not done, handshake_want indicates the
 	 * last error. This may be SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE
-	 * when the handshake is still in progress.
+	 * when the handshake is still in progress, or XFRD_TLS_ERROR_ALPN
+	 * when the handshake completed but the server did not select "dot".
 	 */
 	int  handshake_want;
 	/* XoT: 1 if the SSL handshake has succeeded, 0 otherwise */
