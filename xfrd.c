@@ -440,6 +440,17 @@ xfrd_shutdown()
 	if (xfrd->nsd->tls_ctx)
 		SSL_CTX_free(xfrd->nsd->tls_ctx);
 #  ifdef HAVE_TLS_1_3
+	/* Free SSL objects of open pipelines */
+	if (xfrd->tcp_set) {
+		int i;
+		for(i=0; i<xfrd->tcp_set->tcp_max; i++) {
+			if(xfrd->tcp_set->tcp_state[i] &&
+				xfrd->tcp_set->tcp_state[i]->ssl) {
+				SSL_free(xfrd->tcp_set->tcp_state[i]->ssl);
+				xfrd->tcp_set->tcp_state[i]->ssl = NULL;
+			}
+		}
+	}
 	/* Free tls-auth SSL contexts */
 	if (xfrd->nsd->options) {
 		struct tls_auth_options* tls_auth;
@@ -447,6 +458,7 @@ xfrd_shutdown()
 		    xfrd->nsd->options->tls_auths) {
 			if (tls_auth->ssl_ctx) {
 				SSL_CTX_free(tls_auth->ssl_ctx);
+				tls_auth->ssl_ctx = NULL;
 			}
 		}
 	}
