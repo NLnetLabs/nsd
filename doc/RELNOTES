@@ -25,6 +25,11 @@ BUG FIXES:
 	  the buffer.
 	  Thanks to Yuxiao Wu, Yunyi Zhang, Baojun Liu, and Haixin Duan
 	  from Tsinghua University, for the report and suggested fix.
+	- Fix to compare the dname variant of an AMTRELAY relay and IPSECKEY
+	  gateway RDATA field case insensitively when they are removed by way
+	  of IXFR.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
+
 
 4.15.2
 ================
