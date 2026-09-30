@@ -1131,7 +1131,7 @@ AC_INCLUDES_DEFAULT
 
 	BAKLIBS="$LIBS"
 	LIBS="-lssl $LIBS"
-	AC_CHECK_FUNCS([OPENSSL_init_ssl SSL_get1_peer_certificate SSL_CTX_set_security_level ERR_load_SSL_strings])
+	AC_CHECK_FUNCS([OPENSSL_init_ssl SSL_get1_peer_certificate SSL_CTX_set_security_level ERR_load_SSL_strings TLS_server_method TLS_client_method])
 	if test "$ac_cv_func_ERR_load_SSL_strings" = "yes"; then
 		ACX_FUNC_DEPRECATED([ERR_load_SSL_strings], [(void)ERR_load_SSL_strings();], [
 #include <openssl/ssl.h>
