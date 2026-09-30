@@ -186,7 +186,11 @@ setup_ctx(struct nsd_options* cfg)
 				cfg->zonesdir, strerror(errno));
 	}
 
-        ctx = SSL_CTX_new(TLS_client_method());
+#ifdef HAVE_TLS_CLIENT_METHOD
+	ctx = SSL_CTX_new(TLS_client_method());
+#else
+	ctx = SSL_CTX_new(SSLv23_client_method());
+#endif
 	if(!ctx)
 		ssl_err("could not allocate SSL_CTX pointer");
 #if SSL_OP_NO_SSLv2 != 0
