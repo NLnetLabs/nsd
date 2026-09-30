@@ -1039,12 +1039,12 @@ xfrd_tcp_open(struct xfrd_tcp_set* set, struct xfrd_tcp_pipeline* tp,
 	tp->tcp_r->fd = fd;
 	tp->tcp_w->fd = fd;
 
-#ifdef HAVE_TLS_1_3
 	/* Check if an tls_auth name is configured which means we should try to
 	   establish an SSL connection */
 	if (zone->master->tls_auth_options &&
 	    zone->master->tls_auth_options->auth_domain_name) {
 
+#ifdef HAVE_TLS_1_3
 		if (!zone->master->tls_auth_options->ssl_ctx) {
 			log_msg(LOG_ERR, "xfrd: No SSL context for tls-auth %s, "
 			    "zone %s - check startup errors",
