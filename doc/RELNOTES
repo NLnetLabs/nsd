@@ -5,6 +5,10 @@ NSD RELEASE NOTES
 FEATURES:
 	- A report-channel config option to return a Report-Channel EDNS option
 	  in responses
+	- A catalog-group-pattern option to limit the patterns from which
+	  catalog consumer member zones may be configured by using the group
+	  property.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the suggestion.
 
 BUG FIXES:
 	- Fix makedist.sh to omit .cirrus.yml ci integration.
@@ -29,7 +33,8 @@ BUG FIXES:
 	  gateway RDATA field case insensitively when they are removed by way
 	  of IXFR.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
-
+	- Fix to deny CAA RRs from primaries with an empty tag.
+	  Thanks Qifan Zhang, Palo Alto Networks, for the report.
 
 4.15.2
 ================

@@ -1,3 +1,11 @@
+2 October 2026: Willem
+	- A catalog-group-pattern option to limit the patterns from which
+	  catalog consumer member zones may be configured by using the group
+	  property.
+	  Thanks to Qifan Zhang, Palo Alto Networks, for the suggestion.
+	- Fix to deny CAA RRs from primaries with an empty tag.
+	  Thanks Qifan Zhang, Palo Alto Networks, for the report.
+
 30 September 2026: Willem
 	- Fix to compare the dname variant of an AMTRELAY relay and IPSECKEY
 	  gateway RDATA field case insensitively when they are removed by way
