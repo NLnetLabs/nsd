@@ -26,6 +26,14 @@ pattern:
 	allow-notify: 127.0.0.1 NOKEY
 
 pattern:
+	name: "group0"
+	include-pattern: "xfr-from-primary"
+
+pattern:
+	name: "group1"
+	include-pattern: "xfr-from-primary"
+
+pattern:
 	name: "group2"
 	include-pattern: "xfr-from-primary"
 
@@ -36,6 +44,8 @@ pattern:
 pattern:
         name: "consumer"
 	catalog: consumer
+	catalog-group-pattern: "group2"
+	catalog-group-pattern: "group3"
 	zonefile: "secondary2.%s.zone"
 	include-pattern: "xfr-from-primary"
 

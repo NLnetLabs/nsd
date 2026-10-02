@@ -654,6 +654,14 @@ static void print_zone_content_elems(pattern_options_type* pat)
 		print_string_var("catalog-member-pattern:", pat->catalog_member_pattern);
 	if(pat->catalog_producer_zone)
 		print_string_var("catalog-producer-zone:", pat->catalog_producer_zone);
+	if(pat->catalog_group_pattern) {
+		size_t i;
+
+		for(i = 0; i < pat->catalog_group_pattern->nmemb; i++) {
+			print_string_var("catalog-group-pattern:",
+				pat->catalog_group_pattern->groups[i]);
+		}
+	}
 }
 
 void

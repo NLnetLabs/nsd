@@ -33,6 +33,7 @@ could look like this:
 		name: "catalog1.invalid"
 		catalog: consumer
 		catalog-member-pattern: "member-zone-config"
+		catalog-group-pattern: "member-zone-config"
 
 		request-xfr: 192.0.2.1@853 tsig-key.name primary.example
 		allow-notify: 192.0.2.1 tsig-key.name
@@ -64,6 +65,17 @@ zones from the catalog will be added with the pattern given by the group
 property of that member. If a member does not have a group property or its
 value is invalid or doesn't match a pattern, the pattern given by the
 ``catalog-member-pattern:`` option will be used.
+
+The patterns that can be selected for configuring member zones can be restricted
+by providing one or more ``catalog-group-pattern:`` option. Only group
+properties with values listed in that option are considered. Without the option,
+all configured patterns may be used by member zones.
+
+.. Note:: It is highly RECOMMENDED to limit the patterns to be usable for member
+	zones via the ``catalog-group-pattern:``. If no patterns except the
+	one provided by the ``catalog-member-pattern:`` should be usable, then
+	configure ``catalog-group-pattern:`` to have the same value as the
+	``catalog-member-pattern:`` option.
 
 Using nsd-control to get catalog zone status
 --------------------------------------------
