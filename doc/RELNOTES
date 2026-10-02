@@ -1,5 +1,12 @@
 NSD RELEASE NOTES
 
+4.15.3
+================
+FEATURES:
+BUG FIXES:
+	- Update to simdzone-0.2.7 with fixes for CVE-2026-101337,
+	  CVE-2026-101338, CVE-2026-101339 and CVE-2026-101341
+
 4.15.2
 ================
 FEATURES:
