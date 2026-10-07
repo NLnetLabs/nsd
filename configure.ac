@@ -1268,6 +1268,15 @@ case "$enable_tcp_fastopen" in
                ;;
 esac
 
+AC_ARG_ENABLE(testing, [])
+case "$enable_testing" in
+        yes)
+		AC_DEFINE_UNQUOTED([TESTING_CODE], [], [Define this to enable artificially induced errors for unit tests. NEVER USE THIS IN PRODUCTION!])
+		;;
+        no|*)
+                ;;
+esac
+
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
 #if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
