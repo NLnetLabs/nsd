@@ -2731,10 +2731,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "problems sending reloadpid to xfrd: %s",
 			strerror(errno));
 	}
-
-	/* try to reopen file */
-	if (nsd->file_rotation_ok)
-		log_reopen(nsd->log_filename, 1);
 	/* exit reload, continue as new server_main */
 }
 
