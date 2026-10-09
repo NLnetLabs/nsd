@@ -35,6 +35,8 @@ BUG FIXES:
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the report.
 	- Fix to deny CAA RRs from primaries with an empty tag.
 	  Thanks Qifan Zhang, Palo Alto Networks, for the report.
+	- Fix #523: systemd support is incomplete. Implements
+	  Type=notify-reload with systemctl reload nsd support.
 
 4.15.2
 ================

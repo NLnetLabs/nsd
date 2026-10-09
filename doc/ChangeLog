@@ -1,3 +1,7 @@
+9 October 2026: Wouter
+	- Fix #523: systemd support is incomplete. Implements
+	  Type=notify-reload with systemctl reload nsd support.
+
 2 October 2026: Willem
 	- A catalog-group-pattern option to limit the patterns from which
 	  catalog consumer member zones may be configured by using the group

@@ -297,6 +297,27 @@ xfrd_sig_process(void)
 	} else if(xfrd->nsd->signal_hint_reload_hup) {
 		log_msg(LOG_WARNING, "SIGHUP received, reloading...");
 		xfrd->nsd->signal_hint_reload_hup = 0;
+#ifdef HAVE_SYSTEMD
+		if(1) {
+			/* Notify systemd that SIGHUP was received and the
+			 * reload has started. But a reload can take, for
+			 * large zone data, a long time, and systemd would
+			 * then kill a process on a timer. We notify that the
+			 * reload is ready straight away. */
+			char relmsg[256];
+			struct timespec tp;
+			uint64_t us;
+			memset(&tp, 0, sizeof(tp));
+			if(clock_gettime(CLOCK_MONOTONIC, &tp) < 0)
+				log_msg(LOG_ERR, "clock_gettime: %s", strerror(errno));
+			us = (uint64_t)tp.tv_sec*1000000ULL +
+				(uint64_t)tp.tv_nsec/1000ULL;
+			snprintf(relmsg, sizeof(relmsg),
+				"RELOADING=1\nMONOTONIC_USEC=%" PRIu64, us);
+			sd_notify(0, relmsg);
+			sd_notify(0, "READY=1");
+		}
+#endif
 		if(xfrd->nsd->options->reload_config) {
 			xfrd_reload_config(xfrd);
 		}
