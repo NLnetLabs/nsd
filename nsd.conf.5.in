@@ -1200,7 +1200,7 @@ pattern. The patterns that are allowed for a catalog consumer may be restricted
 by providing one or more \fBcatalog\-group\-pattern\fR option. Only the patterns
 listed by a \fBcatalog\-group\-pattern\fR option are allowed. Without the any
 \fBcatalog\-group\-pattern\fR option, all patterns are allowed to be used with
-th group property.
+the group property.
 .sp
 A zone with the option set to \fIproducer\fR, can be used to produce a
 catalog zone.  Member zones for catalog producer zones can be added with
