@@ -37,6 +37,7 @@ BUG FIXES:
 	  Thanks Qifan Zhang, Palo Alto Networks, for the report.
 	- Fix #523: systemd support is incomplete. Implements
 	  Type=notify-reload with systemctl reload nsd support.
+	- Fix #526 from jpmens: Fix typo in nsd.conf.5.in
 
 4.15.2
 ================
