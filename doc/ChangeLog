@@ -1,3 +1,7 @@
+12 October 2026: Willem
+	- Merge #527: Eliminate excess error message in XoT transfer
+	  Thanks Ferran Tufan
+
 12 October 2026: Wouter
 	- Fix #526 from jpmens: Fix typo in nsd.conf.5.in
 

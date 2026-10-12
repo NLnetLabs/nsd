@@ -38,6 +38,8 @@ BUG FIXES:
 	- Fix #523: systemd support is incomplete. Implements
 	  Type=notify-reload with systemctl reload nsd support.
 	- Fix #526 from jpmens: Fix typo in nsd.conf.5.in
+	- Merge #527: Eliminate excess error message in XoT transfer
+	  Thanks Ferran Tufan
 
 4.15.2
 ================
