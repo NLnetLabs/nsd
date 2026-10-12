@@ -2142,6 +2142,9 @@ server_alpn_cb(SSL* ATTR_UNUSED(s),
 SSL_CTX*
 server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 {
+#ifdef HAVE_SSL_CTX_SET_SESSION_ID_CONTEXT
+	unsigned char sid_ctx[SSL_MAX_SID_CTX_LENGTH];
+#endif
 	SSL_CTX *ctx = SSL_CTX_new(SSLv23_server_method());
 	if(!ctx) {
 		log_crypto_err("could not SSL_CTX_new");
@@ -2251,6 +2254,20 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 	}
 	SSL_CTX_set_alpn_select_cb(ctx, server_alpn_cb, NULL);
+#ifdef HAVE_SSL_CTX_SET_SESSION_ID_CONTEXT
+	srandom(getpid() ^ time(NULL));
+	if (!RAND_status()
+	||  !RAND_bytes(sid_ctx, SSL_MAX_SID_CTX_LENGTH)) {
+		int i;
+		for (i = 0; i < SSL_MAX_SID_CTX_LENGTH; i++)
+			sid_ctx[i] = random_generate(256);
+	}
+	if(!SSL_CTX_set_session_id_context(ctx, sid_ctx, SSL_MAX_SID_CTX_LENGTH)) {
+		log_crypto_err("Error in SSL_CTX set session id context");
+		SSL_CTX_free(ctx);
+		return NULL;
+	}
+#endif
 	return ctx;
 }
 
