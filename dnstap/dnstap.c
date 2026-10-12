@@ -162,7 +162,11 @@ tls_writer_init(char* ip, char* tls_server_name, char* tls_cert_bundle,
 		free(dtw);
 		return NULL;
 	}
+#ifdef HAVE_TLS_CLIENT_METHOD
+	dtw->ctx = SSL_CTX_new(TLS_client_method());
+#else
 	dtw->ctx = SSL_CTX_new(SSLv23_client_method());
+#endif
 	if(!dtw->ctx) {
 		log_msg(LOG_ERR, "dnstap: SSL_CTX_new failed");
 		free(dtw->ip);

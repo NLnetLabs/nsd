@@ -1529,6 +1529,11 @@ main(int argc, char *argv[])
 	}
 #endif /* HAVE_SSL */
 
+#ifdef HAVE_TLS_1_3
+	/* Load client tls-auth SSL ctx(s) */
+	xfrd_tls_auth_load(nsd.options);
+#endif
+
 	/* Unless we're debugging, fork... */
 	if (!nsd.debug) {
 		int fd;
