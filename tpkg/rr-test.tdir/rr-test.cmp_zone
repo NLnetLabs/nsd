@@ -50,6 +50,33 @@ blaat	3600	IN	SOA	elektron.atoom.net. miekg.atoom.net. (
 	3600	IN	IPN	100
 	3600	IN	IPN	429496729700
 	3600	IN	IPN	10000000000000000000
+	3600	IN	UNECE	16 - JPTYO "place of inspection"
+	3600	IN	UNECE	16 - KENBO "distribution hub"
+	3600	IN	UNECE	19 - 1 "mode: maritime"
+	3600	IN	UNECE	19 - 4 "mode: air"
+	3600	IN	UNECE	20 640 H18 "protected wetland area"
+	3600	IN	UNECE	20 12500 MTQ "reservoir volume"
+	3600	IN	UNECE	20 5 MGM "active ingredient per dose"
+	3600	IN	UNECE	20 8500 E22 "container capacity, TEU"
+	3600	IN	UNECE	20 -18 CEL "cold-chain storage temperature"
+	3600	IN	UNECE	20 90 DAY "shelf life"
+	3600	IN	UNECE	20 24 MON "warranty period"
+	3600	IN	UNECE	20 230 VLT "supply voltage"
+	3600	IN	UNECE	20 11 KWT "charger output"
+	3600	IN	UNECE	20 ? P1 "moisture content, assay pending"
+	3600	IN	UNECE	21 12 PX "pallets"
+	3600	IN	UNECE	21 2 CR "crates, artworks on loan"
+	3600	IN	UNECE	21 3 RL "reels, fibre-optic cable"
+	3600	IN	UNECE	21 2 PO "diplomatic pouches"
+	3600	IN	UNECE	24 - 219 "status: delivery pending"
+	3600	IN	ISO	639 - ar "working language"
+	3600	IN	ISO	639 - yue "crew lingua franca"
+	3600	IN	ISO	3166-1 - QA "flag state"
+	3600	IN	ISO	3166-2 - US-CA "state of incorporation"
+	3600	IN	ISO	4217 125000 USD "declared cargo value"
+	3600	IN	ISO	4217 2400000+-50000 EUR "insured value, hull and machinery"
+	3600	IN	ISO	4217 780000+-? CHF "salvage award, assessment ongoing"
+	3600	IN	ISO	4217 ? ZAR "customs value pending appraisal"
 $ORIGIN b.6.c.b.4.a.9.9.6.4.2.8.0.3.1.blaat.nl.
 2	3600	IN	HHIT	gxJpM2ZmOCAwMDBhWQEYMIIBFDCBx6ADAgECAgFUMAUGAytlcDArMSkwJwYDVQQDDCAyMDAxMDAzZmZlMDAwYTA1MjYwZWQ0Mzc2YjI1NmUyODAeFw0yNTA0MDkyMTEzMDBaFw0yNTA0MDkyMjEzMDBaMAAwKjAFBgMrZXADIQDJLi+dl+iWD5tfFlT4sJA5+drcW88GHqxPDOp56Oh3+qM7MDkwNwYDVR0RAQH/BC0wK4cQIAEAP/4ACgUTCCRpmkvGsoYXaHR0cHM6Ly9oZGEuZXhhbXBsZS5jb20wBQYDK2VwA0EA0DbcdngC7/BB/aLjZmLieo0ZFCDbd/KIxAy+3X2KtT4JtodVxRMPAkN6o008gacbNfTG8p9npEcDeYhesl2jBQ==
 	3600	IN	BRID	owAAAYIEUQEgAQA//gAKBRMIJGmaS8ayAogFWIkB+t72Zwrt9mcgAQA//gAABV5goVcekaC3mZDVsEtyoYBm1AkrUsfUmU+3wWvX6MH0QP+o0E/x4T8gAQA//gAABV5goVcekaC3vC9m1JguvXt7W2o4wxPumaT1IP3TQN3fQP28hpInSIlsSwq8UCNjm2ad7pdTvm2EqfOJQNPKClvRZm4qTO5FDAVYiQGX4PZnp+72ZyABAD/+AAoFZhXuRdQnCaDOaB424RQa61YNbna8eWt7fLRU5GPMsfEt4wo4AQGAPyABAD/+AAAFXmChVx6RoLfv3q+mLRB3ya5TmjY8+3CzdoDZT9RZ+XpN5hDiA6JyyxBJvUewxLzPNhTXQp8vED71XAE82tMmt3fB4zbzWNQLBViJAQrh9mca7/ZnIAEAP/4ACgUmDtQ3ayVuKIIz/a61BovBSFnRE6Dt/PjcB4FOPdJ2XmtbguBNBwWXIAEAP/4ACgVmFe5F1CcJoIjyCriJCxAyAWTOHPmlHL02MKSpsHviiTzeqwBH9K/Rrz41CYix9HazAIOAZO8FcfU5M+WLLJZoaQWBHnMbTQwFWIkB3OL2Z+zw9mcgAQA//gAKBRMIJGmaS8ayyS4vnZfolg+bXxZU+LCQOfna3FvPBh6sTwzqeejod/ogAQA//gAKBSYO1DdrJW4ogOfc8jTimYLmTOOyFZoUx2jOOwtB1jnqUJr6bYawMoPrR3MlKGBGWsVz1yXNqUURoCqYdwsYe61vd5i6YJqnAQ==
