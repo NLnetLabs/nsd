@@ -9,6 +9,7 @@ FEATURES:
 	  catalog consumer member zones may be configured by using the group
 	  property.
 	  Thanks to Qifan Zhang, Palo Alto Networks, for the suggestion.
+	- Merge #515: The UNECE and ISO RR types
 
 BUG FIXES:
 	- Fix makedist.sh to omit .cirrus.yml ci integration.
