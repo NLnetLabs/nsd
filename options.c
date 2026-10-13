@@ -2638,7 +2638,7 @@ acl_tls_auth_name_matches(struct acl_options* acl, struct query* q)
 	}
 	if (!acl_tls_hostname_matches(q->tls_auth,
 				acl->tls_auth_options->auth_domain_name)) {
-		VERBOSITY(6, (LOG_DEBUG, "client cert does not match %s %s",
+		DEBUG(DEBUG_QUERY, 6, (LOG_INFO, "client cert does not match %s %s",
 			acl->tls_auth_name,
 			acl->tls_auth_options->auth_domain_name));
 		return 0;

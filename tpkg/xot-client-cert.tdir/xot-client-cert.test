@@ -30,6 +30,16 @@ if ! grep -q CONFIDENTIAL another-success.result.txt; then
 fi
 
 dig -p $TPKG_XoT_PORT @127.0.0.1 +tls +tls-ca=xot-client-cert.ca.crt \
+	+tls-certfile=xot-client-cert.secondary.crt \
+	+tls-keyfile=xot-client-cert.secondary.key \
+	victim.test AXFR victim.test AXFR 2>&1 > twice.result.txt
+if [ `grep CONFIDENTIAL twice.result.txt | wc -l` -ne 2 ]; then
+	echo "Error: Session resumption failed!"
+	cat twice.result.txt
+	exit 1
+fi
+
+dig -p $TPKG_XoT_PORT @127.0.0.1 +tls +tls-ca=xot-client-cert.ca.crt \
 	+tls-certfile=xot-client-cert.wrong-name.crt \
 	+tls-keyfile=xot-client-cert.secondary.key victim.test AXFR \
 	2>&1 > wrong-name.result.txt
