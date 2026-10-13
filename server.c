@@ -2256,8 +2256,8 @@ server_tls_ctx_setup(char* key, char* pem, char* verifypem)
 	SSL_CTX_set_alpn_select_cb(ctx, server_alpn_cb, NULL);
 #ifdef HAVE_SSL_CTX_SET_SESSION_ID_CONTEXT
 	srandom(getpid() ^ time(NULL));
-	if (!RAND_status()
-	||  !RAND_bytes(sid_ctx, SSL_MAX_SID_CTX_LENGTH)) {
+	if (RAND_status() == 0
+	||  RAND_bytes(sid_ctx, SSL_MAX_SID_CTX_LENGTH) <= 0) {
 		int i;
 		for (i = 0; i < SSL_MAX_SID_CTX_LENGTH; i++)
 			sid_ctx[i] = random_generate(256);
