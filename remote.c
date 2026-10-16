@@ -537,12 +537,8 @@ daemon_remote_open_ports(struct daemon_remote* rc, struct nsd_options* cfg)
 			}
 		}
 	} else {
-		/* defaults */
-		if(cfg->do_ip6 && !add_open(rc, cfg, "::1", cfg->control_port, 0)) {
-			return 0;
-		}
-		if(cfg->do_ip4 &&
-			!add_open(rc, cfg, "127.0.0.1", cfg->control_port, 1)) {
+		/* default: Unix domain socket */
+		if(!add_open(rc, cfg, NSD_CONTROL_SOCKET, 0, 1)) {
 			return 0;
 		}
 	}
