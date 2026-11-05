@@ -160,7 +160,7 @@ nsd_options_create(region_type* region)
 	opt->cookie_staging_secret = NULL;
 	opt->cookie_secret_file = NULL;
 	opt->cookie_secret_file_is_default = 1;
-	opt->control_enable = 0;
+	opt->control_enable = 1;
 	opt->control_interface = NULL;
 	opt->control_port = NSD_CONTROL_PORT;
 	opt->server_key_file = CONFIGDIR"/nsd_server.key";

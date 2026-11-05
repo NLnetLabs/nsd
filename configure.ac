@@ -1268,6 +1268,8 @@ case "$enable_tcp_fastopen" in
                ;;
 esac
 
+AC_DEFINE_UNQUOTED(NSD_CONTROL_SOCKET, ["`eval echo ${runstatedir}/nsd/nsd.sock`"], [Default Unix socket for nsd-control])
+
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
 #if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
