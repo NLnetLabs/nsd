@@ -862,6 +862,7 @@ xfrd_tcp_obtain(struct xfrd_tcp_set* set, xfrd_zone_type* zone)
 		}
 		/** What if there is no free tcp_buffer? return; */
 		if (zone->tcp_conn < 0) {
+			set->tcp_count --;
 			return;
 		}
 

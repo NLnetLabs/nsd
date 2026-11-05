@@ -5,6 +5,8 @@ NSD RELEASE NOTES
 FEATURES:
 
 BUG FIXES:
+	- Fix leaked tcp usage counter if no free buffer can be found
+	  for secondary transfer.
 
 4.15.4
 ================
