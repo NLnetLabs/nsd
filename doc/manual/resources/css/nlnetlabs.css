@@ -35,6 +35,9 @@
   font-display: swap;
 }
 
+/* Keep labels such as “RFC 1034” together. */
+a.rfc { white-space: nowrap; }
+
 body { line-height: 1.7; }
 h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
