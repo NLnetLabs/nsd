@@ -17,10 +17,10 @@ The configuration NSD uses is specified in the configuration file, which can be 
 
 The basic rules are of the config file are:
 
-  - The used notation is ``attribute: value``
-  - Comments start with ``#`` and extend to the end of a line
-  - Empty lines are ignored, as is whitespace at the beginning of a line
-  - Quotes can be used, for names containing spaces, e.g. ``"file name.zone"``
+- The used notation is ``attribute: value``
+- Comments start with ``#`` and extend to the end of a line
+- Empty lines are ignored, as is whitespace at the beginning of a line
+- Quotes can be used, for names containing spaces, e.g. ``"file name.zone"``
 
 
 Below we'll give an example config file, which specifies options for the NSD server, zone files, primaries and secondaries. This provide basic config which can be used for as a starting point.
