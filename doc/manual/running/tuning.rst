@@ -25,8 +25,9 @@ packets evenly across server processes to balance the load.
 A couple of other options that the operator may want to consider:
 
 1. TCP capacity can be significantly increased by setting ``tcp-count: 1000``
-   and ``tcp-timeout: 3``. Set ``tcp-reject-overflow: yes`` to prevent the
-   kernel connection queue from growing.
+   and ``tcp-timeout: 3``. 
+2. Set ``tcp-reject-overflow: yes`` to prevent the kernel connection queue from
+   growing.
 
 Processor Affinity
 ------------------
