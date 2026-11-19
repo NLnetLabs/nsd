@@ -4,14 +4,12 @@ Tuning
 In version 4.3.0 of NSD, additional functionality was added to increase
 performance even more. Most notably, this includes processor affinity.
 
-NSD is performant by design because it matters when operators serve hundreds of
-thousands or even millions of queries per second. We strive to make the right
-choices by default, like enabling the use of ``libevent`` at the configure stage
-to ensure the most efficient event mechanism is used on a given platform. e.g.
-``epoll`` on Linux and ``kqueue`` on FreeBSD. Switches are available for
-operators who know the implementation on their system behaves correctly, like
-enabling the use of ``recvmmsg`` at the configure stage
-(`--enable-recvmmsg`) to read multiple messages from a socket in one system
+We strive choose sensible default settings, such as enabling the use of
+``libevent`` at the configure stage to ensure the most efficient event mechanism
+is used on a given platform. e.g. ``epoll`` on Linux and ``kqueue`` on FreeBSD.
+Switches are available for operators who know the implementation on their system
+behaves correctly, like enabling the use of ``recvmmsg`` at the configure stage
+(``--enable-recvmmsg``) to read multiple messages from a socket in one system
 call.
 
 By default NSD forks (only) one server. Modern computer systems however, may
