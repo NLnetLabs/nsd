@@ -838,7 +838,7 @@ to "yes", otherwise it is set to "no".
 .sp
 .B VERIFY_IP_ADDRESSES
 .br
-The list of IP addresses on which the zones to be assess well be served,
+The list of IP addresses on which the zones to be assess will be served,
 and their port numbers, separated by spaces, like "ip1@port1 ip2@port2".
 .sp
 .B VERIFY_IP_ADDRESS
