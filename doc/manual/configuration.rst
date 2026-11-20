@@ -2,7 +2,7 @@ Configuration
 =============
 
 NSD has a vast array of configuration options for advanced use cases. To
-configure the application, a ``nsd.conf`` configuration file used. The file
+configure the application, a ``nsd.conf`` configuration file is used. The file
 format has attributes and values, and some attributes have attributes inside
 them.
 
@@ -25,7 +25,7 @@ The basic rules are of the config file are:
 
 Below we'll give an example config file, which specifies options for the NSD server, zone files, primaries and secondaries. This provide basic config which can be used for as a starting point.
 
-Note that for the remainder we assume the default location of NSD is ``/etc/nsd`` though this may vary on your system.
+Note that for our examples we assume the default location of NSD is ``/etc/nsd`` though this may vary on your system.
 
 The example configuration below specifies options for the NSD server, zone
 files, primaries and secondaries.
@@ -176,8 +176,8 @@ contain something like:
 
 You should only do that if you're intending to run a root server, NSD is not
 suited for running a ``.`` cache. Therefore if you choose to serve the ``.``
-zone you have to make sure that the complete root zone is timely and fully
-updated.
+zone you have to make sure that the complete root zone is fully updated
+in a timely manner.
 
 To prevent misconfiguration, NSD configure has the
 ``--enable-root-server`` option, that is by default disabled.

@@ -116,7 +116,7 @@ Testing
 =======
 
 A simple test to determine if the installation was successful is to invoke the
-:command:`nsd` command with the :option:`-V` option, which is the "version"
+:command:`nsd` command with the :option:`-v` option, which is the "version"
 option. This shows the version and build options used and proves installation
 was successful.
 

@@ -26,7 +26,7 @@ For Debian/Ubuntu based systems, you would install the dependencies as follows:
     sudo apt install -y libxdp-dev libbpf-dev libcap-dev clang llvm gcc-multilib
 
 When using the git source repository, make sure to also initialize the
-submodules and auxilary files:
+submodules and auxiliary files:
 
 .. code-block:: bash
 

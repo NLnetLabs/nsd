@@ -14,8 +14,8 @@ the Internet Engineering Task Force (IETF). NSD is distributed free of charge in
 open source form under the BSD license. For most platforms, `packages
 <https://repology.org/project/nsd/versions>`_ are available.
 
-This documentation is an open source project maintained by NLnet Labs. is edited
-via text files in the `reStructuredText
+This documentation is an open source project maintained by NLnet Labs. and it is
+edited in text files in the `reStructuredText
 <http://www.sphinx-doc.org/en/stable/rest.html>`_ markup language and then
 compiled into a static website/offline document using the open source `Sphinx
 <http://www.sphinx-doc.org>`_ and `ReadTheDocs <https://readthedocs.org/>`_
