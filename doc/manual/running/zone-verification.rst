@@ -206,7 +206,9 @@ the candidate zone through AXFR; NSD can also supply it on standard input.
 .. note::
 
    NSD can load and serve ZONEMD records, but does not generate or validate
-   their digests. Any ZONEMD checks must be implemented by external software.
+   their digests itself. An external verifier such as
+   ``ldns-verify-zone -Z`` can require a ZONEMD record and verify the zone
+   digest.
 
 Test before deployment
 ----------------------
