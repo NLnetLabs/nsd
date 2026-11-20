@@ -210,6 +210,18 @@ the candidate zone through AXFR; NSD can also supply it on standard input.
    ``ldns-verify-zone -Z`` can require a ZONEMD record and verify the zone
    digest.
 
+To check the DNSSEC chain of trust, a verifier can use ``unbound-host``
+with a configuration supplied through ``-C``. Configure a stub zone
+pointing to NSD's verification interface and a trust anchor above the
+candidate zone. The ``-v`` option reports the validation status.
+
+Check the SOA record and at least one other signed record type. This
+tests the chain of trust for those responses, rather than every record
+in the zone. If successful DNSSEC validation is required, the verifier
+must require a ``secure`` result; an ``insecure`` result is not sufficient.
+Because the stub zone directs queries to the verification interface,
+this check does not test the published delegation's glue.
+
 Test before deployment
 ----------------------
 
