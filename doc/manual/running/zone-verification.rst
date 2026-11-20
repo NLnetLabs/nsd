@@ -295,5 +295,7 @@ Further reading
 
 - `nsd.conf(5): Verifier options
   <../manpages/nsd.conf.html#Verifier_options>`_
+- `unbound-host(1)
+  <https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound-host.html>`_
 - `Zone verification in NSD: design and background
   <https://blog.nlnetlabs.nl/zone-verification-in-nsd/>`_
