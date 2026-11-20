@@ -7,8 +7,8 @@ tells NSD whether to accept or reject it. This provides a checkpoint between
 receiving new zone data and making it available to clients and downstream
 secondaries.
 
-Typical uses include checking DNSSEC signatures, checking required records,
-or enforcing requirements specific to your publication process.
+Typical uses include checking DNSSEC signatures, validating ZONEMD records,
+checking required records, or enforcing requirements specific to your publication process.
 
 NSD coordinates verification but does not perform the checks itself. The
 checks depend on the external verifier you configure.
@@ -75,7 +75,7 @@ data and a non-zero exit status for data you intend to reject.
 Enable verification
 -------------------
 
-The following example uses ``ldns-verify-zone`` to check signed zone data.
+The following example uses ``ldns-verify-zone`` to check signed zone data and verifies and validates ZONEMD record (if present).
 
 Add a top-level ``verify:`` section to ``nsd.conf``:
 
@@ -84,7 +84,7 @@ Add a top-level ``verify:`` section to ``nsd.conf``:
    verify:
        enable: yes
        verify-zones: yes
-       verifier: ldns-verify-zone -V2
+       verifier: ldns-verify-zone -V2 -Z
        verifier-feed-zone: yes
        verifier-timeout: 60
 
@@ -119,7 +119,7 @@ To verify only selected zones, disable verification by default:
    verify:
        enable: yes
        verify-zones: no
-       verifier: ldns-verify-zone -V2
+       verifier: ldns-verify-zone -V2 -Z
        verifier-feed-zone: yes
        verifier-timeout: 60
 
