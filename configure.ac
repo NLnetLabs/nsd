@@ -863,8 +863,20 @@ AC_REPLACE_FUNCS(snprintf)
 AC_REPLACE_FUNCS(strlcat)
 AC_REPLACE_FUNCS(strlcpy)
 AC_REPLACE_FUNCS(strptime)
-AC_REPLACE_FUNCS(b64_pton)
-AC_REPLACE_FUNCS(b64_ntop)
+dnl OpenBSD libc has b64_pton and b64_ntop as __b64_pton and __b64_ntop
+dnl (resolv.h maps the names), use those instead of the compat versions.
+AC_CANONICAL_HOST
+case "$host" in
+    *openbsd*)
+	AC_CHECK_FUNCS([__b64_pton __b64_ntop])
+	;;
+esac
+if test "x$ac_cv_func___b64_pton" != xyes; then
+	AC_REPLACE_FUNCS(b64_pton)
+fi
+if test "x$ac_cv_func___b64_ntop" != xyes; then
+	AC_REPLACE_FUNCS(b64_ntop)
+fi
 AC_REPLACE_FUNCS(pselect)
 AC_REPLACE_FUNCS(memmove)
 AC_REPLACE_FUNCS(setproctitle)
@@ -1381,12 +1393,20 @@ AH_BOTTOM([
 ])
 
 AH_BOTTOM([
+#if defined(HAVE___B64_NTOP) || defined(HAVE___B64_PTON)
+/* resolv.h declares __b64_ntop and __b64_pton and maps the names */
+#include <resolv.h>
+#endif
 #ifndef HAVE_B64_NTOP
+#ifndef HAVE___B64_NTOP
 int b64_ntop(uint8_t const *src, size_t srclength,
 	     char *target, size_t targsize);
+#endif
 #endif /* !HAVE_B64_NTOP */
 #ifndef HAVE_B64_PTON
+#ifndef HAVE___B64_PTON
 int b64_pton(char const *src, uint8_t *target, size_t targsize);
+#endif
 #endif /* !HAVE_B64_PTON */
 #ifndef HAVE_FSEEKO
 #define fseeko fseek
