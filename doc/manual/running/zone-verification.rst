@@ -108,7 +108,7 @@ data to the verifier through standard input.
 NSD executes the verifier directly, without a shell. Write the executable
 and its arguments as separate tokens, as shown above; do not quote the
 whole command as one string. Put pipelines or multiple checks in an
-executable script.
+executable script and use that as verifier instead.
 
 The timeout of 60 seconds is an example, not a recommended value. Measure
 verification time with your own zones and allow for expected load. A timeout
