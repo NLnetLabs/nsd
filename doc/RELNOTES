@@ -7,6 +7,7 @@ FEATURES:
 BUG FIXES:
 	- Fix leaked tcp usage counter if no free buffer can be found
 	  for secondary transfer.
+	- Fix man page for VERIFY_IP_ADDRESS and VERIFY_IP_ADDRESSES.
 
 4.15.4
 ================

@@ -1,3 +1,6 @@
+20 November 2026: Wouter
+	- Fix man page for VERIFY_IP_ADDRESS and VERIFY_IP_ADDRESSES.
+
 5 November 2026: Wouter
 	- Fix leaked tcp usage counter if no free buffer can be found
 	  for secondary transfer.

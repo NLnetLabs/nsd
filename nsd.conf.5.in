@@ -838,6 +838,11 @@ to "yes", otherwise it is set to "no".
 .sp
 .B VERIFY_IP_ADDRESSES
 .br
+The list of IP addresses on which the zones to be assess well be served,
+and their port numbers, separated by spaces, like "ip1@port1 ip2@port2".
+.sp
+.B VERIFY_IP_ADDRESS
+.br
 The first address on which the zones to be assessed will be served.
 If IPv6 is available an IPv6 address will be preferred over IPv4.
 .sp
