@@ -46,10 +46,21 @@ The verifier communicates its result through its exit status:
 - **Non-zero:** reject the update and retain the previous version.
 - **Timeout:** terminate the verifier and reject the update.
 
-NSD can provide the candidate zone to the verifier through standard input.
-Alternatively, a verifier can query a separate verification interface.
-This interface exposes the candidate data for checking before it is
-published through the normal query service.
+NSD can provide the candidate zone to the verifier through standard input
+in presentation format. Alternatively, the verifier can retrieve the
+complete candidate zone through AXFR from a separate verification interface.
+AXFR transfers the records in DNS wire format and can be substantially
+faster than reading presentation-format data from standard input.
+
+For large zones, a verifier can first obtain the currently published SOA
+serial from the normal query interface, then request an IXFR from that
+serial through the verification interface. When an incremental transfer
+is available, this allows checks that support incremental validation to
+process only the changes. The verifier should also handle a full AXFR
+response if an incremental transfer is unavailable.
+
+The verification interface exposes candidate data before NSD publishes it
+through the normal query service.
 
 .. important::
 
