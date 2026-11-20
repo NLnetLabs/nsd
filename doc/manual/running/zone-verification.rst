@@ -245,7 +245,8 @@ Reloading and publication
 Existing query workers serve current data while a reload process prepares
 the candidate database. For an accepted transfer, the sequence is:
 
-#. A query worker receives an authorised NOTIFY and forwards it to ``xfrd``.
+#. A query worker receives an authorised NOTIFY and passes it directly to
+   ``xfrd`` through an internal pipe.
 #. ``xfrd`` retrieves the update and writes it to a file for that transfer.
    Transfers can also be triggered by the normal refresh timer.
 #. The main process forks a reload process, which applies the transferred
