@@ -276,6 +276,11 @@ Operational considerations
 Verification adds processing time to zone publication. Its cost depends
 on the zone contents, the checks performed and the verifier implementation.
 
+For large zones, ``ldns-verify-zone`` offers options to limit DNSSEC
+checks to the zone apex (``-a``) or a randomly selected percentage of
+names (``-p``). These options reduce validation coverage and should be
+chosen according to the failures you need to detect.
+
 The ``verifier-count`` option limits how many verifier processes may run
 concurrently. Tune concurrency and timeouts together, considering CPU and
 memory use as well as the acceptable delay before updates become visible.
