@@ -90,6 +90,7 @@ The following example uses ``ldns-verify-zone`` to check zone data and
 requires a valid ZONEMD record through the ``-Z`` option. A single ``-Z``
 also permits verification of an unsigned zone using its ZONEMD record;
 use ``-ZZ`` if the zone must additionally be validly DNSSEC signed.
+
 Add a top-level ``verify:`` section to ``nsd.conf``:
 
 .. code-block:: text
@@ -155,11 +156,16 @@ A verifier can be a script that runs an existing tool such as
 to your zones or publication process. You do not need to implement a DNSSEC
 validator yourself.
 
-For example, the script could check that required records are present or
-reject an unexpected reduction in the number of records. When combining
-checks, save the candidate zone to a temporary file so that each tool can
-read the complete input. Use a DNS-aware parser for record checks, and
-return zero only if every check succeeds.
+Additional checks can enforce requirements specific to your publication
+process. For example, a script could reject a zone with fewer records
+than expected, or require a TXT record added by the provisioning system.
+Such a record could indicate when the zone was generated or how many
+records it should contain.
+
+When combining checks on data received through standard input, save the
+candidate zone to a temporary file so that each tool can read the complete
+input. Use a DNS-aware parser for record checks, and return zero only if
+every check succeeds.
 
 Configure the executable script as the verifier, for example:
 
