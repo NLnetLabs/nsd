@@ -86,8 +86,10 @@ data and a non-zero exit status for data you intend to reject.
 Enable verification
 -------------------
 
-The following example uses ``ldns-verify-zone`` to check signed zone data and verifies and validates ZONEMD record (if present).
-
+The following example uses ``ldns-verify-zone`` to check zone data and
+requires a valid ZONEMD record through the ``-Z`` option. A single ``-Z``
+also permits verification of an unsigned zone using its ZONEMD record;
+use ``-ZZ`` if the zone must additionally be validly DNSSEC signed.
 Add a top-level ``verify:`` section to ``nsd.conf``:
 
 .. code-block:: text
