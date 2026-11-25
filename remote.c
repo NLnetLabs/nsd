@@ -2751,6 +2751,38 @@ do_print_cookie_secrets(RES* ssl, xfrd_state_type* xrfd, char* arg) {
 	explicit_bzero(secret_hex, sizeof(secret_hex));
 }
 
+#ifdef TESTING_CODE
+static void
+do_testing(RES* ssl, xfrd_state_type* xfrd, char* arg) {
+	char* arg2 = strchr(arg, ' ');
+	if (arg2) {
+		*arg2++ = 0;
+		while(isspace(*arg2))
+			arg2++;
+		if(!*arg2)
+			arg2 = NULL;
+	}
+	if(strcmp(arg, "xfrd") != 0) {
+		(void)ssl_printf(ssl,
+			"testing in process role %s is not yet supported\n",
+			arg);
+		return;
+	}
+	if(!arg2)
+		; /* pass */
+	else if (strcmp(arg2, "on") == 0)
+		xfrd->nsd->testing = 1;
+	else if (strcmp(arg2, "off") == 0)
+		xfrd->nsd->testing = 0;
+	else
+		(void)ssl_printf(ssl,
+			"2nd argument must be \"on\" or \"off\"\n");
+
+	(void)ssl_printf(ssl, "testing in process role \"%s\": %s\n",
+		arg, (xfrd->nsd->testing ? "on" : "off"));
+}
+#endif
+
 /** check for name with end-of-string, space or tab after it */
 static int
 cmdcmp(char* p, const char* cmd, size_t len)
@@ -2822,6 +2854,10 @@ execute_cmd(struct daemon_remote* rc, RES* ssl, char* cmd)
 		do_print_cookie_secrets(ssl, rc->xfrd, skipwhite(p+20));
 	} else if(cmdcmp(p, "activate_cookie_secret", 22)) {
 		do_activate_cookie_secret(ssl, rc->xfrd, skipwhite(p+22));
+#ifdef TESTING_CODE
+	} else if(cmdcmp(p, "testing", 7)) {
+		do_testing(ssl, rc->xfrd, skipwhite(p+7));
+#endif
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}
