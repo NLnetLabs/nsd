@@ -95,5 +95,10 @@ Internet drafts that have been implemented in NSD.
 :rfc:`9103`    DNS Zone Transfer over TLS
 :rfc:`9210`    DNS Transport over TCP - Operational Requirements
 :rfc:`9432`    DNS Catalog Zones
+:rfc:`9460`    Service Binding and Parameter Specification via the DNS (SVCB and HTTPS record types)
 :rfc:`9886`    DRIP Entity Tags (DETs) in the Domain Name System
 ============== ====
+
+NSD can load and serve the SVCB and HTTPS resource records defined in
+:rfc:`9460`. The SVCB/HTTPS-specific Additional section processing described
+in section 4.1 is not yet implemented.
